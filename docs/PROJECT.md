@@ -201,11 +201,13 @@ and the **final audit** before publish.
    ↓
 4. YOU REVIEW DOSSIER              ← check [UNVERIFIED] items, approve
    ↓
-5. /pipeline-draft <category>      ⏳ drafter subagent → MDX with status: draft
+5. /pipeline-draft <category>      ✅ drafter subagent → MDX with status: draft
    ↓
-6. /pipeline-verify <category>     ⏳ verifier subagent → claim-by-claim audit
+6. YOU REVIEW DRAFT                ← read, fix voice/flow, resolve EDITOR comments
    ↓
-7. YOU AUDIT + PUBLISH             ← read draft + report, fix, status: published
+7. /pipeline-verify <category>     ⏳ verifier subagent → claim-by-claim audit
+   ↓
+8. YOU AUDIT + PUBLISH             ← read report, fix, status: published
 ```
 
 **Working files** live under `research/`:
@@ -237,7 +239,7 @@ uses Sonnet (high-craft step).
 **Phase status (as of 2026-05-02):**
 - ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
 - ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
-- ⏳ Phase 3: drafter subagent + `/pipeline-draft` command
+- ✅ Phase 3: drafter agent (`drafter.md`) + `/pipeline-draft` command
 - ⏳ Phase 4: verifier ★ brand-protection step ★
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
 - ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
@@ -616,6 +618,22 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-02 — Phase 3 drafter agent built
+
+**What.**
+
+- `.claude/agents/drafter.md` — drafter subagent. Reads the dossier,
+  the content schema, the issue template, and both published issues for
+  voice reference. Writes a complete MDX issue file with `status: draft`.
+  Hard rules: facts from dossier only, verbatim quotes only, registered
+  section kinds only, no `author` field, YAML-safe strings, flags any
+  [UNVERIFIED] dossier items with `# EDITOR: verify before publish`.
+- `.claude/commands/pipeline-draft.md` — `/pipeline-draft <category>`
+  slash command. Finds the most recent dossier, confirms
+  `status: ready-for-draft`, spawns the drafter subagent.
+- Pipeline diagram in §3.7 updated to show Phase 3 complete and add
+  "YOU REVIEW DRAFT" human gate between draft and verify.
 
 ### 2026-05-02 — Phase 2 researcher agent built + first pipeline-discover run
 
