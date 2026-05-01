@@ -1,0 +1,293 @@
+/* ============================================================================
+   PARALLAX · EARTH THEME
+   Vibe: USGS / National Geographic atlas. Warm map paper, forest-green
+   contour ink, USGS contour-brown alt. Quiet, scientific, cartographic.
+   Latitude/longitude eyebrows, metric measurements in mono.
+   ============================================================================ */
+
+:root[data-topic="earth"] {
+  --bg: #f0e9d8;
+  --paper: #fbf6e9;
+  --paper-2: #ece3cc;
+  --rule: #d4c8a8;
+  --rule-soft: #e3d9bf;
+  --ink: #1f2a1c;
+  --ink-soft: #3d4a35;
+  --muted: #6b7158;
+  --accent: #2d6a4f;
+  --accent-deep: #1a4a36;
+  --accent-alt: #a04922;       /* USGS contour brown — used sparingly */
+  --tape: #d8c89a;
+  --font-display: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* --- Global tweaks (mirror politics light-paper pattern) ----------------- */
+[data-topic="earth"] .px-masthead {
+  border-top-color: var(--accent);
+  border-bottom-color: var(--rule);
+}
+[data-topic="earth"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
+[data-topic="earth"] .px-hero__byline {
+  border-color: var(--rule);
+  color: var(--muted);
+}
+[data-topic="earth"] .px-section__num { color: var(--accent); }
+[data-topic="earth"] .px-eyebrow { color: var(--accent); letter-spacing: 0.18em; }
+[data-topic="earth"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+
+[data-topic="earth"] .px-quote {
+  border-left-color: var(--accent);
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+[data-topic="earth"] .px-sources { border-top-color: var(--accent); }
+[data-topic="earth"] .px-sources li { border-bottom-color: var(--rule); color: var(--ink-soft); }
+[data-topic="earth"] .px-sources li::before { color: var(--accent); }
+[data-topic="earth"] .px-sources li strong { color: var(--ink); }
+[data-topic="earth"] .px-sources li a { color: var(--accent); }
+
+[data-topic="earth"] .px-foot { border-top-color: var(--accent); color: var(--muted); }
+[data-topic="earth"] .px-foot a:hover { color: var(--ink); border-bottom-color: var(--rule); }
+
+/* --- Topic index page (atlas-cover treatment) --------------------------- */
+[data-topic="earth"] .px-topic-hero {
+  position: relative;
+}
+[data-topic="earth"] .px-topic-hero::before {
+  /* faint contour-line backdrop, pure CSS — no image dependency */
+  content: '';
+  position: absolute;
+  inset: 0 0 48px 0;
+  background-image:
+    radial-gradient(ellipse 1200px 240px at 30% 50%, transparent 0%, transparent 49%, var(--rule-soft) 49.5%, transparent 50%),
+    radial-gradient(ellipse 900px 180px at 30% 50%, transparent 0%, transparent 49%, var(--rule-soft) 49.5%, transparent 50%),
+    radial-gradient(ellipse 600px 120px at 30% 50%, transparent 0%, transparent 49%, var(--rule-soft) 49.5%, transparent 50%);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+}
+[data-topic="earth"] .px-topic-hero > * { position: relative; z-index: 1; }
+
+[data-topic="earth"] .px-topic-hero__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+[data-topic="earth"] .px-topic-hero__title em { color: var(--accent); }
+
+/* --- Masthead variant: atlas coordinate bar ----------------------------- */
+.px-masthead--earth {
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+.px-masthead--earth .px-masthead__brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.px-masthead--earth .px-masthead__sep {
+  color: var(--muted);
+  margin: 0 6px;
+}
+.px-masthead--earth .px-masthead__coord {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent-deep);
+}
+.px-masthead--earth .px-masthead__elev {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* --- Topic empty state on atlas paper ---------------------------------- */
+[data-topic="earth"] .px-topic-empty__no { color: var(--accent); font-family: var(--font-display); font-weight: 600; }
+[data-topic="earth"] .px-topic-empty__tag { font-family: var(--font-display); font-style: italic; }
+
+/* --- Topic list -------------------------------------------------------- */
+[data-topic="earth"] .px-topic-list__item { border-bottom-color: var(--rule); }
+[data-topic="earth"] .px-topic-list__item:hover { background: var(--paper); }
+[data-topic="earth"] .px-topic-list__title { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+[data-topic="earth"] .px-topic-list__title em { color: var(--accent); }
+
+/* --- Cross-topic component re-skins ----------------------------------- */
+[data-topic="earth"] .px-prose__lead { color: var(--ink); font-family: var(--font-display); font-weight: 500; }
+[data-topic="earth"] .px-prose__p { color: var(--ink); }
+[data-topic="earth"] .px-prose__p strong { color: var(--accent); }
+[data-topic="earth"] .px-prose__p em { color: var(--accent); }
+
+[data-topic="earth"] .px-compare__head { border-bottom-color: var(--rule); }
+[data-topic="earth"] .px-compare__side { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+[data-topic="earth"] .px-compare__side-label { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="earth"] .px-compare__row { border-bottom-color: var(--rule); }
+
+[data-topic="earth"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
+[data-topic="earth"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
+[data-topic="earth"] .px-readout__num { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+[data-topic="earth"] .px-readout__unit { color: var(--accent); }
+
+[data-topic="earth"] .px-paradox__side { background: var(--paper); border-color: var(--rule); }
+[data-topic="earth"] .px-paradox__side-title { color: var(--ink); font-family: var(--font-display); }
+
+/* TIMELINE — survey log feel */
+[data-topic="earth"] .px-timeline { display: grid; grid-template-columns: 110px 40px 1fr; gap: 0; }
+[data-topic="earth"] .px-timeline__row { display: contents; }
+[data-topic="earth"] .px-timeline__date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  padding: 16px 16px 16px 0;
+  text-align: right;
+  border-bottom: 1px dashed var(--rule);
+}
+[data-topic="earth"] .px-timeline__rail {
+  position: relative;
+  border-bottom: 1px dashed var(--rule);
+  padding: 16px 0;
+}
+[data-topic="earth"] .px-timeline__rail::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--rule);
+}
+[data-topic="earth"] .px-timeline__rail::after {
+  content: ''; position: absolute; left: 50%; top: 26px;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+[data-topic="earth"] .px-timeline__body { padding: 16px 0 16px 16px; border-bottom: 1px dashed var(--rule); }
+[data-topic="earth"] .px-timeline__title { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+[data-topic="earth"] .px-timeline__detail { color: var(--ink-soft); }
+
+/* ============================================================================
+   ELEVATION PROFILE — earth signature component
+   ============================================================================ */
+.px-elev {
+  margin: 28px 0 12px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.px-elev__caption {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.px-elev__axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0 10px 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.px-elev__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.px-elev__band {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px dashed var(--rule);
+  align-items: center;
+  position: relative;
+}
+.px-elev__band:last-child { border-bottom: none; }
+.px-elev__band[data-flag="depth"] { background: linear-gradient(to right, rgba(45,106,79,0.05), transparent 30%); }
+.px-elev__band[data-flag="altitude"] { background: linear-gradient(to right, rgba(160,73,34,0.04), transparent 30%); }
+.px-elev__band[data-flag="core"] { background: linear-gradient(to right, rgba(160,73,34,0.08), transparent 30%); }
+
+.px-elev__label-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.px-elev__label-range {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.px-elev__bar-frame {
+  position: relative;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent 13px, var(--rule) 13px, var(--rule) 14px, transparent 14px);
+}
+.px-elev__bar {
+  height: 100%;
+  background: var(--accent-alt);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  min-width: 60px;
+  position: relative;
+  transition: width 0.4s ease;
+}
+.px-elev__band[data-flag="depth"] .px-elev__bar { background: var(--accent-deep); }
+.px-elev__band[data-flag="core"] .px-elev__bar { background: var(--accent-alt); }
+
+.px-elev__value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--paper);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.px-elev__note {
+  grid-column: 1 / -1;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-top: 6px;
+  max-width: 64ch;
+}
+.px-elev__note strong { color: var(--ink); font-weight: 600; }
+.px-elev__note em { color: var(--accent); font-style: italic; }
+
+.px-elev__source {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 760px) {
+  .px-elev__band { grid-template-columns: 1fr; gap: 8px; padding: 14px; }
+  .px-elev__bar-frame { height: 22px; }
+  .px-elev__value { font-size: 11px; }
+}

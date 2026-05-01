@@ -1,0 +1,31 @@
+---
+import { renderInline } from '../../../lib/text';
+
+interface TimelineEvent {
+  date: string;
+  label: string;
+  note?: string;
+  state?: 'default' | 'key' | 'fail' | 'now';
+}
+
+interface Props {
+  events: TimelineEvent[];
+}
+
+const { events } = Astro.props;
+---
+
+<div class="px-timeline">
+  {events.map((e) => (
+    <div class="px-timeline__row" data-state={e.state ?? 'default'}>
+      <div class="px-timeline__date">{e.date}</div>
+      <div class="px-timeline__rail">
+        <span class="px-timeline__dot" aria-hidden="true"></span>
+      </div>
+      <div class="px-timeline__body">
+        <div class="px-timeline__label" set:html={renderInline(e.label)} />
+        {e.note && <div class="px-timeline__note">{e.note}</div>}
+      </div>
+    </div>
+  ))}
+</div>

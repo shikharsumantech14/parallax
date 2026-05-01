@@ -1,0 +1,31 @@
+---
+import { TOPICS } from '../../content/config';
+
+interface Props {
+  compact?: boolean;
+  current?: string;
+}
+const { compact = false, current } = Astro.props;
+
+const labels: Record<string, string> = {
+  politics: 'Politics',
+  space: 'Space',
+  earth: 'Earth',
+  tech: 'Tech',
+  travel: 'Travel',
+  sports: 'Sports'
+};
+---
+
+<nav aria-label="Topics">
+  <ul class={`px-strip${compact ? ' px-strip--compact' : ''}`}>
+    {TOPICS.map((topic) => (
+      <li class={`px-strip__item px-strip__item--${topic}`} data-current={current === topic || undefined}>
+        <a class="px-strip__link" href={`/topics/${topic}/`}>
+          <span class="px-strip__dot" aria-hidden="true"></span>
+          <span>{labels[topic]}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>

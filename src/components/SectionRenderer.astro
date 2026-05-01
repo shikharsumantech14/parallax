@@ -1,0 +1,139 @@
+---
+import type { Section } from '../content/config';
+import CoreSection from './core/Section.astro';
+import Quote from './core/Quote.astro';
+import BeatSheet from './core/BeatSheet.astro';
+import Prose from './core/Prose.astro';
+import Comparison from './core/Comparison.astro';
+import DataReadout from './core/DataReadout.astro';
+
+import Timeline from './topic/politics/Timeline.astro';
+import BillBreakdown from './topic/politics/BillBreakdown.astro';
+import VoteResult from './topic/politics/VoteResult.astro';
+import SeatChart from './topic/politics/SeatChart.astro';
+import Paradox from './topic/politics/Paradox.astro';
+import BrothersAnalogy from './topic/politics/BrothersAnalogy.astro';
+
+import OrbitalShells from './topic/space/OrbitalShells.astro';
+import CommitGrid from './topic/tech/CommitGrid.astro';
+import JourneyMap from './topic/travel/JourneyMap.astro';
+import MatchStatLine from './topic/sports/MatchStatLine.astro';
+import ElevationProfile from './topic/earth/ElevationProfile.astro';
+
+interface Props {
+  section: Section;
+  index: number;
+}
+
+const { section, index } = Astro.props;
+const data: any = section.data ?? {};
+
+const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`;
+---
+
+{section.kind !== 'hero' && (
+  <CoreSection
+    number={autoNumber}
+    eyebrow={section.eyebrow}
+    title={section.title}
+    intro={section.intro}
+  >
+    {section.kind === 'timeline' && <Timeline events={data.events ?? []} />}
+
+    {section.kind === 'bill-breakdown' && <BillBreakdown cards={data.cards ?? []} />}
+
+    {section.kind === 'vote-result' && (
+      <>
+        <VoteResult
+          for={data.for ?? 0}
+          against={data.against ?? 0}
+          required={data.required ?? 0}
+          present={data.present ?? 0}
+          shortfall={data.shortfall ?? 0}
+          label={data.label}
+          stamp={data.stamp}
+        />
+        {data.followup && <p style="margin-top: 28px; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 680px;">{data.followup}</p>}
+      </>
+    )}
+
+    {section.kind === 'seat-chart' && (
+      <>
+        <SeatChart subtitle={data.subtitle} source={data.source} rows={data.rows ?? []} />
+        {data.quote && <Quote quote={data.quote.text} attribution={data.quote.attribution} />}
+      </>
+    )}
+
+    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} />}
+
+    {section.kind === 'analogy' && (
+      <BrothersAnalogy
+        headline={data.headline}
+        brothers={data.brothers ?? []}
+        punchline={data.punchline}
+      />
+    )}
+
+    {section.kind === 'quote' && (
+      <>
+        <Quote quote={data.quote ?? ''} attribution={data.attribution} />
+        {data.followup && <p style="margin-top: 28px; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 680px;">{data.followup}</p>}
+      </>
+    )}
+
+    {section.kind === 'beat-sheet' && <BeatSheet beats={data.beats ?? []} />}
+
+    {section.kind === 'prose' && (
+      <Prose lead={data.lead} paragraphs={data.paragraphs ?? []} />
+    )}
+
+    {section.kind === 'comparison' && (
+      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} source={data.source} />
+    )}
+
+    {section.kind === 'data-readout' && (
+      <DataReadout tiles={data.tiles ?? []} caption={data.caption} source={data.source} />
+    )}
+
+    {section.kind === 'orbital-shells' && (
+      <OrbitalShells shells={data.shells ?? []} caption={data.caption} source={data.source} />
+    )}
+
+    {section.kind === 'commit-grid' && (
+      <CommitGrid
+        weeks={data.weeks ?? []}
+        months={data.months}
+        weekdays={data.weekdays}
+        caption={data.caption}
+        meta={data.meta}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'journey-map' && (
+      <JourneyMap stops={data.stops ?? []} caption={data.caption} source={data.source} />
+    )}
+
+    {section.kind === 'match-stat-line' && (
+      <MatchStatLine
+        home={data.home ?? { name: 'Home' }}
+        away={data.away ?? { name: 'Away' }}
+        competition={data.competition}
+        venue={data.venue}
+        date={data.date}
+        rows={data.rows ?? []}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'elevation-profile' && (
+      <ElevationProfile
+        bands={data.bands ?? []}
+        maxValue={data.maxValue}
+        axisLabel={data.axisLabel}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+  </CoreSection>
+)}

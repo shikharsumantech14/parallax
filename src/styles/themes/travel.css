@@ -1,0 +1,276 @@
+/* ============================================================================
+   PARALLAX · TRAVEL THEME
+   Vibe: Condé Nast Traveler / Atlas Obscura / field journal. Warm cream
+   paper, terracotta accents, hand-set serif display, postage perforation
+   motifs. Italic-leaning, marginalia-friendly.
+   ============================================================================ */
+
+:root[data-topic="travel"] {
+  --bg: #faf6ef;
+  --paper: #fffdf7;
+  --paper-2: #f4ecdb;
+  --rule: #e5d9c4;
+  --rule-soft: #ede2cc;
+  --ink: #2a1f15;
+  --ink-soft: #5a4a3a;
+  --muted: #8a7864;
+  --accent: #c85a3c;
+  --accent-deep: #9a4028;
+  --accent-alt: #2d6a7a;        /* deep teal — used for sea/river accents */
+  --tape: #e8d5a8;
+  --font-display: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* --- Global tweaks (light paper, like politics but warmer) ------------- */
+[data-topic="travel"] .px-masthead {
+  border-top-color: var(--accent);
+  border-bottom-color: var(--rule);
+}
+[data-topic="travel"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
+[data-topic="travel"] .px-hero__byline { border-color: var(--rule); color: var(--muted); }
+[data-topic="travel"] .px-section__num { color: var(--accent); font-family: var(--font-display); font-style: italic; font-weight: 500; }
+[data-topic="travel"] .px-eyebrow { color: var(--accent); font-style: italic; font-family: var(--font-display); letter-spacing: 0.08em; text-transform: none; font-weight: 500; }
+[data-topic="travel"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+
+[data-topic="travel"] .px-quote {
+  border-left-color: var(--accent);
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+[data-topic="travel"] .px-quote__q { font-family: var(--font-display); font-style: italic; }
+
+[data-topic="travel"] .px-sources { border-top-color: var(--accent); }
+[data-topic="travel"] .px-sources li { border-bottom-color: var(--rule); }
+
+[data-topic="travel"] .px-foot { border-top-color: var(--accent); }
+
+/* --- Topic-index hero with postage perforation backdrop ---------------- */
+[data-topic="travel"] .px-topic-hero {
+  position: relative;
+  border-bottom-color: var(--rule);
+}
+[data-topic="travel"] .px-topic-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 14px; height: calc(100% - 48px);
+  background-image: radial-gradient(circle at 7px 7px, var(--rule) 1.5px, transparent 2.5px);
+  background-size: 14px 14px;
+  background-repeat: repeat-y;
+  pointer-events: none;
+  opacity: 0.6;
+}
+[data-topic="travel"] .px-topic-hero__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+[data-topic="travel"] .px-topic-hero__title em { font-style: normal; color: var(--accent); }
+[data-topic="travel"] .px-topic-hero__manifesto { font-family: var(--font-display); font-style: italic; }
+
+/* --- Topic empty state (light paper) ----------------------------------- */
+[data-topic="travel"] .px-topic-empty__no { font-family: var(--font-display); font-style: italic; color: var(--accent); }
+[data-topic="travel"] .px-topic-empty__tag { font-family: var(--font-display); font-style: italic; }
+
+/* --- Masthead variant: travel field-journal --------------------------- */
+.px-masthead--travel {
+  font-family: var(--font-display);
+  color: var(--ink);
+  font-style: italic;
+}
+.px-masthead--travel .px-masthead__brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+.px-masthead--travel .px-masthead__travel-sep { color: var(--accent); padding: 0 4px; }
+
+/* --- Cross-topic component re-skins ----------------------------------- */
+
+/* PROSE — field-journal voice */
+[data-topic="travel"] .px-prose__lead {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-topic="travel"] .px-prose__p { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--ink); }
+[data-topic="travel"] .px-prose__p strong { color: var(--accent); font-weight: 600; }
+[data-topic="travel"] .px-prose__p em { color: var(--accent); }
+
+/* COMPARISON */
+[data-topic="travel"] .px-compare__head { border-bottom-color: var(--rule); }
+[data-topic="travel"] .px-compare__side { color: var(--ink); font-family: var(--font-display); }
+[data-topic="travel"] .px-compare__side-label { color: var(--accent); font-style: italic; }
+[data-topic="travel"] .px-compare__row { border-bottom-color: var(--rule); }
+
+/* DATA-READOUT */
+[data-topic="travel"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
+[data-topic="travel"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
+[data-topic="travel"] .px-readout__num { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+[data-topic="travel"] .px-readout__unit { color: var(--accent); font-style: italic; }
+
+/* TIMELINE — itinerary feel */
+[data-topic="travel"] .px-timeline { display: grid; grid-template-columns: 110px 40px 1fr; gap: 0; }
+[data-topic="travel"] .px-timeline__row { display: contents; }
+[data-topic="travel"] .px-timeline__date {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--accent);
+  padding: 16px 16px 16px 0;
+  text-align: right;
+  border-bottom: 1px dashed var(--rule);
+}
+[data-topic="travel"] .px-timeline__rail {
+  position: relative;
+  border-bottom: 1px dashed var(--rule);
+  padding: 16px 0;
+}
+[data-topic="travel"] .px-timeline__rail::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--rule);
+}
+[data-topic="travel"] .px-timeline__rail::after {
+  content: ''; position: absolute; left: 50%; top: 26px;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+[data-topic="travel"] .px-timeline__body {
+  padding: 16px 0 16px 16px;
+  border-bottom: 1px dashed var(--rule);
+}
+
+/* ============================================================================
+   JOURNEY MAP — travel signature component
+   ============================================================================ */
+.px-journey {
+  margin: 28px 0 12px;
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+.px-journey__caption {
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.px-journey__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.px-journey__stop {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 20px;
+  padding: 0 0 28px 0;
+  position: relative;
+}
+.px-journey__rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+}
+.px-journey__pin {
+  width: 14px; height: 14px;
+  border: 2px solid var(--accent);
+  background: var(--paper);
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+.px-journey__stop[data-tag="origin"] .px-journey__pin { background: var(--accent); }
+.px-journey__stop[data-tag="arrival"] .px-journey__pin {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 5px var(--accent);
+}
+.px-journey__stop[data-tag="detour"] .px-journey__pin {
+  border-style: dashed;
+  border-color: var(--accent-alt);
+}
+.px-journey__line {
+  position: absolute;
+  top: 18px; bottom: -28px;
+  left: 50%;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--accent) 0 6px,
+    transparent 6px 11px
+  );
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.px-journey__body { padding-bottom: 4px; }
+.px-journey__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.px-journey__place {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.px-journey__region {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--muted);
+}
+.px-journey__meta {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.px-journey__arrival { color: var(--accent); }
+.px-journey__km { color: var(--ink-soft); }
+.px-journey__elev { color: var(--accent-alt); }
+.px-journey__note {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  max-width: 56ch;
+}
+.px-journey__note strong { color: var(--ink); font-weight: 600; }
+.px-journey__note em { color: var(--accent); font-style: italic; }
+
+.px-journey__source {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 760px) {
+  .px-journey__stop { grid-template-columns: 28px 1fr; gap: 14px; }
+  .px-journey__place { font-size: 18px; }
+  .px-journey__meta { flex-wrap: wrap; gap: 10px; }
+}

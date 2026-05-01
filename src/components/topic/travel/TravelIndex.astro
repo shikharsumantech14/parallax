@@ -1,0 +1,346 @@
+---
+/* TravelIndex — the travel topic page rendered as a postcard rack /
+   field-bureau letterhead. Top: bureau letterhead + dateline. Body: each
+   issue is a postcard with stamp box, addressee line, hand-set body. */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+const fmtStamp = (d: Date) =>
+  `${String(d.getDate()).padStart(2, '0')}.${['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][d.getMonth()]}.${String(d.getFullYear()).slice(2)}`;
+
+const today = new Date();
+const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<div class="px-trv-index">
+  <a class="px-trv-index__back" href="/">← Back to bureau index</a>
+
+  <header class="px-trv-index__letterhead">
+    <div class="px-trv-index__title-block">
+      <span class="px-trv-index__title-eyebrow">Parallax · Field Bureau</span>
+      <h1 class="px-trv-index__title">Travel</h1>
+      <span class="px-trv-index__title-rule" aria-hidden="true"></span>
+      <span class="px-trv-index__title-sub">Vol. I — A field journal</span>
+    </div>
+    <div class="px-trv-index__dateline">
+      <div class="px-trv-index__date-line">Filed</div>
+      <div class="px-trv-index__date-val">{todayLong}</div>
+    </div>
+  </header>
+
+  <section class="px-trv-index__intro">
+    <p class="px-trv-index__manifesto">
+      <em>Field notes from somewhere you haven't been.</em> Cities, crossings, rituals, quiet rooms. We write travel pieces about places that resist being summarised, and we leave the inside jokes out of the footnotes.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-trv-index__empty">
+      <div class="px-trv-index__empty-stamp">
+        <div class="px-trv-index__empty-stamp-mark">PRX</div>
+        <div class="px-trv-index__empty-stamp-date">— · — · —</div>
+      </div>
+      <div class="px-trv-index__empty-no">№ 01</div>
+      <div class="px-trv-index__empty-label">{empty.label}</div>
+      <p class="px-trv-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+      <div class="px-trv-index__empty-postmark">— Postmarked Bureau, parallax travel desk —</div>
+    </div>
+  ) : (
+    <div class="px-trv-index__rack">
+      {issues.map((issue) => {
+        const n = issueNumberFor(issue.slug);
+        return (
+          <a class="px-trv-index__card" href={`/issues/${issue.slug}/`}>
+            <div class="px-trv-index__card-stamp">
+              <div class="px-trv-index__card-stamp-mark">PRX</div>
+              <div class="px-trv-index__card-stamp-date">{fmtStamp(issue.data.publishedAt)}</div>
+            </div>
+            <div class="px-trv-index__card-perfs" aria-hidden="true"></div>
+            <div class="px-trv-index__card-body">
+              <div class="px-trv-index__card-no">№ {String(n).padStart(2, '0')}</div>
+              <h2 class="px-trv-index__card-title" set:html={renderEmphasis(issue.data.title)} />
+              <p class="px-trv-index__card-hook">{issue.data.hook}</p>
+              <div class="px-trv-index__card-meta">
+                <span>{fmtDate(issue.data.publishedAt)}</span>
+                <span class="px-trv-index__card-sep">·</span>
+                <span class="px-trv-index__card-cta">Open the postcard →</span>
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+<style>
+  .px-trv-index { position: relative; }
+
+  .px-trv-index__back {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-trv-index__back:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- Letterhead --- */
+  .px-trv-index__letterhead {
+    border-top: 1px solid var(--accent);
+    border-bottom: 1px dashed var(--rule);
+    padding: 28px 0;
+    margin-bottom: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+  }
+  .px-trv-index__title-block { display: flex; flex-direction: column; gap: 6px; }
+  .px-trv-index__title-eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .px-trv-index__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(48px, 7vw, 96px);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    font-style: italic;
+    margin: 0;
+  }
+  .px-trv-index__title-rule {
+    display: block;
+    width: 56px;
+    height: 1px;
+    background: var(--accent);
+    margin: 8px 0 4px;
+  }
+  .px-trv-index__title-sub {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  .px-trv-index__dateline {
+    text-align: right;
+    font-family: var(--font-display);
+  }
+  .px-trv-index__date-line {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .px-trv-index__date-val {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink);
+  }
+
+  /* --- Intro --- */
+  .px-trv-index__intro {
+    margin: 0 0 56px;
+    padding-bottom: 28px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-trv-index__manifesto {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0;
+    max-width: 60ch;
+    font-weight: 400;
+  }
+  .px-trv-index__manifesto em { color: var(--accent); font-style: italic; font-weight: 500; }
+
+  /* --- Postcard rack --- */
+  .px-trv-index__rack {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .px-trv-index__card {
+    display: grid;
+    grid-template-columns: 130px 14px 1fr;
+    gap: 0;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+    overflow: hidden;
+  }
+  .px-trv-index__card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+  .px-trv-index__card-stamp {
+    border-right: 1px dashed var(--rule);
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: var(--paper-2);
+  }
+  .px-trv-index__card-stamp-mark {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    border: 2px solid var(--accent);
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .px-trv-index__card-stamp-date {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .px-trv-index__card-perfs {
+    background-image: radial-gradient(circle at 7px 7px, var(--bg) 2px, transparent 2.5px);
+    background-size: 14px 14px;
+    background-repeat: repeat-y;
+    background-position: center;
+  }
+  .px-trv-index__card-body { padding: 22px 26px; }
+  .px-trv-index__card-no {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .px-trv-index__card-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1.15;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    margin: 0 0 10px;
+  }
+  .px-trv-index__card-title em { font-style: normal; color: var(--accent); }
+  .px-trv-index__card-hook {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin: 0 0 14px;
+    max-width: 56ch;
+  }
+  .px-trv-index__card-meta {
+    display: flex; gap: 10px; align-items: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .px-trv-index__card-sep { color: var(--rule); }
+  .px-trv-index__card-cta { color: var(--accent); }
+
+  /* --- Empty: postmarked envelope --- */
+  .px-trv-index__empty {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 56px 48px;
+    position: relative;
+  }
+  .px-trv-index__empty-stamp {
+    position: absolute;
+    top: 24px; right: 32px;
+    border: 2px dashed var(--accent);
+    padding: 8px 14px;
+    background: var(--paper-2);
+    transform: rotate(4deg);
+  }
+  .px-trv-index__empty-stamp-mark {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-align: center;
+  }
+  .px-trv-index__empty-stamp-date {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 2px;
+  }
+  .px-trv-index__empty-no {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(72px, 12vw, 160px);
+    line-height: 0.9;
+    color: var(--accent);
+  }
+  .px-trv-index__empty-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 22px;
+    margin-bottom: 14px;
+  }
+  .px-trv-index__empty-body {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 24px;
+    max-width: 56ch;
+    line-height: 1.4;
+  }
+  .px-trv-index__empty-body em { color: var(--accent); }
+  .px-trv-index__empty-postmark {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    padding-top: 16px;
+    border-top: 1px dashed var(--rule);
+    text-align: right;
+  }
+
+  @media (max-width: 720px) {
+    .px-trv-index__letterhead { grid-template-columns: 1fr; gap: 14px; }
+    .px-trv-index__dateline { text-align: left; }
+    .px-trv-index__card { grid-template-columns: 100px 14px 1fr; }
+    .px-trv-index__card-stamp { padding: 18px 10px; }
+    .px-trv-index__card-stamp-mark { font-size: 14px; }
+    .px-trv-index__card-body { padding: 18px 18px; }
+    .px-trv-index__empty { padding: 32px 24px; }
+    .px-trv-index__empty-stamp { top: 16px; right: 16px; }
+  }
+</style>

@@ -1,0 +1,594 @@
+---
+/* Themed mini-magazine cover for a single topic. Each card has a per-topic
+   composition (header treatment + topic-word styling + CTA wording) so
+   politics-on-paper and travel-on-paper don't collapse into the same
+   "warm-serif card" gestalt. Tokens scoped via local data-topic block.
+   Backdrop motifs (column rule, orbital ring, contour, lattice, postage
+   perforation, pitch markings) ride on .px-cat__motif and are pure CSS. */
+import type { Topic } from '../../content/config';
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  topic: Topic;
+  manifesto: string;
+  latest?: {
+    slug: string;
+    title: string;
+    hook: string;
+    issueNumber: number;
+    publishedAt: Date;
+  };
+  emptyLabel: string;
+  emptyTag: string;
+}
+const { topic, manifesto, latest, emptyLabel, emptyTag } = Astro.props;
+
+const labelMap: Record<Topic, string> = {
+  politics: 'Politics',
+  space: 'Space',
+  earth: 'Earth',
+  tech: 'Tech',
+  travel: 'Travel',
+  sports: 'Sports',
+};
+
+// Per-topic CTA copy — the "voice of the desk". Same wording for both
+// populated and empty cards since the destination is always the topic
+// index page (the latest issue is then the first prominent entry on it).
+const ctaMap: Record<Topic, { read: string; empty: string }> = {
+  politics: { read: 'Visit the desk →', empty: 'Visit the desk →' },
+  space: { read: 'Open mission control →', empty: 'Open mission control →' },
+  earth: { read: 'Open the atlas →', empty: 'Open the atlas →' },
+  tech: { read: '→ cd /tech', empty: '→ cd /tech' },
+  travel: { read: 'Visit the bureau →', empty: 'Visit the bureau →' },
+  sports: { read: 'Open the programme →', empty: 'Open the programme →' },
+};
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase();
+const fmtTravel = (d: Date) =>
+  `${String(d.getDate()).padStart(2, '0')}.IV.${String(d.getFullYear()).slice(2)}`;
+
+// Always link the card to the topic index page. The latest issue is a
+// preview shown on the card, not a direct link target — clicking the
+// card opens the topic's index where every issue (latest first) lives.
+const href = `/topics/${topic}/`;
+const issueNo = latest ? String(latest.issueNumber).padStart(2, '0') : '01';
+const cta = ctaMap[topic];
+
+// Pseudo-live time for space telemetry (build-time, not animated)
+const now = new Date();
+const pad = (n: number) => String(n).padStart(2, '0');
+const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+---
+
+<a class="px-cat" data-topic={topic} data-empty={latest ? undefined : 'true'} href={href}>
+  <div class="px-cat__motif" aria-hidden="true"></div>
+
+  {/* ============================================================
+      PER-TOPIC HEADER — distinct chrome line per category
+      ============================================================ */}
+  {topic === 'politics' && (
+    <div class="px-cat__head px-cat__head--politics">
+      <span class="px-cat__pol-mark"><span class="px-cat__pol-dot" aria-hidden="true"></span>PARALLAX · POLITICS DESK</span>
+      <span class="px-cat__no">№ {issueNo}</span>
+    </div>
+  )}
+  {topic === 'space' && (
+    <div class="px-cat__head px-cat__head--space">
+      <span class="px-cat__telemetry">{tplus}<span class="px-cat__cursor" aria-hidden="true">_</span></span>
+      <span class="px-cat__no">ORBIT 02A</span>
+    </div>
+  )}
+  {topic === 'earth' && (
+    <div class="px-cat__head px-cat__head--earth">
+      <span class="px-cat__coord">SHEET {issueNo} · 14.6°N · 121.0°E</span>
+      <span class="px-cat__no">ELEV 23M</span>
+    </div>
+  )}
+  {topic === 'tech' && (
+    <div class="px-cat__head px-cat__head--tech">
+      <span class="px-cat__prompt"><span class="px-cat__sigil">$</span> parallax/tech v0.{issueNo === '01' ? '1' : Number(issueNo)}.0</span>
+      <span class="px-cat__no">main</span>
+    </div>
+  )}
+  {topic === 'travel' && (
+    <div class="px-cat__head px-cat__head--travel">
+      <span class="px-cat__stamp">
+        <span class="px-cat__stamp-mark">PRX</span>
+        <span class="px-cat__stamp-date">{latest ? fmtTravel(latest.publishedAt) : '— · — · —'}</span>
+      </span>
+      <span class="px-cat__no">Vol. I, No. {issueNo}</span>
+    </div>
+  )}
+  {topic === 'sports' && (
+    <div class="px-cat__head px-cat__head--sports">
+      <span class="px-cat__matchday">MATCHDAY {issueNo} · KO 15:00</span>
+      <span class="px-cat__no">PARALLAX FC</span>
+    </div>
+  )}
+
+  {/* ============================================================
+      TOPIC WORD — distinct typographic treatment per category
+      ============================================================ */}
+  <div class={`px-cat__topic px-cat__topic--${topic}`}>
+    {topic === 'space' && (
+      <>{labelMap[topic]}<span class="px-cat__topic-cursor" aria-hidden="true">_</span></>
+    )}
+    {topic === 'earth' && (
+      <>
+        <span class="px-cat__topic-italic">{labelMap[topic]}</span>
+        <span class="px-cat__topic-coord">14.6°N · 121.0°E</span>
+      </>
+    )}
+    {topic === 'tech' && (
+      <>tech<span class="px-cat__topic-slash">/</span></>
+    )}
+    {topic === 'travel' && (
+      <span class="px-cat__topic-italic">{labelMap[topic]}</span>
+    )}
+    {topic === 'sports' && (
+      <><span class="px-cat__topic-bracket">[</span> {labelMap[topic]} <span class="px-cat__topic-bracket">]</span></>
+    )}
+    {topic === 'politics' && (
+      <><span class="px-cat__topic-cap">P</span>olitics</>
+    )}
+  </div>
+
+  <p class="px-cat__manifesto">{manifesto}</p>
+
+  {/* ============================================================
+      ISSUE / EMPTY BLOCK — body shared, CTA wording per topic
+      ============================================================ */}
+  {latest ? (
+    <div class="px-cat__issue">
+      <div class="px-cat__issue-label">Latest issue</div>
+      <h3 class="px-cat__issue-title" set:html={renderEmphasis(latest.title)} />
+      <p class="px-cat__issue-hook">{latest.hook}</p>
+      <div class="px-cat__issue-meta">
+        <span>{fmtDate(latest.publishedAt)}</span>
+        <span class="px-cat__cta">{cta.read}</span>
+      </div>
+    </div>
+  ) : (
+    <div class="px-cat__issue px-cat__issue--empty">
+      <div class="px-cat__issue-label">{emptyLabel}</div>
+      <p class="px-cat__issue-hook" set:html={renderEmphasis(emptyTag)} />
+      <div class="px-cat__issue-meta">
+        <span>Dropping soon</span>
+        <span class="px-cat__cta">{cta.empty}</span>
+      </div>
+    </div>
+  )}
+</a>
+
+<style>
+  /* ============================================================================
+     CARD SHELL — single magazine cover. Each card is its own type system,
+     scoped via data-topic so tokens don't leak.
+     ============================================================================ */
+  .px-cat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    padding: 28px 30px 30px;
+    text-decoration: none;
+    overflow: hidden;
+    min-height: 400px;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .px-cat:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 18px 36px -28px rgba(0,0,0,0.45);
+  }
+  .px-cat::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--accent);
+  }
+
+  /* --- Shared header skeleton --- */
+  .px-cat__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 22px;
+    position: relative;
+    z-index: 2;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-cat__no { color: var(--muted); white-space: nowrap; }
+
+  /* --- Per-topic header treatments --- */
+  /* Politics — broadsheet imprint with red dot */
+  .px-cat__pol-mark {
+    color: var(--ink);
+    font-family: var(--font-mono);
+    letter-spacing: 0.2em;
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .px-cat__pol-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  /* Space — telemetry timestamp with blinking cursor */
+  .px-cat__head--space { color: var(--accent); }
+  .px-cat__telemetry { font-family: var(--font-mono); color: var(--accent); letter-spacing: 0.06em; font-size: 11px; text-transform: none; }
+  .px-cat__cursor { display: inline-block; margin-left: 2px; animation: px-cat-blink 1s steps(1) infinite; }
+  @keyframes px-cat-blink { 50% { opacity: 0; } }
+
+  /* Earth — coordinate bar */
+  .px-cat__head--earth { color: var(--accent-deep); }
+  .px-cat__coord { font-family: var(--font-mono); letter-spacing: 0.1em; font-size: 10px; color: var(--accent-deep); }
+
+  /* Tech — terminal prompt */
+  .px-cat__head--tech { color: var(--accent); text-transform: none; letter-spacing: 0.04em; font-size: 11px; }
+  .px-cat__prompt { font-family: var(--font-mono); color: var(--ink-soft); }
+  .px-cat__sigil { color: var(--accent); font-weight: 600; padding-right: 2px; }
+  .px-cat__head--tech .px-cat__no { font-family: var(--font-mono); color: var(--accent); }
+
+  /* Travel — corner stamp */
+  .px-cat__head--travel { align-items: flex-start; }
+  .px-cat__stamp {
+    display: inline-flex;
+    flex-direction: column;
+    border: 1.5px dashed var(--accent);
+    padding: 4px 8px;
+    background: var(--paper);
+    line-height: 1.05;
+  }
+  .px-cat__stamp-mark { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.16em; font-weight: 600; }
+  .px-cat__stamp-date { font-family: var(--font-display); font-style: italic; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .px-cat__head--travel .px-cat__no { font-family: var(--font-display); font-style: italic; font-size: 12px; letter-spacing: 0.04em; text-transform: none; }
+
+  /* Sports — matchday programme */
+  .px-cat__head--sports { color: var(--accent); }
+  .px-cat__matchday { font-family: var(--font-display); font-weight: 500; letter-spacing: 0.16em; color: var(--accent); font-size: 12px; }
+  .px-cat__head--sports .px-cat__no { font-family: var(--font-display); color: var(--ink-soft); letter-spacing: 0.16em; font-size: 11px; }
+
+  /* ============================================================================
+     TOPIC WORD — per-topic display treatment
+     ============================================================================ */
+  .px-cat__topic {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(40px, 4.5vw, 60px);
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .px-cat__topic--politics {
+    line-height: 0.9;
+  }
+  .px-cat__topic-cap {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .px-cat__topic--space {
+    font-family: 'Space Grotesk', 'Inter Tight', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .px-cat__topic-cursor {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: 500;
+    margin-left: 2px;
+    animation: px-cat-blink 1s steps(1) infinite;
+  }
+
+  .px-cat__topic--earth {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .px-cat__topic-italic { font-style: italic; font-weight: 600; color: var(--ink); }
+  .px-cat__topic-coord {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--accent-deep);
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+
+  .px-cat__topic--tech {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    text-transform: lowercase;
+    letter-spacing: -0.01em;
+  }
+  .px-cat__topic-slash { color: var(--accent); }
+
+  .px-cat__topic--travel {
+    font-family: var(--font-display);
+    font-weight: 600;
+    position: relative;
+  }
+  .px-cat__topic--travel .px-cat__topic-italic {
+    font-style: italic;
+    background-image: linear-gradient(to right, var(--accent) 0, var(--accent) 100%);
+    background-position: 0 92%;
+    background-repeat: no-repeat;
+    background-size: 100% 2px;
+    padding-bottom: 4px;
+  }
+
+  .px-cat__topic--sports {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .px-cat__topic-bracket {
+    color: var(--accent);
+    font-weight: 400;
+    padding: 0 4px;
+  }
+
+  /* ============================================================================
+     MANIFESTO + ISSUE BLOCK (largely shared; per-topic small overrides below)
+     ============================================================================ */
+  .px-cat__manifesto {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+    max-width: 36ch;
+    position: relative;
+    z-index: 2;
+  }
+  .px-cat[data-topic="tech"] .px-cat__manifesto {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .px-cat[data-topic="tech"] .px-cat__manifesto::before {
+    content: '// ';
+    color: var(--accent);
+  }
+  .px-cat[data-topic="sports"] .px-cat__manifesto {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.005em;
+  }
+
+  .px-cat__issue {
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    position: relative;
+    z-index: 2;
+  }
+  .px-cat__issue-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .px-cat__issue-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 8px;
+  }
+  .px-cat[data-topic="tech"] .px-cat__issue-title { font-family: var(--font-mono); font-weight: 500; }
+  .px-cat[data-topic="travel"] .px-cat__issue-title { font-style: italic; font-weight: 600; }
+  .px-cat[data-topic="sports"] .px-cat__issue-title { text-transform: uppercase; letter-spacing: 0.01em; font-weight: 500; }
+  .px-cat__issue-title em { color: var(--accent); font-style: italic; font-weight: 400; }
+
+  .px-cat__issue-hook {
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    max-width: 38ch;
+  }
+  .px-cat__issue-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    gap: 12px;
+  }
+  .px-cat__cta { color: var(--accent); text-align: right; text-transform: none; letter-spacing: 0.04em; font-size: 11px; }
+  .px-cat[data-topic="tech"] .px-cat__cta { font-family: var(--font-mono); }
+
+  .px-cat__issue--empty .px-cat__issue-label { color: var(--accent); }
+
+  /* ============================================================================
+     PER-TOPIC TOKEN BLOCKS — scoped to keep colors local to this card
+     ============================================================================ */
+  .px-cat[data-topic="politics"] {
+    --bg: #f7f3ea;
+    --paper: #ffffff;
+    --rule: #d8cfbf;
+    --ink: #161412;
+    --ink-soft: #3a332b;
+    --muted: #6b5f52;
+    --accent: #b8341f;
+    --accent-deep: #8b2416;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter Tight', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .px-cat[data-topic="space"] {
+    --bg: #0a1628;
+    --paper: #111f36;
+    --rule: #1e3352;
+    --ink: #e8eef7;
+    --ink-soft: #b8c4d6;
+    --muted: #6b7a92;
+    --accent: #00d4ff;
+    --accent-deep: #0085a1;
+    --font-display: 'Space Grotesk', 'Inter Tight', sans-serif;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .px-cat[data-topic="earth"] {
+    --bg: #f0e9d8;
+    --paper: #fbf6e9;
+    --rule: #d4c8a8;
+    --ink: #1f2a1c;
+    --ink-soft: #3d4a35;
+    --muted: #6b7158;
+    --accent: #2d6a4f;
+    --accent-deep: #1a4a36;
+    --font-display: 'Cormorant Garamond', 'Fraunces', serif;
+    --font-body: 'Inter Tight', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .px-cat[data-topic="tech"] {
+    --bg: #0d0d0d;
+    --paper: #1a1a1a;
+    --rule: #2b2b2b;
+    --ink: #fafafa;
+    --ink-soft: #c8c8c8;
+    --muted: #7a7a7a;
+    --accent: #c6f432;
+    --accent-deep: #a3cc1f;
+    --font-display: 'JetBrains Mono', ui-monospace, monospace;
+    --font-body: 'JetBrains Mono', ui-monospace, monospace;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .px-cat[data-topic="travel"] {
+    --bg: #faf6ef;
+    --paper: #fffdf7;
+    --rule: #e5d9c4;
+    --ink: #2a1f15;
+    --ink-soft: #5a4a3a;
+    --muted: #8a7864;
+    --accent: #c85a3c;
+    --accent-deep: #9a4028;
+    --font-display: 'Cormorant Garamond', 'Fraunces', serif;
+    --font-body: 'Inter Tight', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .px-cat[data-topic="sports"] {
+    --bg: #0f2820;
+    --paper: #143328;
+    --rule: #1f4434;
+    --ink: #f5f5f0;
+    --ink-soft: #cccca8;
+    --muted: #7a8a78;
+    --accent: #e8f048;
+    --accent-deep: #b8c038;
+    --font-display: 'Oswald', 'Inter Tight', sans-serif;
+    --font-body: 'Inter Tight', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ============================================================================
+     MOTIF — per-topic faint backdrop, pure CSS gradients
+     ============================================================================ */
+  .px-cat__motif {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.7;
+  }
+
+  /* Politics — broadsheet column rule + serif column heading */
+  .px-cat[data-topic="politics"] .px-cat__motif {
+    background-image:
+      linear-gradient(to right, transparent 0, transparent calc(50% - 1px), var(--rule) calc(50% - 1px), var(--rule) 50%, transparent 50%);
+    opacity: 0.45;
+  }
+
+  /* Space — orbital ring centred bottom-right */
+  .px-cat[data-topic="space"] .px-cat__motif {
+    background-image:
+      radial-gradient(circle at 100% 100%, transparent 178px, rgba(0,212,255,0.20) 179px, rgba(0,212,255,0.20) 181px, transparent 182px),
+      radial-gradient(circle at 100% 100%, transparent 118px, rgba(0,212,255,0.14) 119px, rgba(0,212,255,0.14) 121px, transparent 122px),
+      radial-gradient(circle at 100% 100%, transparent 58px, rgba(0,212,255,0.10) 59px, rgba(0,212,255,0.10) 61px, transparent 62px);
+    opacity: 0.95;
+  }
+
+  /* Earth — topographic contour lines, lower-left */
+  .px-cat[data-topic="earth"] .px-cat__motif {
+    background-image:
+      radial-gradient(ellipse 320px 70px at 0% 100%, transparent 0%, transparent 49%, var(--accent) 49.5%, transparent 50%),
+      radial-gradient(ellipse 240px 55px at 0% 100%, transparent 0%, transparent 49%, var(--accent) 49.5%, transparent 50%),
+      radial-gradient(ellipse 170px 40px at 0% 100%, transparent 0%, transparent 49%, var(--accent) 49.5%, transparent 50%),
+      radial-gradient(ellipse 110px 26px at 0% 100%, transparent 0%, transparent 49%, var(--accent) 49.5%, transparent 50%);
+    opacity: 0.36;
+  }
+
+  /* Tech — monospace lattice */
+  .px-cat[data-topic="tech"] .px-cat__motif {
+    background-image:
+      linear-gradient(to right, rgba(198,244,50,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(198,244,50,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.85;
+  }
+
+  /* Travel — postage perforations along the right edge */
+  .px-cat[data-topic="travel"] .px-cat__motif {
+    background-image: radial-gradient(circle at 7px 7px, var(--rule) 1.5px, transparent 2.5px);
+    background-size: 14px 14px;
+    background-position: top right;
+    background-repeat: repeat-y;
+    width: 14px;
+    left: auto;
+    right: 0;
+    opacity: 0.85;
+  }
+
+  /* Sports — pitch markings, halfway line + centre circle bottom */
+  .px-cat[data-topic="sports"] .px-cat__motif {
+    background-image:
+      radial-gradient(circle at 50% 100%, transparent 88px, rgba(232,240,72,0.14) 89px, rgba(232,240,72,0.14) 91px, transparent 92px),
+      linear-gradient(to right, transparent 49.7%, rgba(232,240,72,0.10) 49.7%, rgba(232,240,72,0.10) 50.3%, transparent 50.3%);
+    opacity: 0.95;
+  }
+
+  /* ============================================================================
+     RESPONSIVE
+     ============================================================================ */
+  @media (max-width: 720px) {
+    .px-cat { padding: 24px 22px 24px; min-height: 340px; }
+    .px-cat__topic { font-size: 40px; }
+  }
+</style>

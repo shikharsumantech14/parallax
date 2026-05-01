@@ -1,0 +1,16 @@
+---
+import { renderInline } from '../../lib/text';
+
+interface Props {
+  paragraphs: string[];
+  lead?: string;
+}
+const { paragraphs, lead } = Astro.props;
+---
+
+<div class="px-prose">
+  {lead && <p class="px-prose__lead" set:html={renderInline(lead)} />}
+  {paragraphs.map((p) => (
+    <p class="px-prose__p" set:html={renderInline(p)} />
+  ))}
+</div>

@@ -1,0 +1,48 @@
+---
+import { renderInline } from '../../lib/text';
+
+interface ComparisonRow {
+  label: string;
+  values: string[];
+}
+
+interface ComparisonSide {
+  label: string;
+  title: string;
+  tag?: string;
+  kicker?: string;
+}
+
+interface Props {
+  sides: ComparisonSide[];
+  rows: ComparisonRow[];
+  source?: string;
+}
+const { sides, rows, source } = Astro.props;
+---
+
+<div class="px-compare" data-cols={sides.length}>
+  <div class="px-compare__head">
+    {sides.map((s) => (
+      <div class="px-compare__col-head">
+        <div class="px-compare__col-label">{s.label}</div>
+        <div class="px-compare__col-title" set:html={renderInline(s.title)} />
+        {s.kicker && <div class="px-compare__col-kicker">{s.kicker}</div>}
+        {s.tag && <div class="px-compare__col-tag">{s.tag}</div>}
+      </div>
+    ))}
+  </div>
+
+  <div class="px-compare__body">
+    {rows.map((row) => (
+      <div class="px-compare__row">
+        <div class="px-compare__row-label">{row.label}</div>
+        {row.values.map((v) => (
+          <div class="px-compare__cell" set:html={renderInline(v)} />
+        ))}
+      </div>
+    ))}
+  </div>
+
+  {source && <div class="px-compare__source">{source}</div>}
+</div>

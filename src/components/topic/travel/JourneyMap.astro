@@ -1,0 +1,52 @@
+---
+/* JourneyMap — vertical itinerary stops with km markers and elevation.
+   Terracotta connector line. CSS-only. Use for: routes, road trips,
+   migration paths, expedition logs, supply chain hops. */
+import { renderInline } from '../../../lib/text';
+
+interface Stop {
+  place: string;
+  region?: string;
+  km?: string;            /* cumulative or leg distance, e.g. "0 km" or "+312 km" */
+  elev?: string;          /* elevation, e.g. "23 m" or "−12 m" */
+  arrival?: string;       /* date or time-of-day */
+  note?: string;          /* one-line annotation; supports *italic* and **bold** */
+  tag?: 'origin' | 'transit' | 'detour' | 'arrival';
+}
+
+interface Props {
+  stops: Stop[];
+  caption?: string;
+  source?: string;
+}
+const { stops, caption, source } = Astro.props;
+---
+
+<div class="px-journey">
+  {caption && <div class="px-journey__caption">{caption}</div>}
+
+  <ol class="px-journey__list">
+    {stops.map((s, i) => (
+      <li class="px-journey__stop" data-tag={s.tag ?? 'transit'}>
+        <div class="px-journey__rail">
+          <span class="px-journey__pin" aria-hidden="true"></span>
+          {i < stops.length - 1 && <span class="px-journey__line" aria-hidden="true"></span>}
+        </div>
+        <div class="px-journey__body">
+          <div class="px-journey__head">
+            <span class="px-journey__place">{s.place}</span>
+            {s.region && <span class="px-journey__region">· {s.region}</span>}
+          </div>
+          <div class="px-journey__meta">
+            {s.arrival && <span class="px-journey__arrival">{s.arrival}</span>}
+            {s.km && <span class="px-journey__km">{s.km}</span>}
+            {s.elev && <span class="px-journey__elev">elev {s.elev}</span>}
+          </div>
+          {s.note && <div class="px-journey__note" set:html={renderInline(s.note)} />}
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  {source && <div class="px-journey__source">{source}</div>}
+</div>

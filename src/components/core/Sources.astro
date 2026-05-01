@@ -1,0 +1,30 @@
+---
+import type { Source } from '../../content/config';
+
+interface Props {
+  sources: Source[];
+}
+const { sources } = Astro.props;
+
+function hostname(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, ''); }
+  catch { return url; }
+}
+---
+
+<section class="px-sources">
+  <h2 class="px-sources__title">Sources &amp; further reading</h2>
+  <ol>
+    {sources.map((s) => (
+      <li>
+        <strong>{s.title}</strong> — {s.publisher}.
+        {' '}
+        <a href={s.url} target="_blank" rel="noopener noreferrer">{hostname(s.url)}</a>
+        {' · '}
+        <span style="text-transform: uppercase; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted);">
+          {s.kind}
+        </span>
+      </li>
+    ))}
+  </ol>
+</section>

@@ -1,0 +1,64 @@
+---
+import { renderInline } from '../../../lib/text';
+
+interface Shell {
+  altitude: string;
+  band?: string;
+  density: number;
+  operators: string;
+  persistence: string;
+  flag?: 'human' | 'commercial' | 'debris' | 'legacy';
+}
+
+interface Props {
+  shells: Shell[];
+  caption?: string;
+  source?: string;
+}
+const { shells, caption, source } = Astro.props;
+
+const maxDensity = 12;
+---
+
+<div class="px-shells">
+  {caption && <div class="px-shells__caption">{caption}</div>}
+
+  <div class="px-shells__axis">
+    <span>↑ SPACE</span>
+    <span class="px-shells__axis-mid">ALTITUDE (km)</span>
+    <span>EARTH ↓</span>
+  </div>
+
+  <div class="px-shells__stack">
+    {shells.map((s) => {
+      const cells = Array.from({ length: maxDensity }, (_, i) => i < s.density);
+      return (
+        <div class="px-shells__row" data-flag={s.flag ?? 'default'}>
+          <div class="px-shells__alt">
+            <span class="px-shells__alt-num">{s.altitude}</span>
+            {s.band && <span class="px-shells__alt-band">{s.band}</span>}
+          </div>
+          <div class="px-shells__density" aria-label={`Relative density ${s.density} of ${maxDensity}`}>
+            {cells.map((filled) => (
+              <span class="px-shells__dot" data-on={filled ? 'true' : 'false'}></span>
+            ))}
+          </div>
+          <div class="px-shells__meta">
+            <div class="px-shells__operators" set:html={renderInline(s.operators)} />
+            <div class="px-shells__persist">
+              <span class="px-shells__persist-label">Decay window</span>
+              <span class="px-shells__persist-val">{s.persistence}</span>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  <div class="px-shells__ground" aria-hidden="true">
+    <span class="px-shells__ground-line"></span>
+    <span class="px-shells__ground-label">EARTH · 0 km</span>
+  </div>
+
+  {source && <div class="px-shells__source">{source}</div>}
+</div>

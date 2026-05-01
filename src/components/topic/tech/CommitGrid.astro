@@ -1,0 +1,82 @@
+---
+/* CommitGrid — GitHub-style activity heatmap. Lime cells with 5 intensity
+   steps. Pure CSS grid. Use for: release cadence, deployment frequency,
+   incident timelines, model-version drops. */
+import { renderInline } from '../../../lib/text';
+
+interface Day {
+  /* 0 = no activity, 1–4 = intensity step (low → high) */
+  level: 0 | 1 | 2 | 3 | 4;
+  /* optional human-readable cell tooltip — accessibility + hover */
+  label?: string;
+}
+
+interface Props {
+  /* Weeks of data, oldest first. Each week is exactly 7 days (Mon–Sun). */
+  weeks: Day[][];
+  /* Column-axis labels — month abbrevs above the grid */
+  months?: string[];
+  /* Row-axis labels — Mon/Wed/Fri usually */
+  weekdays?: string[];
+  /* Optional figure caption */
+  caption?: string;
+  /* Optional kicker right-side (e.g. "1,247 commits · 12 mo") */
+  meta?: string;
+  /* Optional source line below */
+  source?: string;
+}
+const {
+  weeks,
+  months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  weekdays = ['Mon', '', 'Wed', '', 'Fri', '', ''],
+  caption,
+  meta,
+  source
+} = Astro.props;
+---
+
+<div class="px-commit">
+  {(caption || meta) && (
+    <div class="px-commit__head">
+      {caption && <div class="px-commit__caption" set:html={renderInline(caption)} />}
+      {meta && <div class="px-commit__meta">{meta}</div>}
+    </div>
+  )}
+
+  <div class="px-commit__frame">
+    <div class="px-commit__months">
+      {months.map((m) => <span class="px-commit__month">{m}</span>)}
+    </div>
+    <div class="px-commit__body">
+      <div class="px-commit__weekdays">
+        {weekdays.map((d) => <span class="px-commit__weekday">{d}</span>)}
+      </div>
+      <div class="px-commit__grid" style={`--cols:${weeks.length}`}>
+        {weeks.map((week) => (
+          <div class="px-commit__week">
+            {week.map((d) => (
+              <span
+                class="px-commit__cell"
+                data-level={d.level}
+                title={d.label}
+                aria-label={d.label ?? `Activity level ${d.level}`}
+              ></span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="px-commit__legend">
+    <span class="px-commit__legend-label">Less</span>
+    <span class="px-commit__cell" data-level="0"></span>
+    <span class="px-commit__cell" data-level="1"></span>
+    <span class="px-commit__cell" data-level="2"></span>
+    <span class="px-commit__cell" data-level="3"></span>
+    <span class="px-commit__cell" data-level="4"></span>
+    <span class="px-commit__legend-label">More</span>
+  </div>
+
+  {source && <div class="px-commit__source">{source}</div>}
+</div>

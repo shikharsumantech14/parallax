@@ -1,0 +1,310 @@
+---
+/* SpaceIndex — the space topic page rendered as a mission-control console.
+   Top: telemetry banner with T+, mission, status. Body: log of TX entries
+   (transmissions = issues) with TX numbers, timestamps, statuses. */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase();
+
+const now = new Date();
+const pad = (n: number) => String(n).padStart(2, '0');
+const tplus = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
+---
+
+<div class="px-spc-index">
+  <a class="px-spc-index__back" href="/">← Mission directory</a>
+
+  <header class="px-spc-index__telemetry">
+    <div class="px-spc-index__telemetry-row">
+      <span class="px-spc-index__t-label">MISSION</span>
+      <span class="px-spc-index__t-val">PARALLAX // SPACE</span>
+    </div>
+    <div class="px-spc-index__telemetry-row">
+      <span class="px-spc-index__t-label">T+</span>
+      <span class="px-spc-index__t-val">{tplus}<span class="px-spc-index__cursor" aria-hidden="true">_</span></span>
+    </div>
+    <div class="px-spc-index__telemetry-row">
+      <span class="px-spc-index__t-label">STATUS</span>
+      <span class="px-spc-index__t-val px-spc-index__t-val--ok">{issues.length > 0 ? 'NOMINAL · BROADCASTING' : 'STANDBY · PRE-FLIGHT'}</span>
+    </div>
+    <div class="px-spc-index__telemetry-row">
+      <span class="px-spc-index__t-label">FEED</span>
+      <span class="px-spc-index__t-val">{issues.length} TX{issues.length === 1 ? '' : 'S'} ARCHIVED</span>
+    </div>
+  </header>
+
+  <section class="px-spc-index__intro">
+    <h1 class="px-spc-index__title">
+      Transmissions from <em>beyond the line</em>.
+    </h1>
+    <p class="px-spc-index__manifesto">
+      Spacecraft telemetry, mission plans, orbital mechanics, deep-space science. We read the data the way others read match reports — and we explain what it means without flattening the physics.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-spc-index__empty">
+      <div class="px-spc-index__empty-grid">
+        <span class="px-spc-index__empty-bar" style="--p: 18%"><span></span></span>
+        <span class="px-spc-index__empty-bar" style="--p: 42%"><span></span></span>
+        <span class="px-spc-index__empty-bar" style="--p: 71%"><span></span></span>
+        <span class="px-spc-index__empty-bar" style="--p: 94%"><span></span></span>
+      </div>
+      <div class="px-spc-index__empty-label">{empty.label}</div>
+      <p class="px-spc-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+      <div class="px-spc-index__empty-meta">
+        <span>SEQUENCE 01</span>
+        <span class="px-spc-index__empty-sep">·</span>
+        <span>NO TX YET</span>
+      </div>
+    </div>
+  ) : (
+    <ol class="px-spc-index__log">
+      <li class="px-spc-index__log-head">
+        <span>TX</span>
+        <span>STATUS</span>
+        <span>SUBJECT</span>
+        <span>DATE</span>
+      </li>
+      {issues.map((issue) => (
+        <li class="px-spc-index__log-entry">
+          <a class="px-spc-index__log-link" href={`/issues/${issue.slug}/`}>
+            <span class="px-spc-index__log-tx">{txNum(issueNumberFor(issue.slug))}</span>
+            <span class="px-spc-index__log-status">
+              <span class="px-spc-index__log-pulse" aria-hidden="true"></span>
+              CLEARED
+            </span>
+            <span class="px-spc-index__log-body">
+              <span class="px-spc-index__log-title" set:html={renderEmphasis(issue.data.title)} />
+              <span class="px-spc-index__log-hook">{issue.data.hook}</span>
+            </span>
+            <span class="px-spc-index__log-date">{fmtDate(issue.data.publishedAt)}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  )}
+</div>
+
+<style>
+  .px-spc-index { position: relative; }
+
+  .px-spc-index__back {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-spc-index__back:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- Telemetry banner --- */
+  .px-spc-index__telemetry {
+    border: 1px solid var(--accent);
+    background: var(--paper);
+    padding: 14px 18px;
+    margin-bottom: 36px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    position: relative;
+  }
+  .px-spc-index__telemetry::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: px-spc-blink 1.6s ease-in-out infinite;
+  }
+  @keyframes px-spc-blink { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .px-spc-index__telemetry-row { display: flex; gap: 10px; align-items: baseline; }
+  .px-spc-index__t-label { color: var(--muted); min-width: 64px; letter-spacing: 0.16em; text-transform: uppercase; font-size: 10px; }
+  .px-spc-index__t-val { color: var(--ink); }
+  .px-spc-index__t-val--ok { color: var(--accent); }
+  .px-spc-index__cursor { display: inline-block; margin-left: 2px; animation: px-spc-blink 1s steps(1) infinite; color: var(--accent); }
+
+  /* --- Intro / manifesto --- */
+  .px-spc-index__intro {
+    margin: 0 0 56px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-spc-index__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(40px, 6vw, 80px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin: 0 0 22px;
+    max-width: 18ch;
+  }
+  .px-spc-index__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-spc-index__manifesto {
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  /* --- TX log --- */
+  .px-spc-index__log { list-style: none; padding: 0; margin: 0; border: 1px solid var(--rule); background: var(--paper); }
+  .px-spc-index__log-head {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr 110px;
+    gap: 18px;
+    padding: 12px 18px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-spc-index__log-entry { padding: 0; border-bottom: 1px solid var(--rule); }
+  .px-spc-index__log-entry:last-child { border-bottom: none; }
+  .px-spc-index__log-link {
+    display: grid;
+    grid-template-columns: 90px 130px 1fr 110px;
+    gap: 18px;
+    padding: 22px 18px;
+    text-decoration: none;
+    color: inherit;
+    align-items: baseline;
+    transition: background 0.12s ease;
+  }
+  .px-spc-index__log-link:hover { background: rgba(0,212,255,0.04); }
+  .px-spc-index__log-tx {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  .px-spc-index__log-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .px-spc-index__log-pulse {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  .px-spc-index__log-title {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  .px-spc-index__log-title em { color: var(--accent); font-style: italic; font-weight: 400; }
+  .px-spc-index__log-hook {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    max-width: 60ch;
+  }
+  .px-spc-index__log-date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* --- Empty: signal-strength bars --- */
+  .px-spc-index__empty {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 48px;
+    position: relative;
+  }
+  .px-spc-index__empty-grid {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+    margin-bottom: 28px;
+  }
+  .px-spc-index__empty-bar {
+    width: 14px;
+    height: 100%;
+    background: var(--rule);
+    position: relative;
+    overflow: hidden;
+    display: block;
+  }
+  .px-spc-index__empty-bar span {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: var(--p);
+    background: var(--accent);
+    opacity: 0.6;
+  }
+  .px-spc-index__empty-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .px-spc-index__empty-body {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 24px;
+    max-width: 56ch;
+    line-height: 1.4;
+  }
+  .px-spc-index__empty-body em { color: var(--accent); font-style: italic; }
+  .px-spc-index__empty-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex; gap: 10px;
+  }
+  .px-spc-index__empty-sep { color: var(--rule); }
+
+  @media (max-width: 720px) {
+    .px-spc-index__telemetry { grid-template-columns: 1fr; padding: 24px 18px 14px; }
+    .px-spc-index__log-head, .px-spc-index__log-link { grid-template-columns: 70px 90px 1fr; gap: 12px; }
+    .px-spc-index__log-date { display: none; }
+    .px-spc-index__empty { padding: 32px 24px; }
+  }
+</style>

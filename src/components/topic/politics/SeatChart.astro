@@ -1,0 +1,40 @@
+---
+interface SeatRow {
+  name: string;
+  region: 'north' | 'south';
+  current: number;
+  change: number;
+}
+
+interface Props {
+  subtitle?: string;
+  source?: string;
+  rows: SeatRow[];
+}
+
+const { subtitle, source, rows } = Astro.props;
+const maxMagnitude = Math.max(1, ...rows.map((r) => Math.abs(r.change)));
+---
+
+<div class="px-seats">
+  {subtitle && <div class="px-seats__caption">{subtitle}</div>}
+
+  {rows.map((r) => {
+    const widthPct = (Math.abs(r.change) / maxMagnitude) * 100;
+    const sign = r.change > 0 ? '+' : r.change < 0 ? '' : '±';
+    return (
+      <div class="px-seats__row" data-region={r.region}>
+        <div class="px-seats__name">
+          {r.name}<span>{r.region.toUpperCase()}</span>
+        </div>
+        <div class="px-seats__current">{r.current}</div>
+        <div class="px-seats__bar">
+          <div class="px-seats__bar-fill" style={`width: ${widthPct}%;`}></div>
+        </div>
+        <div class="px-seats__delta">{sign}{r.change}</div>
+      </div>
+    );
+  })}
+
+  {source && <div class="px-seats__source">Source: {source}</div>}
+</div>

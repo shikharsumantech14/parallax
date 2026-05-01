@@ -1,0 +1,21 @@
+---
+interface Beat {
+  time: string;
+  label: string;
+  description: string;
+}
+interface Props {
+  beats: Beat[];
+}
+const { beats } = Astro.props;
+---
+
+<div class="px-beats">
+  {beats.map((b) => (
+    <div class="px-beats__row">
+      <div class="px-beats__time">{b.time}</div>
+      <div class="px-beats__label">{b.label}</div>
+      <div class="px-beats__desc">{b.description}</div>
+    </div>
+  ))}
+</div>

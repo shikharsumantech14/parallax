@@ -1,0 +1,52 @@
+---
+import type { Topic } from '../../content/config';
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  topic: Topic;
+}
+const { topic } = Astro.props;
+
+type Manifesto = { eyebrow: string; title: string; body: string };
+
+const manifestos: Record<Topic, Manifesto> = {
+  politics: {
+    eyebrow: 'Politics · Dispatches',
+    title: 'The machinery behind the *headlines*.',
+    body: 'Bills, votes, constituencies, coalitions. We reconstruct how power is actually assembled — the procedural fine print that turns intent into law and rhetoric into representation.'
+  },
+  space: {
+    eyebrow: 'Space · Transmissions',
+    title: 'Transmissions from *beyond the line*.',
+    body: 'Orbits, launches, deep-space missions. We read spacecraft telemetry and mission plans the way others read match reports — and we explain the science without flattening it.'
+  },
+  earth: {
+    eyebrow: 'Earth · Field Surveys',
+    title: 'The planet, in *the present tense*.',
+    body: 'Climate, oceans, biodiversity, geology. We file dispatches from the world\'s working systems — the ones we live inside and routinely fail to measure — with the patience of a survey and the urgency of a thermometer.'
+  },
+  tech: {
+    eyebrow: 'Tech · Changelog',
+    title: 'The *commit messages* of a changing world.',
+    body: 'Models, systems, platforms, protocols. We trace what actually ships versus what is announced, and we read the diffs — because the promise and the patch are rarely the same thing.'
+  },
+  travel: {
+    eyebrow: 'Travel · Field Notes',
+    title: 'Field notes from *somewhere you haven\'t been*.',
+    body: 'Cities, crossings, rituals, quiet rooms. We write travel pieces about places that resist being summarised, and we leave the inside jokes out of the footnotes.'
+  },
+  sports: {
+    eyebrow: 'Sports · Matchday',
+    title: 'The *tactics*, told honestly.',
+    body: 'Match reports, transfer economies, the politics of governing bodies. We cover football and its cousins the way they deserve — as systems, not spectacles.'
+  }
+};
+
+const m = manifestos[topic];
+---
+
+<section class="px-topic-hero">
+  <div class="px-topic-hero__eyebrow">{m.eyebrow}</div>
+  <h1 class="px-topic-hero__title" set:html={renderEmphasis(m.title)} />
+  <p class="px-topic-hero__manifesto" set:html={renderEmphasis(m.body)} />
+</section>

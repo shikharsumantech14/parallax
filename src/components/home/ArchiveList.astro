@@ -1,0 +1,45 @@
+---
+import type { Topic } from '../../content/config';
+import { renderEmphasis, formatIssueNumber } from '../../lib/text';
+
+interface Entry {
+  slug: string;
+  topic: Topic;
+  title: string;
+  issueNumber: number;
+  publishedAt: Date;
+}
+
+interface Props {
+  items: Entry[];
+}
+const { items } = Astro.props;
+
+const topicLabels: Record<string, string> = {
+  politics: 'Politics',
+  space: 'Space',
+  tech: 'Tech',
+  travel: 'Travel',
+  sports: 'Sports'
+};
+---
+
+<section class="px-archive">
+  <div class="px-archive__title">Earlier Issues</div>
+  {items.length === 0 ? (
+    <div class="px-archive__empty">No earlier issues yet — the archive begins with — 01.</div>
+  ) : (
+    <ul class="px-archive__list">
+      {items.map((entry) => (
+        <li>
+          <a class="px-archive__item" data-topic={entry.topic} href={`/issues/${entry.slug}/`}>
+            <span class="px-archive__no">{formatIssueNumber(entry.issueNumber)}</span>
+            <span class="px-archive__dot" aria-hidden="true"></span>
+            <span class="px-archive__text" set:html={renderEmphasis(entry.title)} />
+            <span class="px-archive__topic">{topicLabels[entry.topic]}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+</section>

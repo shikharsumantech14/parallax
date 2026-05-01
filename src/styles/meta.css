@@ -1,0 +1,528 @@
+/* ============================================================================
+   PARALLAX · META BRAND LAYER
+   The Parallax voice that sits above all topics. Used on home + topic index
+   pages (non-scoped). Neutral warm paper that harmonises with all five
+   topic accents without being any one of them.
+   ============================================================================ */
+
+:root {
+  /* Meta brand tokens — fallbacks for pages without data-topic */
+  --bg: #faf7f0;
+  --paper: #ffffff;
+  --rule: #d8cfbf;
+  --ink: #15130f;
+  --ink-soft: #3d352c;
+  --muted: #7a6d5e;
+  --accent: #161412;           /* meta accent is near-black, not topic color */
+  --accent-deep: #000000;
+  --tape: #e8ddc2;
+
+  /* Per-topic accents (available on meta pages for topic strip, dots, etc.) */
+  --topic-politics: #b8341f;
+  --topic-space: #00d4ff;
+  --topic-earth: #2d6a4f;
+  --topic-tech: #c6f432;
+  --topic-travel: #c85a3c;
+  --topic-sports: #e8f048;
+
+  /* Deep variants — used for large typography on light paper where the
+     vivid strip colors would have poor contrast. */
+  --topic-politics-deep: #8b2416;
+  --topic-space-deep: #0085a1;
+  --topic-earth-deep: #1a4a36;
+  --topic-tech-deep: #5a6e16;
+  --topic-travel-deep: #9a4028;
+  --topic-sports-deep: #3f5428;
+
+  /* Meta fonts — publication serif + body + mono. Topic faces are
+     loaded site-wide via Google Fonts and referenced inline where needed. */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Topic display faces — pulled in for the typographic chord on home */
+  --font-politics: 'Fraunces', Georgia, serif;
+  --font-space: 'Space Grotesk', 'Inter Tight', sans-serif;
+  --font-earth: 'Cormorant Garamond', 'Fraunces', serif;
+  --font-tech: 'JetBrains Mono', ui-monospace, monospace;
+  --font-travel: 'Cormorant Garamond', 'Fraunces', serif;
+  --font-sports: 'Oswald', 'Inter Tight', sans-serif;
+}
+
+/* ============================================================================
+   META MASTHEAD (home only)
+   ============================================================================ */
+.px-masthead--meta { color: var(--ink); }
+.px-masthead--meta .px-masthead__brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* --- Brand-as-home-link: behave like text, hint on hover ---------------- */
+a.px-masthead__home {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+a.px-masthead__home:hover { opacity: 0.78; }
+a.px-masthead__home:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+/* ============================================================================
+   TYPOGRAPHIC CHORD — disciplined two-font hero composition
+   Fraunces serif for the headline, JetBrains Mono for the metadata.
+   The italic accent word picks up the featured-topic accent color via
+   data-accent on .px-chord.
+   ============================================================================ */
+.px-chord {
+  margin: 56px 0 96px;
+  --chord-accent: var(--topic-politics);
+  --chord-accent-deep: var(--topic-politics-deep);
+}
+.px-chord[data-accent="politics"] { --chord-accent: var(--topic-politics); --chord-accent-deep: var(--topic-politics-deep); }
+.px-chord[data-accent="space"]    { --chord-accent: var(--topic-space);    --chord-accent-deep: var(--topic-space-deep); }
+.px-chord[data-accent="earth"]    { --chord-accent: var(--topic-earth);    --chord-accent-deep: var(--topic-earth-deep); }
+.px-chord[data-accent="tech"]     { --chord-accent: var(--topic-tech);     --chord-accent-deep: var(--topic-tech-deep); }
+.px-chord[data-accent="travel"]   { --chord-accent: var(--topic-travel);   --chord-accent-deep: var(--topic-travel-deep); }
+.px-chord[data-accent="sports"]   { --chord-accent: var(--topic-sports);   --chord-accent-deep: var(--topic-sports-deep); }
+
+.px-chord__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.px-chord__eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--ink);
+}
+
+.px-chord__headline {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 108px);
+  line-height: 1.0;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  font-weight: 500;
+  max-width: 880px;
+  margin: 0 0 36px;
+}
+.px-chord__accent {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--chord-accent-deep);
+}
+
+.px-chord__dek {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 300;
+  font-style: normal;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  max-width: 640px;
+}
+.px-chord__dek-mark {
+  color: var(--chord-accent-deep);
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  flex: 0 0 auto;
+  transform: translateY(-0.15em);
+}
+.px-chord__dek-count {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--chord-accent-deep);
+}
+.px-chord__dek-sep {
+  color: var(--rule);
+  margin: 0 0.3em;
+  font-weight: 300;
+}
+
+/* ============================================================================
+   TOPIC STRIP — ambient navigation with per-topic accent dots
+   ============================================================================ */
+.px-strip {
+  list-style: none;
+  padding: 18px 0;
+  margin: 0 0 48px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.px-strip__item { flex: 0 0 auto; }
+.px-strip__link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.12s ease;
+}
+.px-strip__link:hover { border-bottom-color: var(--ink); }
+.px-strip__dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  display: inline-block;
+  background: var(--topic-politics);
+}
+.px-strip__item--politics .px-strip__dot { background: var(--topic-politics); }
+.px-strip__item--space    .px-strip__dot { background: var(--topic-space); }
+.px-strip__item--earth    .px-strip__dot { background: var(--topic-earth); }
+.px-strip__item--tech     .px-strip__dot { background: var(--topic-tech); }
+.px-strip__item--travel   .px-strip__dot { background: var(--topic-travel); }
+.px-strip__item--sports   .px-strip__dot { background: var(--topic-sports); }
+
+/* Compact variant used on issue pages */
+.px-strip--compact {
+  margin-top: 0;
+  margin-bottom: 40px;
+  padding: 10px 0;
+  justify-content: flex-start;
+  gap: 28px;
+}
+.px-strip--compact .px-strip__link { font-size: 10px; letter-spacing: 0.18em; gap: 8px; }
+.px-strip--compact .px-strip__dot { width: 7px; height: 7px; }
+
+/* ============================================================================
+   FEATURED ISSUE — magazine-cover block, wears topic tokens locally
+   ============================================================================ */
+.px-featured {
+  margin: 56px 0 40px;
+}
+.px-featured__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.px-featured__header strong { color: var(--ink); font-weight: 700; }
+.px-featured__card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 48px 44px 44px;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+}
+.px-featured__card:hover { border-color: var(--ink); }
+.px-featured__card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent);
+}
+.px-featured__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.px-featured__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(32px, 4.5vw, 56px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 18px;
+  max-width: 720px;
+}
+.px-featured__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-featured__hook {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-weight: 300;
+  max-width: 680px;
+  margin-bottom: 28px;
+}
+.px-featured__cta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.px-featured__cta::after { content: '→'; font-family: var(--font-mono); }
+
+/* ============================================================================
+   ARCHIVE LIST — earlier issues with topic-color dots
+   ============================================================================ */
+.px-archive { margin: 72px 0 40px; }
+.px-archive__title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--ink);
+}
+.px-archive__list { list-style: none; padding: 0; margin: 0; }
+.px-archive__item {
+  display: grid;
+  grid-template-columns: 96px 20px 1fr auto;
+  gap: 20px;
+  align-items: baseline;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+}
+.px-archive__item:hover { background: var(--paper); }
+.px-archive__no {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-archive__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  justify-self: center;
+  align-self: center;
+  display: inline-block;
+  background: var(--ink);
+}
+.px-archive__item[data-topic="politics"] .px-archive__dot { background: var(--topic-politics); }
+.px-archive__item[data-topic="space"]    .px-archive__dot { background: var(--topic-space); }
+.px-archive__item[data-topic="earth"]    .px-archive__dot { background: var(--topic-earth); }
+.px-archive__item[data-topic="tech"]     .px-archive__dot { background: var(--topic-tech); }
+.px-archive__item[data-topic="travel"]   .px-archive__dot { background: var(--topic-travel); }
+.px-archive__item[data-topic="sports"]   .px-archive__dot { background: var(--topic-sports); }
+.px-archive__text {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.px-archive__text em { font-style: italic; font-weight: 400; color: var(--ink-soft); }
+.px-archive__topic {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-archive__empty {
+  padding: 28px 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+/* ============================================================================
+   META PAGE LAYOUT ACCENTS
+   ============================================================================ */
+.px-meta-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ============================================================================
+   TOPIC INDEX (/topics/[topic]) PAGE SCAFFOLDING
+   These classes live at the meta layer because the page structure is shared;
+   the colors come from each topic's :root[data-topic=...] block.
+   ============================================================================ */
+.px-topic-hero { margin: 40px 0 56px; border-bottom: 1px solid var(--rule); padding-bottom: 48px; }
+.px-topic-hero__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.px-topic-hero__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(40px, 6.5vw, 84px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin-bottom: 22px;
+}
+.px-topic-hero__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-topic-hero__manifesto {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 640px;
+  font-weight: 300;
+}
+.px-topic-hero__manifesto em { color: var(--accent); font-style: italic; }
+
+.px-topic-list { list-style: none; padding: 0; margin: 0; }
+.px-topic-list__item {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 24px;
+  align-items: baseline;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+.px-topic-list__item:hover { background: var(--paper); }
+.px-topic-list__no {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-topic-list__title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.18;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  display: block;
+}
+.px-topic-list__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+.px-topic-list__hook {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  max-width: 560px;
+  line-height: 1.5;
+}
+.px-topic-list__date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* --- Empty state: design surface, not a fallback --- */
+.px-topic-empty {
+  margin: 40px 0 60px;
+  padding: 64px 48px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+.px-topic-empty::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent);
+}
+.px-topic-empty__no {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(80px, 14vw, 200px);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-bottom: 24px;
+}
+.px-topic-empty__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.px-topic-empty__tag {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-style: italic;
+  color: var(--ink);
+  max-width: 520px;
+  line-height: 1.35;
+  margin-bottom: 28px;
+}
+.px-topic-empty__back {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+.px-topic-empty__back:hover { border-bottom-color: var(--accent); }
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+@media (max-width: 720px) {
+  .px-chord { margin-bottom: 56px; }
+  .px-strip { gap: 14px 20px; padding: 14px 0; margin-bottom: 36px; }
+  .px-strip__link { letter-spacing: 0.18em; }
+  .px-featured__card { padding: 32px 24px 28px; }
+  .px-archive__item { grid-template-columns: 60px 14px 1fr; row-gap: 4px; }
+  .px-archive__topic { grid-column: 3; }
+  .px-topic-list__item { grid-template-columns: 1fr; gap: 6px; padding: 22px 0; }
+  .px-topic-list__date { grid-column: 1; }
+  .px-topic-empty { padding: 40px 24px; }
+}

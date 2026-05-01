@@ -1,0 +1,55 @@
+---
+import type { Topic } from '../content/config';
+import '../styles/base.css';
+import '../styles/meta.css';
+// Topic themes are loaded so topic indexes + scoped FeaturedIssue cards
+// can pick up per-topic variables via data-topic on <html> or on the element.
+import '../styles/themes/politics.css';
+import '../styles/themes/space.css';
+import '../styles/themes/earth.css';
+import '../styles/themes/tech.css';
+import '../styles/themes/travel.css';
+import '../styles/themes/sports.css';
+
+import Footer from '../components/core/Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  topic?: Topic;
+}
+const { title, description, topic } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en" data-topic={topic}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="alternate" type="application/rss+xml" title="Parallax" href="/rss.xml" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    />
+  </head>
+  <body>
+    <div class="px-wrap">
+      <main>
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

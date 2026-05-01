@@ -1,0 +1,19 @@
+---
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  number?: string;
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+}
+const { number, eyebrow, title, intro } = Astro.props;
+---
+
+<section class="px-section">
+  {number && <div class="px-section__num">{number}</div>}
+  {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
+  {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
+  {intro && <p class="px-section__intro">{intro}</p>}
+  <slot />
+</section>

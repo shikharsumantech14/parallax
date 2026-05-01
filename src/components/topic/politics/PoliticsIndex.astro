@@ -1,0 +1,289 @@
+---
+/* PoliticsIndex — the politics topic page rendered as a broadsheet front.
+   Top: parliament desk masthead with double red rule + edition meta.
+   Body: editor's note column + issue list as columnar leads. */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis, formatIssueNumber } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
+const today = new Date();
+const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+---
+
+<div class="px-poli-index">
+  <a class="px-poli-index__back" href="/">← All worlds</a>
+
+  <header class="px-poli-index__masthead">
+    <div class="px-poli-index__nameplate">
+      <span class="px-poli-index__dot" aria-hidden="true"></span>
+      The Parliamentary Desk
+    </div>
+    <div class="px-poli-index__edition">
+      <span>Vol. I</span>
+      <span class="px-poli-index__edition-sep">·</span>
+      <span>{todayLong}</span>
+    </div>
+  </header>
+
+  <section class="px-poli-index__editorial">
+    <div class="px-poli-index__editorial-eyebrow">From the editor's desk</div>
+    <p class="px-poli-index__editorial-body">
+      <span class="px-poli-index__dropcap">P</span>arallax Politics rebuilds familiar headlines from the procedural ground up — bills, vote rolls, constituencies, coalitions. Every number traceable; every claim sourced; nothing left as common knowledge.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-poli-index__empty">
+      <div class="px-poli-index__empty-stamp">FILING</div>
+      <div class="px-poli-index__empty-no">No. 01</div>
+      <div class="px-poli-index__empty-label">{empty.label}</div>
+      <p class="px-poli-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+    </div>
+  ) : (
+    <ol class="px-poli-index__leads">
+      {issues.map((issue) => (
+        <li class="px-poli-index__lead">
+          <a class="px-poli-index__lead-link" href={`/issues/${issue.slug}/`}>
+            <div class="px-poli-index__lead-no">{formatIssueNumber(issueNumberFor(issue.slug))}</div>
+            <div class="px-poli-index__lead-body">
+              <div class="px-poli-index__lead-kicker">Politics · Dispatch</div>
+              <h2 class="px-poli-index__lead-title" set:html={renderEmphasis(issue.data.title)} />
+              <p class="px-poli-index__lead-hook">{issue.data.hook}</p>
+              <div class="px-poli-index__lead-meta">
+                <span>{fmtDate(issue.data.publishedAt)}</span>
+                {issue.data.readTimeMinutes && <><span class="px-poli-index__lead-sep">·</span><span>{issue.data.readTimeMinutes} min read</span></>}
+                <span class="px-poli-index__lead-sep">·</span>
+                <span class="px-poli-index__lead-cta">Read the dispatch →</span>
+              </div>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ol>
+  )}
+</div>
+
+<style>
+  .px-poli-index { position: relative; }
+
+  .px-poli-index__back {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-poli-index__back:hover { color: var(--ink); border-bottom-color: var(--accent); }
+
+  /* --- Masthead — broadsheet nameplate + edition meta --- */
+  .px-poli-index__masthead {
+    border-top: 4px double var(--accent);
+    border-bottom: 1px solid var(--ink);
+    padding: 28px 0 18px;
+    margin-bottom: 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .px-poli-index__nameplate {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(36px, 5.5vw, 64px);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .px-poli-index__dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+  .px-poli-index__edition {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .px-poli-index__edition-sep { color: var(--rule); }
+
+  /* --- Editor's note column --- */
+  .px-poli-index__editorial {
+    margin: 0 0 56px;
+    max-width: 720px;
+    padding-right: 24px;
+    border-right: 1px solid var(--rule);
+    padding-bottom: 36px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-poli-index__editorial-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .px-poli-index__editorial-body {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.45;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+  .px-poli-index__dropcap {
+    float: left;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 88px;
+    line-height: 0.85;
+    color: var(--accent);
+    padding: 6px 14px 0 0;
+  }
+
+  /* --- Issue list as columnar leads --- */
+  .px-poli-index__leads { list-style: none; padding: 0; margin: 0; }
+  .px-poli-index__lead { padding: 0; }
+  .px-poli-index__lead + .px-poli-index__lead {
+    border-top: 1px solid var(--ink);
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .px-poli-index__lead-link {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 28px;
+    padding: 28px 0;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--rule);
+    transition: background 0.15s ease;
+  }
+  .px-poli-index__lead-link:hover { background: var(--paper); }
+  .px-poli-index__lead-no {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .px-poli-index__lead-kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .px-poli-index__lead-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .px-poli-index__lead-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-poli-index__lead-hook {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 300;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    max-width: 56ch;
+  }
+  .px-poli-index__lead-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-poli-index__lead-sep { color: var(--rule); }
+  .px-poli-index__lead-cta { color: var(--accent); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
+
+  /* --- Empty state — broadsheet "FILING" placeholder --- */
+  .px-poli-index__empty {
+    border: 1px solid var(--rule);
+    padding: 48px;
+    background: var(--paper);
+    position: relative;
+  }
+  .px-poli-index__empty-stamp {
+    position: absolute;
+    top: 18px; right: 18px;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    padding: 6px 12px;
+    transform: rotate(-3deg);
+  }
+  .px-poli-index__empty-no {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(72px, 12vw, 160px);
+    line-height: 0.9;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+  }
+  .px-poli-index__empty-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 24px;
+    margin-bottom: 14px;
+  }
+  .px-poli-index__empty-body {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0;
+    max-width: 56ch;
+  }
+  .px-poli-index__empty-body em { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .px-poli-index__masthead { padding-top: 18px; }
+    .px-poli-index__editorial { padding-right: 0; border-right: none; }
+    .px-poli-index__lead-link { grid-template-columns: 1fr; gap: 8px; padding: 22px 0; }
+    .px-poli-index__lead-no { font-size: 36px; }
+    .px-poli-index__empty { padding: 32px 24px; }
+    .px-poli-index__empty-stamp { top: 12px; right: 12px; font-size: 10px; }
+  }
+</style>

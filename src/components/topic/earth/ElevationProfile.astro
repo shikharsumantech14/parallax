@@ -1,0 +1,57 @@
+---
+/* ElevationProfile — topographic cross-section. Stacked horizontal bands
+   keyed to elevation/depth, with the value bar's width proportional to
+   the band's range. Sage labels, USGS contour-brown bars. CSS-only.
+   Use for: terrain, ocean depth, atmospheric layers, soil columns,
+   sediment cores, glacier thickness. */
+import { renderInline } from '../../../lib/text';
+
+interface Band {
+  label: string;          /* "Mariana Trench", "Stratosphere", etc. */
+  range: string;          /* "10,994 m" or "0–12 km" */
+  value: number;          /* magnitude relative to maxValue, drives bar width */
+  unit?: string;          /* e.g. "m", "km" — appended to value */
+  note?: string;          /* one-line annotation */
+  flag?: 'surface' | 'depth' | 'altitude' | 'core';
+}
+
+interface Props {
+  bands: Band[];
+  maxValue?: number;      /* if omitted, derived from bands */
+  axisLabel?: string;     /* "DEPTH (m)" or "ALTITUDE (km)" */
+  caption?: string;
+  source?: string;
+}
+const { bands, axisLabel = 'MAGNITUDE', caption, source } = Astro.props;
+const max = Astro.props.maxValue ?? Math.max(...bands.map((b) => b.value));
+---
+
+<div class="px-elev">
+  {caption && <div class="px-elev__caption">{caption}</div>}
+
+  <div class="px-elev__axis">
+    <span class="px-elev__axis-label">{axisLabel}</span>
+  </div>
+
+  <div class="px-elev__stack">
+    {bands.map((b) => {
+      const pct = max > 0 ? (b.value / max) * 100 : 0;
+      return (
+        <div class="px-elev__band" data-flag={b.flag ?? 'surface'}>
+          <div class="px-elev__label">
+            <div class="px-elev__label-name">{b.label}</div>
+            <div class="px-elev__label-range">{b.range}</div>
+          </div>
+          <div class="px-elev__bar-frame">
+            <div class="px-elev__bar" style={`width:${pct}%`}>
+              <span class="px-elev__value">{b.value.toLocaleString()}{b.unit ? ` ${b.unit}` : ''}</span>
+            </div>
+          </div>
+          {b.note && <div class="px-elev__note" set:html={renderInline(b.note)} />}
+        </div>
+      );
+    })}
+  </div>
+
+  {source && <div class="px-elev__source">{source}</div>}
+</div>

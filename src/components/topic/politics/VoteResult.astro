@@ -1,0 +1,46 @@
+---
+interface Props {
+  for: number;
+  against: number;
+  required: number;
+  present: number;
+  shortfall: number;
+  label?: string;
+  stamp?: string;
+}
+
+const { for: forVotes, against, required, present, shortfall, label, stamp = 'Defeated' } = Astro.props;
+
+const total = forVotes + against;
+const forPct = total === 0 ? 0 : (forVotes / total) * 100;
+const againstPct = total === 0 ? 0 : (against / total) * 100;
+const thresholdPct = present === 0 ? 0 : (required / present) * 100;
+---
+
+<div class="px-vote">
+  {label && <div class="px-vote__caption">{label}</div>}
+
+  <div class="px-vote__bar-wrap">
+    <div class="px-vote__bar" role="img" aria-label={`Vote: ${forVotes} for, ${against} against, ${required} needed`}>
+      <div class="px-vote__seg px-vote__seg--for" style={`width: ${forPct}%;`}>
+        <span>FOR · {forVotes}</span>
+      </div>
+      <div class="px-vote__seg px-vote__seg--against" style={`width: ${againstPct}%;`}>
+        <span>{against} · AGAINST</span>
+      </div>
+
+      <div class="px-vote__threshold" style={`left: ${thresholdPct}%;`}>
+        <span class="px-vote__threshold-label">2/3 line · {required} needed</span>
+      </div>
+    </div>
+
+    {stamp && <span class="px-vote__stamp">{stamp}</span>}
+  </div>
+
+  <div class="px-vote__legend">
+    <div><span class="px-vote__legend-num">{forVotes}</span>For</div>
+    <div><span class="px-vote__legend-num">{against}</span>Against</div>
+    <div><span class="px-vote__legend-num">{required}</span>Needed</div>
+    <div><span class="px-vote__legend-num">−{shortfall}</span>Shortfall</div>
+  </div>
+</div>

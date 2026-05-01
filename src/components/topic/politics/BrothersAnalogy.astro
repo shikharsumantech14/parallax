@@ -1,0 +1,38 @@
+---
+import { renderInline } from '../../../lib/text';
+
+interface Brother {
+  code: string;
+  role: 'disciplined' | 'populous';
+  desc: string;
+  kids: string;
+}
+
+interface Props {
+  headline?: string;
+  brothers: Brother[];
+  punchline?: string;
+}
+
+const { headline, brothers, punchline } = Astro.props;
+---
+
+<div class="px-analogy">
+  {headline && (
+    <p class="px-analogy__headline" set:html={renderInline(headline)} />
+  )}
+
+  <div class="px-analogy__grid">
+    {brothers.map((b) => (
+      <div class="px-analogy__card" data-role={b.role}>
+        <div class="px-analogy__tag">{b.code}</div>
+        <p class="px-analogy__desc" set:html={renderInline(b.desc)} />
+        <div class="px-analogy__kids">{b.kids}</div>
+      </div>
+    ))}
+  </div>
+
+  {punchline && (
+    <p class="px-analogy__punchline" set:html={renderInline(punchline)} />
+  )}
+</div>

@@ -1,0 +1,84 @@
+---
+/* MatchStatLine — bold scoreline + horizontal stat-bar comparisons.
+   Lime accents on pitch-green. CSS-only. Use for: match reports, head-to-head
+   comparisons, performance metrics, win-rate breakdowns. */
+import { renderInline } from '../../../lib/text';
+
+interface Side {
+  name: string;
+  score?: string;        /* "2", "0", or "(4)" for penalties */
+  badge?: string;        /* short tag, e.g. "FIN" */
+  outcome?: 'win' | 'draw' | 'loss';
+}
+
+interface StatRow {
+  label: string;
+  home: number;          /* numeric value for the home side bar */
+  away: number;          /* numeric value for the away side bar */
+  unit?: string;         /* "%", "" — appended to the displayed number */
+  note?: string;         /* small italic note under the row */
+}
+
+interface Props {
+  home: Side;
+  away: Side;
+  competition?: string;  /* eyebrow, e.g. "Premier League · Matchday 31" */
+  venue?: string;        /* "Anfield · 54,074" */
+  date?: string;         /* "Apr 24, 2026" */
+  rows: StatRow[];
+  source?: string;
+}
+const { home, away, competition, venue, date, rows, source } = Astro.props;
+
+/* normalise each row to percentages of the row total for the bar fill */
+const normalised = rows.map((r) => {
+  const total = (Number(r.home) || 0) + (Number(r.away) || 0);
+  const homePct = total === 0 ? 50 : (Number(r.home) / total) * 100;
+  return { ...r, homePct, awayPct: 100 - homePct };
+});
+---
+
+<div class="px-msl">
+  {competition && <div class="px-msl__comp">{competition}</div>}
+
+  <div class="px-msl__scoreline">
+    <div class="px-msl__side px-msl__side--home" data-outcome={home.outcome ?? 'draw'}>
+      {home.badge && <span class="px-msl__badge">{home.badge}</span>}
+      <span class="px-msl__name">{home.name}</span>
+    </div>
+    <div class="px-msl__score">
+      <span class="px-msl__score-num">{home.score ?? '0'}</span>
+      <span class="px-msl__score-sep">—</span>
+      <span class="px-msl__score-num">{away.score ?? '0'}</span>
+    </div>
+    <div class="px-msl__side px-msl__side--away" data-outcome={away.outcome ?? 'draw'}>
+      <span class="px-msl__name">{away.name}</span>
+      {away.badge && <span class="px-msl__badge">{away.badge}</span>}
+    </div>
+  </div>
+
+  {(venue || date) && (
+    <div class="px-msl__meta">
+      {venue && <span>{venue}</span>}
+      {venue && date && <span class="px-msl__sep">·</span>}
+      {date && <span>{date}</span>}
+    </div>
+  )}
+
+  <div class="px-msl__stats">
+    {normalised.map((r) => (
+      <div class="px-msl__row">
+        <span class="px-msl__row-home">{r.home}{r.unit ?? ''}</span>
+        <span class="px-msl__row-label">{r.label}</span>
+        <span class="px-msl__row-away">{r.away}{r.unit ?? ''}</span>
+        <div class="px-msl__row-bars">
+          <span class="px-msl__bar px-msl__bar--home" style={`width:${r.homePct}%`}></span>
+          <span class="px-msl__bar px-msl__bar--away" style={`width:${r.awayPct}%`}></span>
+        </div>
+        {r.note && <span class="px-msl__row-note" set:html={renderInline(r.note)} />}
+      </div>
+    ))}
+  </div>
+
+  {source && <div class="px-msl__source">{source}</div>}
+</div>

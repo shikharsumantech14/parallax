@@ -1,0 +1,52 @@
+---
+import { getCollection } from 'astro:content';
+import HomeLayout from '../layouts/HomeLayout.astro';
+import Masthead from '../components/core/Masthead.astro';
+import TypographicChord from '../components/home/TypographicChord.astro';
+import CategoryGrid from '../components/home/CategoryGrid.astro';
+import ArchiveList from '../components/home/ArchiveList.astro';
+import { TOPICS, type Topic } from '../content/config';
+import type { CollectionEntry } from 'astro:content';
+
+const allIssues = await getCollection('issues', (entry) => entry.data.status !== 'draft');
+const issuesByDate = allIssues.sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+);
+const sortedOldestFirst = [...allIssues].sort(
+  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime()
+);
+const issueNumberFor = (slug: string) =>
+  sortedOldestFirst.findIndex((i) => i.slug === slug) + 1;
+
+// Latest issue per topic, for the category grid
+const issuesByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>> = {};
+for (const topic of TOPICS) {
+  const entry = issuesByDate.find((i) => i.data.topic === topic);
+  if (entry) issuesByTopic[topic] = entry;
+}
+
+// Most recent issue overall — drives the chord accent and masthead number
+const featured = issuesByDate[0];
+
+// Archive list — every published issue
+const archive = issuesByDate.map((issue) => ({
+  slug: issue.slug,
+  topic: issue.data.topic,
+  title: issue.data.title,
+  issueNumber: issueNumberFor(issue.slug),
+  publishedAt: issue.data.publishedAt
+}));
+---
+
+<HomeLayout
+  title="Parallax Lens — Visual explainers from a different angle"
+  description="Parallax Lens — a visual explainer publication. Six worlds — politics, space, earth, tech, travel, sports — one topic per issue, every claim cited."
+>
+  <Masthead variant="meta" issueNumber={featured ? String(issueNumberFor(featured.slug)).padStart(2, '0') : '01'} />
+
+  <TypographicChord accentTopic={featured?.data.topic} />
+
+  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} cols={2} />
+
+  <ArchiveList items={archive} />
+</HomeLayout>

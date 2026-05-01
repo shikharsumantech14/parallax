@@ -1,0 +1,52 @@
+---
+import HomeLayout from '../layouts/HomeLayout.astro';
+import Masthead from '../components/core/Masthead.astro';
+import { renderEmphasis } from '../lib/text';
+---
+
+<HomeLayout
+  title="About · Parallax Lens"
+  description="Parallax Lens — a visual explainer publication. One topic per issue. Cited, structured, built for reference value."
+>
+  <Masthead variant="meta" />
+  <section class="px-hero">
+    <div class="px-eyebrow">ABOUT</div>
+    <h1 class="px-home__title" set:html={renderEmphasis('A different *angle*.')} />
+    <p class="px-home__tagline">
+      Parallax is a visual explainer publication. Long-form, cited, structured.
+      One topic per issue. Built for reference value and sharing — not
+      engagement metrics.
+    </p>
+  </section>
+
+  <section class="px-section">
+    <div class="px-section__num">— 01</div>
+    <h2 class="px-section__title">What you'll find here.</h2>
+    <p class="px-section__intro">
+      Every issue takes a topic most people think they already understand —
+      politics, space, earth, tech, travel, sports — and rebuilds it from the
+      structure up. Timelines, breakdowns, charts, paradoxes. Every claim
+      sourced.
+    </p>
+  </section>
+
+  <section class="px-section">
+    <div class="px-section__num">— 02</div>
+    <h2 class="px-section__title">What you <em>won't</em>.</h2>
+    <p class="px-section__intro">
+      No real-time news. No hot takes. No unstructured blog posts. No trackers.
+      No comments thread. Just the piece, and the sources behind it.
+    </p>
+  </section>
+
+  <section class="px-section">
+    <div class="px-section__num">— 03</div>
+    <h2 class="px-section__title">Colophon.</h2>
+    <p class="px-section__intro">
+      Parallax is published by <strong>Parallax Lens</strong>™. Set in Fraunces,
+      Inter Tight, JetBrains Mono, Cormorant Garamond, Space Grotesk, and Oswald.
+      Built with Astro on a static stack — no trackers, no JavaScript bloat, no
+      cookies.
+    </p>
+  </section>
+</HomeLayout>

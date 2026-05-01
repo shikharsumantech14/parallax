@@ -1,0 +1,120 @@
+---
+/* Six-card grid laying out every Parallax category as its own themed cover.
+   Pulls the latest issue per topic from the props (sourced in index.astro)
+   so empty-state cards render where no issue exists yet. */
+import type { CollectionEntry } from 'astro:content';
+import { TOPICS, type Topic } from '../../content/config';
+import CategoryCard from './CategoryCard.astro';
+
+interface Props {
+  issuesByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>>;
+  issueNumberFor: (slug: string) => number;
+  cols?: 2 | 3;       // 2 = 2-across (2x3), 3 = 3-across (3x2)
+}
+const { issuesByTopic, issueNumberFor, cols = 3 } = Astro.props;
+
+// Per-topic copy for the 1-line manifesto on the card and for the
+// empty-state ribbon when no issue has been published yet.
+type Copy = { manifesto: string; emptyLabel: string; emptyTag: string };
+const copy: Record<Topic, Copy> = {
+  politics: {
+    manifesto: 'The machinery behind the headlines.',
+    emptyLabel: 'Issue 01 filing soon',
+    emptyTag: 'The first dispatch is *being filed*.'
+  },
+  space: {
+    manifesto: 'Transmissions from beyond the line.',
+    emptyLabel: 'T− awaiting launch',
+    emptyTag: 'The first transmission is *pre-flight*.'
+  },
+  earth: {
+    manifesto: 'The planet, in the present tense.',
+    emptyLabel: 'Sheet 01 · in survey',
+    emptyTag: 'The first survey is *being mapped*.'
+  },
+  tech: {
+    manifesto: 'The commit messages of a changing world.',
+    emptyLabel: 'v0.1.0 · unreleased',
+    emptyTag: 'The first changelog entry is *in review*.'
+  },
+  travel: {
+    manifesto: "Field notes from somewhere you haven't been.",
+    emptyLabel: 'En route',
+    emptyTag: 'The first field notes are *in transit*.'
+  },
+  sports: {
+    manifesto: 'The tactics, told honestly.',
+    emptyLabel: 'KO delayed',
+    emptyTag: 'The first matchday report is *in the dressing room*.'
+  }
+};
+---
+
+<section class="px-catgrid" data-cols={cols}>
+  <header class="px-catgrid__head">
+    <span class="px-catgrid__title">Six worlds, one publication</span>
+    <span class="px-catgrid__count">{TOPICS.length} desks</span>
+  </header>
+
+  <div class="px-catgrid__grid">
+    {TOPICS.map((topic) => {
+      const entry = issuesByTopic[topic];
+      const c = copy[topic];
+      return (
+        <CategoryCard
+          topic={topic}
+          manifesto={c.manifesto}
+          latest={entry ? {
+            slug: entry.slug,
+            title: entry.data.title,
+            hook: entry.data.hook,
+            issueNumber: issueNumberFor(entry.slug),
+            publishedAt: entry.data.publishedAt
+          } : undefined}
+          emptyLabel={c.emptyLabel}
+          emptyTag={c.emptyTag}
+        />
+      );
+    })}
+  </div>
+</section>
+
+<style>
+  .px-catgrid {
+    margin: 56px 0 72px;
+  }
+  .px-catgrid__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .px-catgrid__title { color: var(--ink); font-weight: 500; }
+
+  .px-catgrid__grid {
+    display: grid;
+    gap: 18px;
+  }
+  .px-catgrid[data-cols="3"] .px-catgrid__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .px-catgrid[data-cols="2"] .px-catgrid__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 1100px) {
+    .px-catgrid[data-cols="3"] .px-catgrid__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 720px) {
+    .px-catgrid__grid { grid-template-columns: 1fr !important; gap: 14px; }
+  }
+</style>

@@ -1,0 +1,318 @@
+---
+/* EarthIndex — the earth topic page rendered as an atlas index sheet.
+   Top: cartographic banner with sheet number + coordinates + scale.
+   Body: issue list as numbered map sheets (each issue = one sheet of
+   the atlas). Empty state as cartographic survey placeholder. */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' }).toUpperCase();
+const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
+---
+
+<div class="px-erh-index">
+  <a class="px-erh-index__back" href="/">← Atlas index</a>
+
+  <header class="px-erh-index__nameplate">
+    <div class="px-erh-index__name">
+      <span class="px-erh-index__name-prefix">Parallax</span>
+      <span class="px-erh-index__name-main">Earth · Field Atlas</span>
+    </div>
+    <div class="px-erh-index__coord">
+      <div><span class="px-erh-index__coord-l">Sheet</span> <strong>01</strong></div>
+      <div><span class="px-erh-index__coord-l">Origin</span> 14.6°N · 121.0°E</div>
+      <div><span class="px-erh-index__coord-l">Scale</span> 1 : Earth</div>
+    </div>
+  </header>
+
+  <section class="px-erh-index__intro">
+    <h1 class="px-erh-index__title">
+      The planet, in <em>the present tense</em>.
+    </h1>
+    <p class="px-erh-index__manifesto">
+      Climate, oceans, biodiversity, geology — the working systems we live inside and routinely fail to measure. Each sheet of the atlas covers one of them, with the patience of a survey and the urgency of a thermometer.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-erh-index__empty">
+      <div class="px-erh-index__empty-rings" aria-hidden="true"></div>
+      <div class="px-erh-index__empty-no">01</div>
+      <div class="px-erh-index__empty-label">{empty.label}</div>
+      <p class="px-erh-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+      <div class="px-erh-index__empty-legend">
+        <span><span class="px-erh-index__legend-mark"></span> Survey in progress</span>
+        <span><span class="px-erh-index__legend-mark px-erh-index__legend-mark--alt"></span> Awaiting publication</span>
+      </div>
+    </div>
+  ) : (
+    <ol class="px-erh-index__sheets">
+      {issues.map((issue) => (
+        <li class="px-erh-index__sheet">
+          <a class="px-erh-index__sheet-link" href={`/issues/${issue.slug}/`}>
+            <div class="px-erh-index__sheet-corner">
+              <div class="px-erh-index__sheet-no">{sheetNo(issueNumberFor(issue.slug))}</div>
+              <div class="px-erh-index__sheet-coord">14.6°N · 121.0°E</div>
+            </div>
+            <div class="px-erh-index__sheet-body">
+              <h2 class="px-erh-index__sheet-title" set:html={renderEmphasis(issue.data.title)} />
+              <p class="px-erh-index__sheet-hook">{issue.data.hook}</p>
+              <div class="px-erh-index__sheet-meta">
+                <span>{fmtDate(issue.data.publishedAt)}</span>
+                <span class="px-erh-index__sheet-sep">·</span>
+                <span class="px-erh-index__sheet-cta">Turn the sheet →</span>
+              </div>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ol>
+  )}
+</div>
+
+<style>
+  .px-erh-index { position: relative; }
+
+  .px-erh-index__back {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-erh-index__back:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- Nameplate — atlas-cover treatment --- */
+  .px-erh-index__nameplate {
+    border-top: 1px solid var(--accent);
+    border-bottom: 1px solid var(--accent);
+    padding: 24px 0;
+    margin-bottom: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+  }
+  .px-erh-index__name {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .px-erh-index__name-prefix {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-erh-index__name-main {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(34px, 4.5vw, 54px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-style: italic;
+  }
+  .px-erh-index__coord {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--accent-deep);
+    text-align: right;
+  }
+  .px-erh-index__coord-l { color: var(--muted); padding-right: 8px; text-transform: uppercase; letter-spacing: 0.16em; font-size: 10px; }
+  .px-erh-index__coord strong { color: var(--ink); font-weight: 600; }
+
+  /* --- Intro / manifesto --- */
+  .px-erh-index__intro {
+    margin: 0 0 56px;
+    padding-bottom: 36px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-erh-index__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(40px, 6vw, 78px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0 0 20px;
+    max-width: 18ch;
+  }
+  .px-erh-index__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-erh-index__manifesto {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  /* --- Sheets list --- */
+  .px-erh-index__sheets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+  .px-erh-index__sheet {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 0;
+  }
+  .px-erh-index__sheet-link {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    padding: 22px 24px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .px-erh-index__sheet-link:hover { background: var(--paper-2); }
+  .px-erh-index__sheet-corner {
+    border-right: 1px dashed var(--rule);
+    padding-right: 18px;
+  }
+  .px-erh-index__sheet-no {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .px-erh-index__sheet-coord {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .px-erh-index__sheet-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1.15;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .px-erh-index__sheet-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-erh-index__sheet-hook {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0 0 12px;
+    max-width: 60ch;
+  }
+  .px-erh-index__sheet-meta {
+    display: flex; gap: 10px; align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-erh-index__sheet-sep { color: var(--rule); }
+  .px-erh-index__sheet-cta { color: var(--accent); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
+
+  /* --- Empty: cartographic survey placeholder --- */
+  .px-erh-index__empty {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 56px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .px-erh-index__empty-rings {
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 320px; height: 320px;
+    background-image:
+      radial-gradient(circle at 50% 50%, transparent 148px, var(--accent) 149px, var(--accent) 151px, transparent 152px),
+      radial-gradient(circle at 50% 50%, transparent 108px, var(--accent) 109px, var(--accent) 111px, transparent 112px),
+      radial-gradient(circle at 50% 50%, transparent 68px, var(--accent) 69px, var(--accent) 71px, transparent 72px),
+      radial-gradient(circle at 50% 50%, transparent 28px, var(--accent) 29px, var(--accent) 31px, transparent 32px);
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  .px-erh-index__empty-no {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(80px, 14vw, 180px);
+    line-height: 0.9;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    position: relative;
+    z-index: 1;
+  }
+  .px-erh-index__empty-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 22px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .px-erh-index__empty-body {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 28px;
+    max-width: 56ch;
+    line-height: 1.4;
+    position: relative;
+  }
+  .px-erh-index__empty-body em { color: var(--accent); }
+  .px-erh-index__empty-legend {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule);
+    position: relative;
+  }
+  .px-erh-index__legend-mark {
+    display: inline-block;
+    width: 14px; height: 1px;
+    background: var(--accent);
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  .px-erh-index__legend-mark--alt { background: var(--accent-alt); }
+
+  @media (max-width: 720px) {
+    .px-erh-index__nameplate { grid-template-columns: 1fr; gap: 14px; }
+    .px-erh-index__coord { text-align: left; }
+    .px-erh-index__sheet-link { grid-template-columns: 1fr; gap: 16px; padding: 22px; }
+    .px-erh-index__sheet-corner { border-right: none; border-bottom: 1px dashed var(--rule); padding: 0 0 14px; display: flex; justify-content: space-between; align-items: baseline; }
+    .px-erh-index__sheet-no { font-size: 22px; }
+    .px-erh-index__empty { padding: 32px 24px; }
+  }
+</style>

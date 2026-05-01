@@ -1,0 +1,302 @@
+/* ============================================================================
+   PARALLAX · SPORTS THEME
+   Vibe: The Athletic / match programme / FIFA UI. Deep pitch green, neon
+   lime signal, bold condensed display (Oswald). Stat-bar heavy.
+   ============================================================================ */
+
+:root[data-topic="sports"] {
+  --bg: #0f2820;
+  --paper: #143328;
+  --paper-2: #112c22;
+  --rule: #1f4434;
+  --rule-soft: #18382c;
+  --ink: #f5f5f0;
+  --ink-soft: #cccca8;
+  --muted: #7a8a78;
+  --accent: #e8f048;
+  --accent-deep: #b8c038;
+  --accent-alt: #ff6b35;
+  --tape: #1a4030;
+  --font-display: 'Oswald', 'Inter Tight', sans-serif;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* --- Global dark-mode tweaks ------------------------------------------- */
+[data-topic="sports"] body { background: var(--bg); }
+[data-topic="sports"] .px-masthead {
+  border-top-color: var(--accent);
+  border-bottom-color: var(--rule);
+  color: var(--ink);
+}
+[data-topic="sports"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
+[data-topic="sports"] .px-hero__byline { border-color: var(--rule); color: var(--muted); }
+[data-topic="sports"] .px-section__num { color: var(--accent); font-family: var(--font-display); font-weight: 500; }
+[data-topic="sports"] .px-eyebrow { color: var(--accent); font-family: var(--font-display); letter-spacing: 0.18em; font-weight: 500; }
+[data-topic="sports"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+
+[data-topic="sports"] .px-quote {
+  border-left-color: var(--accent);
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+[data-topic="sports"] .px-quote__q { color: var(--ink); }
+
+[data-topic="sports"] .px-sources { border-top-color: var(--accent); }
+[data-topic="sports"] .px-sources li { border-bottom-color: var(--rule); color: var(--ink-soft); }
+[data-topic="sports"] .px-sources li::before { color: var(--accent); }
+[data-topic="sports"] .px-sources li strong { color: var(--ink); }
+[data-topic="sports"] .px-sources li a { color: var(--accent); }
+
+[data-topic="sports"] .px-foot { border-top-color: var(--accent); color: var(--muted); }
+[data-topic="sports"] .px-foot a:hover { color: var(--ink); }
+
+[data-topic="sports"] .px-strip { border-top-color: var(--rule); border-bottom-color: var(--rule); }
+[data-topic="sports"] .px-strip__link { color: var(--ink-soft); }
+[data-topic="sports"] .px-strip__link:hover { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* --- Topic-index hero with pitch-marking backdrop ---------------------- */
+[data-topic="sports"] .px-topic-hero {
+  position: relative;
+  border-bottom-color: var(--rule);
+}
+[data-topic="sports"] .px-topic-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 48px 0;
+  background-image:
+    radial-gradient(circle at 50% 100%, transparent 158px, rgba(232,240,72,0.08) 159px, rgba(232,240,72,0.08) 162px, transparent 163px),
+    linear-gradient(to right, transparent 49.7%, rgba(232,240,72,0.06) 49.7%, rgba(232,240,72,0.06) 50.3%, transparent 50.3%);
+  pointer-events: none;
+  z-index: 0;
+}
+[data-topic="sports"] .px-topic-hero > * { position: relative; z-index: 1; }
+[data-topic="sports"] .px-topic-hero__eyebrow { color: var(--accent); font-family: var(--font-display); letter-spacing: 0.18em; }
+[data-topic="sports"] .px-topic-hero__title { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: -0.01em; color: var(--ink); }
+[data-topic="sports"] .px-topic-hero__title em { color: var(--accent); text-transform: none; }
+[data-topic="sports"] .px-topic-hero__manifesto { color: var(--ink-soft); }
+
+/* --- Topic empty state ------------------------------------------------- */
+[data-topic="sports"] .px-topic-empty {
+  background: var(--paper);
+  border-color: var(--rule);
+}
+[data-topic="sports"] .px-topic-empty__no { color: var(--accent); font-family: var(--font-display); font-weight: 600; }
+[data-topic="sports"] .px-topic-empty__label { color: var(--muted); }
+[data-topic="sports"] .px-topic-empty__tag { color: var(--ink); font-family: var(--font-display); font-style: italic; }
+
+/* --- Topic list -------------------------------------------------------- */
+[data-topic="sports"] .px-topic-list__item { border-bottom-color: var(--rule); }
+[data-topic="sports"] .px-topic-list__item:hover { background: var(--paper); }
+[data-topic="sports"] .px-topic-list__title { color: var(--ink); font-family: var(--font-display); font-weight: 500; }
+[data-topic="sports"] .px-topic-list__title em { color: var(--accent); }
+[data-topic="sports"] .px-topic-list__hook { color: var(--ink-soft); }
+
+/* --- Masthead variant: matchday programme ----------------------------- */
+.px-masthead--sports {
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.px-masthead--sports .px-masthead__brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.px-masthead--sports .px-masthead__fc {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* --- Cross-topic component re-skins ----------------------------------- */
+[data-topic="sports"] .px-prose__lead { color: var(--ink); }
+[data-topic="sports"] .px-prose__p { color: var(--ink-soft); }
+[data-topic="sports"] .px-prose__p strong { color: var(--ink); }
+
+[data-topic="sports"] .px-compare__head { border-bottom-color: var(--rule); }
+[data-topic="sports"] .px-compare__side { color: var(--ink); font-family: var(--font-display); }
+[data-topic="sports"] .px-compare__side-label { color: var(--accent); }
+[data-topic="sports"] .px-compare__row { border-bottom-color: var(--rule); }
+
+[data-topic="sports"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
+[data-topic="sports"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
+[data-topic="sports"] .px-readout__num { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 56px; }
+[data-topic="sports"] .px-readout__unit { color: var(--accent); }
+[data-topic="sports"] .px-readout__label { color: var(--ink-soft); }
+
+[data-topic="sports"] .px-paradox__side { background: var(--paper); border-color: var(--rule); }
+
+/* TIMELINE — match-flow feel */
+[data-topic="sports"] .px-timeline { display: grid; grid-template-columns: 100px 40px 1fr; gap: 0; }
+[data-topic="sports"] .px-timeline__row { display: contents; }
+[data-topic="sports"] .px-timeline__date {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  padding: 16px 16px 16px 0;
+  text-align: right;
+  border-bottom: 1px dashed var(--rule);
+  letter-spacing: 0.04em;
+}
+[data-topic="sports"] .px-timeline__rail {
+  position: relative;
+  border-bottom: 1px dashed var(--rule);
+  padding: 16px 0;
+}
+[data-topic="sports"] .px-timeline__rail::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--rule);
+}
+[data-topic="sports"] .px-timeline__rail::after {
+  content: ''; position: absolute; left: 50%; top: 26px;
+  transform: translateX(-50%);
+  width: 10px; height: 10px;
+  background: var(--accent);
+}
+[data-topic="sports"] .px-timeline__body { padding: 16px 0 16px 16px; border-bottom: 1px dashed var(--rule); }
+[data-topic="sports"] .px-timeline__title { color: var(--ink); }
+[data-topic="sports"] .px-timeline__detail { color: var(--ink-soft); }
+
+/* ============================================================================
+   MATCH-STAT-LINE — sports signature component
+   ============================================================================ */
+.px-msl {
+  margin: 28px 0 12px;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.px-msl__comp {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 22px;
+}
+
+.px-msl__scoreline {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 28px;
+  align-items: center;
+  padding: 22px 0;
+}
+.px-msl__side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.px-msl__side--away { justify-content: flex-end; }
+.px-msl__badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+.px-msl__side[data-outcome="loss"] { color: var(--muted); }
+.px-msl__side[data-outcome="win"] { color: var(--accent); }
+
+.px-msl__score {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 80px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.px-msl__score-sep { color: var(--muted); font-weight: 300; font-size: 56px; padding-bottom: 8px; }
+
+.px-msl__meta {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--rule);
+  margin-bottom: 28px;
+}
+.px-msl__meta .px-msl__sep { color: var(--rule); padding: 0 10px; }
+
+.px-msl__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.px-msl__row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 18px;
+  align-items: baseline;
+}
+.px-msl__row-home,
+.px-msl__row-away {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.px-msl__row-away { text-align: right; }
+.px-msl__row-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.px-msl__row-bars {
+  grid-column: 1 / -1;
+  display: flex;
+  height: 4px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.px-msl__bar { display: block; height: 100%; }
+.px-msl__bar--home { background: var(--accent); }
+.px-msl__bar--away { background: var(--accent-deep); opacity: 0.55; }
+.px-msl__row-note {
+  grid-column: 1 / -1;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.px-msl__source {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+@media (max-width: 760px) {
+  .px-msl__scoreline { grid-template-columns: 1fr; gap: 14px; }
+  .px-msl__side, .px-msl__side--away { justify-content: center; font-size: 22px; }
+  .px-msl__score { justify-content: center; font-size: 60px; }
+  .px-msl__row-home, .px-msl__row-away { font-size: 18px; }
+}

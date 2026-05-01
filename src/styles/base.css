@@ -1,0 +1,271 @@
+/* ============================================================================
+   PARALLAX · BASE LAYER
+   Topic-agnostic layout, spacing, and structure.
+   NEVER put colors, fonts, or theme-specific decisions here.
+   Those live in themes/{topic}.css
+   ============================================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.px-wrap { max-width: 980px; margin: 0 auto; padding: 48px 32px 120px; }
+
+/* MASTHEAD */
+.px-masthead {
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 18px 0 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 60px;
+  color: var(--ink);
+}
+.px-masthead__left { display: flex; gap: 24px; flex-wrap: wrap; }
+.px-masthead__brand { font-weight: 700; letter-spacing: 0.2em; }
+.px-masthead__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); display: inline-block;
+  margin-right: 8px; animation: pxPulse 2s infinite;
+}
+@keyframes pxPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* HERO */
+.px-hero { margin-bottom: 80px; }
+.px-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.px-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(48px, 7vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+.px-hero h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-hero__dek {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 720px;
+  font-weight: 300;
+}
+.px-hero__byline {
+  margin-top: 32px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 12px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* SECTION */
+.px-section { margin-bottom: 80px; }
+.px-section__num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.px-section__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 38px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 18px;
+  color: var(--ink);
+}
+.px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+.px-section__intro {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 680px;
+  margin-bottom: 40px;
+  font-weight: 300;
+}
+
+/* QUOTE */
+.px-quote {
+  border-left: 4px solid var(--accent);
+  padding: 24px 32px;
+  margin: 30px 0;
+  background: var(--paper);
+}
+.px-quote__q {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.4;
+  font-style: italic;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.px-quote__attr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* SOURCES */
+.px-sources { margin-top: 30px; border-top: 2px solid var(--ink); padding-top: 24px; }
+.px-sources__title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+.px-sources ol { list-style: none; counter-reset: src; }
+.px-sources li {
+  counter-increment: src;
+  padding: 10px 0 10px 42px;
+  border-bottom: 1px dashed var(--rule);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  position: relative;
+}
+.px-sources li::before {
+  content: counter(src, decimal-leading-zero);
+  position: absolute;
+  left: 0; top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+.px-sources li strong { color: var(--ink); font-weight: 600; }
+.px-sources li a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.px-sources li a:hover { border-bottom-color: var(--accent); }
+
+/* FOOTER */
+.px-foot {
+  margin-top: 80px;
+  padding-top: 32px;
+  border-top: 3px solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.px-foot a { color: var(--muted); text-decoration: none; border-bottom: 1px solid transparent; }
+.px-foot a:hover { color: var(--ink); border-bottom-color: var(--rule); }
+
+/* HOME (issue index) */
+.px-home__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(44px, 6vw, 72px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+.px-home__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-home__tagline {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 640px;
+  font-weight: 300;
+  margin-bottom: 72px;
+}
+.px-home__issues { list-style: none; border-top: 2px solid var(--ink); }
+.px-home__issue {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 24px;
+  align-items: baseline;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.px-home__issue:hover { background: var(--paper); }
+.px-home__meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-home__issue-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.px-home__issue-title em { color: var(--accent); font-style: italic; font-weight: 400; }
+.px-home__hook {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-top: 8px;
+  max-width: 620px;
+  line-height: 1.5;
+}
+.px-home__topic {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* RESPONSIVE */
+@media (max-width: 720px) {
+  .px-wrap { padding: 28px 20px 80px; }
+  .px-hero h1 { font-size: 40px; }
+  .px-hero__dek { font-size: 17px; }
+  .px-section__title { font-size: 28px; }
+  .px-home__issue { grid-template-columns: 1fr; gap: 6px; }
+  .px-home__topic { justify-self: start; }
+}

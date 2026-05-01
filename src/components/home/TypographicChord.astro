@@ -1,0 +1,23 @@
+---
+import type { Topic } from '../../content/config';
+
+interface Props {
+  accentTopic?: Topic;
+}
+const { accentTopic = 'politics' } = Astro.props;
+---
+
+<section class="px-chord" data-accent={accentTopic} aria-label="Parallax">
+  <div class="px-chord__eyebrow">
+    <span>A visual explainer publication</span>
+  </div>
+
+  <h1 class="px-chord__headline">
+    Stories you think you<br />already <em class="px-chord__accent">understand</em>.
+  </h1>
+
+  <p class="px-chord__dek">
+    <span class="px-chord__dek-mark" aria-hidden="true">—</span>
+    <span><em class="px-chord__dek-count">Six</em> worlds. <span class="px-chord__dek-sep" aria-hidden="true">·</span> One publication.</span>
+  </p>
+</section>

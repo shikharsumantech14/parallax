@@ -1,0 +1,343 @@
+---
+/* SportsIndex — the sports topic page rendered as a matchday programme +
+   fixture list. Top: programme cover (PARALLAX FC, MATCHDAY, KO time).
+   Body: issue list as fixture rows (date, scoreline-style title, badges). */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit' }).toUpperCase();
+const fmtTime = (d: Date) => {
+  const h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${String(h).padStart(2, '0')}:${m}`;
+};
+---
+
+<div class="px-spt-index">
+  <a class="px-spt-index__back" href="/">← Fixture index</a>
+
+  <header class="px-spt-index__programme">
+    <div class="px-spt-index__programme-left">
+      <div class="px-spt-index__crest">
+        <span class="px-spt-index__crest-letters">PFC</span>
+      </div>
+      <div class="px-spt-index__programme-name">
+        <div class="px-spt-index__programme-club">PARALLAX FC</div>
+        <div class="px-spt-index__programme-sub">Matchday Programme · Vol. I</div>
+      </div>
+    </div>
+    <div class="px-spt-index__programme-right">
+      <div class="px-spt-index__programme-row"><span>FIXTURES</span><strong>{issues.length}</strong></div>
+      <div class="px-spt-index__programme-row"><span>SEASON</span><strong>2026 / 27</strong></div>
+      <div class="px-spt-index__programme-row"><span>STATUS</span><strong>{issues.length > 0 ? 'IN PLAY' : 'PRE-SEASON'}</strong></div>
+    </div>
+  </header>
+
+  <section class="px-spt-index__intro">
+    <h1 class="px-spt-index__title">
+      The <em>tactics</em>, told honestly.
+    </h1>
+    <p class="px-spt-index__manifesto">
+      Match reports, transfer economies, the politics of governing bodies. We cover football and its cousins the way they deserve — as systems, not spectacles.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-spt-index__empty">
+      <div class="px-spt-index__empty-pitch" aria-hidden="true"></div>
+      <div class="px-spt-index__empty-no">01</div>
+      <div class="px-spt-index__empty-label">{empty.label}</div>
+      <p class="px-spt-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+      <div class="px-spt-index__empty-board">
+        <div class="px-spt-index__empty-board-row"><span>FIXTURE</span><strong>TBA · TBA</strong></div>
+        <div class="px-spt-index__empty-board-row"><span>VENUE</span><strong>TBA</strong></div>
+        <div class="px-spt-index__empty-board-row"><span>KICK OFF</span><strong>—:—</strong></div>
+      </div>
+    </div>
+  ) : (
+    <div class="px-spt-index__fixtures">
+      <div class="px-spt-index__fixtures-head">
+        <span>MD</span>
+        <span>DATE</span>
+        <span>FIXTURE</span>
+        <span>KO</span>
+        <span></span>
+      </div>
+      {issues.map((issue) => {
+        const n = issueNumberFor(issue.slug);
+        return (
+          <a class="px-spt-index__fixture" href={`/issues/${issue.slug}/`}>
+            <span class="px-spt-index__md">MD {String(n).padStart(2, '0')}</span>
+            <span class="px-spt-index__date">{fmtDate(issue.data.publishedAt)}</span>
+            <div class="px-spt-index__match">
+              <h2 class="px-spt-index__match-title" set:html={renderEmphasis(issue.data.title)} />
+              <p class="px-spt-index__match-hook">{issue.data.hook}</p>
+            </div>
+            <span class="px-spt-index__ko">{fmtTime(issue.data.publishedAt)}</span>
+            <span class="px-spt-index__cta">REPORT →</span>
+          </a>
+        );
+      })}
+    </div>
+  )}
+</div>
+
+<style>
+  .px-spt-index { position: relative; }
+
+  .px-spt-index__back {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-spt-index__back:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- Programme cover --- */
+  .px-spt-index__programme {
+    border-top: 4px solid var(--accent);
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 24px 28px;
+    margin-bottom: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+  }
+  .px-spt-index__programme-left { display: flex; gap: 22px; align-items: center; }
+  .px-spt-index__crest {
+    width: 72px; height: 72px;
+    background: var(--accent);
+    color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    border-radius: 4px;
+  }
+  .px-spt-index__crest-letters { line-height: 1; }
+  .px-spt-index__programme-name { display: flex; flex-direction: column; gap: 6px; }
+  .px-spt-index__programme-club {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(28px, 3.5vw, 40px);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .px-spt-index__programme-sub {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .px-spt-index__programme-right { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+  .px-spt-index__programme-row {
+    display: flex; justify-content: space-between; gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-spt-index__programme-row:last-child { border-bottom: none; }
+  .px-spt-index__programme-row strong { color: var(--accent); font-weight: 500; }
+
+  /* --- Intro --- */
+  .px-spt-index__intro {
+    margin: 0 0 56px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-spt-index__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(44px, 6vw, 84px);
+    line-height: 1;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    text-transform: uppercase;
+    margin: 0 0 22px;
+  }
+  .px-spt-index__title em { color: var(--accent); font-style: italic; font-weight: 400; text-transform: none; }
+  .px-spt-index__manifesto {
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  /* --- Fixture list --- */
+  .px-spt-index__fixtures { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--rule); background: var(--paper); }
+  .px-spt-index__fixtures-head {
+    display: grid;
+    grid-template-columns: 70px 90px 1fr 70px 90px;
+    gap: 16px;
+    padding: 12px 22px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-spt-index__fixture {
+    display: grid;
+    grid-template-columns: 70px 90px 1fr 70px 90px;
+    gap: 16px;
+    padding: 22px;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--rule);
+    transition: background 0.12s ease;
+  }
+  .px-spt-index__fixture:last-child { border-bottom: none; }
+  .px-spt-index__fixture:hover { background: rgba(232,240,72,0.04); }
+  .px-spt-index__md {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .px-spt-index__date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .px-spt-index__match-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(20px, 2.4vw, 28px);
+    line-height: 1.1;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    margin: 0 0 6px;
+  }
+  .px-spt-index__match-title em { font-style: italic; color: var(--accent); text-transform: none; font-weight: 400; }
+  .px-spt-index__match-hook {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0;
+    line-height: 1.5;
+    max-width: 56ch;
+  }
+  .px-spt-index__ko {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--accent);
+    font-weight: 500;
+    text-align: right;
+  }
+  .px-spt-index__cta {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  /* --- Empty: pre-season scoreboard --- */
+  .px-spt-index__empty {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 56px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .px-spt-index__empty-pitch {
+    position: absolute;
+    inset: auto -40px -40px auto;
+    width: 320px; height: 200px;
+    background-image:
+      radial-gradient(circle at 50% 100%, transparent 78px, rgba(232,240,72,0.18) 79px, rgba(232,240,72,0.18) 81px, transparent 82px),
+      linear-gradient(to right, transparent 49.7%, rgba(232,240,72,0.12) 49.7%, rgba(232,240,72,0.12) 50.3%, transparent 50.3%);
+    pointer-events: none;
+  }
+  .px-spt-index__empty-no {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(80px, 14vw, 180px);
+    line-height: 0.85;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  .px-spt-index__empty-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 22px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .px-spt-index__empty-body {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 28px;
+    max-width: 56ch;
+    line-height: 1.4;
+    position: relative;
+  }
+  .px-spt-index__empty-body em { color: var(--accent); }
+  .px-spt-index__empty-board {
+    border-top: 2px solid var(--rule);
+    padding-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 360px;
+    position: relative;
+  }
+  .px-spt-index__empty-board-row {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-spt-index__empty-board-row strong { color: var(--accent); font-weight: 500; }
+
+  @media (max-width: 720px) {
+    .px-spt-index__programme { grid-template-columns: 1fr; gap: 18px; padding: 22px; }
+    .px-spt-index__fixtures-head { display: none; }
+    .px-spt-index__fixture { grid-template-columns: 60px 1fr; gap: 12px 16px; padding: 18px; }
+    .px-spt-index__fixture .px-spt-index__date,
+    .px-spt-index__fixture .px-spt-index__ko,
+    .px-spt-index__fixture .px-spt-index__cta { grid-column: 2; text-align: left; }
+    .px-spt-index__empty { padding: 32px 22px; }
+  }
+</style>

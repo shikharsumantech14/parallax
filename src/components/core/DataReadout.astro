@@ -1,0 +1,35 @@
+---
+import { renderInline } from '../../lib/text';
+
+interface Tile {
+  value: string;
+  unit?: string;
+  label: string;
+  note?: string;
+  emphasis?: 'default' | 'key' | 'warn';
+}
+
+interface Props {
+  tiles: Tile[];
+  caption?: string;
+  source?: string;
+}
+const { tiles, caption, source } = Astro.props;
+---
+
+<div class="px-readout">
+  {caption && <div class="px-readout__caption">{caption}</div>}
+  <div class="px-readout__grid">
+    {tiles.map((t) => (
+      <div class="px-readout__tile" data-emphasis={t.emphasis ?? 'default'}>
+        <div class="px-readout__value">
+          <span class="px-readout__num">{t.value}</span>
+          {t.unit && <span class="px-readout__unit">{t.unit}</span>}
+        </div>
+        <div class="px-readout__label" set:html={renderInline(t.label)} />
+        {t.note && <div class="px-readout__note" set:html={renderInline(t.note)} />}
+      </div>
+    ))}
+  </div>
+  {source && <div class="px-readout__source">{source}</div>}
+</div>

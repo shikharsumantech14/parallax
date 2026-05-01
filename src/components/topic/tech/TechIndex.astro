@@ -1,0 +1,258 @@
+---
+/* TechIndex — the tech topic page rendered as a git log / changelog page.
+   Top: terminal prompt + REPO header. Body: issue list as commit-log
+   entries (hash + tag + date + title + commit body). */
+import type { CollectionEntry } from 'astro:content';
+import { renderEmphasis } from '../../../lib/text';
+
+interface Props {
+  issues: CollectionEntry<'issues'>[];
+  issueNumberFor: (slug: string) => number;
+  empty: { label: string; tagline: string };
+}
+const { issues, issueNumberFor, empty } = Astro.props;
+
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase();
+
+// Pseudo-stable commit hashes derived from issue number for the log
+const fakeHash = (n: number) => {
+  const seed = ['a3f1c9', 'b7d42e', 'c0e8a1', 'd1f9b7', 'e5a3c4', 'f8b2d6', '4c91a3', '7d3e58'];
+  return seed[(n - 1) % seed.length] ?? 'a3f1c9';
+};
+const tagFor = (n: number) => `v0.${n}.0`;
+---
+
+<div class="px-tch-index">
+  <a class="px-tch-index__back" href="/">← cd ..</a>
+
+  <header class="px-tch-index__terminal">
+    <div class="px-tch-index__prompt">
+      <span class="px-tch-index__sigil">$</span>
+      <span class="px-tch-index__cmd">git log --oneline --decorate</span>
+    </div>
+    <div class="px-tch-index__repo">
+      <span class="px-tch-index__repo-label">repo</span>
+      <span class="px-tch-index__repo-val">parallax/tech</span>
+      <span class="px-tch-index__repo-sep">·</span>
+      <span class="px-tch-index__repo-label">branch</span>
+      <span class="px-tch-index__repo-val">main</span>
+      <span class="px-tch-index__repo-sep">·</span>
+      <span class="px-tch-index__repo-label">commits</span>
+      <span class="px-tch-index__repo-val">{issues.length}</span>
+    </div>
+  </header>
+
+  <section class="px-tch-index__intro">
+    <h1 class="px-tch-index__title">
+      <span class="px-tch-index__title-comment">// </span>The <em>commit messages</em> of a changing world.
+    </h1>
+    <p class="px-tch-index__manifesto">
+      Models, systems, platforms, protocols. We trace what actually ships versus what is announced, and we read the diffs — because the promise and the patch are rarely the same thing.
+    </p>
+  </section>
+
+  {issues.length === 0 ? (
+    <div class="px-tch-index__empty">
+      <pre class="px-tch-index__empty-block"><code>{`$ git log
+fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`' does not have any commits yet
+
+`}<span class="px-tch-index__empty-comment">{`// ${empty.label}`}</span>{`
+`}</code></pre>
+      <p class="px-tch-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
+    </div>
+  ) : (
+    <ol class="px-tch-index__log">
+      {issues.map((issue) => {
+        const n = issueNumberFor(issue.slug);
+        return (
+          <li class="px-tch-index__commit">
+            <a class="px-tch-index__commit-link" href={`/issues/${issue.slug}/`}>
+              <div class="px-tch-index__commit-line">
+                <span class="px-tch-index__commit-hash">{fakeHash(n)}</span>
+                <span class="px-tch-index__commit-tag">({tagFor(n)})</span>
+                <span class="px-tch-index__commit-msg" set:html={renderEmphasis(issue.data.title)} />
+              </div>
+              <div class="px-tch-index__commit-meta">
+                <span>Author: parallax-tech</span>
+                <span class="px-tch-index__commit-sep">·</span>
+                <span>Date: {fmtDate(issue.data.publishedAt)}</span>
+              </div>
+              <p class="px-tch-index__commit-body">{issue.data.hook}</p>
+              <span class="px-tch-index__commit-cta">→ git show {fakeHash(n)}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  )}
+</div>
+
+<style>
+  .px-tch-index { position: relative; font-family: var(--font-mono); }
+
+  .px-tch-index__back {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    margin-bottom: 24px;
+    padding-bottom: 2px;
+  }
+  .px-tch-index__back:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- Terminal banner --- */
+  .px-tch-index__terminal {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 18px 20px;
+    margin-bottom: 36px;
+    font-family: var(--font-mono);
+  }
+  .px-tch-index__prompt {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 14px;
+    color: var(--ink);
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--rule);
+    margin-bottom: 10px;
+  }
+  .px-tch-index__sigil { color: var(--accent); font-weight: 600; }
+  .px-tch-index__cmd { color: var(--ink); }
+  .px-tch-index__repo {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .px-tch-index__repo-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; }
+  .px-tch-index__repo-val { color: var(--accent); }
+  .px-tch-index__repo-sep { color: var(--rule); }
+
+  /* --- Intro / manifesto --- */
+  .px-tch-index__intro {
+    margin: 0 0 48px;
+    padding-bottom: 36px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-tch-index__title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0 0 22px;
+    max-width: 22ch;
+  }
+  .px-tch-index__title-comment { color: var(--accent); }
+  .px-tch-index__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-tch-index__manifesto {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  /* --- Commit log --- */
+  .px-tch-index__log { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0; border-left: 2px solid var(--rule); padding-left: 0; }
+  .px-tch-index__commit { padding: 0; position: relative; }
+  .px-tch-index__commit-link {
+    display: block;
+    padding: 22px 24px 22px 32px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px dashed var(--rule);
+    position: relative;
+    transition: background 0.12s ease;
+  }
+  .px-tch-index__commit-link::before {
+    content: '';
+    position: absolute;
+    left: -7px; top: 32px;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+  }
+  .px-tch-index__commit-link:hover { background: rgba(198,244,50,0.04); }
+  .px-tch-index__commit-line {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .px-tch-index__commit-hash { color: var(--accent); font-weight: 500; }
+  .px-tch-index__commit-tag { color: var(--accent-deep); font-size: 13px; }
+  .px-tch-index__commit-msg { color: var(--ink); font-weight: 500; flex: 1 1 60%; min-width: 0; }
+  .px-tch-index__commit-msg em { color: var(--accent); font-style: italic; }
+  .px-tch-index__commit-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .px-tch-index__commit-sep { color: var(--rule); }
+  .px-tch-index__commit-body {
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0 0 12px;
+    max-width: 64ch;
+    padding-left: 18px;
+    border-left: 2px solid var(--rule-soft);
+  }
+  .px-tch-index__commit-cta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  /* --- Empty: faux git error --- */
+  .px-tch-index__empty {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 28px;
+  }
+  .px-tch-index__empty-block {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    background: var(--bg);
+    padding: 18px;
+    margin: 0 0 22px;
+    border-left: 3px solid var(--accent);
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  .px-tch-index__empty-hl { color: var(--accent); }
+  .px-tch-index__empty-comment { color: var(--muted); font-style: italic; }
+  .px-tch-index__empty-body {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--ink);
+    margin: 0;
+    max-width: 64ch;
+    line-height: 1.55;
+  }
+  .px-tch-index__empty-body em { color: var(--accent); font-style: italic; }
+
+  @media (max-width: 720px) {
+    .px-tch-index__commit-link { padding: 22px 18px 22px 26px; }
+    .px-tch-index__empty { padding: 22px 18px; }
+  }
+</style>

@@ -1,0 +1,129 @@
+---
+type Variant = 'meta' | 'politics' | 'space' | 'earth' | 'tech' | 'travel' | 'sports';
+
+interface Props {
+  variant?: Variant;
+  issueNumber?: string;
+  date?: string;
+}
+const { variant = 'politics', issueNumber, date } = Astro.props;
+
+const today = new Date();
+const todayBroadsheet = today.toLocaleDateString('en-US', {
+  year: 'numeric', month: 'short', day: '2-digit'
+}).toUpperCase();
+
+// Helpers for variant compositions
+const pad = (n: number) => String(n).padStart(2, '0');
+const hh = pad(today.getHours());
+const mm = pad(today.getMinutes());
+const ss = pad(today.getSeconds());
+
+const toRoman = (n: number) => {
+  const map: [number, string][] = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+  ];
+  let out = ''; let x = n;
+  for (const [v, s] of map) { while (x >= v) { out += s; x -= v; } }
+  return out;
+};
+const issueNum = issueNumber ? parseInt(issueNumber, 10) : 1;
+const romanIssue = toRoman(isNaN(issueNum) ? 1 : issueNum);
+
+const travelDate = `${pad(today.getDate())}.${toRoman(today.getMonth() + 1)}.${today.getFullYear()}`;
+
+const shortHashes = ['a3f1c9', 'b7d42e', 'c0e8a1', 'd1f9b7', 'e5a3c4'];
+const techHash = shortHashes[(issueNum - 1 + shortHashes.length) % shortHashes.length] ?? 'a3f1c9';
+const techVersion = `v0.${issueNum}.0`;
+---
+
+{variant === 'meta' && (
+  <header class="px-masthead px-masthead--meta">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">Parallax</a>
+      <span>— {issueNumber ?? '01'}</span>
+    </div>
+    <div class="px-masthead__right">
+      <span>Est. 2026</span>
+    </div>
+  </header>
+)}
+
+{variant === 'politics' && (
+  <header class="px-masthead px-masthead--politics">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">
+        <span class="px-masthead__dot" aria-hidden="true"></span>Parallax
+      </a>
+      {issueNumber && <span>Issue {issueNumber}</span>}
+    </div>
+    <div class="px-masthead__right">
+      <span>{date ?? todayBroadsheet}</span>
+    </div>
+  </header>
+)}
+
+{variant === 'space' && (
+  <header class="px-masthead px-masthead--space">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">Parallax<span class="px-masthead__slash">//</span>Space</a>
+      <span class="px-masthead__tplus">T+ {hh}:{mm}:{ss}<span class="px-masthead__cursor" aria-hidden="true">_</span></span>
+    </div>
+    <div class="px-masthead__right">
+      <span>Orbit {issueNumber ?? '01'}A</span>
+    </div>
+  </header>
+)}
+
+{variant === 'earth' && (
+  <header class="px-masthead px-masthead--earth">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">Parallax</a>
+      <span class="px-masthead__sep">·</span>
+      <span class="px-masthead__brand">Earth</span>
+      <span class="px-masthead__coord">14.6°N · 121.0°E</span>
+    </div>
+    <div class="px-masthead__right">
+      <span class="px-masthead__elev">Elev 23m · Sheet {issueNumber ?? '01'}</span>
+    </div>
+  </header>
+)}
+
+{variant === 'tech' && (
+  <header class="px-masthead px-masthead--tech">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">parallax<span class="px-masthead__slash">/</span>tech</a>
+      <span>{techVersion}</span>
+    </div>
+    <div class="px-masthead__right">
+      <span>main@{techHash}</span>
+    </div>
+  </header>
+)}
+
+{variant === 'travel' && (
+  <header class="px-masthead px-masthead--travel">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">Parallax</a>
+      <span class="px-masthead__travel-sep">·</span>
+      <span>Travel</span>
+    </div>
+    <div class="px-masthead__right">
+      <span>Vol. {romanIssue}, No. {issueNumber ?? '01'} &middot; {travelDate}</span>
+    </div>
+  </header>
+)}
+
+{variant === 'sports' && (
+  <header class="px-masthead px-masthead--sports">
+    <div class="px-masthead__left">
+      <a class="px-masthead__brand px-masthead__home" href="/" aria-label="Parallax — home">Parallax <span class="px-masthead__fc">FC</span></a>
+      <span>Matchday {issueNumber ?? '01'}</span>
+    </div>
+    <div class="px-masthead__right">
+      <span>KO {hh}:{mm}</span>
+    </div>
+  </header>
+)}

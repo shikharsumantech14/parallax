@@ -1,0 +1,279 @@
+---
+id: "2026-04-24-kessler-cascade"
+topic: space
+title: "The Orbit That *Remembers*"
+hook: "Space junk isn't a future scenario. Four cascade events have already reshaped low Earth orbit — and the system is now operating in permanent evade mode."
+dek: "Every altitude remembers differently."
+publishedAt: 2026-04-24
+status: review
+tags:
+  - kessler-syndrome
+  - orbital-debris
+  - low-earth-orbit
+  - starlink
+  - asat
+readTimeMinutes: 7
+
+sections:
+  - kind: prose
+    eyebrow: "THE CONCEPT, IN THE PRESENT TENSE"
+    title: "The *cascade* is not a scenario. It is a measurement."
+    data:
+      lead: "In 1978, two NASA scientists wrote a paper that became the defining prediction of space-age environmental collapse. Forty-seven years later, the agency whose job is to count what's up there *stopped using the future tense*."
+      paragraphs:
+        - 'Donald Kessler and Burton Cour-Palais published *"Collision Frequency of Artificial Satellites: The Creation of a Debris Belt"* in the **Journal of Geophysical Research**. The model was straightforward: past a certain density of objects in low Earth orbit, collisions would begin producing fragments faster than the atmosphere could drag them back down. Each collision makes the next one more likely. Eventually, orbit itself becomes unusable.'
+        - "For four decades, **Kessler Syndrome** was discussed as a future possibility. In April 2025, the European Space Agency's annual **Space Environment Report** changed the framing. Fragmentation events, ESA wrote, now add debris faster than natural decay removes it — **even if no more satellites are ever launched**. That is the formal definition, in the present tense, published by the agency whose job is the count."
+        - "Four events did most of the damage. A fifth, in August 2024, is still being catalogued. Here's the history, the physics of altitude, the 2025 scoreboard, and the cleanup economy that doesn't exist yet."
+
+  - kind: timeline
+    eyebrow: "LEO'S BREAK HISTORY"
+    title: "Four scars on low Earth orbit."
+    intro: "The four cascade-generating events that wrote the debris environment we live in today — three deliberate, one accidental — plus the ongoing August 2024 breakup that's still being counted."
+    data:
+      events:
+        - date: "Jan 11 2007"
+          state: fail
+          label: "**Fengyun-1C · China ASAT test.**"
+          note: "Kinetic-kill vehicle destroys defunct weather satellite at 865 km. 3,500+ trackable fragments. The worst debris event in spaceflight history."
+        - date: "Feb 10 2009"
+          state: fail
+          label: "**Iridium 33 × Cosmos 2251 · accidental collision.**"
+          note: "First hypervelocity collision of two intact satellites, 789 km over northern Siberia. ~2,900 tracked fragments."
+        - date: "Mar 27 2019"
+          state: default
+          label: "**Mission Shakti · India ASAT test.**"
+          note: "Deliberately low-altitude test at 283 km. ~125 fragments — substantially all decayed within two years."
+        - date: "Nov 15 2021"
+          state: key
+          label: "**Cosmos 1408 · Russia ASAT test.**"
+          note: "Destroyed defunct signals-intel satellite at 480 km. 1,500+ fragments. ISS crew sheltered in Soyuz/Dragon. The counter-example: 0.3% remain by late 2025."
+        - date: "Jun 26 2024"
+          state: fail
+          label: "**RESURS-P1 · unpassivated breakup.**"
+          note: "Defunct 6-tonne Russian Earth-obs satellite fragments in orbit. 180+ tracked pieces. ISS crew shelters again."
+        - date: "Aug 6 2024"
+          state: now
+          label: "**Long March 6A upper stage · fragmented after Qianfan deploy.**"
+          note: "Breakup at ~800 km. 700+ fragments catalogued; LeoLabs models up to 900. A single event responsible for ~10% of all LEO conjunction risk in 2025."
+
+  - kind: comparison
+    eyebrow: "THE ALTITUDE ASYMMETRY"
+    title: "Where the break happened decides how long it *remembers*."
+    intro: "Two anti-satellite tests. Both produced debris clouds in the thousands. One has already disappeared. The other will be there for generations."
+    data:
+      sides:
+        - label: "EVENT ONE"
+          title: "Cosmos 1408"
+          kicker: "Russia · ASAT"
+          tag: "Nov 2021"
+        - label: "EVENT TWO"
+          title: "Fengyun-1C"
+          kicker: "China · ASAT"
+          tag: "Jan 2007"
+      rows:
+        - label: "Altitude"
+          values:
+            - "**480 km**"
+            - "**865 km**"
+        - label: "Trackable fragments at peak"
+          values:
+            - "1,500+"
+            - "3,500+"
+        - label: "Still in orbit (late 2025)"
+          values:
+            - "*~5 pieces (0.3%)*"
+            - "**~2,800 fragments**"
+        - label: "Projected full decay"
+          values:
+            - "2025–2026"
+            - "*after 2100*"
+        - label: "Current risk contribution"
+          values:
+            - "negligible"
+            - "persistent"
+      source: "NASA Orbital Debris Program Office · LeoLabs · CelesTrak catalog · ESA Space Environment Report 2025"
+
+  - kind: orbital-shells
+    eyebrow: "THE OCCUPIED ALTITUDES"
+    title: "Five shells. *All crowded*. Different memories."
+    intro: "Low Earth orbit is not a single layer. Each altitude band has different physics, different operators, and different rates of decay. Density shown at editorial scale; values are illustrative of current population concentrations, not exact counts."
+    data:
+      caption: "LEO · Altitude bands · Density and decay"
+      shells:
+        - altitude: "~400 km"
+          band: "crewed ops"
+          density: 2
+          operators: "**ISS · Tiangong · Starshield (partial).**  Active crewed stations and human-rated traffic."
+          persistence: "months–years"
+          flag: "human"
+        - altitude: "~550 km"
+          band: "commercial broadband"
+          density: 11
+          operators: "**Starlink Gen1 + V2-Mini.**  The densest human-made altitude layer in history."
+          persistence: "~5 years"
+          flag: "commercial"
+        - altitude: "~630 km"
+          band: "commercial broadband"
+          density: 6
+          operators: "**OneWeb · Kuiper · Starlink upper shell.**  Expanding — deployment continues through 2028."
+          persistence: "decades"
+          flag: "commercial"
+        - altitude: "~800 km"
+          band: "Earth obs + debris"
+          density: 9
+          operators: "**Fengyun-1C debris · Long March 6A debris · legacy Earth-obs.**  Highest persistent-debris concentration."
+          persistence: "50–100+ yrs"
+          flag: "debris"
+        - altitude: "~1,000 km"
+          band: "legacy"
+          density: 5
+          operators: "**Iridium · defunct nav · historical fragments.**  Old hardware, old debris, no new entrants."
+          persistence: "*centuries*"
+          flag: "legacy"
+      source: "Editorial synthesis · Planet4589 (McDowell) · ESA Space Environment Report 2025 · SpaceX FCC filings"
+
+  - kind: data-readout
+    eyebrow: "2025, IN FIGURES"
+    title: "The system is already operating in *evade mode*."
+    intro: "Not a forecast. A 12-month snapshot of what it now costs to share low Earth orbit with everyone else who's there."
+    data:
+      caption: "LEO OPS · 2024–2026 SNAPSHOT"
+      tiles:
+        - value: "10,074"
+          label: "Starlink satellites in orbit"
+          note: "As of March 20, 2026. Crossed 10,000 on March 17."
+          emphasis: "key"
+        - value: "300,000"
+          unit: "+"
+          label: "Starlink collision-avoidance maneuvers"
+          note: "Calendar year 2025. Threshold: 3-in-10-million probability."
+          emphasis: "warn"
+        - value: "~10"
+          unit: "%"
+          label: "Of 2025 LEO conjunction risk"
+          note: "Traceable to a single Aug 2024 Long March 6A breakup."
+          emphasis: "warn"
+        - value: "39"
+          label: "ISS debris-avoidance events since 1998"
+          note: "Most recent April 30, 2025 — dodged a 2005 Long March fragment."
+          emphasis: "key"
+        - value: "7,473"
+          label: "Catalogued objects added to orbit in 2024"
+          note: "Single-year jump, largely driven by fragmentation."
+          emphasis: "key"
+        - value: "$150,000"
+          label: "Largest FCC fine ever levied for disposal failure"
+          note: "DISH Network · EchoStar-7 · 2023 · the only precedent."
+      source: "FCC Orbital Debris reports · NASA ODPO · Planet4589 · LeoLabs · ESA SER 2025"
+
+  - kind: paradox
+    eyebrow: "THE POLICY VOID"
+    title: "Two rules. *Two gaps*."
+    intro: "The international system has the rules. What it doesn't have is any enforcement mechanism against the actors who matter most."
+    data:
+      sides:
+        - label: "The Treaty Side"
+          statement: '*"155 states voted for a ban. The nine against hold most of the debris."*'
+          detail: "**UN Resolution A/RES/77/41** (December 2022) called for a moratorium on destructive direct-ascent ASAT tests. Vote: **155 for, 9 against, 9 abstaining.** Among the nine against: **China** and **Russia** — the two nations responsible for the two worst ASAT debris events in history. Among those abstaining: **India** (Mission Shakti, 2019). The resolution is **not legally binding**."
+        - label: "The Regulator Side"
+          statement: '*"A five-year rule with a one-case enforcement history."*'
+          detail: "The **FCC Order 22-74** replaced the 25-year voluntary deorbit guideline with a **5-year mandatory rule**, in force since September 29, 2024. The largest enforcement action on record: **$150,000 against DISH Network** in 2023, for failure to deorbit EchoStar-7. The binding rule faces an industry operating at billion-dollar scale; the non-binding resolution faces two governments that voted against it."
+
+  - kind: quote
+    eyebrow: "THE OFFICIAL READING"
+    title: "*Already* in cascade."
+    intro: "ESA's Space Environment Report is the annual census of what is in orbit. Space-agency prose is usually measured. Here is the 2025 edition, translated from the technical — unchanged."
+    data:
+      quote: "Even without any additional launches, the number of space debris would keep growing, because fragmentation events add new debris objects faster than debris can naturally re-enter the atmosphere, and active debris removal is required to prevent the runaway chain reaction known as Kessler syndrome."
+      attribution: "European Space Agency · Space Environment Report 2025"
+      followup: '"No more launches" — the impossible scenario — is the *floor*, not the target. The body that inventories what\"s up there published this in language space agencies rarely use: **runaway chain reaction**.'
+
+  - kind: prose
+    eyebrow: "WHERE IT GOES"
+    title: "The *cleanup economy* doesn't exist yet."
+    data:
+      lead: "Two demonstration missions, one removal attempt pending in three years, against seven thousand catalogued objects added last year alone."
+      paragraphs:
+        - "Active debris removal — the only way to prevent the cascade ESA describes — is a technology demo, not an industry. Astroscale's **ADRAS-J** completed the first-ever close rendezvous with a derelict rocket upper stage in 2024: it approached within 15 metres of a Japanese H-2A stage left in orbit since 2009, photographed it, validated autonomous navigation, and is now deorbiting itself. The follow-on **ADRAS-J2** will attempt actual capture in fiscal year 2027."
+        - "ESA's **ClearSpace-1** originally targeted the VESPA payload adapter left by a Vega launch in 2013. In August 2023, VESPA was itself hit by another debris object — the target became a debris cloud. The mission switched targets to the **PROBA-1** satellite and slipped to a 2028 launch. One mission per agency, neither complete."
+        - "The economics are backwards. A satellite operator pays launch cost. It pays for its own fuel to maneuver around other people's objects. It pays nothing for the risk it leaves behind when it's done. Until that gap closes — through insurance pricing, disposal bonds, or binding treaty — the cascade is a shared bill without a shared payer. **The orbit that remembers everything is currently being paid for by everyone.**"
+
+sources:
+  - id: "src-01"
+    title: "Space Environment Report 2025"
+    publisher: "European Space Agency · Space Debris Office"
+    url: "https://www.esa.int/Space_Safety/Space_Debris/ESA_Space_Environment_Report_2025"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-02"
+    title: "Jonathan's Space Report · Starlink Statistics"
+    publisher: "Jonathan McDowell · Harvard-Smithsonian Center for Astrophysics"
+    url: "https://planet4589.org/space/con/star/stats.html"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-03"
+    title: "Collision Frequency of Artificial Satellites: The Creation of a Debris Belt"
+    publisher: "Kessler & Cour-Palais · Journal of Geophysical Research 83(A6), 1978"
+    url: "https://agupubs.onlinelibrary.wiley.com/doi/10.1029/JA083iA06p02637"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-04"
+    title: "Mitigation of Orbital Debris in the New Space Age (Order & Second Report, FCC 22-74)"
+    publisher: "US Federal Communications Commission"
+    url: "https://docs.fcc.gov/public/attachments/FCC-22-74A1.pdf"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-05"
+    title: "UNGA Resolution A/RES/77/41 · Destructive Direct-Ascent ASAT Missile Tests"
+    publisher: "United Nations General Assembly · First Committee"
+    url: "https://press.un.org/en/2022/gadis3703.doc.htm"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-06"
+    title: "Chinese rocket stage breaks up into cloud of more than 700 pieces of space debris"
+    publisher: "SpaceNews · Andrew Jones"
+    url: "https://spacenews.com/chinese-rocket-stage-breaks-up-into-cloud-of-more-than-700-pieces-of-space-debris/"
+    accessedAt: "2026-04-24"
+    kind: secondary
+  - id: "src-07"
+    title: "Analysis of the Cosmos 1408 Breakup"
+    publisher: "LeoLabs"
+    url: "https://leolabs-space.medium.com/analysis-of-the-cosmos-1408-breakup-71b32de5641f"
+    accessedAt: "2026-04-24"
+    kind: analysis
+  - id: "src-08"
+    title: "Press Release: Break-up of Russian-owned space object (RESURS-P1)"
+    publisher: "US Space Command"
+    url: "https://www.spacecom.mil/Newsroom/News/Article-Display/Article/3819238/press-release-break-up-of-russian-owned-space-object/"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-09"
+    title: "Astroscale's ADRAS-J Mission Completes Operations, Begins Deorbit"
+    publisher: "Astroscale"
+    url: "https://www.astroscale.com/en/news/astroscales-adras-j-mission-completes-operations-begins-deorbit"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-10"
+    title: "Station Maneuvers to Avoid Orbital Debris (April 30, 2025)"
+    publisher: "NASA · Space Station blog"
+    url: "https://www.nasa.gov/blogs/spacestation/2025/04/30/station-maneuvers-to-avoid-orbital-debris/"
+    accessedAt: "2026-04-24"
+    kind: primary
+  - id: "src-11"
+    title: "Direct-Ascent ASAT Tests: State Positions on the Moratorium"
+    publisher: "Secure World Foundation"
+    url: "https://www.swfound.org/publications-and-reports/direct-ascent-anti--satellite-missile-tests-state-positions-on-the-moratorium-unga-resolution-and-lessons-for-the-future"
+    accessedAt: "2026-04-24"
+    kind: analysis
+  - id: "src-12"
+    title: "Fengyun-1C ASAT Test (2007) — long-term debris environment"
+    publisher: "Orbital Radar · derived from NASA ODPO Orbital Debris Quarterly News"
+    url: "https://orbitalradar.com/events/fengyun-1c-2007"
+    accessedAt: "2026-04-24"
+    kind: secondary
+---
+
+{/*
+  All narrative lives in the structured `sections` above.
+  The MDX body is reserved for supplementary prose or embedded media.
+*/}

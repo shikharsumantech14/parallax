@@ -1,0 +1,31 @@
+---
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  eyebrow?: string;
+  title: string;
+  dek?: string;
+  author?: string;
+  readTimeMinutes?: number;
+  publishedAt?: Date;
+}
+const { eyebrow, title, dek, author, readTimeMinutes, publishedAt } = Astro.props;
+
+const formattedDate = publishedAt
+  ? publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()
+  : null;
+---
+
+<section class="px-hero">
+  {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
+  <h1 set:html={renderEmphasis(title)} />
+  {dek && <p class="px-hero__dek">{dek}</p>}
+  <div class="px-hero__byline">
+    {author && <span>By {author}</span>}
+    {!author && <span></span>}
+    <span>
+      {formattedDate}
+      {readTimeMinutes ? ` · ${readTimeMinutes} min read` : ''}
+    </span>
+  </div>
+</section>

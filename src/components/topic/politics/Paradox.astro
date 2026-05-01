@@ -1,0 +1,25 @@
+---
+import { renderInline } from '../../../lib/text';
+
+interface ParadoxSide {
+  label: string;
+  statement: string;
+  detail: string;
+}
+
+interface Props {
+  sides: ParadoxSide[];
+}
+
+const { sides } = Astro.props;
+---
+
+<div class="px-paradox">
+  {sides.map((s) => (
+    <div class="px-paradox__side">
+      <div class="px-paradox__label">{s.label}</div>
+      <p class="px-paradox__statement" set:html={renderInline(s.statement)} />
+      <p class="px-paradox__detail" set:html={renderInline(s.detail)} />
+    </div>
+  ))}
+</div>

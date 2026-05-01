@@ -1,0 +1,133 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import type { Topic } from '../../content/config';
+import IssueLayout from '../../layouts/IssueLayout.astro';
+import Hero from '../../components/core/Hero.astro';
+import SectionRenderer from '../../components/SectionRenderer.astro';
+import Sources from '../../components/core/Sources.astro';
+import TopicStrip from '../../components/home/TopicStrip.astro';
+
+export async function getStaticPaths() {
+  const issues = await getCollection('issues');
+  return issues.map((issue) => ({
+    params: { slug: issue.slug },
+    props: { issue }
+  }));
+}
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+}
+
+const { issue } = Astro.props;
+const { data } = issue;
+
+const allIssues = await getCollection('issues');
+const sorted = allIssues.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
+const issueIndex = sorted.findIndex((i) => i.slug === issue.slug);
+const issueNumber = String(issueIndex + 1).padStart(2, '0');
+
+// Per-topic "back to the desk" wording — matches the voice of each
+// topic-index page so the navigation reads as "back to where this
+// dispatch came from" in the topic's own register.
+const backToDeskCopy: Record<Topic, string> = {
+  politics: '← Back to The Parliamentary Desk',
+  space: '← Back to Mission Control',
+  earth: '← Back to the Field Atlas',
+  tech: '← cd ../tech',
+  travel: '← Back to the Field Bureau',
+  sports: '← Back to the Matchday Programme'
+};
+---
+
+<IssueLayout
+  topic={data.topic}
+  title={data.title}
+  description={data.hook}
+  issueNumber={issueNumber}
+  publishedAt={data.publishedAt}
+  ogImage={data.ogImage}
+>
+  <TopicStrip compact current={data.topic} />
+
+  <a class="px-back-to-desk" href={`/topics/${data.topic}/`} data-topic={data.topic}>
+    {backToDeskCopy[data.topic]}
+  </a>
+
+  <Hero
+    eyebrow={data.tags[0]?.toUpperCase().replace(/-/g, ' ')}
+    title={data.title}
+    dek={data.hook}
+    author={data.author}
+    readTimeMinutes={data.readTimeMinutes}
+    publishedAt={data.publishedAt}
+  />
+
+  {data.sections.map((section, i) => (
+    <SectionRenderer section={section} index={i} />
+  ))}
+
+  <a class="px-back-to-desk px-back-to-desk--bottom" href={`/topics/${data.topic}/`} data-topic={data.topic}>
+    {backToDeskCopy[data.topic]}
+  </a>
+
+  <Sources sources={data.sources} />
+</IssueLayout>
+
+<style>
+  /* Topic-voice back-to-the-desk link, placed under the topic strip
+     above the hero and again above the sources block at the bottom of
+     the article. Inherits the topic's accent via tokens. */
+  .px-back-to-desk {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    margin: 0 0 28px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .px-back-to-desk:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .px-back-to-desk--bottom {
+    margin-top: 48px;
+    margin-bottom: 36px;
+  }
+
+  /* Per-topic typographic flavour matching each desk's register. */
+  .px-back-to-desk[data-topic="politics"] {
+    font-family: var(--font-mono);
+    letter-spacing: 0.16em;
+  }
+  .px-back-to-desk[data-topic="travel"] {
+    font-family: var(--font-display);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 14px;
+  }
+  .px-back-to-desk[data-topic="sports"] {
+    font-family: var(--font-display);
+    font-size: 12px;
+  }
+  .px-back-to-desk[data-topic="tech"] {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 12px;
+  }
+  .px-back-to-desk[data-topic="earth"] {
+    font-family: var(--font-mono);
+    letter-spacing: 0.14em;
+  }
+  .px-back-to-desk[data-topic="space"] {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+  }
+</style>
