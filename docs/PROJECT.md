@@ -240,7 +240,7 @@ uses Sonnet (high-craft step).
 - ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
 - ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
 - ✅ Phase 3: drafter agent (`drafter.md`) + `/pipeline-draft` command
-- ⏳ Phase 4: verifier ★ brand-protection step ★
+- ✅ Phase 4: verifier agent (`verifier.md`) + `/pipeline-verify` command ★ brand-protection step ★
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
 - ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
 
