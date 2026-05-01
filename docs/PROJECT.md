@@ -45,7 +45,8 @@ comments, engagement metrics, trackers.
 | Fonts        | Google Fonts (Fraunces, Inter Tight, JetBrains Mono, Space Grotesk, Cormorant Garamond, Oswald, IBM Plex Sans/Mono) |
 | Feed         | **@astrojs/rss 4.0.x**          |
 | Node         | `>=20.0.0` (see `.nvmrc`)       |
-| Hosting      | Vercel (static), manual git     |
+| Hosting      | **Vercel** (static, auto-deploy on push to `main`) |
+| Repo         | github.com/shikharsumantech14/parallax |
 
 No JS islands, no client frameworks, no analytics, no cookies. Static HTML +
 CSS only.
@@ -232,7 +233,7 @@ site, RSS-syndicated). Nothing publishes without manual flip.
 discovery and verifier-first-pass can use cheap models; drafting always
 uses Sonnet (high-craft step).
 
-**Phase status (as of 2026-04-27):**
+**Phase status (as of 2026-05-01):**
 - ✅ Phase 1: discovery agent + slash command + per-category source allowlists
 - ⏳ Phase 2: researcher + drafter
 - ⏳ Phase 3: verifier ★ brand-protection step ★
@@ -497,10 +498,11 @@ Total: 10 static routes + 1 RSS endpoint.
 - Astro + MDX + TS scaffold
 - Content collection schema
 - Politics theme (tokens + all 7 custom components)
-- One full issue: *The Trojan Horse in Parliament* (delimitation)
+- Two full issues: *The Trojan Horse in Parliament* (delimitation, politics) + *The Orbit That Remembers* (Kessler cascade, space)
 - RSS feed
 - Home index, about page
 - Mobile responsive (375px tested)
+- **Site live at [parallaxlens.com](https://parallaxlens.com)** — Vercel + Cloudflare, auto-deploys on push to `main`
 
 ### Phase 1.5 — "Design Reframe" (shipped)
 
@@ -612,6 +614,55 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-01 — Site deployed to parallaxlens.com
+
+**What.** First live deployment.
+
+- GitHub repo created at `github.com/shikharsumantech14/parallax` (private)
+- Initial commit: 75 files — full Astro scaffold, two issues, six topic
+  worlds, component library, pipeline docs, NotebookLM setup docs
+- Deployed to Vercel: `parallax-eta.vercel.app` (auto-deploys on every
+  push to `main`, ~60s build time)
+- Custom domain `parallaxlens.com` connected via Cloudflare auto-configure
+  — Vercel detected Cloudflare and set DNS records automatically; SSL
+  certificate auto-provisioned. Both `parallaxlens.com` (307 → www) and
+  `www.parallaxlens.com` now point to production
+- `astro.config.mjs` `site` updated from placeholder to
+  `https://parallaxlens.com`
+
+**Workflow going forward.** Edit locally → push to `main` → Vercel
+auto-deploys. No manual deploy step required.
+
+### 2026-05-01 — Delimitation issue published + VoteResult stamp fix
+
+**What.**
+
+1. **Issue cleaned up for publication.** Removed the `beat-sheet` section
+   ("Video beat sheet" — production scaffolding, never meant for readers).
+   Removed the sentence "This is the analogy that carries the video." from
+   the analogy section intro. Flipped `status: review → published`.
+
+2. **VoteResult "Defeated" stamp alignment fixed.** The stamp was a child
+   of `.px-vote__bar` which has `overflow: hidden` — the rotated stamp's
+   corners were being clipped, making it look misaligned. Fix: introduced
+   a `.px-vote__bar-wrap` wrapper with `position: relative`; moved the
+   stamp outside the overflow boundary so it overlays the bar cleanly
+   without clipping. CSS: `pointer-events: none; z-index: 1` added to
+   stamp so it sits above the bars without blocking interactions.
+
+### 2026-05-01 — NotebookLM summary character limit discovered and fixed
+
+**What.** NotebookLM's Custom Summary field has a hard character limit of
+~1,400–1,500 characters. The expanded 6-paragraph summaries (~1,900 chars)
+were being silently truncated, cutting off the output-format and reject-list
+paragraphs.
+
+**Fix.** All six summaries trimmed to 4 paragraphs (~1,250 chars each):
+identity, sources, use-case, editorial voice + example. The output-format
+and reject-list instructions moved exclusively to the §6 Note-as-prompt
+blocks (paste as notebook Notes). `research/notebooklm-setup.md` §5 intro
+updated with the character-limit note and the reason for the split.
 
 ### 2026-04-28 — NotebookLM notebooks seeded + summaries expanded
 

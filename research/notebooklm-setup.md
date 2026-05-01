@@ -7,10 +7,13 @@ source of truth — paste-ready titles and summaries, source seed list,
 the editorial-guidelines note used as a soft prompt, and the weekly
 workflow.
 
-> **Status as of 2026-04-28.** All six notebooks created on
-> `shikharcasm@gmail.com`. Titles set. Summary blocks pasted. Sources
-> not yet added (next manual step). Editorial-guidelines note not yet
-> added (optional — see §4).
+> **Status as of 2026-05-01.**
+> - ✅ All six notebooks created on `shikharcasm@gmail.com`
+> - ✅ Titles set
+> - ✅ Summary blocks pasted — trimmed to 4 paragraphs (~1,250 chars) to
+>   fit the field's ~1,400-char limit (see §5 note)
+> - ✅ Sources seeded — ~78 working URLs across six desks
+> - ⏳ Editorial-guidelines note (§6 Note-as-prompt) — optional, not yet added
 
 ---
 
