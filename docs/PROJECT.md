@@ -205,7 +205,7 @@ and the **final audit** before publish.
    ↓
 6. YOU REVIEW DRAFT                ← read, fix voice/flow, resolve EDITOR comments
    ↓
-7. /pipeline-verify <category>     ⏳ verifier subagent → claim-by-claim audit
+7. /pipeline-verify <category>     ✅ verifier subagent → claim-by-claim audit
    ↓
 8. YOU AUDIT + PUBLISH             ← read report, fix, status: published
 ```
@@ -217,7 +217,14 @@ and the **final audit** before publish.
 - `research/_templates/dossier.md` — dossier output shape (Phase 2)
 - `research/<category>/<date>-candidates.md` — discovery output (Phase 1)
 - `research/<category>/<date>-<slug>-dossier.md` — research output (Phase 2)
-- `research/<category>/<date>-<slug>-verification.md` — verifier output (Phase 4+)
+- `research/<category>/<date>-<slug>-verification.md` — verifier output (Phase 4)
+
+**Git workflow rules (as of 2026-05-02):**
+- Claude commits only — never pushes. You push manually with `git push`.
+- Commit messages have no `Co-Authored-By` trailer.
+- All commits must be authored with the `shikharsumantech14` GitHub account
+  (git config email must match). Vercel Hobby plan blocks deploys from
+  unrecognised commit authors.
 
 **Upstream of the agent pipeline** sits a per-category NotebookLM
 research desk (one notebook per topic, sources seeded from the same
@@ -243,6 +250,8 @@ uses Sonnet (high-craft step).
 - ✅ Phase 4: verifier agent (`verifier.md`) + `/pipeline-verify` command ★ brand-protection step ★
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
 - ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
+
+**Full pipeline validated end-to-end (2026-05-02):** C-03 (*The Protection That Erases* — Transgender Amendment 2026 ratchet) ran through all 4 phases: discover → research → draft → verify. Verdict NEEDS REVISION (3 minor fixes), fixed and published. Third Parallax issue live at `/issues/2026-05-02-transgender-ratchet/`.
 
 ---
 
@@ -361,7 +370,8 @@ src/
 │   └── issues/
 │       ├── _template/index.mdx
 │       ├── 2026-04-24-delimitation/index.mdx
-│       └── 2026-04-24-kessler-cascade/index.mdx
+│       ├── 2026-04-24-kessler-cascade/index.mdx
+│       └── 2026-05-02-transgender-ratchet/index.mdx
 ├── styles/
 │   ├── base.css             # Layer A — topic-agnostic rhythm
 │   ├── meta.css             # Meta brand tokens + home/topic-index styles
@@ -477,13 +487,14 @@ vote charts, etc.). Other themes get component styles in Phase 2.
 
 ## 8. Routes generated
 
-Total: 10 static routes + 1 RSS endpoint.
+Total: 11 static routes + 1 RSS endpoint.
 
 ```
 /                                    (home)
 /about/
 /issues/2026-04-24-delimitation/
 /issues/2026-04-24-kessler-cascade/
+/issues/2026-05-02-transgender-ratchet/
 /topics/politics/
 /topics/space/
 /topics/earth/
@@ -502,7 +513,7 @@ Total: 10 static routes + 1 RSS endpoint.
 - Astro + MDX + TS scaffold
 - Content collection schema
 - Politics theme (tokens + all 7 custom components)
-- Two full issues: *The Trojan Horse in Parliament* (delimitation, politics) + *The Orbit That Remembers* (Kessler cascade, space)
+- Three full issues: *The Trojan Horse in Parliament* (delimitation, politics) + *The Orbit That Remembers* (Kessler cascade, space) + *The Protection That Erases* (transgender ratchet, politics — first agent-pipeline issue)
 - RSS feed
 - Home index, about page
 - Mobile responsive (375px tested)
@@ -618,6 +629,54 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-02 — Full pipeline run: *The Protection That Erases* published
+
+**What.** First end-to-end pipeline run across all 4 phases. Issue C-03
+(Transgender Persons Amendment Act 2026 ratchet — NALSA 2014 → 2019 Act
+→ 2026 Amendment) discovered, researched, drafted, and verified.
+
+- **Phase 4 run:** `/pipeline-verify politics` on
+  `src/content/issues/2026-05-02-transgender-ratchet/index.mdx`. Verdict:
+  **NEEDS REVISION** (47 ✅ verified, 4 ⚠️ flagged, 0 ❌ blocked).
+- **Three fixes applied before publish:**
+  1. Timeline Mar 30 note: "Two days later" → "Three days later" (Mar 30 →
+     Apr 2 = 3 days; prose section had it right, timeline was contradicting)
+  2. Mar 24–25 note: clarified voice-vote attribution to Sansad.in,
+     resolving the dossier's [UNVERIFIED] flag
+  3. Paradox intro: deleted meta-commentary sentence "The tension is
+     structural, not rhetorical."
+- Verification report at
+  `research/politics/2026-05-02-transgender-ratchet-verification.md`.
+- `status: draft → published`. Third Parallax issue live on parallaxlens.com.
+
+### 2026-05-02 — Git workflow rules + author config fixed
+
+**What.** Vercel Hobby plan blocked a deploy because the commit author
+identity didn't match the `shikharsumantech14` GitHub account.
+
+**Fix.** `git config user.email` set to match shikharsumantech14's GitHub
+account email.
+
+**New workflow rules (in effect from this session):**
+- Claude commits only — never pushes. Editor pushes manually (`git push`).
+- Commit messages have no `Co-Authored-By` trailer.
+
+### 2026-05-02 — Phase 4 verifier agent built
+
+**What.**
+
+- `.claude/agents/verifier.md` — verifier subagent. Performs claim-by-claim
+  audit of draft issues: extracts every date, number, named actor, legal
+  claim, quote, and event; traces each to the dossier; marks ✅ VERIFIED /
+  ⚠️ IMPRECISE / ❌ UNTRACED. Runs voice audit (flags advocacy, rhetorical
+  questions, passive filler, wire tone, speculation, meta-commentary) and
+  schema check. Outputs a structured verification report. Hard verdict:
+  APPROVED / NEEDS REVISION / BLOCKED.
+- `.claude/commands/pipeline-verify.md` — `/pipeline-verify <category>`
+  slash command. Finds draft issue + dossier, spawns verifier subagent,
+  relays verdict to editor.
+- Pipeline diagram in §3.7 updated to show Phase 4 complete.
 
 ### 2026-05-02 — Phase 3 drafter agent built
 
