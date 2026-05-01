@@ -193,17 +193,17 @@ two control gates: the **candidate pick** between discovery and research,
 and the **final audit** before publish.
 
 ```
-1. /pipeline-discover <category>   ← discovery subagent → candidates file
+1. /pipeline-discover <category>   ✅ discovery subagent → candidates file
    ↓
 2. YOU PICK 1 CANDIDATE            ← edit candidates file, status: chosen
    ↓
-3. /pipeline-research <slug>       ← researcher subagent → dossier file (Phase 2)
+3. /pipeline-research <category>   ✅ researcher subagent → dossier file
    ↓
-4. /pipeline-draft <slug>          ← drafter subagent → MDX with status: draft
+4. YOU REVIEW DOSSIER              ← check [UNVERIFIED] items, approve
    ↓
-5. /pipeline-verify <slug>         ← verifier subagent → claim-by-claim audit
+5. /pipeline-draft <category>      ⏳ drafter subagent → MDX with status: draft
    ↓
-6. /pipeline-visuals <slug>        ← visual-need detector (suggests, doesn't build)
+6. /pipeline-verify <category>     ⏳ verifier subagent → claim-by-claim audit
    ↓
 7. YOU AUDIT + PUBLISH             ← read draft + report, fix, status: published
 ```
@@ -211,10 +211,11 @@ and the **final audit** before publish.
 **Working files** live under `research/`:
 - `research/_sources/<category>.md` — per-category trusted-source allowlist
   (the universe of sources the discovery agent is allowed to mine from)
-- `research/_templates/<step>.md` — output shape contracts
-- `research/<category>/<date>-candidates.md` — discovery output
-- `research/<category>/<date>-<slug>-dossier.md` — research output (Phase 2+)
-- `research/<category>/<date>-<slug>-verification.md` — verifier output (Phase 3+)
+- `research/_templates/candidate.md` — candidates file output shape (Phase 1)
+- `research/_templates/dossier.md` — dossier output shape (Phase 2)
+- `research/<category>/<date>-candidates.md` — discovery output (Phase 1)
+- `research/<category>/<date>-<slug>-dossier.md` — research output (Phase 2)
+- `research/<category>/<date>-<slug>-verification.md` — verifier output (Phase 4+)
 
 **Upstream of the agent pipeline** sits a per-category NotebookLM
 research desk (one notebook per topic, sources seeded from the same
@@ -233,12 +234,13 @@ site, RSS-syndicated). Nothing publishes without manual flip.
 discovery and verifier-first-pass can use cheap models; drafting always
 uses Sonnet (high-craft step).
 
-**Phase status (as of 2026-05-01):**
-- ✅ Phase 1: discovery agent + slash command + per-category source allowlists
-- ⏳ Phase 2: researcher + drafter
-- ⏳ Phase 3: verifier ★ brand-protection step ★
-- ⏳ Phase 4: visual-checker + scheduled cron via GitHub Actions
-- ⏳ Phase 5: roll out beyond politics (space, earth, tech, travel, sports)
+**Phase status (as of 2026-05-02):**
+- ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
+- ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
+- ⏳ Phase 3: drafter subagent + `/pipeline-draft` command
+- ⏳ Phase 4: verifier ★ brand-protection step ★
+- ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
+- ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
 
 ---
 
@@ -614,6 +616,35 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-02 — Phase 2 researcher agent built + first pipeline-discover run
+
+**What.**
+
+1. **`/pipeline-discover politics` run successfully.** First real
+   pipeline validation. Agent surfaced 6 candidates from 11 allowlisted
+   sources using 16 search queries. Output at
+   `research/politics/2026-05-02-candidates.md`. C-03 (*The Protection
+   Act That Criminalized Identity* — Transgender Amendment 2026 ratchet
+   from NALSA 2014) chosen. C-02 (Bengal voter deletion machine) queued
+   for next week.
+
+2. **Phase 2 researcher agent scaffolded.** Three new files:
+   - `.claude/agents/researcher.md` — researcher subagent. Reads the
+     chosen candidate, deeply verifies all facts against allowlisted
+     primary sources, finds verbatim quotes, proposes section structure,
+     writes a structured dossier. Hard rules: mark [UNVERIFIED] rather
+     than silently drop, verbatim quotes only, no draft prose.
+   - `.claude/commands/pipeline-research.md` — `/pipeline-research
+     <category>` slash command. Finds the chosen candidate, spawns
+     the researcher subagent, relays the dossier path + summary.
+   - `research/_templates/dossier.md` — output shape contract for the
+     dossier: structural argument, timeline, key facts & data, key
+     quotes, primary source documents, suggested issue structure,
+     bibliography, researcher notes.
+
+3. **Both published issues confirmed live** on parallaxlens.com.
+   Kessler Cascade flipped to `status: published`.
 
 ### 2026-05-01 — Site deployed to parallaxlens.com
 
