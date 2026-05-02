@@ -1,0 +1,191 @@
+---
+/*
+  ClimateStrip — Ed Hawkins "warming stripes" visualization.
+  Horizontal bars, one per year (or time unit), coloured along a
+  diverging palette from the value range. No axes, no tick marks —
+  pure data signal. Build-time computed, zero runtime JS.
+
+  Use for: temperature anomaly, rainfall deviation, sea-level change,
+  CO₂ concentration, any time-series where the directional trend
+  is the primary message.
+
+  Data shape:
+    values[]     — array of { year: number, value: number }
+    palette      — 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom'
+    baseline     — string describing the reference period (shown below strip)
+    unit         — string appended to legend values (e.g. '°C', 'mm', 'ppm')
+    showYears    — show first/last year labels (default true)
+    showLegend   — show colour scale bar (default true)
+    caption      — italic caption line above
+    source       — mono source line below
+*/
+
+interface DataPoint {
+  year: number;
+  value: number;
+}
+
+type Palette = 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom';
+
+interface Props {
+  values: DataPoint[];
+  palette?: Palette;
+  baseline?: string;
+  unit?: string;
+  showYears?: boolean;
+  showLegend?: boolean;
+  customMin?: string;   // hex for custom palette cold end
+  customMax?: string;   // hex for custom palette warm end
+  caption?: string;
+  source?: string;
+}
+
+const {
+  values = [],
+  palette = 'warming',
+  baseline,
+  unit = '',
+  showYears = true,
+  showLegend = true,
+  customMin,
+  customMax,
+  caption,
+  source,
+} = Astro.props;
+
+if (values.length === 0) {
+  // nothing to render
+}
+
+// ── Palette definitions ─────────────────────────────────────────────────────
+// Each palette is an array of hex stops from cold/low → warm/high.
+// 9-stop diverging palettes (after ColorBrewer RdBu / BrBG conventions
+// adjusted for editorial warmth and print legibility).
+const PALETTES: Record<Palette, string[]> = {
+  warming: [
+    '#08306b', '#2171b5', '#4292c6', '#9ecae1',
+    '#deebf7',   // near-neutral
+    '#fee0d2', '#fc9272', '#de2d26', '#a50f15',
+  ],
+  cooling: [
+    '#a50f15', '#de2d26', '#fc9272', '#fee0d2',
+    '#deebf7',   // near-neutral
+    '#9ecae1', '#4292c6', '#2171b5', '#08306b',
+  ],
+  rainfall: [
+    '#7f3b08', '#b35806', '#e08214', '#fdb863',
+    '#f7f7f7',   // near-neutral
+    '#b2abd2', '#8073ac', '#542788', '#2d004b',
+  ],
+  drought: [
+    '#003c30', '#01665e', '#35978f', '#80cdc1',
+    '#f5f5f5',   // near-neutral
+    '#dfc27d', '#bf812d', '#8c510a', '#543005',
+  ],
+  custom: [
+    customMin ?? '#08306b',
+    '#4292c6',
+    '#9ecae1',
+    '#deebf7',
+    '#fee0d2',
+    '#fc9272',
+    '#de2d26',
+    customMax ?? '#a50f15',
+  ],
+};
+
+const stops = PALETTES[palette];
+
+// ── Compute value range ──────────────────────────────────────────────────────
+const rawValues = values.map(d => d.value);
+const minVal = Math.min(...rawValues);
+const maxVal = Math.max(...rawValues);
+const range  = maxVal - minVal || 1;
+
+// ── Map value → hex colour via palette stops ─────────────────────────────────
+function hexToRgb(h: string): [number, number, number] {
+  const n = parseInt(h.replace('#',''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function lerp(a: number, b: number, t: number) { return Math.round(a + (b - a) * t); }
+
+function valueToColor(val: number): string {
+  const t = (val - minVal) / range;           // 0 = coldest, 1 = warmest
+  const scaled = t * (stops.length - 1);
+  const lo = Math.floor(scaled);
+  const hi = Math.min(lo + 1, stops.length - 1);
+  const frac = scaled - lo;
+  const [r1, g1, b1] = hexToRgb(stops[lo]);
+  const [r2, g2, b2] = hexToRgb(stops[hi]);
+  return `rgb(${lerp(r1,r2,frac)},${lerp(g1,g2,frac)},${lerp(b1,b2,frac)})`;
+}
+
+// ── Pre-compute bar colours ──────────────────────────────────────────────────
+const bars = values.map(d => ({
+  year: d.year,
+  value: d.value,
+  color: valueToColor(d.value),
+}));
+
+const firstYear = bars[0]?.year ?? '';
+const lastYear  = bars[bars.length - 1]?.year ?? '';
+const count     = bars.length;
+
+// ── Legend gradient (inline CSS) ────────────────────────────────────────────
+const rampStops = stops
+  .map((s, i) => `${s} ${Math.round((i / (stops.length - 1)) * 100)}%`)
+  .join(', ');
+const rampGradient = `linear-gradient(to right, ${rampStops})`;
+
+// ── Label for extreme values on legend ──────────────────────────────────────
+const fmtVal = (v: number) =>
+  `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
+---
+
+<div class="px-strip">
+  {caption && <div class="px-strip__caption">{caption}</div>}
+
+  <div class="px-strip__stage">
+    <!-- Year bookend labels -->
+    {showYears && (
+      <div class="px-strip__years">
+        <span class="px-strip__year">{firstYear}</span>
+        <span class="px-strip__year">{lastYear}</span>
+      </div>
+    )}
+
+    <!-- The stripes themselves -->
+    <div class="px-strip__bars" aria-label={`Climate strip: ${firstYear}–${lastYear}`}>
+      {bars.map(b => (
+        <div
+          class="px-strip__bar"
+          style={`background:${b.color}`}
+          title={`${b.year}: ${fmtVal(b.value)}`}
+          aria-label={`${b.year}: ${fmtVal(b.value)}`}
+        />
+      ))}
+    </div>
+  </div>
+
+  <!-- Legend + baseline -->
+  {showLegend && (
+    <div class="px-strip__legend">
+      <div class="px-strip__legend-row">
+        <span class="px-strip__legend-val px-strip__legend-val--lo">
+          {fmtVal(minVal)}
+        </span>
+        <div class="px-strip__legend-ramp" style={`background:${rampGradient}`} aria-hidden="true" />
+        <span class="px-strip__legend-val px-strip__legend-val--hi">
+          {fmtVal(maxVal)}
+        </span>
+      </div>
+      {baseline && (
+        <div class="px-strip__baseline">
+          Baseline: {baseline}
+        </div>
+      )}
+    </div>
+  )}
+
+  {source && <div class="px-strip__source">{source}</div>}
+</div>

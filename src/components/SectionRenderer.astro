@@ -20,6 +20,7 @@ import JourneyMap from './topic/travel/JourneyMap.astro';
 import MatchStatLine from './topic/sports/MatchStatLine.astro';
 import ElevationProfile from './topic/earth/ElevationProfile.astro';
 import RegionMap from './topic/earth/RegionMap.astro';
+import ClimateStrip from './topic/earth/ClimateStrip.astro';
 
 interface Props {
   section: Section;
@@ -132,6 +133,21 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
         bands={data.bands ?? []}
         maxValue={data.maxValue}
         axisLabel={data.axisLabel}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'climate-strip' && (
+      <ClimateStrip
+        values={data.values ?? []}
+        palette={data.palette}
+        baseline={data.baseline}
+        unit={data.unit}
+        showYears={data.showYears}
+        showLegend={data.showLegend}
+        customMin={data.customMin}
+        customMax={data.customMax}
         caption={data.caption}
         source={data.source}
       />

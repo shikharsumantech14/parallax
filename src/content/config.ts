@@ -22,7 +22,8 @@ export const SECTION_KINDS = [
   'journey-map',           // travel signature
   'match-stat-line',       // sports signature
   'elevation-profile',     // earth signature
-  'region-map'             // earth signature — choropleth world map
+  'region-map',            // earth signature — choropleth world map
+  'climate-strip'          // earth signature — warming stripes time-series
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;
