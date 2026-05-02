@@ -1,0 +1,260 @@
+---
+/*
+  RegionMap — build-time choropleth world map using d3-geo + world-atlas.
+  Runs entirely in Node at build time; emits a static inline SVG.
+  Zero runtime JS. Uses Natural Earth 110m country boundaries.
+
+  Zone IDs: ISO 3166-1 numeric strings
+    India = "356"  Brazil = "076"  China = "156"  USA = "840"
+    Russia = "643" Germany = "276" UK = "826"     Japan = "392"
+    Australia = "036" Canada = "124" Indonesia = "360" Pakistan = "586"
+    Bangladesh = "050" Nepal = "524" Sri Lanka = "144" Myanmar = "104"
+    Thailand = "764" Vietnam = "704" Philippines = "608" Malaysia = "458"
+    France = "250" Spain = "724" Italy = "380" Poland = "616"
+    Brazil = "076" Argentina = "032" Mexico = "484" Colombia = "170"
+    South Africa = "710" Nigeria = "566" Ethiopia = "231" DR Congo = "180"
+    Egypt = "818" Kenya = "404" Tanzania = "834" Sudan = "729"
+
+  Use for: climate patterns, environmental data, health metrics,
+  geographic stories, any Earth issue with a geographic footprint.
+*/
+import { geoNaturalEarth1, geoMercator, geoPath, geoGraticule } from 'd3-geo';
+import { feature } from 'topojson-client';
+import type { Topology, Objects } from 'topojson-specification';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+type Palette = 'earth' | 'heat' | 'flood' | 'drought' | 'conflict';
+type ProjectionName = 'naturalEarth' | 'mercator';
+
+interface Zone {
+  /** ISO 3166-1 numeric string — e.g. "356" for India */
+  id: string;
+  label?: string;
+  value: number;    // 0–1 choropleth intensity
+  note?: string;
+}
+
+interface Marker {
+  lat: number;
+  lng: number;
+  label?: string;
+  kind?: 'city' | 'event' | 'data-point';
+}
+
+interface Props {
+  projection?: ProjectionName;
+  palette?: Palette;
+  zones?: Zone[];
+  markers?: Marker[];
+  legend?: { low?: string; high?: string; none?: string };
+  caption?: string;
+  source?: string;
+}
+
+const {
+  projection: projName = 'naturalEarth',
+  palette = 'earth',
+  zones = [],
+  markers = [],
+  legend,
+  caption,
+  source,
+} = Astro.props;
+
+// ── Canvas ─────────────────────────────────────────────────────────────────
+const W = 800;
+const H = 430;
+
+// ── Projection ─────────────────────────────────────────────────────────────
+const projFn = projName === 'mercator'
+  ? geoMercator().scale(125).translate([W / 2, H / 1.8])
+  : geoNaturalEarth1().scale(145).translate([W / 2, H / 2 + 20]);
+
+const pathGen = geoPath(projFn);
+const graticuleGen = geoGraticule().step([30, 30]);
+
+// ── Load world topology (process.cwd() = project root, stable in dev + build) ──
+const atlasPath = join(process.cwd(), 'node_modules/world-atlas/countries-110m.json');
+const topo = JSON.parse(readFileSync(atlasPath, 'utf-8')) as Topology<Objects<{}>>;
+const countriesFC = feature(topo, topo.objects['countries'] as any);
+
+// ── Color palettes [noData, minHex, maxHex] ────────────────────────────────
+const PALETTES: Record<Palette, [string, string, string]> = {
+  earth:    ['#ddd5be', '#c8dfba', '#1a4a36'],   // paper → forest green
+  heat:     ['#ddd5be', '#fde68a', '#7c2d12'],   // amber → brick (temperature/fire)
+  flood:    ['#ddd5be', '#bfdbfe', '#1e3a8a'],   // sky → deep blue (water/flood)
+  drought:  ['#ddd5be', '#fef9c3', '#92400e'],   // straw → amber-brown (aridity)
+  conflict: ['#ddd5be', '#fecaca', '#7f1d1d'],   // blush → dark red (politics/conflict)
+};
+
+function hexToRgb(h: string) {
+  const n = parseInt(h.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as [number, number, number];
+}
+function lerp(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+function colorAt(minHex: string, maxHex: string, t: number): string {
+  const [r1, g1, b1] = hexToRgb(minHex);
+  const [r2, g2, b2] = hexToRgb(maxHex);
+  return `rgb(${lerp(r1, r2, t)},${lerp(g1, g2, t)},${lerp(b1, b2, t)})`;
+}
+
+const [noDataColor, minColor, maxColor] = PALETTES[palette];
+const valueMap = new Map(zones.map(z => [String(z.id), z.value]));
+
+function getFill(id: string): string {
+  const v = valueMap.get(id);
+  return v !== undefined ? colorAt(minColor, maxColor, v) : noDataColor;
+}
+
+// ── Pre-render paths at build time ─────────────────────────────────────────
+const countryPaths = (countriesFC.features as any[])
+  .map((f: any) => {
+    const d = pathGen(f);
+    if (!d) return null;
+    const id = String(f.id ?? '');
+    return { d, id, fill: getFill(id), active: valueMap.has(id) };
+  })
+  .filter(Boolean) as { d: string; id: string; fill: string; active: boolean }[];
+
+const graticulePath = pathGen(graticuleGen() as any) ?? '';
+const outlinePath = pathGen({ type: 'Sphere' } as any) ?? '';
+
+// ── Project markers ─────────────────────────────────────────────────────────
+const projectedMarkers = markers
+  .map(m => {
+    const pt = projFn([m.lng, m.lat]);
+    if (!pt) return null;
+    return { ...m, x: Math.round(pt[0]), y: Math.round(pt[1]) };
+  })
+  .filter(Boolean) as (Marker & { x: number; y: number })[];
+
+// ── Zone label centroids ────────────────────────────────────────────────────
+const zoneLabels = zones
+  .filter(z => z.label)
+  .map(z => {
+    const feat = (countriesFC.features as any[]).find((f: any) => String(f.id) === z.id);
+    if (!feat) return null;
+    const c = pathGen.centroid(feat);
+    if (!c || isNaN(c[0]) || isNaN(c[1])) return null;
+    return { label: z.label!, x: Math.round(c[0]), y: Math.round(c[1]) };
+  })
+  .filter(Boolean) as { label: string; x: number; y: number }[];
+
+// ── Legend swatches ────────────────────────────────────────────────────────
+const STEPS = 5;
+const swatches = Array.from({ length: STEPS }, (_, i) =>
+  colorAt(minColor, maxColor, i / (STEPS - 1))
+);
+
+// ── Zone notes (displayed below map) ──────────────────────────────────────
+const zoneNotes = zones.filter(z => z.note);
+---
+
+<div class="px-map">
+  {caption && <div class="px-map__caption">{caption}</div>}
+
+  <div class="px-map__frame">
+    <svg
+      class="px-map__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label={caption ?? 'Geographic map'}
+      role="img"
+    >
+      <defs>
+        <clipPath id="px-map-sphere">
+          <path d={outlinePath} />
+        </clipPath>
+      </defs>
+
+      <!-- Ocean fill -->
+      <path d={outlinePath} class="px-map__ocean" />
+
+      <!-- Graticule (lat/lng grid) -->
+      <path
+        d={graticulePath}
+        class="px-map__graticule"
+        clip-path="url(#px-map-sphere)"
+      />
+
+      <!-- Country fills -->
+      {countryPaths.map(c => (
+        <path
+          d={c.d}
+          fill={c.fill}
+          class:list={['px-map__country', c.active && 'px-map__country--active']}
+          clip-path="url(#px-map-sphere)"
+        />
+      ))}
+
+      <!-- Sphere outline (border of the world disc) -->
+      <path d={outlinePath} class="px-map__outline" />
+
+      <!-- Zone text labels -->
+      {zoneLabels.map(l => (
+        <text
+          x={l.x}
+          y={l.y}
+          class="px-map__zone-label"
+          text-anchor="middle"
+          dominant-baseline="central"
+        >
+          {l.label}
+        </text>
+      ))}
+
+      <!-- Markers -->
+      {projectedMarkers.map(m => (
+        <g transform={`translate(${m.x},${m.y})`} class={`px-map__marker px-map__marker--${m.kind ?? 'city'}`}>
+          <circle r="5" class="px-map__marker-dot" />
+          <circle r="3" class="px-map__marker-inner" />
+          {m.label && (
+            <text class="px-map__marker-label" x="8" y="1" dominant-baseline="central">
+              {m.label}
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+
+    <!-- Legend -->
+    {(legend || zones.length > 0) && (
+      <div class="px-map__legend">
+        <span class="px-map__legend-label px-map__legend-label--low">
+          {legend?.low ?? 'Low'}
+        </span>
+        <div class="px-map__legend-ramp">
+          {swatches.map(s => (
+            <span class="px-map__legend-swatch" style={`background:${s}`} />
+          ))}
+        </div>
+        <span class="px-map__legend-label px-map__legend-label--high">
+          {legend?.high ?? 'High'}
+        </span>
+        {legend?.none && (
+          <span class="px-map__legend-none">
+            <span class="px-map__legend-swatch" style={`background:${noDataColor}`} />
+            {legend.none}
+          </span>
+        )}
+      </div>
+    )}
+  </div>
+
+  <!-- Zone notes below map -->
+  {zoneNotes.length > 0 && (
+    <ul class="px-map__notes">
+      {zoneNotes.map(z => (
+        <li class="px-map__note">
+          {z.label && <strong class="px-map__note-label">{z.label}</strong>}
+          {z.note}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  {source && <div class="px-map__source">{source}</div>}
+</div>

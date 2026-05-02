@@ -1,0 +1,87 @@
+---
+id: "2026-05-03-earth-map-test"
+topic: earth
+title: "Region Map *Component Test*"
+hook: "Testing the region-map component with choropleth world data."
+dek: "Build-time SVG, zero runtime JS."
+publishedAt: 2026-05-03
+status: draft
+tags: [test]
+readTimeMinutes: 1
+
+sections:
+  - kind: region-map
+    eyebrow: "THE GEOGRAPHY"
+    title: "Amazon deforestation *pressure*, 2020–2024"
+    intro: "Countries ranked by share of primary forest lost, 2020–2024. Palette shows relative pressure — not absolute area."
+    data:
+      projection: naturalEarth
+      palette: heat
+      zones:
+        - id: "076"
+          label: "Brazil"
+          value: 0.95
+          note: "68% of Amazon deforestation pressure concentrated here. Cerrado and Arc of Deforestation dominate loss."
+        - id: "170"
+          label: "Colombia"
+          value: 0.65
+          note: "Second-highest pressure; Pacific coast + Amazon frontier."
+        - id: "604"
+          label: "Peru"
+          value: 0.58
+        - id: "218"
+          label: "Ecuador"
+          value: 0.52
+        - id: "032"
+          label: "Argentina"
+          value: 0.4
+        - id: "591"
+          label: "Panama"
+          value: 0.38
+        - id: "360"
+          label: "Indonesia"
+          value: 0.85
+          note: "Peatland conversion on Sumatra and Borneo; second-largest tropical forest loss globally."
+        - id: "104"
+          label: "Myanmar"
+          value: 0.72
+        - id: "566"
+          label: "Nigeria"
+          value: 0.6
+        - id: "180"
+          label: "DR Congo"
+          value: 0.75
+          note: "Congo Basin — 2nd largest tropical forest globally, pressure accelerating post-2020."
+        - id: "450"
+          label: "Madagascar"
+          value: 0.55
+        - id: "356"
+          label: "India"
+          value: 0.2
+      markers:
+        - lat: -3.4653
+          lng: -62.2159
+          label: "Amazon Basin"
+          kind: "region"
+        - lat: -1.0
+          lng: 23.5
+          label: "Congo Basin"
+          kind: "region"
+        - lat: -0.5
+          lng: 117.0
+          label: "Borneo"
+          kind: "region"
+      legend:
+        low: "Low pressure"
+        high: "High pressure"
+        none: "No data"
+      source: "MapBiomas · Global Forest Watch · INPE, 2024"
+
+sources:
+  - id: "src-01"
+    title: "MapBiomas Global Forest Cover 2024"
+    publisher: "MapBiomas"
+    url: "https://mapbiomas.org"
+    accessedAt: "2026-05-03"
+    kind: primary
+---

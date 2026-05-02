@@ -19,6 +19,7 @@ import CommitGrid from './topic/tech/CommitGrid.astro';
 import JourneyMap from './topic/travel/JourneyMap.astro';
 import MatchStatLine from './topic/sports/MatchStatLine.astro';
 import ElevationProfile from './topic/earth/ElevationProfile.astro';
+import RegionMap from './topic/earth/RegionMap.astro';
 
 interface Props {
   section: Section;
@@ -131,6 +132,18 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
         bands={data.bands ?? []}
         maxValue={data.maxValue}
         axisLabel={data.axisLabel}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'region-map' && (
+      <RegionMap
+        projection={data.projection}
+        palette={data.palette}
+        zones={data.zones ?? []}
+        markers={data.markers ?? []}
+        legend={data.legend}
         caption={data.caption}
         source={data.source}
       />
