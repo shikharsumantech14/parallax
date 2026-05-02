@@ -251,6 +251,14 @@ uses Sonnet (high-craft step).
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
 - ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
 
+**Component expansion plan (started 2026-05-03):**
+- ✅ `region-map` — Earth choropleth world map (build-time d3-geo SVG)
+- ⏳ `climate-strip` — Earth warming stripes (Ed Hawkins style)
+- ⏳ `orbit-trace` — Space elliptical orbit paths around Earth
+- ⏳ `dependency-graph` — Tech node/edge SVG
+- ⏳ `constituency-map` — Politics India state-level choropleth
+- ⏳ Carousel dual-mode architecture (web + Instagram 1080×1350 PNG export)
+
 **Full pipeline validated end-to-end (2026-05-02):** C-03 (*The Protection That Erases* — Transgender Amendment 2026 ratchet) ran through all 4 phases: discover → research → draft → verify. Verdict NEEDS REVISION (3 minor fixes), fixed and published. Third Parallax issue live at `/issues/2026-05-02-transgender-ratchet/`.
 
 ---
@@ -295,6 +303,7 @@ Dispatched by `SectionRenderer.astro` based on `section.kind`:
 | `journey-map`     | `topic/travel/JourneyMap.astro` (vertical itinerary stops) |
 | `match-stat-line` | `topic/sports/MatchStatLine.astro` (scoreline + horizontal stat bars) |
 | `elevation-profile` | `topic/earth/ElevationProfile.astro` (stacked depth/altitude bands) |
+| `region-map`        | `topic/earth/RegionMap.astro` (build-time choropleth world map, d3-geo + Natural Earth 50m) |
 
 ### 4.3 Authoring a new issue
 
@@ -427,6 +436,33 @@ them without discussion.
   the universal "back to home" affordance — no separate Home nav item.
   Each topic-index page also adds a topic-voice back link below the
   masthead (`← All worlds`, `← cd ..`, `← Atlas index`, etc.).
+- **SVG component conventions (established 2026-05-03).** Any component
+  that emits an inline SVG must follow these rules, learned from the
+  region-map build:
+  - **Transparent background** — `background: transparent` on the SVG
+    element. No wrapper `<div>` with `border` or `background: var(--paper)`.
+    The SVG sits directly on the page; the page background shows through.
+  - **d3-geo path resolution** — load topology files with
+    `readFileSync(join(process.cwd(), 'node_modules/...'), 'utf-8')`.
+    Never use `import.meta.url` + relative `../` — the compiled chunk
+    depth changes between dev and build, breaking the path.
+  - **50m over 110m** — Natural Earth 50m (`countries-50m.json`,
+    241 geometries) for sharper coastlines. 110m only for thumbnails.
+  - **Two-pass country rendering** — shadow group (no stroke,
+    `filter: drop-shadow(...)`) then fill group (with borders). Creates
+    raised-land depth without SVG filter complexity.
+  - **SVG text fonts** — use `style="font-family:'Cormorant Garamond',Georgia,serif"` 
+    (not `font-family="..."` presentation attribute — CSS vars don't work there).
+    Display/label text: Cormorant Garamond. Coord/axis text: JetBrains Mono.
+  - **Text halo** — `paint-order="stroke"` + `stroke` on SVG `<text>` for
+    readable labels over any fill. Never use `<textStroke>` or a separate
+    shadow element.
+  - **Legends inside SVG** — cartographic legend boxes live as SVG
+    `<g>` elements in the lower-left corner, with `fill-opacity` for
+    semi-transparency. Never a separate HTML `<div>` legend below the SVG.
+  - **Ocean depth** — `<radialGradient>` lighter at the centre, darker
+    at the rim. Add a `<pattern>` water-ruling overlay at 15-22% opacity
+    for the engraving texture.
 - **Brand vs. legal name split.** Public brand is **Parallax**; registered
   trademark and legal entity is **Parallax Lens**. The longer name is used
   *only* where SEO and trademark records expect it: `<title>` tags, meta
@@ -629,6 +665,37 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-03 — region-map component (Earth) — v1 + v2 redesign
+
+**What.**
+- New `region-map` section kind registered in `SECTION_KINDS` and
+  `SectionRenderer.astro`.
+- `src/components/topic/earth/RegionMap.astro` — build-time choropleth
+  world map using `d3-geo` + `world-atlas`. Runs in Node at build time,
+  emits static inline SVG. Zero runtime JS.
+- v1 shipped: 177 paths (110m), basic 5-swatch HTML legend, ocean fill.
+- v2 redesign (same session, after visual review):
+  - Switched to Natural Earth 50m (241 paths, sharper coastlines)
+  - Ocean: radial gradient (light centre → deeper rim) + SVG water
+    ruling pattern for engraving texture
+  - Countries: two-pass render with CSS `drop-shadow` filter for
+    raised-land depth effect
+  - Zone labels: Cormorant Garamond uppercase, white fill + dark halo
+    via `paint-order: stroke`
+  - Markers: redesigned with accent ring + dot, JetBrains Mono labels
+  - Legend: moved inside SVG as cartographic box (lower-left,
+    semi-transparent parchment bg, italic title, smooth linear-gradient
+    ramp, mono axis labels)
+  - Removed white frame box — SVG `background: transparent`, sits
+    flush on page background
+  - CSS: removed `.px-map__frame`, `.px-map__legend` HTML wrappers;
+    all styling now lives in SVG attributes or minimal CSS
+- Dev fixture: `src/content/issues/2026-05-03-earth-map-test/` (status:
+  draft — not public, used for visual verification)
+- New devDependencies: `d3-geo`, `topojson-client`, `world-atlas`,
+  `@types/d3-geo`, `@types/topojson-client`, `@types/topojson-specification`
+- SVG component conventions documented in §6.
 
 ### 2026-05-02 — Full pipeline run: *The Protection That Erases* published
 
