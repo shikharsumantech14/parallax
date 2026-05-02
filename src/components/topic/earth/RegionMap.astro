@@ -1,22 +1,19 @@
 ---
 /*
-  RegionMap — build-time choropleth world map using d3-geo + world-atlas.
-  Runs entirely in Node at build time; emits a static inline SVG.
-  Zero runtime JS. Uses Natural Earth 110m country boundaries.
+  RegionMap v2 — build-time choropleth world map.
+  50m Natural Earth resolution. Transparent SVG — integrates with page bg.
+  Legend lives inside the SVG as a cartographic box. Zero runtime JS.
 
   Zone IDs: ISO 3166-1 numeric strings
-    India = "356"  Brazil = "076"  China = "156"  USA = "840"
-    Russia = "643" Germany = "276" UK = "826"     Japan = "392"
-    Australia = "036" Canada = "124" Indonesia = "360" Pakistan = "586"
-    Bangladesh = "050" Nepal = "524" Sri Lanka = "144" Myanmar = "104"
-    Thailand = "764" Vietnam = "704" Philippines = "608" Malaysia = "458"
-    France = "250" Spain = "724" Italy = "380" Poland = "616"
-    Brazil = "076" Argentina = "032" Mexico = "484" Colombia = "170"
-    South Africa = "710" Nigeria = "566" Ethiopia = "231" DR Congo = "180"
-    Egypt = "818" Kenya = "404" Tanzania = "834" Sudan = "729"
-
-  Use for: climate patterns, environmental data, health metrics,
-  geographic stories, any Earth issue with a geographic footprint.
+    India = "356"   Brazil = "076"   China = "156"   USA = "840"
+    Russia = "643"  Germany = "276"  UK = "826"      Japan = "392"
+    Australia = "036"  Canada = "124"  Indonesia = "360"  Pakistan = "586"
+    Bangladesh = "050" Nepal = "524"   Sri Lanka = "144"  Myanmar = "104"
+    Thailand = "764"   Vietnam = "704" Philippines = "608" Malaysia = "458"
+    France = "250"  Spain = "724"   Italy = "380"   Poland = "616"
+    Argentina = "032"  Mexico = "484"  Colombia = "170"
+    South Africa = "710"  Nigeria = "566"  Ethiopia = "231"  DR Congo = "180"
+    Egypt = "818"   Kenya = "404"   Tanzania = "834"  Sudan = "729"
 */
 import { geoNaturalEarth1, geoMercator, geoPath, geoGraticule } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -28,8 +25,7 @@ type Palette = 'earth' | 'heat' | 'flood' | 'drought' | 'conflict';
 type ProjectionName = 'naturalEarth' | 'mercator';
 
 interface Zone {
-  /** ISO 3166-1 numeric string — e.g. "356" for India */
-  id: string;
+  id: string;       // ISO 3166-1 numeric string
   label?: string;
   value: number;    // 0–1 choropleth intensity
   note?: string;
@@ -47,7 +43,7 @@ interface Props {
   palette?: Palette;
   zones?: Zone[];
   markers?: Marker[];
-  legend?: { low?: string; high?: string; none?: string };
+  legend?: { title?: string; low?: string; high?: string; none?: string };
   caption?: string;
   source?: string;
 }
@@ -62,68 +58,67 @@ const {
   source,
 } = Astro.props;
 
-// ── Canvas ─────────────────────────────────────────────────────────────────
+// ── Canvas ──────────────────────────────────────────────────────────────────
 const W = 800;
-const H = 430;
+const H = 452;
 
-// ── Projection ─────────────────────────────────────────────────────────────
+// ── Projection ──────────────────────────────────────────────────────────────
 const projFn = projName === 'mercator'
-  ? geoMercator().scale(125).translate([W / 2, H / 1.8])
-  : geoNaturalEarth1().scale(145).translate([W / 2, H / 2 + 20]);
+  ? geoMercator().scale(128).translate([W / 2, H / 1.85])
+  : geoNaturalEarth1().scale(140).translate([W / 2, H / 2 + 20]);
 
-const pathGen = geoPath(projFn);
-const graticuleGen = geoGraticule().step([30, 30]);
+const pathGen  = geoPath(projFn);
+const gratGen  = geoGraticule().step([20, 20]);
 
-// ── Load world topology (process.cwd() = project root, stable in dev + build) ──
-const atlasPath = join(process.cwd(), 'node_modules/world-atlas/countries-110m.json');
-const topo = JSON.parse(readFileSync(atlasPath, 'utf-8')) as Topology<Objects<{}>>;
+// ── Topology — 50m for sharp coastlines ─────────────────────────────────────
+const topo = JSON.parse(
+  readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-50m.json'), 'utf-8')
+) as Topology<Objects<{}>>;
 const countriesFC = feature(topo, topo.objects['countries'] as any);
 
-// ── Color palettes [noData, minHex, maxHex] ────────────────────────────────
+// ── Colour palettes ──────────────────────────────────────────────────────────
 const PALETTES: Record<Palette, [string, string, string]> = {
-  earth:    ['#ddd5be', '#c8dfba', '#1a4a36'],   // paper → forest green
-  heat:     ['#ddd5be', '#fde68a', '#7c2d12'],   // amber → brick (temperature/fire)
-  flood:    ['#ddd5be', '#bfdbfe', '#1e3a8a'],   // sky → deep blue (water/flood)
-  drought:  ['#ddd5be', '#fef9c3', '#92400e'],   // straw → amber-brown (aridity)
-  conflict: ['#ddd5be', '#fecaca', '#7f1d1d'],   // blush → dark red (politics/conflict)
+  earth:    ['#d8cdb4', '#cde8be', '#144e2c'],  // paper → deep forest
+  heat:     ['#d8cdb4', '#fde47e', '#7a180c'],  // straw → brick red
+  flood:    ['#d8cdb4', '#bcd8fc', '#163070'],  // sky → deep navy
+  drought:  ['#d8cdb4', '#fef0a0', '#7e3a14'],  // pale yellow → amber brown
+  conflict: ['#d8cdb4', '#f8c0ba', '#6a0f12'],  // blush → deep crimson
 };
 
-function hexToRgb(h: string) {
+function hexToRgb(h: string): [number, number, number] {
   const n = parseInt(h.replace('#', ''), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as [number, number, number];
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-function lerp(a: number, b: number, t: number) {
-  return Math.round(a + (b - a) * t);
-}
-function colorAt(minHex: string, maxHex: string, t: number): string {
-  const [r1, g1, b1] = hexToRgb(minHex);
-  const [r2, g2, b2] = hexToRgb(maxHex);
-  return `rgb(${lerp(r1, r2, t)},${lerp(g1, g2, t)},${lerp(b1, b2, t)})`;
+function lerp(a: number, b: number, t: number) { return Math.round(a + (b - a) * t); }
+function colorAt(lo: string, hi: string, t: number) {
+  const [r1, g1, b1] = hexToRgb(lo);
+  const [r2, g2, b2] = hexToRgb(hi);
+  return `rgb(${lerp(r1,r2,t)},${lerp(g1,g2,t)},${lerp(b1,b2,t)})`;
 }
 
 const [noDataColor, minColor, maxColor] = PALETTES[palette];
 const valueMap = new Map(zones.map(z => [String(z.id), z.value]));
 
-function getFill(id: string): string {
+function fill(id: string) {
   const v = valueMap.get(id);
   return v !== undefined ? colorAt(minColor, maxColor, v) : noDataColor;
 }
 
-// ── Pre-render paths at build time ─────────────────────────────────────────
-const countryPaths = (countriesFC.features as any[])
+// ── Pre-render all paths at build time ──────────────────────────────────────
+const paths = (countriesFC.features as any[])
   .map((f: any) => {
     const d = pathGen(f);
     if (!d) return null;
     const id = String(f.id ?? '');
-    return { d, id, fill: getFill(id), active: valueMap.has(id) };
+    return { d, id, fill: fill(id), active: valueMap.has(id) };
   })
   .filter(Boolean) as { d: string; id: string; fill: string; active: boolean }[];
 
-const graticulePath = pathGen(graticuleGen() as any) ?? '';
-const outlinePath = pathGen({ type: 'Sphere' } as any) ?? '';
+const graticulePath = pathGen(gratGen() as any) ?? '';
+const spherePath    = pathGen({ type: 'Sphere' } as any) ?? '';
 
-// ── Project markers ─────────────────────────────────────────────────────────
-const projectedMarkers = markers
+// ── Project markers ──────────────────────────────────────────────────────────
+const projMarkers = markers
   .map(m => {
     const pt = projFn([m.lng, m.lat]);
     if (!pt) return null;
@@ -131,123 +126,219 @@ const projectedMarkers = markers
   })
   .filter(Boolean) as (Marker & { x: number; y: number })[];
 
-// ── Zone label centroids ────────────────────────────────────────────────────
-const zoneLabels = zones
+// ── Zone label centroids ─────────────────────────────────────────────────────
+const labels = zones
   .filter(z => z.label)
   .map(z => {
     const feat = (countriesFC.features as any[]).find((f: any) => String(f.id) === z.id);
     if (!feat) return null;
     const c = pathGen.centroid(feat);
-    if (!c || isNaN(c[0]) || isNaN(c[1])) return null;
-    return { label: z.label!, x: Math.round(c[0]), y: Math.round(c[1]) };
+    if (!c || isNaN(c[0])) return null;
+    return { text: z.label!.toUpperCase(), x: Math.round(c[0]), y: Math.round(c[1]) };
   })
-  .filter(Boolean) as { label: string; x: number; y: number }[];
+  .filter(Boolean) as { text: string; x: number; y: number }[];
 
-// ── Legend swatches ────────────────────────────────────────────────────────
-const STEPS = 5;
-const swatches = Array.from({ length: STEPS }, (_, i) =>
-  colorAt(minColor, maxColor, i / (STEPS - 1))
-);
+// ── Legend geometry (inside SVG, lower-left) ─────────────────────────────────
+const LX = 16, LY = H - 86, LW = 178, LH = 72;
+const RY = LY + 30, RW = LW - 22, RH = 11;
 
-// ── Zone notes (displayed below map) ──────────────────────────────────────
-const zoneNotes = zones.filter(z => z.note);
+// ── Zone notes ───────────────────────────────────────────────────────────────
+const notes = zones.filter(z => z.note);
 ---
 
 <div class="px-map">
   {caption && <div class="px-map__caption">{caption}</div>}
 
-  <div class="px-map__frame">
-    <svg
-      class="px-map__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label={caption ?? 'Geographic map'}
-      role="img"
+  <svg
+    class="px-map__svg"
+    viewBox={`0 0 ${W} ${H}`}
+    xmlns="http://www.w3.org/2000/svg"
+    aria-label={caption ?? 'Geographic region map'}
+    role="img"
+  >
+    <defs>
+      <clipPath id="px-sphere-clip">
+        <path d={spherePath} />
+      </clipPath>
+
+      <!-- Ocean: radial gradient — lighter centre, deeper at the rim -->
+      <radialGradient id="px-ocean" cx="44%" cy="43%" r="62%">
+        <stop offset="0%"   stop-color="#cfe0da" />
+        <stop offset="65%"  stop-color="#b8d0c8" />
+        <stop offset="100%" stop-color="#96b2a8" />
+      </radialGradient>
+
+      <!-- Water ruling — faint horizontal engraving lines across ocean -->
+      <pattern id="px-water-rule" x="0" y="0" width="1" height="5" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="2.5" x2={W} y2="2.5" stroke="#82aaa2" stroke-width="0.32" />
+      </pattern>
+
+      <!-- Legend ramp gradient -->
+      <linearGradient id="px-ramp" x1="0%" x2="100%" y1="0%" y2="0%">
+        <stop offset="0%"   stop-color={minColor} />
+        <stop offset="100%" stop-color={maxColor} />
+      </linearGradient>
+    </defs>
+
+    <!-- ① Ocean fill -->
+    <path d={spherePath} fill="url(#px-ocean)" />
+
+    <!-- ② Water ruling texture -->
+    <path d={spherePath} fill="url(#px-water-rule)" opacity="0.22" clip-path="url(#px-sphere-clip)" />
+
+    <!-- ③ Graticule grid -->
+    <path
+      d={graticulePath}
+      fill="none"
+      stroke="#88b0a6"
+      stroke-width="0.36"
+      opacity="0.55"
+      clip-path="url(#px-sphere-clip)"
+    />
+
+    <!-- ④ Countries — shadow pass (creates depth / raised-land effect) -->
+    <g
+      clip-path="url(#px-sphere-clip)"
+      style="filter: drop-shadow(0px 2px 3.5px rgba(28,20,6,0.30))"
     >
-      <defs>
-        <clipPath id="px-map-sphere">
-          <path d={outlinePath} />
-        </clipPath>
-      </defs>
+      {paths.map(p => <path d={p.d} fill={p.fill} stroke="none" />)}
+    </g>
 
-      <!-- Ocean fill -->
-      <path d={outlinePath} class="px-map__ocean" />
-
-      <!-- Graticule (lat/lng grid) -->
-      <path
-        d={graticulePath}
-        class="px-map__graticule"
-        clip-path="url(#px-map-sphere)"
-      />
-
-      <!-- Country fills -->
-      {countryPaths.map(c => (
+    <!-- ⑤ Countries — main pass with crisp borders -->
+    <g clip-path="url(#px-sphere-clip)">
+      {paths.map(p => (
         <path
-          d={c.d}
-          fill={c.fill}
-          class:list={['px-map__country', c.active && 'px-map__country--active']}
-          clip-path="url(#px-map-sphere)"
+          d={p.d}
+          fill={p.fill}
+          stroke={p.active ? '#7e6c42' : '#b8a882'}
+          stroke-width={p.active ? 0.72 : 0.38}
+          stroke-linejoin="round"
         />
       ))}
+    </g>
 
-      <!-- Sphere outline (border of the world disc) -->
-      <path d={outlinePath} class="px-map__outline" />
+    <!-- ⑥ Sphere outline — globe edge / neat line -->
+    <path d={spherePath} fill="none" stroke="#6e9a8e" stroke-width="1.5" />
 
-      <!-- Zone text labels -->
-      {zoneLabels.map(l => (
-        <text
-          x={l.x}
-          y={l.y}
-          class="px-map__zone-label"
-          text-anchor="middle"
-          dominant-baseline="central"
-        >
-          {l.label}
-        </text>
-      ))}
+    <!-- ⑦ SVG border frame -->
+    <rect
+      x="2" y="2" width={W - 4} height={H - 4}
+      fill="none" stroke="#8aaa9c" stroke-width="0.6" opacity="0.5"
+    />
 
-      <!-- Markers -->
-      {projectedMarkers.map(m => (
-        <g transform={`translate(${m.x},${m.y})`} class={`px-map__marker px-map__marker--${m.kind ?? 'city'}`}>
-          <circle r="5" class="px-map__marker-dot" />
-          <circle r="3" class="px-map__marker-inner" />
+    <!-- ⑧ Zone labels (Cormorant Garamond, white with dark halo) -->
+    {labels.map(l => (
+      <text
+        x={l.x} y={l.y}
+        text-anchor="middle"
+        dominant-baseline="central"
+        style="font-family:'Cormorant Garamond',Georgia,serif;font-size:9px;font-weight:700;letter-spacing:0.12em;"
+        fill="#f4ecd8"
+        paint-order="stroke"
+        stroke="rgba(18,12,2,0.60)"
+        stroke-width="2.8"
+        stroke-linejoin="round"
+      >
+        {l.text}
+      </text>
+    ))}
+
+    <!-- ⑨ Markers -->
+    {projMarkers.map(m => {
+      const accent =
+        m.kind === 'event'      ? '#961a10' :
+        m.kind === 'data-point' ? '#165c34' : '#9a4420';
+      return (
+        <g transform={`translate(${m.x},${m.y})`}>
+          <circle r="6.5" fill="none" stroke={accent} stroke-width="0.9" opacity="0.35" />
+          <circle r="3.5"  fill={accent} stroke="#f4ead0" stroke-width="1.2" />
           {m.label && (
-            <text class="px-map__marker-label" x="8" y="1" dominant-baseline="central">
+            <text
+              x="10" y="0.5"
+              dominant-baseline="central"
+              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8.5px;letter-spacing:0.06em;"
+              fill="#1c2218"
+              paint-order="stroke"
+              stroke="rgba(244,234,208,0.90)"
+              stroke-width="3"
+              stroke-linejoin="round"
+            >
               {m.label}
             </text>
           )}
         </g>
-      ))}
-    </svg>
+      );
+    })}
 
-    <!-- Legend -->
-    {(legend || zones.length > 0) && (
-      <div class="px-map__legend">
-        <span class="px-map__legend-label px-map__legend-label--low">
-          {legend?.low ?? 'Low'}
-        </span>
-        <div class="px-map__legend-ramp">
-          {swatches.map(s => (
-            <span class="px-map__legend-swatch" style={`background:${s}`} />
-          ))}
-        </div>
-        <span class="px-map__legend-label px-map__legend-label--high">
-          {legend?.high ?? 'High'}
-        </span>
+    <!-- ⑩ Cartographic legend box (lower-left, inside SVG) -->
+    {zones.length > 0 && (
+      <>
+        <!-- Background with slight transparency -->
+        <rect
+          x={LX} y={LY} width={LW} height={LH}
+          fill="#f0e9d8" fill-opacity="0.90"
+          rx="2" stroke="#c0af8a" stroke-width="0.75"
+        />
+        <!-- Title -->
+        <text
+          x={LX + 10} y={LY + 17}
+          style="font-family:'Cormorant Garamond',Georgia,serif;font-size:11.5px;font-style:italic;letter-spacing:0.02em;"
+          fill="#3a4530"
+        >
+          {legend?.title ?? 'Relative intensity'}
+        </text>
+        <!-- Rule under title -->
+        <line
+          x1={LX + 10} y1={LY + 22}
+          x2={LX + LW - 10} y2={LY + 22}
+          stroke="#c0af8a" stroke-width="0.5"
+        />
+        <!-- Gradient ramp -->
+        <rect x={LX + 10} y={RY} width={RW} height={RH} fill="url(#px-ramp)" rx="1.5" />
+        <!-- Low label -->
+        <text
+          x={LX + 10} y={RY + RH + 12}
+          style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;letter-spacing:0.10em;"
+          fill="#6a7050"
+        >
+          {(legend?.low ?? 'LOW').toUpperCase()}
+        </text>
+        <!-- High label -->
+        <text
+          x={LX + RW + 10} y={RY + RH + 12}
+          text-anchor="end"
+          style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;letter-spacing:0.10em;"
+          fill="#6a7050"
+        >
+          {(legend?.high ?? 'HIGH').toUpperCase()}
+        </text>
+        <!-- No-data swatch (optional) -->
         {legend?.none && (
-          <span class="px-map__legend-none">
-            <span class="px-map__legend-swatch" style={`background:${noDataColor}`} />
-            {legend.none}
-          </span>
+          <>
+            <rect
+              x={LX + RW + 14} y={RY}
+              width={11} height={RH}
+              fill={noDataColor} rx="1"
+              stroke="#c0af8a" stroke-width="0.5"
+            />
+            <text
+              x={LX + RW + 27} y={RY + 7}
+              dominant-baseline="central"
+              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:7.5px;letter-spacing:0.06em;"
+              fill="#6a7050"
+            >
+              {legend.none.toUpperCase()}
+            </text>
+          </>
         )}
-      </div>
+      </>
     )}
-  </div>
+  </svg>
 
-  <!-- Zone notes below map -->
-  {zoneNotes.length > 0 && (
+  <!-- Zone annotations below map -->
+  {notes.length > 0 && (
     <ul class="px-map__notes">
-      {zoneNotes.map(z => (
+      {notes.map(z => (
         <li class="px-map__note">
           {z.label && <strong class="px-map__note-label">{z.label}</strong>}
           {z.note}

@@ -293,193 +293,69 @@
 }
 
 /* ============================================================================
-   REGION MAP — earth signature component
-   USGS atlas aesthetic: warm paper ocean, faint graticule, forest-green accent
+   REGION MAP v2 — earth signature component
+   No box/background — SVG integrates directly with page. Legend lives inside
+   the SVG as a cartographic element. USGS atlas aesthetic throughout.
    ============================================================================ */
 
 .px-map {
-  margin: 28px 0 12px;
-  font-family: var(--font-body);
-  color: var(--ink);
+  margin: 28px 0 16px;
 }
 
+/* Caption — Cormorant Garamond italic, no box, flows with page */
 .px-map__caption {
   font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-soft);
   font-size: 16px;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rule);
+  line-height: 1.5;
+  margin-bottom: 12px;
 }
 
-.px-map__frame {
-  border: 1px solid var(--rule);
-  background: var(--paper);
-  overflow: hidden;
-  position: relative;
-}
-
-/* SVG — fills its container */
+/* SVG — transparent, fills its container, no background */
 .px-map__svg {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 520px;
+  background: transparent;
 }
 
-/* Ocean — warm atlas blue-grey, slightly cooler than paper */
-.px-map__ocean {
-  fill: #d0ddd8;
-}
-
-/* Graticule grid lines */
-.px-map__graticule {
-  fill: none;
-  stroke: #b8ccc4;
-  stroke-width: 0.35;
-}
-
-/* Country fills — fill is set inline by component */
-.px-map__country {
-  stroke: #c4b99a;    /* warm rule, atlas feel */
-  stroke-width: 0.45;
-  stroke-linejoin: round;
-  transition: opacity 0.2s;
-}
-.px-map__country--active {
-  stroke: #8a7a5a;    /* slightly darker border on highlighted countries */
-  stroke-width: 0.7;
-}
-
-/* Sphere outline */
-.px-map__outline {
-  fill: none;
-  stroke: #8aab9c;
-  stroke-width: 1.2;
-}
-
-/* Zone labels (country names) */
-.px-map__zone-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  fill: var(--paper);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  pointer-events: none;
-  paint-order: stroke;
-  stroke: rgba(0,0,0,0.3);
-  stroke-width: 2px;
-  stroke-linejoin: round;
-}
-
-/* Markers */
-.px-map__marker-dot {
-  fill: #a04922;       /* USGS contour brown */
-  stroke: var(--paper);
-  stroke-width: 1.5;
-}
-.px-map__marker-inner {
-  fill: var(--paper);
-}
-.px-map__marker--event .px-map__marker-dot { fill: #7c2d12; }
-.px-map__marker--data-point .px-map__marker-dot { fill: #2d6a4f; }
-
-.px-map__marker-label {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  fill: var(--ink);
-  letter-spacing: 0.04em;
-  paint-order: stroke;
-  stroke: var(--paper);
-  stroke-width: 2.5px;
-  stroke-linejoin: round;
-}
-
-/* Legend */
-.px-map__legend {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px dashed var(--rule);
-  background: var(--paper);
-}
-.px-map__legend-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.px-map__legend-ramp {
-  display: flex;
-  gap: 2px;
-  flex: 1;
-  max-width: 140px;
-}
-.px-map__legend-swatch {
-  display: inline-block;
-  height: 12px;
-  flex: 1;
-  border-radius: 1px;
-}
-.px-map__legend-none {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-left: 16px;
-  padding-left: 16px;
-  border-left: 1px solid var(--rule);
-}
-.px-map__legend-none .px-map__legend-swatch {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  border: 1px solid var(--rule);
-}
-
-/* Zone notes */
+/* Zone annotations below the SVG */
 .px-map__notes {
   list-style: none;
   padding: 0;
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   border-top: 1px dashed var(--rule);
-  padding-top: 12px;
+  padding-top: 14px;
 }
 .px-map__note {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink-soft);
-  line-height: 1.5;
+  line-height: 1.55;
   max-width: 72ch;
 }
 .px-map__note-label {
+  font-family: var(--font-body);
   font-style: normal;
   font-weight: 600;
-  color: var(--accent);
-  margin-right: 6px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--accent);
+  margin-right: 7px;
 }
 
+/* Source attribution */
 .px-map__source {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--muted);
   letter-spacing: 0.04em;
+  color: var(--muted);
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--rule);
@@ -487,9 +363,6 @@
 
 /* Responsive */
 @media (max-width: 760px) {
-  .px-map__svg { max-height: 280px; }
-  .px-map__zone-label { font-size: 7.5px; }
-  .px-map__marker-label { font-size: 8px; }
-  .px-map__legend { flex-wrap: wrap; gap: 6px; }
-  .px-map__legend-ramp { max-width: 100px; }
+  .px-map__caption { font-size: 15px; }
+  .px-map__note { font-size: 13.5px; }
 }
