@@ -1,0 +1,203 @@
+---
+/*
+  PlayerRadar — spider / radar chart for player or team attributes.
+  SVG, build-time, zero runtime JS.
+
+  Use for: player ratings, team strengths, product feature
+  comparisons, any N-dimensional comparison.
+
+  props:
+    stats[]   — { label: string, value: number, max?: number }
+    player    — player / subject name
+    team      — optional team / context label
+    color     — fill color (default: uses --accent)
+    compare[] — optional second subject for overlay
+      { label: string, stats: { label: string, value: number }[], color?: string }
+    caption
+    source
+*/
+interface Stat  { label: string; value: number; max?: number; }
+interface Subject { label: string; stats: Stat[]; color?: string; }
+interface Props {
+  stats: Stat[];
+  player?: string;
+  team?: string;
+  color?: string;
+  compare?: Subject;
+  caption?: string;
+  source?: string;
+}
+const {
+  stats = [],
+  player,
+  team,
+  color,
+  compare,
+  caption,
+  source,
+} = Astro.props;
+
+const N = stats.length;
+if (N < 3) { /* need at least 3 axes */ }
+
+const W = 400, H = 400;
+const cx = W / 2, cy = H / 2;
+const OUTER_R = 155;  // tip of spokes
+const INNER_RINGS = 4; // concentric grid rings
+
+// Angle for each spoke: start at top, rotate clockwise
+const angleOf = (i: number) => (i / N) * 2 * Math.PI - Math.PI / 2;
+
+// Point on spoke at fraction r (0=center, 1=tip)
+const pt = (i: number, r: number) => {
+  const a = angleOf(i);
+  return {
+    x: cx + r * OUTER_R * Math.cos(a),
+    y: cy + r * OUTER_R * Math.sin(a),
+  };
+};
+
+// Build polygon points for a set of stats
+function polyPoints(s: Stat[]): string {
+  return s.map((stat, i) => {
+    const max = stat.max ?? 100;
+    const frac = Math.max(0, Math.min(1, stat.value / max));
+    const p = pt(i, frac);
+    return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+  }).join(' ');
+}
+
+const mainPoly  = polyPoints(stats);
+const mainColor = color ?? 'var(--accent)';
+
+// Compare overlay
+let compPoly: string | null = null;
+let compColor: string | null = null;
+if (compare && compare.stats.length === N) {
+  compPoly  = polyPoints(compare.stats);
+  compColor = compare.color ?? 'var(--accent-alt,#4dffb0)';
+}
+
+// Label positions (slightly outside the outer ring)
+const LABEL_R = OUTER_R + 20;
+const labelPt = (i: number) => {
+  const a = angleOf(i);
+  return { x: cx + LABEL_R * Math.cos(a), y: cy + LABEL_R * Math.sin(a) };
+};
+
+// Text anchor by angle quadrant
+function anchor(i: number): string {
+  const a = ((angleOf(i) * 180) / Math.PI + 360) % 360;
+  if (a > 350 || a < 10) return 'middle';
+  if (a < 170) return 'start';
+  if (a > 190) return 'end';
+  return 'middle';
+}
+function baseline(i: number): string {
+  const a = ((angleOf(i) * 180) / Math.PI + 360) % 360;
+  if (a > 260 && a < 280) return 'auto';   // bottom
+  if (a > 80  && a < 100) return 'hanging';// top
+  return 'middle';
+}
+---
+
+<div class="px-radar">
+  {caption && <div class="px-radar__caption">{caption}</div>}
+
+  <div class="px-radar__wrap">
+    <svg viewBox={`0 0 ${W} ${H}`} class="px-radar__svg" role="img"
+      aria-label={player ? `Radar chart: ${player}` : 'Radar chart'}>
+
+      <!-- Concentric grid rings -->
+      {Array.from({ length: INNER_RINGS }, (_, ri) => {
+        const r = ((ri + 1) / INNER_RINGS) * OUTER_R;
+        const pts = Array.from({ length: N }, (__, i) => {
+          const p = pt(i, (ri + 1) / INNER_RINGS);
+          return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+        }).join(' ');
+        return (
+          <polygon points={pts}
+            style={`fill:none;stroke:var(--rule);stroke-width:${ri === INNER_RINGS - 1 ? 1 : 0.5};opacity:0.7`} />
+        );
+      })}
+
+      <!-- Spoke lines -->
+      {stats.map((_, i) => {
+        const tip = pt(i, 1);
+        return (
+          <line x1={cx} y1={cy} x2={tip.x.toFixed(2)} y2={tip.y.toFixed(2)}
+            style="stroke:var(--rule);stroke-width:0.7;opacity:0.6" />
+        );
+      })}
+
+      <!-- Compare overlay (drawn first, behind main) -->
+      {compPoly && (
+        <polygon points={compPoly}
+          style={`fill:${compColor};fill-opacity:0.12;stroke:${compColor};stroke-width:1.5;stroke-linejoin:round`} />
+      )}
+
+      <!-- Main polygon -->
+      <polygon points={mainPoly}
+        style={`fill:${mainColor};fill-opacity:0.2;stroke:${mainColor};stroke-width:2;stroke-linejoin:round`} />
+
+      <!-- Stat dots + values on main polygon -->
+      {stats.map((s, i) => {
+        const max  = s.max ?? 100;
+        const frac = Math.max(0, Math.min(1, s.value / max));
+        const p    = pt(i, frac);
+        return (
+          <circle cx={p.x.toFixed(2)} cy={p.y.toFixed(2)} r={3.5}
+            style={`fill:${mainColor};stroke:var(--bg);stroke-width:1.5`} />
+        );
+      })}
+
+      <!-- Axis labels -->
+      {stats.map((s, i) => {
+        const lp = labelPt(i);
+        return (
+          <text
+            x={lp.x.toFixed(2)} y={lp.y.toFixed(2)}
+            text-anchor={anchor(i)}
+            dominant-baseline={baseline(i)}
+            style="font-family:'JetBrains Mono',monospace;font-size:10.5px;fill:var(--ink-soft);letter-spacing:0.04em">
+            {s.label}
+          </text>
+        );
+      })}
+
+      <!-- Center: player name -->
+      {player && (
+        <>
+          <text x={cx} y={cy - 10} text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font-display,'Inter Tight'),sans-serif;font-size:14px;
+                   fill:var(--ink);font-weight:600;letter-spacing:-0.01em">
+            {player}
+          </text>
+          {team && (
+            <text x={cx} y={cy + 8} text-anchor="middle" dominant-baseline="middle"
+              style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--muted);
+                     letter-spacing:0.08em;text-transform:uppercase">
+              {team}
+            </text>
+          )}
+        </>
+      )}
+    </svg>
+  </div>
+
+  <!-- Compare legend -->
+  {compare && (
+    <div class="px-radar__legend">
+      <span class="px-radar__leg-item">
+        <span class="px-radar__leg-swatch" style={`background:${mainColor}`}></span>
+        {player ?? 'Subject A'}
+      </span>
+      <span class="px-radar__leg-item">
+        <span class="px-radar__leg-swatch" style={`background:${compColor}`}></span>
+        {compare.label}
+      </span>
+    </div>
+  )}
+
+  {source && <div class="px-radar__source">{source}</div>}
+</div>

@@ -1,0 +1,177 @@
+---
+/*
+  CarbonGauge — remaining carbon budget arc gauge.
+  SVG, build-time, zero runtime JS.
+
+  Shows how much of a carbon budget has been used and what remains.
+  Arc goes from LEFT (empty/exhausted) to RIGHT (full/remaining),
+  through the top — like a half-speedometer.
+
+  props:
+    remaining        — fraction 0–1 of budget remaining
+    remainingGt      — human-readable label for remaining (e.g. "250 Gt CO₂")
+    usedGt           — human-readable label for used (e.g. "550 Gt CO₂")
+    totalGt          — human-readable total (e.g. "800 Gt CO₂")
+    target           — temperature target label (e.g. "1.5 °C")
+    year             — data year (e.g. "2024")
+    caption
+    source
+*/
+interface Props {
+  remaining: number;
+  remainingGt?: string;
+  usedGt?: string;
+  totalGt?: string;
+  target?: string;
+  year?: string;
+  caption?: string;
+  source?: string;
+}
+const {
+  remaining = 0.31,
+  remainingGt,
+  usedGt,
+  totalGt,
+  target,
+  year,
+  caption,
+  source,
+} = Astro.props;
+
+const W = 480, H = 280;
+const cx = W / 2;        // 240
+const cy = 210;           // arc base sits near bottom
+const R  = 160;           // arc radius
+
+// Full arc: M (cx-R, cy) → (cx+R, cy) through the top
+// Path: "M x0,cy A R,R 0 0,0 x1,cy"  (sweep=0 = counterclockwise = goes UP)
+const x0 = cx - R, x1 = cx + R;
+const trackPath = `M ${x0},${cy} A ${R},${R} 0 0,0 ${x1},${cy}`;
+
+// Needle position (needle = boundary between used and remaining)
+// f=0 → at left end (all used), f=1 → at right end (all remaining)
+// Position at fraction f: x = cx - R*cos(f*π), y = cy - R*sin(f*π)
+const f = Math.max(0, Math.min(1, remaining));
+const nx = cx - R * Math.cos(f * Math.PI);
+const ny = cy - R * Math.sin(f * Math.PI);
+
+// Arc for "remaining" (colored) portion: from needle to right endpoint
+const remSpan = f;   // fraction of arc that is remaining
+const remLarge = remSpan > 0.5 ? 1 : 0;
+const remPath = f > 0.001
+  ? `M ${nx.toFixed(2)},${ny.toFixed(2)} A ${R},${R} 0 ${remLarge},0 ${x1},${cy}`
+  : '';
+
+// Pick color based on remaining fraction
+const gaugeColor = f > 0.5 ? '#2d6a4f' : f > 0.25 ? '#f4a261' : '#e63946';
+const pct = Math.round(f * 100);
+
+// Left label = 0 (empty), Right label = 100% / total
+// Tick marks at 25%, 50%, 75%
+const ticks = [0.25, 0.5, 0.75];
+---
+
+<div class="px-cgauge">
+  {caption && <div class="px-cgauge__caption">{caption}</div>}
+
+  <svg viewBox={`0 0 ${W} ${H}`} class="px-cgauge__svg" role="img"
+    aria-label={`Carbon budget gauge: ${pct}% remaining`}>
+
+    <defs>
+      <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#e63946" />
+        <stop offset="40%"  stop-color="#f4a261" />
+        <stop offset="100%" stop-color="#2d6a4f" />
+      </linearGradient>
+    </defs>
+
+    <!-- Track (depleted = gray) -->
+    <path d={trackPath}
+      style="fill:none;stroke:var(--rule);stroke-width:18;stroke-linecap:butt;opacity:0.8" />
+
+    <!-- Remaining arc (colored) -->
+    {remPath && (
+      <path d={remPath}
+        style={`fill:none;stroke:${gaugeColor};stroke-width:18;stroke-linecap:butt`} />
+    )}
+
+    <!-- Tick marks at 25%, 50%, 75% -->
+    {ticks.map(t => {
+      const tx = cx - R * Math.cos(t * Math.PI);
+      const ty = cy - R * Math.sin(t * Math.PI);
+      const dx = Math.cos(t * Math.PI) * 12;
+      const dy = -Math.sin(t * Math.PI) * 12;
+      return (
+        <line
+          x1={tx - dx * 0.4} y1={ty + dy * 0.4}
+          x2={tx + dx * 0.4} y2={ty - dy * 0.4}
+          style="stroke:var(--bg);stroke-width:2;opacity:0.9"
+        />
+      );
+    })}
+
+    <!-- Needle -->
+    <circle cx={nx.toFixed(2)} cy={ny.toFixed(2)} r={5}
+      style={`fill:${gaugeColor};stroke:var(--bg);stroke-width:2`} />
+
+    <!-- Center readout -->
+    <text x={cx} y={cy - 20} text-anchor="middle"
+      style={`font-family:'Cormorant Garamond','Fraunces',Georgia,serif;font-size:52px;
+              font-weight:600;fill:${gaugeColor};letter-spacing:-0.02em`}>
+      {pct}%
+    </text>
+    <text x={cx} y={cy + 4} text-anchor="middle"
+      style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted);
+             letter-spacing:0.10em;text-transform:uppercase">
+      remaining
+    </text>
+
+    {/* Remaining Gt label above arc */}
+    {remainingGt && (
+      <text x={cx} y={cy - 80} text-anchor="middle"
+        style="font-family:'JetBrains Mono',monospace;font-size:13px;fill:var(--ink-soft);
+               letter-spacing:0.04em">
+        {remainingGt}
+      </text>
+    )}
+
+    <!-- Left end label (exhausted) -->
+    <text x={x0 - 8} y={cy + 22} text-anchor="end"
+      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);
+             letter-spacing:0.06em">
+      USED
+    </text>
+    {usedGt && (
+      <text x={x0 - 8} y={cy + 35} text-anchor="end"
+        style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--muted);
+               letter-spacing:0.04em">
+        {usedGt}
+      </text>
+    )}
+
+    <!-- Right end label (full) -->
+    <text x={x1 + 8} y={cy + 22} text-anchor="start"
+      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);
+             letter-spacing:0.06em">
+      FULL
+    </text>
+    {totalGt && (
+      <text x={x1 + 8} y={cy + 35} text-anchor="start"
+        style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--muted);
+               letter-spacing:0.04em">
+        {totalGt}
+      </text>
+    )}
+
+    <!-- Target + year label -->
+    {(target || year) && (
+      <text x={cx} y={H - 10} text-anchor="middle"
+        style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);
+               letter-spacing:0.08em;text-transform:uppercase">
+        {[target, year].filter(Boolean).join(' · ')}
+      </text>
+    )}
+  </svg>
+
+  {source && <div class="px-cgauge__source">{source}</div>}
+</div>

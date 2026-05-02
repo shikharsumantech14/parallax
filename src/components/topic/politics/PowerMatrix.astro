@@ -1,0 +1,95 @@
+---
+/*
+  PowerMatrix — which party controls which institution.
+  HTML grid, build-time, zero runtime JS.
+
+  Use for: post-election power maps, coalition control
+  breakdowns, committee chair analysis.
+
+  props:
+    institutions[] — string[]
+    parties[]      — { id: string, label: string, color?: string }
+    cells[]        — { institution: string, party: string,
+                       control: 'full' | 'partial' | 'none' | 'contested' }
+    caption
+    source
+*/
+interface Party { id: string; label: string; color?: string; }
+interface Cell {
+  institution: string;
+  party: string;
+  control: 'full' | 'partial' | 'none' | 'contested';
+}
+interface Props {
+  institutions: string[];
+  parties: Party[];
+  cells: Cell[];
+  caption?: string;
+  source?: string;
+}
+const { institutions = [], parties = [], cells = [], caption, source } = Astro.props;
+
+// Build lookup: institution → partyId → control
+const lk: Record<string, Record<string, string>> = {};
+for (const c of cells) {
+  if (!lk[c.institution]) lk[c.institution] = {};
+  lk[c.institution][c.party] = c.control;
+}
+
+const ICON: Record<string, string> = {
+  full:      '●',
+  partial:   '◐',
+  none:      '—',
+  contested: '◆',
+};
+const TIP: Record<string, string> = {
+  full:      'Full control',
+  partial:   'Coalition / partial',
+  none:      'No control',
+  contested: 'Contested',
+};
+---
+
+<div class="px-pwm">
+  {caption && <div class="px-pwm__caption">{caption}</div>}
+
+  <div class="px-pwm__scroll">
+    <table class="px-pwm__table">
+      <thead>
+        <tr>
+          <th class="px-pwm__th px-pwm__th--inst">Institution</th>
+          {parties.map(p => (
+            <th class="px-pwm__th" style={p.color ? `color:${p.color}` : undefined}>
+              {p.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {institutions.map(inst => (
+          <tr class="px-pwm__row">
+            <td class="px-pwm__inst">{inst}</td>
+            {parties.map(p => {
+              const ctrl = (lk[inst]?.[p.id] ?? 'none') as string;
+              return (
+                <td class={`px-pwm__cell px-pwm__cell--${ctrl}`} title={TIP[ctrl]}>
+                  <span class="px-pwm__icon" aria-label={TIP[ctrl]}>{ICON[ctrl]}</span>
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="px-pwm__legend">
+    {(Object.entries(ICON) as [string, string][]).map(([key, icon]) => (
+      <span class={`px-pwm__leg-item px-pwm__leg-item--${key}`}>
+        <span class="px-pwm__leg-icon">{icon}</span>{TIP[key]}
+      </span>
+    ))}
+  </div>
+
+  {source && <div class="px-pwm__source">{source}</div>}
+</div>

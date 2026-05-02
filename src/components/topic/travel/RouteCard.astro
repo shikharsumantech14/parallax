@@ -1,0 +1,117 @@
+---
+/*
+  RouteCard — multi-leg journey itinerary.
+  HTML strip cards, build-time, zero runtime JS.
+
+  Use for: trip itineraries, migration routes, trade routes,
+  logistical supply chains, flight paths.
+
+  props:
+    legs[]   — { from: string, to: string, distance?: string,
+                 duration?: string, mode: string, note?: string }
+    title    — optional journey title
+    caption
+    source
+*/
+const MODE_ICON: Record<string, string> = {
+  flight:   '✈',
+  train:    '🚆',
+  drive:    '🚗',
+  car:      '🚗',
+  walk:     '🚶',
+  ferry:    '⛴',
+  ship:     '🚢',
+  bus:      '🚌',
+  bike:     '🚲',
+  cycle:    '🚲',
+  metro:    '🚇',
+  tuk:      '🛺',
+  cable:    '🚡',
+  road:     '🛣',
+};
+const MODE_LABEL: Record<string, string> = {
+  flight:  'Flight',  train: 'Train', drive: 'Drive', car: 'Drive',
+  walk:    'Walk',    ferry: 'Ferry', ship: 'Ship',   bus: 'Bus',
+  bike:    'Cycle',   cycle: 'Cycle', metro: 'Metro', tuk: 'Tuk-tuk',
+  cable:   'Cable car', road: 'Road',
+};
+
+interface Leg {
+  from: string;
+  to: string;
+  distance?: string;
+  duration?: string;
+  mode: string;
+  note?: string;
+}
+interface Props {
+  legs: Leg[];
+  title?: string;
+  caption?: string;
+  source?: string;
+}
+const { legs = [], title, caption, source } = Astro.props;
+
+// Compute total distance/duration if all provided
+const totalDist = legs.every(l => l.distance)
+  ? legs.map(l => l.distance!).join(' + ')
+  : null;
+---
+
+<div class="px-route">
+  {caption && <div class="px-route__caption">{caption}</div>}
+  {title  && <div class="px-route__title">{title}</div>}
+
+  <div class="px-route__legs">
+    {legs.map((leg, i) => {
+      const icon  = MODE_ICON[leg.mode.toLowerCase()]  ?? '→';
+      const modeL = MODE_LABEL[leg.mode.toLowerCase()] ?? leg.mode;
+      return (
+        <div class="px-route__leg">
+          {/* Connector dot */}
+          <div class="px-route__stop">
+            <span class={`px-route__dot${i === 0 ? ' px-route__dot--first' : ''}`}></span>
+            {i > 0 && <span class="px-route__line"></span>}
+          </div>
+
+          {/* Card */}
+          <div class="px-route__card">
+            <div class="px-route__cities">
+              <span class="px-route__city px-route__city--from">{leg.from}</span>
+              <span class="px-route__arrow" aria-hidden="true">→</span>
+              <span class="px-route__city px-route__city--to">{leg.to}</span>
+            </div>
+            <div class="px-route__meta">
+              <span class="px-route__mode">
+                <span class="px-route__mode-icon" aria-hidden="true">{icon}</span>
+                {modeL}
+              </span>
+              {leg.distance && (
+                <span class="px-route__stat">{leg.distance}</span>
+              )}
+              {leg.duration && (
+                <span class="px-route__stat">{leg.duration}</span>
+              )}
+            </div>
+            {leg.note && (
+              <div class="px-route__note">{leg.note}</div>
+            )}
+          </div>
+        </div>
+      );
+    })}
+
+    {/* Final destination dot */}
+    {legs.length > 0 && (
+      <div class="px-route__leg px-route__leg--end">
+        <div class="px-route__stop">
+          <span class="px-route__line"></span>
+          <span class="px-route__dot px-route__dot--last"></span>
+        </div>
+        <div class="px-route__end-label">{legs[legs.length - 1]?.to}</div>
+      </div>
+    )}
+  </div>
+
+  {source && <div class="px-route__source">{source}</div>}
+</div>

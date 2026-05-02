@@ -1,0 +1,109 @@
+---
+id: "2026-05-03-space-components"
+topic: space
+title: "Space Component *Test*"
+hook: "OrbitTrace and LaunchStats component verification."
+dek: "Two new space signature components."
+publishedAt: 2026-05-03
+status: draft
+tags: [test]
+readTimeMinutes: 1
+
+sections:
+  - kind: orbit-trace
+    eyebrow: "THE ORBITAL DIAGRAM"
+    title: "Key satellite *constellations* by orbit"
+    intro: "Named constellations and missions plotted by altitude and inclination."
+    data:
+      maxAltKm: 42000
+      caption: "Orbital positions by altitude. Scale is approximate — not to scale."
+      source: "Union of Concerned Scientists Satellite Database · ESA, 2024"
+      orbits:
+        - name: "Starlink"
+          altKm: 550
+          inclDeg: 53
+          color: "#00d4ff"
+          satCount: 5500
+          note: "SpaceX megaconstellation. Shell 1 at 550 km, 53° inclination. As of 2024, over 5,500 active satellites — largest constellation in history."
+        - name: "OneWeb"
+          altKm: 1200
+          inclDeg: 87
+          color: "#4dffb0"
+          satCount: 648
+        - name: "GPS Block III"
+          altKm: 20200
+          inclDeg: 55
+          color: "#ffb347"
+          satCount: 31
+          note: "US GPS constellation. MEO at 20,200 km. Six orbital planes, 31 active satellites."
+        - name: "Galileo"
+          altKm: 23222
+          inclDeg: 56
+          color: "#b47dff"
+          satCount: 28
+        - name: "INSAT-3D"
+          altKm: 35786
+          inclDeg: 0
+          color: "#ff6b6b"
+          satCount: 1
+          note: "Geostationary orbit at 35,786 km. Zero inclination — appears stationary from Earth. India's INSAT meteorological satellite."
+
+  - kind: launch-stats
+    eyebrow: "THE LAUNCH RECORD"
+    title: "Orbital launches *per year*, 2018–2024"
+    intro: "Number of orbital launch attempts globally, broken down by country or operator."
+    data:
+      caption: "Orbital launch attempts by country of operator, 2018–2024"
+      source: "Jonathan's Space Report · Gunter's Space Page, 2024"
+      years:
+        - year: 2018
+          bars:
+            - { label: "USA", value: 31, color: "#00d4ff" }
+            - { label: "China", value: 39, color: "#ff6b6b" }
+            - { label: "Russia", value: 17, color: "#b47dff" }
+            - { label: "Other", value: 7, color: "#7a8a92" }
+        - year: 2019
+          bars:
+            - { label: "USA", value: 27, color: "#00d4ff" }
+            - { label: "China", value: 34, color: "#ff6b6b" }
+            - { label: "Russia", value: 25, color: "#b47dff" }
+            - { label: "Other", value: 9, color: "#7a8a92" }
+        - year: 2020
+          bars:
+            - { label: "USA", value: 44, color: "#00d4ff" }
+            - { label: "China", value: 39, color: "#ff6b6b" }
+            - { label: "Russia", value: 17, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2021
+          bars:
+            - { label: "USA", value: 51, color: "#00d4ff" }
+            - { label: "China", value: 55, color: "#ff6b6b" }
+            - { label: "Russia", value: 25, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2022
+          bars:
+            - { label: "USA", value: 87, color: "#00d4ff" }
+            - { label: "China", value: 64, color: "#ff6b6b" }
+            - { label: "Russia", value: 21, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2023
+          bars:
+            - { label: "USA", value: 108, color: "#00d4ff" }
+            - { label: "China", value: 67, color: "#ff6b6b" }
+            - { label: "Russia", value: 19, color: "#b47dff" }
+            - { label: "Other", value: 17, color: "#7a8a92" }
+        - year: 2024
+          bars:
+            - { label: "USA", value: 138, color: "#00d4ff" }
+            - { label: "China", value: 74, color: "#ff6b6b" }
+            - { label: "Russia", value: 18, color: "#b47dff" }
+            - { label: "Other", value: 20, color: "#7a8a92" }
+
+sources:
+  - id: "src-01"
+    title: "Jonathan's Space Report Launch Statistics"
+    publisher: "Jonathan McDowell"
+    url: "https://www.planet4589.org/space/lvdb/index.html"
+    accessedAt: "2026-05-03"
+    kind: primary
+---

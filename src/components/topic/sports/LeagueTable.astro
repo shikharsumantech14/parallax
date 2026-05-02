@@ -1,0 +1,123 @@
+---
+/*
+  LeagueTable — sports standings table with form guide.
+  HTML, build-time, zero runtime JS.
+
+  Use for: football/cricket league standings, tournament
+  points tables, series results.
+
+  props:
+    rows[]       — { pos: number, posChange?: number,
+                     team: string, badge?: string,
+                     played: number, won: number,
+                     drawn?: number, lost: number,
+                     gf?: number, ga?: number,
+                     gd?: number, points: number,
+                     form?: string[],     // 'W' | 'D' | 'L'
+                     highlight?: 'top' | 'promotion' | 'relegation' | 'qualified' }
+    showDrawn    — show Drawn column (default true; set false for cricket)
+    showGoals    — show GF/GA/GD columns (default true)
+    caption
+    source
+*/
+interface TableRow {
+  pos: number;
+  posChange?: number;   // +ve = moved up, -ve = moved down, 0 = same
+  team: string;
+  badge?: string;       // emoji or short text badge
+  played: number;
+  won: number;
+  drawn?: number;
+  lost: number;
+  gf?: number;
+  ga?: number;
+  gd?: number;
+  points: number;
+  form?: string[];      // up to 5 recent results: 'W' | 'D' | 'L'
+  highlight?: 'top' | 'promotion' | 'relegation' | 'qualified';
+}
+interface Props {
+  rows: TableRow[];
+  showDrawn?: boolean;
+  showGoals?: boolean;
+  caption?: string;
+  source?: string;
+}
+const {
+  rows = [],
+  showDrawn = true,
+  showGoals = true,
+  caption,
+  source,
+} = Astro.props;
+
+const posArrow = (n?: number) =>
+  n == null || n === 0 ? '' : n > 0 ? '▲' : '▼';
+const posArrowClass = (n?: number) =>
+  n == null || n === 0 ? '' : n > 0 ? 'px-ltab__arrow--up' : 'px-ltab__arrow--down';
+---
+
+<div class="px-ltab">
+  {caption && <div class="px-ltab__caption">{caption}</div>}
+
+  <div class="px-ltab__scroll">
+    <table class="px-ltab__table">
+      <thead>
+        <tr>
+          <th class="px-ltab__th px-ltab__th--pos">#</th>
+          <th class="px-ltab__th px-ltab__th--team">Club / Team</th>
+          <th class="px-ltab__th px-ltab__th--num" title="Played">P</th>
+          <th class="px-ltab__th px-ltab__th--num" title="Won">W</th>
+          {showDrawn && <th class="px-ltab__th px-ltab__th--num" title="Drawn">D</th>}
+          <th class="px-ltab__th px-ltab__th--num" title="Lost">L</th>
+          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goals For">GF</th>}
+          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goals Against">GA</th>}
+          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goal Difference">GD</th>}
+          <th class="px-ltab__th px-ltab__th--pts" title="Points">Pts</th>
+          <th class="px-ltab__th px-ltab__th--form">Form</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(r => (
+          <tr class={`px-ltab__row${r.highlight ? ' px-ltab__row--' + r.highlight : ''}`}>
+            <td class="px-ltab__pos">
+              {r.pos}
+              {r.posChange !== undefined && r.posChange !== 0 && (
+                <span class={`px-ltab__arrow ${posArrowClass(r.posChange)}`}
+                  aria-label={r.posChange > 0 ? 'Moved up' : 'Moved down'}>
+                  {posArrow(r.posChange)}
+                </span>
+              )}
+            </td>
+            <td class="px-ltab__team">
+              {r.badge && <span class="px-ltab__badge">{r.badge}</span>}
+              {r.team}
+            </td>
+            <td class="px-ltab__num">{r.played}</td>
+            <td class="px-ltab__num px-ltab__num--won">{r.won}</td>
+            {showDrawn && <td class="px-ltab__num">{r.drawn ?? '—'}</td>}
+            <td class="px-ltab__num px-ltab__num--lost">{r.lost}</td>
+            {showGoals && <td class="px-ltab__num">{r.gf ?? '—'}</td>}
+            {showGoals && <td class="px-ltab__num">{r.ga ?? '—'}</td>}
+            {showGoals && (
+              <td class={`px-ltab__num px-ltab__num--gd${(r.gd ?? 0) > 0 ? ' px-ltab__num--pos' : (r.gd ?? 0) < 0 ? ' px-ltab__num--neg' : ''}`}>
+                {r.gd != null ? (r.gd > 0 ? '+' : '') + r.gd : '—'}
+              </td>
+            )}
+            <td class="px-ltab__pts">{r.points}</td>
+            <td class="px-ltab__form">
+              {(r.form ?? []).slice(-5).map(result => (
+                <span class={`px-ltab__form-pip px-ltab__form-pip--${result.toLowerCase()}`}
+                  aria-label={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}>
+                  {result}
+                </span>
+              ))}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {source && <div class="px-ltab__source">{source}</div>}
+</div>

@@ -13,14 +13,29 @@ import VoteResult from './topic/politics/VoteResult.astro';
 import SeatChart from './topic/politics/SeatChart.astro';
 import Paradox from './topic/politics/Paradox.astro';
 import BrothersAnalogy from './topic/politics/BrothersAnalogy.astro';
+import ApprovalChart from './topic/politics/ApprovalChart.astro';
+import PowerMatrix from './topic/politics/PowerMatrix.astro';
 
 import OrbitalShells from './topic/space/OrbitalShells.astro';
+import OrbitTrace from './topic/space/OrbitTrace.astro';
+import LaunchStats from './topic/space/LaunchStats.astro';
+
 import CommitGrid from './topic/tech/CommitGrid.astro';
+import BenchmarkChart from './topic/tech/BenchmarkChart.astro';
+import AdoptionCurve from './topic/tech/AdoptionCurve.astro';
+
 import JourneyMap from './topic/travel/JourneyMap.astro';
+import RouteCard from './topic/travel/RouteCard.astro';
+import CityCompare from './topic/travel/CityCompare.astro';
+
 import MatchStatLine from './topic/sports/MatchStatLine.astro';
+import LeagueTable from './topic/sports/LeagueTable.astro';
+import PlayerRadar from './topic/sports/PlayerRadar.astro';
+
 import ElevationProfile from './topic/earth/ElevationProfile.astro';
 import RegionMap from './topic/earth/RegionMap.astro';
 import ClimateStrip from './topic/earth/ClimateStrip.astro';
+import CarbonGauge from './topic/earth/CarbonGauge.astro';
 
 interface Props {
   section: Section;
@@ -160,6 +175,121 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
         zones={data.zones ?? []}
         markers={data.markers ?? []}
         legend={data.legend}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'carbon-gauge' && (
+      <CarbonGauge
+        remaining={data.remaining ?? 0.31}
+        remainingGt={data.remainingGt}
+        usedGt={data.usedGt}
+        totalGt={data.totalGt}
+        target={data.target}
+        year={data.year}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'approval-chart' && (
+      <ApprovalChart
+        points={data.points ?? []}
+        subject={data.subject}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'power-matrix' && (
+      <PowerMatrix
+        institutions={data.institutions ?? []}
+        parties={data.parties ?? []}
+        cells={data.cells ?? []}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'orbit-trace' && (
+      <OrbitTrace
+        orbits={data.orbits ?? []}
+        earthRadiusPx={data.earthRadiusPx}
+        maxAltKm={data.maxAltKm}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'launch-stats' && (
+      <LaunchStats
+        years={data.years ?? []}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'benchmark-chart' && (
+      <BenchmarkChart
+        items={data.items ?? []}
+        maxValue={data.maxValue}
+        unit={data.unit}
+        refValue={data.refValue}
+        refLabel={data.refLabel}
+        sortDesc={data.sortDesc}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'adoption-curve' && (
+      <AdoptionCurve
+        points={data.points ?? []}
+        milestones={data.milestones ?? []}
+        xLabel={data.xLabel}
+        yLabel={data.yLabel}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'route-card' && (
+      <RouteCard
+        legs={data.legs ?? []}
+        title={data.title}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'city-compare' && (
+      <CityCompare
+        cityA={data.cityA ?? { name: 'City A' }}
+        cityB={data.cityB ?? { name: 'City B' }}
+        rows={data.rows ?? []}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'league-table' && (
+      <LeagueTable
+        rows={data.rows ?? []}
+        showDrawn={data.showDrawn}
+        showGoals={data.showGoals}
+        caption={data.caption}
+        source={data.source}
+      />
+    )}
+
+    {section.kind === 'player-radar' && (
+      <PlayerRadar
+        stats={data.stats ?? []}
+        player={data.player}
+        team={data.team}
+        color={data.color}
+        compare={data.compare}
         caption={data.caption}
         source={data.source}
       />

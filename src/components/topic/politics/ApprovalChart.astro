@@ -1,0 +1,104 @@
+---
+/*
+  ApprovalChart — approval vs disapproval time-series.
+  SVG area chart, build-time, zero runtime JS.
+
+  props:
+    points[]  — { date: string, approve: number, disapprove: number }
+    subject   — who / what is being tracked (e.g. "PM Modi")
+    caption   — italic caption above chart
+    source    — mono attribution below
+*/
+interface DataPoint { date: string; approve: number; disapprove: number; }
+interface Props {
+  points: DataPoint[];
+  subject?: string;
+  caption?: string;
+  source?: string;
+}
+const { points = [], subject, caption, source } = Astro.props;
+
+const W = 760, H = 240;
+const PAD = { top: 30, right: 24, bottom: 36, left: 44 };
+const cW = W - PAD.left - PAD.right;
+const cH = H - PAD.top - PAD.bottom;
+const n = points.length;
+const yBot = PAD.top + cH;
+
+const xOf = (i: number) =>
+  PAD.left + (n > 1 ? i / (n - 1) : 0.5) * cW;
+const yOf = (v: number) =>
+  PAD.top + cH - (Math.max(0, Math.min(100, v)) / 100) * cH;
+
+function areaPath(vals: number[]): string {
+  if (vals.length < 2) return '';
+  const pts = vals.map((v, i) => `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(' L ');
+  return `M ${pts} L ${xOf(vals.length - 1).toFixed(1)},${yBot} L ${xOf(0).toFixed(1)},${yBot} Z`;
+}
+function linePath(vals: number[]): string {
+  return vals.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ');
+}
+
+const aVals = points.map(p => p.approve);
+const dVals = points.map(p => p.disapprove);
+const yTicks = [0, 25, 50, 75, 100];
+const xShow = n > 0
+  ? [...new Set([0, Math.round((n - 1) / 2), n - 1])]
+  : [];
+const last = points[n - 1];
+---
+
+<div class="px-appr">
+  {caption && <div class="px-appr__caption">{caption}</div>}
+  {subject && <div class="px-appr__subject">{subject}</div>}
+
+  <svg viewBox={`0 0 ${W} ${H}`} class="px-appr__svg" role="img"
+    aria-label={subject ? `Approval chart: ${subject}` : 'Approval chart'}>
+
+    <!-- Y gridlines + labels -->
+    {yTicks.map(t => (
+      <>
+        <line x1={PAD.left} x2={PAD.left + cW} y1={yOf(t)} y2={yOf(t)}
+          style={t === 50
+            ? 'stroke:var(--accent);stroke-width:0.8;stroke-dasharray:5 4;opacity:0.45'
+            : 'stroke:var(--rule);stroke-width:0.5;opacity:0.7'} />
+        <text x={PAD.left - 6} y={yOf(t)} text-anchor="end" dominant-baseline="middle"
+          style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.04em">
+          {t}%
+        </text>
+      </>
+    ))}
+
+    <!-- Areas (semi-transparent fill under lines) -->
+    <path d={areaPath(aVals)} style="fill:var(--accent-alt);fill-opacity:0.14" />
+    <path d={areaPath(dVals)} style="fill:var(--accent);fill-opacity:0.14" />
+
+    <!-- Lines -->
+    <path d={linePath(aVals)}
+      style="fill:none;stroke:var(--accent-alt);stroke-width:2;stroke-linejoin:round;stroke-linecap:round" />
+    <path d={linePath(dVals)}
+      style="fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round" />
+
+    <!-- X axis labels -->
+    {xShow.map(i => (
+      <text x={xOf(i)} y={H - 6} text-anchor="middle"
+        style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.04em">
+        {points[i]?.date ?? ''}
+      </text>
+    ))}
+
+    <!-- Legend -->
+    <rect x={PAD.left} y={9} width={9} height={9} rx={1} style="fill:var(--accent-alt)" />
+    <text x={PAD.left + 13} y={17}
+      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--ink-soft)">
+      {`Approve${last ? '  ' + last.approve + '%' : ''}`}
+    </text>
+    <rect x={PAD.left + 145} y={9} width={9} height={9} rx={1} style="fill:var(--accent)" />
+    <text x={PAD.left + 158} y={17}
+      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--ink-soft)">
+      {`Disapprove${last ? '  ' + last.disapprove + '%' : ''}`}
+    </text>
+  </svg>
+
+  {source && <div class="px-appr__source">{source}</div>}
+</div>

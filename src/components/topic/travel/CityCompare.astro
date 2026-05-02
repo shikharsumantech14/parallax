@@ -1,0 +1,75 @@
+---
+/*
+  CityCompare — side-by-side city comparison table.
+  HTML, build-time, zero runtime JS.
+
+  Use for: cost-of-living, travel planning, demographic
+  comparisons, infrastructure snapshots.
+
+  props:
+    cityA      — { name: string, flag?: string, subtitle?: string }
+    cityB      — { name: string, flag?: string, subtitle?: string }
+    rows[]     — { label: string, a: string, b: string,
+                   winner?: 'a' | 'b' | 'tie', note?: string }
+    caption
+    source
+*/
+interface City  { name: string; flag?: string; subtitle?: string; }
+interface Row   { label: string; a: string; b: string; winner?: 'a' | 'b' | 'tie'; note?: string; }
+interface Props {
+  cityA: City;
+  cityB: City;
+  rows: Row[];
+  caption?: string;
+  source?: string;
+}
+const { cityA, cityB, rows = [], caption, source } = Astro.props;
+---
+
+<div class="px-ccomp">
+  {caption && <div class="px-ccomp__caption">{caption}</div>}
+
+  <div class="px-ccomp__scroll">
+    <table class="px-ccomp__table">
+      <thead>
+        <tr class="px-ccomp__header-row">
+          <th class="px-ccomp__th px-ccomp__th--label"></th>
+          <th class="px-ccomp__th px-ccomp__th--city px-ccomp__th--a">
+            {cityA.flag && <span class="px-ccomp__flag">{cityA.flag}</span>}
+            <span class="px-ccomp__city-name">{cityA.name}</span>
+            {cityA.subtitle && <span class="px-ccomp__city-sub">{cityA.subtitle}</span>}
+          </th>
+          <th class="px-ccomp__th px-ccomp__th--city px-ccomp__th--b">
+            {cityB.flag && <span class="px-ccomp__flag">{cityB.flag}</span>}
+            <span class="px-ccomp__city-name">{cityB.name}</span>
+            {cityB.subtitle && <span class="px-ccomp__city-sub">{cityB.subtitle}</span>}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(row => (
+          <>
+            <tr class="px-ccomp__row">
+              <td class="px-ccomp__label">{row.label}</td>
+              <td class={`px-ccomp__val px-ccomp__val--a${row.winner === 'a' ? ' px-ccomp__val--winner' : ''}`}>
+                {row.a}
+                {row.winner === 'a' && <span class="px-ccomp__win-dot" aria-label="better">●</span>}
+              </td>
+              <td class={`px-ccomp__val px-ccomp__val--b${row.winner === 'b' ? ' px-ccomp__val--winner' : ''}`}>
+                {row.b}
+                {row.winner === 'b' && <span class="px-ccomp__win-dot" aria-label="better">●</span>}
+              </td>
+            </tr>
+            {row.note && (
+              <tr class="px-ccomp__note-row">
+                <td colspan={3} class="px-ccomp__note">{row.note}</td>
+              </tr>
+            )}
+          </>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {source && <div class="px-ccomp__source">{source}</div>}
+</div>

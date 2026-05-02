@@ -23,7 +23,18 @@ export const SECTION_KINDS = [
   'match-stat-line',       // sports signature
   'elevation-profile',     // earth signature
   'region-map',            // earth signature — choropleth world map
-  'climate-strip'          // earth signature — warming stripes time-series
+  'climate-strip',         // earth signature — warming stripes time-series
+  'carbon-gauge',          // earth signature — remaining carbon budget arc
+  'approval-chart',        // politics signature — approval/disapproval time series
+  'power-matrix',          // politics signature — institution × party control grid
+  'orbit-trace',           // space signature — named satellite orbits diagram
+  'launch-stats',          // space signature — annual launch count bar chart
+  'benchmark-chart',       // tech signature — horizontal performance comparison bars
+  'adoption-curve',        // tech signature — S-curve technology diffusion
+  'route-card',            // travel signature — multi-leg journey itinerary
+  'city-compare',          // travel signature — two-city comparison table
+  'league-table',          // sports signature — standings with form guide
+  'player-radar'           // sports signature — spider chart for player stats
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;

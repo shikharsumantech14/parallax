@@ -274,3 +274,126 @@
   .px-journey__place { font-size: 18px; }
   .px-journey__meta { flex-wrap: wrap; gap: 10px; }
 }
+
+/* ============================================================================
+   ROUTE CARD — travel signature component
+   Multi-leg journey itinerary strip.
+   ============================================================================ */
+.px-route { margin: 28px 0 16px; }
+.px-route__caption {
+  font-family: var(--font-display); font-style: italic; color: var(--ink-soft);
+  font-size: 16px; line-height: 1.5; margin-bottom: 10px;
+}
+.px-route__title {
+  font-family: var(--font-display); font-weight: 600; font-size: 20px;
+  color: var(--ink); margin-bottom: 16px; letter-spacing: -0.01em;
+}
+.px-route__legs { display: flex; flex-direction: column; }
+.px-route__leg {
+  display: grid; grid-template-columns: 28px 1fr; gap: 0 16px;
+  align-items: stretch;
+}
+.px-route__leg--end { align-items: flex-start; }
+.px-route__stop {
+  display: flex; flex-direction: column; align-items: center;
+}
+.px-route__dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  background: var(--rule); border: 2px solid var(--accent);
+  margin-top: 18px;
+}
+.px-route__dot--first { background: var(--accent); }
+.px-route__dot--last  { background: var(--accent); margin-top: 4px; }
+.px-route__line {
+  width: 2px; flex: 1; background: var(--rule); min-height: 16px;
+}
+.px-route__card {
+  background: var(--paper); border: 1px solid var(--rule);
+  border-radius: 4px; padding: 14px 18px; margin-bottom: 10px;
+}
+.px-route__cities {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.px-route__city {
+  font-family: var(--font-display); font-weight: 600; font-size: 18px;
+  color: var(--ink); letter-spacing: -0.01em;
+}
+.px-route__arrow {
+  font-size: 14px; color: var(--muted);
+}
+.px-route__meta {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.px-route__mode {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 5px;
+}
+.px-route__mode-icon { font-size: 14px; }
+.px-route__stat {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em;
+  color: var(--muted); border-left: 1px solid var(--rule); padding-left: 14px;
+}
+.px-route__note {
+  font-family: var(--font-display); font-style: italic; font-size: 14px;
+  color: var(--ink-soft); margin-top: 8px; line-height: 1.5;
+}
+.px-route__end-label {
+  font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  color: var(--ink); padding: 6px 0;
+}
+.px-route__source {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ============================================================================
+   CITY COMPARE — travel signature component
+   Two-column comparison table for cities.
+   ============================================================================ */
+.px-ccomp { margin: 28px 0 16px; }
+.px-ccomp__caption {
+  font-family: var(--font-display); font-style: italic; color: var(--ink-soft);
+  font-size: 16px; line-height: 1.5; margin-bottom: 14px;
+}
+.px-ccomp__scroll { overflow-x: auto; }
+.px-ccomp__table { border-collapse: collapse; width: 100%; min-width: 400px; }
+.px-ccomp__header-row { border-bottom: 2px solid var(--rule); }
+.px-ccomp__th {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--muted); padding: 10px 16px;
+  text-align: center; white-space: nowrap;
+}
+.px-ccomp__th--label { text-align: left; padding-left: 0; min-width: 120px; }
+.px-ccomp__th--city { vertical-align: bottom; }
+.px-ccomp__flag { font-size: 20px; display: block; margin-bottom: 4px; }
+.px-ccomp__city-name {
+  font-family: var(--font-display); font-weight: 600; font-size: 17px;
+  color: var(--ink); display: block; letter-spacing: -0.01em;
+}
+.px-ccomp__city-sub {
+  font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-top: 2px;
+}
+.px-ccomp__row { border-bottom: 1px solid var(--rule); }
+.px-ccomp__row:hover { background: var(--paper-2,var(--paper)); }
+.px-ccomp__label {
+  font-family: var(--font-body); font-size: 13px; color: var(--muted);
+  padding: 12px 16px 12px 0; letter-spacing: 0.01em;
+}
+.px-ccomp__val {
+  font-family: var(--font-display); font-size: 15px; color: var(--ink);
+  padding: 12px 16px; text-align: center; font-weight: 500;
+}
+.px-ccomp__val--winner { color: var(--accent); }
+.px-ccomp__win-dot { margin-left: 4px; font-size: 10px; color: var(--accent); }
+.px-ccomp__note-row { background: transparent; }
+.px-ccomp__note {
+  font-family: var(--font-display); font-style: italic; font-size: 13px;
+  color: var(--muted); padding: 4px 0 10px; line-height: 1.5;
+}
+.px-ccomp__source {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}

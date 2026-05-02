@@ -1,0 +1,129 @@
+---
+/*
+  LaunchStats — annual orbital launch count by operator/country.
+  SVG grouped/stacked bar chart, build-time, zero runtime JS.
+
+  props:
+    years[]  — { year: number, bars: { label: string, value: number, color?: string }[] }
+    caption
+    source
+*/
+interface Bar { label: string; value: number; color?: string; }
+interface YearData { year: number; bars: Bar[]; }
+interface Props {
+  years: YearData[];
+  caption?: string;
+  source?: string;
+}
+const { years = [], caption, source } = Astro.props;
+
+const W = 760, H = 300;
+const PAD = { top: 30, right: 24, bottom: 44, left: 44 };
+const cW = W - PAD.left - PAD.right;
+const cH = H - PAD.top - PAD.bottom;
+
+// Collect all unique labels for legend + colors
+const allLabels = [...new Set(years.flatMap(y => y.bars.map(b => b.label)))];
+const DEFAULT_COLORS = [
+  '#00d4ff', '#ffb347', '#b47dff', '#ff6b6b',
+  '#4dffb0', '#fff47a', '#ff9ecd', '#80d8ff',
+];
+const colorMap: Record<string, string> = {};
+allLabels.forEach((lbl, i) => {
+  // find the first bar with this label that has a color
+  const found = years.flatMap(y => y.bars).find(b => b.label === lbl && b.color);
+  colorMap[lbl] = found?.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+});
+
+// Max stacked value for Y scale
+const maxVal = Math.max(...years.map(y => y.bars.reduce((s, b) => s + b.value, 0)), 1);
+
+// Round up to nearest 10 for clean Y axis
+const yMax = Math.ceil(maxVal / 10) * 10;
+
+const yOf = (v: number) => PAD.top + cH - (v / yMax) * cH;
+const yTicks = Array.from({ length: 5 }, (_, i) => Math.round((i / 4) * yMax));
+
+// Bar width + group layout
+const groupW = cW / years.length;
+const barW = Math.max(8, groupW * 0.55);
+const groupGap = (groupW - barW) / 2;
+
+interface StackedBar { label: string; value: number; color: string; y: number; h: number; }
+interface GroupData { year: number; x: number; stacks: StackedBar[]; total: number; }
+
+const groups: GroupData[] = years.map((yd, gi) => {
+  const gx = PAD.left + gi * groupW + groupGap;
+  let bottom = PAD.top + cH;
+  const stacks: StackedBar[] = [];
+  for (const b of [...yd.bars].reverse()) {
+    const h = (b.value / yMax) * cH;
+    stacks.unshift({
+      label: b.label,
+      value: b.value,
+      color: colorMap[b.label] ?? '#aaa',
+      y: bottom - h,
+      h,
+    });
+    bottom -= h;
+  }
+  return { year: yd.year, x: gx, stacks, total: yd.bars.reduce((s, b) => s + b.value, 0) };
+});
+---
+
+<div class="px-launch">
+  {caption && <div class="px-launch__caption">{caption}</div>}
+
+  <!-- Legend -->
+  <div class="px-launch__legend">
+    {allLabels.map(lbl => (
+      <span class="px-launch__leg-item">
+        <span class="px-launch__leg-dot" style={`background:${colorMap[lbl]}`}></span>
+        {lbl}
+      </span>
+    ))}
+  </div>
+
+  <svg viewBox={`0 0 ${W} ${H}`} class="px-launch__svg" role="img" aria-label="Launch statistics chart">
+
+    <!-- Y gridlines + labels -->
+    {yTicks.map(t => (
+      <>
+        <line x1={PAD.left} x2={PAD.left + cW} y1={yOf(t)} y2={yOf(t)}
+          style="stroke:var(--rule);stroke-width:0.5;opacity:0.5" />
+        <text x={PAD.left - 6} y={yOf(t)} text-anchor="end" dominant-baseline="middle"
+          style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.03em">
+          {t}
+        </text>
+      </>
+    ))}
+
+    <!-- Bars -->
+    {groups.map(g => (
+      <>
+        {g.stacks.map(s => (
+          <rect x={g.x} y={s.y} width={barW} height={Math.max(0, s.h)}
+            style={`fill:${s.color}`}
+            title={`${g.year} · ${s.label}: ${s.value}`}>
+          </rect>
+        ))}
+        {/* Total label above bar */}
+        <text x={g.x + barW / 2} y={g.stacks[0]?.y - 4} text-anchor="middle"
+          style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--ink-soft);letter-spacing:0.04em">
+          {g.total}
+        </text>
+        {/* Year label below */}
+        <text x={g.x + barW / 2} y={H - 6} text-anchor="middle"
+          style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.04em">
+          {g.year}
+        </text>
+      </>
+    ))}
+
+    <!-- Baseline -->
+    <line x1={PAD.left} x2={PAD.left + cW} y1={PAD.top + cH} y2={PAD.top + cH}
+      style="stroke:var(--rule);stroke-width:1" />
+  </svg>
+
+  {source && <div class="px-launch__source">{source}</div>}
+</div>

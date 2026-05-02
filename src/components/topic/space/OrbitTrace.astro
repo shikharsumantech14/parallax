@@ -1,0 +1,204 @@
+---
+/*
+  OrbitTrace — Earth diagram with named satellite orbits drawn as rings.
+  SVG, build-time, zero runtime JS.
+
+  Different from OrbitalShells (density table by altitude band):
+  OrbitTrace draws specific named constellations / missions as
+  distinct labelled ellipses tilted by orbital inclination.
+
+  props:
+    orbits[]   — { name: string, altKm: number, inclDeg?: number,
+                   color?: string, satCount?: number, note?: string }
+    earthRadiusPx — visual radius of Earth circle (default 44)
+    maxAltKm      — scale ceiling in km (default 42000)
+    caption
+    source
+*/
+interface Orbit {
+  name: string;
+  altKm: number;
+  inclDeg?: number;   // orbital inclination in degrees
+  color?: string;
+  satCount?: number;
+  note?: string;
+}
+interface Props {
+  orbits?: Orbit[];
+  earthRadiusPx?: number;
+  maxAltKm?: number;
+  caption?: string;
+  source?: string;
+}
+
+const {
+  orbits = [],
+  earthRadiusPx = 44,
+  maxAltKm = 42000,
+  caption,
+  source,
+} = Astro.props;
+
+const W = 580, H = 580;
+const cx = W / 2, cy = H / 2;
+const ER = earthRadiusPx;
+const MAX_R = Math.min(cx, cy) - 28; // max orbital ring radius in px
+
+// Map altitude to screen radius using sqrt scale (better visual spread)
+// sqrt(alt/maxAlt) gives good separation even for low-alt vs high-alt
+function altToR(alt: number): number {
+  return ER + Math.sqrt(alt / maxAltKm) * (MAX_R - ER);
+}
+
+// Default colors for orbits if not specified
+const DEFAULT_COLORS = [
+  '#00d4ff', '#ffb347', '#b47dff', '#ff6b6b',
+  '#4dffb0', '#ff9ecd', '#fff47a', '#80d8ff',
+];
+
+const sorted = [...orbits].sort((a, b) => a.altKm - b.altKm);
+
+// Compute ellipse dimensions from inclination
+// Projected view: circle tilted at inclDeg appears as ellipse
+// rx = orbital radius (unchanged), ry = rx * cos(inclination)
+interface OrbitData {
+  name: string;
+  altKm: number;
+  inclDeg: number;
+  color: string;
+  satCount?: number;
+  note?: string;
+  rx: number;
+  ry: number;
+}
+
+const orbitData: OrbitData[] = sorted.map((o, i) => {
+  const incl = o.inclDeg ?? 0;
+  const rx = altToR(o.altKm);
+  const ry = rx * Math.max(0.25, Math.cos((incl * Math.PI) / 180));
+  return {
+    ...o,
+    inclDeg: incl,
+    color: o.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length],
+    rx,
+    ry,
+  };
+});
+
+// Alternating rotation offsets so labels don't stack
+const ROTATE_OFFSETS = [0, 15, -10, 25, -20, 10, -15, 30];
+---
+
+<div class="px-ortrace">
+  {caption && <div class="px-ortrace__caption">{caption}</div>}
+
+  <div class="px-ortrace__wrap">
+    <svg viewBox={`0 0 ${W} ${H}`} class="px-ortrace__svg"
+      role="img" aria-label="Orbital diagram">
+
+      <defs>
+        <!-- Earth gradient -->
+        <radialGradient id="earthGrad" cx="42%" cy="38%" r="58%">
+          <stop offset="0%"   stop-color="#3b82f6" stop-opacity="1" />
+          <stop offset="55%"  stop-color="#1d4ed8" stop-opacity="1" />
+          <stop offset="100%" stop-color="#0f172a" stop-opacity="1" />
+        </radialGradient>
+        <!-- Atmosphere glow -->
+        <radialGradient id="atmGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="80%"  stop-color="#60a5fa" stop-opacity="0" />
+          <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.35" />
+        </radialGradient>
+      </defs>
+
+      <!-- Deep-space bg dots (static seed pattern) -->
+      {Array.from({ length: 60 }, (_, k) => {
+        const px = ((k * 137 + 23) % W);
+        const py = ((k * 97  + 41) % H);
+        const inEarth = Math.hypot(px - cx, py - cy) < ER + 10;
+        return !inEarth && (
+          <circle cx={px} cy={py} r={(k % 3 === 0 ? 1.2 : 0.7)}
+            style="fill:var(--ink-soft);opacity:0.25" />
+        );
+      })}
+
+      <!-- Orbital ellipses (back to front by altitude) -->
+      {orbitData.map((o, i) => {
+        const rot = ROTATE_OFFSETS[i % ROTATE_OFFSETS.length];
+        return (
+          <g transform={`rotate(${rot}, ${cx}, ${cy})`}>
+            <ellipse
+              cx={cx} cy={cy} rx={o.rx} ry={o.ry}
+              style={`fill:none;stroke:${o.color};stroke-width:1.2;opacity:0.55`}
+            />
+            {/* Satellite dot at right ansa of ellipse */}
+            <circle
+              cx={cx + o.rx} cy={cy}
+              r={3.5}
+              style={`fill:${o.color}`}
+            />
+          </g>
+        );
+      })}
+
+      <!-- Earth atmosphere glow -->
+      <circle cx={cx} cy={cy} r={ER + 9}
+        style="fill:url(#atmGrad)" />
+
+      <!-- Earth body -->
+      <circle cx={cx} cy={cy} r={ER}
+        style="fill:url(#earthGrad)" />
+
+      <!-- Earth label -->
+      <text x={cx} y={cy + 5} text-anchor="middle" dominant-baseline="middle"
+        style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:#e8eef7;
+               letter-spacing:0.12em;text-transform:uppercase;opacity:0.8">
+        EARTH
+      </text>
+
+      <!-- Orbit labels: fixed right column at ~78% of viewBox width -->
+      {orbitData.map((o, i) => {
+        // Fixed column — keeps all labels aligned, prevents clipping
+        const LABEL_COL = W * 0.76;   // x start of label column
+        const rowH = 26;
+        const totalH = orbitData.length * rowH;
+        const labelY = cy - totalH / 2 + i * rowH + rowH / 2;
+        const clampedY = Math.max(20, Math.min(H - 20, labelY));
+        // Connector from orbit's right ansa to label column
+        const ansaX = cx + o.rx;
+        return (
+          <g>
+            <line
+              x1={Math.min(ansaX, LABEL_COL - 6)} y1={cy}
+              x2={LABEL_COL - 4} y2={clampedY}
+              style={`stroke:${o.color};stroke-width:0.6;opacity:0.45;stroke-dasharray:3 3`}
+            />
+            <text x={LABEL_COL} y={clampedY - 5}
+              style={`font-family:'JetBrains Mono',monospace;font-size:10px;fill:${o.color};
+                      letter-spacing:0.05em;font-weight:600`}>
+              {o.name}
+            </text>
+            <text x={LABEL_COL} y={clampedY + 7}
+              style="font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--muted);
+                     letter-spacing:0.04em">
+              {o.altKm.toLocaleString()} km{o.inclDeg ? ` · ${o.inclDeg}°` : ''}{o.satCount ? ` · ×${o.satCount}` : ''}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  </div>
+
+  {/* Notes below */}
+  {orbits.some(o => o.note) && (
+    <ul class="px-ortrace__notes">
+      {orbits.filter(o => o.note).map(o => (
+        <li class="px-ortrace__note">
+          <span class="px-ortrace__note-label">{o.name}</span>
+          {o.note}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  {source && <div class="px-ortrace__source">{source}</div>}
+</div>
