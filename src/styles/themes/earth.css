@@ -370,13 +370,15 @@
 /* ============================================================================
    CLIMATE STRIP — earth signature component
    Ed Hawkins warming-stripes aesthetic. Bars sit flush to page — no box.
+   NOTE: prefix is px-cstrip (not px-strip) to avoid collision with the
+   TopicStrip navigation component in meta.css which owns .px-strip.
    ============================================================================ */
 
-.px-strip {
+.px-cstrip {
   margin: 28px 0 16px;
 }
 
-.px-strip__caption {
+.px-cstrip__caption {
   font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-soft);
@@ -386,17 +388,17 @@
 }
 
 /* Year labels above the bars */
-.px-strip__stage {
+.px-cstrip__stage {
   position: relative;
 }
 
-.px-strip__years {
+.px-cstrip__years {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5px;
 }
 
-.px-strip__year {
+.px-cstrip__year {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.10em;
@@ -404,7 +406,7 @@
 }
 
 /* The bars — flexbox row, no gaps, full width */
-.px-strip__bars {
+.px-cstrip__bars {
   display: flex;
   width: 100%;
   height: 160px;
@@ -412,7 +414,7 @@
   overflow: hidden;
 }
 
-.px-strip__bar {
+.px-cstrip__bar {
   flex: 1;
   height: 100%;
   min-width: 1px;
@@ -420,17 +422,17 @@
 }
 
 /* Legend below the bars */
-.px-strip__legend {
+.px-cstrip__legend {
   margin-top: 14px;
 }
 
-.px-strip__legend-row {
+.px-cstrip__legend-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.px-strip__legend-val {
+.px-cstrip__legend-val {
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.06em;
@@ -438,14 +440,14 @@
   white-space: nowrap;
 }
 
-.px-strip__legend-ramp {
+.px-cstrip__legend-ramp {
   flex: 1;
   height: 10px;
   border-radius: 2px;
   max-width: 280px;
 }
 
-.px-strip__baseline {
+.px-cstrip__baseline {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 13px;
@@ -454,7 +456,7 @@
   letter-spacing: 0.01em;
 }
 
-.px-strip__source {
+.px-cstrip__source {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -466,7 +468,7 @@
 
 /* Responsive — taller on small screens so bars stay readable */
 @media (max-width: 760px) {
-  .px-strip__bars { height: 100px; }
-  .px-strip__legend-ramp { max-width: 160px; }
-  .px-strip__caption { font-size: 15px; }
+  .px-cstrip__bars { height: 100px; }
+  .px-cstrip__legend-ramp { max-width: 160px; }
+  .px-cstrip__caption { font-size: 15px; }
 }

@@ -142,23 +142,23 @@ const fmtVal = (v: number) =>
   `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
 ---
 
-<div class="px-strip">
-  {caption && <div class="px-strip__caption">{caption}</div>}
+<div class="px-cstrip">
+  {caption && <div class="px-cstrip__caption">{caption}</div>}
 
-  <div class="px-strip__stage">
+  <div class="px-cstrip__stage">
     <!-- Year bookend labels -->
     {showYears && (
-      <div class="px-strip__years">
-        <span class="px-strip__year">{firstYear}</span>
-        <span class="px-strip__year">{lastYear}</span>
+      <div class="px-cstrip__years">
+        <span class="px-cstrip__year">{firstYear}</span>
+        <span class="px-cstrip__year">{lastYear}</span>
       </div>
     )}
 
     <!-- The stripes themselves -->
-    <div class="px-strip__bars" aria-label={`Climate strip: ${firstYear}–${lastYear}`}>
+    <div class="px-cstrip__bars" aria-label={`Climate strip: ${firstYear}–${lastYear}`}>
       {bars.map(b => (
         <div
-          class="px-strip__bar"
+          class="px-cstrip__bar"
           style={`background:${b.color}`}
           title={`${b.year}: ${fmtVal(b.value)}`}
           aria-label={`${b.year}: ${fmtVal(b.value)}`}
@@ -169,23 +169,23 @@ const fmtVal = (v: number) =>
 
   <!-- Legend + baseline -->
   {showLegend && (
-    <div class="px-strip__legend">
-      <div class="px-strip__legend-row">
-        <span class="px-strip__legend-val px-strip__legend-val--lo">
+    <div class="px-cstrip__legend">
+      <div class="px-cstrip__legend-row">
+        <span class="px-cstrip__legend-val px-cstrip__legend-val--lo">
           {fmtVal(minVal)}
         </span>
-        <div class="px-strip__legend-ramp" style={`background:${rampGradient}`} aria-hidden="true" />
-        <span class="px-strip__legend-val px-strip__legend-val--hi">
+        <div class="px-cstrip__legend-ramp" style={`background:${rampGradient}`} aria-hidden="true" />
+        <span class="px-cstrip__legend-val px-cstrip__legend-val--hi">
           {fmtVal(maxVal)}
         </span>
       </div>
       {baseline && (
-        <div class="px-strip__baseline">
+        <div class="px-cstrip__baseline">
           Baseline: {baseline}
         </div>
       )}
     </div>
   )}
 
-  {source && <div class="px-strip__source">{source}</div>}
+  {source && <div class="px-cstrip__source">{source}</div>}
 </div>
