@@ -243,6 +243,15 @@ site, RSS-syndicated). Nothing publishes without manual flip.
 discovery and verifier-first-pass can use cheap models; drafting always
 uses Sonnet (high-craft step).
 
+**API-direct pipeline CLI (`scripts/`)** is the preferred way to run all
+four phases. It calls the same agents via the Claude Agent SDK, billing to
+`ANTHROPIC_API_KEY` (your own key) instead of the Claude Pro token budget.
+Each full pipeline run costs roughly $4–12 on Sonnet; the draft phase costs
+$3–8 more on Opus. Running agents through Claude Pro would consume 2–4 hours
+of the 5-hour usage-limit window instead. Full operator guide:
+[`scripts/README.md`](../scripts/README.md). Model assignments:
+`scripts/pipeline.config.ts`.
+
 **Phase status (as of 2026-05-03):**
 - ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
 - ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
@@ -736,13 +745,23 @@ SVG conventions expanded: `overflow: visible` + wrapper padding pattern for
 label-bleeding diagrams; fixed-column label pattern for orbit/ring diagrams;
 CSS class prefix isolation rule documented.
 
-**Next session queue.**
+**API-direct pipeline CLI (shipped 2026-05-03).**
 
-1. Run full pipeline for all 6 categories (discover → research → draft →
-   verify → publish). Editor picks candidates at the discover→research gate.
-   Target: **1 published issue per category** by end of next session.
-2. Add WebFetch domain permissions for new research sources (separate task).
-3. `git init` on any new tooling (queued, separate task).
+`npm run pipeline:<phase> <category>` — bills to `ANTHROPIC_API_KEY`, not Pro.
+Smoke-tested: `pipeline:discover earth` ran 5m 9s, cost $1.23, produced a
+valid 7-candidate file. Operator guide: `scripts/README.md`.
+
+**Active pipeline queue (earth started).**
+
+- earth: discovery ✅ (`research/earth/2026-05-03-candidates.md` — pick a candidate)
+- tech, travel, sports, politics, space: all at Phase 0 (run discover next)
+- After each discover: editor picks 1 candidate → research → draft → verify → publish
+- Target: **1 published issue per category**
+
+**Deferred.**
+
+1. Add WebFetch domain permissions for new research sources (separate task).
+2. `git init` on any new tooling (queued, separate task).
 
 **Still deferred.**
 
@@ -791,6 +810,43 @@ CSS class prefix isolation rule documented.
 ---
 
 ## 12. Change log
+
+### 2026-05-03 — API-direct pipeline CLI built and smoke-tested
+
+**What.** Replaced `/pipeline-<phase>` slash commands with `npm run pipeline:<phase> <category>` scripts that bill to `ANTHROPIC_API_KEY` instead of the Claude Pro token budget.
+
+**Files added / modified:**
+
+| File | Change |
+|---|---|
+| `scripts/pipeline.ts` | CLI entry point — validates args, force-loads `.env.local`, runs agent, prints cost + duration |
+| `scripts/pipeline.config.ts` | Model assignments: Sonnet for discovery/researcher/verifier, Opus for drafter |
+| `scripts/lib/agent-loader.ts` | Parses `.claude/agents/<name>.md` YAML frontmatter |
+| `scripts/lib/runner.ts` | Claude Agent SDK wrapper — streams tool calls, captures `total_cost_usd` |
+| `scripts/lib/prompts.ts` | Prompt builders with resolved file paths per phase |
+| `scripts/README.md` | Operator guide — workflow, cost table, troubleshooting |
+| `package.json` | Added 5 pipeline scripts + `@anthropic-ai/claude-agent-sdk`, `dotenv`, `tsx` deps |
+| `.env.example` | Added template with placeholder key and setup instructions |
+| `.gitignore` | `scripts/_*.md` rule for scratch notes |
+
+**Key engineering notes:**
+- `loadEnvLocal()` manually reads `.env.local` with `readFileSync` and
+  force-sets `process.env[key]` — required because Claude Code injects its
+  own `ANTHROPIC_API_KEY` session token, which `--env-file` and `dotenv.config()`
+  both refuse to override.
+- `dotenv@17` is actually dotenvx (rebranded); `config()` loaded 0 variables.
+  Avoided entirely.
+- JSDoc `*/` inside a `/** */` block closes the comment (e.g. the path
+  `issues/*/index.mdx` must be written as `issues/<slug>/index.mdx` in a JSDoc).
+
+**Smoke test:** `npm run pipeline:discover earth` — 5m 9s, $1.23, wrote
+`research/earth/2026-05-03-candidates.md` with 7 valid candidates. Earth
+discovery is the first step of the active pipeline run.
+
+**Cost comparison:** Full 6-category run (all 4 phases) ≈ $26–70 API vs.
+2–4 hours of Pro 5-hour usage window. ~98% of token cost moves off Pro.
+
+---
 
 ### 2026-05-03 — 11 new signature components across all 6 categories
 
