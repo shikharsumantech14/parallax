@@ -119,23 +119,44 @@
 [data-topic="earth"] .px-topic-list__title em { color: var(--accent); }
 
 /* --- Cross-topic component re-skins ----------------------------------- */
+/* Base layout for these components lives in base.css (topic-agnostic).  */
+/* These rules only override colours, fonts, and earth-specific flourishes. */
+
 [data-topic="earth"] .px-prose__lead { color: var(--ink); font-family: var(--font-display); font-weight: 500; }
-[data-topic="earth"] .px-prose__p { color: var(--ink); }
+[data-topic="earth"] .px-prose__p { color: var(--ink-soft); }
 [data-topic="earth"] .px-prose__p strong { color: var(--accent); }
 [data-topic="earth"] .px-prose__p em { color: var(--accent); }
 
+[data-topic="earth"] .px-compare { border-color: var(--rule); }
 [data-topic="earth"] .px-compare__head { border-bottom-color: var(--rule); }
-[data-topic="earth"] .px-compare__side { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
-[data-topic="earth"] .px-compare__side-label { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="earth"] .px-compare__col-head { background: color-mix(in srgb, var(--bg) 60%, var(--paper)); border-right-color: var(--rule); }
+[data-topic="earth"] .px-compare__col-label { color: var(--accent); }
+[data-topic="earth"] .px-compare__col-title { color: var(--ink); font-family: var(--font-display); }
+[data-topic="earth"] .px-compare__col-kicker { color: var(--muted); }
+[data-topic="earth"] .px-compare__col-tag { color: var(--accent); border-color: var(--accent); }
 [data-topic="earth"] .px-compare__row { border-bottom-color: var(--rule); }
+[data-topic="earth"] .px-compare__row-label { color: var(--muted); background: color-mix(in srgb, var(--bg) 60%, var(--paper)); border-right-color: var(--rule); }
+[data-topic="earth"] .px-compare__cell { color: var(--ink); font-family: var(--font-display); border-right-color: var(--rule); }
+[data-topic="earth"] .px-compare__cell strong { color: var(--ink); }
+[data-topic="earth"] .px-compare__cell em { color: var(--accent); }
+[data-topic="earth"] .px-compare__source { color: var(--muted); border-top-color: var(--rule); }
 
+[data-topic="earth"] .px-readout { border-color: var(--rule); }
+[data-topic="earth"] .px-readout__caption { color: var(--accent); border-bottom-color: var(--rule); }
 [data-topic="earth"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
-[data-topic="earth"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
+[data-topic="earth"] .px-readout__tile[data-emphasis="key"] { border-left: 3px solid var(--accent); }
+[data-topic="earth"] .px-readout__tile[data-emphasis="warn"] { border-left: 3px solid var(--accent-alt, #c85a3c); }
 [data-topic="earth"] .px-readout__num { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
-[data-topic="earth"] .px-readout__unit { color: var(--accent); }
+[data-topic="earth"] .px-readout__tile[data-emphasis="key"] .px-readout__num { color: var(--accent); }
+[data-topic="earth"] .px-readout__unit { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="earth"] .px-readout__label { color: var(--ink-soft); }
+[data-topic="earth"] .px-readout__note { color: var(--muted); }
+[data-topic="earth"] .px-readout__source { color: var(--muted); border-top-color: var(--rule); }
 
 [data-topic="earth"] .px-paradox__side { background: var(--paper); border-color: var(--rule); }
-[data-topic="earth"] .px-paradox__side-title { color: var(--ink); font-family: var(--font-display); }
+[data-topic="earth"] .px-paradox__label { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="earth"] .px-paradox__statement { color: var(--ink); font-family: var(--font-display); }
+[data-topic="earth"] .px-paradox__detail { color: var(--ink-soft); }
 
 /* TIMELINE — survey log feel */
 [data-topic="earth"] .px-timeline { display: grid; grid-template-columns: 110px 40px 1fr; gap: 0; }
