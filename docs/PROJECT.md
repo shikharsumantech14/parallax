@@ -243,18 +243,54 @@ site, RSS-syndicated). Nothing publishes without manual flip.
 discovery and verifier-first-pass can use cheap models; drafting always
 uses Sonnet (high-craft step).
 
-**Phase status (as of 2026-05-02):**
+**Phase status (as of 2026-05-03):**
 - ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
 - ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
 - ✅ Phase 3: drafter agent (`drafter.md`) + `/pipeline-draft` command
 - ✅ Phase 4: verifier agent (`verifier.md`) + `/pipeline-verify` command ★ brand-protection step ★
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
-- ⏳ Phase 6: roll out beyond politics (space, earth, tech, travel, sports)
+- ⏳ Phase 6: first issue per category — component infrastructure complete (2026-05-03); pipeline
+  runs queued for next session. Editor picks candidates, then discover → research → draft →
+  verify → publish for politics, space, earth, tech, travel, sports.
 
-**Component expansion plan (started 2026-05-03):**
-- ✅ `region-map` — Earth choropleth world map (build-time d3-geo SVG)
-- ⏳ `climate-strip` — Earth warming stripes (Ed Hawkins style)
-- ⏳ `orbit-trace` — Space elliptical orbit paths around Earth
+**Component expansion plan (completed batch 1 on 2026-05-03):**
+
+Politics (2 components):
+- ✅ `approval-chart` — dual-area presidential/PM approval time series with configurable series
+- ✅ `power-matrix` — institution × party control grid (●=full / ◐=partial / —=none / ◆=contested)
+
+Space (2 components):
+- ✅ `orbit-trace` — tilted orbital ellipses around Earth; sqrt altitude scale; fixed right-column
+  labels with dashed connector lines; inclination renders as ellipse compression
+- ✅ `launch-stats` — stacked launch-count bar chart by year, coloured by agency/series
+
+Earth (3 components):
+- ✅ `region-map` — build-time choropleth world map (d3-geo + Natural Earth 50m, two-pass shadow
+  render, SVG cartographic legend, ocean ruling texture)
+- ✅ `carbon-gauge` — semicircular remaining-carbon-budget arc gauge; needle + colour-coded
+  remaining arc (green→amber→red)
+- ✅ `climate-strip` — Ed Hawkins warming stripes (**CSS class prefix: `px-cstrip`**, not
+  `px-strip` — the latter is owned by the TopicStrip nav in `meta.css`)
+
+Tech (2 components):
+- ✅ `benchmark-chart` — horizontal bar benchmark comparison with highlight row + optional
+  reference line
+- ✅ `adoption-curve` — technology S-curve (Rogers' diffusion model) with milestone markers;
+  bounds-aware label anchoring
+
+Travel (2 components):
+- ✅ `route-card` — multi-leg journey itinerary with transport-mode emoji icons, connector
+  dot-and-line, total km + duration summary
+- ✅ `city-compare` — side-by-side city comparison table with winner-dot highlights and
+  optional per-row notes
+
+Sports (2 components):
+- ✅ `league-table` — standings table with form pills (W/D/L), position-change arrows,
+  promotion/relegation/qualified zone highlighting
+- ✅ `player-radar` — hexagonal radar/spider web for player attributes; overflow:visible
+  to allow axis labels to bleed outside SVG viewBox
+
+Deferred:
 - ⏳ `dependency-graph` — Tech node/edge SVG
 - ⏳ `constituency-map` — Politics India state-level choropleth
 - ⏳ Carousel dual-mode architecture (web + Instagram 1080×1350 PNG export)
@@ -304,6 +340,18 @@ Dispatched by `SectionRenderer.astro` based on `section.kind`:
 | `match-stat-line` | `topic/sports/MatchStatLine.astro` (scoreline + horizontal stat bars) |
 | `elevation-profile` | `topic/earth/ElevationProfile.astro` (stacked depth/altitude bands) |
 | `region-map`        | `topic/earth/RegionMap.astro` (build-time choropleth world map, d3-geo + Natural Earth 50m) |
+| `carbon-gauge`      | `topic/earth/CarbonGauge.astro` (semicircular remaining-budget arc gauge) |
+| `climate-strip`     | `topic/earth/ClimateStrip.astro` (Ed Hawkins warming stripes — CSS prefix `px-cstrip`) |
+| `approval-chart`    | `topic/politics/ApprovalChart.astro` (dual-area approval time series) |
+| `power-matrix`      | `topic/politics/PowerMatrix.astro` (institution × party control grid) |
+| `orbit-trace`       | `topic/space/OrbitTrace.astro` (named orbital ellipses around Earth, sqrt scale) |
+| `launch-stats`      | `topic/space/LaunchStats.astro` (stacked launch-count bars by year + agency) |
+| `benchmark-chart`   | `topic/tech/BenchmarkChart.astro` (horizontal bar benchmarks with highlight + reference line) |
+| `adoption-curve`    | `topic/tech/AdoptionCurve.astro` (S-curve diffusion chart with milestone markers) |
+| `route-card`        | `topic/travel/RouteCard.astro` (multi-leg itinerary with transport icons) |
+| `city-compare`      | `topic/travel/CityCompare.astro` (side-by-side city comparison table) |
+| `league-table`      | `topic/sports/LeagueTable.astro` (standings with form pills + zone highlights) |
+| `player-radar`      | `topic/sports/PlayerRadar.astro` (hexagonal attribute radar/spider chart) |
 
 ### 4.3 Authoring a new issue
 
@@ -357,30 +405,49 @@ src/
 │   │   │   ├── VoteResult.astro
 │   │   │   ├── SeatChart.astro
 │   │   │   ├── Paradox.astro
-│   │   │   └── BrothersAnalogy.astro
+│   │   │   ├── BrothersAnalogy.astro
+│   │   │   ├── ApprovalChart.astro  # dual-area approval time series
+│   │   │   └── PowerMatrix.astro    # institution × party control grid
 │   │   ├── space/
 │   │   │   ├── SpaceIndex.astro     # mission-control topic index page
-│   │   │   └── OrbitalShells.astro
+│   │   │   ├── OrbitalShells.astro
+│   │   │   ├── OrbitTrace.astro     # named tilted orbital ellipses
+│   │   │   └── LaunchStats.astro    # stacked launch-count bar chart
 │   │   ├── earth/
 │   │   │   ├── EarthIndex.astro     # atlas-sheet topic index page
-│   │   │   └── ElevationProfile.astro
+│   │   │   ├── ElevationProfile.astro
+│   │   │   ├── RegionMap.astro      # build-time d3-geo choropleth
+│   │   │   ├── ClimateStrip.astro   # Ed Hawkins warming stripes (px-cstrip)
+│   │   │   └── CarbonGauge.astro    # semicircular remaining-budget arc
 │   │   ├── tech/
 │   │   │   ├── TechIndex.astro      # git-changelog topic index page
-│   │   │   └── CommitGrid.astro
+│   │   │   ├── CommitGrid.astro
+│   │   │   ├── BenchmarkChart.astro # horizontal benchmark bars + highlight
+│   │   │   └── AdoptionCurve.astro  # S-curve diffusion with milestones
 │   │   ├── travel/
 │   │   │   ├── TravelIndex.astro    # postcard-rack topic index page
-│   │   │   └── JourneyMap.astro
+│   │   │   ├── JourneyMap.astro
+│   │   │   ├── RouteCard.astro      # multi-leg itinerary with mode icons
+│   │   │   └── CityCompare.astro    # side-by-side city comparison table
 │   │   └── sports/
 │   │       ├── SportsIndex.astro    # matchday-programme topic index page
-│   │       └── MatchStatLine.astro
+│   │       ├── MatchStatLine.astro
+│   │       ├── LeagueTable.astro    # standings with form pills + zones
+│   │       └── PlayerRadar.astro    # hexagonal attribute radar chart
 │   └── SectionRenderer.astro
 ├── content/
 │   ├── config.ts            # Zod schema + TOPICS/SECTION_KINDS exports
 │   └── issues/
 │       ├── _template/index.mdx
-│       ├── 2026-04-24-delimitation/index.mdx
-│       ├── 2026-04-24-kessler-cascade/index.mdx
-│       └── 2026-05-02-transgender-ratchet/index.mdx
+│       ├── 2026-04-24-delimitation/index.mdx        # published
+│       ├── 2026-04-24-kessler-cascade/index.mdx     # published
+│       ├── 2026-05-02-transgender-ratchet/index.mdx # published
+│       ├── 2026-05-03-earth-map-test/index.mdx      # draft — component test fixture
+│       ├── 2026-05-03-politics-components/index.mdx # draft — component test fixture
+│       ├── 2026-05-03-space-components/index.mdx    # draft — component test fixture
+│       ├── 2026-05-03-tech-components/index.mdx     # draft — component test fixture
+│       ├── 2026-05-03-travel-components/index.mdx   # draft — component test fixture
+│       └── 2026-05-03-sports-components/index.mdx   # draft — component test fixture
 ├── styles/
 │   ├── base.css             # Layer A — topic-agnostic rhythm
 │   ├── meta.css             # Meta brand tokens + home/topic-index styles
@@ -463,6 +530,28 @@ them without discussion.
   - **Ocean depth** — `<radialGradient>` lighter at the centre, darker
     at the rim. Add a `<pattern>` water-ruling overlay at 15-22% opacity
     for the engraving texture.
+  - **overflow:visible for label-heavy diagrams** — SVGs where axis labels,
+    spoke labels, or other annotations must bleed outside the viewBox (radar
+    charts, orbit diagrams, adoption-curve milestones) should set
+    `overflow: visible` on the `.px-<component>__svg` class in the theme
+    CSS, plus add horizontal padding on the wrapper div
+    (`.px-<component>__wrap { padding: 0 56px }`) to create the bleed space
+    without clipping. Never enlarge the viewBox coordinate space to
+    compensate — it wastes layout space.
+  - **Fixed-column label pattern** — for diagrams with many labelled rings
+    or bands at varying radii (e.g. OrbitTrace), place all labels in a fixed
+    right column at `LABEL_COL = W * 0.76` with dashed connector lines from
+    each data point to its label. Prevents stacking, clipping, and visual
+    noise. Clamp label Y positions to `[20, H-20]` with
+    `Math.max(20, Math.min(H-20, labelY))`.
+  - **CSS class prefix isolation** — each component must own a unique CSS
+    class prefix. Check `meta.css` for conflicts before choosing. The
+    `ClimateStrip` component uses `px-cstrip` (not `px-strip`) because
+    `.px-strip` is already owned by the `TopicStrip` navigation component in
+    `meta.css` with `display:flex`. Using the wrong prefix silently corrupts
+    layout. Convention: `px-<abbrev>` where `abbrev` is ≤6 chars and
+    unambiguous (e.g. `cstrip`, `cgauge`, `ortrace`, `launch`, `bench`,
+    `scurve`, `route`, `ccomp`, `ltab`, `radar`, `appr`, `pwm`).
 - **Brand vs. legal name split.** Public brand is **Parallax**; registered
   trademark and legal entity is **Parallax Lens**. The longer name is used
   *only* where SEO and trademark records expect it: `<title>` tags, meta
@@ -523,14 +612,22 @@ vote charts, etc.). Other themes get component styles in Phase 2.
 
 ## 8. Routes generated
 
-Total: 11 static routes + 1 RSS endpoint.
+Total: 17 static routes + 1 RSS endpoint (as of 2026-05-03 build).
+3 published issues (appear in home archive + RSS); 6 draft test fixtures
+(built but not listed in archive or RSS — component verification only).
 
 ```
-/                                    (home)
+/                                              (home)
 /about/
-/issues/2026-04-24-delimitation/
-/issues/2026-04-24-kessler-cascade/
-/issues/2026-05-02-transgender-ratchet/
+/issues/2026-04-24-delimitation/               published
+/issues/2026-04-24-kessler-cascade/            published
+/issues/2026-05-02-transgender-ratchet/        published
+/issues/2026-05-03-earth-map-test/             draft — earth component tests
+/issues/2026-05-03-politics-components/        draft — politics component tests
+/issues/2026-05-03-space-components/           draft — space component tests
+/issues/2026-05-03-tech-components/            draft — tech component tests
+/issues/2026-05-03-travel-components/          draft — travel component tests
+/issues/2026-05-03-sports-components/          draft — sports component tests
 /topics/politics/
 /topics/space/
 /topics/earth/
@@ -619,14 +716,43 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
   re-skins, plus topic-index hero with topic-signature backdrop motif
 - All cross-topic components now render correctly under any theme
 
+**Phase 2.6 — Component library expansion (2026-05-03).**
+
+11 new signature section kinds built, wired, and visually verified:
+
+- `approval-chart`, `power-matrix` (politics)
+- `orbit-trace`, `launch-stats` (space)
+- `carbon-gauge`, `climate-strip` (earth — climate-strip class renamed
+  `px-cstrip` to fix collision with TopicStrip nav in `meta.css`)
+- `benchmark-chart`, `adoption-curve` (tech)
+- `route-card`, `city-compare` (travel)
+- `league-table`, `player-radar` (sports)
+
+Each category now has 3+ signature section kinds available. Six draft test
+fixture issues in `src/content/issues/2026-05-03-*` verified all components
+render correctly at build time and visually.
+
+SVG conventions expanded: `overflow: visible` + wrapper padding pattern for
+label-bleeding diagrams; fixed-column label pattern for orbit/ring diagrams;
+CSS class prefix isolation rule documented.
+
+**Next session queue.**
+
+1. Run full pipeline for all 6 categories (discover → research → draft →
+   verify → publish). Editor picks candidates at the discover→research gate.
+   Target: **1 published issue per category** by end of next session.
+2. Add WebFetch domain permissions for new research sources (separate task).
+3. `git init` on any new tooling (queued, separate task).
+
 **Still deferred.**
 
-- More issues in non-politics topics
+- More issues (will be addressed next session — see next session queue above)
 - CSS motion signatures (scroll reveals, micro-interactions)
 - About-page redesign
 - OG image template
 - Email / analytics / pipeline
 - Sitemap (after investigating the earlier build error)
+- `dependency-graph` and `constituency-map` components (deferred from component batch 1)
 
 ---
 
@@ -665,6 +791,61 @@ holding five distinct aesthetic worlds — not achieved by the scaffold.
 ---
 
 ## 12. Change log
+
+### 2026-05-03 — 11 new signature components across all 6 categories
+
+**What.** Component library expanded to full coverage — every category now
+has 3+ signature section kinds for visual storytelling.
+
+**New section kinds (registered in `config.ts` + wired in `SectionRenderer.astro`):**
+
+| Kind | Component | Category |
+|---|---|---|
+| `approval-chart` | `topic/politics/ApprovalChart.astro` | politics |
+| `power-matrix` | `topic/politics/PowerMatrix.astro` | politics |
+| `orbit-trace` | `topic/space/OrbitTrace.astro` | space |
+| `launch-stats` | `topic/space/LaunchStats.astro` | space |
+| `carbon-gauge` | `topic/earth/CarbonGauge.astro` | earth |
+| `benchmark-chart` | `topic/tech/BenchmarkChart.astro` | tech |
+| `adoption-curve` | `topic/tech/AdoptionCurve.astro` | tech |
+| `route-card` | `topic/travel/RouteCard.astro` | travel |
+| `city-compare` | `topic/travel/CityCompare.astro` | travel |
+| `league-table` | `topic/sports/LeagueTable.astro` | sports |
+| `player-radar` | `topic/sports/PlayerRadar.astro` | sports |
+
+**CSS added:** `.px-appr*` + `.px-pwm*` in `politics.css`; `.px-ortrace*` +
+`.px-launch*` in `space.css`; `.px-cgauge*` in `earth.css`; `.px-bench*` +
+`.px-scurve*` in `tech.css`; `.px-route*` + `.px-ccomp*` in `travel.css`;
+`.px-ltab*` + `.px-radar*` in `sports.css`.
+
+**Bugs fixed during verification:**
+- `CityCompare` build error — `Expected ")" but found "{"` because two
+  sibling `<tr>` elements in `.map()` lacked a `<>...</>` Fragment wrapper.
+- `PlayerRadar` label clipping — "Big matches", "Strike Rate" were cut off.
+  Fixed: added `overflow: visible` to `.px-radar__svg` + `padding: 0 56px`
+  to `.px-radar__wrap` in `sports.css`.
+- `OrbitTrace` label clipping — GEO orbit labels extended beyond 580px
+  viewBox. Fixed: redesigned to a fixed right column at `W * 0.76` with
+  dashed connector lines from each orbit's right ansa.
+
+**Test fixtures:** 6 draft issues at `src/content/issues/2026-05-03-*/`
+verified all 11 components + the earlier `region-map` and `climate-strip`
+components. Build: 17 pages / 3.25 s, 0 errors.
+
+**SVG conventions expanded** — overflow:visible+padding pattern, fixed-column
+label pattern, and CSS prefix isolation rule all documented in §6.
+
+### 2026-05-03 — ClimateStrip CSS class collision fixed
+
+**What.** `ClimateStrip.astro` was using CSS class prefix `.px-strip` which
+is also used by the `TopicStrip` navigation component in `meta.css`
+(`display:flex`). This caused the climate bars to render in a broken
+3-column flex layout instead of the intended stacked year rows.
+
+**Fix.** All `px-strip*` class names in `ClimateStrip.astro` and in the
+`earth.css` climate-strip section renamed to `px-cstrip*`. The note is
+now codified in §6 (CSS class prefix isolation) and in the component
+expansion plan so future components avoid the same collision.
 
 ### 2026-05-03 — region-map component (Earth) — v1 + v2 redesign
 
