@@ -81,6 +81,46 @@ Working directory: ${process.cwd().replace(/\\/g, '/')}
 Return: file path written, issue title + hook, section count + read time estimate, any [UNVERIFIED] items omitted or flagged, any section kind substitutions made.`;
 }
 
+/**
+ * Find the most recent issue directory for a given topic, regardless of status.
+ * Returns the slug (directory name), or null if none found.
+ */
+export function findIssueByTopic(cwd: string, topic: string): string | null {
+  const issuesDir = join(cwd, 'src', 'content', 'issues');
+  try {
+    const slugs = readdirSync(issuesDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && !e.name.startsWith('_'))
+      .map(e => e.name)
+      .sort()
+      .reverse(); // most recent date prefix first
+
+    for (const slug of slugs) {
+      try {
+        const content = readFileSync(join(issuesDir, slug, 'index.mdx'), 'utf-8');
+        const hasTopicMatch = new RegExp(`^\\s*topic:\\s*${topic}\\s*$`, 'm').test(content);
+        if (hasTopicMatch) return slug;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildStylePrompt(category: string, issueSlug: string): string {
+  return `Style this Parallax issue with rhetorical modes from the mode library.
+
+Issue: \`src/content/issues/${issueSlug}/index.mdx\`
+Mode library: \`research/_voice/mode-library.md\`
+Working directory: ${process.cwd().replace(/\\/g, '/')}
+
+Follow all rules in your agent definition exactly. Edit the issue file in-place — do not write a new file.
+
+Return: mode assignment table (slot · kind · eyebrow · mode · rationale · fields rewritten), mode blend line, count of fields rewritten vs. retained.`;
+}
+
 export function buildVerifyPrompt(
   category: string,
   draftSlug: string,

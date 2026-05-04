@@ -19,6 +19,7 @@ export interface PipelineConfig {
     discovery:  string;
     researcher: string;
     drafter:    string;
+    stylist:    string;
     verifier:   string;
   };
 }
@@ -28,6 +29,7 @@ export const CONFIG: PipelineConfig = {
     discovery:  'claude-sonnet-4-6',
     researcher: 'claude-sonnet-4-6',
     drafter:    'claude-opus-4-1',   // high-craft step — Opus recommended
+    stylist:    'claude-opus-4-1',   // high-craft step — Opus recommended
     verifier:   'claude-sonnet-4-6',
   },
 };

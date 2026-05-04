@@ -23,16 +23,18 @@ import {
   buildDiscoverPrompt,
   buildResearchPrompt,
   buildDraftPrompt,
+  buildStylePrompt,
   buildVerifyPrompt,
   findMostRecent,
   findDraftIssue,
+  findIssueByTopic,
 }                                                    from './lib/prompts.js';
 import { runAgent }                                  from './lib/runner.js';
 import { CONFIG }                                    from './pipeline.config.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const VALID_PHASES     = ['discover', 'research', 'draft', 'verify'] as const;
+const VALID_PHASES     = ['discover', 'research', 'draft', 'stylist', 'verify'] as const;
 const VALID_CATEGORIES = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 
 type Phase    = typeof VALID_PHASES[number];
@@ -42,6 +44,7 @@ const PHASE_TO_AGENT: Record<Phase, keyof typeof CONFIG.models> = {
   discover: 'discovery',
   research: 'researcher',
   draft:    'drafter',
+  stylist:  'stylist',
   verify:   'verifier',
 };
 
@@ -62,6 +65,7 @@ function printUsage(): void {
     npm run pipeline:discover earth
     npm run pipeline:research earth
     npm run pipeline:draft    earth
+    npm run pipeline:stylist  earth
     npm run pipeline:verify   earth
 
   Or generic form:
@@ -168,6 +172,15 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     prompt = buildDraftPrompt(category, dossierFile);
+
+  } else if (phase === 'stylist') {
+    const issueSlug = findIssueByTopic(cwd, category);
+    if (!issueSlug) {
+      console.error(`\x1b[31mError:\x1b[0m No issue found with topic: ${category}`);
+      console.error(`  Run first: npm run pipeline:draft ${category}`);
+      process.exit(1);
+    }
+    prompt = buildStylePrompt(category, issueSlug);
 
   } else {
     // verify
