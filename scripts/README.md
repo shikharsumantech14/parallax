@@ -26,6 +26,7 @@ npm install
 npm run pipeline:discover earth
 npm run pipeline:research earth
 npm run pipeline:draft    earth
+npm run pipeline:stylist  earth
 npm run pipeline:verify   earth
 ```
 
@@ -38,6 +39,7 @@ npm run pipeline:verify   earth
 | `npm run pipeline:discover <cat>` | 1 | Discovery agent surveys allowlisted sources, writes `research/<cat>/<date>-candidates.md` |
 | `npm run pipeline:research <cat>` | 2 | Researcher agent deep-dives the chosen candidate, writes `research/<cat>/<date>-<slug>-dossier.md` |
 | `npm run pipeline:draft <cat>` | 3 | Drafter agent writes the full MDX issue to `src/content/issues/<date-slug>/index.mdx` with `status: draft` |
+| `npm run pipeline:stylist <cat>` | 3.5 | Stylist agent assigns a rhetorical mode to each section (AWE / FORENSIC / INVESTIGATION / CALM-STRUCTURAL / SATIRICAL / CONVERSATIONAL / DRY WIT / LYRICAL), rewrites intro fields and prose paragraphs in the mode pattern. Facts and structured data untouched. |
 | `npm run pipeline:verify <cat>` | 4 | Verifier agent audits every factual claim against the dossier, writes `research/<cat>/<date>-<slug>-verification.md` |
 
 Valid categories: `politics` · `space` · `earth` · `tech` · `travel` · `sports`
@@ -62,7 +64,12 @@ YOU REVIEW DOSSIER     ← check [UNVERIFIED] items, confirm structural argument
 npm run pipeline:draft <cat>
       ↓
 YOU REVIEW DRAFT       ← open src/content/issues/<slug>/index.mdx
-                          fix voice, flow, resolve EDITOR comments
+                          fix structure, resolve EDITOR comments
+      ↓
+npm run pipeline:stylist <cat>
+      ↓
+YOU REVIEW VOICE       ← read mode assignment table in terminal output,
+                          check before/after on key sections, tweak if needed
       ↓
 npm run pipeline:verify <cat>
       ↓
@@ -81,10 +88,11 @@ Configured in `scripts/pipeline.config.ts` — change there to re-route:
 | discover | discovery | `claude-sonnet-4-6` |
 | research | researcher | `claude-sonnet-4-6` |
 | draft | drafter | `claude-opus-4-1` |
+| stylist | stylist | `claude-opus-4-1` |
 | verify | verifier | `claude-sonnet-4-6` |
 
-Drafting uses Opus because voice quality is the highest-value output of that
-phase. All other phases are rule-following tasks where Sonnet is sufficient.
+Drafting and styling use Opus because voice quality is the highest-value output
+of those phases. All other phases are rule-following tasks where Sonnet is sufficient.
 
 ---
 
@@ -95,9 +103,10 @@ phase. All other phases are rule-following tasks where Sonnet is sufficient.
 | discover | Sonnet | 30 K–80 K | $0.30–0.80 |
 | research | Sonnet | 80 K–200 K | $0.80–2.00 |
 | draft | Opus | 60 K–150 K | $3.00–7.50 |
+| stylist | Opus | 30 K–80 K | $1.50–2.50 |
 | verify | Sonnet | 40 K–100 K | $0.40–1.00 |
 
-**Full 6-category run (all four phases):** approximately $26–70 on the API.
+**Full 6-category run (all five phases):** approximately $36–84 on the API.
 
 For comparison, routing all agent work through Claude Pro would consume
 roughly 2–4 hours of the 5-hour Pro usage limit window — leaving little
@@ -136,8 +145,14 @@ scripts/
 
 Agent definitions (the system prompts the pipeline uses) live in
 `.claude/agents/` — `discovery.md`, `researcher.md`, `drafter.md`,
-`verifier.md`. These are the same agents used by the slash commands in
-Claude Code; the pipeline CLI simply calls them directly via the SDK.
+`stylist.md`, `verifier.md`. These are the same agents used by the slash
+commands in Claude Code; the pipeline CLI simply calls them directly via the SDK.
+
+The stylist agent reads `research/_voice/mode-library.md` at runtime — an
+890-line canonical voice reference containing 8 rhetorical modes (AWE,
+CONVERSATIONAL EXPLAINER, CALM-STRUCTURAL, SATIRICAL EXPOSURE, DRY WIT,
+INVESTIGATION, FORENSIC, LYRICAL COMPRESSION) with sentence rhythm recipes,
+opening templates, lexical defaults, and failure modes per mode.
 
 ---
 
@@ -160,6 +175,11 @@ wrong directory.
 **`No draft issue found with topic: <cat>`**
 → Run `pipeline:draft` before `pipeline:verify`, or check that the MDX
 frontmatter has `topic: <cat>` and `status: draft`.
+
+**`No issue found with topic: <cat>`** (stylist phase)
+→ Run `pipeline:draft` before `pipeline:stylist`. The stylist searches all
+statuses (draft, review, published) so it can re-style an already-published
+issue; the error means no issue with `topic: <cat>` exists at all.
 
 **Auth error / 401**
 → Your `.env.local` key is expired or is a session token (starts with

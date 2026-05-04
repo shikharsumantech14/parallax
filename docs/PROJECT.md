@@ -205,10 +205,23 @@ and the **final audit** before publish.
    ↓
 6. YOU REVIEW DRAFT                ← read, fix voice/flow, resolve EDITOR comments
    ↓
-7. /pipeline-verify <category>     ✅ verifier subagent → claim-by-claim audit
+7. /pipeline-stylist <category>    ✅ stylist subagent → rhetorical mode rewrites
    ↓
-8. YOU AUDIT + PUBLISH             ← read report, fix, status: published
+8. /pipeline-verify <category>     ✅ verifier subagent → claim-by-claim audit
+   ↓
+9. YOU AUDIT + PUBLISH             ← read report, fix, status: published
 ```
+
+**Stylist agent** (`stylist.md`) sits between draft and verify. It reads
+`research/_voice/mode-library.md` (890 lines, 8 rhetorical modes extracted
+from Sagan, Attenborough, Ravish Kumar, Oliver, Bourdain, Iyer, Akhtar,
+Morris, Wright Thompson, and others), assigns one mode per section using a
+formal Decision Tree, then rewrites `intro:` fields, prose section paragraphs,
+and quote followups in the assigned mode pattern. Structured data (timeline
+events, readout tiles, climate-strip values, verbatim quotes) is never touched.
+A single stylist run produces a Before/After across every prose field and
+costs roughly $1.50–2.50 on Opus. The mode library lives at
+`research/_voice/mode-library.md`.
 
 **Working files** live under `research/`:
 - `research/_sources/<category>.md` — per-category trusted-source allowlist
@@ -252,15 +265,14 @@ of the 5-hour usage-limit window instead. Full operator guide:
 [`scripts/README.md`](../scripts/README.md). Model assignments:
 `scripts/pipeline.config.ts`.
 
-**Phase status (as of 2026-05-03):**
+**Phase status (as of 2026-05-04):**
 - ✅ Phase 1: discovery agent (`discovery.md`) + `/pipeline-discover` command + per-category source allowlists
 - ✅ Phase 2: researcher agent (`researcher.md`) + `/pipeline-research` command + dossier template
 - ✅ Phase 3: drafter agent (`drafter.md`) + `/pipeline-draft` command
+- ✅ Phase 3.5: stylist agent (`stylist.md`) + `npm run pipeline:stylist` — rhetorical mode rewrites (8 modes, mode library at `research/_voice/mode-library.md`)
 - ✅ Phase 4: verifier agent (`verifier.md`) + `/pipeline-verify` command ★ brand-protection step ★
 - ⏳ Phase 5: visual-checker + scheduled cron via GitHub Actions
-- ⏳ Phase 6: first issue per category — component infrastructure complete (2026-05-03); pipeline
-  runs queued for next session. Editor picks candidates, then discover → research → draft →
-  verify → publish for politics, space, earth, tech, travel, sports.
+- ⏳ Phase 6: remaining categories — earth is live; pipeline runs queued for politics, space, tech, travel, sports.
 
 **Component expansion plan (completed batch 1 on 2026-05-03):**
 
@@ -451,6 +463,7 @@ src/
 │       ├── 2026-04-24-delimitation/index.mdx        # published
 │       ├── 2026-04-24-kessler-cascade/index.mdx     # published
 │       ├── 2026-05-02-transgender-ratchet/index.mdx # published
+│       ├── 2026-05-03-el-nino-new-floor/index.mdx   # published — earth issue 01 (stylist pass applied)
 │       ├── 2026-05-03-earth-map-test/index.mdx      # draft — component test fixture
 │       ├── 2026-05-03-politics-components/index.mdx # draft — component test fixture
 │       ├── 2026-05-03-space-components/index.mdx    # draft — component test fixture
@@ -621,8 +634,8 @@ vote charts, etc.). Other themes get component styles in Phase 2.
 
 ## 8. Routes generated
 
-Total: 17 static routes + 1 RSS endpoint (as of 2026-05-03 build).
-3 published issues (appear in home archive + RSS); 6 draft test fixtures
+Total: 18 static routes + 1 RSS endpoint (as of 2026-05-04 build).
+4 published issues (appear in home archive + RSS); 6 draft test fixtures
 (built but not listed in archive or RSS — component verification only).
 
 ```
@@ -631,6 +644,7 @@ Total: 17 static routes + 1 RSS endpoint (as of 2026-05-03 build).
 /issues/2026-04-24-delimitation/               published
 /issues/2026-04-24-kessler-cascade/            published
 /issues/2026-05-02-transgender-ratchet/        published
+/issues/2026-05-03-el-nino-new-floor/          published — earth issue 01
 /issues/2026-05-03-earth-map-test/             draft — earth component tests
 /issues/2026-05-03-politics-components/        draft — politics component tests
 /issues/2026-05-03-space-components/           draft — space component tests
@@ -751,11 +765,11 @@ CSS class prefix isolation rule documented.
 Smoke-tested: `pipeline:discover earth` ran 5m 9s, cost $1.23, produced a
 valid 7-candidate file. Operator guide: `scripts/README.md`.
 
-**Active pipeline queue (earth started).**
+**Active pipeline queue.**
 
-- earth: discovery ✅ (`research/earth/2026-05-03-candidates.md` — pick a candidate)
+- earth: **published** ✅ — *The Pacific That No Longer Resets* (El Niño new floor) at `/issues/2026-05-03-el-nino-new-floor/`. Stylist pass applied (INVESTIGATION→FORENSIC→AWE→CONVERSATIONAL→FORENSIC→CALM-STRUCTURAL→LYRICAL blend).
 - tech, travel, sports, politics, space: all at Phase 0 (run discover next)
-- After each discover: editor picks 1 candidate → research → draft → verify → publish
+- After each discover: editor picks 1 candidate → research → draft → **stylist** → verify → publish
 - Target: **1 published issue per category**
 
 **Deferred.**
@@ -810,6 +824,81 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 ---
 
 ## 12. Change log
+
+### 2026-05-04 — Stylist agent + voice system shipped; El Niño earth issue published
+
+**What.** Two deliverables: a complete rhetorical voice system (mode library +
+stylist pipeline agent), and the first earth category issue published end-to-end.
+
+**Voice system — `research/_voice/mode-library.md` (890 lines).**
+
+A canonical reference for the stylist agent (and future editors) containing
+8 rhetorical modes, each with: sentence rhythm recipe, opening templates,
+lexical defaults, pronoun policy, signature moves, reference quotes (≤15w),
+failure modes, and a Quick-Reference Pattern Card for agent runtime use.
+
+| Mode | When to use |
+|---|---|
+| AWE | Scale, deep time, marvel of mechanism — Sagan/Attenborough/Tyson register |
+| CONVERSATIONAL EXPLAINER | Step-by-step mechanism the reader must infer — Harris/Oliver register |
+| CALM-STRUCTURAL | Naming structural cost; scene → civilization pivot — Ravish Kumar register |
+| SATIRICAL EXPOSURE | Institutional contradiction exposed by its own data — Oliver/Last Week Tonight |
+| DRY WIT | Mismatched register; bureaucratic precision as deadpan — Economist/Bourdain |
+| INVESTIGATION | Anomaly observation, evidence assembly — Morris/Wright Thompson register |
+| FORENSIC | Mechanism with human stakes, staccato precision — Bourdain/Attenborough |
+| LYRICAL COMPRESSION | Closer or single emotional landing — Akhtar/Iyer/Ondaatje register |
+
+Mode-blending rules: one dominant mode per section; at most 1 Satirical +
+2 Lyrical per issue; 4–6 modes per issue. Decision Tree and mode allocation
+table included for agent runtime use.
+
+**Stylist pipeline agent — `.claude/agents/stylist.md`.**
+
+New pipeline phase (3.5, between draft and verify). Agent reads the mode
+library, assigns one mode per section using the Decision Tree, rewrites
+`intro:` fields + `prose` paragraphs + `quote` followups in the assigned
+mode pattern. Uses `Edit` tool for surgical YAML-safe field replacements.
+Preserves every number, name, date, verbatim quote, and all structured
+data fields exactly.
+
+**Files added / modified:**
+
+| File | Change |
+|---|---|
+| `research/_voice/mode-library.md` | 890-line canonical voice reference — 8 modes, decision tree, QR cards |
+| `.claude/agents/stylist.md` | Stylist agent — mode assignment + prose rewriting |
+| `scripts/pipeline.config.ts` | Added `stylist: 'claude-opus-4-1'` model assignment |
+| `scripts/lib/prompts.ts` | Added `findIssueByTopic()` + `buildStylePrompt()` |
+| `scripts/pipeline.ts` | Added `'stylist'` to `VALID_PHASES`, `PHASE_TO_AGENT`, and phase handling |
+| `package.json` | Added `pipeline:stylist` script |
+
+**Test run on El Niño issue:** `npm run pipeline:stylist earth` — 6m 40s,
+$1.80, 11 fields rewritten. Mode blend: INVESTIGATION → FORENSIC → FORENSIC →
+AWE → CONVERSATIONAL EXPLAINER → FORENSIC → CALM-STRUCTURAL → LYRICAL.
+Key moves: `"A question lives underneath both announcements"` (Investigation
+opener); `"It is the shape of the record."` (AWE plain-noun close on
+climate-strip); `"The reservoir is the disease. It has only one direction."`
+(Lyrical compression closer).
+
+**El Niño issue published — first earth category issue.**
+
+`/issues/2026-05-03-el-nino-new-floor/` — *The Pacific That No Longer Resets*.
+Full pipeline: discover (earth C-04) → research → draft → stylist → verify
+→ fix → publish. 8 sections, 13 sources, climate-strip with 57 data points
+(1970–2026, Berkeley Earth / Copernicus ERA5). Structural argument: La Niña
+years now land warmer than El Niño years of a decade earlier; 91% of excess
+heat in oceans prevents any reset; the staircase has only one direction.
+
+**CSS bug fixed (shared component layout):**
+`base.css` lacked layout rules for `px-prose`, `px-compare`, `px-readout` —
+those rules existed only in `space.css` scoped to `[data-topic="space"]`. Any
+non-space issue using these components rendered without layout CSS. Fixed by
+moving topic-agnostic rules into `base.css` with responsive breakpoints.
+
+**Pipeline order is now:**
+`discover → research → draft → stylist → verify → (fix) → publish`
+
+---
 
 ### 2026-05-03 — API-direct pipeline CLI built and smoke-tested
 
