@@ -21,6 +21,10 @@
 import { createServerClient, createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import type { AstroCookies } from 'astro';
+// Node 20 on Vercel lacks native WebSocket. Supabase's realtime-js refuses
+// to construct without one. We provide the `ws` package as the transport
+// for server-side clients. Browser clients get the native WebSocket free.
+import WebSocket from 'ws';
 
 const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -73,6 +77,8 @@ export function serverClient(ctx: { cookies: AstroCookies; headers: Headers }) {
   const key = assertEnv('PUBLIC_SUPABASE_ANON_KEY', SUPABASE_ANON_KEY);
 
   return createServerClient(url, key, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    realtime: { transport: WebSocket as any },
     cookies: {
       getAll() {
         const all: { name: string; value: string }[] = [];
@@ -119,5 +125,7 @@ export function adminClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    realtime: { transport: WebSocket as any },
   });
 }
