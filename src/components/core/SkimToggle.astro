@@ -1,0 +1,42 @@
+---
+interface Props {
+  readTime?: number;
+}
+const { readTime = 7 } = Astro.props;
+---
+
+<div class="px-skim-toggle" id="px-skim-toggle" role="group" aria-label="Reading mode">
+  <button class="px-skim-btn px-skim-btn--full active" data-mode="full" aria-pressed="true">
+    <span class="px-skim-dot" aria-hidden="true"></span>
+    {readTime} min read
+  </button>
+  <span class="px-skim-sep" aria-hidden="true">·</span>
+  <button class="px-skim-btn px-skim-btn--skim" data-mode="skim" aria-pressed="false">
+    90 sec skim
+  </button>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('px-skim-toggle');
+    var article = document.getElementById('px-article');
+    if (!toggle || !article) return;
+
+    var buttons = toggle.querySelectorAll('.px-skim-btn');
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var mode = btn.getAttribute('data-mode');
+        if (!mode) return;
+
+        article.setAttribute('data-mode', mode);
+
+        buttons.forEach(function (b) {
+          var isActive = b === btn;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+      });
+    });
+  })();
+</script>

@@ -3,6 +3,8 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { Topic } from '../../content/config';
 import IssueLayout from '../../layouts/IssueLayout.astro';
 import Hero from '../../components/core/Hero.astro';
+import Primer from '../../components/core/Primer.astro';
+import SkimToggle from '../../components/core/SkimToggle.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
 import TopicStrip from '../../components/home/TopicStrip.astro';
@@ -63,9 +65,28 @@ const backToDeskCopy: Record<Topic, string> = {
     publishedAt={data.publishedAt}
   />
 
-  {data.sections.map((section, i) => (
-    <SectionRenderer section={section} index={i} />
-  ))}
+  <SkimToggle readTime={data.readTimeMinutes} />
+
+  {data.primer && <Primer text={data.primer} />}
+
+  <article id="px-article" data-mode="full">
+    {data.sections.map((section, i) => (
+      section.kind === 'prose'
+        ? (
+          <Fragment>
+            <div class="px-prose-full">
+              <SectionRenderer section={section} index={i} />
+            </div>
+            {section.skimCaption && (
+              <div class="px-skim-caption-block">
+                <p class="px-skim-caption-text">{section.skimCaption}</p>
+              </div>
+            )}
+          </Fragment>
+        )
+        : <SectionRenderer section={section} index={i} />
+    ))}
+  </article>
 
   <a class="px-back-to-desk px-back-to-desk--bottom" href={`/topics/${data.topic}/`} data-topic={data.topic}>
     {backToDeskCopy[data.topic]}

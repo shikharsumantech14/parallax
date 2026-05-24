@@ -17,6 +17,7 @@ interface Props {
     hook: string;
     issueNumber: number;
     publishedAt: Date;
+    ogImage?: string;
   };
   emptyLabel: string;
   emptyTag: string;
@@ -142,6 +143,16 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
       ============================================================ */}
   {latest ? (
     <div class="px-cat__issue">
+      {latest.ogImage && (
+        <img
+          class="px-cat__cover"
+          src={latest.ogImage}
+          alt=""
+          loading="lazy"
+          width="380"
+          height="200"
+        />
+      )}
       <div class="px-cat__issue-label">Latest issue</div>
       <h3 class="px-cat__issue-title" set:html={renderEmphasis(latest.title)} />
       <p class="px-cat__issue-hook">{latest.hook}</p>
@@ -390,6 +401,17 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     position: relative;
     z-index: 2;
   }
+  .px-cat__cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 19 / 10;
+    object-fit: cover;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    margin-bottom: 14px;
+    transition: border-color 0.18s ease;
+  }
+  .px-cat:hover .px-cat__cover { border-color: var(--accent); }
   .px-cat__issue-label {
     font-family: var(--font-mono);
     font-size: 10px;

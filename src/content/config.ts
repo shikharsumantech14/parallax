@@ -55,6 +55,7 @@ const sectionSchema = z.object({
   title: z.string().optional(),
   eyebrow: z.string().optional(),
   intro: z.string().optional(),
+  skimCaption: z.string().optional(),
   data: z.any().optional(),
   sourceRefs: z.array(z.string()).default([])
 });
@@ -72,6 +73,7 @@ const issuesCollection = defineCollection({
     author: z.string().optional(),
     tags: z.array(z.string()).default([]),
     readTimeMinutes: z.number().optional(),
+    primer: z.string().min(80).max(420).optional(),
     ogImage: z.string().optional(),
     sections: z.array(sectionSchema),
     sources: z.array(sourceSchema)
@@ -81,4 +83,24 @@ const issuesCollection = defineCollection({
 export type Source = z.infer<typeof sourceSchema>;
 export type Section = z.infer<typeof sectionSchema>;
 
-export const collections = { issues: issuesCollection };
+// ── Guides collection ────────────────────────────────────────────────────────
+// Long-form reader-facing documents that aren't issues: privacy policy,
+// terms of service, "how to read Parallax," "your Parallax dashboard."
+// Renders with the publication's typography at /about/<slug>/.
+const guidesCollection = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    eyebrow: z.string().optional(),
+    dek: z.string().optional(),
+    updated: z.date(),
+    summary: z.string().optional()
+  })
+});
+
+export type Guide = z.infer<typeof guidesCollection.schema>;
+
+export const collections = {
+  issues: issuesCollection,
+  guides: guidesCollection
+};

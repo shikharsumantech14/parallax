@@ -825,6 +825,124 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-05-24 — Commercialisation roadmap approved + Phase A scaffold
+
+**What.** Editorial direction shifted: Parallax adds a reader-account
+layer to enable email lead-gen, lightweight community (annotations +
+letters, not Disqus threads), AI-augmented reading (inline explainers,
+TL;DR, per-issue Q&A sidebar), and a "Your Parallax" dashboard. Free
+forever in v1, no paywall. ~5-month roadmap across Phases A–E.
+
+**Architectural decision (single most consequential).** The publication
+at `parallaxlens.com` stays **pure-static Astro, `output: 'static'`**.
+A separate Astro SSR project at `app.parallaxlens.com` (this repo's
+new `app/` subdirectory) hosts auth, the dashboard, and `/api/*`. The
+publication is unchanged structurally — interactive elements arrive
+only as small client islands that call the app subdomain.
+
+Reasoning: hybrid mode would put 30+ hours of per-topic theming work
+behind a serverless function for every issue request. The split keeps
+the publication on the free Vercel static edge and lets the app be
+torn down or rebuilt without touching it.
+
+**Phase A scaffold landed this session:**
+
+| File | Status |
+|---|---|
+| `app/package.json` | new — Astro SSR + Supabase + Resend + Vercel adapter |
+| `app/astro.config.mjs` | new — `output: 'server'` |
+| `app/tsconfig.json` | new |
+| `app/.env.example` | new — Supabase + Resend env template |
+| `app/src/env.d.ts` | new — typed env vars |
+| `app/src/lib/supabase.ts` | new — browser / server / admin client factories |
+| `app/src/pages/index.astro` | new — placeholder landing |
+| `app/src/pages/api/health.ts` | new — health check |
+| `app/supabase/migrations/20260524000000_phase_a_foundation.sql` | new — profiles, saved_issues, newsletter_subscriptions tables with RLS |
+| `app/AGENTS.md` | new — subtree agent guide |
+| `app/README.md` | new |
+| `docs/COMMERCIALISATION-SETUP.md` | new — operator setup checklist (Supabase / Resend / Iubenda / DNS) |
+| `AGENTS.md` (root) | edit — subtree reference for `app/` |
+
+`npm install && npm run build` inside `app/` both pass. The scaffold
+boots; auth + dashboard pages land in subsequent sessions once the
+operator finishes the setup checklist at
+`docs/COMMERCIALISATION-SETUP.md`.
+
+**Brand-restraint guarantees (codified in the approved plan):**
+- Publication URLs never change. `/issues/<slug>/` is contractual.
+- The article page is unchanged visually. New reader interactions
+  attach as small client islands, never disrupt the hero / sections /
+  sources composition.
+- No third-party trackers. Ever. All reading events first-party.
+- No popups, no engagement-bait modals, no paywall gates.
+- RSS contract preserved.
+- Editorial pipeline unchanged.
+
+**UX principles (operator-mandated, gate every phase):** white-space
+discipline; sign-up ≤ 3 screens; empty states in editorial voice;
+guides at `/about/how-to-read` and `/about/your-parallax`; no
+Disqus-style threads (annotations on sentences + end-of-issue
+Letters); ≤ 30 KB client JS on issue pages; Lighthouse ≥ 95
+publication / ≥ 90 app.
+
+**Next operator action.** Complete Stages 0-3 of
+`docs/COMMERCIALISATION-SETUP.md` (account creation + DNS). Then we
+proceed to Phase A coding: auth flows, dashboard pages, newsletter
+form.
+
+---
+
+### 2026-05-20 — Illustrator phase + visual mode library + agent docs
+
+**What.** Two deliverables: a new pipeline phase that generates per-issue
+OG cover imagery via fal.ai (Flux 1.1 Pro), and a consolidated
+agent-documentation layer at the repo root.
+
+**Illustrator phase.**
+
+New pipeline phase between stylist and verify. Reads the dossier + the
+stylist-rewritten draft + a new visual mode library, picks one of six
+visual modes via a Decision Tree, writes a structured prompt to
+`src/content/issues/<slug>/og-prompt.txt`, calls a deterministic Node
+generator (`scripts/generate-visual.mjs`) exactly once, saves
+`public/og/<slug>.png` at 1216×640 (Flux's nearest legal dimension to
+the OG 1200×630 standard), and updates the issue's `ogImage:`
+frontmatter so `IssueLayout.astro`'s existing `<meta property="og:image">`
+and Twitter `summary_large_image` tags resolve.
+
+Cost protection has three independent layers: one fal.ai call per
+script invocation (no loop); a daily $2.00 cap enforced via
+`research/_visual/ledger.jsonl`; and the agent system prompt forbids
+retries.
+
+| File | Change |
+|---|---|
+| `research/_voice/visual-mode-library.md` | new — 6 modes (AERIAL DIAGRAM / SINGLE OBJECT STILL / ARCHIVAL DOCUMENT / TYPOGRAPHIC GRID / MONOCHROME PORTRAIT / GEOMETRIC ABSTRACTION), Decision Tree, brand constants, 8-item visual AI-tell catalog, per-mode pattern cards, QR cards |
+| `.claude/agents/illustrator.md` | new — system prompt enforcing "exactly one generator call per run" |
+| `scripts/generate-visual.mjs` | new — deterministic single-call generator with `--dry-run`, `--force`, daily cap, retry-once on 5xx |
+| `scripts/pipeline.ts` | edit — added `'illustrator'` to VALID_PHASES, PHASE_TO_AGENT, dispatch branch |
+| `scripts/pipeline.config.ts` | edit — added `illustrator: 'claude-opus-4-1'` |
+| `scripts/lib/prompts.ts` | edit — added `buildIllustratorPrompt` |
+| `package.json` | edit — added `pipeline:illustrator` script + `@fal-ai/client` dep |
+| `.env.example` | edit — added `FAL_KEY` placeholder + comment |
+| `public/og/.gitkeep` | new — output directory |
+| `research/_visual/.gitkeep` | new — ledger directory |
+
+**Agent documentation layer.**
+
+| File | Change |
+|---|---|
+| `AGENTS.md` (root) | new — universal entry point, 250+ lines, agents.md convention |
+| `CLAUDE.md` (root) | new — Claude-Code-specific notes, `@./AGENTS.md` import |
+| `src/content/issues/_AGENTS.md` | new — schema fields, primer/skimCaption rules, build errors. Underscore prefix because Astro's content collection would otherwise treat it as an issue entry |
+| `src/components/AGENTS.md` | new — section-kind → component map, CSS prefix reservations, SVG conventions |
+| `research/AGENTS.md` | new — pipeline phases, source allowlist convention, voice + visual canon pointers |
+
+**Pipeline order is now:**
+`discover → research → draft → stylist → illustrator → verify → (fix) → publish`
+
+---
+
 ### 2026-05-04 — Stylist agent + voice system shipped; El Niño earth issue published
 
 **What.** Two deliverables: a complete rhetorical voice system (mode library +

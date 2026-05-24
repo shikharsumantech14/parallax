@@ -8,6 +8,7 @@ interface Entry {
   title: string;
   issueNumber: number;
   publishedAt: Date;
+  ogImage?: string;
 }
 
 interface Props {
@@ -33,6 +34,18 @@ const topicLabels: Record<string, string> = {
       {items.map((entry) => (
         <li>
           <a class="px-archive__item" data-topic={entry.topic} href={`/issues/${entry.slug}/`}>
+            {entry.ogImage ? (
+              <img
+                class="px-archive__thumb"
+                src={entry.ogImage}
+                alt=""
+                loading="lazy"
+                width="72"
+                height="38"
+              />
+            ) : (
+              <span class="px-archive__thumb px-archive__thumb--empty" aria-hidden="true"></span>
+            )}
             <span class="px-archive__no">{formatIssueNumber(entry.issueNumber)}</span>
             <span class="px-archive__dot" aria-hidden="true"></span>
             <span class="px-archive__text" set:html={renderEmphasis(entry.title)} />
