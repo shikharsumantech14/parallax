@@ -1,0 +1,282 @@
+---
+/**
+ * ReactionsBar — client island that lets readers mark how an issue landed.
+ *
+ * Four kinds, multi-select. Counts visible only after ≥3 reactions issue-wide
+ * (avoid "0 likes" loneliness). Anonymous users see the buttons but get
+ * redirected to login on click.
+ *
+ * Placement: end of issue body, before the bottom back-to-desk link.
+ * Restrained editorial register — no emoji floods, no animation flourish.
+ */
+
+interface Props {
+  issueId: string;
+}
+const { issueId } = Astro.props;
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+
+/**
+ * Kind descriptors. The label is the user-facing word; the help line is
+ * shown as the title attribute. Keep these editorial, not gamified.
+ */
+const KINDS = [
+  { id: 'think',     label: 'Made me think',  help: 'This sparked thought I want to sit with.' },
+  { id: 'agree',     label: 'Resonates',      help: 'This matches how I read the issue.' },
+  { id: 'disagree',  label: 'Challenges me',  help: 'I want to push back on this.' },
+  { id: 'want_more', label: 'More like this', help: 'Send me more of this register.' },
+];
+---
+
+<section class="px-reactions" data-issue-id={issueId} data-app-url={appUrl} aria-labelledby="px-reactions-title">
+  <h2 class="px-reactions__title" id="px-reactions-title">How did this land?</h2>
+  <p class="px-reactions__dek">
+    A small private signal back to the editor. Multiple can apply.
+  </p>
+
+  <div class="px-reactions__row" role="group" aria-label="Reaction options">
+    {KINDS.map((k) => (
+      <button
+        type="button"
+        class="px-reactions__btn"
+        data-kind={k.id}
+        data-active="false"
+        title={k.help}
+        aria-pressed="false"
+      >
+        <span class="px-reactions__label">{k.label}</span>
+        <span class="px-reactions__count" aria-hidden="true"></span>
+      </button>
+    ))}
+  </div>
+
+  <p class="px-reactions__status" aria-live="polite"></p>
+</section>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-reactions'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    var apiUrl = appUrl + '/api/reactions/' + encodeURIComponent(issueId);
+    var btns = root.querySelectorAll('.px-reactions__btn');
+    var statusEl = root.querySelector('.px-reactions__status');
+
+    var state = {
+      userKinds: [],   // kinds the current user has applied
+      counts: null,    // null if total < threshold; else { kind: n }
+      signedOut: true,
+    };
+
+    function applyState() {
+      btns.forEach(function (btn) {
+        var kind = btn.dataset.kind;
+        var active = state.userKinds.indexOf(kind) !== -1;
+        btn.dataset.active = active ? 'true' : 'false';
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        var countEl = btn.querySelector('.px-reactions__count');
+        if (countEl) {
+          var n = state.counts && state.counts[kind] ? state.counts[kind] : 0;
+          countEl.textContent = state.counts && n > 0 ? String(n) : '';
+        }
+      });
+    }
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text || '';
+      statusEl.className = 'px-reactions__status' +
+        (kind === 'err' ? ' px-reactions__status--err' : '');
+    }
+
+    // Initial load
+    fetch(apiUrl, { method: 'GET', credentials: 'include' })
+      .then(function (res) {
+        state.signedOut = res.status === 401;
+        return res.ok ? res.json() : null;
+      })
+      .then(function (data) {
+        if (data && data.ok) {
+          state.userKinds = Array.isArray(data.userKinds) ? data.userKinds : [];
+          state.counts = data.counts || null;
+        }
+        applyState();
+      })
+      .catch(function () {
+        // Network failure — leave UI in default state, buttons remain interactive
+        applyState();
+      });
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var kind = btn.dataset.kind;
+        if (!kind) return;
+
+        if (state.signedOut) {
+          var nextPath = window.location.pathname + window.location.search;
+          window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextPath);
+          return;
+        }
+
+        // Optimistic toggle
+        var wasActive = state.userKinds.indexOf(kind) !== -1;
+        if (wasActive) {
+          state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
+        } else {
+          state.userKinds.push(kind);
+        }
+        applyState();
+
+        btn.disabled = true;
+        fetch(apiUrl, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: kind }),
+        })
+          .then(function (res) {
+            if (res.status === 401) {
+              state.signedOut = true;
+              var nextPath = window.location.pathname + window.location.search;
+              window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextPath);
+              return null;
+            }
+            return res.json();
+          })
+          .then(function (data) {
+            if (!data) return;
+            if (data.ok) {
+              state.userKinds = Array.isArray(data.userKinds) ? data.userKinds : [];
+              state.counts = data.counts || null;
+              applyState();
+            } else {
+              // Revert
+              if (wasActive) state.userKinds.push(kind);
+              else state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
+              applyState();
+              setStatus(data.error || 'Couldn’t save reaction. Try again.', 'err');
+            }
+          })
+          .catch(function () {
+            // Revert
+            if (wasActive) state.userKinds.push(kind);
+            else state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
+            applyState();
+            setStatus('Network error. Try again.', 'err');
+          })
+          .finally(function () {
+            btn.disabled = false;
+          });
+      });
+    });
+  })();
+</script>
+
+<style>
+  .px-reactions {
+    margin: 56px 0 32px;
+    padding: 32px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-reactions__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .px-reactions__dek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+    max-width: 54ch;
+  }
+
+  .px-reactions__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .px-reactions__btn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    line-height: 1;
+  }
+  .px-reactions__btn:hover:not(:disabled) {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .px-reactions__btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .px-reactions__btn[data-active="true"] {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(184, 52, 31, 0.04);
+  }
+
+  .px-reactions__label {
+    /* nothing extra */
+  }
+
+  .px-reactions__count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    /* Empty count → invisible; non-empty → small chip after the label */
+  }
+  .px-reactions__count:empty {
+    display: none;
+  }
+  .px-reactions__btn[data-active="true"] .px-reactions__count {
+    color: var(--accent);
+  }
+
+  .px-reactions__status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 14px 0 0;
+    min-height: 1em;
+  }
+  .px-reactions__status--err {
+    color: #c0392b;
+  }
+
+  @media (max-width: 480px) {
+    .px-reactions { margin: 40px 0 24px; padding: 24px 0; }
+    .px-reactions__title { font-size: 19px; }
+    .px-reactions__btn {
+      flex: 1 1 calc(50% - 5px);
+      justify-content: center;
+    }
+  }
+</style>

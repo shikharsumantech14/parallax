@@ -5,6 +5,8 @@ import IssueLayout from '../../layouts/IssueLayout.astro';
 import Hero from '../../components/core/Hero.astro';
 import Primer from '../../components/core/Primer.astro';
 import SkimToggle from '../../components/core/SkimToggle.astro';
+import SaveButton from '../../components/core/SaveButton.astro';
+import ReactionsBar from '../../components/core/ReactionsBar.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
 import TopicStrip from '../../components/home/TopicStrip.astro';
@@ -65,7 +67,10 @@ const backToDeskCopy: Record<Topic, string> = {
     publishedAt={data.publishedAt}
   />
 
-  <SkimToggle readTime={data.readTimeMinutes} />
+  <div class="px-reader-controls">
+    <SkimToggle readTime={data.readTimeMinutes} />
+    <SaveButton issueId={issue.slug} />
+  </div>
 
   {data.primer && <Primer text={data.primer} />}
 
@@ -88,6 +93,8 @@ const backToDeskCopy: Record<Topic, string> = {
     ))}
   </article>
 
+  <ReactionsBar issueId={issue.slug} />
+
   <a class="px-back-to-desk px-back-to-desk--bottom" href={`/topics/${data.topic}/`} data-topic={data.topic}>
     {backToDeskCopy[data.topic]}
   </a>
@@ -96,6 +103,23 @@ const backToDeskCopy: Record<Topic, string> = {
 </IssueLayout>
 
 <style>
+  /* Reader controls row: skim-toggle on the left, save-for-later on the right.
+     On narrow viewports they wrap; the toggle keeps its full size while save
+     drops below it. */
+  .px-reader-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 480px) {
+    .px-reader-controls {
+      justify-content: flex-start;
+    }
+  }
+
   /* Topic-voice back-to-the-desk link, placed under the topic strip
      above the hero and again above the sources block at the bottom of
      the article. Inherits the topic's accent via tokens. */

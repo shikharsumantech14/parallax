@@ -1,0 +1,201 @@
+---
+/**
+ * SaveButton — client island that toggles save-for-later state for an issue.
+ *
+ * The publication is static, so we don't know the user's auth state at
+ * render time. The button starts in a "loading" state, then on mount
+ * fetches the current save status from `app.parallaxlens.com/api/save/<id>`.
+ *
+ * States:
+ *   loading    → small spinner, no text yet
+ *   signedout  → "Sign in to save" (clicking redirects to /login?next=<here>)
+ *   unsaved    → "Save for later"   (clicking POSTs to toggle → saved)
+ *   saved      → "✓ Saved"          (clicking POSTs to toggle → unsaved)
+ *   error      → "Try again" (transient; click retries)
+ *
+ * Brand: matches the SkimToggle — small, monospace eyebrow, restrained.
+ * No counts, no public visibility — saving is private to the reader.
+ */
+
+interface Props {
+  /** Issue slug, e.g. 2026-04-24-delimitation */
+  issueId: string;
+}
+const { issueId } = Astro.props;
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<div class="px-save" data-issue-id={issueId} data-app-url={appUrl}>
+  <button
+    class="px-save__btn"
+    type="button"
+    data-state="loading"
+    aria-label="Save this issue"
+    aria-live="polite"
+  >
+    <span class="px-save__icon" aria-hidden="true"></span>
+    <span class="px-save__label">…</span>
+  </button>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    // Walk back to the most recent .px-save (the script's preceding sibling
+    // may be a text node depending on whitespace).
+    while (root && !(root.classList && root.classList.contains('px-save'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    var btn = root.querySelector('.px-save__btn');
+    var label = root.querySelector('.px-save__label');
+    if (!btn || !label || !issueId || !appUrl) return;
+
+    var apiUrl = appUrl + '/api/save/' + encodeURIComponent(issueId);
+
+    function setState(state, text) {
+      btn.dataset.state = state;
+      label.textContent = text;
+      // Loading is the only "no interaction" state.
+      btn.disabled = state === 'loading';
+      btn.setAttribute(
+        'aria-label',
+        state === 'saved'
+          ? 'Saved. Click to remove.'
+          : state === 'signedout'
+          ? 'Sign in to save this issue'
+          : 'Save this issue for later',
+      );
+    }
+
+    // Initial fetch — figure out current state.
+    fetch(apiUrl, { method: 'GET', credentials: 'include' })
+      .then(function (res) {
+        if (res.status === 401) {
+          setState('signedout', 'Sign in to save');
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        if (data.ok) {
+          setState(data.saved ? 'saved' : 'unsaved', data.saved ? 'Saved' : 'Save for later');
+        } else {
+          setState('error', 'Try again');
+        }
+      })
+      .catch(function () {
+        // Network failure — keep button usable; first click will retry.
+        setState('unsaved', 'Save for later');
+      });
+
+    btn.addEventListener('click', function () {
+      var state = btn.dataset.state;
+
+      if (state === 'signedout') {
+        // Send the reader to login with a return path back here.
+        var nextPath = window.location.pathname + window.location.search;
+        window.location.href =
+          appUrl + '/login?next=' + encodeURIComponent(nextPath);
+        return;
+      }
+
+      if (state === 'loading') return;
+
+      // Optimistic toggle: flip immediately, reconcile after request.
+      var optimisticSaved = state !== 'saved';
+      setState(optimisticSaved ? 'saved' : 'unsaved', optimisticSaved ? 'Saved' : 'Save for later');
+
+      fetch(apiUrl, { method: 'POST', credentials: 'include' })
+        .then(function (res) {
+          if (res.status === 401) {
+            setState('signedout', 'Sign in to save');
+            return null;
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          if (data.ok) {
+            setState(data.saved ? 'saved' : 'unsaved', data.saved ? 'Saved' : 'Save for later');
+          } else {
+            // Server rejected — revert
+            setState(optimisticSaved ? 'unsaved' : 'saved', 'Try again');
+          }
+        })
+        .catch(function () {
+          // Network failure — revert
+          setState(optimisticSaved ? 'unsaved' : 'saved', 'Try again');
+        });
+    });
+  })();
+</script>
+
+<style>
+  .px-save {
+    display: inline-flex;
+    align-items: center;
+  }
+  .px-save__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    line-height: 1;
+  }
+  .px-save__btn:hover:not(:disabled) {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+  .px-save__btn:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+  .px-save__icon {
+    display: inline-block;
+    width: 10px;
+    height: 12px;
+    flex-shrink: 0;
+    /* Bookmark outline — only one rendering, fills on saved */
+    background: transparent;
+    border: 1.5px solid currentColor;
+    border-bottom: none;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .px-save__btn[data-state="saved"] {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .px-save__btn[data-state="saved"]:hover {
+    color: var(--accent-deep, var(--accent));
+    border-color: var(--accent-deep, var(--accent));
+  }
+  .px-save__btn[data-state="saved"] .px-save__icon {
+    background: currentColor;
+  }
+  .px-save__btn[data-state="signedout"] {
+    color: var(--muted);
+  }
+  .px-save__btn[data-state="loading"] .px-save__icon {
+    animation: px-save-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes px-save-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+  }
+</style>
