@@ -1,6 +1,19 @@
 /// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
 
+import type { User, SupabaseClient } from '@supabase/supabase-js';
+
+declare global {
+  namespace App {
+    interface Locals {
+      /** Authenticated Supabase user, or null if anonymous. Populated by middleware. */
+      user: User | null;
+      /** Per-request Supabase client with the session cookie attached. */
+      supabase: SupabaseClient;
+    }
+  }
+}
+
 interface ImportMetaEnv {
   readonly PUBLIC_SUPABASE_URL: string;
   readonly PUBLIC_SUPABASE_ANON_KEY: string;
@@ -13,3 +26,5 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+export {};

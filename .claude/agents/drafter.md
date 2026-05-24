@@ -82,6 +82,52 @@ kids), `punchline`.
 **`match-stat-line`**, **`elevation-profile`** — topic-specific. Use
 only if the dossier's category matches the component's topic.
 
+### Step 2.5 — Write the Primer
+
+The `primer` field is a short plain-English on-ramp for readers who
+know nothing about the topic. It renders at the top of every issue,
+before the first section.
+
+**Rules for the primer:**
+
+- **80–420 characters** (strict — the schema enforces this)
+- **No acronyms** — spell out everything the first time. Not "ENSO",
+  "NALSA", "ISS" — use the full name or a plain description.
+- **No jargon** — if the word would need explaining, use a simpler word.
+  "Electoral map" not "delimitation." "Fundamental right" not "NALSA."
+- **No em-dashes** — commas and periods only.
+- **End with a forward gesture** — "This piece tracks...," "Here's
+  what happened," "These are the three things that changed."
+- **Not a summary** — the primer names the world the reader is entering,
+  not the argument the article makes. Think: "before you open the door,
+  here's what kind of building this is."
+
+Write the primer AFTER planning the sections (Step 2) and BEFORE
+writing the sections. The primer should be the simplest true sentence
+about the subject — what a smart stranger would need to know to not
+feel lost in the first 30 seconds of the article.
+
+**Examples (from published issues):**
+
+- (Delimitation) "India's Parliament has had the same 543 seats since
+  1976, frozen so states that reduced birth rates wouldn't lose political
+  power. The north grew much faster than the south since then. A bill to
+  redraw those seats, packaged with women's reservation, just failed by
+  54 votes."
+
+- (Kessler) "Low Earth orbit, 160 to 2,000 km up, is where GPS, weather
+  satellites, and the International Space Station operate. Every collision
+  there creates thousands of new fragments that can trigger more collisions.
+  Enough and orbit becomes unusable. Scientists call this Kessler Syndrome."
+
+Add the primer to the frontmatter as:
+```
+primer: "Your primer text here."
+```
+Place it after `readTimeMinutes:` and before `ogImage:` or `sections:`.
+
+---
+
 ### Step 3 — Write the frontmatter
 
 **Frontmatter rules:**
@@ -101,6 +147,7 @@ only if the dossier's category matches the component's topic.
 - `tags`: 4-6 lowercase hyphenated strings relevant to the topic
 - `readTimeMinutes`: estimate honestly (1 min ≈ 200 words of reading
   + time to absorb data sections; typical issue = 6-8 min)
+- `primer`: the on-ramp paragraph written in Step 2.5
 - `sections`: built below
 - `sources`: built from dossier §8 bibliography
 
@@ -127,14 +174,29 @@ strings from the dossier — do not paraphrase quotes, do not round
 numbers, do not merge separate facts.
 
 **Voice rules (non-negotiable):**
-- Structural, not journalistic. "The mechanism that makes X happen
-  is Y" not "X happened."
+- Structural, not journalistic. Show the mechanism; don't narrate the event.
 - No passive-voice filler: "it was passed", "it was noted" → rewrite
 - No rhetorical questions as section closers
 - No "In conclusion" / "This shows that" framing
 - Dates are exact when known; "approximately" when not
 - Numbers: lakh/crore for Indian figures; exact where available
 - Bold only for emphasis that changes the meaning, not for decoration
+
+**AI-tell rules (non-negotiable):**
+- **Max one em-dash per paragraph.** If a second em-dash appears,
+  restructure the clause. Commas and periods do the same work.
+- **No binary reframe as default closer.** "It is not X. It is Y." —
+  use at most once per issue, only when the reversal is the actual
+  structural argument. If it's just re-stating the intro inverted, cut.
+- **No triple-fragment close.** Three consecutive short sentences
+  closing a prose section is a tic, not a technique. One short landing
+  sentence is enough; expand the others.
+- **No abstract-noun jargon.** "Structural argument" → the claim.
+  "The mechanism" → describe it. "Rhetorical work" → what the section
+  does in plain words. If it can't be said in the kitchen, rewrite.
+- **No numbered manifesto in prose.** "First… Second… Third…" in
+  flowing sentences is a bullet list in disguise. Remove the ordinal
+  labels and interleave the ideas.
 
 ### Step 5 — Write the sources block
 

@@ -1,0 +1,222 @@
+---
+/**
+ * Anonymous newsletter signup form.
+ *
+ * Lives in the publication's footer. Sends an email address (no name, no
+ * topic preferences in v1) to the app subdomain at /api/subscribe. The
+ * app endpoint stores the row in newsletter_subscriptions and sends a
+ * Resend confirmation email (double opt-in).
+ *
+ * No third-party JS. Vanilla fetch from a small <script>.
+ */
+
+// Where to POST the subscription. In production this is the app subdomain;
+// in dev (running both servers locally) it's localhost:4322.
+const apiUrl =
+  (import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com') + '/api/subscribe';
+---
+
+<section class="px-newsletter" aria-labelledby="px-newsletter-title">
+  <div class="px-newsletter__inner">
+    <h2 class="px-newsletter__title" id="px-newsletter-title">
+      Stories, in your inbox.
+    </h2>
+    <p class="px-newsletter__dek">
+      One email when each new issue ships. No tracking pixels, no
+      retargeting, no third-party trackers. Unsubscribe in one click.
+    </p>
+
+    <form class="px-newsletter__form" id="px-newsletter-form" novalidate>
+      <label class="px-newsletter__label" for="px-newsletter-email">Your email</label>
+      <div class="px-newsletter__row">
+        <input
+          class="px-newsletter__input"
+          id="px-newsletter-email"
+          name="email"
+          type="email"
+          required
+          placeholder="you@example.com"
+          autocomplete="email"
+        />
+        <button class="px-newsletter__submit" type="submit">Subscribe</button>
+      </div>
+      <p class="px-newsletter__status" id="px-newsletter-status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<script is:inline data-api-url={apiUrl}>
+  (function () {
+    const script = document.currentScript;
+    const apiUrl = script.dataset.apiUrl;
+    const form = document.getElementById('px-newsletter-form');
+    const input = document.getElementById('px-newsletter-email');
+    const button = form?.querySelector('button[type="submit"]');
+    const status = document.getElementById('px-newsletter-status');
+
+    if (!form || !input || !button || !status) return;
+
+    const setStatus = function (text, kind) {
+      status.textContent = text;
+      status.className =
+        'px-newsletter__status' +
+        (kind === 'err'
+          ? ' px-newsletter__status--err'
+          : kind === 'ok'
+          ? ' px-newsletter__status--ok'
+          : '');
+    };
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = input.value.trim();
+      if (!email) {
+        setStatus('Please enter your email.', 'err');
+        return;
+      }
+
+      input.disabled = true;
+      button.disabled = true;
+      setStatus('Sending…');
+
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email }),
+        });
+        const data = await res.json().catch(function () { return {}; });
+
+        if (res.ok && data.ok) {
+          setStatus(
+            'Check your inbox for a confirmation link.',
+            'ok',
+          );
+          button.textContent = 'Sent';
+          input.value = '';
+        } else {
+          setStatus(
+            data.error || 'Could not subscribe. Try again in a moment.',
+            'err',
+          );
+          input.disabled = false;
+          button.disabled = false;
+        }
+      } catch (err) {
+        setStatus('Network error. Try again in a moment.', 'err');
+        input.disabled = false;
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
+
+<style>
+  .px-newsletter {
+    margin: 72px 0 48px;
+    padding: 36px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-newsletter__inner {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .px-newsletter__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 8px;
+  }
+  .px-newsletter__dek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    max-width: 52ch;
+  }
+
+  .px-newsletter__form {
+    margin: 0;
+  }
+  .px-newsletter__label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .px-newsletter__row {
+    display: flex;
+    gap: 0;
+  }
+  .px-newsletter__input {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 15px;
+    padding: 13px 16px;
+    border: 1px solid var(--rule);
+    border-right: none;
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 0;
+    min-width: 0;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .px-newsletter__input:focus {
+    border-color: var(--ink);
+  }
+  .px-newsletter__input:disabled {
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .px-newsletter__submit {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 13px 22px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+  }
+  .px-newsletter__submit:hover {
+    background: var(--accent-deep, #8b2416);
+    border-color: var(--accent-deep, #8b2416);
+  }
+  .px-newsletter__submit:disabled {
+    background: var(--muted);
+    border-color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .px-newsletter__status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 12px 0 0;
+    min-height: 1.2em;
+  }
+  .px-newsletter__status--ok { color: var(--accent-deep, #8b2416); }
+  .px-newsletter__status--err { color: #c0392b; }
+
+  @media (max-width: 480px) {
+    .px-newsletter { margin: 56px 0 32px; padding: 28px 0; }
+    .px-newsletter__title { font-size: 24px; }
+    .px-newsletter__row { flex-direction: column; gap: 8px; }
+    .px-newsletter__input { border-right: 1px solid var(--rule); }
+  }
+</style>

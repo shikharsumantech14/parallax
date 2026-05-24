@@ -16,20 +16,22 @@
  */
 export interface PipelineConfig {
   models: {
-    discovery:  string;
-    researcher: string;
-    drafter:    string;
-    stylist:    string;
-    verifier:   string;
+    discovery:    string;
+    researcher:   string;
+    drafter:      string;
+    stylist:      string;
+    illustrator:  string;
+    verifier:     string;
   };
 }
 
 export const CONFIG: PipelineConfig = {
   models: {
-    discovery:  'claude-sonnet-4-6',
-    researcher: 'claude-sonnet-4-6',
-    drafter:    'claude-opus-4-1',   // high-craft step — Opus recommended
-    stylist:    'claude-opus-4-1',   // high-craft step — Opus recommended
-    verifier:   'claude-sonnet-4-6',
+    discovery:   'claude-sonnet-4-6',
+    researcher:  'claude-sonnet-4-6',
+    drafter:     'claude-opus-4-1',   // high-craft step — Opus recommended
+    stylist:     'claude-opus-4-1',   // high-craft step — Opus recommended
+    illustrator: 'claude-opus-4-1',   // visual prompt craft — Opus recommended
+    verifier:    'claude-sonnet-4-6',
   },
 };

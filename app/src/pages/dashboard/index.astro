@@ -1,0 +1,177 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import { requireUser } from '../../lib/auth';
+
+/**
+ * "Your Parallax" dashboard — minimal v1.
+ *
+ * Shows: display name, email, saved-issues list (empty in Phase A),
+ * email-preferences toggles, account deletion. Reading-stats and topic
+ * affinity arrive in Phase B.
+ */
+
+const user = requireUser(Astro);
+const { supabase } = Astro.locals;
+
+// Fetch the matching profiles row. The auth trigger should have created it
+// on signup — but if for any reason it didn't, we fall back to user metadata.
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('display_name, email, email_prefs, created_at')
+  .eq('id', user.id)
+  .maybeSingle();
+
+if (profileError) {
+  console.error('[dashboard] profile fetch failed:', profileError.message);
+}
+
+const displayName =
+  profile?.display_name ||
+  (user.user_metadata?.name as string | undefined) ||
+  (user.user_metadata?.full_name as string | undefined) ||
+  null;
+
+const memberSince = profile?.created_at
+  ? new Date(profile.created_at)
+  : new Date(user.created_at);
+
+const memberSinceLabel = memberSince.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+});
+
+// Saved issues — empty in Phase A. Reads from saved_issues table.
+const { data: savedIssues, error: savedError } = await supabase
+  .from('saved_issues')
+  .select('issue_id, saved_at')
+  .order('saved_at', { ascending: false })
+  .limit(20);
+
+if (savedError) {
+  console.error('[dashboard] saved_issues fetch failed:', savedError.message);
+}
+
+const savedCount = savedIssues?.length ?? 0;
+
+// Email prefs — default to all-on if no row yet.
+const emailPrefs = (profile?.email_prefs as Record<string, boolean> | null) ?? {
+  weekly_digest: true,
+  issue_publish: true,
+  reengagement: true,
+};
+
+const noticeParam = Astro.url.searchParams.get('notice');
+const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
+---
+
+<AppLayout title="Your Parallax" description="Your reader dashboard.">
+  <p class="eyebrow">Your Parallax</p>
+  <h1>{displayName ? `Hello, ${displayName.split(' ')[0]}.` : 'Welcome back.'}</h1>
+  <p class="dek">
+    Your shelf and reading preferences. Everything stays on this page —
+    no popups, no nudges.
+  </p>
+
+  {noticeParam && (
+    <div class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'}`}>
+      {noticeParam}
+    </div>
+  )}
+
+  {/* ── Account ────────────────────────────────────────────────────── */}
+  <h2>Account</h2>
+  <div class="row">
+    <span class="row__label">Name</span>
+    <span class="row__value">{displayName ?? '—'}</span>
+  </div>
+  <div class="row">
+    <span class="row__label">Email</span>
+    <span class="row__value">{user.email}</span>
+  </div>
+  <div class="row">
+    <span class="row__label">Reader since</span>
+    <span class="row__value">{memberSinceLabel}</span>
+  </div>
+
+  {/* ── Saved issues ───────────────────────────────────────────────── */}
+  <h2>Saved issues {savedCount > 0 && <span style="font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.16em;">— {savedCount}</span>}</h2>
+  {savedCount === 0 ? (
+    <p class="empty">The shelf is empty. Pick one to begin →</p>
+  ) : (
+    <div>
+      {savedIssues!.map((s) => (
+        <div class="row">
+          <span class="row__label">{new Date(s.saved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}</span>
+          <a class="row__value" href={`${import.meta.env.PUBLIC_SITE_URL}/issues/${s.issue_id}/`} style="color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule);">{s.issue_id}</a>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* ── Email preferences ──────────────────────────────────────────── */}
+  <h2>Email preferences</h2>
+  <form id="prefs-form" method="post" action="/api/account/prefs">
+    <div class="row">
+      <label for="weekly_digest" class="row__label" style="cursor: pointer;">Weekly digest</label>
+      <input
+        type="checkbox"
+        id="weekly_digest"
+        name="weekly_digest"
+        checked={emailPrefs.weekly_digest}
+        style="margin: 0;"
+      />
+    </div>
+    <div class="row">
+      <label for="issue_publish" class="row__label" style="cursor: pointer;">New-issue alerts</label>
+      <input
+        type="checkbox"
+        id="issue_publish"
+        name="issue_publish"
+        checked={emailPrefs.issue_publish}
+        style="margin: 0;"
+      />
+    </div>
+    <div class="row">
+      <label for="reengagement" class="row__label" style="cursor: pointer;">Reading-streak reminders</label>
+      <input
+        type="checkbox"
+        id="reengagement"
+        name="reengagement"
+        checked={emailPrefs.reengagement}
+        style="margin: 0;"
+      />
+    </div>
+    <div style="margin-top: 16px;">
+      <button class="btn btn--ghost" type="submit">Save preferences</button>
+    </div>
+  </form>
+
+  {/* ── Account actions ────────────────────────────────────────────── */}
+  <h2>Account actions</h2>
+
+  <div style="margin-bottom: 24px;">
+    <form method="post" action="/api/auth/signout">
+      <button type="submit" class="btn btn--ghost">Sign out</button>
+    </form>
+  </div>
+
+  <details>
+    <summary style="cursor: pointer; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px;">
+      Delete account permanently
+    </summary>
+    <p style="font-size: 14px;">
+      This removes your profile, all saved issues, all reactions, all reading
+      events, and unsubscribes any newsletter address linked to your account.
+      Hard-deleted within 30 days; some data persists briefly in encrypted
+      backups, which expire automatically. This action cannot be undone.
+    </p>
+    <form
+      method="post"
+      action="/api/account/delete"
+      onsubmit="return confirm('Delete your Parallax account permanently? This cannot be undone.');"
+    >
+      <button type="submit" class="btn btn--danger">I understand — delete my account</button>
+    </form>
+  </details>
+</AppLayout>

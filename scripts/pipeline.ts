@@ -3,10 +3,12 @@
  * Parallax pipeline CLI — API-direct runner.
  *
  * Usage:
- *   npm run pipeline:discover <category>
- *   npm run pipeline:research <category>
- *   npm run pipeline:draft    <category>
- *   npm run pipeline:verify   <category>
+ *   npm run pipeline:discover    <category>
+ *   npm run pipeline:research    <category>
+ *   npm run pipeline:draft       <category>
+ *   npm run pipeline:stylist     <category>
+ *   npm run pipeline:illustrator <category>
+ *   npm run pipeline:verify      <category>
  *
  * Or the generic form:
  *   npm run pipeline -- <phase> <category> [--verbose]
@@ -24,6 +26,7 @@ import {
   buildResearchPrompt,
   buildDraftPrompt,
   buildStylePrompt,
+  buildIllustratorPrompt,
   buildVerifyPrompt,
   findMostRecent,
   findDraftIssue,
@@ -34,18 +37,19 @@ import { CONFIG }                                    from './pipeline.config.js'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const VALID_PHASES     = ['discover', 'research', 'draft', 'stylist', 'verify'] as const;
+const VALID_PHASES     = ['discover', 'research', 'draft', 'stylist', 'illustrator', 'verify'] as const;
 const VALID_CATEGORIES = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 
 type Phase    = typeof VALID_PHASES[number];
 type Category = typeof VALID_CATEGORIES[number];
 
 const PHASE_TO_AGENT: Record<Phase, keyof typeof CONFIG.models> = {
-  discover: 'discovery',
-  research: 'researcher',
-  draft:    'drafter',
-  stylist:  'stylist',
-  verify:   'verifier',
+  discover:    'discovery',
+  research:    'researcher',
+  draft:       'drafter',
+  stylist:     'stylist',
+  illustrator: 'illustrator',
+  verify:      'verifier',
 };
 
 const LINE = '─'.repeat(48);
@@ -62,11 +66,12 @@ function printUsage(): void {
   category: ${VALID_CATEGORIES.join(' | ')}
 
   Examples:
-    npm run pipeline:discover earth
-    npm run pipeline:research earth
-    npm run pipeline:draft    earth
-    npm run pipeline:stylist  earth
-    npm run pipeline:verify   earth
+    npm run pipeline:discover    earth
+    npm run pipeline:research    earth
+    npm run pipeline:draft       earth
+    npm run pipeline:stylist     earth
+    npm run pipeline:illustrator earth
+    npm run pipeline:verify      earth
 
   Or generic form:
     npm run pipeline -- discover earth --verbose
@@ -181,6 +186,21 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     prompt = buildStylePrompt(category, issueSlug);
+
+  } else if (phase === 'illustrator') {
+    const issueSlug   = findIssueByTopic(cwd, category);
+    const dossierFile = findMostRecent(join(cwd, 'research', category), '-dossier.md');
+    if (!issueSlug) {
+      console.error(`\x1b[31mError:\x1b[0m No issue found with topic: ${category}`);
+      console.error(`  Run first: npm run pipeline:draft ${category}`);
+      process.exit(1);
+    }
+    const visualLibPath = join(cwd, 'research', '_voice', 'visual-mode-library.md');
+    if (!existsSync(visualLibPath)) {
+      console.error(`\x1b[31mError:\x1b[0m Visual mode library not found at research/_voice/visual-mode-library.md`);
+      process.exit(1);
+    }
+    prompt = buildIllustratorPrompt(category, issueSlug, dossierFile);
 
   } else {
     // verify

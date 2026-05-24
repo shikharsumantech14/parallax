@@ -1,105 +1,54 @@
 ---
+import AppLayout from '../layouts/AppLayout.astro';
+
 /**
  * app.parallaxlens.com root.
  *
- * Phase A v0: placeholder landing. Future: redirect to /dashboard if
- * authenticated, /login otherwise.
+ * Logged in → /dashboard
+ * Logged out → friendly landing with "Sign in" CTA
  */
+
+const { user } = Astro.locals;
+
+if (user) {
+  return Astro.redirect('/dashboard');
+}
+
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Parallax — your reader account</title>
-    <meta name="description" content="The reader account layer for Parallax Lens." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
-    <style>
-      :root {
-        --bg: #faf7f0;
-        --ink: #15130f;
-        --ink-soft: #3d352c;
-        --muted: #7a6d5e;
-        --rule: #d8cfbf;
-        --accent: #b8341f;
-        --font-display: 'Fraunces', Georgia, serif;
-        --font-body: 'Inter Tight', system-ui, sans-serif;
-        --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-      }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
-      body {
-        font-family: var(--font-body);
-        font-size: 16px;
-        line-height: 1.6;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 48px 24px;
-      }
-      .wrap { max-width: 480px; width: 100%; }
-      .mast {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 28px;
-        padding-bottom: 14px;
-        border-bottom: 2px solid var(--ink);
-      }
-      h1 {
-        font-family: var(--font-display);
-        font-weight: 500;
-        font-size: 36px;
-        line-height: 1.15;
-        letter-spacing: -0.01em;
-        margin: 0 0 16px;
-        color: var(--ink);
-      }
-      h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
-      p { color: var(--ink-soft); margin: 0 0 20px; max-width: 36ch; }
-      a.back {
-        display: inline-block;
-        font-family: var(--font-mono);
-        font-size: 12px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-        text-decoration: none;
-        border-bottom: 1px solid var(--rule);
-        padding-bottom: 4px;
-        transition: color 0.15s ease, border-color 0.15s ease;
-      }
-      a.back:hover { color: var(--accent); border-bottom-color: var(--accent); }
-      .meta {
-        margin-top: 40px;
-        font-family: var(--font-mono);
-        font-size: 11px;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="mast">PARALLAX · YOUR ACCOUNT</div>
-      <h1>The reader account layer is being <em>assembled</em>.</h1>
-      <p>
-        This subdomain hosts the login, dashboard, and newsletter
-        preferences for Parallax Lens. The publication itself lives
-        elsewhere — and stays exactly as it was.
-      </p>
-      <a class="back" href={siteUrl}>← Back to the publication</a>
-      <div class="meta">Phase A — foundation · scaffolded 2026-05-24</div>
-    </div>
-  </body>
-</html>
+<AppLayout title="Your reader account">
+  <p class="eyebrow">Your account</p>
+  <h1>Open a <em>shelf</em> for what you read.</h1>
+  <p class="dek">
+    Free, no ads, no trackers. One sign-in to save issues across the six topic
+    worlds, follow the topics you care about, and pick up where you left off.
+  </p>
+
+  <div style="margin-top: var(--gap-md); display: flex; gap: 12px; flex-wrap: wrap;">
+    <a class="btn" href="/login">Sign in</a>
+    <a class="btn btn--ghost" href={siteUrl}>Browse the publication →</a>
+  </div>
+
+  <hr />
+
+  <p class="eyebrow">What an account unlocks</p>
+  <div class="row">
+    <span class="row__label">Save for later</span>
+    <span class="row__value">Bookmark any issue to your shelf</span>
+  </div>
+  <div class="row">
+    <span class="row__label">Newsletter</span>
+    <span class="row__value">Per-issue or weekly, your call</span>
+  </div>
+  <div class="row">
+    <span class="row__label">Reading history</span>
+    <span class="row__value">Only you can see it; never sold</span>
+  </div>
+  <div class="row">
+    <span class="row__label">Delete any time</span>
+    <span class="row__value">30-day hard delete commitment</span>
+  </div>
+
+  <a class="app-back" href={siteUrl}>← Back to the publication</a>
+</AppLayout>

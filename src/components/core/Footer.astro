@@ -1,10 +1,37 @@
 ---
+import NewsletterForm from './NewsletterForm.astro';
+
 const year = new Date().getFullYear();
+
+// Toggle the newsletter form per route. Default on.
+interface Props {
+  newsletter?: boolean;
+}
+const { newsletter = true } = Astro.props;
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
 ---
 
+{newsletter && <NewsletterForm />}
+
 <footer class="px-foot">
-  <span>© {year} Parallax Lens</span>
-  <span>
-    <a href="/">Home</a> · <a href="/rss.xml">RSS</a> · <a href="/about">About</a>
+  <span>© {year} Parallax Lens™</span>
+  <span class="px-foot__links">
+    <a href="/">Home</a>
+    <span class="px-foot__sep">·</span>
+    <a href="/about/">About</a>
+    <span class="px-foot__sep">·</span>
+    <a href="/about/privacy/">Privacy</a>
+    <span class="px-foot__sep">·</span>
+    <a href="/about/terms/">Terms</a>
+    <span class="px-foot__sep">·</span>
+    <a href="/rss.xml">RSS</a>
+    <span class="px-foot__sep">·</span>
+    <a href={appUrl}>Your account</a>
   </span>
 </footer>
+
+<style>
+  .px-foot__links { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .px-foot__sep { color: var(--rule); }
+</style>

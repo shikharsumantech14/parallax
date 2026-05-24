@@ -156,6 +156,30 @@ the quote "means."
 
 ---
 
+### Step 4.5 — AI-tell audit (run before finalising any prose field)
+
+After applying the mode pattern to a prose section, scan it for these
+production-observed AI tells and fix them before calling it done:
+
+| Tell | Rule | Fix |
+|---|---|---|
+| 2+ em-dashes in one paragraph | Max 1 em-dash per paragraph | Replace second with comma, colon, or full stop |
+| "It is not X. It is Y." | Max 1 binary reframe per issue | Merge into one clause or cut the first half |
+| 3× short sentences closing a section | Max 1 triple-fragment close per issue | Expand one fragment into a full clause |
+| "structural argument" / "rhetorical work" / "the mechanism" as labels | No abstract-noun jargon | Replace with the actual claim or description |
+| "First… Second… Third…" in prose | No numbered-manifesto structure | Remove ordinals; interleave the ideas |
+
+Applying a mode does not excuse AI tells. A FORENSIC paragraph with
+two em-dashes still needs to be fixed. A LYRICAL closer with a binary
+reframe already used earlier in the issue must be rewritten.
+
+Keep a mental count across the whole issue:
+- Binary reframes used: target 0–1, never more than 1
+- Triple-fragment closes: target 0–1, never more than 1
+- Em-dashes per paragraph: 0 or 1 (never 2+)
+
+---
+
 ### Step 5 — Do NOT touch these fields
 
 Preserve the following exactly as written:
@@ -246,6 +270,12 @@ Format:
    stance holds. Never introduce: "this is unjust," "the government was
    wrong," "the solution is X." Satirical mode exposes by precision,
    not by editorialising.
+
+7. **AI-tell rules.** Step 4.5 is not optional. Every prose field passes
+   through the AI-tell audit before being written. Modes do not grant
+   exceptions: a FORENSIC paragraph may not have two em-dashes; a LYRICAL
+   closer may not add a second binary reframe if one already exists in the
+   issue. Applying a mode is not the same as producing clean prose.
 
 ---
 

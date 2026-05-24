@@ -33,6 +33,80 @@ Five voices, one piece, blended at the seams. That is the goal.
 
 ---
 
+## Voice rules — what to avoid
+
+These are production-observed AI-tell patterns. The stylist agent checks
+every prose field against this list as a final pass before returning its
+summary. The drafter agent keeps this list open while writing every section.
+
+### AI-tell catalog
+
+**1. Em-dash overload**
+*Pattern:* more than one em-dash per paragraph; em-dashes used as a
+substitute for subordinate clauses.
+*Why it happens:* Mode 2 (Conversational Explainer) lists em-dashes as
+welcome — correct, but not as the primary rhythm tool.
+*Fix:* maximum **one em-dash per paragraph**, across all modes. If a
+second em-dash would appear, restructure the clause. Commas and periods
+do the same work 90% of the time.
+
+**2. Binary reframe as default closer**
+*Pattern:* "It is not X. It is Y." — the neat inversion that announces
+itself as a revelation.
+*Why it happens:* AWE mode's closer template ("This is [plain noun]") and
+FORENSIC mode's short-landing instruction both nudge toward two-sentence
+reversals.
+*Fix:* use binary reframe at most **once per issue**, and only when the
+reversal is the actual structural argument — not decorative punctuation. If
+the reversal is just re-stating the intro in inverted form, cut it entirely.
+
+**3. Triple-fragment closer**
+*Pattern:* three consecutive short sentences (5–8 words each) at the end
+of a prose section — a rhythmic tic that reads as "and now the AI is
+doing its closing move."
+*Why it happens:* LYRICAL COMPRESSION's "fragment + long breath + fragment"
+pattern gets applied at the end of FORENSIC sections by mistake.
+*Fix:* maximum **one triple-fragment close per issue**. If you have more,
+expand at least one of the fragments into a full clause.
+
+**4. Abstract noun jargon**
+*Pattern:* "structural argument," "rhetorical work," "energy imbalance as
+a concept," "the mechanism that drives X" — using technical register to
+describe what should be shown.
+*Why it happens:* FORENSIC mode trusts the reader and avoids glossing, which
+can slip into using technical labels as shorthand.
+*Fix:* if it can't be said in the kitchen, rewrite. "The structural argument"
+→ "the point." "The mechanism" → describe the mechanism in one clause. Never
+use a technical term as a substitute for the explanation.
+
+**5. Numbered-manifesto rhythm in prose**
+*Pattern:* three-point prose structures that read as bullet points in
+flowing-text disguise: "First, X. Second, Y. Third, Z." / "The timeline.
+The numbers. The forecast." / "One mechanism. One question. One direction."
+*Why it happens:* FORENSIC mode's "scene-setting → analysis → landing"
+paragraph structure gets mis-read as a permission to list three things.
+*Fix:* the three-movement paragraph structure describes *weight*, not *list*.
+Each movement must contain a full scene or claim, not a label.
+
+**6. The "not X / it is Y" binary used on the same concept twice**
+*Pattern:* a piece has both "This is not an oscillation. It is a staircase."
+and "The surface is not the cause. The reservoir is." — parallel reversals
+stacked across sections.
+*Fix:* one binary reframe per issue, applied once. If a second reversal
+seems necessary, it means the first wasn't placed correctly.
+
+### Quick correction table
+
+| AI tell found | Rewrite move |
+|---|---|
+| 2+ em-dashes in a paragraph | Replace second with comma, colon, or full stop |
+| "It is not X. It is Y." | Either merge into one clause or cut the first half |
+| 3× short sentences closing a section | Expand one fragment into a full clause |
+| "structural argument" / "rhetorical work" | Replace with the actual claim |
+| "First… Second… Third…" structure | Interleave; remove the ordinal labels |
+
+---
+
 ## How to use this library
 
 **Step 1: Tag each section with a mode.** Look at what rhetorical work

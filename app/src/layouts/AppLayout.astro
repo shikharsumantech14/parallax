@@ -1,0 +1,59 @@
+---
+/**
+ * Shared layout for the app subdomain.
+ *
+ * All auth + dashboard pages use this to keep the masthead, footer,
+ * and typography consistent. The masthead links back to the publication.
+ */
+import '../styles/app.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Optional eyebrow shown above the page title; defaults to "PARALLAX — YOUR ACCOUNT". */
+  eyebrow?: string;
+}
+
+const {
+  title,
+  description = 'The reader account layer for Parallax Lens.',
+  eyebrow = 'PARALLAX · YOUR ACCOUNT',
+} = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Parallax Lens</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <main class="app-shell">
+      <div class="app-masthead">
+        <a class="app-masthead__brand" href={siteUrl}>{eyebrow}</a>
+        <span class="app-masthead__meta">EST. 2026</span>
+      </div>
+
+      <slot />
+
+      <footer class="app-footer">
+        © {year} PARALLAX LENS™ &middot;
+        <a href={`${siteUrl}/about/privacy/`} style="color: inherit; text-decoration: underline; text-underline-offset: 2px;">Privacy</a> &middot;
+        <a href={`${siteUrl}/about/terms/`} style="color: inherit; text-decoration: underline; text-underline-offset: 2px;">Terms</a>
+      </footer>
+    </main>
+  </body>
+</html>
