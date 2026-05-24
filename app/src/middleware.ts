@@ -26,5 +26,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.user = user;
   context.locals.supabase = supabase;
 
-  return next();
+  const response = await next();
+
+  // The app subdomain serves reader-account surfaces only. Never let the
+  // browser (or any intermediate cache) hold onto the response — otherwise
+  // the back button after sign-out shows a stale logged-in page.
+  // `private` = don't cache in shared caches (CDNs); `no-store` = don't
+  // store at all, not even in browser history navigation.
+  response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+
+  return response;
 });

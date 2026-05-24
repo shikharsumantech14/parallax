@@ -100,7 +100,12 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
   if (upsertError) {
-    console.error('[api/subscribe] upsert failed:', upsertError.message);
+    console.error('[api/subscribe] upsert failed:', JSON.stringify({
+      message: upsertError.message,
+      code: upsertError.code,
+      details: upsertError.details,
+      hint: upsertError.hint,
+    }));
     return jsonResponse(500, { ok: false, error: 'Could not save subscription. Try again.' }, cors);
   }
 
