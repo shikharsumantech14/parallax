@@ -118,8 +118,8 @@ const KINDS = [
         if (!kind) return;
 
         if (state.signedOut) {
-          var nextPath = window.location.pathname + window.location.search;
-          window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextPath);
+          var nextUrl = window.location.href;
+          window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
           return;
         }
 
@@ -142,8 +142,8 @@ const KINDS = [
           .then(function (res) {
             if (res.status === 401) {
               state.signedOut = true;
-              var nextPath = window.location.pathname + window.location.search;
-              window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextPath);
+              var nextUrl = window.location.href;
+              window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
               return null;
             }
             return res.json();

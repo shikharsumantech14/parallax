@@ -98,10 +98,12 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
       var state = btn.dataset.state;
 
       if (state === 'signedout') {
-        // Send the reader to login with a return path back here.
-        var nextPath = window.location.pathname + window.location.search;
+        // Send the reader to login with the FULL URL of this page (different
+        // origin than the app subdomain). safeNextPath on the app side
+        // allow-lists parallaxlens.com so the round-trip works.
+        var nextUrl = window.location.href;
         window.location.href =
-          appUrl + '/login?next=' + encodeURIComponent(nextPath);
+          appUrl + '/login?next=' + encodeURIComponent(nextUrl);
         return;
       }
 
