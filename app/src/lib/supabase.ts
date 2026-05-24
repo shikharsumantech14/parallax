@@ -34,6 +34,19 @@ function assertEnv(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(`Missing env: ${name}. See app/.env.example.`);
   }
+  // Catch contaminated paste-jobs in deployment env vars: newlines, leading/trailing
+  // whitespace, or values that look like the same token concatenated. These cause
+  // cryptic HTTP-library errors deep inside Supabase rather than a clear signal
+  // at the boundary. Surface them at startup instead.
+  if (/[\n\r]/.test(value)) {
+    throw new Error(
+      `Env ${name} contains a line break. It was probably pasted as multiple lines into the host's UI. ` +
+        `Re-paste as one continuous line.`,
+    );
+  }
+  if (value !== value.trim()) {
+    throw new Error(`Env ${name} has leading or trailing whitespace. Re-paste it cleanly.`);
+  }
   return value;
 }
 
