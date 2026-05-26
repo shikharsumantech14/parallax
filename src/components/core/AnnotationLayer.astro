@@ -1,0 +1,573 @@
+---
+/**
+ * AnnotationLayer — selection-aware client island for capturing and
+ * displaying margin notes on issue pages.
+ *
+ * Capture flow:
+ *   1. Reader selects text inside the article body
+ *   2. A floating "+ Margin note" pill appears just above the selection
+ *   3. Click → an inline editor opens with the quoted selection at top
+ *   4. Reader types a note → submits
+ *   5. POST to app subdomain → row saved with anchor JSON
+ *   6. Toast confirmation; the editor sees it in the moderation queue
+ *
+ * Display flow (this version — annotations are private to author until
+ * editor promotes):
+ *   1. On page load, GET own annotations + approved annotations
+ *   2. Render as a list below the ReactionsBar section
+ *   3. Public approved annotations later rendered as in-margin notes (next session)
+ *
+ * Anchor JSON shape stored (W3C TextQuoteSelector subset):
+ *   { exact: string, before: string, after: string, section_index?: number }
+ */
+
+interface Props {
+  issueId: string;
+}
+const { issueId } = Astro.props;
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<section class="px-annot" data-issue-id={issueId} data-app-url={appUrl} aria-labelledby="px-annot-title">
+  {/* Selection popover — moved into view by JS when text is selected */}
+  <div class="px-annot__pop" id="px-annot-pop" role="dialog" aria-hidden="true">
+    <button class="px-annot__pop-btn" type="button" id="px-annot-pop-btn">
+      <span aria-hidden="true">＋</span>
+      <span>Margin note</span>
+    </button>
+  </div>
+
+  {/* Inline editor opened after popover click */}
+  <div class="px-annot__editor" id="px-annot-editor" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="px-annot-editor-title">
+    <div class="px-annot__editor-inner">
+      <div class="px-annot__editor-eyebrow" id="px-annot-editor-title">YOUR MARGIN NOTE</div>
+      <blockquote class="px-annot__editor-quote" id="px-annot-editor-quote"></blockquote>
+      <textarea
+        class="px-annot__editor-input"
+        id="px-annot-editor-input"
+        placeholder="What does this passage make you think? (Private by default — the editor sees it; readers don't, until the editor promotes it to a public margin note.)"
+        maxlength="2000"
+        rows="4"
+      ></textarea>
+      <div class="px-annot__editor-meta">
+        <span class="px-annot__editor-count" id="px-annot-editor-count">0 / 2000</span>
+      </div>
+      <div class="px-annot__editor-actions">
+        <button type="button" class="px-annot__editor-cancel" id="px-annot-editor-cancel">Cancel</button>
+        <button type="button" class="px-annot__editor-save" id="px-annot-editor-save">Save note</button>
+      </div>
+      <p class="px-annot__editor-status" id="px-annot-editor-status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  {/* Annotation list — own pending + everyone's approved */}
+  <h2 class="px-annot__title" id="px-annot-title">Margin notes</h2>
+  <p class="px-annot__dek">
+    Highlight any sentence above to leave a private note. Approved notes from
+    other readers will appear here.
+  </p>
+  <div class="px-annot__list" id="px-annot-list">
+    <p class="px-annot__empty" id="px-annot-empty">
+      <em>No margin notes yet. Select a passage above to write the first.</em>
+    </p>
+  </div>
+</section>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-annot'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    if (!issueId || !appUrl) return;
+
+    var apiUrl = appUrl + '/api/annotations/' + encodeURIComponent(issueId);
+    var article = document.getElementById('px-article');
+    if (!article) return;
+
+    var pop = document.getElementById('px-annot-pop');
+    var popBtn = document.getElementById('px-annot-pop-btn');
+    var editor = document.getElementById('px-annot-editor');
+    var editorQuote = document.getElementById('px-annot-editor-quote');
+    var editorInput = document.getElementById('px-annot-editor-input');
+    var editorCount = document.getElementById('px-annot-editor-count');
+    var editorCancel = document.getElementById('px-annot-editor-cancel');
+    var editorSave = document.getElementById('px-annot-editor-save');
+    var editorStatus = document.getElementById('px-annot-editor-status');
+    var list = document.getElementById('px-annot-list');
+    var empty = document.getElementById('px-annot-empty');
+
+    var currentAnchor = null;     // { exact, before, after, section_index }
+    var signedOut = false;        // updated after first GET
+
+    function hidePop() {
+      pop.classList.remove('is-open');
+      pop.setAttribute('aria-hidden', 'true');
+    }
+    function showPopAt(x, y) {
+      pop.style.left = Math.round(x) + 'px';
+      pop.style.top = Math.round(y) + 'px';
+      pop.classList.add('is-open');
+      pop.setAttribute('aria-hidden', 'false');
+    }
+    function openEditor(anchor) {
+      currentAnchor = anchor;
+      editorQuote.textContent = '“' + anchor.exact + '”';
+      editorInput.value = '';
+      editorCount.textContent = '0 / 2000';
+      editorStatus.textContent = '';
+      editor.classList.add('is-open');
+      editor.setAttribute('aria-hidden', 'false');
+      // Defer focus to next tick so the transition can land
+      setTimeout(function () { editorInput.focus(); }, 60);
+    }
+    function closeEditor() {
+      editor.classList.remove('is-open');
+      editor.setAttribute('aria-hidden', 'true');
+      currentAnchor = null;
+    }
+
+    // ── Selection capture ──
+    function captureSelection() {
+      var sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+        hidePop();
+        return null;
+      }
+      var range = sel.getRangeAt(0);
+      // Only honour selections that start AND end inside the article body
+      if (
+        !article.contains(range.startContainer) ||
+        !article.contains(range.endContainer)
+      ) {
+        hidePop();
+        return null;
+      }
+      var exact = sel.toString().trim();
+      if (exact.length < 4 || exact.length > 1000) {
+        hidePop();
+        return null;
+      }
+
+      // Find some surrounding context for robustness against minor edits
+      var before = '';
+      var after = '';
+      try {
+        var contextRange = range.cloneRange();
+        contextRange.setStart(article, 0);
+        before = contextRange.toString().slice(-80);
+        contextRange.setStart(range.endContainer, range.endOffset);
+        contextRange.setEnd(article, article.childNodes.length);
+        after = contextRange.toString().slice(0, 80);
+      } catch (_) {
+        before = '';
+        after = '';
+      }
+
+      // Find which section this selection is anchored to, for fallback positioning
+      var sectionIndex = null;
+      var node = range.startContainer;
+      while (node && node !== article) {
+        if (node.dataset && node.dataset.sectionIndex != null) {
+          sectionIndex = parseInt(node.dataset.sectionIndex, 10);
+          if (isNaN(sectionIndex)) sectionIndex = null;
+          break;
+        }
+        node = node.parentNode;
+      }
+
+      // Position the popover above the selection
+      var rect = range.getBoundingClientRect();
+      if (rect && (rect.width > 0 || rect.height > 0)) {
+        var scrollY = window.scrollY || window.pageYOffset || 0;
+        var scrollX = window.scrollX || window.pageXOffset || 0;
+        var x = rect.left + scrollX + rect.width / 2 - 70; // popover ≈ 140px wide
+        var y = rect.top + scrollY - 44;
+        showPopAt(Math.max(8, x), Math.max(8, y));
+      }
+
+      return {
+        exact: exact,
+        before: before.trim().slice(-80),
+        after: after.trim().slice(0, 80),
+        section_index: sectionIndex,
+      };
+    }
+
+    var lastAnchor = null;
+    document.addEventListener('mouseup', function () {
+      // Defer so the selection has settled
+      setTimeout(function () {
+        lastAnchor = captureSelection();
+      }, 10);
+    });
+    document.addEventListener('selectionchange', function () {
+      var sel = window.getSelection();
+      if (!sel || sel.isCollapsed) hidePop();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        hidePop();
+        if (editor.classList.contains('is-open')) closeEditor();
+      }
+    });
+
+    // Popover click → open editor
+    popBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!lastAnchor) return;
+      hidePop();
+
+      if (signedOut) {
+        var nextUrl = window.location.href;
+        window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+        return;
+      }
+
+      openEditor(lastAnchor);
+    });
+
+    // Editor cancel + char count
+    editorCancel.addEventListener('click', closeEditor);
+    editorInput.addEventListener('input', function () {
+      editorCount.textContent = editorInput.value.length + ' / 2000';
+    });
+
+    // Editor save
+    editorSave.addEventListener('click', function () {
+      if (!currentAnchor) return;
+      var text = editorInput.value.trim();
+      if (!text) {
+        editorStatus.textContent = 'A note can\'t be empty.';
+        editorStatus.className = 'px-annot__editor-status px-annot__editor-status--err';
+        return;
+      }
+      editorSave.disabled = true;
+      editorCancel.disabled = true;
+      editorStatus.textContent = 'Saving…';
+      editorStatus.className = 'px-annot__editor-status';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body_md: text, anchor: currentAnchor }),
+      })
+        .then(function (res) {
+          if (res.status === 401) {
+            signedOut = true;
+            var nextUrl = window.location.href;
+            window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+            return null;
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          if (data.ok && data.annotation) {
+            // Optimistically prepend to list
+            renderAnnotation(data.annotation, true);
+            closeEditor();
+          } else {
+            editorStatus.textContent = data.error || 'Could not save note.';
+            editorStatus.className = 'px-annot__editor-status px-annot__editor-status--err';
+          }
+        })
+        .catch(function () {
+          editorStatus.textContent = 'Network error. Try again.';
+          editorStatus.className = 'px-annot__editor-status px-annot__editor-status--err';
+        })
+        .finally(function () {
+          editorSave.disabled = false;
+          editorCancel.disabled = false;
+        });
+    });
+
+    // ── Rendering existing annotations ──
+    function renderAnnotation(a, prepend) {
+      if (!a || !a.anchor || !a.body_md) return;
+      empty.style.display = 'none';
+
+      var item = document.createElement('article');
+      item.className = 'px-annot__item';
+      item.dataset.status = a.status || 'pending';
+
+      var meta = document.createElement('div');
+      meta.className = 'px-annot__item-meta';
+      var when = a.created_at ? new Date(a.created_at).toLocaleDateString(
+        'en-US', { month: 'short', day: '2-digit' }
+      ) : '';
+      var statusLabel = a.status === 'approved' ? 'Public · ' : 'Private · ';
+      meta.textContent = statusLabel + when;
+      item.appendChild(meta);
+
+      var quote = document.createElement('blockquote');
+      quote.className = 'px-annot__item-quote';
+      quote.textContent = '“' + (a.anchor.exact || '') + '”';
+      item.appendChild(quote);
+
+      var body = document.createElement('p');
+      body.className = 'px-annot__item-body';
+      body.textContent = a.body_md;
+      item.appendChild(body);
+
+      if (prepend && list.firstChild && list.firstChild !== empty) {
+        list.insertBefore(item, list.firstChild);
+      } else if (prepend) {
+        list.appendChild(item);
+      } else {
+        list.appendChild(item);
+      }
+    }
+
+    fetch(apiUrl, { method: 'GET', credentials: 'include' })
+      .then(function (res) {
+        signedOut = res.status === 401;
+        return res.ok ? res.json() : null;
+      })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var all = [].concat(data.approved || []).concat(data.mine || []);
+        // Sort chronologically: oldest first (matches reading order)
+        all.sort(function (a, b) {
+          return (a.created_at || '').localeCompare(b.created_at || '');
+        });
+        if (all.length > 0) {
+          all.forEach(function (a) { renderAnnotation(a, false); });
+        }
+      })
+      .catch(function () {
+        // Network failure — leave empty state in place
+      });
+  })();
+</script>
+
+<style>
+  .px-annot {
+    margin: 56px 0 32px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  .px-annot__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .px-annot__dek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    max-width: 54ch;
+  }
+
+  /* ── Selection popover ────────────────────────────────────────────── */
+  .px-annot__pop {
+    position: absolute;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease-out, transform 120ms ease-out;
+    transform: translateY(4px);
+  }
+  .px-annot__pop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .px-annot__pop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    line-height: 1;
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.45);
+    transition: background 0.12s ease;
+  }
+  .px-annot__pop-btn:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
+  .px-annot__pop-btn span:first-child { font-size: 13px; }
+
+  /* ── Inline editor ────────────────────────────────────────────────── */
+  .px-annot__editor {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 18, 14, 0.42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease-out;
+  }
+  .px-annot__editor.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .px-annot__editor-inner {
+    background: var(--paper);
+    padding: 28px 32px 24px;
+    max-width: 560px;
+    width: 100%;
+    border: 1px solid var(--rule);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .px-annot__editor-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .px-annot__editor-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    padding: 14px 16px;
+    margin: 0 0 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--bg);
+  }
+  .px-annot__editor-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    border-radius: 0;
+    resize: vertical;
+    min-height: 100px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .px-annot__editor-input:focus { border-color: var(--ink); }
+  .px-annot__editor-meta {
+    display: flex;
+    justify-content: flex-end;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin: 6px 0 14px;
+  }
+  .px-annot__editor-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .px-annot__editor-cancel,
+  .px-annot__editor-save {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border-radius: 0;
+    cursor: pointer;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+  .px-annot__editor-cancel:hover { color: var(--accent); border-color: var(--accent); }
+  .px-annot__editor-save {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .px-annot__editor-save:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
+  .px-annot__editor-save:disabled,
+  .px-annot__editor-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .px-annot__editor-status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin: 12px 0 0;
+    min-height: 1.2em;
+  }
+  .px-annot__editor-status--err { color: #c0392b; }
+
+  /* ── Annotation list ──────────────────────────────────────────────── */
+  .px-annot__list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .px-annot__empty {
+    color: var(--muted);
+    margin: 0;
+    font-size: 15px;
+  }
+  .px-annot__item {
+    padding: 16px 0 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-annot__item:last-child { border-bottom: none; }
+  .px-annot__item-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .px-annot__item[data-status="approved"] .px-annot__item-meta { color: var(--accent); }
+  .px-annot__item-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+    padding: 0 0 0 14px;
+    border-left: 2px solid var(--rule);
+    max-width: 60ch;
+  }
+  .px-annot__item-body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  @media (max-width: 480px) {
+    .px-annot { margin: 40px 0 24px; padding-top: 24px; }
+    .px-annot__title { font-size: 19px; }
+    .px-annot__editor-inner { padding: 22px 18px 18px; }
+  }
+</style>
