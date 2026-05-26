@@ -1,0 +1,208 @@
+---
+/**
+ * ReadingTracker — invisible client island that records reader interactions.
+ *
+ * Fires these events per page load:
+ *   - open                  (immediately after JS bootstraps)
+ *   - scroll_25 / scroll_75 (when the reader scrolls past 25% / 75% of article)
+ *   - finish                (when the reader reaches the end-of-article sentinel)
+ *   - source_click          (when the reader clicks any link in .px-sources)
+ *   - share                 (when navigator.share is invoked OR a share button is clicked)
+ *
+ * Each event posts to `app.parallaxlens.com/api/events`. Authenticated
+ * sessions are tracked via cookie (credentials: 'include'). Anonymous
+ * sessions are tracked via a 90-day cookie `px_anon_id` scoped to
+ * .parallaxlens.com (set by this script on first visit).
+ *
+ * Each event kind fires at most once per page load (dedup via Set).
+ * Network failures are silent — analytics must never break the reader's
+ * experience.
+ *
+ * The component renders a single inert <span> sentinel at the end of
+ * the article body so the IntersectionObserver has something to watch
+ * for the `finish` event. That sentinel must be inside the article body
+ * but after all content — placement is in the issue layout, not here.
+ */
+
+interface Props {
+  issueId: string;
+}
+const { issueId } = Astro.props;
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<span class="px-reading-tracker" data-issue-id={issueId} data-app-url={appUrl} hidden></span>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-reading-tracker'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    if (!issueId || !appUrl) return;
+
+    var apiUrl = appUrl + '/api/events';
+    var COOKIE_NAME = 'px_anon_id';
+    var COOKIE_DAYS = 90;
+    var fired = {}; // event kind → true, dedup
+
+    function uuidV4() {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      // Fallback for old browsers — still RFC 4122 v4 shape
+      return ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        var v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    function getOrCreateAnonId() {
+      // Read cookie
+      var match = document.cookie.match(/(?:^|;\s*)px_anon_id=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]);
+
+      // Set new cookie scoped to .parallaxlens.com if in production, else current host
+      var id = uuidV4();
+      var expires = new Date(Date.now() + COOKIE_DAYS * 86400000).toUTCString();
+      var isProd = window.location.hostname.indexOf('parallaxlens.com') !== -1;
+      var domain = isProd ? '; domain=.parallaxlens.com' : '';
+      document.cookie =
+        COOKIE_NAME + '=' + encodeURIComponent(id) +
+        '; path=/; expires=' + expires +
+        '; SameSite=Lax' +
+        (window.location.protocol === 'https:' ? '; Secure' : '') +
+        domain;
+      return id;
+    }
+
+    var anonId = getOrCreateAnonId();
+
+    function record(kind, meta) {
+      if (fired[kind]) return; // dedup
+      fired[kind] = true;
+      try {
+        fetch(apiUrl, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          // Use keepalive so events fire even during navigation away
+          keepalive: true,
+          body: JSON.stringify({
+            issueId: issueId,
+            eventKind: kind,
+            anonId: anonId,
+            meta: meta || {},
+          }),
+        }).catch(function () {
+          // Silent fail — analytics never interrupt reading
+        });
+      } catch (_) {
+        // Ditto
+      }
+    }
+
+    // ── 1. open — fire after a 500ms dwell to filter out bot/quick-bounce hits ──
+    setTimeout(function () {
+      // Only fire if document is still visible (not a tab restored from
+      // background, not a prerender hit)
+      if (document.visibilityState === 'visible') {
+        record('open');
+      }
+    }, 500);
+
+    // ── 2 & 3. scroll_25 / scroll_75 ──
+    // Track scroll progress through the <article id="px-article"> element.
+    var article = document.getElementById('px-article');
+    if (article) {
+      var onScroll = function () {
+        var rect = article.getBoundingClientRect();
+        var height = article.offsetHeight;
+        var viewport = window.innerHeight || document.documentElement.clientHeight;
+        // How much of the article has scrolled past the top of the viewport?
+        var scrolled = Math.max(0, -rect.top);
+        // Fraction of total article scrolled past
+        var pct = height > 0 ? scrolled / height : 0;
+
+        if (pct >= 0.25 && !fired['scroll_25']) record('scroll_25');
+        if (pct >= 0.75 && !fired['scroll_75']) record('scroll_75');
+
+        if (fired['scroll_25'] && fired['scroll_75']) {
+          window.removeEventListener('scroll', onScroll);
+        }
+      };
+      // Throttle scroll handler to ~10fps via requestAnimationFrame
+      var ticking = false;
+      window.addEventListener(
+        'scroll',
+        function () {
+          if (!ticking) {
+            window.requestAnimationFrame(function () {
+              onScroll();
+              ticking = false;
+            });
+            ticking = true;
+          }
+        },
+        { passive: true },
+      );
+    }
+
+    // ── 4. finish — IntersectionObserver on a sentinel at the end of the article ──
+    var sentinel = document.getElementById('px-finish-sentinel');
+    if (sentinel && 'IntersectionObserver' in window) {
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              record('finish');
+              io.disconnect();
+            }
+          });
+        },
+        { threshold: 0.5 },
+      );
+      io.observe(sentinel);
+    }
+
+    // ── 5. source_click — delegate clicks on .px-sources links ──
+    document.addEventListener('click', function (e) {
+      var target = e.target;
+      if (!(target instanceof Element)) return;
+      var link = target.closest('a');
+      if (!link) return;
+      var insideSources = link.closest('.px-sources');
+      if (!insideSources) return;
+      var href = link.getAttribute('href');
+      if (!href) return;
+      // Note: this is non-dedup — readers can click multiple source links
+      // and each is meaningful. Override the dedup map per call.
+      fired['source_click'] = false;
+      record('source_click', {
+        url: href.length > 200 ? href.slice(0, 200) : href,
+      });
+    });
+
+    // ── 6. share — listen for navigator.share calls ──
+    // We patch navigator.share to record an event when invoked. The original
+    // call still proceeds. If a custom share button exists, it should
+    // dispatch a `parallax:share` event and we record from that too.
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      var origShare = navigator.share.bind(navigator);
+      navigator.share = function (data) {
+        record('share', { channel: 'native' });
+        return origShare(data);
+      };
+    }
+    document.addEventListener('parallax:share', function (e) {
+      var channel = (e && e.detail && e.detail.channel) || 'unknown';
+      record('share', { channel: String(channel).slice(0, 32) });
+    });
+  })();
+</script>
