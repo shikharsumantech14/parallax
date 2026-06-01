@@ -211,12 +211,91 @@ These render directly in templates, not via the dispatcher:
 |---|---|
 | `core/Hero.astro` | inline in `src/pages/issues/[slug].astro` |
 | `core/Primer.astro` | inline in `src/pages/issues/[slug].astro` |
-| `core/SkimToggle.astro` | inline in `src/pages/issues/[slug].astro` |
+| `core/SkimToggle.astro` | part of `.px-reader-controls` row in `[slug].astro` |
+| `core/SaveButton.astro` | part of `.px-reader-controls` row in `[slug].astro` |
+| `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
+| `core/AnnotationLayer.astro` | inline in `[slug].astro`, between article and ReactionsBar |
+| `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
+| `core/NewsletterForm.astro` | rendered by `core/Footer.astro` |
 | `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
 | `core/Footer.astro` | in both layouts |
 | `home/*` | in home + topic-index templates |
 | `topic/<topic>/<Topic>Index.astro` | dispatched from `src/pages/topics/[topic].astro` |
+
+---
+
+## 8. Reader-interaction client islands (Phase B)
+
+Five new client islands ship with Phase B. All live in `core/`, all
+call `app.parallaxlens.com/api/*` with `credentials: 'include'`. All
+fail silently — analytics and engagement must never break the reading
+experience.
+
+### CSS class prefix reservations (additions)
+
+| Prefix | Owner |
+|---|---|
+| `px-save` | SaveButton |
+| `px-reactions` | ReactionsBar |
+| `px-reading-tracker` | ReadingTracker (invisible — no visible CSS) |
+| `px-annot` | AnnotationLayer |
+| `px-newsletter` | NewsletterForm |
+
+### Client island pattern
+
+All use `is:inline` script that walks `previousElementSibling` to
+find the root element by class name (not by ID — avoids ID collisions
+when multiple islands are on the same page). They read `data-*`
+attributes from the root element for config (issueId, appUrl) rather
+than using Astro's `define:vars` — this keeps the script out of the
+build-time bundle and avoids hydration issues.
+
+The pattern from `SaveButton.astro`:
+
+```astro
+<div class="px-save" data-issue-id={issueId} data-app-url={appUrl}>
+  <!-- markup -->
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-save'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    // ...
+  })();
+</script>
+```
+
+### Unauthenticated reader flow
+
+All islands that require auth handle the anonymous case the same way:
+pass the full current URL (`window.location.href`) as the `next`
+parameter, redirect to `appUrl + '/login?next=...'`. The
+`safeNextPath` function on the app side allows-lists
+`parallaxlens.com` as a redirect target so the reader returns to the
+same issue after sign-in.
+
+### `AnnotationLayer.astro` — the complex island
+
+Selection capture uses:
+- `document.addEventListener('mouseup')` deferred 10ms so selection settles
+- `window.getSelection().getRangeAt(0)` + containment check
+  (`article.contains(range.startContainer)`)
+- Anchor JSON built as W3C TextQuoteSelector subset:
+  `{ exact, before: lastN chars, after: firstN chars, section_index? }`
+- Popover positioned via `getBoundingClientRect()` + `scrollY`
+- Editor is a fixed modal with backdrop; `Escape` key closes both popover and editor
+
+The finish sentinel for `ReadingTracker` is a
+`<span id="px-finish-sentinel">` placed **inside the article element**
+just before the closing `</article>` tag. `AnnotationLayer.astro` and
+`ReactionsBar.astro` render **outside** the article, after it.
 
 When adding a meta-brand or layout-chrome piece, render it directly. Only
 narrative section components flow through `SectionRenderer.astro`.

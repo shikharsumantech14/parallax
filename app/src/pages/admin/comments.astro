@@ -1,0 +1,478 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import { requireUser } from '../../lib/auth';
+import { isAdmin } from '../../lib/admin';
+import { adminClient } from '../../lib/supabase';
+
+/**
+ * Annotation moderation queue (admin-only).
+ *
+ * Server-renders the comment list for the selected status using the
+ * service-role client (same query the GET /api/admin/comments endpoint
+ * runs). Filtering is plain links (?status=…) — zero JS. The only client
+ * JS is the Approve/Hide/Reset action handler, which POSTs to
+ * /api/admin/comments/<id> and removes the card on success.
+ *
+ * Guard: must be signed in (→ /login) AND on the ADMIN_EMAILS allowlist
+ * (→ /dashboard). adminClient() and ADMIN_EMAILS are server-only; this
+ * page never hydrates them to the browser.
+ */
+
+const user = requireUser(Astro);
+if (!isAdmin(user)) {
+  return Astro.redirect('/dashboard');
+}
+
+const VALID_STATUSES = ['pending', 'approved', 'hidden', 'removed'] as const;
+type Status = (typeof VALID_STATUSES)[number];
+
+const statusParam = Astro.url.searchParams.get('status') ?? 'pending';
+const status: Status = (VALID_STATUSES as readonly string[]).includes(statusParam)
+  ? (statusParam as Status)
+  : 'pending';
+
+const admin = adminClient();
+const { data: rows, error } = await admin
+  .from('comments')
+  .select(
+    'id, user_id, issue_id, body_md, status, anchor, ai_risk_score, created_at, edited_at, profiles:user_id(email, display_name)',
+  )
+  .eq('status', status)
+  .order('created_at', { ascending: status === 'pending' })
+  .limit(200);
+
+if (error) {
+  console.error('[admin/comments] load failed:', error.message);
+}
+
+type Profile = { email: string | null; display_name: string | null };
+type Anchor = { before?: string; exact?: string; after?: string; section_index?: number };
+type CommentRow = {
+  id: string;
+  user_id: string;
+  issue_id: string;
+  body_md: string;
+  status: string;
+  anchor: Anchor | null;
+  ai_risk_score: number | null;
+  created_at: string;
+  edited_at: string | null;
+  profiles: Profile | Profile[] | null;
+};
+
+const items = (rows ?? []) as unknown as CommentRow[];
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+
+// Supabase to-one joins arrive as an object or a single-element array
+// depending on relationship inference — normalise to one profile.
+function profileOf(p: CommentRow['profiles']): Profile | null {
+  if (!p) return null;
+  return Array.isArray(p) ? (p[0] ?? null) : p;
+}
+
+// Email is the editor's primary handle on a reader. Fall back through
+// display name, then a truncated user id, so a missing profile join never
+// renders a blank author.
+function authorLabel(row: CommentRow): string {
+  const prof = profileOf(row.profiles);
+  if (prof?.email) return prof.email;
+  if (prof?.display_name) return prof.display_name;
+  return `${row.user_id.slice(0, 8)}…`;
+}
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+
+function riskBand(score: number): string {
+  if (score >= 60) return ' mq-risk--high';
+  if (score >= 30) return ' mq-risk--mid';
+  return '';
+}
+
+const TABS: { key: Status; label: string }[] = [
+  { key: 'pending', label: 'Pending' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'hidden', label: 'Hidden' },
+];
+
+const itemNoun = items.length === 1 ? 'annotation' : 'annotations';
+---
+
+<AppLayout
+  title="Moderation queue"
+  description="Annotation moderation queue."
+  eyebrow="PARALLAX · MODERATION"
+>
+  <p class="eyebrow">Admin</p>
+  <h1>Moderation queue</h1>
+  <p class="dek">
+    Approve a reader's annotation to make it public on the issue, or hide
+    what doesn't belong.
+  </p>
+
+  <nav class="mq-tabs" aria-label="Filter by status">
+    {
+      TABS.map((t) => (
+        <a
+          class={`mq-tab${t.key === status ? ' mq-tab--active' : ''}`}
+          href={`/admin/comments?status=${t.key}`}
+          aria-current={t.key === status ? 'page' : undefined}
+        >
+          {t.label}
+        </a>
+      ))
+    }
+  </nav>
+
+  {
+    error && (
+      <div class="notice notice--err">
+        Could not load the queue. Check the server logs.
+      </div>
+    )
+  }
+
+  <p class="mq-count" id="mq-count" data-count={items.length}>
+    {items.length} {itemNoun}
+  </p>
+
+  {
+    items.length === 0 ? (
+      <p class="empty">
+        {status === 'pending'
+          ? 'The queue is clear. Nothing waiting.'
+          : `No ${status} annotations.`}
+      </p>
+    ) : (
+      <ul class="mq-list" role="list" id="mq-list">
+        {items.map((row) => {
+          const exact = row.anchor?.exact ?? null;
+          return (
+            <li class="mq-card" data-id={row.id}>
+              <div class="mq-card__head">
+                <span class="mq-card__author">{authorLabel(row)}</span>
+                <span class="mq-card__date">{fmtDate(row.created_at)}</span>
+              </div>
+
+              <div class="mq-card__meta">
+                <a
+                  class="mq-card__issue"
+                  href={`${siteUrl}/issues/${row.issue_id}/`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {row.issue_id}
+                </a>
+                {typeof row.ai_risk_score === 'number' && (
+                  <span class={`mq-risk${riskBand(row.ai_risk_score)}`}>
+                    risk {row.ai_risk_score}
+                  </span>
+                )}
+                {row.edited_at && <span class="mq-edited">edited</span>}
+              </div>
+
+              {exact ? (
+                <blockquote class="mq-quote">{exact}</blockquote>
+              ) : (
+                <p class="mq-letter">No anchored selection (letter).</p>
+              )}
+
+              <p class="mq-body">{row.body_md}</p>
+
+              <div class="mq-actions">
+                {status !== 'approved' && (
+                  <button
+                    class="btn btn--ghost mq-act"
+                    data-action="approve"
+                    data-id={row.id}
+                    type="button"
+                  >
+                    Approve
+                  </button>
+                )}
+                {status !== 'hidden' && (
+                  <button
+                    class="btn btn--ghost mq-act"
+                    data-action="hide"
+                    data-id={row.id}
+                    type="button"
+                  >
+                    Hide
+                  </button>
+                )}
+                {status !== 'pending' && (
+                  <button
+                    class="btn btn--ghost mq-act"
+                    data-action="reset"
+                    data-id={row.id}
+                    type="button"
+                  >
+                    Reset to pending
+                  </button>
+                )}
+              </div>
+
+              <p class="mq-error" data-error-for={row.id} aria-live="polite" hidden />
+            </li>
+          );
+        })}
+      </ul>
+    )
+  }
+
+  <a class="app-back" href="/dashboard">← Back to dashboard</a>
+</AppLayout>
+
+<style>
+  .mq-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--rule);
+    margin: var(--gap-md) 0 var(--gap-sm);
+  }
+  .mq-tab {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 10px 12px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .mq-tab:hover {
+    color: var(--ink);
+  }
+  .mq-tab--active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+
+  .mq-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 var(--gap-sm);
+  }
+
+  .mq-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+
+  .mq-card {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 18px 20px;
+  }
+
+  .mq-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .mq-card__author {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink);
+    word-break: break-all;
+  }
+  .mq-card__date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .mq-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 8px 0 14px;
+  }
+  .mq-card__issue {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    word-break: break-all;
+  }
+  .mq-card__issue:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .mq-risk {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    padding: 2px 7px;
+  }
+  .mq-risk--mid {
+    color: #8a5a00;
+    border-color: #d8b25f;
+  }
+  .mq-risk--high {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .mq-edited {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .mq-quote {
+    margin: 0 0 12px;
+    padding: 4px 0 4px 16px;
+    border-left: 3px solid var(--accent);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .mq-letter {
+    margin: 0 0 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .mq-body {
+    margin: 0 0 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    white-space: pre-wrap;
+    max-width: none;
+  }
+
+  .mq-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  /* Compact the shared button for the action row. */
+  .mq-actions .btn {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+
+  .mq-error {
+    margin: 12px 0 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--danger);
+  }
+</style>
+
+<script>
+  /**
+   * Moderation actions. Delegated click handler on the list: each
+   * Approve/Hide/Reset button POSTs to /api/admin/comments/<id> and, on
+   * success, removes the card from the current view and updates the count.
+   */
+  const list = document.getElementById('mq-list');
+  const countEl = document.getElementById('mq-count');
+
+  const updateCount = (delta: number) => {
+    if (!countEl) return;
+    const cur = parseInt(countEl.dataset.count ?? '0', 10) || 0;
+    const next = Math.max(0, cur + delta);
+    countEl.dataset.count = String(next);
+    countEl.textContent = `${next} ${next === 1 ? 'annotation' : 'annotations'}`;
+  };
+
+  list?.addEventListener('click', async (ev) => {
+    const target = ev.target as HTMLElement;
+    const btn = target.closest('.mq-act') as HTMLButtonElement | null;
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    if (!id || !action) return;
+
+    const card = btn.closest('.mq-card') as HTMLElement | null;
+    const errEl = card?.querySelector('.mq-error') as HTMLElement | null;
+    const buttons = Array.from(
+      card?.querySelectorAll('.mq-act') ?? [],
+    ) as HTMLButtonElement[];
+
+    buttons.forEach((b) => (b.disabled = true));
+    if (errEl) {
+      errEl.hidden = true;
+      errEl.textContent = '';
+    }
+
+    try {
+      const res = await fetch(`/api/admin/comments/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+
+      if (res.status === 401) {
+        window.location.href = '/login?next=/admin/comments';
+        return;
+      }
+
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `Request failed (${res.status}).`);
+      }
+
+      // Success — fade and remove the card, then drop the count.
+      if (card) {
+        card.style.transition = 'opacity 0.15s ease';
+        card.style.opacity = '0';
+        window.setTimeout(() => {
+          card.remove();
+          if (list && list.children.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'empty';
+            empty.textContent = 'The queue is clear. Nothing waiting.';
+            list.replaceWith(empty);
+          }
+        }, 150);
+      }
+      updateCount(-1);
+    } catch (err) {
+      buttons.forEach((b) => (b.disabled = false));
+      if (errEl) {
+        errEl.hidden = false;
+        errEl.textContent = err instanceof Error ? err.message : 'Action failed.';
+      }
+    }
+  });
+</script>

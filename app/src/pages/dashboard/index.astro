@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import { requireUser } from '../../lib/auth';
+import { isAdmin } from '../../lib/admin';
 
 /**
  * "Your Parallax" dashboard — minimal v1.
@@ -12,6 +13,9 @@ import { requireUser } from '../../lib/auth';
 
 const user = requireUser(Astro);
 const { supabase } = Astro.locals;
+
+// Admin surfaces (moderation queue) are gated on the ADMIN_EMAILS allowlist.
+const userIsAdmin = isAdmin(user);
 
 // Fetch the matching profiles row. The auth trigger should have created it
 // on signup — but if for any reason it didn't, we fall back to user metadata.
@@ -77,6 +81,10 @@ const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
     <div class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'}`}>
       {noticeParam}
     </div>
+  )}
+
+  {userIsAdmin && (
+    <a class="dash-admin-link" href="/admin/comments">Admin · Moderation queue →</a>
   )}
 
   {/* ── Account ────────────────────────────────────────────────────── */}
@@ -175,3 +183,23 @@ const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
     </form>
   </details>
 </AppLayout>
+
+<style>
+  /* Eyebrow-level entry point to the moderation queue (admins only). */
+  .dash-admin-link {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+    margin-bottom: var(--gap-md);
+  }
+  .dash-admin-link:hover {
+    color: var(--accent-deep);
+    border-bottom-color: var(--accent);
+  }
+</style>

@@ -825,6 +825,359 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-06-01 — Annotations moderation queue UI shipped (Phase B-5 closed in code)
+
+**Scope.** Built the last missing piece of Phase B-5: the moderation
+queue UI. The backend (admin helpers + GET/POST endpoints) shipped
+2026-05-26; this session added the operator-facing page and the
+dashboard entry point. `npm run build` (app) exits 0.
+
+**`app/src/pages/admin/comments.astro` — the queue UI.**
+- Double-gated: `requireUser(Astro)` (→ `/login` when signed out), then
+  `isAdmin(user)` (→ `/dashboard` when signed in but not on the
+  `ADMIN_EMAILS` allowlist). `adminClient()` and `ADMIN_EMAILS` stay
+  server-only — never hydrated to the browser.
+- Server-renders the list with the service-role client, reusing the
+  exact select + ordering of the GET `/api/admin/comments` endpoint
+  (`profiles:user_id(email, display_name)` join, oldest-first for
+  pending). Reads `?status=` (pending | approved | hidden, default
+  pending; `removed` accepted via URL).
+- Status filter is plain `<a href="?status=…">` tabs — zero JS.
+- Each card shows author email (falls back to display name, then a
+  truncated user_id when the profile join is empty), the issue id
+  linked to `PUBLIC_SITE_URL/issues/<id>/`, the quoted `anchor.exact`
+  selection (Letters with a null anchor are labelled instead), the note
+  body, the submitted date, an optional `ai_risk_score` badge (banded
+  mid ≥ 30 / high ≥ 60), and an "edited" marker.
+- Context-aware actions: pending → Approve + Hide; approved → Hide +
+  Reset; hidden → Approve + Reset. The one client script (delegated
+  click handler, the SkimToggle-style exception to no-JS) POSTs to
+  `/api/admin/comments/<id>`, fades/removes the card on success,
+  decrements the count, redirects to `/login` on a 401, and surfaces
+  the endpoint's error inline on failure. User text renders as escaped
+  plain text (no `set:html`) — no XSS surface.
+- Scoped `<style>` block (`mq-` classes) reusing the app token system;
+  no `app.css` change needed.
+
+**`app/src/pages/dashboard/index.astro`.** When `isAdmin(user)`, an
+eyebrow-level "Admin · Moderation queue →" link to `/admin/comments`
+renders above the Account section. Hidden for everyone else.
+
+**`app/src/env.d.ts`.** Declared `ADMIN_EMAILS` on `ImportMetaEnv` for
+type hygiene (it was read via Vite's `any` index before).
+
+**`.claude/launch.json`.** Added an `app` dev-server entry (cwd `app`,
+port 4322) alongside the existing publication entry, so the preview
+tooling can launch app routes.
+
+**Verification.** `npm run build` in `app/` exits 0 — frontmatter, the
+moderation query, and the client action script all compile and bundle.
+Live request-level verification was **not** possible in this
+environment: the dev machine has no Supabase env in `.env.local`, so
+`assertEnv` in the middleware returns 500 on every request before
+routing, and the page is admin-gated regardless. End-to-end
+verification (approve an annotation, confirm it renders publicly)
+remains an operator step.
+
+**DEV auth bypass (kept).** This build machine is a different Windows
+user / account than the operator's — the repo is owned by `user`, while
+this session ran as `ShikharWork`, which has no `.env.local` — and the
+only Supabase is production, so local end-to-end verification was
+declined to avoid touching prod data. To make local verification
+possible later under an env-equipped account, `app/src/middleware.ts`
+gained a DEV-only auth bypass: set `DEV_ADMIN_EMAIL` (documented in
+`app/.env.example`) and a local `astro dev` session is treated as that
+signed-in user. Prod-safe — gated on `import.meta.env.DEV`, so it is
+dead-code-eliminated from the build. The change set was left
+uncommitted for the operator to review and commit from their own
+account; the `ShikharWork` account is treated as code-only for Parallax
+(no secrets, no prod DB, no deploys).
+
+**Still pending (operator).** Add `ADMIN_EMAILS=<email>` to the
+`parallax-app` Vercel project (Production + Preview) and redeploy —
+without it nobody is admin and the queue 403s. Then open
+`/admin/comments`, approve a few annotations, and confirm they appear
+in the issue's public list.
+
+**Phase B status after this session.** B-1…B-3 plus B-5 (capture +
+moderation) are complete in code. Remaining Phase B: B-6 Letters block
+(reuses the `comments` table) and B-4 topic affinity heatmap (waiting
+on ~a week of `reading_events` data). Phase C (AI explainers + TL;DR)
+stays blocked until Phase B closes.
+
+### 2026-05-26 — Phase A complete + most of Phase B shipped + Claude Design brief
+
+**Scope of this session.** Started with the Phase A scaffold landing
+(separate `app/` Astro SSR project, Supabase + Resend + Vercel). Ended
+with a functioning reader-account product: auth, dashboard, newsletter,
+privacy + terms routes, save-for-later, reactions, reading-event
+tracking, and the capture half of annotations. Also committed the
+external Claude Design brief and started the moderation queue (API
+done, UI page pending).
+
+#### Phase A — shipped end-to-end
+
+**Auth.** Magic-link + Google OAuth via Supabase. Login page at
+`app.parallaxlens.com/login` uses the browser Supabase client; callback
+at `/auth/callback` exchanges the code for a session. Sign-out at
+`/api/auth/signout`. Session cookie scoped to `.parallaxlens.com` so
+both subdomains share it.
+
+**Dashboard.** `/dashboard` shows the user's display name + email +
+member-since date, saved-issues list (Phase B integration), email
+prefs toggles (`/api/account/prefs`), and an account-deletion form
+(`/api/account/delete` — PDPDP / GDPR compliant: hard-delete within 30
+days, soft-deletes the newsletter row to preserve consent audit).
+
+**Newsletter.** Anonymous footer signup form on the publication
+(`NewsletterForm.astro`) POSTs to `app.parallaxlens.com/api/subscribe`.
+Double opt-in: a confirmation token is stored, an email is sent via
+Resend, the user clicks the link, `/api/subscribe/confirm` flips
+`confirmed_at`. Resend is wired as the SMTP provider for Supabase auth
+emails too (magic-link from `noreply@parallaxlens.com`).
+
+**Privacy + Terms.** Manually drafted at `src/content/guides/privacy.mdx`
+and `terms.mdx`. New `guides` content collection in
+`src/content/config.ts`. Dynamic route at
+`src/pages/about/[guide].astro` renders with publication typography.
+Covers GDPR, CCPA, CalOPPA, and India's DPDP Act 2023. Each named
+service (Supabase, Resend, Vercel, Cloudflare, Google OAuth, Anthropic,
+fal.ai) declared explicitly. Termify's auto-generator was rejected for
+shipping clauses that contradicted the brand promise (advertising
+sharing, Facebook audience targeting).
+
+**Footer.** Updated to include the newsletter signup component +
+Privacy + Terms + Account links.
+
+#### Phase B — three of six features shipped, fourth in progress
+
+**B-1 Reactions.** `app/supabase/migrations/20260524100000_phase_b_reactions.sql`
+created the `reactions` table (composite PK on user_id/issue_id/kind,
+RLS owner-only). Four kinds: `think`, `agree`, `disagree`, `want_more`.
+Multi-select per issue. `/api/reactions/[issueId]` GET (returns user's
+kinds + aggregate counts when total ≥ 3) + POST (toggle).
+`src/components/core/ReactionsBar.astro` is the client island —
+restrained editorial register, no emoji, optimistic toggle, anon → login
+redirect.
+
+**B-2 Save-for-later.** `saved_issues` table already existed from
+Phase A. `/api/save/[issueId]` GET + POST (toggle) + DELETE.
+`src/components/core/SaveButton.astro` client island next to the
+SkimToggle. Bookmark-outline SVG with accent-fill on saved state.
+Dashboard already displays saved issues from the table.
+
+**B-3 Reading-event tracking.**
+`app/supabase/migrations/20260524200000_phase_b_reading_events.sql`
+created the `reading_events` table (composite of user_id-or-anon_id +
+issue_id + event_kind + meta jsonb, partitioning deferred until row
+count > 5M). Seven event kinds: `open`, `scroll_25`, `scroll_75`,
+`finish`, `share`, `source_click`, `term_lookup`. Indexed for per-issue
+aggregation, per-user history, per-anon-id history, per-kind aggregates.
+`/api/events` POST validates and inserts via admin client (bypasses RLS;
+endpoint enforces user_id-vs-anon_id consistency). RLS still in place
+as defence-in-depth.
+
+`src/components/core/ReadingTracker.astro` is the invisible client
+island: fires `open` after 500ms dwell, `scroll_25`/`scroll_75` on
+scroll progress through the article, `finish` via IntersectionObserver
+on a sentinel at the end, `source_click` via delegated click listener
+on `.px-sources` links, `share` via `navigator.share` patch + custom
+`parallax:share` event. Anonymous tracking via `px_anon_id` cookie
+(UUID v4, 90-day, scoped to `.parallaxlens.com`). Network failures
+silent — analytics never break the reader's experience.
+
+**B-5 Annotations (capture half).**
+`app/supabase/migrations/20260524300000_phase_b_comments.sql` created
+the unified `comments` table that handles both annotations (with
+anchor JSON) and Letters (without anchor). Anchor uses W3C
+TextQuoteSelector subset: `{ exact, before, after, section_index? }`.
+Statuses: `pending` (default), `approved` (editor promoted, public),
+`hidden`, `removed`. AI risk score column reserved for Phase B
+moderation polish.
+
+`/api/annotations/[issueId]` GET (returns own pending + everyone's
+approved, RLS-enforced) + POST (create, body capped at 2000 chars).
+`src/components/core/AnnotationLayer.astro` is the most complex client
+island built so far:
+- Listens for text selection inside `#px-article`
+- Shows a floating "+ Margin note" popover above the selection
+- Click → modal editor opens with the quoted selection at top
+- Save → POST → row appears in the bottom annotations list
+- Existing annotations rendered as a list at the article's reflective
+  end, between ReactionsBar and the bottom back-to-desk link
+- Anonymous users get redirected to login
+
+**B-5 part 2 — moderation queue, in flight.**
+Built but not finished this session:
+- `app/src/lib/admin.ts` — `isAdmin(user)` + `requireAdmin()` helpers
+  reading the `ADMIN_EMAILS` env var (comma-separated allowlist,
+  lowercased before compare). Throws 401/403 Response objects.
+- `app/.env.example` — `ADMIN_EMAILS` declared
+- `app/src/pages/api/admin/comments.ts` — GET endpoint listing
+  comments filtered by status (default pending, oldest-first), joined
+  with author profile email + display name
+- `app/src/pages/api/admin/comments/[id].ts` — POST endpoint accepting
+  `{ action: 'approve' | 'hide' | 'reset' }`, admin-only, uses
+  service-role client
+
+Pending in next session:
+- `/admin/comments` page UI rendering the queue with approve/hide buttons
+- Dashboard surface showing an "Admin → moderation queue" link to admin
+  users only
+- `ADMIN_EMAILS` env var setup in Vercel (operator action)
+- Once UI lands: the editor can promote private annotations to public.
+  Public margin-note rendering already works because the existing GET
+  `/api/annotations` returns approved rows to everyone, and
+  AnnotationLayer.astro renders them.
+
+#### Cross-cutting fixes shipped during the session
+
+**ws (WebSocket) workaround for Node 20 + @astrojs/vercel v7.** The
+`@supabase/realtime-js` client refuses to construct without a
+WebSocket implementation. Node 22 has native WebSocket; Node 20
+doesn't. `@astrojs/vercel@7` supports Node 18 / 20 only, so we pinned
+the app/ project to Node 20 via `engines: "20.x"` and added `ws` as a
+runtime dep. `serverClient()` and `adminClient()` pass
+`realtime: { transport: ws as any }`. Future cleanup: upgrade app/ to
+Astro 5 + `@astrojs/vercel@8` to drop `ws`.
+
+**Env var contamination defence.** A pasted-with-newlines Vercel env
+var (the service-role JWT got duplicated three times across line
+breaks) caused cryptic `Headers.set` errors. `assertEnv()` in
+`app/src/lib/supabase.ts` now rejects values containing `\n` / `\r`
+or leading/trailing whitespace with a clear startup error.
+
+**Cross-subdomain redirect allowlist.** `safeNextPath()` was treating
+`/issues/...` as relative-to-current-host, causing post-Google-login
+redirects from the app subdomain to land on `app.parallaxlens.com/issues/...`
+(404). Now accepts absolute URLs whose origin is on an allowlist
+(`parallaxlens.com`, `www.`, `app.`, localhost variants). SaveButton
+and ReactionsBar now pass `window.location.href` (full URL) as the
+`next` param.
+
+**No-store cache on app subdomain.** Middleware sets
+`Cache-Control: private, no-store, max-age=0` on all responses from
+the app so the back button after sign-out doesn't show the cached
+dashboard. (BFcache is still a known gap — addressed by `pageshow`
+listener in a future polish session.)
+
+#### External: Claude Design brief committed
+
+`docs/CLAUDE-DESIGN-BRIEF.md` captures the verbatim brief submitted to
+Claude Design covering: company blurb, current-state self-assessment
+(generic-looking, text-heavy → wants visual-heavy editorial polish),
+typography expectations, logo + identity system request, hero / banner
+proposals, design craft expectations (modern but editorial-modern, not
+SaaS-modern), and the full list of dynamic component design asks
+(annotated photographs, comparative scrollers, networked diagrams,
+sequence flipbooks). This is now canonical — when Claude Design
+proposals come back, they're translated into Astro components
+following the rules at `src/components/AGENTS.md`.
+
+#### Files added or modified this session
+
+**Migrations applied to production Supabase:**
+- `app/supabase/migrations/20260524000000_phase_a_foundation.sql`
+- `app/supabase/migrations/20260524100000_phase_b_reactions.sql`
+- `app/supabase/migrations/20260524200000_phase_b_reading_events.sql`
+- `app/supabase/migrations/20260524300000_phase_b_comments.sql`
+
+**App subdomain (`app/`):**
+- All Phase A pages: login, auth/callback, dashboard, api/auth/signout,
+  api/account/prefs, api/account/delete, api/subscribe, api/subscribe/confirm
+- Phase B endpoints: api/save/[issueId], api/reactions/[issueId],
+  api/events, api/annotations/[issueId]
+- Moderation endpoints (UI pending): api/admin/comments, api/admin/comments/[id]
+- lib/auth.ts (requireUser, safeNextPath), lib/admin.ts (isAdmin)
+- middleware.ts (session + no-store cache header)
+- layouts/AppLayout.astro
+- styles/app.css
+
+**Publication (`src/`):**
+- New client islands: SaveButton.astro, ReactionsBar.astro,
+  ReadingTracker.astro, AnnotationLayer.astro, NewsletterForm.astro
+- Updated Footer.astro (newsletter + privacy + terms + account links)
+- Updated [slug].astro (controls row, finish sentinel, ReadingTracker,
+  AnnotationLayer, ReactionsBar)
+- New dynamic route: `src/pages/about/[guide].astro`
+- New content collection: `guides` in `src/content/config.ts`
+- Content: `src/content/guides/privacy.mdx`, `terms.mdx`
+
+**Docs:**
+- `docs/CLAUDE-DESIGN-BRIEF.md` (new — design brief)
+- `docs/PROJECT.md` (this entry)
+- `app/AGENTS.md`, `src/components/AGENTS.md` (refreshed elsewhere this
+  session)
+
+#### Operator actions performed during the session
+
+1. Created Supabase project, Resend account, Google OAuth client,
+   Iubenda → swapped to Termify → swapped to manual drafts.
+2. Configured Cloudflare DNS (`app.parallaxlens.com` CNAME, Resend
+   verification records, Cloudflare Email Routing for
+   `privacy@parallaxlens.com`).
+3. Added Vercel project for `app/` (root directory = `app`, Node 20.x).
+4. Pasted env vars into Vercel (correctly after one
+   newline-contamination round-trip).
+5. Configured Supabase: SMTP via Resend, redirect URL allowlist
+   including `https://app.parallaxlens.com/auth/callback`.
+6. Applied four SQL migrations via Supabase SQL editor.
+7. Switched local DNS resolver to `1.1.1.1` to bypass ISP negative-cache
+   on the new app subdomain.
+8. Filled the Claude Design setup form (company blurb + brief).
+
+#### What's deliberately deferred (still in the queue)
+
+**Phase B remaining:**
+- B-5 part 2 finish: `/admin/comments` UI page + dashboard admin link +
+  `ADMIN_EMAILS` env var setup. APIs and helpers already shipped.
+- B-4 Topic affinity heatmap: Supabase scheduled function aggregating
+  `reading_events` → `profiles.topic_affinity`, dashboard heatmap
+  visualisation. Naturally fits after a week of real reading-event data.
+- B-6 Letters block: end-of-issue Letters form (reuses `comments`
+  table). Same moderation queue covers it.
+- AI pre-moderation on new annotations / Letters: Haiku-tier 0-100
+  toxicity score, stored in `comments.ai_risk_score`.
+
+**Phase A polish, deferred:**
+- BFcache fix (back-button after sign-out): `pageshow` event listener
+  with `event.persisted` check, force reload.
+- Google consent screen branding (currently says "Sign in to
+  cpzzfszkkkcztyvdmtvs.supabase.co" — fix is Supabase Pro custom auth
+  domain ~$10/mo, or accept).
+- Account deletion end-to-end live test (UI shipped, never live-tested).
+- Email prefs end-to-end live test (UI shipped, never live-tested).
+
+**Phases C / D / E not started:**
+- C: Inline explain-term tooltips (pre-gen), per-issue TL;DR (pre-gen),
+  templated "why this matters to you" line.
+- D: Per-issue AI Q&A sidebar with RAG over dossier + sources, rate-
+  limited per user.
+- E: Newsletter v2 — weekly digest with personalised section, per-issue
+  publish push, re-engagement flows.
+
+#### Spend tally (rough)
+
+- Anthropic API (illustrator agent run × 1 issue): ~$1.20
+- fal.ai (6 issue covers across earlier illustrator session): ~$0.24
+- Vercel: $0 (both projects on free tier)
+- Supabase: $0 (free tier — Pro upgrade triggered around B-4 deployment
+  when reading_events ramps)
+- Resend: $0 (free tier 3k/month sends)
+- Cloudflare: $0 (DNS + Email Routing free)
+- Iubenda / Termify: rejected; not paid
+
+#### Pipeline order (publication editorial pipeline, unchanged)
+
+`discover → research → draft → stylist → illustrator → verify →
+(human audit) → publish`
+
+The agent pipeline is independent of the reader-account work — they
+share the same repo but no code overlap. Reading-event tracking flows
+into Supabase, never into the editorial pipeline.
+
+---
+
 ### 2026-05-24 — Commercialisation roadmap approved + Phase A scaffold
 
 **What.** Editorial direction shifted: Parallax adds a reader-account

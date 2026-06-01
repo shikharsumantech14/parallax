@@ -222,6 +222,16 @@ allowlists) sits upstream as the editor's judgment layer. Setup at
 `research/notebooklm-setup.md`. NotebookLM and `/pipeline-discover` are
 parallel paths into the same candidates file.
 
+**Reader-account product (Phase A + B).** A separate Astro SSR project
+at `app/` serves `app.parallaxlens.com` — auth, dashboard, and all
+reader-interaction APIs. See `app/AGENTS.md` for full detail. The
+publication stays `output: 'static'`; reader features attach as small
+client islands that call the app subdomain. Phase A shipped. Phase B
+mostly shipped (reactions, save, reading-events, annotations capture +
+moderation queue); remaining: Letters block (B-6) and topic affinity
+heatmap (B-4). See `docs/PROJECT.md` §12 (2026-06-01 entry) for the
+full status.
+
 ---
 
 ## 6. The voice system (eight rhetorical modes)

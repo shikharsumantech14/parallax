@@ -21,6 +21,8 @@ interface ImportMetaEnv {
   readonly RESEND_API_KEY: string;
   readonly PUBLIC_APP_URL: string;
   readonly PUBLIC_SITE_URL: string;
+  /** Comma-separated admin email allowlist for moderation surfaces. Server-only. */
+  readonly ADMIN_EMAILS: string;
 }
 
 interface ImportMeta {

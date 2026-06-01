@@ -14,10 +14,17 @@ publication at `parallaxlens.com` (root of this repo) stays
 `app.parallaxlens.com` is `output: 'server'` and hosts everything
 auth-aware:
 
-- Login (magic-link + Google OAuth via Supabase)
-- "Your Parallax" dashboard
-- `/api/*` endpoints called by the publication's client islands
-  (save / react / annotate / subscribe / Q&A)
+- **Auth.** Magic-link + Google OAuth via Supabase. Pages: `/login`,
+  `/auth/callback`. API: `/api/auth/signout`.
+- **Dashboard.** `/dashboard`. Saved issues, email prefs, account
+  deletion, link to moderation queue (admin-only).
+- **Reader-account APIs** called by the publication's client islands:
+  `/api/save/[issueId]`, `/api/reactions/[issueId]`, `/api/events`,
+  `/api/annotations/[issueId]`, `/api/subscribe`,
+  `/api/subscribe/confirm`, `/api/account/prefs`, `/api/account/delete`.
+- **Moderation APIs** (admin-only): `/api/admin/comments`,
+  `/api/admin/comments/[id]`.
+- **Health.** `/api/health` returns env booleans + runtime info.
 
 Two Vercel projects deploy from this one repo: the publication (root
 directory `.`) and the app (root directory `app/`).
@@ -44,24 +51,87 @@ commercialisation plan. Do not undo it.
 
 ---
 
-## 3. Phase A scope (what lives here today)
+## 3. Current Phase status
 
-Phase A is foundation only:
+Phase A complete. Most of Phase B shipped. See `docs/PROJECT.md` §12
+for the full per-feature breakdown.
 
-- `astro.config.mjs` — `output: 'server'`, Vercel adapter
-- `package.json` — Supabase + Resend deps, port 4322 dev server
-- `src/lib/supabase.ts` — three client factories (browser / server / admin)
-- `src/pages/index.astro` — placeholder landing
-- `src/pages/api/health.ts` — health check
-- `supabase/migrations/*.sql` — Phase A schema (profiles,
-  saved_issues, newsletter_subscriptions)
-
-Phase A's UI and full API surface land in subsequent commits once the
-operator has completed `docs/COMMERCIALISATION-SETUP.md`.
+| Phase | Status |
+|-------|--------|
+| A — Foundation | ✅ Shipped: auth, dashboard, newsletter, privacy/terms |
+| B-1 Reactions | ✅ Shipped |
+| B-2 Save-for-later | ✅ Shipped |
+| B-3 Reading-event tracking | ✅ Shipped |
+| B-5 Annotations — capture | ✅ Shipped |
+| B-5 Annotations — moderation queue | ✅ UI shipped (code complete; operator `ADMIN_EMAILS` + live smoke test pending) |
+| B-4 Topic affinity heatmap | ⏳ Not started (waiting on reading-event data) |
+| B-6 Letters block | ⏳ Not started |
+| C / D / E | ⏳ Not started |
 
 ---
 
-## 4. Local dev
+## 4. File map (current state)
+
+```
+app/
+├── astro.config.mjs              ← output: 'server', Vercel adapter
+├── package.json                  ← engines.node = "20.x"; ws workaround for Supabase realtime
+├── tsconfig.json
+├── .env.example                  ← env var template
+├── README.md
+├── AGENTS.md                     ← this file
+├── supabase/
+│   └── migrations/
+│       ├── 20260524000000_phase_a_foundation.sql      ← profiles, saved_issues, newsletter_subscriptions
+│       ├── 20260524100000_phase_b_reactions.sql       ← reactions
+│       ├── 20260524200000_phase_b_reading_events.sql  ← reading_events
+│       └── 20260524300000_phase_b_comments.sql        ← comments (annotations + letters)
+└── src/
+    ├── env.d.ts                  ← typed env + Astro.locals types
+    ├── middleware.ts             ← session populate + no-store cache header
+    ├── lib/
+    │   ├── supabase.ts           ← browser/server/admin client factories; ws wired in
+    │   ├── auth.ts               ← requireUser, safeNextPath (allow-listed origins)
+    │   └── admin.ts              ← isAdmin, requireAdmin (ADMIN_EMAILS env allowlist)
+    ├── layouts/
+    │   └── AppLayout.astro       ← shared chrome (masthead, footer, app.css)
+    ├── styles/
+    │   └── app.css               ← token system mirroring publication
+    └── pages/
+        ├── index.astro           ← landing (redirects to dashboard if signed in)
+        ├── login.astro           ← magic-link + Google buttons
+        ├── auth/
+        │   └── callback.ts       ← OAuth code exchange
+        ├── dashboard/
+        │   └── index.astro       ← display name, email, saved, prefs, delete
+        ├── admin/
+        │   └── comments.astro    ← MODERATION QUEUE UI ✓ (admin-gated)
+        └── api/
+            ├── health.ts
+            ├── auth/
+            │   └── signout.ts
+            ├── account/
+            │   ├── prefs.ts
+            │   └── delete.ts
+            ├── subscribe.ts
+            ├── subscribe/
+            │   └── confirm.ts
+            ├── save/
+            │   └── [issueId].ts
+            ├── reactions/
+            │   └── [issueId].ts
+            ├── events.ts
+            ├── annotations/
+            │   └── [issueId].ts
+            └── admin/
+                ├── comments.ts
+                └── comments/
+                    └── [id].ts
+```
+
+---
+
+## 5. Local dev
 
 ```bash
 cd app
@@ -71,8 +141,8 @@ npm run dev                        # http://localhost:4322
 ```
 
 The publication runs at `localhost:4321`; the app at `localhost:4322`.
-Both must be running for end-to-end testing of save-for-later and
-client islands.
+Both must be running for end-to-end testing of save-for-later +
+reactions + annotations + reading-events client islands.
 
 Health check:
 ```bash
@@ -81,7 +151,11 @@ curl http://localhost:4322/api/health
 
 ---
 
-## 5. Environment variables (`.env.local` in this directory)
+## 6. Environment variables
+
+Production env lives in Vercel project settings. Local dev reads
+`app/.env.local` (or the repo-root `.env.local` if env lookup falls
+back — both are gitignored).
 
 | Var | Purpose | Visibility |
 |---|---|---|
@@ -91,59 +165,208 @@ curl http://localhost:4322/api/health
 | `RESEND_API_KEY` | Resend transactional + newsletter | server only |
 | `PUBLIC_APP_URL` | `https://app.parallaxlens.com` | client + server |
 | `PUBLIC_SITE_URL` | `https://parallaxlens.com` | client + server |
+| `ADMIN_EMAILS` | Comma-separated admin allowlist (for moderation routes) | server only |
 
 `PUBLIC_*` prefix is Astro's convention for client-visible vars. The
-service-role key is intentionally NOT prefixed — never import it from
-a file that runs in the browser.
+service-role key, Resend key, and ADMIN_EMAILS are intentionally NOT
+prefixed — never import them from a file that runs in the browser.
+
+**Common gotcha:** pasting env vars into Vercel UI can introduce
+newline characters. `assertEnv` in `lib/supabase.ts` now rejects values
+containing `\n` / `\r` or leading whitespace, throwing at startup with
+a clear error. See PROJECT.md §12 (2026-05-26 entry) for the
+contamination story.
 
 ---
 
-## 6. Hard rules (do not break)
+## 7. Hard rules (do not break)
 
-1. **Never import `SUPABASE_SERVICE_ROLE_KEY` in a `.astro` page or
-   `.tsx` component that hydrates on the client.** Service-role
-   bypasses RLS. A leak is a database compromise.
+1. **Never import `SUPABASE_SERVICE_ROLE_KEY` or `ADMIN_EMAILS` in a
+   `.astro` page or component that hydrates on the client.** Service-role
+   bypasses RLS. A leak is a database compromise. Same for the admin
+   allowlist (less critical but still server-only).
 2. **Cookie domain is `.parallaxlens.com` in prod.** Hard-coded in
    `src/lib/supabase.ts`. Do not override per-route.
-3. **CORS allowlist is `parallaxlens.com` only.** When `/api/*`
-   endpoints are added, they must validate the Origin header against
-   `PUBLIC_SITE_URL`.
+3. **CORS allowlist is `parallaxlens.com` + `www.` only** for
+   reader-facing API routes. Pattern in each `api/*` file —
+   `ALLOWED_ORIGINS` Set.
 4. **RLS is non-optional.** Every new table gets RLS-enabled in its
-   migration. No exceptions, even for "internal" tables.
+   migration. No exceptions, even for "internal" tables. The
+   `reading_events` table uses defence-in-depth: API enforces
+   user_id-vs-anon_id consistency, RLS as a backstop.
 5. **Migration files are append-only.** Never edit a migration that
    has been applied to production. Add a new migration to alter.
+6. **No-store cache for the app subdomain.** Middleware sets
+   `Cache-Control: private, no-store, max-age=0` on every response.
+   Removing this would cause stale dashboards via back-button after
+   sign-out.
 
 ---
 
-## 7. Schema migrations
+## 8. Patterns to reuse
 
-Stored at `supabase/migrations/<timestamp>_<name>.sql`. Apply with:
+**API endpoint shape (CORS + JSON):**
 
-```bash
-supabase db push                    # via Supabase CLI, once linked
-# OR paste into Supabase SQL editor for one-off migrations
+```ts
+import type { APIRoute } from 'astro';
+
+const SITE_URL = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const ALLOWED_ORIGINS = new Set([SITE_URL, 'https://www.parallaxlens.com', 'http://localhost:4321']);
+
+const corsHeaders = (origin: string | null): Record<string, string> => {
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+      Vary: 'Origin',
+    };
+  }
+  return {};
+};
+
+const json = (status: number, body: unknown, cors: Record<string, string>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...cors },
+  });
+
+export const OPTIONS: APIRoute = async ({ request }) =>
+  new Response(null, { status: 204, headers: corsHeaders(request.headers.get('origin')) });
+
+export const GET: APIRoute = async (ctx) => { /* ... */ };
+export const POST: APIRoute = async (ctx) => { /* ... */ };
 ```
 
-Naming: `YYYYMMDDHHMMSS_<phase>_<description>.sql` (e.g.
-`20260524000000_phase_a_foundation.sql`).
+**Auth check inside an API or page route:**
 
-Every migration is idempotent. Use `CREATE TABLE IF NOT EXISTS`,
-`DROP POLICY IF EXISTS` before `CREATE POLICY`, etc. The Phase A
-migration is the reference.
+```ts
+import { requireUser } from '~/lib/auth';
+const user = requireUser(Astro);          // throws redirect to /login
+// or for an admin endpoint:
+import { requireAdmin } from '~/lib/admin';
+try { requireAdmin(ctx.locals.user); }    // throws 401/403 Response
+catch (resp) { if (resp instanceof Response) return resp; throw resp; }
+```
+
+**Issue ID validation (used in every per-issue endpoint):**
+
+```ts
+const isSafeIssueId = (id: string): boolean =>
+  /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(id) && id.length <= 80;
+```
+
+**Client island handshake pattern** (selectors + dataset on a wrapper,
+script walks `previousElementSibling` to find the wrapper):
+See `src/components/core/AnnotationLayer.astro` for the most complex
+example; `SaveButton.astro` is the simplest.
 
 ---
 
-## 8. Cross-references
+## 9. Schema migrations
+
+Stored at `supabase/migrations/<timestamp>_<phase>_<description>.sql`.
+
+| Migration | What it created |
+|---|---|
+| 20260524000000_phase_a_foundation.sql | profiles, saved_issues, newsletter_subscriptions; auth-trigger creates profile row on signup |
+| 20260524100000_phase_b_reactions.sql | reactions (composite PK) |
+| 20260524200000_phase_b_reading_events.sql | reading_events (auth + anon tracking) |
+| 20260524300000_phase_b_comments.sql | comments (annotations with anchor + letters without) |
+
+Apply via Supabase SQL editor (paste contents, click Run) OR
+`supabase db push` once the CLI is linked. Every migration is
+idempotent — `CREATE TABLE IF NOT EXISTS`, `DROP POLICY IF EXISTS`
+before `CREATE POLICY`, etc.
+
+---
+
+## 10. Phase B-5 moderation queue — status
+
+**Shipped (code complete, build green):**
+- `src/lib/admin.ts` — `isAdmin`, `requireAdmin`
+- `src/pages/api/admin/comments.ts` — list pending / approved /
+  hidden / removed, oldest-first for pending
+- `src/pages/api/admin/comments/[id].ts` — POST with
+  `{ action: 'approve' | 'hide' | 'reset' }`
+- `.env.example` — `ADMIN_EMAILS` declared
+- `src/pages/admin/comments.astro` — the queue UI. Double-gated
+  (`requireUser` → `/login`, then `isAdmin` → `/dashboard`).
+  Server-renders the list via `adminClient()` (same select + ordering
+  as the GET endpoint); the `?status=` filter is plain links; each
+  card shows author email, issue link, quoted `anchor.exact`, note
+  body, date, optional `ai_risk_score` badge; context-aware
+  Approve / Hide / Reset buttons; one delegated client script POSTs the
+  action, removes the card, and updates the count. Scoped `mq-` styles.
+- `src/pages/dashboard/index.astro` — eyebrow-level "Admin ·
+  Moderation queue" link, shown only when `isAdmin(user)`.
+- `src/env.d.ts` — `ADMIN_EMAILS` typed on `ImportMetaEnv`.
+
+**Pending (operator action, not code):**
+1. Add `ADMIN_EMAILS=<email>` to Vercel env vars (Production +
+   Preview) and redeploy. Without this nobody is admin and the queue
+   403s.
+2. Live smoke test: open `/admin/comments`, approve a few annotations,
+   confirm they render publicly in the issue's bottom list. This could
+   **not** be done from the dev machine — there is no Supabase env in
+   `.env.local`, so `assertEnv` in the middleware returns 500 on every
+   request before routing, and the page is admin-gated regardless.
+
+Public margin-note rendering *next to the source paragraph* using the
+anchor JSON is still future polish — approved annotations appear in the
+bottom list only.
+
+---
+
+## 11. Cross-references
 
 - **Strategic plan:** `C:\Users\user\.claude\plans\resetting-the-todo-list-nested-shannon.md`
   (operator's machine; the canonical 5-month roadmap).
 - **Operator setup checklist:** `docs/COMMERCIALISATION-SETUP.md`.
+- **Claude Design brief:** `docs/CLAUDE-DESIGN-BRIEF.md` —
+  the design direction submitted externally.
 - **Publication agent guide:** `../AGENTS.md` (root).
 - **Publication CLAUDE.md:** `../CLAUDE.md`.
+- **Publication change log:** `../docs/PROJECT.md` §12.
 
 ---
 
 ## Change log
+
+### 2026-06-01 — Moderation queue UI shipped (Phase B-5 closed in code)
+- `src/pages/admin/comments.astro` — admin-gated queue UI: server-
+  rendered list via `adminClient()`, `?status=` filter links, per-card
+  author / issue / quoted `anchor.exact` / body / date / risk-score,
+  context-aware Approve / Hide / Reset with one delegated client action
+  script. Scoped `mq-` styles. No `app.css` change.
+- `src/pages/dashboard/index.astro` — `isAdmin`-gated "Admin ·
+  Moderation queue" link above the Account section.
+- `src/env.d.ts` — `ADMIN_EMAILS` declared on `ImportMetaEnv`.
+- `.claude/launch.json` (repo root) — added an `app` dev-server entry
+  (cwd `app`, port 4322) for previewing app routes.
+- `src/middleware.ts` + `.env.example` — DEV-only auth bypass
+  (`DEV_ADMIN_EMAIL`): synthesises a signed-in admin under `astro dev`
+  so auth-gated pages verify locally without the magic-link/OAuth flow.
+  Prod-safe — gated on `import.meta.env.DEV`, dead-code-eliminated in
+  the build.
+- `npm run build` (app) exits 0. Live verification deferred to the
+  operator: the dev machine has no Supabase env (`assertEnv` 500s every
+  request) and the page is admin-gated. Operator must set
+  `ADMIN_EMAILS` in Vercel + redeploy, then approve a test annotation.
+- Phase B remaining: B-6 Letters block, B-4 topic affinity heatmap.
+
+### 2026-05-26 — Phase A complete + Phase B mostly shipped
+- Phase A live in production: auth, dashboard, newsletter, privacy/terms.
+- Phase B-1 (reactions), B-2 (save-for-later), B-3 (reading-event tracking),
+  B-5 part 1 (annotations capture) all live.
+- B-5 part 2 (moderation queue) — APIs + helpers shipped; UI page +
+  dashboard link pending; ADMIN_EMAILS env var pending operator action.
+- ws workaround for Node 20 + Supabase realtime.
+- Env contamination defence in assertEnv.
+- Cross-subdomain redirect allowlist in safeNextPath.
+- No-store cache header in middleware.
 
 ### 2026-05-24 — Phase A scaffold
 Initial subdirectory scaffold. astro.config (output: 'server'),
