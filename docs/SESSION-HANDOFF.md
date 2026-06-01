@@ -54,8 +54,8 @@ The repo has **two products**:
 | Reading-event tracking (6 event kinds) | ✅ Live |
 | Annotations capture (select → annotate) | ✅ Live |
 | Annotations moderation queue UI | ✅ Shipped 2026-06-01 (operator `ADMIN_EMAILS` + live smoke test pending) |
-| **Letters block (B-6)** | 🔴 **NEXT UP — not started** |
-| Topic affinity heatmap (B-4) | ⏳ Blocked on ~1 week of reading_events data |
+| Letters block (B-6) | ✅ Shipped 2026-06-01 (operator must apply the letters migration to prod) |
+| **Topic affinity heatmap (B-4)** | 🟡 **Last Phase B item — gated on ~1wk of reading_events data** |
 | AI pre-moderation on annotations | ⏳ Deferred |
 | Phase C (AI explainers + TL;DR) | ⏳ Not started |
 | Phase D (Q&A sidebar) | ⏳ Not started |
@@ -65,40 +65,46 @@ The repo has **two products**:
 
 ## The single most important pending task
 
-**Build the Letters block (B-6).** The annotations moderation queue —
-the previous "next up" — shipped 2026-06-01 (see the section below).
-The next actionable Phase B feature is Letters: end-of-issue reader
-submissions that reuse the existing `comments` table. Letters are rows
-with a **NULL `anchor`**; annotations carry the anchor JSON. Because
-Letters share the `comments` table and the `pending → approved →
-hidden` status model, they already flow through the moderation queue
-you just built — an approved Letter is one `status='approved'` row away
-from public.
+**Apply the letters migration, then B-4 is the last Phase B item.**
+Phase B-5 (moderation queue) and B-6 (Letters block) both shipped
+2026-06-01 (see the sections below). The only remaining Phase B feature
+is **B-4, the topic affinity heatmap**, gated on having ~a week of
+`reading_events` data to aggregate. If enough has accumulated, B-4 is
+next; otherwise Phase B is effectively done pending that data.
 
-### What's already built for Letters (don't rebuild)
+**First, an operator step:** apply
+`app/supabase/migrations/20260601000000_phase_b_letters_author.sql` to
+prod Supabase (paste into the SQL editor) — letters can't be submitted
+until the `author_name` column exists.
 
-- The `comments` table — handles Letters (NULL `anchor`) and
-  annotations (anchor JSON) in one schema, with the full status
-  lifecycle + RLS (`20260524300000_phase_b_comments.sql`).
-- The moderation queue UI (`/admin/comments`) — lists and approves any
-  `comments` row regardless of anchor, so Letters moderation is free.
-  The queue already renders anchor-less rows with a "letter" label.
-- The CORS + issue-id-validation + auth patterns in
-  `/api/annotations/[issueId]` — the closest sibling endpoint to copy.
+> Phase C (AI explainers + TL;DR) / D / E stay blocked until Phase B
+> closes. Do not start them early.
 
-### What needs to be built for Letters
+---
 
-1. A submission UI at the reflective end of each issue (a client island
-   on the publication, sibling to `AnnotationLayer.astro`) that POSTs
-   to a new `/api/letters/[issueId]` (or an extended annotations
-   endpoint) with `anchor = null`.
-2. A public display of approved Letters at the issue's end.
-3. The new endpoint wired with the standard CORS / auth / issue-id
-   guards (see `app/AGENTS.md` §8).
+## Letters block (shipped 2026-06-01)
 
-> B-4 (topic affinity heatmap) is also pending but **blocked** until
-> ~a week of `reading_events` data accumulates. B-6 is the unblocked
-> next step. Phase C/D/E stay blocked until Phase B closes.
+End-of-issue reader "Letters" — longer reflections, shown publicly once
+the editor approves them. Reuse the `comments` table (anchor NULL) and
+flow through the moderation queue (null-anchor rows render as "letter").
+
+**Built this session:**
+- `app/supabase/migrations/20260601000000_phase_b_letters_author.sql` —
+  nullable `author_name` on `comments` (denormalised pen name captured at
+  submit; profiles are RLS-private so it can't be joined at display).
+  **Operator must apply this to prod before letters work.**
+- `app/src/pages/api/letters/[issueId].ts` — GET (approved + own-pending,
+  `.is('anchor', null)`, returns `defaultName` + `signedIn`) + POST
+  (create; `author_name` falls back to the reader's profile name).
+- `src/components/core/LettersBlock.astro` — publication island
+  (`px-letter`), mounted in `[slug].astro` after `ReactionsBar`:
+  approved-letters list + a "write a letter" form (sign-as + body).
+  Anonymous → "Sign in to write a letter" redirect.
+
+**Verify (operator):** after applying the migration and signing in, open
+a published issue, write a letter, then approve it in `/admin/comments`
+and confirm it renders under "Letters" on the issue. Local verification
+uses the same `DEV_ADMIN_EMAIL` bypass described below.
 
 ---
 
@@ -234,10 +240,13 @@ cd "D:/SideProjects/parallax/app" && npm run build # app — must exit 0
 1. Add `ADMIN_EMAILS=<your-email>` to Vercel env vars for
    `parallax-app` project → redeploy. This unlocks the now-built
    moderation queue UI (`/admin/comments`) for the operator.
-2. Review + publish the `2026-05-15-seven-appeals-rupee-pressure` issue
+2. Apply `app/supabase/migrations/20260601000000_phase_b_letters_author.sql`
+   to prod Supabase (paste into the SQL editor). Letters cannot be
+   submitted until the `author_name` column exists.
+3. Review + publish the `2026-05-15-seven-appeals-rupee-pressure` issue
    (currently `status: draft`). Two `# EDITOR:` flags remain in that
    file — resolve them first.
-3. Claude Design proposals: when they arrive, share with the agent for
+4. Claude Design proposals: when they arrive, share with the agent for
    translation into Astro components per `src/components/AGENTS.md`.
 
 ---

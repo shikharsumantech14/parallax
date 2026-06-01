@@ -65,7 +65,7 @@ for the full per-feature breakdown.
 | B-5 Annotations — capture | ✅ Shipped |
 | B-5 Annotations — moderation queue | ✅ UI shipped (code complete; operator `ADMIN_EMAILS` + live smoke test pending) |
 | B-4 Topic affinity heatmap | ⏳ Not started (waiting on reading-event data) |
-| B-6 Letters block | ⏳ Not started |
+| B-6 Letters block | ✅ Shipped (code complete; operator must apply the letters migration to prod) |
 | C / D / E | ⏳ Not started |
 
 ---
@@ -122,6 +122,8 @@ app/
             │   └── [issueId].ts
             ├── events.ts
             ├── annotations/
+            │   └── [issueId].ts
+            ├── letters/
             │   └── [issueId].ts
             └── admin/
                 ├── comments.ts
@@ -275,6 +277,7 @@ Stored at `supabase/migrations/<timestamp>_<phase>_<description>.sql`.
 | 20260524100000_phase_b_reactions.sql | reactions (composite PK) |
 | 20260524200000_phase_b_reading_events.sql | reading_events (auth + anon tracking) |
 | 20260524300000_phase_b_comments.sql | comments (annotations with anchor + letters without) |
+| 20260601000000_phase_b_letters_author.sql | comments.author_name (denormalised pen name for public letter attribution) |
 
 Apply via Supabase SQL editor (paste contents, click Run) OR
 `supabase db push` once the CLI is linked. Every migration is
@@ -334,6 +337,24 @@ bottom list only.
 ---
 
 ## Change log
+
+### 2026-06-01 — Letters block shipped (Phase B-6, code complete)
+- `supabase/migrations/20260601000000_phase_b_letters_author.sql` — adds a
+  nullable `author_name` to `comments` (denormalised pen name captured at
+  submit; profiles are RLS-private so it can't be joined at display).
+  **Operator must apply this to prod Supabase before letters can be sent**
+  (insert would otherwise fail on the missing column).
+- `src/pages/api/letters/[issueId].ts` — GET (approved + own-pending
+  letters, filtered `.is('anchor', null)`; returns `defaultName` +
+  `signedIn`) + POST (create; `author_name` falls back to the reader's own
+  profile display name). Mirrors the annotations endpoint.
+- Publication: `src/components/core/LettersBlock.astro` mounted in
+  `src/pages/issues/[slug].astro` after `ReactionsBar` — approved-letters
+  list + a "write a letter" form (sign-as + body). `px-letter` styles.
+- Letters reuse the existing moderation queue (null anchor → labelled
+  "letter" in `/admin/comments`); no moderation changes needed.
+- Publication + app builds both exit 0. Remaining Phase B: B-4 topic
+  affinity heatmap (gated on reading_events data).
 
 ### 2026-06-01 — Moderation queue UI shipped (Phase B-5 closed in code)
 - `src/pages/admin/comments.astro` — admin-gated queue UI: server-

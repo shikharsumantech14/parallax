@@ -228,9 +228,9 @@ reader-interaction APIs. See `app/AGENTS.md` for full detail. The
 publication stays `output: 'static'`; reader features attach as small
 client islands that call the app subdomain. Phase A shipped. Phase B
 mostly shipped (reactions, save, reading-events, annotations capture +
-moderation queue); remaining: Letters block (B-6) and topic affinity
-heatmap (B-4). See `docs/PROJECT.md` §12 (2026-06-01 entry) for the
-full status.
+moderation queue, Letters block); remaining: topic affinity heatmap
+(B-4, data-gated). See `docs/PROJECT.md` §12 (2026-06-01 entries) for
+the full status.
 
 ---
 

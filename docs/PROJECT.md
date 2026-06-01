@@ -825,6 +825,56 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-06-01 — Letters block (Phase B-6) shipped
+
+**Scope.** End-of-issue reader "Letters" — longer reflections submitted
+below each issue, shown publicly once the editor approves them. Letters
+reuse the `comments` table (anchor IS NULL) and flow through the
+moderation queue shipped earlier the same day, so no moderation work was
+needed. Publication + app builds both exit 0.
+
+**Schema.** `app/supabase/migrations/20260601000000_phase_b_letters_author.sql`
+adds a nullable `author_name` (≤ 80) to `comments`. Letters need public
+attribution, but profiles are RLS-private (`profiles_select_own`) — a
+public letters list rendered with the anon/user client cannot read
+another reader's `display_name`. So the chosen name is denormalised onto
+the comment row at submit time. Append-only, idempotent, no RLS change.
+**Operator must apply this migration to prod Supabase** (paste into the
+SQL editor) before letters can be submitted — the insert references the
+new column.
+
+**API.** `app/src/pages/api/letters/[issueId].ts` mirrors the annotations
+endpoint:
+- GET (anonymous-friendly): approved letters for the issue, filtered
+  `.is('anchor', null)`; signed-in callers also get their own pending
+  letters plus `defaultName` (their profile display name, to prefill the
+  sign-as field) and `signedIn`.
+- POST (auth required): creates a letter with anchor NULL and status
+  `pending`. `author_name` uses the submitted value, else the reader's
+  own profile display name, else null (UI shows "A reader"). 2000-char cap.
+
+**Publication.** `src/components/core/LettersBlock.astro` is a new
+`is:inline` client island (the `px-letter` prefix), mounted in
+`src/pages/issues/[slug].astro` after `ReactionsBar`. It lists approved
+letters (plus the reader's own pending, marked "In review") and offers a
+"write a letter" form: a sign-as name input (prefilled from the profile
+when signed in) and a body textarea. Anonymous submit redirects to login
+(the button reads "Sign in to write a letter"); a 401 on POST also
+redirects. Body rendered as escaped text — no HTML injection.
+
+**Moderation.** Letters appear in `/admin/comments` automatically (the
+queue lists all `comments` rows by status; null-anchor rows already
+render as "letter"). Approve promotes a letter to public.
+
+**Phase B status.** B-1…B-3, B-5 (capture + moderation), and B-6 are now
+complete in code. The only remaining Phase B feature is B-4 (topic
+affinity heatmap), gated on ~a week of `reading_events` data. Phase C
+(AI explainers + TL;DR) stays blocked until Phase B closes.
+
+**Left uncommitted** for the operator to review and commit from their own
+account — this build account is code-only for Parallax (see the
+moderation-queue entry below for why).
+
 ### 2026-06-01 — Annotations moderation queue UI shipped (Phase B-5 closed in code)
 
 **Scope.** Built the last missing piece of Phase B-5: the moderation

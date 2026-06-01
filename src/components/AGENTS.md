@@ -216,6 +216,7 @@ These render directly in templates, not via the dispatcher:
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
 | `core/AnnotationLayer.astro` | inline in `[slug].astro`, between article and ReactionsBar |
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
+| `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
 | `core/NewsletterForm.astro` | rendered by `core/Footer.astro` |
 | `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
@@ -227,7 +228,7 @@ These render directly in templates, not via the dispatcher:
 
 ## 8. Reader-interaction client islands (Phase B)
 
-Five new client islands ship with Phase B. All live in `core/`, all
+Six new client islands ship with Phase B. All live in `core/`, all
 call `app.parallaxlens.com/api/*` with `credentials: 'include'`. All
 fail silently — analytics and engagement must never break the reading
 experience.
@@ -241,6 +242,7 @@ experience.
 | `px-reading-tracker` | ReadingTracker (invisible — no visible CSS) |
 | `px-annot` | AnnotationLayer |
 | `px-newsletter` | NewsletterForm |
+| `px-letter` | LettersBlock (end-of-issue reader letters, Phase B-6) |
 
 ### Client island pattern
 

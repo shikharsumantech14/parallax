@@ -1,0 +1,349 @@
+---
+/**
+ * LettersBlock — end-of-issue reader letters (Phase B-6).
+ *
+ * A signed-in reader writes a longer reflection ("letter") on the issue;
+ * approved letters render publicly here. Letters reuse the `comments` table
+ * with a NULL anchor and flow through the same moderation queue as
+ * annotations (`/admin/comments`). Author attribution uses the denormalised
+ * `author_name` captured at submit (profiles are RLS-private, so a name can't
+ * be joined at display time).
+ *
+ * Flow mirrors AnnotationLayer: GET on load (approved + own pending), POST to
+ * submit, 401 → login redirect. Pure `is:inline` IIFE, no framework. Talks to
+ * the app subdomain via CORS with credentials.
+ */
+interface Props {
+  issueId: string;
+}
+const { issueId } = Astro.props;
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<section class="px-letter" data-issue-id={issueId} data-app-url={appUrl} aria-labelledby="px-letter-title">
+  <h2 class="px-letter__title" id="px-letter-title">Letters</h2>
+  <p class="px-letter__dek">
+    Longer responses from readers. Write one below — the editor reviews each
+    before it appears here.
+  </p>
+
+  <div class="px-letter__list" id="px-letter-list">
+    <p class="px-letter__empty" id="px-letter-empty">
+      <em>No letters yet. Be the first to write one.</em>
+    </p>
+  </div>
+
+  <form class="px-letter__form" id="px-letter-form">
+    <div class="px-letter__form-eyebrow">Write a letter</div>
+    <input
+      class="px-letter__name"
+      id="px-letter-name"
+      type="text"
+      maxlength="80"
+      placeholder="Sign as — your name (optional)"
+      autocomplete="name"
+    />
+    <textarea
+      class="px-letter__input"
+      id="px-letter-input"
+      placeholder="Your response to this issue…"
+      maxlength="2000"
+      rows="5"
+    ></textarea>
+    <div class="px-letter__meta">
+      <span class="px-letter__count" id="px-letter-count">0 / 2000</span>
+    </div>
+    <div class="px-letter__actions">
+      <button type="submit" class="px-letter__submit" id="px-letter-submit">Send letter</button>
+    </div>
+    <p class="px-letter__status" id="px-letter-status" aria-live="polite"></p>
+  </form>
+</section>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-letter'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var issueId = root.dataset.issueId;
+    var appUrl = root.dataset.appUrl;
+    if (!issueId || !appUrl) return;
+    var apiUrl = appUrl + '/api/letters/' + encodeURIComponent(issueId);
+
+    var list = document.getElementById('px-letter-list');
+    var empty = document.getElementById('px-letter-empty');
+    var form = document.getElementById('px-letter-form');
+    var nameInput = document.getElementById('px-letter-name');
+    var input = document.getElementById('px-letter-input');
+    var count = document.getElementById('px-letter-count');
+    var submit = document.getElementById('px-letter-submit');
+    var statusEl = document.getElementById('px-letter-status');
+
+    var signedIn = false;
+
+    function goLogin() {
+      window.location.href = appUrl + '/login?next=' + encodeURIComponent(window.location.href);
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      try {
+        return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+      } catch (_) { return ''; }
+    }
+
+    function renderLetter(l, prepend) {
+      if (!l || !l.body_md) return;
+      if (empty) empty.style.display = 'none';
+
+      var item = document.createElement('article');
+      item.className = 'px-letter__item';
+      item.dataset.status = l.status || 'pending';
+
+      var meta = document.createElement('div');
+      meta.className = 'px-letter__item-meta';
+      var who = (l.author_name && String(l.author_name).trim()) ? String(l.author_name) : 'A reader';
+      var when = fmtDate(l.created_at);
+      var prefix = l.status === 'approved' ? '' : 'In review · ';
+      meta.textContent = prefix + who + (when ? ' · ' + when : '');
+      item.appendChild(meta);
+
+      var bodyEl = document.createElement('p');
+      bodyEl.className = 'px-letter__item-body';
+      bodyEl.textContent = l.body_md; // textContent = escaped; no HTML injection
+      item.appendChild(bodyEl);
+
+      if (prepend && list.firstChild) {
+        list.insertBefore(item, list.firstChild);
+      } else {
+        list.appendChild(item);
+      }
+    }
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg || '';
+      statusEl.className = 'px-letter__status' + (kind ? ' px-letter__status--' + kind : '');
+    }
+
+    input.addEventListener('input', function () {
+      count.textContent = input.value.length + ' / 2000';
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      // Not signed in → send them to login (don't make them lose typed text to
+      // a 401 round-trip; the button label already signals this).
+      if (!signedIn) {
+        goLogin();
+        return;
+      }
+
+      var text = input.value.trim();
+      if (!text) {
+        setStatus('Your letter needs some text.', 'err');
+        return;
+      }
+
+      submit.disabled = true;
+      setStatus('Sending…', null);
+
+      fetch(apiUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body_md: text, author_name: nameInput.value }),
+      })
+        .then(function (res) {
+          if (res.status === 401) { signedIn = false; goLogin(); return null; }
+          return res.json();
+        })
+        .then(function (data) {
+          if (!data) return;
+          if (data.ok && data.letter) {
+            renderLetter(data.letter, true);
+            input.value = '';
+            count.textContent = '0 / 2000';
+            setStatus('Thanks — your letter is in review.', 'ok');
+          } else {
+            setStatus(data.error || 'Could not send your letter.', 'err');
+          }
+        })
+        .catch(function () {
+          setStatus('Network error. Try again.', 'err');
+        })
+        .finally(function () {
+          submit.disabled = false;
+        });
+    });
+
+    function applyAuthState() {
+      submit.textContent = signedIn ? 'Send letter' : 'Sign in to write a letter';
+    }
+
+    fetch(apiUrl, { method: 'GET', credentials: 'include' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data || !data.ok) { applyAuthState(); return; }
+        signedIn = !!data.signedIn;
+        applyAuthState();
+        if (signedIn && data.defaultName && !nameInput.value) {
+          nameInput.value = data.defaultName;
+        }
+        var all = [].concat(data.approved || []).concat(data.mine || []);
+        all.sort(function (a, b) { return (a.created_at || '').localeCompare(b.created_at || ''); });
+        all.forEach(function (l) { renderLetter(l, false); });
+      })
+      .catch(function () { applyAuthState(); });
+  })();
+</script>
+
+<style>
+  .px-letter {
+    margin: 8px 0 32px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  .px-letter__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .px-letter__dek {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    max-width: 54ch;
+  }
+
+  /* ── Letters list ─────────────────────────────────────────────────── */
+  .px-letter__list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+  .px-letter__empty {
+    color: var(--muted);
+    margin: 0;
+    font-size: 15px;
+  }
+  .px-letter__item {
+    padding: 16px 0 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-letter__item:last-child { border-bottom: none; }
+  .px-letter__item-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .px-letter__item[data-status="approved"] .px-letter__item-meta { color: var(--accent); }
+  .px-letter__item-body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+    margin: 0;
+    max-width: 60ch;
+    white-space: pre-wrap;
+  }
+
+  /* ── Submission form ──────────────────────────────────────────────── */
+  .px-letter__form {
+    border-top: 1px solid var(--rule);
+    padding-top: 24px;
+  }
+  .px-letter__form-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .px-letter__name,
+  .px-letter__input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .px-letter__name {
+    font-size: 14px;
+    padding: 11px 14px;
+    margin-bottom: 10px;
+  }
+  .px-letter__input {
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 12px 14px;
+    resize: vertical;
+    min-height: 110px;
+  }
+  .px-letter__name:focus,
+  .px-letter__input:focus { border-color: var(--ink); }
+  .px-letter__meta {
+    display: flex;
+    justify-content: flex-end;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin: 6px 0 14px;
+  }
+  .px-letter__actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .px-letter__submit {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 11px 22px;
+    border-radius: 0;
+    cursor: pointer;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+  .px-letter__submit:hover {
+    background: var(--accent-deep, var(--accent));
+    border-color: var(--accent-deep, var(--accent));
+  }
+  .px-letter__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .px-letter__status {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin: 12px 0 0;
+    min-height: 1.2em;
+  }
+  .px-letter__status--ok { color: var(--accent); }
+  .px-letter__status--err { color: #c0392b; }
+
+  @media (max-width: 480px) {
+    .px-letter { margin: 8px 0 24px; padding-top: 24px; }
+    .px-letter__title { font-size: 19px; }
+  }
+</style>
