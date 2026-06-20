@@ -1,0 +1,247 @@
+---
+id: "2026-06-03-tech-showcase"
+topic: tech
+title: "The Tech *Instrument* Panel"
+hook: "Every tech data-viz component, wired to real data."
+dek: "A working styleguide for the tech world — architecture stacks, latency traces, version graphs, scaling laws, throughput gauges, benchmarks, adoption curves, and commit heatmaps."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 6
+primer: "A reference issue, not a story. Each section below renders one tech signature component against a realistic dataset — a request trace, a scaling law, a release history — so editors can see the shape, the interaction, and the data each one expects before reaching for it in a real draft."
+
+sections:
+  - kind: prose
+    eyebrow: "THE REGISTER"
+    title: "What this *page* is for"
+    intro: "A styleguide, not an argument. It exists so the next draft can pick the right instrument without guessing."
+    data:
+      lead: "The tech world owns nine signature components. Most issues use two or three. This page renders all of them in sequence, each fed a small slice of real-world data, so the shape and the interaction are visible before you commit one to a draft."
+      paragraphs:
+        - "Read it top to bottom and the order tracks how a system reveals itself: first the **stack** it runs on, then a single **request** falling through it, then the **history** of the code, the **scaling law** the model obeys, the **throughput** it sustains, the **benchmark** it posts, the **adoption** it earns, and finally the **cadence** of the team shipping it."
+        - "Every figure carries a source line. The numbers are real where a public source exists and clearly rounded where they stand in for a class of system. Hover any component on a pointer device and it responds; on touch or with reduced motion it settles straight to its final, readable state."
+        - "If you are drafting a tech issue, treat this as the parts bin. Copy the section whose data shape matches your evidence, swap in your numbers, and delete the rest."
+
+  - kind: arch-stack
+    eyebrow: "THE STACK"
+    title: "Anatomy of a *production* web app"
+    intro: "Each slab is one layer of a typical request-serving stack, top (what the browser touches) to bottom (what it all runs on). Hover a slab on desktop to lift it toward you."
+    data:
+      caption: "Reference architecture · edge-to-database request path"
+      source: "Composite of common production stacks (Vercel / AWS reference architectures), 2026"
+      layers:
+        - { label: "Client", sublabel: "Browser · React SPA", color: "#c6f432" }
+        - { label: "Edge / CDN", sublabel: "Static assets · cache · WAF" }
+        - { label: "API Gateway", sublabel: "Routing · auth · rate limit" }
+        - { label: "Application", sublabel: "Stateless service nodes" }
+        - { label: "Cache", sublabel: "Redis · session + hot reads" }
+        - { label: "Primary DB", sublabel: "Postgres · read replicas" }
+        - { label: "Infrastructure", sublabel: "Kubernetes · cloud region" }
+
+  - kind: latency-waterfall
+    eyebrow: "THE TRACE"
+    title: "One HTTPS request, *millisecond* by millisecond"
+    intro: "A single cold request to an API endpoint, broken into network and server phases. Each bar starts where the previous ends; the value at right is that phase's duration in ms."
+    data:
+      unit: "ms"
+      caption: "Cold GET /api/v1/feed · single request trace"
+      source: "Representative Chrome DevTools network timing for an uncached API call, 2026"
+      spans:
+        - { label: "DNS lookup", start: 0, dur: 18, kind: dns }
+        - { label: "TCP connect", start: 18, dur: 26, kind: connect }
+        - { label: "TLS handshake", start: 44, dur: 41, kind: tls }
+        - { label: "Request sent", start: 85, dur: 4, kind: client }
+        - { label: "Server (TTFB)", start: 89, dur: 142, kind: ttfb }
+        - { label: "Content download", start: 231, dur: 33, kind: download }
+
+  - kind: version-graph
+    eyebrow: "THE HISTORY"
+    title: "A release branch, *merged*"
+    intro: "A git-style commit graph reading newest-first from the top. Lane 0 is main; lane 1 is a short-lived feature branch that merges back. Tags mark shipped releases."
+    data:
+      caption: "Service repository · last seven commits"
+      source: "Illustrative semantic-versioned release history (semver.org conventions)"
+      nodes:
+        - { id: "a1f9c2", lane: 0, label: "Release v2.4.0", tag: "v2.4.0", parents: ["7d3e88", "b22a01"] }
+        - { id: "7d3e88", lane: 0, label: "Docs + changelog", parents: ["e90f15"] }
+        - { id: "b22a01", lane: 1, label: "feat: streaming responses", parents: ["c41d77"] }
+        - { id: "e90f15", lane: 0, label: "fix: cache key collision", parents: ["c41d77"] }
+        - { id: "c41d77", lane: 0, label: "Release v2.3.1", tag: "v2.3.1", parents: ["5ab930"] }
+        - { id: "5ab930", lane: 0, label: "perf: pool DB connections", parents: ["0f8e44"] }
+        - { id: "0f8e44", lane: 0, label: "Release v2.3.0", tag: "v2.3.0" }
+
+  - kind: scaling-plot
+    eyebrow: "THE LAW"
+    title: "More parameters, *lower* loss"
+    intro: "Language-model test loss against parameter count, plotted on a log x-axis. The fitted line is the straight power-law relationship that scaling-law papers describe. Points pop in; the fit strokes itself across the frame."
+    data:
+      xLabel: "Parameters"
+      yLabel: "Test loss"
+      logX: true
+      fit: true
+      caption: "Test loss vs. model size · compute-scaling trend"
+      source: "Trend after Kaplan et al. 2020 + Hoffmann et al. 2022 (Chinchilla); values rounded"
+      points:
+        - { x: 125000000, y: 3.32, label: "125M" }
+        - { x: 350000000, y: 3.05, label: "350M" }
+        - { x: 760000000, y: 2.88, label: "760M" }
+        - { x: 1300000000, y: 2.74, label: "1.3B" }
+        - { x: 2700000000, y: 2.58, label: "2.7B" }
+        - { x: 6700000000, y: 2.42, label: "6.7B" }
+        - { x: 13000000000, y: 2.33, label: "13B" }
+        - { x: 70000000000, y: 2.10, label: "70B" }
+
+  - kind: throughput-dial
+    eyebrow: "THE LOAD"
+    title: "Requests per second, *sustained*"
+    intro: "A 270-degree gauge showing one service node's current throughput against its tested ceiling. The colored zones mark nominal, busy, and saturating load. The fill arc sweeps up to the value on reveal."
+    data:
+      value: 8400
+      max: 12000
+      unit: "req/s"
+      label: "p50 sustained · single node"
+      caption: "Service node throughput against load-tested ceiling"
+      source: "Representative load-test result for a stateless API node, 2026"
+      zones:
+        - { from: 0, to: 6000, label: "Nominal" }
+        - { from: 6000, to: 9500, label: "Busy" }
+        - { from: 9500, to: 12000, label: "Saturating" }
+
+  - kind: benchmark-chart
+    eyebrow: "THE BENCHMARK"
+    title: "Reasoning models on *GPQA Diamond*"
+    intro: "Accuracy on GPQA Diamond, a set of graduate-level science questions written to resist web lookup. Higher is better; the dashed line marks the PhD-expert baseline reported with the benchmark."
+    data:
+      unit: "%"
+      refValue: 65.4
+      refLabel: "PhD expert baseline"
+      sortDesc: true
+      caption: "GPQA Diamond accuracy · published model evaluations, 2024–2025"
+      source: "Model technical reports and provider cards (GPQA, Rein et al. 2023); figures rounded"
+      items:
+        - { label: "o1", value: 78.0 }
+        - { label: "Claude 3.5 Sonnet", value: 65.0, highlight: true }
+        - { label: "GPT-4o", value: 53.6 }
+        - { label: "Gemini 1.5 Pro", value: 59.1 }
+        - { label: "o1-mini", value: 60.0 }
+        - { label: "Llama 3.1 405B", value: 51.1 }
+        - { label: "Claude 3 Opus", value: 50.4, highlight: true }
+        - { label: "GPT-4 Turbo", value: 48.0 }
+
+  - kind: adoption-curve
+    eyebrow: "THE DIFFUSION"
+    title: "Electric cars cross *the* threshold"
+    intro: "Battery and plug-in electric vehicles as a share of new car sales worldwide. A classic diffusion S-curve: flat for a decade, then a steep climb past the early-majority threshold."
+    data:
+      yLabel: "% of new car sales"
+      caption: "Global electric-car share of new car sales, 2013–2024"
+      source: "IEA Global EV Outlook 2024–2025; share of new sales (BEV + PHEV)"
+      points:
+        - { year: 2013, pct: 0.2 }
+        - { year: 2014, pct: 0.4 }
+        - { year: 2015, pct: 0.6 }
+        - { year: 2016, pct: 0.9 }
+        - { year: 2017, pct: 1.3 }
+        - { year: 2018, pct: 2.2 }
+        - { year: 2019, pct: 2.5 }
+        - { year: 2020, pct: 4.2 }
+        - { year: 2021, pct: 8.7 }
+        - { year: 2022, pct: 14.0 }
+        - { year: 2023, pct: 18.0 }
+        - { year: 2024, pct: 20.0 }
+      milestones:
+        - { year: 2016, label: "Sub-1% niche" }
+        - { year: 2020, label: "Europe incentives + new models" }
+        - { year: 2021, label: "Supply scales, China surges" }
+        - { year: 2024, label: "~1 in 5 cars sold" }
+
+  - kind: commit-grid
+    eyebrow: "THE CADENCE"
+    title: "A year of *deploys*"
+    intro: "A GitHub-style heatmap of deployment activity, one column per week and one cell per day. Darker cells are busier days; the quiet diagonal stretches are weekends and a holiday freeze."
+    data:
+      meta: "412 deploys · 52 weeks"
+      caption: "Production deployment frequency, trailing 12 months"
+      source: "Representative CI/CD deployment log for a small product team, 2026"
+      months: ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+      weekdays: ["Mon", "", "Wed", "", "Fri", "", ""]
+      weeks:
+        - [{ level: 2 }, { level: 3 }, { level: 1 }, { level: 2 }, { level: 4, label: "Fri deploy day" }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 2 }, { level: 1 }, { level: 3 }, { level: 0 }, { level: 1 }]
+        - [{ level: 1 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 4 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 1 }, { level: 0 }]
+        - [{ level: 4, label: "Release week" }, { level: 3 }, { level: 4 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 1 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 3 }, { level: 1 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 3 }, { level: 1 }, { level: 4 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 1 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 3 }, { level: 0 }, { level: 1 }]
+        - [{ level: 4, label: "Hotfix burst" }, { level: 4 }, { level: 3 }, { level: 2 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 1 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 3 }, { level: 3 }, { level: 4 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 4 }, { level: 2 }, { level: 3 }, { level: 1 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 4 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 0 }, { level: 1 }, { level: 0 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 0 }, { level: 0 }, { level: 1 }, { level: 0 }, { level: 0, label: "Holiday freeze" }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 3 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 2 }, { level: 2 }, { level: 4 }, { level: 1 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 3 }, { level: 1 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 4, label: "Big launch" }, { level: 4 }, { level: 3 }, { level: 3 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 1 }, { level: 0 }]
+        - [{ level: 1 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 3 }, { level: 2 }, { level: 4 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 3 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 4 }, { level: 3 }, { level: 3 }, { level: 1 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 1 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 4 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 1 }, { level: 0 }]
+        - [{ level: 2 }, { level: 2 }, { level: 3 }, { level: 3 }, { level: 4 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 1 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 3 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 4 }, { level: 1 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 1 }]
+        - [{ level: 3 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 4 }, { level: 0 }, { level: 0 }]
+        - [{ level: 1 }, { level: 2 }, { level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 0 }]
+        - [{ level: 2 }, { level: 3 }, { level: 1 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 0 }]
+        - [{ level: 4, label: "Quarter close" }, { level: 3 }, { level: 4 }, { level: 3 }, { level: 2 }, { level: 0 }, { level: 1 }]
+        - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 1 }, { level: 0 }, { level: 0 }]
+        - [{ level: 2 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 0 }]
+
+sources:
+  - id: "src-01"
+    title: "GPQA: A Graduate-Level Google-Proof Q&A Benchmark"
+    publisher: "Rein et al. (arXiv:2311.12022)"
+    url: "https://arxiv.org/abs/2311.12022"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-02"
+    title: "Training Compute-Optimal Large Language Models (Chinchilla)"
+    publisher: "Hoffmann et al. (arXiv:2203.15556)"
+    url: "https://arxiv.org/abs/2203.15556"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-03"
+    title: "Global EV Outlook 2024"
+    publisher: "International Energy Agency"
+    url: "https://www.iea.org/reports/global-ev-outlook-2024"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-04"
+    title: "Semantic Versioning 2.0.0"
+    publisher: "Semantic Versioning"
+    url: "https://semver.org/"
+    accessedAt: "2026-06-03"
+    kind: secondary
+---

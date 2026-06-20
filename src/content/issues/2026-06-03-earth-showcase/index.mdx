@@ -1,0 +1,369 @@
+---
+id: "2026-06-03-earth-showcase"
+topic: earth
+title: "The Earth *Instrument Panel*"
+hook: "One issue, every earth data-viz component, each fed real-world climate and geophysical data."
+dek: "A styleguide showcase — the full earth toolkit on a single page."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 6
+primer: "A reference issue that exercises every data-visualisation component in the earth world — globe, ice core, sea-level tank, warming spiral, seismic plot, warming stripes, choropleth map, and carbon-budget gauge. Each section carries real published data so the components can be checked against numbers that actually exist."
+
+sections:
+  - kind: prose
+    eyebrow: "THE TOOLKIT"
+    title: "Eight ways to *read the planet*."
+    skimCaption: "This is a styleguide, not an argument. Each section below mounts one earth-world component and feeds it real published data — temperature records, sea-level projections, an ice core, a year of earthquakes, a carbon budget. The point is to see every instrument on one page."
+    data:
+      lead: "The earth world owns eight signature data-visualisation components. Most issues use two or three. This page mounts all eight in sequence so they can be checked side by side — geometry, colour ramps, scroll-in behaviour, and the no-JS fallback each one carries."
+      paragraphs:
+        - "Every component below is fed data that exists in the public record: surface-temperature anomalies from NASA and Berkeley Earth, sea-level projections from the IPCC Sixth Assessment, a Greenland ice-core column, a single year of significant earthquakes from the USGS catalog, and the remaining carbon budget for 1.5°C. The captions name what each panel represents and how it behaves on screen."
+        - "Read top to bottom and the page doubles as a survey of how the planet gets measured: heat in the ocean and air, ice laid down by season, water rising against a coastline, the ground rupturing at depth, carbon counted against a ceiling. The instruments differ. The subject is one system."
+        - "Where a component spins, scrubs, or draws itself in, the static fallback still carries the full reading. Nothing here depends on JavaScript to be legible."
+
+  - kind: data-globe
+    eyebrow: "THE GLOBE"
+    title: "Surface warming, *station by station*."
+    intro: "A 3D dot-matrix globe with one bubble per location, sized by its 2024 mean surface-temperature anomaly above the 1951–1980 baseline. Drag to spin; the static fallback plots the same points on an equirectangular grid with a textual legend below."
+    data:
+      unit: "°C anomaly"
+      caption: "2024 ANNUAL SURFACE-TEMPERATURE ANOMALY vs 1951–1980 · SELECTED STATIONS"
+      source: "NASA GISS Surface Temperature Analysis (GISTEMP v4) · Berkeley Earth, 2024"
+      markers:
+        - { name: "Svalbard (Arctic)", lat: 78.22, lon: 15.65, value: 3.1, color: "#e63946" }
+        - { name: "Verkhoyansk (Siberia)", lat: 67.55, lon: 133.39, value: 2.6, color: "#ef8a62" }
+        - { name: "Reykjavík", lat: 64.13, lon: -21.90, value: 1.9 }
+        - { name: "Delhi", lat: 28.61, lon: 77.21, value: 1.4 }
+        - { name: "Nairobi", lat: -1.29, lon: 36.82, value: 1.1 }
+        - { name: "Manaus (Amazon)", lat: -3.12, lon: -60.02, value: 1.3 }
+        - { name: "Sydney", lat: -33.87, lon: 151.21, value: 1.2 }
+        - { name: "McMurdo (Antarctica)", lat: -77.85, lon: 166.67, value: 0.8, color: "#67a9cf" }
+
+  - kind: core-sample
+    eyebrow: "THE CORE"
+    title: "A column of *frozen time*."
+    intro: "An ice-core column read top (recent) to bottom (older), each band a depth interval with its approximate age and the CO₂ trapped in its bubbles. Bands drop in top-to-bottom on scroll; the depth axis and labels read without animation."
+    data:
+      unit: "ppm CO₂"
+      caption: "GREENLAND / ANTARCTIC ICE-CORE COMPOSITE · DEPTH → AGE → TRAPPED CO₂"
+      source: "NOAA Paleoclimatology · EPICA Dome C & GISP2 composite (illustrative depths)"
+      layers:
+        - { depth: "0–120 m", label: "Modern firn (2024–1950)", value: 420 }
+        - { depth: "120–260 m", label: "Industrial rise (1950–1850)", value: 315 }
+        - { depth: "260–600 m", label: "Pre-industrial Holocene", value: 280 }
+        - { depth: "600–1500 m", label: "Mid-Holocene optimum", value: 265 }
+        - { depth: "1500–3000 m", label: "Last Glacial Maximum (~20 ka)", value: 190 }
+        - { depth: "3000 m+", label: "Deep glacial ice (~50 ka)", value: 200 }
+
+  - kind: sea-level-tank
+    eyebrow: "THE TANK"
+    title: "How high the *water comes*."
+    intro: "A cross-section tank whose water rises to the highest scenario marker on scroll-in. Each line is a projected global mean sea-level rise above the 2000 baseline; the outer ticks are reference heights it can be read against. Marker lines and labels stay visible without JavaScript."
+    data:
+      maxM: 2.0
+      caption: "PROJECTED GLOBAL MEAN SEA-LEVEL RISE ABOVE 2000 BASELINE"
+      source: "IPCC AR6 WG1 Ch. 9 & Sea Level Projection Tool, 2021"
+      levels:
+        - { label: "SSP1-2.6 (low emissions)", riseM: 0.44, year: 2100 }
+        - { label: "SSP2-4.5 (intermediate)", riseM: 0.56, year: 2100 }
+        - { label: "SSP5-8.5 (high emissions)", riseM: 0.77, year: 2100 }
+        - { label: "SSP5-8.5 low-confidence upper", riseM: 1.88, year: 2100 }
+      landmarks:
+        - { name: "Maldives mean elevation", heightM: 1.5 }
+        - { name: "Venice St Mark's Square", heightM: 0.9 }
+        - { name: "Typical king-tide reach", heightM: 0.6 }
+
+  - kind: climate-spiral
+    eyebrow: "THE SPIRAL"
+    title: "Every month, *winding outward*."
+    intro: "The warming spiral: January at the top, months advancing clockwise, radius growing with each month's temperature anomaly. Several recent years are plotted so the line spirals outward as the planet warms. The segments stroke-draw in chronological order on scroll; the fallback shows the full spiral."
+    data:
+      unit: "°C"
+      baseline: "1850–1900 pre-industrial mean"
+      caption: "MONTHLY GLOBAL TEMPERATURE ANOMALY · 2021–2024"
+      source: "Copernicus C3S ERA5 · monthly global mean, 2021–2024"
+      months:
+        - { year: 2021, month: 1, value: 1.06 }
+        - { year: 2021, month: 2, value: 1.04 }
+        - { year: 2021, month: 3, value: 1.00 }
+        - { year: 2021, month: 4, value: 1.02 }
+        - { year: 2021, month: 5, value: 1.05 }
+        - { year: 2021, month: 6, value: 1.12 }
+        - { year: 2021, month: 7, value: 1.15 }
+        - { year: 2021, month: 8, value: 1.10 }
+        - { year: 2021, month: 9, value: 1.08 }
+        - { year: 2021, month: 10, value: 1.13 }
+        - { year: 2021, month: 11, value: 1.07 }
+        - { year: 2021, month: 12, value: 1.03 }
+        - { year: 2022, month: 1, value: 1.10 }
+        - { year: 2022, month: 2, value: 1.08 }
+        - { year: 2022, month: 3, value: 1.18 }
+        - { year: 2022, month: 4, value: 1.14 }
+        - { year: 2022, month: 5, value: 1.16 }
+        - { year: 2022, month: 6, value: 1.20 }
+        - { year: 2022, month: 7, value: 1.22 }
+        - { year: 2022, month: 8, value: 1.24 }
+        - { year: 2022, month: 9, value: 1.19 }
+        - { year: 2022, month: 10, value: 1.21 }
+        - { year: 2022, month: 11, value: 1.15 }
+        - { year: 2022, month: 12, value: 1.12 }
+        - { year: 2023, month: 1, value: 1.20 }
+        - { year: 2023, month: 2, value: 1.26 }
+        - { year: 2023, month: 3, value: 1.30 }
+        - { year: 2023, month: 4, value: 1.28 }
+        - { year: 2023, month: 5, value: 1.34 }
+        - { year: 2023, month: 6, value: 1.47 }
+        - { year: 2023, month: 7, value: 1.54 }
+        - { year: 2023, month: 8, value: 1.52 }
+        - { year: 2023, month: 9, value: 1.75 }
+        - { year: 2023, month: 10, value: 1.70 }
+        - { year: 2023, month: 11, value: 1.75 }
+        - { year: 2023, month: 12, value: 1.79 }
+        - { year: 2024, month: 1, value: 1.66 }
+        - { year: 2024, month: 2, value: 1.77 }
+        - { year: 2024, month: 3, value: 1.68 }
+        - { year: 2024, month: 4, value: 1.58 }
+        - { year: 2024, month: 5, value: 1.52 }
+        - { year: 2024, month: 6, value: 1.50 }
+        - { year: 2024, month: 7, value: 1.48 }
+        - { year: 2024, month: 8, value: 1.51 }
+        - { year: 2024, month: 9, value: 1.54 }
+        - { year: 2024, month: 10, value: 1.65 }
+        - { year: 2024, month: 11, value: 1.62 }
+        - { year: 2024, month: 12, value: 1.55 }
+
+  - kind: quake-depth
+    eyebrow: "THE TREMORS"
+    title: "Where the ground *broke*, and how deep."
+    intro: "Significant earthquakes plotted on a depth-versus-time axis: the surface line runs across the top, depth increases downward, and each circle is sized and coloured by magnitude. Circles pop in along the time axis; hover (or focus) reveals place and magnitude. The depth axis and legend carry the no-JS reading."
+    data:
+      caption: "SELECTED M6.5+ EARTHQUAKES · 2023–2024 · DEPTH vs TIME"
+      source: "USGS Earthquake Catalog (ANSS ComCat), 2023–2024"
+      quakes:
+        - { date: "2023-02-06", depthKm: 10, mag: 7.8, place: "Pazarcık, Türkiye" }
+        - { date: "2023-02-06", depthKm: 7, mag: 7.5, place: "Elbistan, Türkiye" }
+        - { date: "2023-09-08", depthKm: 19, mag: 6.8, place: "Marrakesh-Safi, Morocco" }
+        - { date: "2023-10-07", depthKm: 8, mag: 6.3, place: "Herat, Afghanistan" }
+        - { date: "2023-11-17", depthKm: 33, mag: 7.1, place: "Sandwich Islands region" }
+        - { date: "2023-12-18", depthKm: 10, mag: 6.2, place: "Gansu, China" }
+        - { date: "2024-01-01", depthKm: 10, mag: 7.5, place: "Noto Peninsula, Japan" }
+        - { date: "2024-04-03", depthKm: 35, mag: 7.4, place: "Hualien, Taiwan" }
+        - { date: "2024-08-08", depthKm: 25, mag: 7.1, place: "Hyūga-nada, Japan" }
+        - { date: "2024-12-17", depthKm: 10, mag: 7.3, place: "Port-Vila, Vanuatu" }
+
+  - kind: climate-strip
+    eyebrow: "THE STRIPES"
+    title: "A century in *one bar each*."
+    intro: "Warming stripes: one vertical bar per year, blue for cooler than the baseline and red for warmer. Each bar is the annual global surface-temperature anomaly relative to the 1951–1980 mean. The strip reads as a single block of colour from cool past to hot present."
+    data:
+      palette: warming
+      baseline: "1951–1980 global average"
+      unit: "°C"
+      caption: "ANNUAL GLOBAL SURFACE-TEMPERATURE ANOMALY · 1924–2024 · NASA GISS"
+      source: "NASA GISS Surface Temperature Analysis (GISTEMP v4), 2024"
+      values:
+        - { year: 1924, value: -0.30 }
+        - { year: 1925, value: -0.19 }
+        - { year: 1926, value: -0.06 }
+        - { year: 1927, value: -0.21 }
+        - { year: 1928, value: -0.24 }
+        - { year: 1929, value: -0.44 }
+        - { year: 1930, value: -0.07 }
+        - { year: 1931, value: -0.04 }
+        - { year: 1932, value: -0.08 }
+        - { year: 1933, value: -0.22 }
+        - { year: 1934, value: -0.16 }
+        - { year: 1935, value: -0.23 }
+        - { year: 1936, value: -0.18 }
+        - { year: 1937, value: -0.05 }
+        - { year: 1938, value: -0.03 }
+        - { year: 1939, value: -0.05 }
+        - { year: 1940, value:  0.04 }
+        - { year: 1941, value:  0.10 }
+        - { year: 1942, value:  0.01 }
+        - { year: 1943, value:  0.08 }
+        - { year: 1944, value:  0.20 }
+        - { year: 1945, value:  0.09 }
+        - { year: 1946, value: -0.09 }
+        - { year: 1947, value: -0.06 }
+        - { year: 1948, value: -0.04 }
+        - { year: 1949, value: -0.08 }
+        - { year: 1950, value: -0.16 }
+        - { year: 1951, value:  0.01 }
+        - { year: 1952, value:  0.03 }
+        - { year: 1953, value:  0.07 }
+        - { year: 1954, value: -0.13 }
+        - { year: 1955, value: -0.14 }
+        - { year: 1956, value: -0.15 }
+        - { year: 1957, value:  0.05 }
+        - { year: 1958, value:  0.06 }
+        - { year: 1959, value:  0.03 }
+        - { year: 1960, value: -0.03 }
+        - { year: 1961, value:  0.06 }
+        - { year: 1962, value:  0.03 }
+        - { year: 1963, value:  0.05 }
+        - { year: 1964, value: -0.20 }
+        - { year: 1965, value: -0.11 }
+        - { year: 1966, value: -0.06 }
+        - { year: 1967, value: -0.02 }
+        - { year: 1968, value: -0.07 }
+        - { year: 1969, value:  0.08 }
+        - { year: 1970, value:  0.03 }
+        - { year: 1971, value: -0.08 }
+        - { year: 1972, value:  0.01 }
+        - { year: 1973, value:  0.16 }
+        - { year: 1974, value: -0.07 }
+        - { year: 1975, value: -0.01 }
+        - { year: 1976, value: -0.10 }
+        - { year: 1977, value:  0.18 }
+        - { year: 1978, value:  0.07 }
+        - { year: 1979, value:  0.16 }
+        - { year: 1980, value:  0.26 }
+        - { year: 1981, value:  0.32 }
+        - { year: 1982, value:  0.14 }
+        - { year: 1983, value:  0.31 }
+        - { year: 1984, value:  0.16 }
+        - { year: 1985, value:  0.12 }
+        - { year: 1986, value:  0.18 }
+        - { year: 1987, value:  0.33 }
+        - { year: 1988, value:  0.40 }
+        - { year: 1989, value:  0.29 }
+        - { year: 1990, value:  0.45 }
+        - { year: 1991, value:  0.41 }
+        - { year: 1992, value:  0.23 }
+        - { year: 1993, value:  0.24 }
+        - { year: 1994, value:  0.31 }
+        - { year: 1995, value:  0.45 }
+        - { year: 1996, value:  0.35 }
+        - { year: 1997, value:  0.46 }
+        - { year: 1998, value:  0.63 }
+        - { year: 1999, value:  0.40 }
+        - { year: 2000, value:  0.42 }
+        - { year: 2001, value:  0.54 }
+        - { year: 2002, value:  0.63 }
+        - { year: 2003, value:  0.62 }
+        - { year: 2004, value:  0.54 }
+        - { year: 2005, value:  0.68 }
+        - { year: 2006, value:  0.61 }
+        - { year: 2007, value:  0.66 }
+        - { year: 2008, value:  0.54 }
+        - { year: 2009, value:  0.64 }
+        - { year: 2010, value:  0.72 }
+        - { year: 2011, value:  0.61 }
+        - { year: 2012, value:  0.64 }
+        - { year: 2013, value:  0.68 }
+        - { year: 2014, value:  0.75 }
+        - { year: 2015, value:  0.90 }
+        - { year: 2016, value:  1.01 }
+        - { year: 2017, value:  0.92 }
+        - { year: 2018, value:  0.83 }
+        - { year: 2019, value:  0.98 }
+        - { year: 2020, value:  1.02 }
+        - { year: 2021, value:  0.85 }
+        - { year: 2022, value:  0.89 }
+        - { year: 2023, value:  1.17 }
+        - { year: 2024, value:  1.29 }
+
+  - kind: region-map
+    eyebrow: "THE MAP"
+    title: "Forest loss, *country by country*."
+    intro: "A build-time choropleth world map shading countries by a value — here, relative primary-forest-loss pressure, 2020–2024. Markers pin the major tropical forest basins. Zero runtime JS; the SVG is rendered at build time."
+    data:
+      projection: naturalEarth
+      palette: heat
+      caption: "RELATIVE PRIMARY-FOREST-LOSS PRESSURE · 2020–2024"
+      source: "Global Forest Watch · University of Maryland GLAD, 2024"
+      zones:
+        - id: "076"
+          label: "Brazil"
+          value: 0.95
+          note: "Largest absolute tropical primary-forest loss; Amazon and Cerrado frontiers."
+        - id: "180"
+          label: "DR Congo"
+          value: 0.78
+          note: "Congo Basin — second-largest tropical forest; loss accelerating post-2020."
+        - id: "360"
+          label: "Indonesia"
+          value: 0.7
+          note: "Peatland and lowland conversion on Sumatra and Borneo."
+        - id: "068"
+          label: "Bolivia"
+          value: 0.68
+          note: "Sharp rise in fire-driven loss across the Chiquitano dry forest."
+        - id: "604"
+          label: "Peru"
+          value: 0.55
+        - id: "170"
+          label: "Colombia"
+          value: 0.52
+        - id: "458"
+          label: "Malaysia"
+          value: 0.48
+        - id: "104"
+          label: "Myanmar"
+          value: 0.5
+        - id: "450"
+          label: "Madagascar"
+          value: 0.46
+        - id: "024"
+          label: "Angola"
+          value: 0.4
+        - id: "356"
+          label: "India"
+          value: 0.18
+      markers:
+        - { lat: -3.4653, lng: -62.2159, label: "Amazon Basin", kind: "region" }
+        - { lat: -1.0, lng: 23.5, label: "Congo Basin", kind: "region" }
+        - { lat: -0.5, lng: 117.0, label: "Borneo", kind: "region" }
+      legend:
+        low: "Lower pressure"
+        high: "Higher pressure"
+        none: "No data"
+
+  - kind: carbon-gauge
+    eyebrow: "THE BUDGET"
+    title: "What's left under *1.5 °C*."
+    intro: "A half-speedometer arc showing how much of the 1.5°C carbon budget remains versus how much has already been emitted. The needle marks the boundary between used and remaining; values are the remaining, used, and total budget from the start of 2025."
+    data:
+      remaining: 0.16
+      remainingGt: "130 Gt CO₂ remaining"
+      usedGt: "~670 Gt used since 2020"
+      totalGt: "~800 Gt total (50% chance)"
+      target: "1.5 °C"
+      year: "from 2025"
+      caption: "REMAINING CARBON BUDGET FOR A 50% CHANCE OF 1.5 °C"
+      source: "Global Carbon Budget 2024 · IPCC AR6 WG1, 2024"
+
+sources:
+  - id: "src-01"
+    title: "GISS Surface Temperature Analysis (GISTEMP v4)"
+    publisher: "NASA Goddard Institute for Space Studies"
+    url: "https://data.giss.nasa.gov/gistemp/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-02"
+    title: "AR6 Working Group I — The Physical Science Basis (Sea Level, Ch. 9)"
+    publisher: "Intergovernmental Panel on Climate Change"
+    url: "https://www.ipcc.ch/report/ar6/wg1/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-03"
+    title: "Earthquake Catalog (ANSS ComCat)"
+    publisher: "United States Geological Survey"
+    url: "https://earthquake.usgs.gov/earthquakes/search/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-04"
+    title: "Global Carbon Budget 2024"
+    publisher: "Global Carbon Project"
+    url: "https://globalcarbonbudget.org/"
+    accessedAt: "2026-06-03"
+    kind: primary
+---
+
+{/*
+  Styleguide showcase issue. All narrative + data lives in the structured
+  `sections` above; each section mounts one earth-world data-viz component.
+  This MDX body is intentionally empty.
+*/}

@@ -1,0 +1,540 @@
+/* ============================================================================
+   PARALLAX V2 — DATA-VIZ TREATMENTS (faithful port of the kit)
+   ----------------------------------------------------------------------------
+   Ports publication-v2/components.css (the 12 signature charts) + the vote bar,
+   telemetry, and timeline from publication-v2/styles.css. Loaded after the
+   themes so every chart auto-themes through the per-topic CSS variables
+   (--accent, --paper, --ink …) set by `data-topic` on <html>.
+
+   TWO DELIBERATE EXCEPTIONS to the house rules (documented in
+   src/components/AGENTS.md):
+     1. Generic kit class names (.ac, .pm, .ot, .ls, .cs, .px2, .bc, .adc,
+        .rc, .cc, .lt, .pr, .vb, .tel, .tl) are adopted verbatim — the kit's
+        animation + reveal CSS is tightly coupled to them. The shared shell
+        keeps its house prefix (.px-viz / .px-viz__cap / .px-viz__src).
+     2. EVERY reveal-hidden rule is gated behind `html.js` so that with JS
+        disabled (or print / headless) the chart paints in its FINAL state —
+        the no-JS-safety contract from motion-v2.css. The reveal class
+        (`.is-in`) is added by core/Reveal.astro to the [data-reveal] element
+        (the .px-viz shell, or the .vb / .tl / .tel root for the standalone
+        cards). Count-up + cursor-warmth are handled by core/CountUp.astro.
+
+   Reduced-motion: a reset block at the bottom neutralises every hidden offset
+   with !important, so reduced-motion always paints the final state too.
+   ============================================================================ */
+
+/* ── SHARED SHELL CAPTION / SOURCE (the .px-viz card lives in base.css) ──── */
+/* Caption — editorial serif line (the human caption) + a mono unit chip. */
+.px-viz__cap {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  margin-bottom: 22px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--viz-fs-caption, 15.5px);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--ink-soft);
+}
+.px-viz__cap b {
+  flex: 0 0 auto; align-self: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-deep, var(--accent));
+  background: color-mix(in oklab, var(--accent) 11%, transparent);
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+.px-viz__src {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--viz-fs-src, 10px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   APPROVAL CHART (politics) — dual line, animated draw, gradient fill
+   ────────────────────────────────────────────────────────────────────────── */
+.ac__plot { position: relative; width: 100%; }
+.ac__svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ac__line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
+  stroke-dasharray: var(--len); stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1500ms var(--ease); }
+html.js .px-viz:not(.is-in) .ac__line { stroke-dashoffset: var(--len); }
+.ac__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 700ms; }
+html.js .px-viz:not(.is-in) .ac__area { opacity: 0; }
+.ac__dot { opacity: 1; transition: opacity var(--t-quick) var(--ease); }
+html.js .px-viz:not(.is-in) .ac__dot { opacity: 0; }
+.ac__legend { display: flex; gap: 24px; margin-top: 16px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.ac__key { display: inline-flex; align-items: center; gap: 8px; }
+.ac__key i { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
+.ac__grid line { stroke: var(--rule); stroke-width: 1; }
+.ac__axis { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; fill: var(--muted); text-transform: uppercase; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   POWER MATRIX (politics) — institutional control grid
+   ────────────────────────────────────────────────────────────────────────── */
+.pm__grid { display: grid; gap: 6px; }
+.pm__row { display: grid; grid-template-columns: 1.4fr repeat(var(--cols, 3), 1fr); gap: 6px; align-items: stretch; }
+.pm__inst { font-family: var(--font-body); font-size: 13px; color: var(--ink); display: flex; align-items: center; padding: 10px 14px 10px 0; line-height: 1.3; }
+.pm__head { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: flex-end; padding: 0 8px 10px; }
+.pm__cell {
+  border-radius: 6px; min-height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--paper); font-weight: 700;
+  opacity: 1; transform: none;
+  transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  position: relative; overflow: hidden;
+}
+html.js .px-viz:not(.is-in) .pm__cell { opacity: 0; transform: scale(0.9); }
+.pm__cell[data-control="full"]    { color: var(--paper); }
+.pm__cell[data-control="partial"] { color: var(--ink); }
+.pm__cell[data-control="partial"]::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.35) 5px, rgba(255,255,255,0.35) 6px); }
+.pm__cell[data-control="none"] { background: color-mix(in oklab, var(--ink) 5%, var(--bg)) !important; color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule); }
+.pm__cell span { position: relative; z-index: 1; }
+.pm__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.pm__legend .key { display: inline-flex; align-items: center; gap: 8px; }
+.pm__legend .sw { width: 14px; height: 14px; border-radius: 4px; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ORBIT TRACE (space) — concentric altitude rings, animated satellites
+   ────────────────────────────────────────────────────────────────────────── */
+.ot { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
+.ot__stage { position: relative; aspect-ratio: 1; width: 100%; }
+.ot__svg { width: 100%; height: 100%; overflow: visible; }
+.ot__ring { fill: none; stroke: color-mix(in oklab, var(--accent) 28%, transparent); stroke-width: 1; opacity: 1; transition: opacity var(--t-slow) var(--ease); }
+html.js .px-viz:not(.is-in) .ot__ring { opacity: 0; }
+.ot__earth { fill: color-mix(in oklab, var(--accent) 80%, var(--ink)); }
+.ot__sat { transform-box: fill-box; transform-origin: center; }
+.ot__legend { display: flex; flex-direction: column; gap: 12px; }
+.ot__item { display: grid; grid-template-columns: 12px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px dashed var(--rule); cursor: default; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
+html.js .px-viz:not(.is-in) .ot__item { opacity: 0; transform: translateX(8px); }
+.px-viz.is-in .ot__item:nth-child(1){transition-delay:.2s}.px-viz.is-in .ot__item:nth-child(2){transition-delay:.32s}.px-viz.is-in .ot__item:nth-child(3){transition-delay:.44s}.px-viz.is-in .ot__item:nth-child(4){transition-delay:.56s}.px-viz.is-in .ot__item:nth-child(5){transition-delay:.68s}
+.ot__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
+.ot__name { font-family: var(--font-display); font-size: 16px; color: var(--ink); font-weight: 600; }
+.ot__alt { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.ot__count { grid-column: 2 / -1; font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+@media (max-width: 720px) { .ot { grid-template-columns: 1fr; } }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   LAUNCH STATS (space) — grouped bars, grow-in
+   ────────────────────────────────────────────────────────────────────────── */
+.ls__chart { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; align-items: end; height: 280px; padding-top: 12px; }
+.ls__year { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
+.ls__bars { display: flex; gap: 3px; align-items: flex-end; height: 100%; width: 100%; justify-content: center; }
+.ls__bar { width: 100%; max-width: 14px; border-radius: 3px 3px 0 0; height: var(--h); transition: height 900ms var(--ease); align-self: flex-end; position: relative; }
+html.js .px-viz:not(.is-in) .ls__bar { height: 0; }
+.ls__yr { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.ls__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.ls__legend .key { display: inline-flex; align-items: center; gap: 8px; }
+.ls__legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CLIMATE STRIP (earth) — warming stripes, reveal left→right + line overlay
+   ────────────────────────────────────────────────────────────────────────── */
+.cs__strip { display: flex; height: 150px; border-radius: 8px; overflow: hidden; position: relative; }
+.cs__bar { flex: 1; transform: scaleY(1); transform-origin: bottom; transition: transform 700ms var(--ease); }
+html.js .px-viz:not(.is-in) .cs__bar { transform: scaleY(0); }
+.cs__overlay { position: absolute; inset: 0; pointer-events: none; }
+.cs__path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1600ms var(--ease) 400ms; }
+html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
+.cs__axis { display: flex; justify-content: space-between; margin-top: 10px; font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.cs__scale { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); align-items: center; }
+.cs__grad { width: 120px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2166ac, #67a9cf, #f7f7f7, #fddbc7, #ef8a62, #b2182b); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   PARADOX (earth/politics) — two-panel comparison with center pivot
+   ────────────────────────────────────────────────────────────────────────── */
+.px2 { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; align-items: stretch; }
+.px2__panel { padding: 26px; }
+.px2__panel:first-child { border-right: 0; }
+.px2__pivot { width: 1px; background: var(--rule); position: relative; }
+.px2__pivot::before { content: 'vs'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--paper); padding: 8px 6px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--rule); border-radius: var(--r-pill); }
+.px2__label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.px2__claim { font-family: var(--font-display); font-size: 20px; line-height: 1.3; color: var(--ink); font-weight: 500; margin-bottom: 12px; }
+.px2__detail { font-family: var(--font-body); font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); }
+.px2__detail strong { color: var(--ink); }
+@media (max-width: 720px) {
+  .px2 { grid-template-columns: 1fr; }
+  .px2__pivot { width: auto; height: 1px; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BENCHMARK CHART (tech) — horizontal bars, ref line, grow-in
+   ────────────────────────────────────────────────────────────────────────── */
+.bc__row { display: grid; grid-template-columns: 150px 1fr 52px; gap: 14px; align-items: center; padding: 5px 0; }
+.bc__label { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); text-align: right; letter-spacing: 0.02em; }
+.bc__row[data-hl="true"] .bc__label { color: var(--accent); font-weight: 700; }
+.bc__track { position: relative; height: 22px; background: color-mix(in oklab, var(--ink) 5%, var(--bg)); border-radius: 4px; overflow: hidden; }
+.bc__fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--w); background: color-mix(in oklab, var(--ink) 30%, var(--bg)); border-radius: 4px; transition: width 1000ms var(--ease); }
+html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
+.bc__row[data-hl="true"] .bc__fill { background: var(--accent); }
+.bc__val { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
+.bc__ref { position: relative; height: 0; }
+.bc__refline { position: absolute; top: -8px; bottom: 0; border-left: 2px dashed var(--accent); }
+.bc__reflabel { position: absolute; top: -20px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ADOPTION CURVE (tech) — S-curve, animated draw, milestone pins
+   ────────────────────────────────────────────────────────────────────────── */
+.adc__svg { width: 100%; height: auto; overflow: visible; }
+.adc__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 600ms; }
+html.js .px-viz:not(.is-in) .adc__area { opacity: 0; }
+.adc__line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1700ms var(--ease); }
+html.js .px-viz:not(.is-in) .adc__line { stroke-dashoffset: var(--len); }
+.adc__pin { opacity: 1; transform: none; transition: opacity var(--t-quick) var(--ease), transform var(--t-quick) var(--ease); }
+html.js .px-viz:not(.is-in) .adc__pin { opacity: 0; transform: translateY(6px); }
+.adc__milestones { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 20px; }
+.adc__ms { padding: 10px 0 0; border-top: 2px solid var(--accent); }
+.adc__ms-yr { font-family: var(--font-mono); font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.adc__ms-lbl { font-family: var(--font-body); font-size: 12px; color: var(--ink-soft); line-height: 1.4; margin-top: 4px; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ROUTE CARD (travel) — vertical multi-leg journey, mode glyphs
+   ────────────────────────────────────────────────────────────────────────── */
+.rc__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+.rc__title { font-family: var(--issue-face); font-size: 24px; color: var(--ink); font-weight: 600; }
+.rc__count { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.rc__legs { position: relative; }
+.rc__legs::before { content: ''; position: absolute; left: 21px; top: 14px; bottom: 14px; width: 2px; background: repeating-linear-gradient(var(--accent), var(--accent) 4px, transparent 4px, transparent 9px); }
+.rc__leg { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 12px 0; position: relative; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
+html.js .px-viz:not(.is-in) .rc__leg { opacity: 0; transform: translateX(8px); }
+.rc__node { width: 44px; height: 44px; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--accent); z-index: 1; }
+.rc__node svg { width: 20px; height: 20px; }
+.rc__leg-body { padding-top: 2px; }
+.rc__cities { font-family: var(--font-display); font-size: 17px; color: var(--ink); font-weight: 600; }
+.rc__cities .arr { color: var(--accent); margin: 0 8px; }
+.rc__meta { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.rc__note { font-family: var(--font-body); font-size: 13px; color: var(--ink-soft); line-height: 1.5; margin-top: 6px; font-style: italic; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CITY COMPARE (travel) — head-to-head metrics, winner highlight
+   ────────────────────────────────────────────────────────────────────────── */
+.cc__head { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-bottom: 8px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+.cc__city { display: flex; flex-direction: column; gap: 4px; }
+.cc__city--b { text-align: right; align-items: flex-end; }
+.cc__city-name { font-family: var(--issue-face); font-size: 26px; color: var(--ink); font-weight: 700; line-height: 1; }
+.cc__city-sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.cc__vs { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.16em; }
+.cc__row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
+html.js .px-viz:not(.is-in) .cc__row { opacity: 0; transform: translateY(6px); }
+.cc__a, .cc__b { font-family: var(--font-display); font-size: 17px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.cc__b { text-align: right; }
+.cc__a[data-win="true"], .cc__b[data-win="true"] { color: var(--accent); font-weight: 700; }
+.cc__metric { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); text-align: center; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   LEAGUE TABLE (sports) — standings with qualify/relegation bands, form pills
+   ────────────────────────────────────────────────────────────────────────── */
+.lt { width: 100%; border-collapse: collapse; }
+.lt thead th { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); padding: 0 10px 14px; text-align: center; font-weight: 700; }
+.lt thead th.l { text-align: left; }
+.lt tbody tr { border-top: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
+html.js .px-viz:not(.is-in) .lt tbody tr { opacity: 0; transform: translateX(8px); }
+.lt td { padding: 12px 10px; text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; vertical-align: middle; }
+.lt td.team { text-align: left; font-family: var(--font-display); font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.lt td.pts { font-weight: 700; color: var(--ink); font-size: 15px; }
+.lt tr[data-band="top"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.lt tr[data-band="qualified"] td:first-child { box-shadow: inset 3px 0 0 color-mix(in oklab, var(--accent) 55%, var(--bg)); }
+.lt tr[data-band="relegation"] td:first-child { box-shadow: inset 3px 0 0 #c0392b; }
+.lt__pos { display: inline-flex; align-items: center; gap: 5px; }
+.lt__chg { font-size: 9px; }
+.lt__chg--up { color: #1e8a5a; }
+.lt__chg--dn { color: #c0392b; }
+.lt__form { display: inline-flex; gap: 3px; }
+.lt__fp { width: 16px; height: 16px; border-radius: 4px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.lt__fp--W { background: #1e8a5a; }
+.lt__fp--L { background: #c0392b; }
+.lt__fp--D { background: var(--muted); }
+.lt__badge { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.lt__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.lt__legend .key { display: inline-flex; align-items: center; gap: 7px; }
+.lt__legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+@media (max-width: 720px) { .lt thead th.hide, .lt td.hide { display: none; } }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   PLAYER RADAR (sports) — hexagonal radar, animated polygon
+   ────────────────────────────────────────────────────────────────────────── */
+.pr { display: grid; grid-template-columns: 1fr 0.9fr; gap: 28px; align-items: center; }
+.pr__stage { aspect-ratio: 1; width: 100%; max-width: 340px; margin: 0 auto; }
+.pr__svg { width: 100%; height: 100%; overflow: visible; }
+.pr__web { fill: none; stroke: var(--rule); stroke-width: 1; }
+.pr__axis { stroke: var(--rule); stroke-width: 1; }
+.pr__poly { fill: color-mix(in oklab, var(--accent) 28%, transparent); stroke: var(--accent); stroke-width: 2; transform: scale(1); transform-origin: center; transform-box: fill-box; opacity: 1; transition: transform 900ms var(--ease-snap), opacity var(--t-soft) var(--ease); }
+html.js .px-viz:not(.is-in) .pr__poly { transform: scale(0.1); opacity: 0; }
+.pr__lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); }
+.pr__stats { display: flex; flex-direction: column; gap: 0; }
+.pr__stat { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.pr__stat-l { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+.pr__stat-bar { grid-column: 1 / -1; height: 4px; background: color-mix(in oklab, var(--ink) 6%, var(--bg)); border-radius: 2px; overflow: hidden; margin-top: -4px; }
+.pr__stat-fill { height: 100%; background: var(--accent); width: var(--w); border-radius: 2px; transition: width 900ms var(--ease) 300ms; }
+html.js .px-viz:not(.is-in) .pr__stat-fill { width: 0; }
+.pr__stat-v { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pr__name { font-family: var(--issue-face); font-size: 22px; color: var(--ink); font-weight: 700; margin-bottom: 2px; }
+.pr__team { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+@media (max-width: 720px) { .pr { grid-template-columns: 1fr; } }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VOTE BAR (politics) — animated segments, dashed threshold, slam stamp,
+   and the 44-column MP-dot chamber. Standalone card (its own .vb root holds
+   the data-reveal + .is-in). 108px prose offset dropped for our section grid.
+   ────────────────────────────────────────────────────────────────────────── */
+.vb {
+  background: var(--paper);
+  border-radius: var(--r-card);
+  padding: 28px;
+  max-width: 640px;
+  border: 1px solid var(--rule);
+  position: relative;
+}
+.vb__cap {
+  font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 22px;
+}
+.vb__rail { position: relative; margin-bottom: 22px; padding-top: 28px; }
+.vb__bar {
+  position: relative;
+  height: 56px;
+  background: color-mix(in oklab, var(--ink) 4%, var(--bg));
+  border-radius: var(--r-card);
+  overflow: hidden;
+  border: 1px solid var(--ink);
+}
+.vb__seg {
+  position: absolute; top: 0; bottom: 0;
+  display: flex; align-items: center; padding: 0 16px;
+  font-family: var(--font-mono);
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #f4f1ea;
+  transform: scaleX(1); transform-origin: left center;
+  transition: transform var(--t-page) var(--ease) 200ms;
+}
+.vb__seg--for { left: 0; background: #1e5a3f; }
+.vb__seg--against { right: 0; background: var(--accent); transform-origin: right center; justify-content: flex-end; }
+html.js .vb:not(.is-in) .vb__seg { transform: scaleX(0); }
+.vb__th {
+  position: absolute; top: 0; bottom: -6px;
+  border-left: 2px dashed var(--ink);
+  opacity: 1; transform: none;
+  transition: opacity var(--t-soft) var(--ease) 800ms, transform var(--t-soft) var(--ease) 800ms;
+}
+html.js .vb:not(.is-in) .vb__th { opacity: 0; transform: translateY(-8px); }
+.vb__th-label {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
+  white-space: nowrap;
+}
+.vb__stamp {
+  position: absolute; top: 50%; right: 32px;
+  transform: translateY(-50%) rotate(-8deg) scale(1);
+  font-family: var(--font-mono); font-weight: 700;
+  font-size: 26px; letter-spacing: 0.1em;
+  color: var(--accent-deep, var(--accent));
+  border: 3px solid var(--accent-deep, var(--accent));
+  padding: 6px 14px;
+  background: var(--paper);
+  opacity: 0.92;
+  transition: opacity var(--t-soft) var(--ease) 1100ms,
+              transform var(--t-soft) var(--ease-snap) 1100ms;
+}
+html.js .vb:not(.is-in) .vb__stamp { opacity: 0; transform: translateY(-50%) rotate(0deg) scale(0.7); }
+.vb__chamber {
+  display: grid;
+  grid-template-columns: repeat(44, 1fr);
+  gap: 3px;
+  margin-top: 20px;
+  padding: 16px 12px;
+  background: color-mix(in oklab, var(--ink) 3%, var(--bg));
+  border-radius: var(--r-card);
+  border: 1px solid var(--rule);
+}
+.vb__mp {
+  aspect-ratio: 1; border-radius: 50%;
+  background: var(--rule);
+  opacity: 1; transform: scale(1);
+  transition: opacity 400ms var(--ease), transform 80ms var(--ease);
+}
+html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
+.vb__mp--for { background: #1e5a3f; }
+.vb__mp--against { background: var(--accent); }
+.vb__mp:hover { transform: scale(1.6); }
+.vb__legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.vb__n {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 28px; color: var(--ink);
+  display: block; line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
+}
+.vb__n--for { color: #1e5a3f; }
+.vb__n--neg { color: var(--accent-deep, var(--accent)); }
+@media (max-width: 720px) {
+  .vb__chamber { grid-template-columns: repeat(22, 1fr); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TELEMETRY (space) — animated count tiles with scan sweep
+   ────────────────────────────────────────────────────────────────────────── */
+.tel {
+  max-width: 760px;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  position: relative;
+}
+.tel__cap {
+  padding: 14px 22px;
+  font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent);
+  border-bottom: 1px solid var(--rule);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.tel__cap-status { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); }
+.tel__cap-status::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  animation: lensPulse 2s infinite;
+}
+.tel__grid { display: grid; grid-template-columns: repeat(3, 1fr); position: relative; }
+.tel__tile {
+  padding: 28px 22px;
+  border-right: 1px solid var(--rule);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.tel__tile:last-child { border-right: none; }
+.tel__tile::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--accent) 22%, transparent) 50%, transparent 100%);
+  transform: translateX(0);
+  opacity: 0;
+}
+.tel.is-in .tel__tile::before {
+  animation: telSweep 1400ms var(--ease) forwards;
+  animation-delay: calc(var(--i, 0) * 160ms);
+}
+@keyframes telSweep {
+  0% { opacity: 0; transform: translateX(0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(360%); }
+}
+.tel__val { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.tel__n {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 40px; color: var(--ink);
+  letter-spacing: -0.02em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.tel__u { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+.tel__l { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); line-height: 1.5; }
+.tel__note { font-family: var(--font-body); font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+.tel__src {
+  padding: 12px 22px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); font-style: italic;
+}
+@media (max-width: 720px) {
+  .tel__grid { grid-template-columns: 1fr 1fr; }
+  .tel__tile:nth-child(2) { border-right: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TIMELINE — vertical rail, fade-in events, hover lifts connector
+   Standalone (.tl holds the data-reveal + .is-in). 108px offset dropped.
+   ────────────────────────────────────────────────────────────────────────── */
+.tl { max-width: var(--col-prose); position: relative; }
+.tl::before { content: ''; position: absolute; left: 18px; top: 6px; bottom: 6px; width: 1px; background: var(--rule); }
+.tl__row {
+  display: grid; grid-template-columns: 80px 1fr;
+  align-items: start;
+  padding: 18px 0 18px 56px;
+  position: relative;
+  cursor: default;
+  opacity: 1; transform: none;
+  transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
+.tl.is-in .tl__row:nth-child(1) { transition-delay: 80ms; }
+.tl.is-in .tl__row:nth-child(2) { transition-delay: 160ms; }
+.tl.is-in .tl__row:nth-child(3) { transition-delay: 240ms; }
+.tl.is-in .tl__row:nth-child(4) { transition-delay: 320ms; }
+.tl.is-in .tl__row:nth-child(5) { transition-delay: 400ms; }
+.tl.is-in .tl__row:nth-child(6) { transition-delay: 480ms; }
+.tl.is-in .tl__row:nth-child(7) { transition-delay: 560ms; }
+.tl__row::before {
+  content: '';
+  position: absolute; left: 12px; top: 22px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--muted);
+  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
+}
+.tl__row[data-state="key"]::before { background: var(--accent); border-color: var(--accent); }
+.tl__row[data-state="fail"]::before { background: var(--bg); border-color: var(--accent); }
+.tl__row[data-state="now"]::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 20%, transparent); }
+.tl__row:hover::before { transform: scale(1.2); }
+.tl__date { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 4px; }
+.tl__label { font-family: var(--font-display); font-size: 17px; line-height: 1.4; color: var(--ink); font-weight: 400; }
+.tl__label strong { font-weight: 700; }
+.tl__note { font-family: var(--font-body); font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; max-width: 56ch; }
+@media (max-width: 720px) {
+  .tl__row { grid-template-columns: 1fr; gap: 4px; }
+  .tl__row::before { left: -4px; top: 22px; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   REDUCED MOTION — neutralise every hidden offset so the final state paints.
+   (The global motion-v2.css block already kills transitions/animations.)
+   ────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .px-viz:not(.is-in) .ac__line,
+  .px-viz:not(.is-in) .cs__path,
+  .px-viz:not(.is-in) .adc__line { stroke-dashoffset: 0 !important; }
+  .px-viz:not(.is-in) .ac__area,
+  .px-viz:not(.is-in) .ac__dot,
+  .px-viz:not(.is-in) .ot__ring,
+  .px-viz:not(.is-in) .adc__area { opacity: 1 !important; }
+  .px-viz:not(.is-in) .pm__cell,
+  .px-viz:not(.is-in) .ot__item,
+  .px-viz:not(.is-in) .adc__pin,
+  .px-viz:not(.is-in) .rc__leg,
+  .px-viz:not(.is-in) .cc__row,
+  .px-viz:not(.is-in) .lt tbody tr { opacity: 1 !important; transform: none !important; }
+  .px-viz:not(.is-in) .ls__bar { height: var(--h) !important; }
+  .px-viz:not(.is-in) .cs__bar { transform: scaleY(1) !important; }
+  .px-viz:not(.is-in) .bc__fill,
+  .px-viz:not(.is-in) .pr__stat-fill { width: var(--w) !important; }
+  .px-viz:not(.is-in) .pr__poly { transform: scale(1) !important; opacity: 1 !important; }
+
+  /* vote bar + timeline (standalone roots) */
+  .vb:not(.is-in) .vb__seg { transform: scaleX(1) !important; }
+  .vb:not(.is-in) .vb__th { opacity: 1 !important; transform: none !important; }
+  .vb:not(.is-in) .vb__stamp { opacity: 0.92 !important; transform: translateY(-50%) rotate(-8deg) scale(1) !important; }
+  .vb:not(.is-in) .vb__mp { opacity: 1 !important; transform: scale(1) !important; }
+  .tl:not(.is-in) .tl__row { opacity: 1 !important; transform: none !important; }
+}

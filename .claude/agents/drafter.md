@@ -82,6 +82,47 @@ kids), `punchline`.
 **`match-stat-line`**, **`elevation-profile`** — topic-specific. Use
 only if the dossier's category matches the component's topic.
 
+### Step 2.4 — The v2 3D / interactive kinds (when to reach for each)
+
+Thirty newer section kinds (five per world) render as interactive / 3D
+pieces. They are first-class `SECTION_KINDS` — use one when the dossier
+material genuinely fits its shape, the same way you'd choose `timeline` or
+`vote-result`. Don't force them; one or two per issue is plenty, and never at
+the cost of the structural argument. Each is topic-styled — prefer your
+issue's own world. Full `data` shapes live in
+`src/content/issues/_AGENTS.md` §11; the `2026-06-03-<world>-showcase` draft
+issues show every one in use. All of them also take `caption?` + `source?`.
+
+- **politics** — `coalition-orbit`: parties orbiting a government core (seat
+  shares / bloc make-up). `swing-dial`: a single value on a two-bloc scale
+  (a swing, a margin). `bill-passage`: a bill advancing stage by stage.
+  `vote-flow`: blocs flowing into for/against/abstain. `margin-ladder`:
+  ranked win/loss margins across seats or races.
+- **space** — `orbit-globe`: orbital shells / satellite populations around
+  Earth. `trajectory-arc`: a flight path by altitude and downrange.
+  `delta-v-ladder`: a delta-v / energy budget broken into segments.
+  `signal-readout`: signal bands or a spectrum. `descent-profile`: an
+  altitude-vs-time descent or landing with event markers.
+- **earth** — `data-globe`: geo-located values on a globe (by lat/lon).
+  `core-sample`: a vertical core / stratigraphy by depth. `sea-level-tank`:
+  rising-water levels against landmark heights. `climate-spiral`: a monthly
+  climate series spiralling by year. `quake-depth`: earthquakes by depth and
+  magnitude.
+- **tech** — `arch-stack`: a layered system / architecture stack.
+  `latency-waterfall`: timed spans in a request waterfall. `version-graph`:
+  a commit / release DAG. `scaling-plot`: an x/y scaling curve (optional log
+  axes / fit line). `throughput-dial`: a single throughput / utilisation
+  gauge with zones.
+- **travel** — `route-globe`: a multi-stop journey arced across a globe.
+  `elevation-trek`: an elevation profile along a route. `itinerary-reel`: a
+  day-by-day itinerary. `climate-calendar`: monthly temperature / rainfall
+  for "when to go". `timezone-arc`: city time-zone offsets against a
+  reference.
+- **sports** — `tactics-pitch`: player positions / a formation on the pitch.
+  `shot-map`: shots plotted by location and xG. `xg-race`: a cumulative xG
+  race between two teams. `momentum-wave`: match momentum swinging between
+  sides. `player-card`: a flip rating card with stat bars.
+
 ### Step 2.5 — Write the Primer
 
 The `primer` field is a short plain-English on-ramp for readers who
@@ -124,7 +165,9 @@ Add the primer to the frontmatter as:
 ```
 primer: "Your primer text here."
 ```
-Place it after `readTimeMinutes:` and before `ogImage:` or `sections:`.
+Place it after `readTimeMinutes:` and before `sections:`. (There is no
+`ogImage` / cover-image field in use — the publication is type + data-viz led,
+with no raster imagery.)
 
 ---
 

@@ -1,0 +1,247 @@
+---
+/**
+ * TacticsPitch (sports) — a receding 3D football pitch. The pitch plane carries
+ * the standard markings (touchlines, halfway, center circle, both penalty
+ * boxes + 6-yard boxes) drawn as an SVG, sat on a fixed base `rotateX` (~52°)
+ * inside a CSS-3D stage so it reads as a pitch viewed from behind a goal. The
+ * global core/Tilt.astro `data-tilt` island adds a small pointer-tilt on top of
+ * the base recline. Player markers (numbered disc + optional name) sit at their
+ * x,y pitch coords; faint heat blobs glow under each. Markers pop in staggered
+ * on scroll-in. Build-time only; the only motion is CSS.
+ *
+ * No-JS / reduced-motion: markers paint in their FINAL position (the hidden
+ * pop-in rule sits behind `html.js`; reduced-motion resets with !important).
+ * The pitch + every marker is in the DOM regardless of JS.
+ *
+ * Coords: x,y in 0..100. x = pitch WIDTH (0 = left touchline, 100 = right),
+ * y = pitch LENGTH (0 = own goal-line at the back, 100 = far/attacking line).
+ *
+ * data: { players[]{ x, y, num?, name?, role? }, formation?, team?, caption?, source? }
+ */
+interface Player { x: number; y: number; num?: number | string; name?: string; role?: string; }
+interface Props {
+  players: Player[];
+  formation?: string;
+  team?: string;
+  caption?: string;
+  source?: string;
+}
+const { players = [], formation, team, caption, source } = Astro.props;
+
+const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v ?? 0));
+// Keep discs off the touchlines/goal-lines: a marker centred on x=0/100 or
+// y=0/100 would hang half a disc-width past the plane edge (and the recline
+// pushes the back line up against the top). Inset the placement band so the
+// whole disc — and the name chip under it — stays on the field.
+const PAD_X = 6;   // horizontal inset (disc ≈ 6% of the 520px plane)
+const PAD_Y = 6;   // vertical inset (also clears the reclined back edge)
+// Names collide in a tight line (a back four, a midfield three). Defensively
+// reduce to the last token (surname) so the chip is short; the CSS caps width
+// + truncates as a final guard, and chips are hidden under 560px.
+const surname = (name?: string) => {
+  if (!name) return undefined;
+  const t = name.trim().split(/\s+/);
+  return t[t.length - 1] || name.trim();
+};
+const placed = (players || []).map((p, i) => ({
+  ...p,
+  short: surname(p.name),
+  left: clamp(p.x, PAD_X, 100 - PAD_X),
+  top: clamp(100 - clamp(p.y), PAD_Y, 100 - PAD_Y),
+  i,
+}));
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>tactics</b></div>}
+
+  <div class="px-pitch px3d-stage">
+    <div class="px-pitch__tilt px3d-tilt" data-tilt="3">
+      <div class="px-pitch__plane">
+        <!-- pitch markings (drawn under the markers) -->
+        <svg class="px-pitch__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <!-- touchlines + goal-lines -->
+          <rect class="px-pitch__ln" x="2" y="2" width="96" height="96" />
+          <!-- halfway line -->
+          <line class="px-pitch__ln" x1="2" y1="50" x2="98" y2="50" />
+          <!-- center circle + spot -->
+          <ellipse class="px-pitch__ln" cx="50" cy="50" rx="13" ry="10" fill="none" />
+          <circle class="px-pitch__spot" cx="50" cy="50" r="0.9" />
+          <!-- top (attacking) penalty box + 6-yard + spot -->
+          <rect class="px-pitch__ln" x="26" y="2" width="48" height="16" />
+          <rect class="px-pitch__ln" x="38" y="2" width="24" height="6" />
+          <circle class="px-pitch__spot" cx="50" cy="13" r="0.9" />
+          <!-- bottom (own) penalty box + 6-yard + spot -->
+          <rect class="px-pitch__ln" x="26" y="82" width="48" height="16" />
+          <rect class="px-pitch__ln" x="38" y="92" width="24" height="6" />
+          <circle class="px-pitch__spot" cx="50" cy="87" r="0.9" />
+        </svg>
+
+        <!-- faint heat blobs under markers -->
+        {placed.map((p) => (
+          <span class="px-pitch__heat" style={`left:${p.left}%;top:${p.top}%`} aria-hidden="true"></span>
+        ))}
+
+        <!-- player markers -->
+        {placed.map((p) => (
+          <span class="px-pitch__mk" style={`left:${p.left}%;top:${p.top}%;--i:${p.i}`}>
+            <span class="px-pitch__disc">{p.num ?? ''}</span>
+            {p.short && <span class="px-pitch__name" title={p.name}>{p.short}</span>}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <div class="px-pitch__foot">
+      {team && <span class="px-pitch__team">{team}</span>}
+      {formation && <span class="px-pitch__form">{formation}</span>}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  /* --recline is the base pitch tilt; --counter is its negative so markers
+     stay flat-facing. Single source of truth → mobile only overrides --recline
+     (below) and every marker rule follows automatically. */
+  .px-pitch { width: 100%; max-width: 520px; margin: 0 auto; --recline: 52deg; --counter: -52deg; }
+
+  /* The tilt wrapper carries BOTH the fixed recline AND the pointer-tilt vars.
+     core/Tilt writes --rx/--ry (small, data-tilt="3"); we prepend the base
+     rotateX so the plane reads as a receding pitch. transform-origin low so it
+     recedes from the reader. */
+  .px-pitch__tilt {
+    transform: rotateX(var(--recline)) rotateX(var(--rx)) rotateY(var(--ry));
+    transform-origin: 50% 88%;
+    margin: 6px auto 30px;
+  }
+
+  /* The pitch plane — green field with a subtle mow-stripe gradient. */
+  .px-pitch__plane {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 68 / 100;            /* width : length (real pitch ratio) */
+    border-radius: 4px;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        color-mix(in oklab, var(--accent) 6%, var(--paper)) 0,
+        color-mix(in oklab, var(--accent) 6%, var(--paper)) 9.9%,
+        color-mix(in oklab, var(--ink) 6%, var(--paper)) 10%,
+        color-mix(in oklab, var(--ink) 6%, var(--paper)) 19.9%
+      );
+    border: 1px solid var(--rule);
+    box-shadow: 0 30px 60px -34px color-mix(in oklab, var(--ink) 70%, transparent);
+  }
+
+  .px-pitch__lines {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .px-pitch__ln {
+    fill: none;
+    stroke: color-mix(in oklab, var(--ink) 22%, transparent);
+    stroke-width: 0.6;
+    vector-effect: non-scaling-stroke;
+  }
+  .px-pitch__spot { fill: color-mix(in oklab, var(--ink) 30%, transparent); }
+
+  /* Heat blob — soft accent glow under each marker. */
+  .px-pitch__heat {
+    position: absolute;
+    width: 64px; height: 64px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in oklab, var(--accent) 30%, transparent) 0%, transparent 68%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Player marker — counter-rotated so the disc faces the reader despite the
+     reclined plane (keeps numbers legible). */
+  .px-pitch__mk {
+    position: absolute;
+    z-index: 2;
+    transform: translate(-50%, -50%) rotateX(var(--counter));
+    transform-origin: 50% 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease-snap);
+  }
+  .px-pitch__disc {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700; font-size: 14px;
+    color: var(--bg);
+    background: var(--accent);
+    border: 1.5px solid color-mix(in oklab, var(--ink) 30%, var(--accent));
+    box-shadow: 0 4px 10px -3px color-mix(in oklab, var(--ink) 70%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-pitch__name {
+    font-family: var(--font-mono);
+    font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink);
+    /* the chip floats over the green field + heat glow — keep the paper
+       backing near-opaque so the surname stays legible on the pitch */
+    background: color-mix(in oklab, var(--paper) 94%, transparent);
+    padding: 1px 5px; border-radius: var(--r-pill);
+    white-space: nowrap;
+    /* final guard against a long surname colliding with a neighbour: cap the
+       chip and ellipsis the overflow (full name stays in the title attr). */
+    max-width: 76px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .px-pitch__foot {
+    display: flex; align-items: baseline; justify-content: center; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .px-pitch__team {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700; font-size: 18px; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--ink);
+  }
+  .px-pitch__form {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--rule); border-radius: var(--r-pill);
+    padding: 4px 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* reveal: markers pop in staggered (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-pitch__mk {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotateX(var(--counter)) scale(0.4);
+  }
+  .px-viz.is-in .px-pitch__mk { transition-delay: calc(var(--i) * 55ms); }
+
+  /* mobile: shrink the recline so the pitch reads on a small viewport. Only the
+     recline vars change — every marker rule reads --counter, so discs stay
+     flat-facing automatically. Names are hidden at this width to avoid
+     collisions. */
+  @media (max-width: 560px) {
+    .px-pitch { --recline: 40deg; --counter: -40deg; }
+    .px-pitch__disc { width: 26px; height: 26px; font-size: 12px; }
+    .px-pitch__name { display: none; }
+    .px-pitch__heat { width: 48px; height: 48px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-pitch__mk {
+      opacity: 1 !important;
+      transform: translate(-50%, -50%) rotateX(var(--counter)) !important;
+    }
+  }
+</style>

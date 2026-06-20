@@ -3,9 +3,9 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { Topic } from '../../content/config';
 import IssueLayout from '../../layouts/IssueLayout.astro';
 import Hero from '../../components/core/Hero.astro';
+import Banner from '../../components/core/Banner.astro';
 import Primer from '../../components/core/Primer.astro';
-import SkimToggle from '../../components/core/SkimToggle.astro';
-import SaveButton from '../../components/core/SaveButton.astro';
+import ReadingToolbar from '../../components/core/ReadingToolbar.astro';
 import ReactionsBar from '../../components/core/ReactionsBar.astro';
 import ReadingTracker from '../../components/core/ReadingTracker.astro';
 import AnnotationLayer from '../../components/core/AnnotationLayer.astro';
@@ -45,6 +45,10 @@ const backToDeskCopy: Record<Topic, string> = {
   travel: '← Back to the Field Bureau',
   sports: '← Back to the Matchday Programme'
 };
+
+// Dark worlds get the glass toolbar's dark variant.
+const darkTopics: Topic[] = ['space', 'tech', 'sports'];
+const toolbarTheme: 'light' | 'dark' = darkTopics.includes(data.topic) ? 'dark' : 'light';
 ---
 
 <IssueLayout
@@ -53,13 +57,19 @@ const backToDeskCopy: Record<Topic, string> = {
   description={data.hook}
   issueNumber={issueNumber}
   publishedAt={data.publishedAt}
-  ogImage={data.ogImage}
 >
   <TopicStrip compact current={data.topic} />
 
   <a class="px-back-to-desk" href={`/topics/${data.topic}/`} data-topic={data.topic}>
     {backToDeskCopy[data.topic]}
   </a>
+
+  <Banner
+    topic={data.topic}
+    issueNumber={issueNumber}
+    publishedAt={data.publishedAt}
+    readTime={data.readTimeMinutes}
+  />
 
   <Hero
     eyebrow={data.tags[0]?.toUpperCase().replace(/-/g, ' ')}
@@ -69,11 +79,6 @@ const backToDeskCopy: Record<Topic, string> = {
     readTimeMinutes={data.readTimeMinutes}
     publishedAt={data.publishedAt}
   />
-
-  <div class="px-reader-controls">
-    <SkimToggle readTime={data.readTimeMinutes} />
-    <SaveButton issueId={issue.slug} />
-  </div>
 
   {data.primer && <Primer text={data.primer} />}
 
@@ -110,6 +115,8 @@ const backToDeskCopy: Record<Topic, string> = {
   </a>
 
   <Sources sources={data.sources} />
+
+  <ReadingToolbar readTime={data.readTimeMinutes} issueId={issue.slug} theme={toolbarTheme} />
 </IssueLayout>
 
 <style>

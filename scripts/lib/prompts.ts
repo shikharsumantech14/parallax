@@ -121,30 +121,6 @@ Follow all rules in your agent definition exactly. Edit the issue file in-place 
 Return: mode assignment table (slot · kind · eyebrow · mode · rationale · fields rewritten), mode blend line, count of fields rewritten vs. retained.`;
 }
 
-export function buildIllustratorPrompt(
-  category: string,
-  issueSlug: string,
-  dossierFile: string | null,
-): string {
-  const dossierLine = dossierFile
-    ? `Dossier: \`research/${category}/${dossierFile}\``
-    : `Dossier: (none found in research/${category}/ — fall back to the issue MDX alone)`;
-
-  return `Generate the editorial cover image (OG card) for this Parallax issue.
-
-Issue: \`src/content/issues/${issueSlug}/index.mdx\`
-${dossierLine}
-Visual mode library: \`research/_voice/visual-mode-library.md\`
-Topic theme: \`src/styles/themes/${category}.css\`
-Working directory: ${process.cwd().replace(/\\/g, '/')}
-
-Follow all rules in your agent definition exactly. You make EXACTLY ONE call to scripts/generate-visual.mjs.
-
-Invoke the script as: \`node scripts/generate-visual.mjs --slug <slug>\` (no flags). The script reads FAL_DRY_RUN from the environment — if the operator wants a dry run, they will have set FAL_DRY_RUN=1 before invoking the pipeline; you do not need to add any flag yourself.
-
-Return: the human-readable report described in Step 8 of your agent definition (mode chosen, rationale, prompt path, generator exit, output path, cost, frontmatter status).`;
-}
-
 export function buildVerifyPrompt(
   category: string,
   draftSlug: string,

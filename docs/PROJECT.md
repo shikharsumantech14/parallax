@@ -44,12 +44,17 @@ comments, engagement metrics, trackers.
 | Styles       | Plain CSS, CSS custom properties swapped via `data-topic` |
 | Fonts        | Google Fonts (Fraunces, Inter Tight, JetBrains Mono, Space Grotesk, Cormorant Garamond, Oswald, IBM Plex Sans/Mono) |
 | Feed         | **@astrojs/rss 4.0.x**          |
+| 3D / WebGL   | **three** (lazy-loaded + code-split; only the 4 WebGL globe kinds) |
+| Data viz     | build-time SVG + CSS-3D; `d3-geo` / `topojson-client` / `world-atlas` (maps + the 3D globe) |
 | Node         | `>=20.0.0` (see `.nvmrc`)       |
 | Hosting      | **Vercel** (static, auto-deploy on push to `main`) |
 | Repo         | github.com/shikharsumantech14/parallax |
 
-No JS islands, no client frameworks, no analytics, no cookies. Static HTML +
-CSS only.
+No client framework, no analytics, no cookies, no trackers, no raster imagery.
+**Near-zero JS** — a small set of tiny vanilla `is:inline` islands (scroll-reveal,
+count-up + cursor-warmth, reading toolbar, expand-to-modal) plus one bundled
+lazy-WebGL runtime for the four 3D globe kinds. Everything degrades to its final
+painted state under no-JS (`html.js`-gated) and `prefers-reduced-motion`.
 
 **Commands**
 
@@ -824,6 +829,200 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 ---
 
 ## 12. Change log
+
+### 2026-06-03 — expand-to-modal + unified viz typography
+Two reader-experience passes on the data-viz library:
+- **Expand-to-modal** (`core/ExpandModal.astro` + `src/styles/modal.css`, mounted once in
+  `IssueLayout`). Every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) gets a ⤢ button; clicking it
+  **portals the live node** into a centred glass modal — the same WebGL context + count-up / Tilt /
+  reveal state, enlarged — leaving a same-height placeholder so the reader's scroll position is
+  untouched on open and close. WebGL re-fits via a fired `resize`. Esc / backdrop / ✕ close,
+  focus-trapped, `aria-modal`, body scroll locked, mobile full-screen, reduced-motion + no-JS safe
+  (no buttons without JS). Zero per-component edits (JS-enhanced by root selector).
+- **Unified editorial viz typography** (`src/styles/viz-type.css`). One label scale (tokens
+  `--viz-fs-*` + `.vz-*` roles) blending the display serif for viz titles/captions with crisp mono +
+  tabular figures for axes/values/legends. Refined the shared `.px-viz__cap` (serif caption + mono
+  accent unit-chip) / `.px-viz__src` and the globe `.viz3d__label`, then swept all 30 components'
+  scoped labels onto the scale (tabular-nums everywhere, serif in-viz titles, paper halos on SVG
+  text over busy fills, consistent ink/ink-soft/muted hierarchy). The modal bumps the scale a notch.
+- Also in this batch: the WebGL globe was upgraded from a dot-matrix sphere to a real
+  **country-outline Earth** (coastlines + borders from `world-atlas` / `topojson-client`, lazy-fetched
+  from `public/geo/countries-110m.json`, occluding body + graticule + near-side de-cluttered labels),
+  and a component-wide **alignment/label-overlap polish** pass (edge-clip clamps, label de-collision,
+  axis alignment, 3D-tilt overflow caps, mobile reflow). Both publication (27 pages) + app builds green.
+
+### 2026-06-03 — 3D / interactive component library (30 kinds)
+
+Built a 30-kind interactive + 3D section-component library in the v2 design
+language (5 kinds per world), on top of the completed v2 design match below.
+`SECTION_KINDS` in `src/content/config.ts` went 33 → 63; each new kind is
+dispatched in `src/components/SectionRenderer.astro` and demonstrated in a new
+draft showcase issue. Both projects build green; uncommitted (operator
+commits). Architecture detail in `src/components/AGENTS.md` §10; per-kind
+`data` shapes for authors in `src/content/issues/_AGENTS.md` §11.
+
+- **4 lazy WebGL globes** — `coalition-orbit`, `orbit-globe`, `data-globe`,
+  `route-globe`. Three.js is self-hosted (new `three` dependency) and
+  **dynamic-imported** by `src/scripts/viz3d/runtime.ts` (lifecycle) +
+  `scenes.ts` (scene builders, keyed by `data-viz3d` type) **only when a
+  `[data-viz3d]` mount scrolls into view**. Vite code-splits it into its own
+  ~730 KB (≈170 KB gzipped) chunk that never loads on the home page or any
+  non-3D issue; the per-page hoisted runtime is ~5 KB. Mounted once per issue
+  via the new bundled `core/Viz3DRuntime.astro`. The render loop pauses when
+  the mount leaves the viewport and disposes on `pagehide`; device-pixel-ratio
+  capped at ≤2.
+- **26 CSS-3D / animated-SVG** kinds — perspective / `transform-3d` via the
+  shared `.px3d-stage` / `.px3d-tilt` / `.px3d-flip` mechanics in the new
+  `src/styles/components-3d.css`, driven by the new vanilla `core/Tilt.astro`
+  island (`[data-tilt]` pointer-tilt + `[data-flip-btn]` flip), plus animated
+  SVG/canvas readouts. `Viz3DRuntime` + `Tilt` both render once per issue in
+  `IssueLayout.astro`.
+- **No-JS / `prefers-reduced-motion` contract** (same as Reveal / VizMotion /
+  the v2 data-viz): every component renders a static SVG/HTML fallback by
+  default; WebGL bails with no canvas and no loop, leaving the fallback;
+  reveal-hidden states are `html.js`-gated; reduced-motion resets to the final
+  frame. Per-component cosmetic CSS is a scoped `<style>` in each `.astro`
+  (unique `px-*` prefix); only the shared 3D mechanics + the `.viz3d` mount
+  live in `components-3d.css`.
+- **6 showcase issues** — `src/content/issues/2026-06-03-<world>-showcase/index.mdx`,
+  one per world, each exercising that world's five new kinds end-to-end. All
+  `status: draft` (URL-viewable, unlisted — excluded from the archive + RSS).
+
+### 2026-06-03 — v2 design match completed
+
+Closed out the v2 design port (the 2026-06-02 entry below shipped P0–P5 +
+topic indexes; this pass finished the pieces that were deferred or only
+partially matched). Markdown-doc sync only here — code already landed.
+A separate 2026-06-03 entry below covers the fal.ai illustrator / photo
+removal; the two passes are independent.
+
+- **F1 — unified masthead.** The six per-topic mastheads
+  (`.px-masthead--<topic>` variants) were replaced by one v2 press-header
+  (`core/Masthead.astro` → `.mh`): lens-dot mark + pulse status pill + nav
+  (Desks/About/Feed) + Subscribe CTA, identical on every page; the active
+  world still comes from `data-topic`. Each world's old masthead register
+  microcopy (telemetry orbit / atlas coords / build hash / vol-no / matchday)
+  now reads in the per-issue `core/Banner.astro`. `.mh` CSS lives in
+  `base.css`; the `.mh*` names are a documented adoption of the kit's names
+  (exception to the `px-` prefix rule). This supersedes the 2026-06-02 note
+  that the per-topic masthead registers were "kept".
+- **F2 — data-viz fully ported.** Every signature chart was rewritten to the
+  kit's exact markup + animations (stroke-draw lines, grow bars, scale-pop
+  polygon, count-up tiles, the 44-column MP-dot vote chamber, scan sweep) +
+  scroll reveals, in a new shared CSS file `src/styles/dataviz-v2.css`
+  (imported last in both layouts). 15 components ported to the kit's generic
+  class names — VoteResult `.vb`, ApprovalChart `.ac`, PowerMatrix `.pm`,
+  Paradox `.px2`, Timeline `.tl`, OrbitTrace `.ot`, LaunchStats `.ls`,
+  DataReadout `.tel`, ClimateStrip `.cs`, BenchmarkChart `.bc`, AdoptionCurve
+  `.adc`, RouteCard `.rc`, CityCompare `.cc`, LeagueTable `.lt`, PlayerRadar
+  `.pr` — inside the shared elevated `.px-viz` card. Eleven components kept
+  their `px-` classes (light touch, `data-reveal` only): SeatChart,
+  BillBreakdown, BrothersAnalogy, OrbitalShells, CarbonGauge,
+  ElevationProfile, RegionMap, CommitGrid, JourneyMap, MatchStatLine.
+  Count-up + cursor-warmth now ship in a new vanilla island
+  `core/VizMotion.astro` (`[data-countup]` tweens to the value already in the
+  HTML; `[data-warmth]` tracks the pointer); reveals run via the existing
+  `core/Reveal.astro`. Every reveal-hidden state is `html.js`-gated (no-JS /
+  print paint the final state) with matching `prefers-reduced-motion` resets.
+- **F3 — openers, hero, toolbar.** Section openers gained the ghost-numeral
+  depth echo (`data-n` + a scaled 0.1-opacity `::after`) plus a scroll-in
+  rise; `.px-section` is now `data-reveal` (`Section.astro`). Hero clamp
+  bumped to `clamp(52px, 7.5vw, 104px)`. A new glass `core/ReadingToolbar.astro`
+  (floating bottom pill: reading-progress bar + Full/Skim segmented toggle +
+  live % + read time + Save) drives `#px-article[data-mode]` and **replaced
+  the now-deleted `core/SkimToggle.astro`** — this closes the one deferred
+  item from the 2026-06-02 entry. The Save control (`core/SaveButton.astro`)
+  now lives inside the toolbar (the old `.px-reader-controls` row is gone).
+  ManifestoStrip on the home page was verified against the kit `.mf-strip`
+  (prefix `.px-mstrip`).
+- **Inert dead-CSS follow-up.** The old per-component viz CSS in the theme
+  files (`.px-vote*`, `.px-appr*`, `.px-pwm*`, `.px-paradox*`,
+  `.px-timeline*`, and the old orbit/launch/climate/bench/scurve/route/
+  citycompare/ltab/radar blocks) plus the `.px-skim-toggle` / `.px-skim-btn`
+  rules in `base.css` are now orphaned (no element emits them). Harmless — no
+  override conflict, since the new viz use new class names — but flagged for a
+  future safe removal pass.
+
+### 2026-06-03 — Illustrator phase + all raster imagery removed
+
+Scrapped the fal.ai / Flux illustrator phase and every cover photo. The
+publication is now fully type- and data-viz-led — zero raster imagery,
+no external image service.
+
+- **Pipeline is now `discover → research → draft → stylist → verify`.**
+  The illustrator phase (Phase 3.75) is gone. Earlier change-log entries
+  below that mention the illustrator phase or the
+  `discover → … → illustrator → verify` order describe the pipeline as it
+  stood before this date.
+- Deleted: `scripts/generate-visual.mjs`, `.claude/agents/illustrator.md`,
+  `research/_visual/` (the fal.ai spend ledger), every
+  `src/content/issues/*/og-prompt.txt`, and every image under `public/og/`
+  (the directory is removed).
+- Removed `ogImage:` from all issue frontmatter and dropped the
+  `og:image` meta tag, the category-card cover `<img>`, and the
+  archive-row thumbnail (the archive grid lost its leading thumbnail
+  column). Issue `twitter:card` downgraded from `summary_large_image` to
+  `summary`.
+- `ogImage` is **kept** in the Zod schema (`src/content/config.ts`) as an
+  optional, unused field so any legacy MDX still validates. Nothing sets it.
+- Config/scripts: removed the `@fal-ai/client` dependency and the
+  `pipeline:illustrator` npm script; dropped the `illustrator` entry from
+  `pipeline.config.ts`, `pipeline.ts` (VALID_PHASES, PHASE_TO_AGENT,
+  dispatch branch, help text), and `buildIllustratorPrompt` from
+  `scripts/lib/prompts.ts`; removed `FAL_KEY` from `.env.example`.
+- Docs synced: `AGENTS.md`, `research/AGENTS.md` (and this entry).
+
+### 2026-06-02 — v2 design revamp (Claude Design port, P0–P5 + topic indexes)
+
+Ported the external Claude Design "v2" kit into the codebase (full analysis +
+plan in `docs/DESIGN-REVAMP-NOTES.md`). An editorial-modern evolution, adopted
+faithfully with controlled customizations. Both projects build green;
+**uncommitted** (operator commits). The glass ReadingToolbar is the one
+deferred piece.
+
+- **P0 — foundation.** `src/styles/tokens-v2.css` (motion ramp, radii
+  `--r-card/-tile/-pill`, glass, columns), `type-v2.css` (unified
+  `--font-body`/`--font-mono` across all topics + per-world `--issue-face`
+  applied only to banner/hero), `motion-v2.css` + `core/Reveal.astro` — a
+  no-JS-safe scroll-reveal mechanism: base state visible, hidden state gated
+  behind an `html.js` class set by an inline `<head>` guard. **This fixes the
+  export's bug** where reveal targets stayed invisible without JS. Theme files
+  stopped overriding body/mono (only `--font-display` per topic remains).
+- **P1 — issue shell.** New `core/Banner.astro` (per-world standing plate);
+  hero on `--issue-face`; soft rounded primer card; section openers (display
+  numeral + gradient rule); pill-numbered sources; rounded accent quotes; CSS
+  `@view-transition`. Politics data-viz → elevated `px-viz`-style cards.
+- **P3 — data-viz, all topics.** space/earth/tech/travel/sports signature
+  components → elevated rounded cards (soft shadow + hover lift). Transparent/
+  full-bleed components (region map, climate strip, carbon gauge, player
+  radar, scoreline) deliberately left flat. Core `Comparison`/`DataReadout`
+  carded in `base.css`.
+- **P2 — home + masthead.** Bento `CategoryCard`s (rounded, per-world gradient
+  wash, CSS-only cursor warmth, hover lift); archive staggered reveals; new
+  `home/ManifestoStrip`, `home/SubscribeStrip` (wraps the existing
+  NewsletterForm island), `core/Colophon` (replaces Footer site-wide). Masthead
+  gained the accent hairline; the per-topic masthead registers (telemetry/
+  coordinate/shell/matchday/postcard/dateline) were **kept** — a brand
+  signature the generic kit would have flattened.
+- **P4 — topic indexes.** All six `px-*-index` pages onto the new system
+  (archive-style reveals, soft elevated empty states, per-topic backdrops
+  preserved).
+- **P5 — reader features + app.** Reader islands (Save/Reactions/Annotations/
+  Letters) → soft corners / pill chips / elevated item cards / pill submits
+  (+ fixed a cross-topic hardcoded politics-red bug in ReactionsBar's active
+  state). `app/src/styles/app.css` got a motion+radii token subset (no glass/
+  issue-face — app stays lighter) + reduced-motion guard. **Moderation queue**
+  (`app/.../admin/comments.astro`) → elevated cards + segmented-pill tabs + pill
+  risk chips. NewsletterForm left to the SubscribeStrip/Colophon work. No JS/
+  auth/CORS touched.
+- **Deferred:** glass `ReadingToolbar` (would fold Skim+Save, retire
+  SkimToggle) — careful follow-up.
+- **Dead code (not pruned):** `topic/TopicManifesto.astro` + `.px-topic-*` in
+  `meta.css`/themes are orphaned (live pages use `px-*-index`).
+- **Verification:** publication + app builds exit 0; every reveal-hidden rule
+  is `html.js`-gated; accent text uses `--accent-deep` on light themes. Visual
+  checks (375px, per-topic `data-topic` flip, full WCAG sweep) pending operator
+  browser review.
 
 ### 2026-06-01 — Letters block (Phase B-6) shipped
 

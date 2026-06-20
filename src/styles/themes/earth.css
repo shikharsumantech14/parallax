@@ -19,15 +19,10 @@
   --accent-alt: #a04922;       /* USGS contour brown — used sparingly */
   --tape: #d8c89a;
   --font-display: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
-  --font-body: 'Inter Tight', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* --font-body / --font-mono unified across topics in type-v2.css */
 }
 
 /* --- Global tweaks (mirror politics light-paper pattern) ----------------- */
-[data-topic="earth"] .px-masthead {
-  border-top-color: var(--accent);
-  border-bottom-color: var(--rule);
-}
 [data-topic="earth"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
 [data-topic="earth"] .px-hero__byline {
   border-color: var(--rule);
@@ -80,33 +75,6 @@
 }
 [data-topic="earth"] .px-topic-hero__title em { color: var(--accent); }
 
-/* --- Masthead variant: atlas coordinate bar ----------------------------- */
-.px-masthead--earth {
-  color: var(--ink);
-  font-family: var(--font-mono);
-}
-.px-masthead--earth .px-masthead__brand {
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.px-masthead--earth .px-masthead__sep {
-  color: var(--muted);
-  margin: 0 6px;
-}
-.px-masthead--earth .px-masthead__coord {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--accent-deep);
-}
-.px-masthead--earth .px-masthead__elev {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
 
 /* --- Topic empty state on atlas paper ---------------------------------- */
 [data-topic="earth"] .px-topic-empty__no { color: var(--accent); font-family: var(--font-display); font-weight: 600; }
@@ -508,4 +476,25 @@
   font-family: var(--font-mono); font-size: 11px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
+}
+
+/* ============================================================================
+   V2 — elevated cards on earth data-viz (rounded + soft shadow + hover lift)
+   The elevation profile's bordered stack (px-elev__stack) is the card surface;
+   it gets the radius + shadow + hover lift and clips its border-divided bands.
+   px-cgauge (transparent semicircular arc SVG, no box) stays flat.
+   ============================================================================ */
+.px-elev__stack {
+  border-radius: var(--r-tile);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-elev__stack:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
 }

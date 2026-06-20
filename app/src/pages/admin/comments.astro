@@ -231,9 +231,11 @@ const itemNoun = items.length === 1 ? 'annotation' : 'annotations';
 
 <style>
   .mq-tabs {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--rule);
+    display: inline-flex;
+    gap: 2px;
+    background: color-mix(in oklab, var(--ink) 6%, transparent);
+    border-radius: var(--r-pill);
+    padding: 2px;
     margin: var(--gap-md) 0 var(--gap-sm);
   }
   .mq-tab {
@@ -243,16 +245,17 @@ const itemNoun = items.length === 1 ? 'annotation' : 'annotations';
     text-transform: uppercase;
     color: var(--muted);
     text-decoration: none;
-    padding: 10px 12px;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
+    padding: 8px 16px;
+    border-radius: var(--r-pill);
+    transition: color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
   }
   .mq-tab:hover {
     color: var(--ink);
   }
   .mq-tab--active {
     color: var(--ink);
-    border-bottom-color: var(--accent);
+    background: var(--paper);
+    box-shadow: 0 1px 3px -1px color-mix(in oklab, var(--ink) 30%, transparent);
   }
 
   .mq-count {
@@ -277,6 +280,17 @@ const itemNoun = items.length === 1 ? 'annotation' : 'annotations';
     border: 1px solid var(--rule);
     background: var(--paper);
     padding: 18px 20px;
+    border-radius: var(--r-tile);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+    transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  .mq-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+      0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
   }
 
   .mq-card__head {
@@ -328,7 +342,8 @@ const itemNoun = items.length === 1 ? 'annotation' : 'annotations';
     text-transform: uppercase;
     color: var(--muted);
     border: 1px solid var(--rule);
-    padding: 2px 7px;
+    padding: 2px 9px;
+    border-radius: var(--r-pill);
   }
   .mq-risk--mid {
     color: #8a5a00;

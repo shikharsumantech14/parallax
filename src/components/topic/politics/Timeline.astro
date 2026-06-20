@@ -1,4 +1,10 @@
 ---
+/**
+ * Timeline — v2 vertical rail (.tl): a hairline rail, state-coloured nodes
+ * (default / key / fail / now), and rows that fade + rise in a stagger on
+ * scroll. Faithful port of publication-v2 Components.jsx <Timeline>. The rail
+ * and node are pure CSS (.tl__row::before); the .tl root carries data-reveal.
+ */
 import { renderInline } from '../../../lib/text';
 
 interface TimelineEvent {
@@ -7,24 +13,19 @@ interface TimelineEvent {
   note?: string;
   state?: 'default' | 'key' | 'fail' | 'now';
 }
-
 interface Props {
   events: TimelineEvent[];
 }
-
-const { events } = Astro.props;
+const { events = [] } = Astro.props;
 ---
 
-<div class="px-timeline">
+<div class="tl" data-reveal>
   {events.map((e) => (
-    <div class="px-timeline__row" data-state={e.state ?? 'default'}>
-      <div class="px-timeline__date">{e.date}</div>
-      <div class="px-timeline__rail">
-        <span class="px-timeline__dot" aria-hidden="true"></span>
-      </div>
-      <div class="px-timeline__body">
-        <div class="px-timeline__label" set:html={renderInline(e.label)} />
-        {e.note && <div class="px-timeline__note">{e.note}</div>}
+    <div class="tl__row" data-state={e.state ?? 'default'}>
+      <div class="tl__date">{e.date}</div>
+      <div>
+        <div class="tl__label" set:html={renderInline(e.label)} />
+        {e.note && <div class="tl__note" set:html={renderInline(e.note)} />}
       </div>
     </div>
   ))}

@@ -1,0 +1,277 @@
+---
+/**
+ * SeaLevelTank (earth) — a cross-section "tank" where a translucent water fill
+ * rises from the floor to the highest scenario level on scroll-in. Every
+ * `levels` entry draws a horizontal marker line + label at its height; optional
+ * `landmarks` sit on the outer side as reference height ticks. A faint
+ * perspective on the tank rim (core/Tilt.astro `data-tilt`) gives it body.
+ *
+ * No-JS / reduced-motion: the water paints at its FINAL height (the height:0
+ * hidden rule sits behind `html.js`; reduced-motion resets with !important).
+ * Marker lines + labels + the landmark ticks read without animation.
+ *
+ * data: { levels[]{ label, riseM, year? }, landmarks?[]{ name, heightM },
+ *         maxM?, caption?, source? }
+ */
+interface Level { label: string; riseM: number; year?: number; }
+interface Landmark { name: string; heightM: number; }
+interface Props {
+  levels: Level[];
+  landmarks?: Landmark[];
+  maxM?: number;
+  caption?: string;
+  source?: string;
+}
+const { levels = [], landmarks = [], maxM, caption, source } = Astro.props;
+
+const allRises = levels.map((l) => l.riseM || 0);
+const allLandmarks = landmarks.map((l) => l.heightM || 0);
+
+// Top of the scale: the explicit maxM, else the tallest of any level/landmark
+// with a little headroom so the highest marker doesn't sit flush on the rim.
+const peak = Math.max(0.01, ...allRises, ...allLandmarks);
+const scaleMax = maxM ?? peak * 1.15;
+const safeMax = scaleMax > 0 ? scaleMax : 1;
+
+// height as a % of the tank interior (0 = floor, 100 = rim)
+const pct = (m: number) => Math.max(0, Math.min(100, (m / safeMax) * 100));
+
+// tank interior height (px) — must match .px-sltank__tank height in <style>.
+const TANK_H = 320;
+
+// Label de-collision: given items pre-sorted high→low by `y` (%), keep each
+// label pill at least MIN_GAP px below the one above it. The dashed line stays
+// at the true `y` (alignment intact); only the label pill is nudged via --dy
+// (px, positive = pushed DOWN, away from the rim). Walking top→down means the
+// uppermost label holds its spot and crowded lower ones spread downward.
+function declutter<T extends { y: number }>(items: T[], minGapPx: number) {
+  let prevTop = -Infinity;                 // px-from-top of the previous label
+  const maxTop = TANK_H - minGapPx * 0.5;  // don't shove a pill off the floor
+  return items.map((it) => {
+    const truePx = (1 - it.y / 100) * TANK_H;   // convert bottom% → top-px
+    const placedPx = Math.min(maxTop, Math.max(truePx, prevTop + minGapPx));
+    prevTop = placedPx;
+    return { ...it, dy: +(placedPx - truePx).toFixed(1) };  // downward nudge
+  });
+}
+
+// The water rises to the highest scenario rise.
+const waterM = allRises.length ? Math.max(...allRises) : 0;
+const waterPct = pct(waterM);
+
+// Markers: sort high→low so stacked labels read top-down; flag the highest
+// (the one the water reaches) for emphasis. Then declutter the label pills.
+const markers = declutter(
+  levels
+    .map((l) => ({ ...l, y: pct(l.riseM || 0), isPeak: (l.riseM || 0) === waterM }))
+    .sort((a, b) => b.y - a.y),
+  22,
+);
+
+const ticks = declutter(
+  landmarks
+    .map((l) => ({ ...l, y: pct(l.heightM || 0) }))
+    .sort((a, b) => b.y - a.y),
+  34,   // taller pills (two stacked lines) need more clearance
+);
+
+const fmtM = (m: number) => `${m >= 0 ? '+' : ''}${m.toFixed(2)}m`;
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{fmtM(waterM)} crest</b></div>}
+
+  <div class="px-sltank px3d-stage">
+    <div class="px-sltank__rim px3d-tilt" data-tilt="4">
+      <div class="px-sltank__tank"
+        role="img"
+        aria-label={caption ? `Sea-level tank: ${caption}, water at ${fmtM(waterM)}` : `Sea-level tank, water at ${fmtM(waterM)}`}>
+
+        <!-- rising water -->
+        <div class="px-sltank__water" style={`--h:${waterPct.toFixed(2)}%`}>
+          <span class="px-sltank__surface" aria-hidden="true"></span>
+        </div>
+
+        <!-- scenario marker lines + labels (line at true level; pill nudged
+             down by --dy only when it would collide with the one above) -->
+        {markers.map((m, i) => (
+          <div
+            class={`px-sltank__mark${m.isPeak ? ' px-sltank__mark--peak' : ''}`}
+            style={`bottom:${m.y.toFixed(2)}%; --i:${i}; --dy:${m.dy}px`}
+          >
+            <span class="px-sltank__mark-line"></span>
+            <span class="px-sltank__mark-lbl">
+              {m.year != null && <b>{m.year}</b>}{m.year != null ? ' ' : ''}{m.label} · {fmtM(m.riseM)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <!-- landmark reference ticks on the outer side -->
+      {ticks.length > 0 && (
+        <div class="px-sltank__marks" aria-hidden="false">
+          {ticks.map((t) => (
+            <div class="px-sltank__tick" style={`bottom:${t.y.toFixed(2)}%; --dy:${t.dy}px`}>
+              <span class="px-sltank__tick-line"></span>
+              <span class="px-sltank__tick-lbl">{t.name}<i>{t.heightM.toFixed(2)}m</i></span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-sltank { width: 100%; }
+  .px-sltank__rim {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 22px;
+    align-items: stretch;
+    transform-origin: 50% 100%;
+  }
+
+  /* ── the tank vessel ─────────────────────────────────────────────────── */
+  .px-sltank__tank {
+    position: relative;
+    height: 320px;
+    border: 1px solid var(--rule);
+    border-top: none;
+    border-radius: 0 0 var(--r-tile) var(--r-tile);
+    background:
+      linear-gradient(to top, color-mix(in oklab, var(--ink) 4%, var(--paper)), var(--paper));
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -30px color-mix(in oklab, var(--ink) 50%, transparent);
+  }
+  /* faint floor line */
+  .px-sltank__tank::after {
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: var(--rule);
+  }
+
+  /* ── rising water ────────────────────────────────────────────────────── */
+  .px-sltank__water {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: var(--h);
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--accent) 52%, transparent),
+      color-mix(in oklab, var(--accent) 26%, transparent)
+    );
+    /* base/resting = final height (no-JS safe) */
+    transition: height 1100ms var(--ease);
+  }
+  .px-sltank__surface {
+    position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: color-mix(in oklab, var(--accent-deep, var(--accent)) 75%, var(--ink));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+
+  /* ── scenario marker lines + labels ──────────────────────────────────── */
+  .px-sltank__mark {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease);
+  }
+  .px-sltank__mark-line {
+    flex: 1;
+    height: 0;
+    border-top: 1px dashed color-mix(in oklab, var(--ink) 38%, transparent);
+  }
+  .px-sltank__mark--peak .px-sltank__mark-line {
+    border-top-style: solid;
+    border-top-color: var(--accent-deep, var(--accent));
+    border-top-width: 1.5px;
+  }
+  .px-sltank__mark-lbl {
+    flex: none;
+    padding: 3px 9px;
+    margin-right: 8px;
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    border-radius: var(--r-pill);
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    /* declutter nudge (px, set per-marker); line stays at the true level */
+    transform: translateY(var(--dy, 0px));
+  }
+  .px-sltank__mark-lbl b { color: var(--ink); font-weight: 700; }
+  .px-sltank__mark--peak .px-sltank__mark-lbl {
+    color: var(--paper);
+    background: var(--accent-deep, var(--accent));
+  }
+  .px-sltank__mark--peak .px-sltank__mark-lbl b { color: var(--paper); }
+
+  /* ── landmark reference ticks (outer side) ───────────────────────────── */
+  .px-sltank__marks {
+    position: relative;
+    width: 132px;
+    min-height: 320px;
+  }
+  .px-sltank__tick {
+    position: absolute;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* center on the level (50%) plus the declutter nudge (px) */
+    transform: translateY(calc(50% + var(--dy, 0px)));
+  }
+  .px-sltank__tick-line {
+    width: 14px; height: 0;
+    border-top: 1px solid var(--rule);
+    flex: none;
+  }
+  .px-sltank__tick-lbl {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+    color: var(--ink-soft);
+  }
+  .px-sltank__tick-lbl i {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── reveal: water rises from the floor (gated behind html.js) ───────── */
+  html.js .px-viz:not(.is-in) .px-sltank__water { height: 0; }
+  html.js .px-viz:not(.is-in) .px-sltank__mark { opacity: 0; }
+  .px-viz.is-in .px-sltank__mark { transition-delay: calc(620ms + var(--i) * 80ms); }
+
+  @media (max-width: 560px) {
+    .px-sltank__rim { grid-template-columns: 1fr; gap: 14px; }
+    .px-sltank__marks { width: auto; min-height: 0; display: flex; flex-wrap: wrap; gap: 14px; }
+    .px-sltank__tick { position: static; transform: none; }
+    .px-sltank__tick-line { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-sltank__water { height: var(--h) !important; }
+    .px-viz:not(.is-in) .px-sltank__mark { opacity: 1 !important; }
+  }
+</style>

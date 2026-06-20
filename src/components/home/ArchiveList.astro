@@ -8,7 +8,6 @@ interface Entry {
   title: string;
   issueNumber: number;
   publishedAt: Date;
-  ogImage?: string;
 }
 
 interface Props {
@@ -19,6 +18,7 @@ const { items } = Astro.props;
 const topicLabels: Record<string, string> = {
   politics: 'Politics',
   space: 'Space',
+  earth: 'Earth',
   tech: 'Tech',
   travel: 'Travel',
   sports: 'Sports'
@@ -30,22 +30,10 @@ const topicLabels: Record<string, string> = {
   {items.length === 0 ? (
     <div class="px-archive__empty">No earlier issues yet — the archive begins with — 01.</div>
   ) : (
-    <ul class="px-archive__list">
+    <ul class="px-archive__list" data-reveal>
       {items.map((entry) => (
-        <li>
+        <li class="px-archive__row">
           <a class="px-archive__item" data-topic={entry.topic} href={`/issues/${entry.slug}/`}>
-            {entry.ogImage ? (
-              <img
-                class="px-archive__thumb"
-                src={entry.ogImage}
-                alt=""
-                loading="lazy"
-                width="72"
-                height="38"
-              />
-            ) : (
-              <span class="px-archive__thumb px-archive__thumb--empty" aria-hidden="true"></span>
-            )}
             <span class="px-archive__no">{formatIssueNumber(entry.issueNumber)}</span>
             <span class="px-archive__dot" aria-hidden="true"></span>
             <span class="px-archive__text" set:html={renderEmphasis(entry.title)} />

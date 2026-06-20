@@ -1,0 +1,64 @@
+---
+/**
+ * VizMotion — tiny vanilla island for the two kit motions CSS can't express:
+ *
+ *   • count-up      [data-countup="N"] tweens 0 → N when scrolled into view.
+ *                   The FINAL value is already in the HTML, so no-JS / print /
+ *                   headless shows the real number. Optional [data-countup-prefix]
+ *                   (e.g. "−") prepends a sign; values format with thousands sep.
+ *   • cursor-warmth [data-warmth] writes --mx/--my (0..1) from the pointer so CSS
+ *                   can paint a faint accent radial that tracks the cursor.
+ *
+ * Reduced-motion: count-up jumps straight to the final value (no tween).
+ * Vanilla port of publication-v2/hooks.js (useCountUp + useCursorWarmth).
+ * Render ONCE per page, after the content, in both layouts.
+ */
+---
+<script is:inline>
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ── count-up ────────────────────────────────────────────────────────── */
+    var counters = document.querySelectorAll('[data-countup]');
+    if (counters.length) {
+      var run = function (el) {
+        if (el.__cu) return; el.__cu = true;
+        var target = parseFloat(el.getAttribute('data-countup'));
+        if (isNaN(target)) return;
+        var prefix = el.getAttribute('data-countup-prefix') || '';
+        var fmt = function (n) { return prefix + Math.round(n).toLocaleString(); };
+        if (reduce) { el.textContent = fmt(target); return; }
+        var dur = 1200, t0 = null;
+        var step = function (t) {
+          if (!t0) t0 = t;
+          var p = Math.min(1, (t - t0) / dur);
+          el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(step); else el.textContent = fmt(target);
+        };
+        requestAnimationFrame(step);
+      };
+      if (typeof IntersectionObserver === 'undefined') {
+        counters.forEach(run);
+      } else {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } });
+        }, { threshold: 0.2 });
+        counters.forEach(function (el) { io.observe(el); });
+        window.setTimeout(function () { counters.forEach(run); }, 2200);
+      }
+    }
+
+    /* ── cursor warmth ───────────────────────────────────────────────────── */
+    document.querySelectorAll('[data-warmth]').forEach(function (el) {
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', ((e.clientX - r.left) / r.width).toFixed(3));
+        el.style.setProperty('--my', ((e.clientY - r.top) / r.height).toFixed(3));
+      });
+      el.addEventListener('pointerleave', function () {
+        el.style.setProperty('--mx', '0.5');
+        el.style.setProperty('--my', '0.5');
+      });
+    });
+  })();
+</script>

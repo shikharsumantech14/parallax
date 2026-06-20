@@ -1,4 +1,11 @@
 ---
+/**
+ * Paradox — v2 two-panel comparison (.px2) with a center "vs" pivot, inside the
+ * elevated .px-viz card (fades/rises in on scroll). Faithful port of
+ * publication-v2 DataViz2.jsx <Paradox>. Shared by every `paradox` section
+ * (politics + earth). Takes the existing `sides[]` shape; renders the first two
+ * as the left/right panels.
+ */
 import { renderInline } from '../../../lib/text';
 
 interface ParadoxSide {
@@ -6,20 +13,34 @@ interface ParadoxSide {
   statement: string;
   detail: string;
 }
-
 interface Props {
   sides: ParadoxSide[];
+  caption?: string;
+  source?: string;
 }
-
-const { sides } = Astro.props;
+const { sides = [], caption, source } = Astro.props;
+const left = sides[0];
+const right = sides[1];
 ---
 
-<div class="px-paradox">
-  {sides.map((s) => (
-    <div class="px-paradox__side">
-      <div class="px-paradox__label">{s.label}</div>
-      <p class="px-paradox__statement" set:html={renderInline(s.statement)} />
-      <p class="px-paradox__detail" set:html={renderInline(s.detail)} />
-    </div>
-  ))}
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  <div class="px2">
+    {left && (
+      <div class="px2__panel">
+        <div class="px2__label">{left.label}</div>
+        <div class="px2__claim" set:html={renderInline(left.statement)} />
+        <div class="px2__detail" set:html={renderInline(left.detail)} />
+      </div>
+    )}
+    {left && right && <div class="px2__pivot"></div>}
+    {right && (
+      <div class="px2__panel">
+        <div class="px2__label">{right.label}</div>
+        <div class="px2__claim" set:html={renderInline(right.statement)} />
+        <div class="px2__detail" set:html={renderInline(right.detail)} />
+      </div>
+    )}
+  </div>
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

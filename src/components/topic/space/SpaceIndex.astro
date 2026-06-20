@@ -69,7 +69,7 @@ const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
       </div>
     </div>
   ) : (
-    <ol class="px-spc-index__log">
+    <ol class="px-spc-index__log" data-reveal>
       <li class="px-spc-index__log-head">
         <span>TX</span>
         <span>STATUS</span>
@@ -151,11 +151,11 @@ const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
     border-bottom: 1px solid var(--rule);
   }
   .px-spc-index__title {
-    font-family: var(--font-display);
+    font-family: var(--issue-face, var(--font-display));
     font-weight: 600;
-    font-size: clamp(40px, 6vw, 80px);
-    line-height: 1;
-    letter-spacing: -0.03em;
+    font-size: clamp(42px, 6.2vw, 84px);
+    line-height: 0.98;
+    letter-spacing: -0.032em;
     color: var(--ink);
     margin: 0 0 22px;
     max-width: 18ch;
@@ -185,8 +185,19 @@ const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
     text-transform: uppercase;
     color: var(--muted);
   }
-  .px-spc-index__log-entry { padding: 0; border-bottom: 1px solid var(--rule); }
+  .px-spc-index__log-entry { padding: 0; border-bottom: 1px solid var(--rule); position: relative; overflow: hidden; }
   .px-spc-index__log-entry:last-child { border-bottom: none; }
+  /* Hover accent bar on the left + subtle accent bg tint (v2 .arch__row) */
+  .px-spc-index__log-entry::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+    z-index: 1;
+  }
+  .px-spc-index__log-entry:hover::before { width: 3px; }
   .px-spc-index__log-link {
     display: grid;
     grid-template-columns: 90px 130px 1fr 110px;
@@ -195,9 +206,33 @@ const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
     text-decoration: none;
     color: inherit;
     align-items: baseline;
-    transition: background 0.12s ease;
+    transition: background var(--t-soft) var(--ease), padding-left var(--t-soft) var(--ease);
   }
-  .px-spc-index__log-link:hover { background: rgba(0,212,255,0.04); }
+  .px-spc-index__log-link:hover {
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+    padding-left: 26px;
+  }
+
+  /* Staggered scroll-reveal entries (gated behind html.js per motion-v2 contract). */
+  .px-spc-index__log-entry {
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-spc-index__log:not(.is-in) .px-spc-index__log-entry {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(2) { transition-delay: 80ms; }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(3) { transition-delay: 140ms; }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(4) { transition-delay: 200ms; }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(5) { transition-delay: 260ms; }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(6) { transition-delay: 320ms; }
+  .px-spc-index__log.is-in .px-spc-index__log-entry:nth-child(7) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-spc-index__log:not(.is-in) .px-spc-index__log-entry {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
   .px-spc-index__log-tx {
     font-family: var(--font-mono);
     font-size: 13px;
@@ -245,12 +280,24 @@ const txNum = (n: number) => `TX-${String(n).padStart(3, '0')}`;
     text-align: right;
   }
 
-  /* --- Empty: signal-strength bars --- */
+  /* --- Empty: signal-strength bars (v2 elevated card) --- */
   .px-spc-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     background: var(--paper);
     padding: 48px;
     position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-spc-index__empty::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
   }
   .px-spc-index__empty-grid {
     display: flex;

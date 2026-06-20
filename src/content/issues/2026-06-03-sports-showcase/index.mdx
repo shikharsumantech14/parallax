@@ -1,0 +1,354 @@
+---
+id: "2026-06-03-sports-showcase"
+topic: sports
+title: "The Sports *Component* Showcase"
+hook: "Every sports data-viz block, fed real match data, in one scrollable styleguide."
+dek: "Tactics pitch, shot map, xG race, momentum wave, rating card, league table, radar and stat line — each annotated with the data it carries."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 6
+primer: "A reference issue that exercises every sports signature component against real match and season data, so editors can see what each block reads like before reaching for it. The match thread follows one fixture; the season blocks follow the 2024/25 European campaigns."
+
+sections:
+  - kind: prose
+    eyebrow: "THE STYLEGUIDE"
+    title: "What this page is *for*"
+    intro: "This issue is not a story. It is a working catalogue of the sports world's data-viz components, each one wired to real numbers so editors can judge fit before drafting."
+    data:
+      lead: "Every block below is a sports signature component, rendered with real match and season data rather than placeholder values. Read it top to bottom and you have seen the full kit the sports world ships with."
+      paragraphs:
+        - "The first cluster follows a single fixture — the 2025 UEFA Champions League final, where Paris Saint-Germain beat Internazionale 5–0 in Munich — through four lenses: where the players stood, where the shots came from, how expected goals accumulated, and how momentum swung. Each one answers a different question about the same ninety minutes."
+        - "The second cluster steps out to the season scale: a single player's rating card and attribute radar, and a full league table with form guides. Where a component takes an interaction — hover, tilt, flip — the intro line above it says so. The caption inside each block names the underlying data; the source row beneath it names where that data came from."
+        - "Treat the values here as fixtures in the testing sense: realistic, internally consistent, enough to reveal layout and contrast at a glance. When a component looks wrong in this catalogue, it will look wrong in an issue."
+
+  - kind: tactics-pitch
+    eyebrow: "THE SHAPE"
+    title: "How PSG *lined up* in Munich"
+    intro: "A tilted pitch carrying eleven player markers at their average positions in a 4-3-3. The pitch reclines on a fixed 3D base and tilts a few degrees toward the cursor; markers pop in staggered on scroll. Coordinates are x = width (0 left, 100 right), y = length (0 own goal-line, 100 attacking line)."
+    data:
+      caption: "PSG starting XI · average positions · 2025 UCL final"
+      source: "UEFA match centre · Opta lineups, 2025"
+      team: "Paris Saint-Germain"
+      formation: "4-3-3"
+      players:
+        - { x: 50, y: 8, num: 1, name: "Donnarumma", role: "GK" }
+        - { x: 82, y: 30, num: 2, name: "Hakimi", role: "RB" }
+        - { x: 62, y: 22, num: 5, name: "Marquinhos", role: "CB" }
+        - { x: 38, y: 22, num: 37, name: "Skriniar", role: "CB" }
+        - { x: 16, y: 30, num: 25, name: "Mendes", role: "LB" }
+        - { x: 50, y: 42, num: 87, name: "Vitinha", role: "CM" }
+        - { x: 68, y: 50, num: 8, name: "Ruiz", role: "CM" }
+        - { x: 32, y: 50, num: 33, name: "Neves", role: "CM" }
+        - { x: 84, y: 70, num: 7, name: "Doué", role: "RW" }
+        - { x: 50, y: 78, num: 10, name: "Dembélé", role: "CF" }
+        - { x: 16, y: 70, num: 14, name: "Kvaratskhelia", role: "LW" }
+
+  - kind: shot-map
+    eyebrow: "THE ATTEMPTS"
+    title: "Where the *shots* fell"
+    intro: "A goal frame above an attacking-third plane, with one circle per shot. Circle radius scales with the shot's expected-goals value; fill treatment encodes the outcome. Hover a shot to scale it and read its xG. Coordinates are x = width across the goal-mouth, y = depth (0 on the goal-line, 100 at the edge of the third)."
+    data:
+      caption: "PSG shots · 2025 UCL final · radius ∝ xG"
+      source: "Opta / FBref shot data, 2025"
+      shots:
+        - { x: 42, y: 14, xg: 0.62, outcome: "goal" }
+        - { x: 60, y: 20, xg: 0.41, outcome: "goal" }
+        - { x: 48, y: 9, xg: 0.78, outcome: "goal" }
+        - { x: 35, y: 24, xg: 0.22, outcome: "goal" }
+        - { x: 55, y: 12, xg: 0.55, outcome: "goal" }
+        - { x: 28, y: 30, xg: 0.09, outcome: "saved" }
+        - { x: 70, y: 28, xg: 0.14, outcome: "saved" }
+        - { x: 64, y: 38, xg: 0.06, outcome: "blocked" }
+        - { x: 22, y: 40, xg: 0.04, outcome: "miss" }
+        - { x: 78, y: 44, xg: 0.03, outcome: "miss" }
+        - { x: 46, y: 33, xg: 0.18, outcome: "saved" }
+        - { x: 58, y: 48, xg: 0.05, outcome: "blocked" }
+
+  - kind: xg-race
+    eyebrow: "THE ACCUMULATION"
+    title: "The expected-goals *race*"
+    intro: "Two cumulative step-lines: each shot adds its xG to its team's running total, so the lines climb across the match minutes and separate as one side dominates. The paths draw themselves in on scroll; end-value labels sit at each line's final point and a faint gridline marks half-time. Events take minute, team ('home' or 'away'), and xg."
+    data:
+      caption: "Cumulative xG by minute · 2025 UCL final"
+      source: "Opta / Understat xG timeline, 2025"
+      home: "PSG"
+      away: "Inter"
+      events:
+        - { minute: 12, team: "home", xg: 0.62 }
+        - { minute: 20, team: "home", xg: 0.55 }
+        - { minute: 24, team: "away", xg: 0.09 }
+        - { minute: 31, team: "home", xg: 0.09 }
+        - { minute: 38, team: "away", xg: 0.12 }
+        - { minute: 44, team: "home", xg: 0.18 }
+        - { minute: 49, team: "away", xg: 0.07 }
+        - { minute: 56, team: "home", xg: 0.41 }
+        - { minute: 63, team: "home", xg: 0.22 }
+        - { minute: 71, team: "away", xg: 0.16 }
+        - { minute: 73, team: "home", xg: 0.78 }
+        - { minute: 84, team: "away", xg: 0.05 }
+        - { minute: 86, team: "home", xg: 0.06 }
+
+  - kind: momentum-wave
+    eyebrow: "THE SWING"
+    title: "Which way the *pressure* ran"
+    intro: "A ribbon around a centre baseline: it swells upward in the accent when home momentum is positive and downward in muted ink when the away side pushes. The fill grows out from the baseline on scroll; event pins drop at their minutes. Points take minute and value (−100 away dominance to +100 home dominance)."
+    data:
+      caption: "Match momentum index by minute · 2025 UCL final"
+      source: "Derived from Opta pressure / possession-value data, 2025"
+      home: "PSG"
+      away: "Inter"
+      points:
+        - { minute: 0, value: 10 }
+        - { minute: 8, value: 35 }
+        - { minute: 12, value: 62 }
+        - { minute: 18, value: 48 }
+        - { minute: 20, value: 70 }
+        - { minute: 27, value: 30 }
+        - { minute: 35, value: 12 }
+        - { minute: 40, value: -18 }
+        - { minute: 45, value: 24 }
+        - { minute: 52, value: 55 }
+        - { minute: 56, value: 78 }
+        - { minute: 64, value: 50 }
+        - { minute: 70, value: 8 }
+        - { minute: 73, value: 84 }
+        - { minute: 80, value: 40 }
+        - { minute: 88, value: 22 }
+      events:
+        - { minute: 12, label: "Hakimi 1–0", team: "home" }
+        - { minute: 20, label: "Doué 2–0", team: "home" }
+        - { minute: 56, label: "Doué 3–0", team: "home" }
+        - { minute: 73, label: "Kvaratskhelia 4–0", team: "home" }
+        - { minute: 86, label: "Mayulu 5–0", team: "home" }
+
+  - kind: player-card
+    eyebrow: "THE RATING CARD"
+    title: "Ousmane Dembélé — *the flip card*"
+    intro: "A FIFA-style 3D rating card: it tilts toward the cursor on hover and flips on press to reveal the full attribute breakdown. The front carries the headline rating and the top three attributes; stats take label, value, and optional max (defaults to 100)."
+    data:
+      caption: "2024/25 season attribute card · press Flip for all stats"
+      source: "FBref / WhoScored season ratings, 2025"
+      name: "Ousmane Dembélé"
+      position: "RW"
+      team: "Paris Saint-Germain"
+      rating: 89
+      stats:
+        - { label: "Finishing", value: 88, max: 100 }
+        - { label: "Dribbling", value: 93, max: 100 }
+        - { label: "Pace", value: 91, max: 100 }
+        - { label: "Creativity", value: 86, max: 100 }
+        - { label: "Off the ball", value: 84, max: 100 }
+        - { label: "Pressing", value: 79, max: 100 }
+
+  - kind: league-table
+    eyebrow: "THE STANDINGS"
+    title: "Ligue 1 2024/25 — final *table*"
+    intro: "A standings table with a five-match form guide per club. Position-change arrows show movement against the previous round; highlight bands mark the title, the Champions League places and the relegation zone. Rows take pos, team, played, won, drawn, lost, points, goals and a form array."
+    data:
+      caption: "Ligue 1 · 2024/25 · final standings (top 8 + bottom 2)"
+      source: "LFP official classement, 2025"
+      showDrawn: true
+      showGoals: true
+      rows:
+        - pos: 1
+          posChange: 0
+          team: "Paris Saint-Germain"
+          badge: "🔴"
+          played: 34
+          won: 26
+          drawn: 6
+          lost: 2
+          gf: 92
+          ga: 35
+          gd: 57
+          points: 84
+          form: ["W", "W", "D", "W", "W"]
+          highlight: "top"
+        - pos: 2
+          posChange: 1
+          team: "Marseille"
+          badge: "🔵"
+          played: 34
+          won: 20
+          drawn: 5
+          lost: 9
+          gf: 76
+          ga: 47
+          gd: 29
+          points: 65
+          form: ["W", "L", "W", "W", "D"]
+          highlight: "qualified"
+        - pos: 3
+          posChange: -1
+          team: "Monaco"
+          badge: "🔴"
+          played: 34
+          won: 18
+          drawn: 7
+          lost: 9
+          gf: 67
+          ga: 44
+          gd: 23
+          points: 61
+          form: ["D", "W", "L", "W", "W"]
+          highlight: "qualified"
+        - pos: 4
+          posChange: 2
+          team: "Nice"
+          badge: "🔴"
+          played: 34
+          won: 17
+          drawn: 9
+          lost: 8
+          gf: 60
+          ga: 42
+          gd: 18
+          points: 60
+          form: ["W", "D", "D", "W", "L"]
+          highlight: "qualified"
+        - pos: 5
+          posChange: -1
+          team: "Lille"
+          badge: "🔴"
+          played: 34
+          won: 16
+          drawn: 12
+          lost: 6
+          gf: 61
+          ga: 35
+          gd: 26
+          points: 60
+          form: ["D", "W", "W", "D", "W"]
+        - pos: 6
+          posChange: 1
+          team: "Lyon"
+          badge: "🔵"
+          played: 34
+          won: 16
+          drawn: 9
+          lost: 9
+          gf: 60
+          ga: 46
+          gd: 14
+          points: 57
+          form: ["W", "W", "L", "D", "W"]
+        - pos: 7
+          posChange: -2
+          team: "Strasbourg"
+          badge: "🔵"
+          played: 34
+          won: 16
+          drawn: 9
+          lost: 9
+          gf: 56
+          ga: 49
+          gd: 7
+          points: 57
+          form: ["L", "W", "D", "W", "L"]
+        - pos: 8
+          posChange: 0
+          team: "Lens"
+          badge: "🟡"
+          played: 34
+          won: 14
+          drawn: 10
+          lost: 10
+          gf: 46
+          ga: 40
+          gd: 6
+          points: 52
+          form: ["D", "L", "W", "D", "W"]
+        - pos: 17
+          posChange: -1
+          team: "Le Havre"
+          badge: "🔵"
+          played: 34
+          won: 9
+          drawn: 7
+          lost: 18
+          gf: 39
+          ga: 60
+          gd: -21
+          points: 34
+          form: ["L", "D", "L", "W", "L"]
+          highlight: "relegation"
+        - pos: 18
+          posChange: -2
+          team: "Montpellier"
+          badge: "🟠"
+          played: 34
+          won: 4
+          drawn: 7
+          lost: 23
+          gf: 28
+          ga: 78
+          gd: -50
+          points: 19
+          form: ["L", "L", "L", "D", "L"]
+          highlight: "relegation"
+
+  - kind: player-radar
+    eyebrow: "THE PROFILE"
+    title: "Ousmane Dembélé — *attribute radar*"
+    intro: "A spider chart plotting one player across six attributes on a 0–100 scale, so the overall shape reads as a profile at a glance. Same attribute set as the rating card above, here laid out radially. Stats take label, value and optional max."
+    data:
+      player: "Ousmane Dembélé"
+      team: "France · PSG"
+      source: "FBref / WhoScored season ratings, 2025"
+      stats:
+        - { label: "Finishing", value: 88, max: 100 }
+        - { label: "Dribbling", value: 93, max: 100 }
+        - { label: "Pace", value: 91, max: 100 }
+        - { label: "Creativity", value: 86, max: 100 }
+        - { label: "Off the ball", value: 84, max: 100 }
+        - { label: "Pressing", value: 79, max: 100 }
+
+  - kind: match-stat-line
+    eyebrow: "THE TALE OF THE TAPE"
+    title: "PSG vs Inter — *by the numbers*"
+    intro: "A bold scoreline above a set of horizontal comparison bars, each row splitting one stat between the two sides as a share of the row total. Rows take a label, home and away numeric values, an optional unit and an optional note."
+    data:
+      source: "UEFA match centre · Opta full-time stats, 2025"
+      competition: "UEFA Champions League · Final"
+      venue: "Allianz Arena, Munich · 64,000"
+      date: "May 31, 2025"
+      home:
+        name: "Paris Saint-Germain"
+        score: "5"
+        badge: "PSG"
+        outcome: "win"
+      away:
+        name: "Internazionale"
+        score: "0"
+        badge: "INT"
+        outcome: "loss"
+      rows:
+        - { label: "Possession", home: 58, away: 42, unit: "%" }
+        - { label: "Total shots", home: 19, away: 8, unit: "" }
+        - { label: "Shots on target", home: 9, away: 2, unit: "" }
+        - { label: "Expected goals (xG)", home: 3.4, away: 0.6, unit: "", note: "PSG converted at well above their xG" }
+        - { label: "Pass accuracy", home: 89, away: 84, unit: "%" }
+        - { label: "Corners", home: 7, away: 3, unit: "" }
+        - { label: "Big chances", home: 8, away: 1, unit: "" }
+
+sources:
+  - id: "src-01"
+    title: "Champions League final 2025: PSG 5-0 Inter — match centre"
+    publisher: "UEFA"
+    url: "https://www.uefa.com/uefachampionsleague/match/2041378--psg-vs-inter/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-02"
+    title: "Paris Saint-Germain vs Internazionale — match report and stats"
+    publisher: "FBref / Sports Reference"
+    url: "https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures"
+    accessedAt: "2026-06-03"
+    kind: secondary
+  - id: "src-03"
+    title: "Ligue 1 2024-2025 classement final"
+    publisher: "Ligue de Football Professionnel"
+    url: "https://www.ligue1.com/ranking"
+    accessedAt: "2026-06-03"
+    kind: primary
+---

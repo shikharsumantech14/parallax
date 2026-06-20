@@ -19,17 +19,11 @@
   --tape: #333333;
   /* Geist isn't on Google Fonts; fall through to a coherent mono-first stack */
   --font-display: 'JetBrains Mono', 'Inter Tight', ui-monospace, monospace;
-  --font-body: 'Inter Tight', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* --font-body / --font-mono unified across topics in type-v2.css */
 }
 
 /* --- Global dark-mode tweaks -------------------------------------------- */
 [data-topic="tech"] body { background: var(--bg); }
-[data-topic="tech"] .px-masthead {
-  border-top-color: var(--accent);
-  border-bottom-color: var(--rule);
-  color: var(--ink);
-}
 [data-topic="tech"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
 [data-topic="tech"] .px-hero__byline { border-color: var(--rule); color: var(--muted); }
 [data-topic="tech"] .px-section__num { color: var(--accent); font-family: var(--font-mono); }
@@ -100,18 +94,6 @@
 [data-topic="tech"] .px-topic-list__title em { color: var(--accent); }
 [data-topic="tech"] .px-topic-list__hook { color: var(--ink-soft); }
 
-/* --- Masthead variant: the changelog header ---------------------------- */
-.px-masthead--tech {
-  font-family: var(--font-mono);
-  color: var(--ink);
-}
-.px-masthead--tech .px-masthead__brand {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: lowercase;
-}
-.px-masthead--tech .px-masthead__slash { color: var(--accent); padding: 0 1px; }
 
 /* --- Cross-topic component re-skins ------------------------------------ */
 
@@ -345,4 +327,33 @@
   font-family: var(--font-mono); font-size: 11px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--rule);
+}
+
+/* ============================================================================
+   V2 — elevated cards on tech data-viz (rounded + soft shadow + hover lift)
+   px-commit / px-bench / px-scurve are flat wrappers; their bordered surface
+   (the commit frame, the chart SVGs) takes the treatment. The commit frame is
+   a panel and lifts on hover; the pure-chart SVGs get radius + shadow only.
+   ============================================================================ */
+.px-commit__frame {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-commit__frame:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+
+/* benchmark + adoption curve: the SVG is the card surface */
+.px-bench__svg,
+.px-scurve__svg {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
 }

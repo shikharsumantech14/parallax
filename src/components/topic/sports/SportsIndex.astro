@@ -63,7 +63,7 @@ const fmtTime = (d: Date) => {
       </div>
     </div>
   ) : (
-    <div class="px-spt-index__fixtures">
+    <div class="px-spt-index__fixtures" data-reveal>
       <div class="px-spt-index__fixtures-head">
         <span>MD</span>
         <span>DATE</span>
@@ -170,11 +170,11 @@ const fmtTime = (d: Date) => {
     border-bottom: 1px solid var(--rule);
   }
   .px-spt-index__title {
-    font-family: var(--font-display);
+    font-family: var(--issue-face, var(--font-display));
     font-weight: 600;
-    font-size: clamp(44px, 6vw, 84px);
-    line-height: 1;
-    letter-spacing: -0.005em;
+    font-size: clamp(46px, 6.2vw, 88px);
+    line-height: 0.98;
+    letter-spacing: -0.008em;
     color: var(--ink);
     text-transform: uppercase;
     margin: 0 0 22px;
@@ -213,10 +213,51 @@ const fmtTime = (d: Date) => {
     text-decoration: none;
     color: inherit;
     border-bottom: 1px solid var(--rule);
-    transition: background 0.12s ease;
+    position: relative;
+    overflow: hidden;
+    transition: background var(--t-soft) var(--ease), padding-left var(--t-soft) var(--ease);
   }
   .px-spt-index__fixture:last-child { border-bottom: none; }
-  .px-spt-index__fixture:hover { background: rgba(232,240,72,0.04); }
+  /* Hover accent bar on the left + subtle accent bg tint (v2 .arch__row) */
+  .px-spt-index__fixture::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+    z-index: 1;
+  }
+  .px-spt-index__fixture:hover {
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+    padding-left: 30px;
+  }
+  .px-spt-index__fixture:hover::before { width: 3px; }
+
+  /* Staggered scroll-reveal fixtures (gated behind html.js per motion-v2 contract). */
+  .px-spt-index__fixture {
+    transition:
+      background var(--t-soft) var(--ease),
+      padding-left var(--t-soft) var(--ease),
+      opacity var(--t-soft) var(--ease),
+      transform var(--t-soft) var(--ease);
+  }
+  html.js .px-spt-index__fixtures:not(.is-in) .px-spt-index__fixture {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(2) { transition-delay: 80ms; }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(3) { transition-delay: 140ms; }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(4) { transition-delay: 200ms; }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(5) { transition-delay: 260ms; }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(6) { transition-delay: 320ms; }
+  .px-spt-index__fixtures.is-in .px-spt-index__fixture:nth-child(7) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-spt-index__fixtures:not(.is-in) .px-spt-index__fixture {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
   .px-spt-index__md {
     font-family: var(--font-display);
     font-weight: 600;
@@ -265,13 +306,25 @@ const fmtTime = (d: Date) => {
     text-align: right;
   }
 
-  /* --- Empty: pre-season scoreboard --- */
+  /* --- Empty: pre-season scoreboard (v2 elevated card) --- */
   .px-spt-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     background: var(--paper);
     padding: 56px 48px;
     position: relative;
     overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-spt-index__empty::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    z-index: 2;
   }
   .px-spt-index__empty-pitch {
     position: absolute;

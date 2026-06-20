@@ -52,6 +52,7 @@ auto-deploys on push to `main`.
 | Hosting      | Vercel (static, auto-deploy on push to `main`)      |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
+| 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the 4 WebGL section kinds, code-split into its own chunk — see `src/scripts/viz3d/`) |
 
 **Commands** (from `package.json`):
 
@@ -64,7 +65,6 @@ npm run pipeline:discover    <category>    # Phase 1 — discovery agent
 npm run pipeline:research    <category>    # Phase 2 — researcher agent
 npm run pipeline:draft       <category>    # Phase 3 — drafter agent
 npm run pipeline:stylist     <category>    # Phase 3.5 — stylist agent
-npm run pipeline:illustrator <category>    # Phase 3.75 — illustrator agent (OG card via fal.ai Flux)
 npm run pipeline:verify      <category>    # Phase 4 — verifier agent
 ```
 
@@ -73,10 +73,23 @@ The pipeline scripts bill to your `ANTHROPIC_API_KEY` (loaded from
 token budget. Same agents are also invoked as `/pipeline-<phase>` slash
 commands inside Claude Code — those routes through Pro.
 
-**No JS islands except one.** Astro's zero-JS posture is intentional. The
-only client-side JS in the project is the `SkimToggle.astro` component
-(an IIFE inside the component file, no framework). Any new interactivity
-must be justified.
+**Minimal JS, all progressive enhancement.** Astro's near-zero-JS posture
+is intentional. The only client-side JS is a small set of tiny vanilla
+`is:inline` islands (no framework, no bundle): `core/Reveal.astro`
+(scroll-reveal — adds `.is-in` to `[data-reveal]`), `core/VizMotion.astro`
+(count-up + cursor-warmth), `core/ReadingToolbar.astro` (reading progress +
+Full/Skim toggle + Save), the two once-per-issue 3D-library islands
+`core/Viz3DRuntime.astro` (lazy-boots the WebGL runtime in `src/scripts/viz3d/`
+when a `[data-viz3d]` mount scrolls in — three is dynamic-imported + code-split,
+so it never loads on home/non-3D pages) and `core/Tilt.astro` (CSS-3D
+pointer-tilt + flip) and `core/ExpandModal.astro` (in-page expand-to-modal — on
+its ⤢ button it portals any viz card into a focused modal "study view" with a
+plain-language explainer; the page never scrolls), plus the Phase-B reader
+islands (Save, Reactions, ReadingTracker, AnnotationLayer, Letters, NewsletterForm). The contract:
+everything degrades to its final painted state under no-JS (hidden states
+are gated behind an `html.js` class set by an inline `<head>` guard) and
+under `prefers-reduced-motion`. Count-ups tween to the value already in the
+HTML. Any new interactivity must honour this contract and be justified.
 
 ---
 
@@ -121,21 +134,32 @@ src/
 │   └── topics/[topic].astro   ← dynamic: 6 routes, dispatches to <Topic>Index
 ├── components/
 │   ├── SectionRenderer.astro  ← single dispatcher: section.kind → component
-│   ├── core/                  ← topic-agnostic (Masthead, Hero, Primer,
-│   │                            SkimToggle, Section, Quote, Prose,
-│   │                            Comparison, DataReadout, BeatSheet, Sources,
-│   │                            Footer)
+│   ├── core/                  ← topic-agnostic (Masthead, Banner, Hero,
+│   │                            Primer, Section, Quote, Prose, Comparison,
+│   │                            DataReadout, BeatSheet, Sources, Colophon,
+│   │                            ReadingToolbar [replaced SkimToggle], the
+│   │                            Reveal + VizMotion motion islands, and the
+│   │                            Viz3DRuntime + Tilt islands for the 3D library)
 │   ├── home/                  ← meta-brand pieces (TypographicChord,
 │   │                            TopicStrip, CategoryCard, CategoryGrid,
 │   │                            ArchiveList, FeaturedIssue)
 │   └── topic/<topic>/         ← per-topic signature components + <Topic>Index
 ├── styles/
-│   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode
+│   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode + `.mh` masthead
 │   ├── meta.css               ← Meta brand tokens + home/topic-index styles
+│   ├── dataviz-v2.css         ← v2 data-viz kit CSS (animations + html.js-gated reveals); imported last in both layouts
+│   ├── components-3d.css      ← shared 3D mechanics (.px3d-* tilt/flip) + the .viz3d WebGL mount for the v2 3D/interactive library
+│   ├── viz-type.css           ← unified data-viz type scale (caption/axis/legend/value label roles)
+│   ├── modal.css              ← ExpandModal lightbox (in-page expand-to-modal study view)
 │   └── themes/<topic>.css     ← Layer B — full theme per topic
-└── lib/
-    └── text.ts                ← renderEmphasis, renderInline,
-                                  formatIssueNumber, formatSectionLabel
+├── lib/
+│   └── text.ts                ← renderEmphasis, renderInline,
+│                                formatIssueNumber, formatSectionLabel
+└── scripts/viz3d/             ← lazy WebGL for the 4 3D section kinds:
+                                  runtime.ts (dynamic-imports three on
+                                  scroll-in, code-split chunk) + scenes.ts
+                                  (scene builders). Mounted via
+                                  core/Viz3DRuntime.astro
 docs/
 └── PROJECT.md                 ← long-form project state + change log
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
@@ -190,7 +214,7 @@ holds two control gates; agents do everything else.
                                           flip status to published, commit
 ```
 
-Pipeline status (as of 2026-05-20):
+Pipeline status (as of 2026-06-03):
 
 | Phase | Agent file | Command (Claude Code) | Command (API CLI) |
 |-------|-----------|----------------------|-------------------|
@@ -198,21 +222,22 @@ Pipeline status (as of 2026-05-20):
 | 2. Research | `.claude/agents/researcher.md` | `/pipeline-research <cat>` | `npm run pipeline:research <cat>` |
 | 3. Draft | `.claude/agents/drafter.md` | `/pipeline-draft <cat>` | `npm run pipeline:draft <cat>` |
 | 3.5. Stylist | `.claude/agents/stylist.md` | (no slash command — API only) | `npm run pipeline:stylist <cat>` |
-| 3.75. Illustrator | `.claude/agents/illustrator.md` | (no slash command — API only) | `npm run pipeline:illustrator <cat>` |
 | 4. Verify | `.claude/agents/verifier.md` | `/pipeline-verify <cat>` | `npm run pipeline:verify <cat>` |
 
 **Cost per run** (API CLI, May 2026 rates from `scripts/README.md`):
 discover ~$0.30–0.80 · research ~$0.80–2.00 · draft ~$3–7.50 · stylist
-~$1.50–2.50 · illustrator ~$0.50–1.00 (Opus) + ~$0.04 (Flux 1.1 Pro) ·
-verify ~$0.40–1.00. Full pipeline per issue: $7–16.
+~$1.50–2.50 · verify ~$0.40–1.00. Full pipeline per issue: $6–14.
 
-**Model routing** (`scripts/pipeline.config.ts`):
+**Model routing** (`scripts/pipeline.config.ts` — **API-CLI route only**):
 - Discovery, researcher, verifier → `claude-sonnet-4-6`
-- Drafter, stylist, illustrator → `claude-opus-4-1`
+- Drafter, stylist → `claude-opus-4-1`
+- **Claude Code route** (subscription budget) pins **every** phase to **Opus
+  (max)** instead — no Sonnet. The split above is the operator's API-CLI config;
+  leave it unchanged.
 
-**External services**: illustrator phase calls fal.ai (Flux 1.1 Pro) via
-`scripts/generate-visual.mjs`. Billing is pay-as-you-go on `FAL_KEY` in
-`.env.local`. Daily $2.00 cap enforced in the script.
+**No raster imagery**: the publication is type- and data-viz-led. There
+are no cover photos or AI-generated covers, and no external image
+service in the pipeline.
 
 Voice quality is the highest-value output of draft and stylist, hence Opus.
 
@@ -307,8 +332,15 @@ em-dashes still needs to be fixed.
 
 ### Visual rules
 
-- **No JS islands except SkimToggle.** Every other component is pure
-  Astro / CSS. New interactivity needs explicit justification.
+- **Minimal JS, progressive enhancement only.** The client-side JS is a
+  small set of tiny vanilla `is:inline` islands (no framework):
+  `core/Reveal.astro` (scroll-reveal), `core/VizMotion.astro` (count-up +
+  cursor-warmth), `core/ReadingToolbar.astro` (reading progress + Full/Skim
+  toggle + Save), plus the Phase-B reader islands. Every other component is
+  pure Astro / CSS. Contract: all of it degrades to the final painted state
+  under no-JS (hidden states gated behind an `html.js` class) and
+  `prefers-reduced-motion`. New interactivity must honour this and be
+  justified.
 - **CSS class prefix isolation.** Each component owns a unique `px-<abbrev>`
   prefix (≤6 chars). Check `meta.css` for collisions before choosing — the
   `px-strip` namespace is owned by `TopicStrip`; the climate-strip
@@ -359,6 +391,33 @@ em-dashes still needs to be fixed.
 ---
 
 ## 10. Change log for this file
+
+### 2026-06-03 — 3D / interactive component library (30 kinds)
+Added a 30-kind interactive + 3D section library (5 per world): 4 lazy WebGL
+globes on a self-hosted, code-split `three` (only loads when a `[data-viz3d]`
+mount scrolls in; runtime in `src/scripts/viz3d/`) + 26 CSS-3D / animated-SVG
+kinds (shared `components-3d.css` mechanics, `core/Tilt.astro` island). Both
+mount once per issue via `core/Viz3DRuntime.astro` + `core/Tilt.astro`. Same
+no-JS / reduced-motion fallback contract as the other islands. Added `three`
+to the tech stack, the two islands to the §2 JS list + layout map, and
+`components-3d.css` / `scripts/viz3d/` to the layout map. Full detail in
+`src/components/AGENTS.md` §10, authoring shapes in
+`src/content/issues/_AGENTS.md` §11, and `docs/PROJECT.md` §12 (2026-06-03).
+
+### 2026-06-03 — v2 design match completed
+Synced this guide to the completed v2 design-match pass. F1: the six
+per-topic mastheads collapsed into one unified `.mh` press-header
+(`core/Masthead.astro`), with each world's old register microcopy moving to
+the per-issue `core/Banner.astro`. F2: every signature chart was fully
+ported to the v2 kit (markup + animations + scroll reveals), sharing a new
+`src/styles/dataviz-v2.css`; count-up + cursor-warmth ship in the new
+`core/VizMotion.astro` island and reveals in `core/Reveal.astro`, all
+`html.js`-gated. F3: ghost-numeral section openers, a bumped hero clamp, and
+a new glass `core/ReadingToolbar.astro` (reading progress + Full/Skim + Save)
+that **replaced the deleted `core/SkimToggle.astro`**. Updated the §2 JS
+posture, the §7 visual rule, the layout map, and the styles list. Full
+detail in `src/components/AGENTS.md` §9 and `docs/PROJECT.md` §12
+(2026-06-03). (A separate 2026-06-03 entry covers the fal.ai/photo removal.)
 
 ### 2026-05-20 — Initial creation
 First version of the agent guide. Consolidates the project overview,

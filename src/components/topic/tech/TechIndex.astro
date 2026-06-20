@@ -62,7 +62,7 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
       <p class="px-tch-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
     </div>
   ) : (
-    <ol class="px-tch-index__log">
+    <ol class="px-tch-index__log" data-reveal>
       {issues.map((issue) => {
         const n = issueNumberFor(issue.slug);
         return (
@@ -143,11 +143,11 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
     border-bottom: 1px dashed var(--rule);
   }
   .px-tch-index__title {
-    font-family: var(--font-mono);
+    font-family: var(--issue-face, var(--font-mono));
     font-weight: 500;
-    font-size: clamp(28px, 4vw, 48px);
-    line-height: 1.15;
-    letter-spacing: -0.02em;
+    font-size: clamp(30px, 4.2vw, 52px);
+    line-height: 1.12;
+    letter-spacing: -0.022em;
     color: var(--ink);
     margin: 0 0 22px;
     max-width: 22ch;
@@ -163,9 +163,20 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
     max-width: 64ch;
   }
 
-  /* --- Commit log --- */
+  /* --- Commit log (v2 archive-row treatment on the git rail) --- */
   .px-tch-index__log { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0; border-left: 2px solid var(--rule); padding-left: 0; }
   .px-tch-index__commit { padding: 0; position: relative; }
+  /* Hover accent bar — the rail segment lights up (v2 .arch__row, themed). */
+  .px-tch-index__commit::before {
+    content: '';
+    position: absolute;
+    left: -2px; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+    z-index: 1;
+  }
+  .px-tch-index__commit:hover::before { width: 3px; }
   .px-tch-index__commit-link {
     display: block;
     padding: 22px 24px 22px 32px;
@@ -173,7 +184,7 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
     color: inherit;
     border-bottom: 1px dashed var(--rule);
     position: relative;
-    transition: background 0.12s ease;
+    transition: background var(--t-soft) var(--ease), padding-left var(--t-soft) var(--ease);
   }
   .px-tch-index__commit-link::before {
     content: '';
@@ -183,8 +194,33 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
     background: var(--accent);
     border-radius: 50%;
     border: 2px solid var(--bg);
+    z-index: 2;
   }
-  .px-tch-index__commit-link:hover { background: rgba(198,244,50,0.04); }
+  .px-tch-index__commit-link:hover {
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+    padding-left: 40px;
+  }
+
+  /* Staggered scroll-reveal commits (gated behind html.js per motion-v2 contract). */
+  .px-tch-index__commit {
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-tch-index__log:not(.is-in) .px-tch-index__commit {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(1) { transition-delay: 80ms; }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(2) { transition-delay: 140ms; }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(3) { transition-delay: 200ms; }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(4) { transition-delay: 260ms; }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(5) { transition-delay: 320ms; }
+  .px-tch-index__log.is-in .px-tch-index__commit:nth-child(6) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-tch-index__log:not(.is-in) .px-tch-index__commit {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
   .px-tch-index__commit-line {
     display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline;
     font-family: var(--font-mono);
@@ -221,11 +257,25 @@ fatal: your current branch '`}<span class="px-tch-index__empty-hl">main</span>{`
     letter-spacing: 0.04em;
   }
 
-  /* --- Empty: faux git error --- */
+  /* --- Empty: faux git error (v2 elevated card) --- */
   .px-tch-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     background: var(--paper);
     padding: 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-tch-index__empty::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    z-index: 1;
   }
   .px-tch-index__empty-block {
     font-family: var(--font-mono);

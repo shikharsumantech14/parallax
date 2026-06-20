@@ -21,8 +21,9 @@ The repo has **two products**:
 
 1. **The publication** — root of the repo. Pure-static Astro 4 + MDX.
    Deploys to `parallaxlens.com`. Five published issues. Agent-driven
-   editorial pipeline (discover → research → draft → stylist →
-   illustrator → verify → publish). 33 section kinds, 6 topic worlds.
+   editorial pipeline (discover → research → draft → stylist → verify →
+   publish). 33 section kinds, 6 topic worlds. Type- and data-viz-led;
+   no raster imagery.
 
 2. **The reader-account app** — `app/` subdirectory. Astro SSR.
    Deploys to `app.parallaxlens.com`. Auth, dashboard, and all
@@ -65,17 +66,20 @@ The repo has **two products**:
 
 ## The single most important pending task
 
-**Apply the letters migration, then B-4 is the last Phase B item.**
-Phase B-5 (moderation queue) and B-6 (Letters block) both shipped
-2026-06-01 (see the sections below). The only remaining Phase B feature
-is **B-4, the topic affinity heatmap**, gated on having ~a week of
-`reading_events` data to aggregate. If enough has accumulated, B-4 is
-next; otherwise Phase B is effectively done pending that data.
+**Phase B is functionally complete.** B-5 (moderation queue) and B-6
+(Letters block) both shipped 2026-06-01; the letters `author_name`
+migration has been applied to prod Supabase. Two Phase B items remain,
+and the operator chose (2026-06-01) to **pause** and let reading data
+accumulate before picking one up:
 
-**First, an operator step:** apply
-`app/supabase/migrations/20260601000000_phase_b_letters_author.sql` to
-prod Supabase (paste into the SQL editor) — letters can't be submitted
-until the `author_name` column exists.
+1. **AI pre-moderation** (unblocked) — score each annotation/letter with
+   Haiku on submit (0–100 → `comments.ai_risk_score`) so the moderation
+   queue's risk badges become live and triageable. Adds an Anthropic call
+   to the submit path (latency + spend + the API key in the app env).
+2. **B-4 topic affinity heatmap** (data-gated) — a nightly cron
+   aggregating `reading_events` → `profiles.topic_affinity` (needs an
+   issue→topic mapping) + a dashboard heatmap. Buildable now, but sparse
+   until readers build history.
 
 > Phase C (AI explainers + TL;DR) / D / E stay blocked until Phase B
 > closes. Do not start them early.

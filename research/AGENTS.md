@@ -24,10 +24,7 @@ research/
 │   ├── candidate.md                ← candidate list shape (one block per topic candidate)
 │   └── dossier.md                  ← researcher output shape
 ├── _voice/
-│   ├── mode-library.md             ← 8 rhetorical modes + AI-tell catalog
-│   └── visual-mode-library.md      ← 6 visual modes + visual AI-tell catalog
-├── _visual/
-│   └── ledger.jsonl                ← fal.ai spend ledger (daily $2.00 cap)
+│   └── mode-library.md             ← 8 rhetorical modes + AI-tell catalog
 └── <topic>/                        ← per-topic working folder
     ├── YYYY-MM-DD-candidates.md            ← discovery output (Phase 1)
     ├── YYYY-MM-DD-<slug>-dossier.md        ← researcher output (Phase 2)
@@ -46,10 +43,16 @@ research/
 5. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft)
 6. YOU REVIEW DRAFT              ← fix voice/flow, resolve EDITOR comments
 7. (CLI only) npm run pipeline:stylist <cat>      → rhetorical-mode rewrites
-8. (CLI only) npm run pipeline:illustrator <cat>  → OG cover image via fal.ai
-9. /pipeline-verify <cat>       → research/<cat>/<date>-<slug>-verification.md
-10. YOU AUDIT + PUBLISH          ← read report, fix, flip status, commit
+8. /pipeline-verify <cat>       → research/<cat>/<date>-<slug>-verification.md
+9. YOU AUDIT + PUBLISH          ← read report, fix, flip status, commit
 ```
+
+> **Component palette.** The publication ships ~60 section kinds, including a v2
+> 3D / interactive library (5 per world: WebGL globes, CSS-3D cards, animated
+> SVG). The drafter chooses kinds that fit the data; discovery should suggest
+> them. The six `2026-06-03-<world>-showcase` **draft** issues exercise every
+> kind with real data — the canonical worked examples. Full catalog + `data`
+> shapes live in `src/content/issues/_AGENTS.md` §11.
 
 Two paths run the same agents:
 
@@ -145,21 +148,7 @@ discretion.
 
 ---
 
-## 7a. Visual canon (`_voice/visual-mode-library.md`)
-
-Parallel reference for cover imagery, read by the **illustrator** agent.
-Six visual modes (AERIAL DIAGRAM, SINGLE OBJECT STILL, ARCHIVAL DOCUMENT,
-TYPOGRAPHIC GRID, MONOCHROME PORTRAIT, GEOMETRIC ABSTRACTION) with a
-Decision Tree, brand-wide constants (no faces, no hands, no text in
-image, muted palette, topic-aware accents), an 8-item visual AI-tell
-catalog, and Quick-Reference Prompt Cards for runtime use.
-
-Image generation is metered by `scripts/generate-visual.mjs` which
-enforces a **daily $2.00 cap** via the ledger at
-`research/_visual/ledger.jsonl`. One image per script invocation; the
-illustrator agent calls the script exactly once per run.
-
-## 7b. Voice canon (`_voice/mode-library.md`)
+## 7. Voice canon (`_voice/mode-library.md`)
 
 964 lines. Read fully when first onboarding to the project. Contains:
 
@@ -226,9 +215,8 @@ From `scripts/README.md` (May 2026 rates), full per-issue API spend:
 | Research (Sonnet) | $0.80–2.00 |
 | Draft (Opus) | $3.00–7.50 |
 | Stylist (Opus) | $1.50–2.50 |
-| Illustrator (Opus + fal.ai Flux) | $0.50–1.00 + $0.04 |
 | Verify (Sonnet) | $0.40–1.00 |
-| **Per issue** | **$6.50–14.80** |
+| **Per issue** | **$6.00–13.80** |
 
 Discovery and verify are cheap — re-run freely if results look off. Draft
 and stylist are expensive — review the dossier carefully before

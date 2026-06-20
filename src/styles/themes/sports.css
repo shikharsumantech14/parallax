@@ -18,17 +18,11 @@
   --accent-alt: #ff6b35;
   --tape: #1a4030;
   --font-display: 'Oswald', 'Inter Tight', sans-serif;
-  --font-body: 'Inter Tight', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* --font-body / --font-mono unified across topics in type-v2.css */
 }
 
 /* --- Global dark-mode tweaks ------------------------------------------- */
 [data-topic="sports"] body { background: var(--bg); }
-[data-topic="sports"] .px-masthead {
-  border-top-color: var(--accent);
-  border-bottom-color: var(--rule);
-  color: var(--ink);
-}
 [data-topic="sports"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
 [data-topic="sports"] .px-hero__byline { border-color: var(--rule); color: var(--muted); }
 [data-topic="sports"] .px-section__num { color: var(--accent); font-family: var(--font-display); font-weight: 500; }
@@ -94,22 +88,6 @@
 [data-topic="sports"] .px-topic-list__title em { color: var(--accent); }
 [data-topic="sports"] .px-topic-list__hook { color: var(--ink-soft); }
 
-/* --- Masthead variant: matchday programme ----------------------------- */
-.px-masthead--sports {
-  font-family: var(--font-display);
-  color: var(--ink);
-  letter-spacing: 0.04em;
-}
-.px-masthead--sports .px-masthead__brand {
-  font-family: var(--font-display);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.px-masthead--sports .px-masthead__fc {
-  color: var(--accent);
-  font-weight: 600;
-}
 
 /* --- Cross-topic component re-skins ----------------------------------- */
 [data-topic="sports"] .px-prose__lead { color: var(--ink); }
@@ -397,3 +375,14 @@
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
+
+/* ============================================================================
+   V2 — elevated cards on sports data-viz
+   None of the sports signature components are contained card surfaces, so none
+   adopt the rounded + soft-shadow + hover-lift treatment:
+   - px-msl   — flat composed scoreline (no background / border / padding root,
+                no single carded inner element). Stays flat.
+   - px-ltab  — standings table; no boxed surface. Stays flat.
+   - px-radar — transparent, overflow-visible spider SVG with no box. Stays flat.
+   Intentionally left uncarded; documented here so the decision is explicit.
+   ============================================================================ */

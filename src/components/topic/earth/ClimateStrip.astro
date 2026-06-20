@@ -1,23 +1,27 @@
 ---
 /*
-  ClimateStrip — Ed Hawkins "warming stripes" visualization.
-  Horizontal bars, one per year (or time unit), coloured along a
-  diverging palette from the value range. No axes, no tick marks —
-  pure data signal. Build-time computed, zero runtime JS.
+  ClimateStrip — v2 warming-stripes treatment (.cs), wrapped in the elevated
+  .px-viz card. One bar per time unit, coloured along a diverging palette from
+  the value range, with an anomaly line stroke-drawn over the top on scroll-in.
+  Faithful port of the publication-v2 kit <ClimateStrip>. Build-time computed,
+  zero runtime JS (reveal handled by CSS; core/Reveal.astro toggles .is-in on
+  the .px-viz shell, gated no-JS-safe).
 
-  Use for: temperature anomaly, rainfall deviation, sea-level change,
-  CO₂ concentration, any time-series where the directional trend
-  is the primary message.
-
-  Data shape:
+  PRESERVES the existing prop interface (`values`, not the kit's `series`):
     values[]     — array of { year: number, value: number }
     palette      — 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom'
-    baseline     — string describing the reference period (shown below strip)
+    baseline     — string describing the reference period (shown in scale row)
     unit         — string appended to legend values (e.g. '°C', 'mm', 'ppm')
-    showYears    — show first/last year labels (default true)
-    showLegend   — show colour scale bar (default true)
-    caption      — italic caption line above
-    source       — mono source line below
+    showYears    — show the year axis row (default true)
+    showLegend   — show the Cooler→Warmer scale row (default true)
+    customMin/customMax — hex stops for the custom palette
+    caption / source
+
+  The kit operates on `series`; here `values` already carries {year, value},
+  so it is used directly as the series. The kit hardcodes a blue→red
+  `warmColor()` and a "1850–1900" baseline; we keep the richer existing
+  palette system (a superset of the kit's warming ramp) and the real
+  `baseline` / `unit` props instead of hardcoding.
 */
 
 interface DataPoint {
@@ -53,14 +57,8 @@ const {
   source,
 } = Astro.props;
 
-if (values.length === 0) {
-  // nothing to render
-}
-
 // ── Palette definitions ─────────────────────────────────────────────────────
 // Each palette is an array of hex stops from cold/low → warm/high.
-// 9-stop diverging palettes (after ColorBrewer RdBu / BrBG conventions
-// adjusted for editorial warmth and print legibility).
 const PALETTES: Record<Palette, string[]> = {
   warming: [
     '#08306b', '#2171b5', '#4292c6', '#9ecae1',
@@ -97,14 +95,14 @@ const PALETTES: Record<Palette, string[]> = {
 const stops = PALETTES[palette];
 
 // ── Compute value range ──────────────────────────────────────────────────────
-const rawValues = values.map(d => d.value);
-const minVal = Math.min(...rawValues);
-const maxVal = Math.max(...rawValues);
+const rawValues = values.map((d) => d.value);
+const minVal = rawValues.length ? Math.min(...rawValues) : 0;
+const maxVal = rawValues.length ? Math.max(...rawValues) : 0;
 const range  = maxVal - minVal || 1;
 
 // ── Map value → hex colour via palette stops ─────────────────────────────────
 function hexToRgb(h: string): [number, number, number] {
-  const n = parseInt(h.replace('#',''), 16);
+  const n = parseInt(h.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 function lerp(a: number, b: number, t: number) { return Math.round(a + (b - a) * t); }
@@ -117,75 +115,62 @@ function valueToColor(val: number): string {
   const frac = scaled - lo;
   const [r1, g1, b1] = hexToRgb(stops[lo]);
   const [r2, g2, b2] = hexToRgb(stops[hi]);
-  return `rgb(${lerp(r1,r2,frac)},${lerp(g1,g2,frac)},${lerp(b1,b2,frac)})`;
+  return `rgb(${lerp(r1, r2, frac)},${lerp(g1, g2, frac)},${lerp(b1, b2, frac)})`;
 }
 
-// ── Pre-compute bar colours ──────────────────────────────────────────────────
-const bars = values.map(d => ({
-  year: d.year,
-  value: d.value,
-  color: valueToColor(d.value),
-}));
+// ── Anomaly line overlay geometry (kit constants/formulas) ───────────────────
+const W = 640, H = 150, n = values.length;
+const norm = (v: number) => (v - minVal) / range;
+const x  = (i: number) => (n > 1 ? (i / (n - 1)) * W : W / 2);
+const yv = (v: number) => H - 12 - norm(v) * (H - 28);
+const line = values.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${yv(s.value).toFixed(1)}`).join(' ');
+const len = 1600;
 
-const firstYear = bars[0]?.year ?? '';
-const lastYear  = bars[bars.length - 1]?.year ?? '';
-const count     = bars.length;
+// ── Value formatting (sign + unit), reused for caption peak + nothing else ───
+const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
 
-// ── Legend gradient (inline CSS) ────────────────────────────────────────────
-const rampStops = stops
-  .map((s, i) => `${s} ${Math.round((i / (stops.length - 1)) * 100)}%`)
-  .join(', ');
-const rampGradient = `linear-gradient(to right, ${rampStops})`;
-
-// ── Label for extreme values on legend ──────────────────────────────────────
-const fmtVal = (v: number) =>
-  `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
+const firstYear = values[0]?.year ?? '';
+const midYear   = n ? values[Math.floor(n / 2)]?.year ?? '' : '';
+const lastYear  = values[n - 1]?.year ?? '';
 ---
 
-<div class="px-cstrip">
-  {caption && <div class="px-cstrip__caption">{caption}</div>}
-
-  <div class="px-cstrip__stage">
-    <!-- Year bookend labels -->
-    {showYears && (
-      <div class="px-cstrip__years">
-        <span class="px-cstrip__year">{firstYear}</span>
-        <span class="px-cstrip__year">{lastYear}</span>
-      </div>
-    )}
-
-    <!-- The stripes themselves -->
-    <div class="px-cstrip__bars" aria-label={`Climate strip: ${firstYear}–${lastYear}`}>
-      {bars.map(b => (
-        <div
-          class="px-cstrip__bar"
-          style={`background:${b.color}`}
-          title={`${b.year}: ${fmtVal(b.value)}`}
-          aria-label={`${b.year}: ${fmtVal(b.value)}`}
-        />
-      ))}
-    </div>
+<div class="px-viz" data-reveal>
+  <div class="px-viz__cap">
+    <span>{caption}</span>
+    {n > 0 && <b>{fmtVal(maxVal)} peak</b>}
   </div>
 
-  <!-- Legend + baseline -->
-  {showLegend && (
-    <div class="px-cstrip__legend">
-      <div class="px-cstrip__legend-row">
-        <span class="px-cstrip__legend-val px-cstrip__legend-val--lo">
-          {fmtVal(minVal)}
-        </span>
-        <div class="px-cstrip__legend-ramp" style={`background:${rampGradient}`} aria-hidden="true" />
-        <span class="px-cstrip__legend-val px-cstrip__legend-val--hi">
-          {fmtVal(maxVal)}
-        </span>
-      </div>
-      {baseline && (
-        <div class="px-cstrip__baseline">
-          Baseline: {baseline}
-        </div>
-      )}
+  <div class="cs__strip">
+    {values.map((s, i) => (
+      <div
+        class="cs__bar"
+        style={`background:${valueToColor(s.value)};transition-delay:${i * 14}ms`}
+        title={`${s.year}: ${fmtVal(s.value)}`}
+        aria-label={`${s.year}: ${fmtVal(s.value)}`}
+      />
+    ))}
+    <svg class="cs__overlay" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img"
+      aria-label={`Anomaly trend, ${firstYear}–${lastYear}`}>
+      <path class="cs__path" d={line} style={`--len:${len}`} vector-effect="non-scaling-stroke" />
+    </svg>
+  </div>
+
+  {showYears && n > 0 && (
+    <div class="cs__axis">
+      <span>{firstYear}</span>
+      <span>{midYear}</span>
+      <span>{lastYear}</span>
     </div>
   )}
 
-  {source && <div class="px-cstrip__source">{source}</div>}
+  {showLegend && (
+    <div class="cs__scale">
+      <span>Cooler</span>
+      <span class="cs__grad"></span>
+      <span>Warmer</span>
+      {baseline && <span style="margin-left:auto">Baseline · {baseline}</span>}
+    </div>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

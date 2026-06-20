@@ -1,7 +1,10 @@
 ---
 /*
-  LeagueTable — sports standings table with form guide.
-  HTML, build-time, zero runtime JS.
+  LeagueTable — v2 sports standings table (.lt) inside the elevated .px-viz
+  card. Rows stagger in left→right on scroll; qualify/relegation bands paint
+  as a left inset rule; form pills colour by result. Faithful port of the kit's
+  <LeagueTable>. Build-time, zero runtime JS (reveal handled by CSS via
+  core/Reveal.astro toggling .is-in on the .px-viz).
 
   Use for: football/cricket league standings, tournament
   points tables, series results.
@@ -51,73 +54,59 @@ const {
   source,
 } = Astro.props;
 
-const posArrow = (n?: number) =>
-  n == null || n === 0 ? '' : n > 0 ? '▲' : '▼';
-const posArrowClass = (n?: number) =>
-  n == null || n === 0 ? '' : n > 0 ? 'px-ltab__arrow--up' : 'px-ltab__arrow--down';
+// Map an emoji/short badge to a swatch colour. Falls back to the muted token
+// for any badge the kit doesn't recognise (or when no badge is supplied).
+const badgeColor = (b?: string): string => {
+  const map: Record<string, string> = {
+    '🟣': '#7b2d8e', '🟠': '#e8730c', '🩷': '#ec4899', '🔴': '#c0392b',
+    '🔵': '#2563eb', '🟡': '#eab308', '🔷': '#0ea5e9', '💙': '#1e3a8a',
+    '🩵': '#7dd3fc',
+  };
+  return (b && map[b]) || 'var(--muted)';
+};
 ---
 
-<div class="px-ltab">
-  {caption && <div class="px-ltab__caption">{caption}</div>}
-
-  <div class="px-ltab__scroll">
-    <table class="px-ltab__table">
-      <thead>
-        <tr>
-          <th class="px-ltab__th px-ltab__th--pos">#</th>
-          <th class="px-ltab__th px-ltab__th--team">Club / Team</th>
-          <th class="px-ltab__th px-ltab__th--num" title="Played">P</th>
-          <th class="px-ltab__th px-ltab__th--num" title="Won">W</th>
-          {showDrawn && <th class="px-ltab__th px-ltab__th--num" title="Drawn">D</th>}
-          <th class="px-ltab__th px-ltab__th--num" title="Lost">L</th>
-          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goals For">GF</th>}
-          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goals Against">GA</th>}
-          {showGoals && <th class="px-ltab__th px-ltab__th--num" title="Goal Difference">GD</th>}
-          <th class="px-ltab__th px-ltab__th--pts" title="Points">Pts</th>
-          <th class="px-ltab__th px-ltab__th--form">Form</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(r => (
-          <tr class={`px-ltab__row${r.highlight ? ' px-ltab__row--' + r.highlight : ''}`}>
-            <td class="px-ltab__pos">
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  <table class="lt">
+    <thead>
+      <tr>
+        <th class="l">#</th>
+        <th class="l">Team</th>
+        <th>P</th>
+        <th>W</th>
+        {showDrawn && <th>D</th>}
+        <th>L</th>
+        {showGoals && <th class="hide">GD</th>}
+        <th>Pts</th>
+        <th class="hide">Form</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r, i) => (
+        <tr data-band={r.highlight || ''} style={`transition-delay:${i * 45}ms`}>
+          <td>
+            <span class="lt__pos">
               {r.pos}
-              {r.posChange !== undefined && r.posChange !== 0 && (
-                <span class={`px-ltab__arrow ${posArrowClass(r.posChange)}`}
-                  aria-label={r.posChange > 0 ? 'Moved up' : 'Moved down'}>
-                  {posArrow(r.posChange)}
-                </span>
-              )}
-            </td>
-            <td class="px-ltab__team">
-              {r.badge && <span class="px-ltab__badge">{r.badge}</span>}
-              {r.team}
-            </td>
-            <td class="px-ltab__num">{r.played}</td>
-            <td class="px-ltab__num px-ltab__num--won">{r.won}</td>
-            {showDrawn && <td class="px-ltab__num">{r.drawn ?? '—'}</td>}
-            <td class="px-ltab__num px-ltab__num--lost">{r.lost}</td>
-            {showGoals && <td class="px-ltab__num">{r.gf ?? '—'}</td>}
-            {showGoals && <td class="px-ltab__num">{r.ga ?? '—'}</td>}
-            {showGoals && (
-              <td class={`px-ltab__num px-ltab__num--gd${(r.gd ?? 0) > 0 ? ' px-ltab__num--pos' : (r.gd ?? 0) < 0 ? ' px-ltab__num--neg' : ''}`}>
-                {r.gd != null ? (r.gd > 0 ? '+' : '') + r.gd : '—'}
-              </td>
-            )}
-            <td class="px-ltab__pts">{r.points}</td>
-            <td class="px-ltab__form">
-              {(r.form ?? []).slice(-5).map(result => (
-                <span class={`px-ltab__form-pip px-ltab__form-pip--${result.toLowerCase()}`}
-                  aria-label={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}>
-                  {result}
-                </span>
-              ))}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              {(r.posChange ?? 0) > 0 && <span class="lt__chg lt__chg--up">▲{r.posChange}</span>}
+              {(r.posChange ?? 0) < 0 && <span class="lt__chg lt__chg--dn">▼{Math.abs(r.posChange as number)}</span>}
+            </span>
+          </td>
+          <td class="team"><span class="lt__badge" style={`background:${badgeColor(r.badge)}`}></span>{r.team}</td>
+          <td>{r.played}</td>
+          <td>{r.won}</td>
+          {showDrawn && <td>{r.drawn ?? '—'}</td>}
+          <td>{r.lost}</td>
+          {showGoals && <td class="hide">{r.gd != null ? (r.gd > 0 ? '+' : '') + r.gd : '—'}</td>}
+          <td class="pts">{r.points}</td>
+          <td class="hide"><span class="lt__form">{(r.form ?? []).slice(-5).map((f) => <span class={'lt__fp lt__fp--' + f}>{f}</span>)}</span></td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <div class="lt__legend">
+    <span class="key"><span class="sw" style="background:var(--accent)"></span>Playoff places</span>
+    <span class="key"><span class="sw" style="background:#c0392b"></span>Bottom three</span>
   </div>
-
-  {source && <div class="px-ltab__source">{source}</div>}
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

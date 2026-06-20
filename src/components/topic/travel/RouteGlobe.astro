@@ -1,0 +1,62 @@
+---
+/**
+ * RouteGlobe (travel) — a 3D dot-matrix globe with city pins and great-circle
+ * arcs between consecutive stops. Lazy WebGL (scenes 'route-globe'); drag to spin.
+ *
+ * No-JS / reduced-motion: an inline equirectangular static map (city dots +
+ * connecting path) stays; a legend lists the itinerary textually.
+ *
+ * data: { stops[]{ city, lat, lon, note? }, caption?, source? }
+ */
+interface Stop { city: string; lat: number; lon: number; note?: string; }
+interface Props { stops: Stop[]; caption?: string; source?: string; }
+const { stops = [], caption, source } = Astro.props;
+
+const W = 320, H = 180;
+const proj = stops.map((s) => ({ x: ((s.lon + 180) / 360) * W, y: ((90 - s.lat) / 180) * H, city: s.city }));
+const path = proj.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+const grat = { vx: [0.25, 0.5, 0.75], hy: [0.25, 0.5, 0.75] };
+const payload = JSON.stringify({ stops });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{stops.length} stops</b></div>}
+
+  <div class="viz3d viz3d--globe" data-viz3d="route-globe" role="img"
+    aria-label={caption ? `3D route globe: ${caption}` : '3D route globe'}>
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="0" width={W} height={H} fill="color-mix(in oklab, var(--ink) 4%, var(--bg))" />
+        {grat.vx.map((f) => <line x1={f * W} y1="0" x2={f * W} y2={H} stroke="var(--rule)" stroke-width="0.5" opacity="0.5" />)}
+        {grat.hy.map((f) => <line x1="0" y1={f * H} x2={W} y2={f * H} stroke="var(--rule)" stroke-width="0.5" opacity="0.5" />)}
+        {path && <path d={path} fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.8" />}
+        {proj.map((p) => <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />)}
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to spin</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ol class="px-rg__legend">
+    {stops.map((s, i) => (
+      <li class="px-rg__row">
+        <span class="px-rg__n">{String(i + 1).padStart(2, '0')}</span>
+        <span class="px-rg__city">{s.city}{s.note ? <em> · {s.note}</em> : null}</span>
+        <span class="px-rg__coord">{s.lat.toFixed(1)}°, {s.lon.toFixed(1)}°</span>
+      </li>
+    ))}
+  </ol>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-rg__legend { list-style: none; margin: 18px 0 0; padding: 0; }
+  .px-rg__row { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px dashed var(--rule); font-variant-numeric: tabular-nums; }
+  .px-rg__n { font-family: var(--font-mono); font-size: 11px; color: var(--accent-deep, var(--accent)); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .px-rg__city { font-family: var(--issue-face, var(--font-display)); font-size: 16px; color: var(--ink); }
+  /* itinerary note — display italic, ink-soft (system note role) */
+  .px-rg__city em { color: var(--ink-soft); font-style: italic; font-size: 0.85em; }
+  /* coordinate — axis/unit role: mono muted tabular */
+  .px-rg__coord { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+</style>

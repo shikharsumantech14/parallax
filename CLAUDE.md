@@ -16,8 +16,17 @@
   (`npm run pipeline:stylist <category>`).
 - **Agent definitions** live in `.claude/agents/<name>.md` (discovery,
   researcher, drafter, stylist, verifier). Spawning an agent in Claude
-  Code routes the cost through the Claude Pro budget. To bill the API key
+  Code routes the cost through the Claude Pro/Max budget. To bill the API key
   instead, use the `npm run pipeline:<phase>` scripts.
+- **Model policy by route — do NOT "optimise" this back to the cheap split.**
+  The `scripts/pipeline.config.ts` Sonnet/Opus split (discovery/researcher/
+  verifier → Sonnet, drafter/stylist → Opus) applies **only to the API-CLI
+  route**. When running the pipeline **from Claude Code** (subscription budget),
+  pin **every** phase — discovery, researcher, drafter, stylist, verifier — to
+  **Opus (max tier)** via the Agent `model: 'opus'` override. The subscription
+  absorbs the cost, so use the best model for all phases — never drop to Sonnet
+  on the Claude Code route. Leave `pipeline.config.ts` unchanged (it's the
+  API-route config the operator uses).
 - **Working directory** for all pipeline operations: `D:\SideProjects\parallax`
   (Windows). PowerShell does not chain commands with `&&`; use `;` or
   `; if ($?) { ... }`.

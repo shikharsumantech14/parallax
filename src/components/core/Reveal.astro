@@ -1,0 +1,43 @@
+---
+/**
+ * Reveal — one shared scroll-reveal observer for the whole page.
+ *
+ * Adds `.is-in` to every `[data-reveal]` element as it enters the viewport,
+ * which triggers the CSS reveal (motion-v2.css + per-component rules).
+ *
+ * No-JS safety: the hidden resting state is gated behind `html.js` (set by the
+ * inline guard in the layouts' <head>), so without JS nothing is hidden —
+ * content paints in its final state. Reduced-motion reveals everything
+ * immediately. A ~2s fallback reveals any stragglers (print / headless).
+ *
+ * Render ONCE per page, after the main content, in both layouts.
+ */
+---
+<script is:inline>
+  (function () {
+    var nodes = document.querySelectorAll('[data-reveal]');
+    if (!nodes.length) return;
+
+    var reveal = function (el) { el.classList.add('is-in'); };
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduce || typeof IntersectionObserver === 'undefined') {
+      nodes.forEach(reveal);
+      return;
+    }
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          reveal(entry.target);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -5% 0px' });
+
+    nodes.forEach(function (el) { io.observe(el); });
+
+    // Safety net: reveal anything still hidden after 2s (print / headless / SSR).
+    window.setTimeout(function () { nodes.forEach(reveal); }, 2000);
+  })();
+</script>

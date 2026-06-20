@@ -55,7 +55,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
       <div class="px-trv-index__empty-postmark">— Postmarked Bureau, parallax travel desk —</div>
     </div>
   ) : (
-    <div class="px-trv-index__rack">
+    <div class="px-trv-index__rack" data-reveal>
       {issues.map((issue) => {
         const n = issueNumberFor(issue.slug);
         return (
@@ -114,15 +114,15 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     font-family: var(--font-display);
     font-style: italic;
     font-size: 14px;
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
     letter-spacing: 0.04em;
   }
   .px-trv-index__title {
-    font-family: var(--font-display);
+    font-family: var(--issue-face, var(--font-display));
     font-weight: 600;
-    font-size: clamp(48px, 7vw, 96px);
-    line-height: 1;
-    letter-spacing: -0.025em;
+    font-size: clamp(50px, 7.2vw, 100px);
+    line-height: 0.98;
+    letter-spacing: -0.028em;
     color: var(--ink);
     font-style: italic;
     margin: 0;
@@ -174,7 +174,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     max-width: 60ch;
     font-weight: 400;
   }
-  .px-trv-index__manifesto em { color: var(--accent); font-style: italic; font-weight: 500; }
+  .px-trv-index__manifesto em { color: var(--accent-deep, var(--accent)); font-style: italic; font-weight: 500; }
 
   /* --- Postcard rack --- */
   .px-trv-index__rack {
@@ -191,10 +191,50 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     text-decoration: none;
     color: inherit;
     position: relative;
-    transition: transform 0.18s ease, border-color 0.18s ease;
+    transition: transform var(--t-soft) var(--ease), border-color var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
     overflow: hidden;
   }
-  .px-trv-index__card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  /* Hover accent bar on the left (v2 .arch__row), kept atop the stamp column */
+  .px-trv-index__card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+    z-index: 2;
+  }
+  .px-trv-index__card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-trv-index__card:hover::before { width: 3px; }
+
+  /* Staggered scroll-reveal cards (gated behind html.js per motion-v2 contract). */
+  .px-trv-index__card {
+    transition:
+      transform var(--t-soft) var(--ease),
+      border-color var(--t-soft) var(--ease),
+      box-shadow var(--t-soft) var(--ease),
+      opacity var(--t-soft) var(--ease);
+  }
+  html.js .px-trv-index__rack:not(.is-in) .px-trv-index__card {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(1) { transition-delay: 80ms; }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(2) { transition-delay: 140ms; }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(3) { transition-delay: 200ms; }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(4) { transition-delay: 260ms; }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(5) { transition-delay: 320ms; }
+  .px-trv-index__rack.is-in .px-trv-index__card:nth-child(6) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-trv-index__rack:not(.is-in) .px-trv-index__card {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
 
   .px-trv-index__card-stamp {
     border-right: 1px dashed var(--rule);
@@ -233,7 +273,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     font-family: var(--font-display);
     font-style: italic;
     font-size: 13px;
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
     letter-spacing: 0.06em;
     margin-bottom: 8px;
   }
@@ -247,7 +287,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     letter-spacing: -0.005em;
     margin: 0 0 10px;
   }
-  .px-trv-index__card-title em { font-style: normal; color: var(--accent); }
+  .px-trv-index__card-title em { font-style: normal; color: var(--accent-deep, var(--accent)); }
   .px-trv-index__card-hook {
     font-family: var(--font-display);
     font-size: 16px;
@@ -264,14 +304,26 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     color: var(--muted);
   }
   .px-trv-index__card-sep { color: var(--rule); }
-  .px-trv-index__card-cta { color: var(--accent); }
+  .px-trv-index__card-cta { color: var(--accent-deep, var(--accent)); }
 
-  /* --- Empty: postmarked envelope --- */
+  /* --- Empty: postmarked envelope (v2 elevated card) --- */
   .px-trv-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     background: var(--paper);
     padding: 56px 48px;
     position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-trv-index__empty::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
   }
   .px-trv-index__empty-stamp {
     position: absolute;
@@ -322,7 +374,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     max-width: 56ch;
     line-height: 1.4;
   }
-  .px-trv-index__empty-body em { color: var(--accent); }
+  .px-trv-index__empty-body em { color: var(--accent-deep, var(--accent)); }
   .px-trv-index__empty-postmark {
     font-family: var(--font-display);
     font-style: italic;

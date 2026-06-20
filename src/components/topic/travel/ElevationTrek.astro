@@ -1,0 +1,312 @@
+---
+/**
+ * ElevationTrek (travel) — a route elevation profile. A build-time SVG area
+ * chart: x = distance (km), y = elevation; a smooth (Catmull-Rom → cubic)
+ * path traces the terrain, a translucent area fills underneath, waypoint pins
+ * mark labelled points, and the min/max elevation get their own markers. The
+ * plot sits on a shallow 3D plane (core/Tilt.astro `data-tilt`) so the terrain
+ * reads as a receding ground plane. On scroll-in the path stroke-draws and the
+ * area fades up (CSS, reveal-gated). Axis labels are mono.
+ *
+ * No-JS / reduced-motion: the path paints fully drawn and the area at full
+ * opacity (the hidden offsets sit behind `html.js`; reduced-motion resets with
+ * !important). The numeric min/max + waypoint labels carry the meaning.
+ *
+ * data: { points[]{ km, elevM, label? }, unit?, caption?, source? }
+ */
+interface Point { km: number; elevM: number; label?: string; }
+interface Props {
+  points: Point[];
+  unit?: string;
+  caption?: string;
+  source?: string;
+}
+const { points = [], unit = 'm', caption, source } = Astro.props;
+
+// ── viewBox + plot box ──────────────────────────────────────────────────────
+const W = 720, H = 344;
+const padL = 16, padR = 16, padT = 22, padB = 58;
+const plotW = W - padL - padR;
+const plotH = H - padT - padB;
+const baseY = padT + plotH;            // chart floor (y for the area's base)
+
+// Guard: need at least one point. Sort by distance so the path is monotone in x.
+const pts = [...points]
+  .filter((p) => p && Number.isFinite(p.km) && Number.isFinite(p.elevM))
+  .sort((a, b) => a.km - b.km);
+const hasData = pts.length > 0;
+
+// ── scales ──────────────────────────────────────────────────────────────────
+const kms = pts.map((p) => p.km);
+const elevs = pts.map((p) => p.elevM);
+const kmMin = hasData ? Math.min(...kms) : 0;
+const kmMax = hasData ? Math.max(...kms) : 1;
+const kmSpan = kmMax - kmMin || 1;
+const elevMin = hasData ? Math.min(...elevs) : 0;
+const elevMax = hasData ? Math.max(...elevs) : 1;
+// Pad the elevation range ~6% so peaks/troughs don't kiss the frame edges.
+const ePad = (elevMax - elevMin) * 0.06 || 1;
+const eLo = elevMin - ePad;
+const eHi = elevMax + ePad;
+const eSpan = eHi - eLo || 1;
+
+const sx = (km: number) => padL + ((km - kmMin) / kmSpan) * plotW;
+const sy = (e: number) => padT + (1 - (e - eLo) / eSpan) * plotH;
+
+const xy = pts.map((p) => ({ ...p, x: sx(p.km), y: sy(p.elevM) }));
+
+// ── smooth path (Catmull-Rom → cubic bezier), guarded for 1–2 points ────────
+function smoothLine(p: { x: number; y: number }[]): string {
+  if (p.length === 0) return '';
+  if (p.length === 1) return `M ${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
+  let d = `M ${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] || p[i];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+const linePath = smoothLine(xy);
+// Close the area down to the floor and back to the start x.
+const areaPath = hasData
+  ? `${linePath} L ${xy[xy.length - 1].x.toFixed(1)} ${baseY.toFixed(1)} L ${xy[0].x.toFixed(1)} ${baseY.toFixed(1)} Z`
+  : '';
+
+// Stroke-draw length budget (generous over-estimate; clamped by the path).
+const pathLen = Math.round(plotW * 1.8);
+
+// ── extrema markers (first occurrence of min / max elevation) ────────────────
+const maxPt = hasData ? xy.reduce((m, p) => (p.elevM > m.elevM ? p : m), xy[0]) : null;
+const minPt = hasData ? xy.reduce((m, p) => (p.elevM < m.elevM ? p : m), xy[0]) : null;
+
+// Edge-aware anchor + clamp for floating labels so they never spill past the
+// plot edges. Near the left edge anchor=start (and nudge x in); near the right
+// anchor=end; otherwise centred. Reasoned geometrically — we can't see renders.
+const EDGE = 64; // px from a plot edge at which we switch anchor
+const labelAnchor = (x: number) =>
+  x < padL + EDGE ? 'start' : x > W - padR - EDGE ? 'end' : 'middle';
+const labelX = (x: number) => {
+  if (x < padL + EDGE) return Math.max(x, padL + 2);
+  if (x > W - padR - EDGE) return Math.min(x, W - padR - 2);
+  return x;
+};
+// Keep an extrema label's baseline inside the plot vertically: the max label
+// sits above its point but never above the top pad; the min below but never
+// past the floor band.
+const maxLabelY = maxPt ? Math.max(maxPt.y - 10, padT + 2) : 0;
+const minLabelY = minPt ? Math.min(minPt.y + 18, baseY - 4) : 0;
+
+// ── waypoint pins (points carrying a label) ──────────────────────────────────
+// Stagger labels into two rows below the floor (alternate by index) so close
+// neighbours don't print on top of each other. As a final guard, drop a label
+// whose estimated box still overlaps the previous *kept* label in its own row
+// (the pin + tick stay; only the text is dropped). Reasoned geometrically.
+const CH = 5.4; // ~px per char at the 9px mono label size
+const lastRight: Record<number, number> = { 0: -Infinity, 1: -Infinity };
+const waypoints = xy
+  .filter((p) => p.label && p.label.trim().length > 0)
+  .map((p, i) => {
+    const row = i % 2;
+    const halfW = (String(p.label).length * CH) / 2 + 3;
+    const lx = labelX(p.x);
+    const left = lx - halfW;
+    const show = left > lastRight[row] + 4;
+    if (show) lastRight[row] = lx + halfW;
+    return { ...p, i, row, show };
+  });
+
+// ── x-axis ticks: first / mid / last distance ────────────────────────────────
+const xTicks = hasData
+  ? [kmMin, kmMin + kmSpan / 2, kmMax].map((km) => ({ km, x: sx(km) }))
+  : [];
+
+const fmtKm = (km: number) => (Number.isInteger(km) ? `${km}` : km.toFixed(1));
+const fmtE = (e: number) => Math.round(e).toLocaleString();
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>elevation</b></div>}
+
+  {hasData ? (
+    <div class="px-etrek px3d-stage">
+      <div class="px-etrek__plane px3d-tilt" data-tilt="6">
+        <svg
+          class="px-etrek__svg"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`Elevation profile from ${fmtE(elevMin)}${unit} to ${fmtE(elevMax)}${unit} over ${fmtKm(kmSpan)} km`}
+        >
+          <!-- baseline -->
+          <line class="px-etrek__base" x1={padL} y1={baseY} x2={W - padR} y2={baseY} />
+
+          <!-- filled terrain area -->
+          <path class="px-etrek__area" d={areaPath} />
+
+          <!-- terrain stroke (stroke-draws on reveal) -->
+          <path
+            class="px-etrek__line"
+            d={linePath}
+            style={`--len:${pathLen}`}
+          />
+
+          <!-- min / max markers -->
+          {maxPt && (
+            <g class="px-etrek__ext px-etrek__ext--max">
+              <circle cx={maxPt.x.toFixed(1)} cy={maxPt.y.toFixed(1)} r="4" />
+              <text x={labelX(maxPt.x).toFixed(1)} y={maxLabelY.toFixed(1)} text-anchor={labelAnchor(maxPt.x)}>
+                ▲ {fmtE(maxPt.elevM)}{unit}
+              </text>
+            </g>
+          )}
+          {minPt && minPt !== maxPt && (
+            <g class="px-etrek__ext px-etrek__ext--min">
+              <circle cx={minPt.x.toFixed(1)} cy={minPt.y.toFixed(1)} r="4" />
+              <text x={labelX(minPt.x).toFixed(1)} y={minLabelY.toFixed(1)} text-anchor={labelAnchor(minPt.x)}>
+                ▼ {fmtE(minPt.elevM)}{unit}
+              </text>
+            </g>
+          )}
+
+          <!-- waypoint pins (labels staggered into two rows below the floor) -->
+          {waypoints.map((p) => (
+            <g class="px-etrek__wp" style={`--i:${p.i}`}>
+              <line x1={p.x.toFixed(1)} y1={p.y.toFixed(1)} x2={p.x.toFixed(1)} y2={baseY} />
+              <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="3.4" />
+              {p.show && (
+                <text x={labelX(p.x).toFixed(1)} y={(baseY + 14 + p.row * 11).toFixed(1)} text-anchor={labelAnchor(p.x)}>{p.label}</text>
+              )}
+            </g>
+          ))}
+
+          <!-- x-axis distance ticks (below both waypoint rows) -->
+          {xTicks.map((t) => (
+            <text class="px-etrek__xtick" x={labelX(t.x).toFixed(1)} y={(baseY + 40).toFixed(1)} text-anchor={labelAnchor(t.x)}>
+              {fmtKm(t.km)} km
+            </text>
+          ))}
+        </svg>
+      </div>
+
+      <div class="px-etrek__readout">
+        <span class="px-etrek__stat"><b>{fmtE(elevMax)}</b><i>peak {unit}</i></span>
+        <span class="px-etrek__stat"><b>{fmtE(elevMax - elevMin)}</b><i>gain {unit}</i></span>
+        <span class="px-etrek__stat"><b>{fmtKm(kmSpan)}</b><i>distance km</i></span>
+      </div>
+    </div>
+  ) : (
+    <p class="px-etrek__empty">No elevation data.</p>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-etrek { width: 100%; }
+  .px-etrek__plane {
+    border-radius: var(--r-tile);
+    /* tilt origin near the floor so the terrain plane recedes from the reader */
+    transform-origin: 50% 100%;
+  }
+  .px-etrek__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-etrek__base { stroke: var(--rule); stroke-width: 1; }
+
+  .px-etrek__area {
+    fill: color-mix(in oklab, var(--accent) 22%, transparent);
+    /* base/resting = visible (no-JS safe) */
+    opacity: 1;
+    transition: opacity var(--t-slow) var(--ease) 650ms;
+  }
+  html.js .px-viz:not(.is-in) .px-etrek__area { opacity: 0; }
+
+  .px-etrek__line {
+    fill: none;
+    stroke: var(--accent-deep, var(--accent));
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    /* base/resting = fully drawn (no-JS safe) */
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1600ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-etrek__line { stroke-dashoffset: var(--len); }
+
+  /* extrema markers — display serif value, ink; paper halo so it reads over the area fill */
+  .px-etrek__ext circle { fill: var(--paper); stroke: var(--accent-deep, var(--accent)); stroke-width: 2; }
+  .px-etrek__ext text {
+    font-family: var(--issue-face, var(--font-display)); font-size: 14px; font-weight: 700;
+    letter-spacing: -0.005em; fill: var(--ink); font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
+  }
+  .px-etrek__ext--min text { fill: var(--ink-soft); }
+  .px-etrek__ext {
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease) 1100ms;
+  }
+  html.js .px-viz:not(.is-in) .px-etrek__ext { opacity: 0; }
+
+  /* waypoint pins */
+  .px-etrek__wp line { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 3; }
+  .px-etrek__wp circle { fill: var(--accent); }
+  .px-etrek__wp text {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
+    text-transform: uppercase; fill: var(--muted);
+    /* paper halo so the label stays legible over the terrain area fill */
+    paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
+  }
+  .px-etrek__wp {
+    opacity: 1; transform: none;
+    transform-box: view-box; transform-origin: center bottom;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-etrek__wp { opacity: 0; transform: translateY(6px); }
+  .px-viz.is-in .px-etrek__wp { transition-delay: calc(900ms + var(--i) * 90ms); }
+
+  /* x-axis distance ticks — system axis role: mono muted tabular ~9.5px */
+  .px-etrek__xtick {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
+    fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  .px-etrek__readout {
+    display: flex; gap: 28px; flex-wrap: wrap;
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px dashed var(--rule);
+  }
+  .px-etrek__stat { display: flex; flex-direction: column; gap: 2px; }
+  .px-etrek__stat b {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
+    font-size: 26px; line-height: 1; color: var(--ink);
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  }
+  .px-etrek__stat i {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); font-style: normal;
+  }
+
+  .px-etrek__empty {
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    text-align: center; padding: 28px 0;
+  }
+
+  @media (max-width: 560px) {
+    .px-etrek__readout { gap: 18px; }
+    .px-etrek__stat b { font-size: 22px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-etrek__area { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-etrek__line { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-etrek__ext { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-etrek__wp { opacity: 1 !important; transform: none !important; }
+  }
+</style>

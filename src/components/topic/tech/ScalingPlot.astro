@@ -1,0 +1,277 @@
+---
+/**
+ * ScalingPlot (tech) — a scaling scatter (e.g. params vs. performance). A
+ * build-time SVG scatter that honors `logX` / `logY` (the axis mapping becomes
+ * log10 when set). Points render as accent circles with optional labels over a
+ * gridline + axis-label frame (mono). When `fit` is set, a straight
+ * least-squares line is fitted through the data in the CHOSEN space (log or
+ * linear, per axis) and stroke-draws on reveal. Points pop in staggered. Flat
+ * (no 3D). All geometry computed in frontmatter; zero runtime JS.
+ *
+ * No-JS / reduced-motion: the fit line paints fully drawn + points fully shown
+ * (hidden states sit behind `html.js`; reduced-motion resets with !important).
+ *
+ * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
+ *         caption?, source? }
+ */
+interface Point { x: number; y: number; label?: string; }
+interface Props {
+  points: Point[];
+  xLabel?: string;
+  yLabel?: string;
+  logX?: boolean;
+  logY?: boolean;
+  fit?: boolean;
+  caption?: string;
+  source?: string;
+}
+const {
+  points = [],
+  xLabel,
+  yLabel,
+  logX = false,
+  logY = false,
+  fit = false,
+  caption,
+  source,
+} = Astro.props;
+
+const W = 640, H = 340, padL = 60, padR = 22, padT = 22, padB = 46;
+const iw = W - padL - padR, ih = H - padT - padB;
+
+// Axis transform: log10 (guarding non-positive values) or identity.
+const txX = (v: number) => (logX ? Math.log10(Math.max(v, 1e-9)) : v);
+const txY = (v: number) => (logY ? Math.log10(Math.max(v, 1e-9)) : v);
+
+// Domain in transformed space, padded so points don't sit on the frame.
+const xs = points.map((p) => txX(p.x));
+const ys = points.map((p) => txY(p.y));
+const safeMinMax = (arr: number[]) => {
+  if (!arr.length) return { lo: 0, hi: 1 };
+  let lo = Math.min(...arr), hi = Math.max(...arr);
+  if (lo === hi) { lo -= 0.5; hi += 0.5; }
+  const pad = (hi - lo) * 0.08;
+  return { lo: lo - pad, hi: hi + pad };
+};
+const xD = safeMinMax(xs);
+const yD = safeMinMax(ys);
+
+// Transformed value → pixel.
+const px = (vT: number) => padL + ((vT - xD.lo) / (xD.hi - xD.lo)) * iw;
+const py = (vT: number) => padT + (1 - (vT - yD.lo) / (yD.hi - yD.lo)) * ih;
+
+// Point label placement — defensive clamps so labels never clip the frame and
+// edge points keep their text inside the plot. Label normally sits ABOVE the
+// dot (cy − 10); if that would clip the top, flip it BELOW the dot. The x is
+// clamped into [padL, W − padR] and the text-anchor flips near the side edges
+// so a long label grows inward, not off the canvas.
+const LBL_FS = 9;            // matches .px-scale__plabel font-size
+const LBL_UP = 10;           // gap above the dot
+const LBL_DOWN = 15;         // gap below the dot (room for the glyph + dot)
+const EDGE = 4;              // keep this far inside the frame
+const plotted = points.map((p, i) => {
+  const cx = px(txX(p.x));
+  const cy = py(txY(p.y));
+  const above = cy - LBL_UP - LBL_FS >= padT;      // does it clip the top?
+  const ly = above ? cy - LBL_UP : cy + LBL_DOWN;
+  // horizontal anchor: end near the right edge, start near the left, else middle
+  let anchor: 'start' | 'middle' | 'end' = 'middle';
+  let lx = cx;
+  if (cx > W - padR - 28) { anchor = 'end'; lx = Math.min(cx, W - padR - EDGE); }
+  else if (cx < padL + 28) { anchor = 'start'; lx = Math.max(cx, padL + EDGE); }
+  return { ...p, i, cx, cy, lx, ly, anchor, showLabel: !!p.label };
+});
+
+// Greedy de-clutter: when label anchor points cluster within a small box,
+// drop the later one's label so we never stack illegible text. Pure
+// visibility flag — data + dots are untouched (only the <text> is gated).
+const LBL_MIN_DX = 46, LBL_MIN_DY = 13;
+const placed: { x: number; y: number }[] = [];
+for (const p of plotted) {
+  if (!p.showLabel) continue;
+  const collides = placed.some(
+    (q) => Math.abs(q.x - p.lx) < LBL_MIN_DX && Math.abs(q.y - p.ly) < LBL_MIN_DY,
+  );
+  if (collides) p.showLabel = false;
+  else placed.push({ x: p.lx, y: p.ly });
+}
+
+// Gridlines — 5 ticks each axis. Tick labels show the value in the ORIGINAL
+// space (un-log) so the reader sees real magnitudes; log ticks step by powers.
+const TICKS = 5;
+const fmtTick = (vT: number, isLog: boolean) => {
+  const real = isLog ? Math.pow(10, vT) : vT;
+  const abs = Math.abs(real);
+  if (abs !== 0 && (abs >= 1e4 || abs < 1e-2)) return real.toExponential(0).replace('e+', 'e');
+  if (abs >= 1000) return Math.round(real).toLocaleString();
+  return (Math.round(real * 100) / 100).toString();
+};
+const xTicks = Array.from({ length: TICKS }, (_, i) => {
+  const vT = xD.lo + (i / (TICKS - 1)) * (xD.hi - xD.lo);
+  return { x: px(vT), label: fmtTick(vT, logX) };
+});
+const yTicks = Array.from({ length: TICKS }, (_, i) => {
+  const vT = yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo);
+  return { y: py(vT), label: fmtTick(vT, logY) };
+});
+
+// Least-squares fit in transformed space → a straight line across the domain.
+let fitLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
+if (fit && points.length >= 2) {
+  const N = xs.length;
+  const sx = xs.reduce((a, b) => a + b, 0);
+  const sy = ys.reduce((a, b) => a + b, 0);
+  const sxx = xs.reduce((a, b) => a + b * b, 0);
+  const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
+  const denom = N * sxx - sx * sx;
+  if (Math.abs(denom) > 1e-12) {
+    const slope = (N * sxy - sx * sy) / denom;
+    const intercept = (sy - slope * sx) / N;
+    const yAt = (vT: number) => slope * vT + intercept;
+    fitLine = {
+      x1: px(xD.lo), y1: py(yAt(xD.lo)),
+      x2: px(xD.hi), y2: py(yAt(xD.hi)),
+    };
+  }
+}
+const fitLen = fitLine
+  ? Math.hypot(fitLine.x2 - fitLine.x1, fitLine.y2 - fitLine.y1).toFixed(0)
+  : '0';
+---
+
+<div class="px-viz" data-reveal>
+  <div class="px-viz__cap">
+    <span>{caption}</span>
+    {yLabel && <b>{yLabel}{logY ? ' · log' : ''}</b>}
+  </div>
+
+  <div class="px-scale">
+    <svg
+      class="px-scale__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Scaling plot: ${caption}` : 'Scaling scatter plot'}
+    >
+      <!-- gridlines + axis ticks -->
+      <g class="px-scale__grid">
+        {yTicks.map((t) => (
+          <g>
+            <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="var(--rule)" />
+            <text class="px-scale__tick" x={padL - 8} y={t.y + 3} text-anchor="end">{t.label}</text>
+          </g>
+        ))}
+        {xTicks.map((t) => (
+          <g>
+            <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} stroke="var(--rule)" opacity="0.55" />
+            <text class="px-scale__tick" x={t.x} y={padT + ih + 16} text-anchor="middle">{t.label}</text>
+          </g>
+        ))}
+      </g>
+
+      <!-- fit line (under the points) -->
+      {fitLine && (
+        <line
+          class="px-scale__fit"
+          x1={fitLine.x1.toFixed(1)} y1={fitLine.y1.toFixed(1)}
+          x2={fitLine.x2.toFixed(1)} y2={fitLine.y2.toFixed(1)}
+          style={`--len:${fitLen}`}
+        />
+      )}
+
+      <!-- points -->
+      <g class="px-scale__pts">
+        {plotted.map((p) => (
+          <g class="px-scale__pt" style={`transition-delay:${600 + p.i * 60}ms`}>
+            <circle cx={p.cx.toFixed(1)} cy={p.cy.toFixed(1)} r="5" />
+            {p.label && p.showLabel && (
+              <text class="px-scale__plabel" x={p.lx.toFixed(1)} y={p.ly.toFixed(1)} text-anchor={p.anchor}>{p.label}</text>
+            )}
+          </g>
+        ))}
+      </g>
+
+      <!-- axis titles -->
+      {xLabel && <text class="px-scale__axis-title" x={padL + iw / 2} y={H - 6} text-anchor="middle">{xLabel}{logX ? ' (log)' : ''}</text>}
+      {yLabel && (
+        <text
+          class="px-scale__axis-title"
+          x={14} y={padT + ih / 2}
+          text-anchor="middle"
+          transform={`rotate(-90 14 ${padT + ih / 2})`}
+        >{yLabel}{logY ? ' (log)' : ''}</text>
+      )}
+    </svg>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-scale { width: 100%; }
+  .px-scale__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-scale__tick {
+    /* axis ticks — mono muted, system axis scale + letter-spacing, tabular */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-scale__axis-title {
+    /* axis title — mono uppercase, ink-soft, eyebrow letter-spacing */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  .px-scale__fit {
+    fill: none;
+    stroke: var(--accent-deep, var(--accent));
+    stroke-width: 2;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1300ms var(--ease);
+  }
+
+  .px-scale__pt circle {
+    fill: var(--accent);
+    stroke: var(--paper);
+    stroke-width: 1.5;
+  }
+  .px-scale__plabel {
+    /* point label — mono, ink-soft, tabular (point names often carry magnitudes).
+       font-size stays 9px: the frontmatter LBL_FS de-clutter math depends on it. */
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.02em;
+    fill: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    /* faint paper halo so a label crossing a gridline / dot stays legible */
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  .px-scale__pt {
+    opacity: 1;
+    transform: none;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: opacity var(--t-quick) var(--ease), transform var(--t-soft) var(--ease-snap);
+  }
+
+  /* reveal: fit line stroke-draws, points pop in staggered (behind html.js) */
+  html.js .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: var(--len); }
+  html.js .px-viz:not(.is-in) .px-scale__pt { opacity: 0; transform: scale(0.1); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-scale__pt { opacity: 1 !important; transform: none !important; }
+  }
+</style>

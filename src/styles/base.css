@@ -20,73 +20,209 @@ body {
 
 .px-wrap { max-width: 980px; margin: 0 auto; padding: 48px 32px 120px; }
 
-/* MASTHEAD */
-.px-masthead {
+/* ──────────────────────────────────────────────────────────────────────────
+   MASTHEAD — unified v2 press header (ported from publication-v2 styles.css).
+   Three zones on a `1fr auto 1fr` grid: brand+lens · status pill · nav+CTA.
+   ONE header for every world; the accent/paper/face shift via `data-topic`.
+   `.mh` class names are a deliberate v2 adoption (documented in
+   src/components/AGENTS.md) — the lens-mark + status CSS is tightly coupled.
+   ────────────────────────────────────────────────────────────────────────── */
+.mh {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 0 16px;
   border-top: 3px solid var(--ink);
   border-bottom: 1px solid var(--ink);
-  padding: 18px 0 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  margin-bottom: 36px;
+  position: relative;
+}
+.mh::before {
+  /* hairline accent below the bottom rule */
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -4px;
+  height: 1px; background: var(--accent); opacity: 0.5;
+}
+.mh__brand {
+  display: inline-flex; align-items: center; gap: 14px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: opacity var(--t-quick) var(--ease);
+}
+.mh__brand:hover { opacity: 0.78; }
+.mh__brand:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.mh__lens {
+  position: relative;
+  width: 28px; height: 28px;
+  display: inline-block; flex: 0 0 28px;
+}
+.mh__lens::before, .mh__lens::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  transition: transform var(--t-soft) var(--ease);
+}
+.mh__lens::after {
+  border-color: var(--accent);
+  transform: translate(2px, 0);
+}
+.mh__lens-dot {
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  animation: lensPulse 2.4s ease-in-out infinite;
+}
+.mh__brand:hover .mh__lens::after { transform: translate(4px, 0); }
+@keyframes lensPulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.55; transform: translate(-50%, -50%) scale(1.35); }
+}
+.mh__type { display: inline-flex; flex-direction: column; line-height: 1; }
+.mh__name {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 60px;
   color: var(--ink);
 }
-.px-masthead__left { display: flex; gap: 24px; flex-wrap: wrap; }
-.px-masthead__brand { font-weight: 700; letter-spacing: 0.2em; }
-.px-masthead__dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent); display: inline-block;
-  margin-right: 8px; animation: pxPulse 2s infinite;
+.mh__name-tail {
+  display: inline-block;
+  transition: transform var(--t-soft) var(--ease);
 }
-@keyframes pxPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.mh__brand:hover .mh__name-tail { transform: translateX(2px); }
+.mh__tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
 
-/* HERO */
-.px-hero { margin-bottom: 80px; }
+.mh__status {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--paper) 60%, transparent);
+}
+.mh__status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  animation: lensPulse 1.6s ease-in-out infinite;
+  flex: 0 0 7px;
+}
+.mh__status-dot[data-state="draft"] { background: var(--muted); animation: none; }
+.mh__status-tx { display: inline-flex; flex-direction: column; line-height: 1.1; }
+.mh__status-tx b {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+}
+.mh__status-tx span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mh__r { display: inline-flex; align-items: center; gap: 24px; justify-self: end; }
+.mh__links { display: inline-flex; gap: 22px; }
+.mh__links a {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  position: relative; padding-bottom: 4px;
+  transition: color var(--t-quick) var(--ease);
+}
+.mh__links a::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 1px; background: var(--accent);
+  transform: scaleX(0); transform-origin: 0 0;
+  transition: transform var(--t-soft) var(--ease);
+}
+.mh__links a:hover { color: var(--accent); }
+.mh__links a:hover::after { transform: scaleX(1); }
+.mh__cta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink);
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
+}
+.mh__cta:hover { background: var(--accent); transform: translateY(-1px); }
+
+@media (max-width: 900px) {
+  .mh { grid-template-columns: 1fr auto; gap: 16px; }
+  .mh__status { display: none; }
+  .mh__links { display: none; }
+}
+
+/* HERO (v2 — issue-face headline, larger scale, balanced wrap) */
+.px-hero { margin: 0 0 72px; }
 .px-eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 .px-hero h1 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(48px, 7vw, 88px);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
+  font-family: var(--issue-face, var(--font-display));
+  font-weight: 600;
+  font-size: clamp(52px, 7.5vw, 104px);
+  line-height: 0.97;
+  letter-spacing: -0.035em;
   color: var(--ink);
-  margin-bottom: 24px;
+  margin-bottom: 26px;
+  text-wrap: balance;
 }
 .px-hero h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
 .px-hero__dek {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: clamp(19px, 2vw, 25px);
   line-height: 1.4;
   color: var(--ink-soft);
-  max-width: 720px;
+  max-width: 36ch;
   font-weight: 300;
 }
 .px-hero__byline {
   margin-top: 32px;
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
   border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  padding: 12px 0;
+  padding: 14px 0;
   display: flex;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
+.px-hero__byline strong { color: var(--ink); font-weight: 700; }
 
 /* SKIM TOGGLE */
 .px-skim-toggle {
@@ -125,19 +261,27 @@ body {
   color: var(--muted);
 }
 
-/* PRIMER */
+/* PRIMER (v2 — soft elevated card, accent edge) */
 .px-primer {
   background: var(--paper);
-  border: 1px solid var(--rule);
-  border-left: 4px solid var(--accent);
-  padding: 22px 28px;
-  margin-bottom: 64px;
-  max-width: 60ch;
+  border-radius: var(--r-card);
+  padding: 24px 30px;
+  margin: 16px 0 64px;
+  max-width: var(--col-prose);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 14px 30px -24px color-mix(in oklab, var(--ink) 45%, transparent);
+}
+.px-primer::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent);
 }
 .px-primer__eyebrow {
   font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 12px;
@@ -147,6 +291,7 @@ body {
   font-size: 15px;
   line-height: 1.7;
   color: var(--ink-soft);
+  max-width: 56ch;
 }
 
 /* SKIM MODE */
@@ -168,42 +313,71 @@ body {
 #px-article[data-mode="skim"] .px-prose-full { display: none; }
 #px-article[data-mode="skim"] .px-skim-caption-block { display: block; }
 
-/* SECTION */
-.px-section { margin-bottom: 80px; }
+/* SECTION (v2 — confident display numeral + gradient rule under the head) */
+.px-section { margin-bottom: 84px; }
 .px-section__num {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-family: var(--issue-face, var(--font-display));
+  font-weight: 600;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.03em;
   color: var(--accent);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  /* v2 — ghost-numeral depth echo + rise-in on scroll */
+  position: relative;
+  display: inline-block;
+  transition: opacity var(--t-page) var(--ease), transform var(--t-page) var(--ease);
+}
+.px-section__num::after {
+  content: attr(data-n);
+  position: absolute; left: 0; top: 0;
+  color: var(--accent); opacity: 0.1;
+  transform: scale(1.3); transform-origin: top left;
+  z-index: -1; pointer-events: none;
+}
+html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: translateY(12px); }
+@media (prefers-reduced-motion: reduce) {
+  html.js .px-section:not(.is-in) .px-section__num { opacity: 1; transform: none; }
 }
 .px-section__title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 38px;
+  font-size: clamp(28px, 3.4vw, 44px);
   line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin-bottom: 18px;
+  letter-spacing: -0.025em;
+  margin-bottom: 28px;
   color: var(--ink);
+  position: relative;
+  padding-bottom: 18px;
+}
+.px-section__title::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg,
+    var(--accent) 0%,
+    color-mix(in oklab, var(--accent) 30%, transparent) 30%,
+    var(--rule) 30%, var(--rule) 100%);
 }
 .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
 .px-section__intro {
   font-family: var(--font-display);
-  font-size: 18px;
-  line-height: 1.55;
+  font-size: 20px;
+  line-height: 1.5;
   color: var(--ink-soft);
-  max-width: 680px;
-  margin-bottom: 40px;
+  max-width: 62ch;
+  margin-bottom: 32px;
   font-weight: 300;
 }
 
-/* QUOTE */
+/* QUOTE (v2 — accent edge, soft tint, rounded trailing corners) */
 .px-quote {
-  border-left: 4px solid var(--accent);
+  border-left: 3px solid var(--accent);
   padding: 24px 32px;
-  margin: 30px 0;
-  background: var(--paper);
+  margin: 36px 0;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 5%, transparent) 0%, transparent 100%);
+  border-radius: 0 var(--r-card) var(--r-card) 0;
 }
 .px-quote__q {
   font-family: var(--font-display);
@@ -419,35 +593,38 @@ body {
   text-transform: uppercase;
 }
 
-/* SOURCES */
-.px-sources { margin-top: 30px; border-top: 2px solid var(--ink); padding-top: 24px; }
+/* SOURCES (v2 — pill-numbered, hairline rows) */
+.px-sources { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 24px; max-width: var(--col-prose); }
 .px-sources__title {
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.15em;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   color: var(--ink);
 }
 .px-sources ol { list-style: none; counter-reset: src; }
 .px-sources li {
   counter-increment: src;
-  padding: 10px 0 10px 42px;
+  padding: 12px 0 12px 48px;
   border-bottom: 1px dashed var(--rule);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--ink-soft);
   position: relative;
 }
 .px-sources li::before {
   content: counter(src, decimal-leading-zero);
   position: absolute;
-  left: 0; top: 10px;
+  left: 0; top: 12px;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
   letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
 }
 .px-sources li strong { color: var(--ink); font-weight: 600; }
 .px-sources li a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
@@ -563,4 +740,104 @@ body {
   .px-readout__tile:nth-child(3n) { border-right: 1px solid var(--rule); }
   .px-readout__tile:nth-child(2n) { border-right: none; }
   .px-readout__num { font-size: 32px; }
+}
+
+/* ============================================================================
+   V2 ADDITIONS — issue banner, viz card shell, view transitions
+   Topic-agnostic structure (consumes tokens from tokens-v2.css).
+   ============================================================================ */
+
+/* ── ISSUE BANNER (v2 — per-world standing plate above the hero) ──────── */
+.px-bnr {
+  position: relative;
+  margin: 0 0 8px;
+  padding: 22px 0;
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+  overflow: hidden;
+}
+.px-bnr::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -4px;
+  height: 1px; background: var(--accent); opacity: 0.55;
+}
+.px-bnr__plate { display: flex; flex-direction: column; gap: 6px; }
+.px-bnr__name {
+  font-family: var(--issue-face, var(--font-display));
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 34px);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--ink);
+  display: inline-flex; align-items: baseline; gap: 12px;
+}
+.px-bnr__name .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); align-self: center; }
+.px-bnr__sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-bnr__readout {
+  display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-bnr__stat { display: inline-flex; flex-direction: column; gap: 4px; text-align: right; }
+.px-bnr__stat b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+/* The world's signature register reads in the accent (contrast-safe deep on light paper). */
+.px-bnr__stat--reg b { color: var(--accent-deep, var(--accent)); }
+@media (max-width: 720px) {
+  .px-bnr { grid-template-columns: 1fr; }
+  .px-bnr__readout { justify-content: flex-start; }
+  .px-bnr__stat { text-align: left; }
+}
+
+/* ── VIZ CARD SHELL (v2 — elevated rounded surface for data-viz) ──────── */
+.px-viz {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-tile);
+  padding: 28px 30px;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-viz:hover {
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+  transform: translateY(-2px);
+}
+
+/* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: var(--t-page);
+  animation-timing-function: var(--ease);
+}
+
+/* ── CORE BOXED COMPONENTS → elevated cards (shared across topics) ────── */
+.px-compare, .px-readout {
+  border-radius: var(--r-tile);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-compare:hover, .px-readout:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
 }

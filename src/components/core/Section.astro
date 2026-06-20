@@ -6,12 +6,13 @@ interface Props {
   eyebrow?: string;
   title?: string;
   intro?: string;
+  kind?: string;
 }
-const { number, eyebrow, title, intro } = Astro.props;
+const { number, eyebrow, title, intro, kind } = Astro.props;
 ---
 
-<section class="px-section">
-  {number && <div class="px-section__num">{number}</div>}
+<section class="px-section" data-reveal data-kind={kind}>
+  {number && <div class="px-section__num" data-n={number}>{number}</div>}
   {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
   {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
   {intro && <p class="px-section__intro">{intro}</p>}

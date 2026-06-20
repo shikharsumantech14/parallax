@@ -1,0 +1,217 @@
+---
+/* Colophon — editorial footer: brand + manifesto, four link columns, and a
+   legal microcopy row. Ports the v2 design kit's `.col`
+   (publication-v2/styles.css + Sections.jsx).
+
+   Replaces core/Footer.astro in both layouts. Preserves Footer's real
+   content: the "© <year> PARALLAX LENS™" legal naming, the Privacy/Terms
+   links, and the newsletter signup (rendered above the colophon, toggleable
+   per route via the `newsletter` prop — the home page passes false because
+   SubscribeStrip already carries the working form there).
+
+   Prefix: px-col. Pure CSS, no JS (the embedded NewsletterForm carries its
+   own island). */
+import NewsletterForm from './NewsletterForm.astro';
+
+interface Props {
+  /* Render the newsletter signup above the colophon. Default on, matching the
+     previous Footer behaviour. The home page sets this false (its
+     SubscribeStrip already provides the form). */
+  newsletter?: boolean;
+}
+const { newsletter = true } = Astro.props;
+
+const year = new Date().getFullYear();
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+
+// Only real, resolvable routes. Topic indexes, the about hub + its privacy /
+// terms guides, the RSS feed, and the reader-app subdomain.
+const desks: { label: string; href: string }[] = [
+  { label: 'Politics', href: '/topics/politics/' },
+  { label: 'Space', href: '/topics/space/' },
+  { label: 'Earth', href: '/topics/earth/' },
+  { label: 'Tech', href: '/topics/tech/' },
+  { label: 'Travel', href: '/topics/travel/' },
+  { label: 'Sports', href: '/topics/sports/' }
+];
+---
+
+{newsletter && <NewsletterForm />}
+
+<footer class="px-col">
+  <div class="px-col__head">
+    <a class="px-col__brand" href="/">
+      <span class="px-col__lens" aria-hidden="true"><span class="px-col__lens-dot"></span></span>
+      <span class="px-col__name">Parallax</span>
+    </a>
+    <p class="px-col__manifesto">
+      A reader-funded visual-explainer publication. Six desks. One masthead.
+      <em>Stories you think you already understand.</em>
+    </p>
+  </div>
+
+  <div class="px-col__grid">
+    <div>
+      <div class="px-col__h">Desks</div>
+      <ul>
+        {desks.map((d) => (
+          <li><a href={d.href}>{d.label}</a></li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <div class="px-col__h">House</div>
+      <ul>
+        <li><a href="/about/">About</a></li>
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="px-col__h">Read</div>
+      <ul>
+        <li><a href="/">Latest</a></li>
+        <li><a href="/rss.xml">RSS</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="px-col__h">Practical</div>
+      <ul>
+        <li><a href={appUrl}>Your account</a></li>
+        <li><a href="/about/privacy/">Privacy</a></li>
+        <li><a href="/about/terms/">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="px-col__foot">
+    <span>© {year} Parallax Lens™ · Registered in India · Trademark cls. 16, 41</span>
+    <span>No analytics · no cookies · no trackers · no ads</span>
+  </div>
+</footer>
+
+<style>
+  .px-col {
+    margin-top: 16px;
+    padding: 56px 0 28px;
+    border-top: 3px solid var(--ink);
+    position: relative;
+  }
+  .px-col__head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  .px-col__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  /* Lens dot mark — ported from the v2 masthead lens (.mh__lens) */
+  .px-col__lens {
+    position: relative;
+    width: 36px; height: 36px;
+    flex: 0 0 36px;
+    display: inline-block;
+  }
+  .px-col__lens::before,
+  .px-col__lens::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    transition: transform var(--t-soft) var(--ease);
+  }
+  .px-col__lens::after {
+    border-color: var(--accent);
+    transform: translate(2px, 0);
+  }
+  .px-col__brand:hover .px-col__lens::after { transform: translate(4px, 0); }
+  .px-col__lens-dot {
+    position: absolute; left: 50%; top: 50%;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    transform: translate(-50%, -50%);
+  }
+  .px-col__name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .px-col__manifesto {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0;
+  }
+  .px-col__manifesto em { font-style: italic; color: var(--ink); }
+
+  .px-col__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px 24px;
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-col__h {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-col__grid ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+  }
+  .px-col__grid a {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--ink-soft);
+    display: inline-block;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    text-decoration: none;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  .px-col__grid a:hover {
+    color: var(--accent-deep, var(--accent));
+    border-bottom-color: var(--accent-deep, var(--accent));
+  }
+
+  .px-col__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  @media (max-width: 720px) {
+    .px-col__head { grid-template-columns: 1fr; gap: 16px; }
+    .px-col__grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>

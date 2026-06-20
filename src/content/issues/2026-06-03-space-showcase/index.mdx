@@ -1,0 +1,251 @@
+---
+id: "2026-06-03-space-showcase"
+topic: space
+title: "The Space *Instrument* Panel"
+hook: "Every space-world data-viz component in one place — orbits, ascent, energy budgets, telemetry, descent — built on real mission numbers so the styleguide doubles as a reading of how we get to orbit and back."
+dek: "One issue, every gauge."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 6
+primer: "This is a styleguide issue: it exists to exercise every space-world data-viz component with real mission data. You will see active satellite constellations, a Falcon 9 ascent profile, the Δv budget from launch pad to deep space, Deep Space Network radio bands, and a Mars landing's altitude-versus-time curve — each captioned with what it actually represents."
+
+sections:
+  - kind: prose
+    eyebrow: "WHY THIS PAGE EXISTS"
+    title: "A *styleguide* you can also read as a flight."
+    skimCaption: "This issue is a component catalogue, not a news story. It runs every space-world visualization in sequence — orbit globe, trajectory arc, delta-v ladder, signal readout, descent profile, orbit trace, launch bars, figure tiles — each loaded with real mission data so the demo doubles as a tour of how a payload reaches orbit and how a lander comes home."
+    data:
+      lead: "Most Parallax issues hide their machinery. This one is the machinery. It exists so an editor or an agent can see every space-world data component rendered with realistic numbers, in one scroll, before wiring any of them into a real story."
+      paragraphs:
+        - "Each section below names a single component and feeds it data drawn from the public record — active constellations from satellite catalogues, a **Falcon 9** ascent broken into its real flight phases, the energy budget that separates low orbit from deep space, the radio bands NASA's **Deep Space Network** listens on, and the seven minutes of a Mars **entry, descent, and landing**. The captions explain what each chart is showing and how it behaves when you touch it."
+        - "Read top to bottom and the order is not arbitrary: it climbs from orbit to ascent to the energy it costs, listens to what comes back down the link, then follows a spacecraft all the way to the surface. The styleguide is the story. **The instruments are the point.**"
+
+  - kind: orbit-globe
+    eyebrow: "THE 3D ORBIT GLOBE"
+    title: "Active constellations on a *spinning* Earth."
+    intro: "This plots named satellite constellations by altitude and orbital inclination on a draggable dot-matrix globe; ring radius is log-scaled by altitude, ring tilt is the real inclination. Drag to orbit the view — it auto-rotates when idle, with a static SVG fallback and a textual legend for no-JS and reduced-motion."
+    data:
+      caption: "Active satellite constellations by altitude + inclination"
+      source: "Union of Concerned Scientists Satellite Database · CelesTrak, 2024"
+      maxAltKm: 42000
+      orbits:
+        - { name: "Starlink", altKm: 550, inclDeg: 53, color: "#00d4ff", satCount: 5500 }
+        - { name: "OneWeb", altKm: 1200, inclDeg: 87, color: "#4dffb0", satCount: 648 }
+        - { name: "ISS", altKm: 420, inclDeg: 51.6, color: "#ffd166", satCount: 1 }
+        - { name: "GPS Block III", altKm: 20200, inclDeg: 55, color: "#ffb347", satCount: 31 }
+        - { name: "Galileo", altKm: 23222, inclDeg: 56, color: "#b47dff", satCount: 28 }
+        - { name: "INSAT-3D", altKm: 35786, inclDeg: 0, color: "#ff6b6b", satCount: 1 }
+
+  - kind: trajectory-arc
+    eyebrow: "THE ASCENT PROFILE"
+    title: "A Falcon 9 climb, plotted *downrange*."
+    intro: "This is a launch-to-orbit ascent profile: the x-axis is downrange distance from the pad, the y-axis is altitude, and a smooth arc threads the real flight phases of a Falcon 9. The path stroke-draws on scroll, phase pins pop in staggered, and the whole plot sits on a shallow tilted plane over a faint starfield."
+    data:
+      caption: "Falcon 9 ascent · altitude vs. downrange distance"
+      source: "SpaceX webcast telemetry · typical LEO profile, 2023"
+      apoapsisKm: 210
+      phases:
+        - { label: "Liftoff", altKm: 0, downrangeKm: 0, note: "T+0. Nine Merlin engines ignite; 7,600 kN of thrust off Pad 39A or SLC-40." }
+        - { label: "Max-Q", altKm: 13, downrangeKm: 5, note: "T+72s. Peak aerodynamic pressure on the vehicle, near Mach 1.5." }
+        - { label: "MECO", altKm: 67, downrangeKm: 95, note: "T+2:35. Main-engine cutoff; first stage shuts down at ~2.3 km/s." }
+        - { label: "Stage sep", altKm: 75, downrangeKm: 115, note: "T+2:38. Stages separate; the booster begins its boostback and entry burns." }
+        - { label: "Fairing jettison", altKm: 110, downrangeKm: 280, note: "T+3:20. Payload fairing halves release above the sensible atmosphere." }
+        - { label: "SECO", altKm: 200, downrangeKm: 650, note: "T+8:45. Second-engine cutoff; payload is inserted into a ~200 km parking orbit." }
+
+  - kind: delta-v-ladder
+    eyebrow: "THE ENERGY BUDGET"
+    title: "What it *costs* to leave, step by step."
+    intro: "This stacks the velocity change (Δv, in metres per second) needed for each leg of a journey out of Earth's gravity well — surface to low orbit, the climb to geostationary transfer, and the final push to escape velocity. Segments grow and stack from the bottom on scroll, with a cumulative scale rail and the grand total on top."
+    data:
+      caption: "Δv budget · Earth surface to escape trajectory"
+      source: "NASA mission-design references · idealised, excludes losses"
+      unit: "m/s"
+      segments:
+        - { label: "Surface → LEO", dv: 9400, color: "#00d4ff" }
+        - { label: "LEO → GTO", dv: 2440, color: "#4dffb0" }
+        - { label: "GTO → GEO", dv: 1470, color: "#ffb347" }
+        - { label: "LEO → escape (C3=0)", dv: 3220, color: "#ff6b6b" }
+
+  - kind: signal-readout
+    eyebrow: "THE TELEMETRY LINK"
+    title: "Listening on the *Deep Space* bands."
+    intro: "This is a telemetry / radio-band readout: each row is a horizontal level meter for one frequency band the Deep Space Network uses, showing a received signal value against its scale. A faint scan-line motif and a one-time sweep cross the panel on scroll-in; bars fill from zero. It is a flat panel, no 3D."
+    data:
+      caption: "NASA Deep Space Network · downlink bands, relative signal"
+      source: "NASA JPL · DSN telecommunications link design, 2024"
+      bands:
+        - { label: "S-band uplink", freq: "2.1 GHz", value: 62, max: 100, color: "#4dffb0" }
+        - { label: "X-band downlink", freq: "8.4 GHz", value: 88, max: 100, color: "#00d4ff" }
+        - { label: "Ka-band downlink", freq: "32 GHz", value: 71, max: 100, color: "#ffb347" }
+        - { label: "Carrier lock margin", freq: "C/N0", value: 44, max: 100, color: "#b47dff" }
+
+  - kind: descent-profile
+    eyebrow: "THE LANDING CURVE"
+    title: "Seven minutes from the *top* of the atmosphere."
+    intro: "This plots altitude against time for a Mars entry, descent, and landing — the Perseverance rover's real EDL sequence. The profile path stroke-draws on scroll, phase bands shade under the curve, event pins drop at their times, and a craft glyph rides the curve to the surface. Flat SVG, no 3D."
+    data:
+      caption: "Mars 2020 / Perseverance · entry, descent & landing"
+      source: "NASA JPL · Mars 2020 EDL timeline, Feb 18 2021"
+      craftLabel: "Perseverance"
+      points:
+        - { t: 0, altKm: 125, phase: "Entry interface" }
+        - { t: 80, altKm: 42, phase: "Peak heating" }
+        - { t: 240, altKm: 11, phase: "Parachute deploy" }
+        - { t: 260, altKm: 9.5, phase: "Heat-shield sep" }
+        - { t: 360, altKm: 2.1, phase: "Powered descent" }
+        - { t: 400, altKm: 0.02, phase: "Sky-crane" }
+        - { t: 417, altKm: 0, phase: "Touchdown" }
+      events:
+        - { t: 0, label: "Atmospheric entry · 5.3 km/s" }
+        - { t: 240, label: "Supersonic parachute" }
+        - { t: 360, label: "Backshell separation" }
+        - { t: 417, label: "Wheels down · Jezero Crater" }
+
+  - kind: orbit-trace
+    eyebrow: "THE 2D ORBIT DIAGRAM"
+    title: "The same orbits as a flat *altitude* map."
+    intro: "This is the 2D companion to the globe: named constellations and missions drawn as concentric orbit rings, positioned by altitude with inclination noted on each label. It is a static SVG diagram — the at-a-glance reference when the 3D scene is overkill."
+    data:
+      caption: "Orbital positions by altitude. Scale is approximate — not to scale."
+      source: "Union of Concerned Scientists Satellite Database · ESA, 2024"
+      maxAltKm: 42000
+      orbits:
+        - name: "ISS"
+          altKm: 420
+          inclDeg: 51.6
+          color: "#ffd166"
+          satCount: 1
+          note: "International Space Station. ~420 km, 51.6° inclination — the altitude band shared with crewed traffic and the densest debris-avoidance activity."
+        - name: "Starlink"
+          altKm: 550
+          inclDeg: 53
+          color: "#00d4ff"
+          satCount: 5500
+          note: "SpaceX megaconstellation. Shell 1 at 550 km, 53° inclination. Over 5,500 active satellites — the largest constellation in history."
+        - name: "OneWeb"
+          altKm: 1200
+          inclDeg: 87
+          color: "#4dffb0"
+          satCount: 648
+        - name: "GPS Block III"
+          altKm: 20200
+          inclDeg: 55
+          color: "#ffb347"
+          satCount: 31
+          note: "US GPS constellation. Medium Earth orbit at 20,200 km, six orbital planes, 31 active satellites."
+        - name: "Galileo"
+          altKm: 23222
+          inclDeg: 56
+          color: "#b47dff"
+          satCount: 28
+        - name: "INSAT-3D"
+          altKm: 35786
+          inclDeg: 0
+          color: "#ff6b6b"
+          satCount: 1
+          note: "Geostationary orbit at 35,786 km. Zero inclination — appears fixed over one point on Earth. India's INSAT meteorological satellite."
+
+  - kind: launch-stats
+    eyebrow: "THE LAUNCH RECORD"
+    title: "Orbital launch attempts *per year*, 2020–2024."
+    intro: "This is the annual launch-count bar chart: global orbital launch attempts each year, broken down by the country or operator of the launch vehicle. Bars are grouped by year so the climb in total cadence reads at a glance."
+    data:
+      caption: "Orbital launch attempts by country of operator, 2020–2024"
+      source: "Jonathan's Space Report · Gunter's Space Page, 2024"
+      years:
+        - year: 2020
+          bars:
+            - { label: "USA", value: 44, color: "#00d4ff" }
+            - { label: "China", value: 39, color: "#ff6b6b" }
+            - { label: "Russia", value: 17, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2021
+          bars:
+            - { label: "USA", value: 51, color: "#00d4ff" }
+            - { label: "China", value: 55, color: "#ff6b6b" }
+            - { label: "Russia", value: 25, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2022
+          bars:
+            - { label: "USA", value: 87, color: "#00d4ff" }
+            - { label: "China", value: 64, color: "#ff6b6b" }
+            - { label: "Russia", value: 21, color: "#b47dff" }
+            - { label: "Other", value: 14, color: "#7a8a92" }
+        - year: 2023
+          bars:
+            - { label: "USA", value: 116, color: "#00d4ff" }
+            - { label: "China", value: 67, color: "#ff6b6b" }
+            - { label: "Russia", value: 19, color: "#b47dff" }
+            - { label: "Other", value: 21, color: "#7a8a92" }
+        - year: 2024
+          bars:
+            - { label: "USA", value: 145, color: "#00d4ff" }
+            - { label: "China", value: 68, color: "#ff6b6b" }
+            - { label: "Russia", value: 17, color: "#b47dff" }
+            - { label: "Other", value: 29, color: "#7a8a92" }
+
+  - kind: data-readout
+    eyebrow: "2024, IN FIGURES"
+    title: "The orbital year as a *tile* board."
+    intro: "This is the figure-tile readout: a grid of single-number tiles, each with a value, a label, a context note, and an emphasis level that tints the urgent ones. It is how an issue lands its hard numbers — here, a snapshot of the 2024 launch year."
+    data:
+      caption: "GLOBAL ORBITAL ACTIVITY · 2024 SNAPSHOT"
+      source: "Jonathan's Space Report · FAA · NASA · SpaceX, 2024–2025"
+      tiles:
+        - value: "259"
+          label: "Orbital launch attempts worldwide"
+          note: "Calendar year 2024 — an all-time annual record for the spaceflight era."
+          emphasis: "key"
+        - value: "138"
+          label: "US orbital launches"
+          note: "Most ever from one nation in a year; the large majority were Falcon 9."
+          emphasis: "key"
+        - value: "133"
+          label: "Falcon 9 flights"
+          note: "A single rocket family flew roughly every 2.7 days across the year."
+          emphasis: "warn"
+        - value: "2,802"
+          label: "Spacecraft deployed to orbit"
+          note: "Payloads catalogued in 2024 — dominated by Starlink and rideshare batches."
+        - value: "96"
+          unit: "%"
+          label: "Falcon 9 booster recovery rate"
+          note: "Landings as a share of recovery attempts across the year."
+          emphasis: "key"
+        - value: "9,400"
+          unit: " m/s"
+          label: "Δv from pad to low orbit"
+          note: "The energy wall every one of those launches had to climb."
+
+sources:
+  - id: "src-01"
+    title: "Jonathan's Space Report · Annual Launch Statistics"
+    publisher: "Jonathan McDowell · Harvard-Smithsonian Center for Astrophysics"
+    url: "https://www.planet4589.org/space/lvdb/index.html"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-02"
+    title: "UCS Satellite Database"
+    publisher: "Union of Concerned Scientists"
+    url: "https://www.ucsusa.org/resources/satellite-database"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-03"
+    title: "Mars 2020 Entry, Descent, and Landing"
+    publisher: "NASA Jet Propulsion Laboratory"
+    url: "https://mars.nasa.gov/mars2020/timeline/landing/entry-descent-landing/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-04"
+    title: "Deep Space Network Telecommunications Link Design Handbook (810-005)"
+    publisher: "NASA Jet Propulsion Laboratory"
+    url: "https://deepspace.jpl.nasa.gov/dsndocs/810-005/"
+    accessedAt: "2026-06-03"
+    kind: primary
+---
+
+{/*
+  Styleguide issue. All component demos live in the structured `sections`
+  above; the MDX body is intentionally empty.
+*/}

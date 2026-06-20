@@ -50,7 +50,7 @@ const copy: Record<Topic, Copy> = {
 };
 ---
 
-<section class="px-catgrid" data-cols={cols}>
+<section class="px-catgrid" id="desks" data-cols={cols}>
   <header class="px-catgrid__head">
     <span class="px-catgrid__title">Six worlds, one publication</span>
     <span class="px-catgrid__count">{TOPICS.length} desks</span>
@@ -69,8 +69,7 @@ const copy: Record<Topic, Copy> = {
             title: entry.data.title,
             hook: entry.data.hook,
             issueNumber: issueNumberFor(entry.slug),
-            publishedAt: entry.data.publishedAt,
-            ogImage: entry.data.ogImage
+            publishedAt: entry.data.publishedAt
           } : undefined}
           emptyLabel={c.emptyLabel}
           emptyTag={c.emptyTag}
@@ -101,7 +100,7 @@ const copy: Record<Topic, Copy> = {
 
   .px-catgrid__grid {
     display: grid;
-    gap: 18px;
+    gap: var(--tile-gap, 14px);
   }
   .px-catgrid[data-cols="3"] .px-catgrid__grid {
     grid-template-columns: repeat(3, 1fr);

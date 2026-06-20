@@ -1,0 +1,45 @@
+/* ============================================================================
+   PARALLAX V2 — UNIFIED TYPE SYSTEM
+   ----------------------------------------------------------------------------
+   Fixes the "too many fonts" jumble. One body + one mono on EVERY page; each
+   world keeps a single SIGNATURE display face exposed as --issue-face, applied
+   ONLY to that world's banner nameplate + hero headline (never body/sections),
+   so topic identity survives without the page reading as a font catalogue.
+
+   Imported LAST (after the six theme files) so the body/mono normalisation
+   wins the :root[data-topic] specificity contest without !important. The theme
+   files no longer override --font-body/--font-mono (see each theme's :root).
+   --font-display stays per-topic (topic headings keep their face).
+   ============================================================================ */
+
+/* Signature faces (one per world + meta) */
+:root {
+  --face-meta:     'Fraunces', Georgia, serif;
+  --face-politics: 'Fraunces', Georgia, serif;
+  --face-space:    'Space Grotesk', 'Inter Tight', sans-serif;
+  --face-earth:    'Cormorant Garamond', 'Fraunces', Georgia, serif;
+  --face-tech:     'JetBrains Mono', ui-monospace, monospace;
+  --face-travel:   'Cormorant Garamond', 'Fraunces', Georgia, serif;
+  --face-sports:   'Oswald', 'Inter Tight', sans-serif;
+}
+
+/* Normalise body + mono across all topics. */
+:root,
+:root[data-topic="politics"],
+:root[data-topic="space"],
+:root[data-topic="earth"],
+:root[data-topic="tech"],
+:root[data-topic="travel"],
+:root[data-topic="sports"] {
+  --font-body: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Per-issue signature face — banner nameplate + hero headline opt in. */
+:root { --issue-face: var(--face-meta); }
+:root[data-topic="politics"] { --issue-face: var(--face-politics); }
+:root[data-topic="space"]    { --issue-face: var(--face-space); }
+:root[data-topic="earth"]    { --issue-face: var(--face-earth); }
+:root[data-topic="tech"]     { --issue-face: var(--face-tech); }
+:root[data-topic="travel"]   { --issue-face: var(--face-travel); }
+:root[data-topic="sports"]   { --issue-face: var(--face-sports); }

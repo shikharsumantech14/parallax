@@ -34,7 +34,45 @@ export const SECTION_KINDS = [
   'route-card',            // travel signature — multi-leg journey itinerary
   'city-compare',          // travel signature — two-city comparison table
   'league-table',          // sports signature — standings with form guide
-  'player-radar'           // sports signature — spider chart for player stats
+  'player-radar',          // sports signature — spider chart for player stats
+
+  // ── v2 3D / interactive component library (5 per world) ──────────────────
+  // politics
+  'coalition-orbit',       // WebGL — party bodies orbiting a government core
+  'swing-dial',            // CSS-3D — perspective needle between two blocs
+  'bill-passage',          // CSS-3D — bill stage cards advancing
+  'vote-flow',             // SVG — Sankey of blocs → for/against/abstain
+  'margin-ladder',         // CSS-3D — seats by win-margin on a tilted plane
+  // space
+  'orbit-globe',           // WebGL — dot-matrix Earth + inclined orbit rings
+  'trajectory-arc',        // CSS-3D/SVG — launch→orbit parabola in a starfield
+  'delta-v-ladder',        // CSS-3D — stacked Δv/energy budget bars
+  'signal-readout',        // SVG — telemetry / EM-band sweep readout
+  'descent-profile',       // SVG — altitude-vs-time descent with craft glyph
+  // earth
+  'data-globe',            // WebGL — 3D choropleth globe (graticule style)
+  'core-sample',           // CSS-3D — ice/sediment core column, scrub strata
+  'sea-level-tank',        // CSS-3D/SVG — cross-section water-rise
+  'climate-spiral',        // SVG — warming spiral (radial months)
+  'quake-depth',           // SVG — seismic events on depth×time axis
+  // tech
+  'arch-stack',            // CSS-3D — exploded layer stack
+  'latency-waterfall',     // SVG — request/span waterfall timeline
+  'version-graph',         // SVG — git-style branch/merge graph
+  'scaling-plot',          // SVG — log-log scaling scatter + fit
+  'throughput-dial',       // CSS-3D — perspective req/s gauge
+  // travel
+  'route-globe',           // WebGL — 3D globe + great-circle arc
+  'elevation-trek',        // CSS-3D/SVG — route elevation profile, moving marker
+  'itinerary-reel',        // CSS-3D — flip-through day cards
+  'climate-calendar',      // SVG — month×metric weather heat ribbon
+  'timezone-arc',          // SVG — sun/day arc across time zones
+  // sports
+  'tactics-pitch',         // CSS-3D — tilted pitch with player markers + heat
+  'shot-map',              // SVG/CSS-3D — goal frame + shot-placement scatter
+  'xg-race',               // SVG — cumulative xG step-line race
+  'momentum-wave',         // SVG — match-momentum area
+  'player-card'            // CSS-3D — flip rating card
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;

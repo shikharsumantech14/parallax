@@ -16,7 +16,7 @@ const apiUrl =
   (import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com') + '/api/subscribe';
 ---
 
-<section class="px-newsletter" aria-labelledby="px-newsletter-title">
+<section class="px-newsletter" data-api-url={apiUrl} aria-labelledby="px-newsletter-title">
   <div class="px-newsletter__inner">
     <h2 class="px-newsletter__title" id="px-newsletter-title">
       Stories, in your inbox.
@@ -45,10 +45,15 @@ const apiUrl =
   </div>
 </section>
 
-<script is:inline data-api-url={apiUrl}>
+<script is:inline>
   (function () {
-    const script = document.currentScript;
-    const apiUrl = script.dataset.apiUrl;
+    let root = document.currentScript ? document.currentScript.previousElementSibling : null;
+    while (root && !(root.classList && root.classList.contains('px-newsletter'))) {
+      root = root.previousElementSibling;
+    }
+    const apiUrl =
+      (root && root.dataset && root.dataset.apiUrl) ||
+      'https://app.parallaxlens.com/api/subscribe';
     const form = document.getElementById('px-newsletter-form');
     const input = document.getElementById('px-newsletter-email');
     const button = form?.querySelector('button[type="submit"]');

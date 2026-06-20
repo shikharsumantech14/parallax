@@ -18,15 +18,10 @@
   --accent-alt: #ffb347;
   --tape: #2a4165;
   --font-display: 'Space Grotesk', 'Inter Tight', sans-serif;
-  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* --font-body / --font-mono unified across topics in type-v2.css */
 }
 
 /* --- Global dark-mode tweaks ---------------------------------------------- */
-[data-topic="space"] .px-masthead {
-  border-top-color: var(--accent);
-  border-bottom-color: var(--rule);
-}
 [data-topic="space"] .px-hero h1 em { color: var(--accent); }
 [data-topic="space"] .px-hero__byline {
   border-color: var(--rule);
@@ -651,4 +646,41 @@
   font-family: var(--font-mono); font-size: 11px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--rule);
+}
+
+/* ============================================================================
+   V2 — elevated cards on space data-viz (rounded + soft shadow + hover lift)
+   px-shells is a contained telemetry card. px-ortrace / px-launch are flat
+   wrappers whose *chart frame* (the bordered surface) takes the radius +
+   shadow only — pure charts get no hover lift.
+   ============================================================================ */
+[data-topic="space"] .px-shells {
+  border-radius: var(--r-tile);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+[data-topic="space"] .px-shells:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+
+/* orbit trace: the bordered chart frame is the card surface */
+.px-ortrace__wrap {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+}
+
+/* launch stats: the SVG is the card surface */
+.px-launch__svg {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
 }

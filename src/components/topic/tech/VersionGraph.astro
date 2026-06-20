@@ -1,0 +1,244 @@
+---
+/**
+ * VersionGraph (tech) — a git-style commit graph. Nodes lie on a vertical time
+ * axis; the FIRST node in the array sits at the TOP and the array runs downward
+ * (so for newest-first input the newest commit is on top — document your order
+ * via the array). The `lane` (0, 1, 2…) picks the horizontal branch column;
+ * lane defaults to 0, giving a linear history when omitted. Edges run from each
+ * node down to its parents — straight when both share a lane, curved S-bends
+ * when lanes differ. Node dots are colored by lane, each with a label + optional
+ * tag chip. On reveal the edges stroke-draw and the dots pop in staggered. Flat
+ * SVG. Build-time geometry; zero runtime JS.
+ *
+ * No-JS / reduced-motion: edges paint fully drawn + dots fully shown (hidden
+ * states sit behind `html.js`; reduced-motion resets with !important). Labels
+ * are HTML beside the SVG and always present.
+ *
+ * data: { nodes[]{ id, parents?, label?, tag?, lane? }, caption?, source? }
+ */
+interface Node { id: string; parents?: string[]; label?: string; tag?: string; lane?: number; }
+interface Props { nodes: Node[]; caption?: string; source?: string; }
+const { nodes = [], caption, source } = Astro.props;
+
+const n = nodes.length;
+// Vertical rhythm: one row per node, top → bottom in array order.
+const ROW = 46;          // px between node rows
+const padT = 24, padB = 24;
+const laneVals = nodes.map((nd) => Math.max(0, Math.floor(nd.lane ?? 0)));
+const maxLane = Math.max(0, ...laneVals);
+const LANE_W = 30;       // px between lane columns
+const padL = 22;
+const W = padL * 2 + maxLane * LANE_W;
+const H = padT + Math.max(0, n - 1) * ROW + padB;
+
+// Lane palette — derived from theme tokens so it themes per topic.
+const lanePalette = [
+  'var(--accent)',
+  'color-mix(in oklab, var(--accent) 45%, var(--muted))',
+  'var(--ink-soft)',
+  'color-mix(in oklab, var(--accent) 60%, var(--ink))',
+  'var(--muted)',
+];
+const laneColor = (lane: number) => lanePalette[lane % lanePalette.length];
+
+const cx = (lane: number) => padL + lane * LANE_W;
+const cy = (row: number) => padT + row * ROW;
+
+// Resolve each node's geometry + index for parent lookups.
+const geo = nodes.map((nd, i) => ({
+  ...nd,
+  i,
+  lane: laneVals[i],
+  x: cx(laneVals[i]),
+  y: cy(i),
+  color: laneColor(laneVals[i]),
+}));
+const byId = new Map(geo.map((g) => [g.id, g]));
+
+// Edges: child → each existing parent. Curve when lanes differ (cubic S-bend),
+// straight vertical otherwise. Parents below the child in array order are the
+// normal case; we just draw whatever resolves.
+const edges = geo.flatMap((child) =>
+  (child.parents ?? [])
+    .map((pid) => byId.get(pid))
+    .filter((p): p is typeof geo[number] => !!p)
+    .map((p) => {
+      const x0 = child.x, y0 = child.y, x1 = p.x, y1 = p.y;
+      const d =
+        x0 === x1
+          ? `M ${x0} ${y0} L ${x1} ${y1}`
+          : `M ${x0} ${y0} C ${x0} ${((y0 + y1) / 2).toFixed(1)} ${x1} ${((y0 + y1) / 2).toFixed(1)} ${x1} ${y1}`;
+      // edge tint follows the deeper lane (the branch it merges toward)
+      const color = laneColor(Math.max(child.lane, p.lane));
+      return { d, color, key: `${child.id}->${p.id}` };
+    }),
+);
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>history</b></div>}
+
+  <div class="px-vgraph">
+    <svg
+      class="px-vgraph__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      preserveAspectRatio="xMinYMin meet"
+      role="img"
+      aria-label={caption ? `Version graph: ${caption}` : 'Version commit graph'}
+    >
+      <!-- edges (drawn under the dots) -->
+      <g class="px-vgraph__edges">
+        {edges.map((e, k) => (
+          <path
+            class="px-vgraph__edge"
+            d={e.d}
+            style={`stroke:${e.color}; --len:${(H + W).toFixed(0)}; transition-delay:${k * 60}ms`}
+          />
+        ))}
+      </g>
+
+      <!-- node dots -->
+      <g class="px-vgraph__nodes">
+        {geo.map((nd) => (
+          <circle
+            class="px-vgraph__dot"
+            cx={nd.x}
+            cy={nd.y}
+            r="5.5"
+            style={`fill:${nd.color}; transition-delay:${500 + nd.i * 70}ms`}
+          />
+        ))}
+      </g>
+    </svg>
+
+    <ul class="px-vgraph__legend">
+      {geo.map((nd) => (
+        <li class="px-vgraph__item" style={`--i:${nd.i}`}>
+          <span class="px-vgraph__swatch" style={`background:${nd.color}`}></span>
+          <span class="px-vgraph__id">{nd.id}</span>
+          {nd.label && <span class="px-vgraph__label">{nd.label}</span>}
+          {nd.tag && <span class="px-vgraph__tag">{nd.tag}</span>}
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-vgraph {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  /* small left/right gutter so dots near x=0 / x=W can't clip against the card */
+  .px-vgraph__svg { height: auto; display: block; overflow: visible; flex: none; padding: 0 2px; }
+
+  .px-vgraph__edge {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease);
+  }
+  .px-vgraph__dot {
+    stroke: var(--paper);
+    stroke-width: 2;
+    opacity: 1;
+    transform: scale(1);
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: opacity var(--t-quick) var(--ease), transform var(--t-soft) var(--ease-snap);
+  }
+
+  /* legend rows — aligned to the node rhythm */
+  .px-vgraph__legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .px-vgraph__item {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    height: 46px;          /* matches --ROW so legend lines up with dots */
+    padding-top: 18px;
+    box-sizing: border-box;
+    min-width: 0;          /* allow children to shrink inside the 1fr track */
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  .px-vgraph__swatch {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex: none; align-self: center;
+    box-shadow: 0 0 0 2px var(--paper);
+  }
+  .px-vgraph__id {
+    /* node id — big label in the signature face (mono for tech), ink, tabular
+       so commit/version ids with digits align */
+    font-family: var(--issue-face, var(--font-mono));
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+    flex: none;            /* the id stays whole; the label absorbs the squeeze */
+    white-space: nowrap;
+  }
+  .px-vgraph__label {
+    /* commit message — mono, ink-soft, tabular */
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    flex: 1 1 auto;        /* take the slack, shrink first when room is tight */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .px-vgraph__tag {
+    /* version tag chip — mono uppercase, legend-register letter-spacing, tabular */
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--rule));
+    border-radius: var(--r-pill);
+    padding: 2px 8px;
+    align-self: center;
+    white-space: nowrap;
+    flex: none;            /* never compressed; sits at the row's right end */
+    margin-left: auto;     /* pin to the right edge when the label is short */
+  }
+
+  /* reveal: edges stroke-draw, dots pop, legend rows fade in (behind html.js) */
+  html.js .px-viz:not(.is-in) .px-vgraph__edge { stroke-dashoffset: var(--len); }
+  html.js .px-viz:not(.is-in) .px-vgraph__dot { opacity: 0; transform: scale(0.1); }
+  html.js .px-viz:not(.is-in) .px-vgraph__item { opacity: 0; transform: translateX(8px); }
+  .px-viz.is-in .px-vgraph__item { transition-delay: calc(500ms + var(--i) * 70ms); }
+
+  @media (max-width: 480px) {
+    .px-vgraph__item { gap: 7px; }
+    .px-vgraph__label { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-vgraph__edge { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-vgraph__dot { opacity: 1 !important; transform: scale(1) !important; }
+    .px-viz:not(.is-in) .px-vgraph__item { opacity: 1 !important; transform: none !important; }
+  }
+</style>

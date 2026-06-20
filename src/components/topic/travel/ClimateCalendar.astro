@@ -1,0 +1,265 @@
+---
+/**
+ * ClimateCalendar (travel) — a month-by-month climate ribbon. One column per
+ * month: an upper temperature cell tinted warm→cool by the month's value, and
+ * a lower rainfall bar (height proportional to rainfall). A small legend shows
+ * the temperature gradient + the rainfall scale. The best (mildest) and wettest
+ * months get a subtle highlight ring. Cells reveal left→right on a stagger
+ * (scaleY + opacity, CSS, reveal-gated). Flat CSS grid — no 3D, no JS.
+ *
+ * No-JS / reduced-motion: cells paint at their FINAL height/opacity (hidden
+ * offsets sit behind `html.js`; reduced-motion resets with !important). Every
+ * value is labelled textually inside the cell.
+ *
+ * Temperature tint: linearly mapped across the month range onto a fixed
+ * cool→warm hue ramp (deterministic, theme-independent — the warm/cool palette
+ * is allowed as it is data-semantic, like the earth climate-strip gradient).
+ *
+ * data: { months[]{ month, temp?, rainfall?, note? }, tempUnit?, caption?, source? }
+ */
+interface Month { month: string; temp?: number; rainfall?: number; note?: string; }
+interface Props {
+  months: Month[];
+  tempUnit?: string;
+  caption?: string;
+  source?: string;
+}
+const { months = [], tempUnit = '°', caption, source } = Astro.props;
+
+const data = months.filter((m) => m && m.month);
+const hasData = data.length > 0;
+
+// ── temperature scale → warm/cool tint ───────────────────────────────────────
+const temps = data.map((m) => m.temp).filter((t): t is number => Number.isFinite(t));
+const tMin = temps.length ? Math.min(...temps) : 0;
+const tMax = temps.length ? Math.max(...temps) : 1;
+const tSpan = tMax - tMin || 1;
+
+// Cool → warm hue ramp (blue → teal → amber → red). Returns a CSS color.
+function tempColor(t: number | undefined): string {
+  if (!Number.isFinite(t)) return 'color-mix(in oklab, var(--ink) 6%, var(--bg))';
+  const f = Math.max(0, Math.min(1, ((t as number) - tMin) / tSpan)); // 0=coldest, 1=hottest
+  // hue 210 (cold blue) → 0 (hot red), gentle lightness arch (mid brighter)
+  const hue = 210 - f * 210;
+  const light = 58 - Math.abs(f - 0.5) * 14; // 51 at extremes, 58 mid
+  const sat = 62 + f * 12;
+  return `hsl(${hue.toFixed(0)} ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
+}
+
+// ── rainfall scale → bar height ───────────────────────────────────────────────
+const rains = data.map((m) => m.rainfall).filter((r): r is number => Number.isFinite(r));
+const rMax = rains.length ? Math.max(...rains) : 0;
+const rainPct = (r: number | undefined) =>
+  Number.isFinite(r) && rMax > 0 ? Math.max(4, ((r as number) / rMax) * 100) : 0;
+
+// ── highlights: mildest month (closest to a comfortable ~22°), wettest month ─
+const COMFORT = 22;
+let bestIdx = -1;
+if (temps.length) {
+  let bestDist = Infinity;
+  data.forEach((m, i) => {
+    if (Number.isFinite(m.temp)) {
+      const dist = Math.abs((m.temp as number) - COMFORT);
+      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+    }
+  });
+}
+let wettestIdx = -1;
+if (rains.length && rMax > 0) {
+  let max = -Infinity;
+  data.forEach((m, i) => {
+    if (Number.isFinite(m.rainfall) && (m.rainfall as number) > max) { max = m.rainfall as number; wettestIdx = i; }
+  });
+}
+
+const fmtTemp = (t: number) => (Number.isInteger(t) ? `${t}` : t.toFixed(1));
+const fmtRain = (r: number) => Math.round(r).toLocaleString();
+// Short month label (first 3 chars) for the axis row.
+const shortMonth = (m: string) => m.slice(0, 3);
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>climate</b></div>}
+
+  {hasData ? (
+    <div class="px-ccal">
+      <div class="px-ccal__grid" style={`--cols:${data.length}`}>
+        {data.map((m, i) => {
+          const hl = i === bestIdx ? 'best' : i === wettestIdx ? 'wet' : null;
+          return (
+            <div class="px-ccal__col" data-hl={hl} style={`--i:${i}`}>
+              <div
+                class="px-ccal__temp"
+                style={`--tc:${tempColor(m.temp)}`}
+                title={Number.isFinite(m.temp) ? `${fmtTemp(m.temp as number)}${tempUnit}` : 'no data'}
+              >
+                <span class="px-ccal__tval">
+                  {Number.isFinite(m.temp) ? <>{fmtTemp(m.temp as number)}<i>{tempUnit}</i></> : '—'}
+                </span>
+              </div>
+              <div class="px-ccal__rain">
+                <span class="px-ccal__rainbar" style={`--rh:${rainPct(m.rainfall).toFixed(1)}%`}></span>
+              </div>
+              <div class="px-ccal__rval">{Number.isFinite(m.rainfall) ? fmtRain(m.rainfall as number) : '·'}</div>
+              <div class="px-ccal__m">{shortMonth(m.month)}</div>
+              {hl && <span class="px-ccal__tag">{hl === 'best' ? 'best' : 'wettest'}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div class="px-ccal__legend">
+        <span class="px-ccal__key">
+          <i class="px-ccal__grad"></i>
+          {temps.length ? <>{fmtTemp(tMin)}{tempUnit} cool · warm {fmtTemp(tMax)}{tempUnit}</> : <>temperature</>}
+        </span>
+        <span class="px-ccal__key">
+          <i class="px-ccal__rainkey"></i>
+          {rains.length ? <>rainfall · peak {fmtRain(rMax)}</> : <>rainfall</>}
+        </span>
+      </div>
+    </div>
+  ) : (
+    <p class="px-ccal__empty">No climate data.</p>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-ccal { width: 100%; }
+  .px-ccal__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 12), 1fr);
+    gap: 5px;
+    align-items: end;
+  }
+
+  .px-ccal__col {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    gap: 5px;
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transform: none;
+    transform-origin: bottom;
+    transition: opacity var(--t-soft) var(--ease), transform 600ms var(--ease);
+  }
+
+  .px-ccal__temp {
+    position: relative;
+    min-height: 58px;
+    border-radius: var(--r-tile) var(--r-tile) 4px 4px;
+    background: var(--tc, color-mix(in oklab, var(--ink) 6%, var(--bg)));
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 6px 2px 8px;
+    transform-origin: bottom;
+  }
+  .px-ccal__tval {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
+    font-size: 17px; line-height: 1; color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.32); font-variant-numeric: tabular-nums;
+  }
+  .px-ccal__tval i { font-size: 0.6em; font-style: normal; opacity: 0.85; }
+
+  .px-ccal__rain {
+    height: 42px;
+    display: flex; align-items: flex-end;
+    background: color-mix(in oklab, var(--ink) 4%, var(--bg));
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .px-ccal__rainbar {
+    display: block; width: 100%;
+    height: var(--rh, 0%);
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--accent) 70%, var(--bg)),
+      var(--accent-deep, var(--accent))
+    );
+    border-radius: 4px 4px 0 0;
+    transform-origin: bottom;
+  }
+
+  /* rainfall mini-readout — axis-role numeric: mono muted tabular */
+  .px-ccal__rval {
+    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.04em;
+    color: var(--muted); text-align: center; font-variant-numeric: tabular-nums;
+  }
+  /* month label — display serif (in-viz title), ink-soft */
+  .px-ccal__m {
+    font-family: var(--issue-face, var(--font-display)); font-size: 13px; letter-spacing: 0;
+    color: var(--ink-soft); text-align: center; font-weight: 600; line-height: 1;
+  }
+
+  /* highlights */
+  .px-ccal__col[data-hl] .px-ccal__temp { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink); }
+  .px-ccal__col[data-hl="wet"] .px-ccal__temp { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--accent); }
+  .px-ccal__tag {
+    position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 700;
+    color: var(--paper); background: var(--ink);
+    padding: 2px 6px; border-radius: var(--r-pill); white-space: nowrap; z-index: 2;
+  }
+  .px-ccal__col[data-hl="wet"] .px-ccal__tag { background: var(--accent-deep, var(--accent)); }
+
+  /* reveal: cells rise + scale up left→right (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-ccal__col { opacity: 0; transform: scaleY(0.55) translateY(8px); }
+  .px-viz.is-in .px-ccal__col { transition-delay: calc(var(--i) * 55ms); }
+
+  /* legend — system legend role: mono uppercase muted ~10px ls 0.14em */
+  .px-ccal__legend {
+    display: flex; gap: 22px; flex-wrap: wrap;
+    margin-top: 18px;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    align-items: center;
+  }
+  .px-ccal__key { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+  .px-ccal__grad {
+    width: 90px; height: 12px; border-radius: var(--r-pill);
+    background: linear-gradient(90deg,
+      hsl(210 62% 51%), hsl(180 66% 56%), hsl(60 70% 56%), hsl(30 72% 54%), hsl(0 74% 51%));
+  }
+  .px-ccal__rainkey {
+    width: 14px; height: 14px; border-radius: 3px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--accent) 70%, var(--bg)), var(--accent-deep, var(--accent)));
+  }
+
+  .px-ccal__empty {
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    text-align: center; padding: 28px 0;
+  }
+
+  @media (max-width: 640px) {
+    /* 12 columns can't crush below a legible width at 375px, so let the grid
+       scroll horizontally and hold a per-column floor. overflow-x:auto forces
+       overflow-y to compute as auto, so reserve top room for the best/wettest
+       tag (top:-7px) and negate the side padding to bleed to the card edges. */
+    .px-ccal {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: 10px;
+      margin-inline: calc(-1 * var(--gutter, 0px));
+      padding-inline: var(--gutter, 0px);
+      scrollbar-width: none;
+    }
+    .px-ccal::-webkit-scrollbar { display: none; }
+    .px-ccal__grid {
+      gap: 3px;
+      min-width: 360px; /* ~28px per column + gaps — keeps temp values legible */
+    }
+    .px-ccal__tval { font-size: 13px; }
+    .px-ccal__temp { min-height: 46px; padding-left: 1px; padding-right: 1px; }
+    .px-ccal__rain { height: 32px; }
+    .px-ccal__m { font-size: 9px; letter-spacing: 0; }
+    .px-ccal__rval { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-ccal__col { opacity: 1 !important; transform: none !important; }
+  }
+</style>

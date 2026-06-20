@@ -15,8 +15,7 @@
   --accent-alt: #1e5a3f;          /* opposition green */
   --tape: #d9c896;
   --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter Tight', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* --font-body / --font-mono unified across topics in type-v2.css */
 }
 
 /* --- TIMELINE --- */
@@ -530,4 +529,61 @@
   font-family: var(--font-mono); font-size: 11px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
+}
+
+/* ============================================================================
+   V2 — elevated cards on politics data-viz (rounded + soft shadow + hover lift)
+   Card-type components adopt the .px-viz surface language; lists/rails (timeline,
+   seats) stay flat, matching the kit. Inner-detail + reveal animations: P3.
+   ============================================================================ */
+.px-vote,
+.px-paradox,
+.px-beats,
+.px-bills__card,
+.px-analogy {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-vote:hover,
+.px-paradox:hover,
+.px-beats:hover,
+.px-bills__card:hover,
+.px-analogy:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+/* clip the paradox's two inner panels to the rounded corners */
+.px-paradox { overflow: hidden; }
+/* soften the vote readout bar */
+.px-vote__bar { border-radius: var(--r-card); }
+
+/* approval chart: the SVG is the card surface */
+.px-appr__svg {
+  border-radius: var(--r-tile);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+}
+
+/* power matrix: promote the block to an elevated card (caption sits inside) */
+.px-pwm {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-tile);
+  padding: 24px 26px;
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+}
+.px-pwm:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
 }

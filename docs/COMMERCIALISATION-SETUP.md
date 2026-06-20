@@ -56,7 +56,7 @@
 1. Sign up at [iubenda.com](https://www.iubenda.com).
 2. Generate a privacy policy for `parallaxlens.com`:
    - Services to include: Supabase (auth + database), Resend (email),
-     Vercel (hosting), Anthropic API (AI Q&A), fal.ai (image gen).
+     Vercel (hosting), Anthropic API (AI Q&A).
    - User rights: GDPR + India PDPDP both selected.
 3. Generate a terms-and-conditions doc — basic template is fine for v1.
 4. Copy the **embed snippets** for both. You'll paste them into
@@ -103,7 +103,6 @@ After accounts exist, add the keys to `.env.local`:
 ```bash
 # Existing
 ANTHROPIC_API_KEY=sk-ant-api03-...
-FAL_KEY=fal-...
 
 # New for Phase A
 PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
@@ -180,5 +179,5 @@ traffic. Iubenda is the only thing worth paying for from day one (legal
 exposure).
 
 So **realistic first-month cost: ~$10** (Iubenda only). Phase A
-development burns no marginal $$ — Anthropic + fal.ai stay on the
-existing pipeline credits.
+development burns no marginal $$ — Anthropic stays on the existing
+pipeline credits.

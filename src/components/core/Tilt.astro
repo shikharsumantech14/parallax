@@ -1,0 +1,47 @@
+---
+/**
+ * Tilt — vanilla island for the CSS-3D interactive pieces:
+ *   [data-tilt="<deg>"] → pointer-tilt: writes --rx/--ry (clamped to <deg>) on
+ *                         pointermove, resets on pointerleave. Skipped entirely
+ *                         under prefers-reduced-motion.
+ *   [data-flip-btn]     → toggles .is-flipped on the `.px3d-flip` inside its
+ *                         nearest [data-flip-card] (a discrete flip).
+ *
+ * No-JS: nothing runs — cards stay flat and front-facing (the --rx/--ry vars
+ * default to 0 in components-3d.css). Render ONCE per page (issue layout).
+ */
+---
+<script is:inline>
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!reduce) {
+      document.querySelectorAll('[data-tilt]').forEach(function (el) {
+        var max = parseFloat(el.getAttribute('data-tilt')) || 10;
+        el.addEventListener('pointermove', function (e) {
+          var r = el.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          var px = (e.clientX - r.left) / r.width - 0.5;
+          var py = (e.clientY - r.top) / r.height - 0.5;
+          el.style.setProperty('--ry', (px * max * 2).toFixed(2) + 'deg');
+          el.style.setProperty('--rx', (-py * max * 2).toFixed(2) + 'deg');
+        });
+        el.addEventListener('pointerleave', function () {
+          el.style.setProperty('--rx', '0deg');
+          el.style.setProperty('--ry', '0deg');
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-flip-btn]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('[data-flip-card]');
+        var target = card && card.querySelector('.px3d-flip');
+        if (target) {
+          var flipped = target.classList.toggle('is-flipped');
+          btn.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+        }
+      });
+    });
+  })();
+</script>

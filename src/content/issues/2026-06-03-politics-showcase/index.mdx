@@ -1,0 +1,245 @@
+---
+id: "2026-06-03-politics-showcase"
+topic: politics
+title: "The Politics *Styleguide*"
+hook: "Every politics data-viz component, demonstrated on one coalition's confidence vote."
+dek: "A single reference page for the politics signature library — orbit, dial, ladder, Sankey, and the rest."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 4
+primer: "This is a styleguide, not an issue. It walks through every politics signature component — coalition orbit, swing dial, bill passage, vote-flow Sankey, margin ladder, vote result, approval chart, power matrix, seat chart, and timeline — using one running scenario: the 2025 German Bundestag and the confidence vote that defined its first year."
+
+sections:
+  - kind: prose
+    eyebrow: "HOW TO READ THIS PAGE"
+    title: "One coalition, *ten* views."
+    intro: "This page is the politics component styleguide. Each block below renders a different signature visualisation with realistic data, and explains what that data represents and how the reader is meant to interact with it."
+    data:
+      lead: "Every Parallax politics issue is built from a small kit of data-viz components. This page exists so an editor — or an agent — can see all of them at once, fed with plausible real-world numbers, before deciding which to use in a real issue."
+      paragraphs:
+        - "The running example is Germany's 21st Bundestag, elected in February 2025, and the CDU/CSU–SPD coalition that formed under Chancellor Friedrich Merz in May 2025. The seat totals, the coalition arithmetic, and the order of legislative stages are drawn from public records; the per-vote breakdowns and approval series are illustrative reconstructions chosen to exercise each component, not certified division records."
+        - "Read each section's intro first — it tells you what the chart underneath is plotting and what happens when you scroll it into view, drag it, or hover a row. Then read the chart. The components below appear in the same order the kit lists them: the three-dimensional and interactive pieces first, then the flat charts that have shipped in published issues."
+
+  - kind: coalition-orbit
+    eyebrow: "THE GOVERNMENT CORE"
+    title: "Who *orbits* the chancellery."
+    intro: "Each party is a body orbiting the government core, sized by its seat count and coloured by bloc. Drag to spin the diagram; the legend below lists every party with its seat share. This shows the full party composition of the 630-seat Bundestag after the 2025 federal election."
+    data:
+      caption: "21st Bundestag · seats by party · Feb 2025 election"
+      totalSeats: 630
+      source: "Bundeswahlleiterin, official 2025 federal election result"
+      parties:
+        - { name: "CDU/CSU", seats: 208, color: "#111111", bloc: "Government" }
+        - { name: "AfD", seats: 152, color: "#009ee0", bloc: "Opposition" }
+        - { name: "SPD", seats: 120, color: "#e3000f", bloc: "Government" }
+        - { name: "Grüne", seats: 85, color: "#46962b", bloc: "Opposition" }
+        - { name: "Die Linke", seats: 64, color: "#be3075", bloc: "Opposition" }
+        - { name: "SSW", seats: 1, color: "#003c8f", bloc: "Cross-bench" }
+
+  - kind: swing-dial
+    eyebrow: "THE BALANCE OF THE HOUSE"
+    title: "Which way the chamber *leans*."
+    intro: "A swing-o-meter mapping the overall lean of the chamber onto a single needle, from -100 (full left bloc) to +100 (full right bloc). The needle swings to its final angle on scroll-in; the markers note where individual blocs sit. Here it plots the seat balance between the left and right blocs of the 2025 Bundestag."
+    data:
+      leftLabel: "Left bloc"
+      rightLabel: "Right bloc"
+      value: 18
+      caption: "Net chamber lean · seat-weighted, 21st Bundestag"
+      source: "Derived from Bundeswahlleiterin 2025 seat totals"
+      markers:
+        - { at: -42, label: "Linke + Grüne + SPD" }
+        - { at: 5, label: "Majority line" }
+        - { at: 57, label: "CDU/CSU + AfD" }
+
+  - kind: bill-passage
+    eyebrow: "THE LEGISLATIVE TRACK"
+    title: "How a bill *moves*."
+    intro: "A horizontal track of legislative stages, each card marked passed, failed, current, or pending. Cards advance along the track on scroll-in. This traces the 2025 constitutional amendment that loosened Germany's debt brake to fund defence and infrastructure."
+    data:
+      caption: "Debt-brake reform package · path through the legislature, March 2025"
+      source: "Deutscher Bundestag & Bundesrat plenary records, 18–21 March 2025"
+      stages:
+        - { label: "Cabinet draft", status: "passed", date: "10 Mar 2025", note: "Tabled by the outgoing coalition with CDU/CSU backing." }
+        - { label: "First reading", status: "passed", date: "13 Mar 2025", note: "Referred to the budget committee." }
+        - { label: "Bundestag vote", status: "passed", date: "18 Mar 2025", note: "513 in favour — clears the two-thirds bar." }
+        - { label: "Bundesrat vote", status: "passed", date: "21 Mar 2025", note: "Required state-chamber two-thirds secured." }
+        - { label: "Federal assent", status: "current", date: "Apr 2025", note: "Signed and promulgated into the Basic Law." }
+        - { label: "Implementing budgets", status: "pending", note: "Annual appropriations follow under the new ceiling." }
+
+  - kind: vote-flow
+    eyebrow: "THE DIVISION, AS FLOW"
+    title: "Where the votes *went*."
+    intro: "A Sankey diagram: each bloc on the left flows by seat count into For, Against, or Abstain, then into a single outcome node. Node heights and ribbon widths are proportional to seats; hover a ribbon to isolate it. This reconstructs the May 2025 vote that elected Friedrich Merz chancellor on the second ballot."
+    data:
+      caption: "Chancellor election · second ballot · 6 May 2025"
+      source: "Illustrative reconstruction of the 6 May 2025 Bundestag ballot"
+      outcome: { label: "Merz elected Chancellor", passed: true }
+      blocs:
+        - { name: "CDU/CSU", seats: 208, color: "#111111", vote: "for" }
+        - { name: "SPD", seats: 120, color: "#e3000f", vote: "for" }
+        - { name: "AfD", seats: 152, color: "#009ee0", vote: "against" }
+        - { name: "Die Linke", seats: 64, color: "#be3075", vote: "against" }
+        - { name: "Grüne", seats: 85, color: "#46962b", vote: "abstain" }
+        - { name: "SSW + independents", seats: 1, color: "#003c8f", vote: "abstain" }
+
+  - kind: margin-ladder
+    eyebrow: "THE CLOSEST RACES"
+    title: "Won by *how* much."
+    intro: "Constituencies ranked by win margin as bars on a tilted, receding plane — widest margin at the top. Bars grow from zero on scroll-in; a row lifts on hover. These are illustrative first-vote (Erststimme) margins from a selection of 2025 direct-mandate districts."
+    data:
+      caption: "Selected direct-mandate margins · Erststimme · 2025"
+      source: "Illustrative constituency margins, 2025 federal election"
+      rows:
+        - { label: "München-Süd", margin: 41280, winner: "CSU", color: "#111111" }
+        - { label: "Leipzig II", margin: 33110, winner: "Die Linke", color: "#be3075" }
+        - { label: "Köln-Mitte", margin: 21940, winner: "Grüne", color: "#46962b" }
+        - { label: "Dortmund I", margin: 17460, winner: "SPD", color: "#e3000f" }
+        - { label: "Görlitz", margin: 9120, winner: "AfD", color: "#009ee0" }
+        - { label: "Potsdam", margin: 2310, winner: "SPD", color: "#e3000f" }
+
+  - kind: vote-result
+    eyebrow: "THE ARITHMETIC"
+    title: "The first *ballot* that failed."
+    intro: "The vote bar: animated for/against segments, a dashed threshold marker for the required majority, and a dot-chamber with one dot per member present. This shows the first chancellor ballot on 6 May 2025 — the one Merz unexpectedly lost before winning on the second."
+    data:
+      for: 310
+      against: 307
+      required: 316
+      present: 621
+      shortfall: 6
+      label: "Chancellor election · first ballot · 6 May 2025"
+      stamp: "Failed"
+
+  - kind: approval-chart
+    eyebrow: "THE NUMBERS OVER TIME"
+    title: "A chancellor's first *year*."
+    intro: "A dual-line time series of approve versus disapprove, stroke-drawn left to right on scroll-in. This is an illustrative monthly approval reconstruction for Chancellor Merz across his first year in office."
+    data:
+      subject: "Chancellor Merz · Approval Rating"
+      source: "Illustrative monthly approval reconstruction, 2025–2026"
+      points:
+        - { date: "May 2025", approve: 44, disapprove: 38 }
+        - { date: "Jun 2025", approve: 41, disapprove: 44 }
+        - { date: "Jul 2025", approve: 39, disapprove: 47 }
+        - { date: "Aug 2025", approve: 37, disapprove: 49 }
+        - { date: "Sep 2025", approve: 38, disapprove: 48 }
+        - { date: "Oct 2025", approve: 40, disapprove: 46 }
+        - { date: "Nov 2025", approve: 36, disapprove: 51 }
+        - { date: "Dec 2025", approve: 35, disapprove: 52 }
+        - { date: "Jan 2026", approve: 37, disapprove: 50 }
+        - { date: "Feb 2026", approve: 41, disapprove: 47 }
+        - { date: "Mar 2026", approve: 43, disapprove: 45 }
+        - { date: "Apr 2026", approve: 42, disapprove: 46 }
+
+  - kind: power-matrix
+    eyebrow: "THE BALANCE OF POWER"
+    title: "Who controls *what*."
+    intro: "An institution-by-bloc control grid: each cell marks whether a bloc holds full, partial, or no control of an institution. Cells scale in row by row on scroll. This maps the spread of institutional power across Germany's federal architecture in 2025."
+    data:
+      caption: "Federal institutional control · Germany, 2025"
+      source: "Bundestag, Bundesrat & Bundesverfassungsgericht public records, 2025"
+      institutions:
+        - "Bundestag (lower house)"
+        - "Bundesrat (state chamber)"
+        - "Chancellery / Cabinet"
+        - "State governments (Länder)"
+        - "Federal Constitutional Court"
+      parties:
+        - { id: "union", label: "CDU/CSU + SPD", color: "#111111" }
+        - { id: "afd", label: "AfD", color: "#009ee0" }
+        - { id: "left", label: "Grüne + Linke", color: "#46962b" }
+      cells:
+        - { institution: "Bundestag (lower house)", party: "union", control: "full" }
+        - { institution: "Bundestag (lower house)", party: "afd", control: "none" }
+        - { institution: "Bundestag (lower house)", party: "left", control: "none" }
+        - { institution: "Bundesrat (state chamber)", party: "union", control: "partial" }
+        - { institution: "Bundesrat (state chamber)", party: "afd", control: "none" }
+        - { institution: "Bundesrat (state chamber)", party: "left", control: "partial" }
+        - { institution: "Chancellery / Cabinet", party: "union", control: "full" }
+        - { institution: "Chancellery / Cabinet", party: "afd", control: "none" }
+        - { institution: "Chancellery / Cabinet", party: "left", control: "none" }
+        - { institution: "State governments (Länder)", party: "union", control: "partial" }
+        - { institution: "State governments (Länder)", party: "afd", control: "partial" }
+        - { institution: "State governments (Länder)", party: "left", control: "partial" }
+        - { institution: "Federal Constitutional Court", party: "union", control: "contested" }
+        - { institution: "Federal Constitutional Court", party: "afd", control: "none" }
+        - { institution: "Federal Constitutional Court", party: "left", control: "contested" }
+
+  - kind: seat-chart
+    eyebrow: "THE SHIFT FROM LAST TIME"
+    title: "Who *gained*, who lost."
+    intro: "A diverging seat-change chart: each party's current seat count beside a bar showing how many seats it gained or lost versus the previous election, split north/south by colour band. This compares the 2025 Bundestag with the 2021 result."
+    data:
+      subtitle: "Seat change · 2021 → 2025 Bundestag"
+      source: "Bundeswahlleiterin, 2021 and 2025 federal election results"
+      rows:
+        - { name: "CDU/CSU", region: "north", current: 208, change: 11 }
+        - { name: "AfD", region: "north", current: 152, change: 69 }
+        - { name: "SPD", region: "south", current: 120, change: -86 }
+        - { name: "Grüne", region: "south", current: 85, change: -33 }
+        - { name: "Die Linke", region: "north", current: 64, change: 25 }
+
+  - kind: timeline
+    eyebrow: "THE YEAR IN SIX DATES"
+    title: "From ballot to *budget*."
+    intro: "A vertical timeline rail with state-coloured nodes — default, key, fail, and now — that fade and rise in a stagger on scroll. This sequences the key moments of the 2025 Bundestag's formation, from election night to the chancellor's first year."
+    data:
+      events:
+        - date: "23 Feb 2025"
+          state: key
+          label: "**Federal election.** CDU/CSU win 208 seats; AfD doubles to 152."
+          note: "Olaf Scholz's SPD falls to third place; coalition talks open immediately."
+        - date: "18 Mar 2025"
+          state: default
+          label: "**Debt-brake reform clears the Bundestag.**"
+          note: "The outgoing parliament loosens borrowing limits before the new house convenes."
+        - date: "9 Apr 2025"
+          state: default
+          label: "**Coalition agreement signed.**"
+          note: "CDU/CSU and SPD agree a programme and divide the cabinet."
+        - date: "6 May 2025"
+          state: fail
+          label: "**First chancellor ballot fails.**"
+          note: "Merz falls six votes short on the secret first ballot — a post-war first."
+        - date: "6 May 2025"
+          state: key
+          label: "**Merz elected on the second ballot.**"
+          note: "A same-day re-vote installs him as the tenth Federal Chancellor."
+        - date: "Apr 2026"
+          state: now
+          label: "**First year closes with approval recovering.**"
+          note: "After a summer trough, the chancellor's numbers climb back toward parity."
+
+sources:
+  - id: "src-01"
+    title: "2025 German federal election — official result"
+    publisher: "Die Bundeswahlleiterin"
+    url: "https://www.bundeswahlleiterin.de/en/bundestagswahlen/2025/ergebnisse.html"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-02"
+    title: "Friedrich Merz elected Chancellor on second ballot, 6 May 2025"
+    publisher: "Deutscher Bundestag — plenary records"
+    url: "https://www.bundestag.de/en/parliament/plenary"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-03"
+    title: "Bundestag approves reform of the debt brake, March 2025"
+    publisher: "Reuters"
+    url: "https://www.reuters.com/world/europe/german-parliament-votes-historic-spending-surge-2025-03-18/"
+    accessedAt: "2026-06-03"
+    kind: secondary
+  - id: "src-04"
+    title: "Composition and seat distribution of the 21st Bundestag"
+    publisher: "Deutscher Bundestag"
+    url: "https://www.bundestag.de/en/parliament/elections"
+    accessedAt: "2026-06-03"
+    kind: primary
+---
+
+{/*
+  This is the politics component styleguide. All ten signature visualisations
+  are exercised in the structured `sections` above with realistic — but in
+  several cases illustratively reconstructed — data. Keep this MDX body empty.
+*/}

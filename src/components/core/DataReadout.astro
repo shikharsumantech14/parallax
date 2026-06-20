@@ -1,4 +1,19 @@
 ---
+/**
+ * DataReadout — v2 telemetry card (.tel). Count-up value tiles with a
+ * left-to-right "scan sweep" that fires per tile on scroll-in (the sweep is
+ * driven by `--i` and `.tel.is-in .tel__tile::before` in dataviz-v2.css).
+ * Faithful port of publication-v2 <Telemetry> / <TelemetryTile>. Build-time,
+ * zero runtime JS — count-up tween + reveal are handled by the shared
+ * core/VizMotion.astro + core/Reveal.astro islands.
+ *
+ * This is a CORE (topic-agnostic) component, so the "Live · nominal" status
+ * pip is opt-in via the `status` prop and omitted by default.
+ *
+ * props (interface preserved):
+ *   tiles[] — { value: string, unit?, label, note?, emphasis?, color? }
+ *   caption · source · status?
+ */
 import { renderInline } from '../../lib/text';
 
 interface Tile {
@@ -7,29 +22,53 @@ interface Tile {
   label: string;
   note?: string;
   emphasis?: 'default' | 'key' | 'warn';
+  color?: string;
 }
 
 interface Props {
   tiles: Tile[];
   caption?: string;
   source?: string;
+  status?: string;
 }
-const { tiles, caption, source } = Astro.props;
+const { tiles, caption, source, status } = Astro.props;
+
+// A value counts up only when it is a plain integer, optionally with thousands
+// separators (e.g. "39", "10,074", "300,000"). Anything with other glyphs
+// (e.g. "~10", "$150,000", "GO") renders verbatim with no count-up.
+const countUpValue = (v: string): number | null => {
+  if (typeof v !== 'string') return null;
+  if (!/^\d{1,3}(,\d{3})*$|^\d+$/.test(v.trim())) return null;
+  const n = parseInt(v.replace(/,/g, ''), 10);
+  return Number.isFinite(n) ? n : null;
+};
 ---
 
-<div class="px-readout">
-  {caption && <div class="px-readout__caption">{caption}</div>}
-  <div class="px-readout__grid">
-    {tiles.map((t) => (
-      <div class="px-readout__tile" data-emphasis={t.emphasis ?? 'default'}>
-        <div class="px-readout__value">
-          <span class="px-readout__num">{t.value}</span>
-          {t.unit && <span class="px-readout__unit">{t.unit}</span>}
+<div class="tel" data-reveal>
+  {caption && (
+    <div class="tel__cap">
+      <span>{caption}</span>
+      {status && <span class="tel__cap-status">{status}</span>}
+    </div>
+  )}
+  <div class="tel__grid">
+    {tiles.map((t, i) => {
+      const n = countUpValue(t.value);
+      return (
+        <div class="tel__tile" data-emphasis={t.emphasis ?? 'default'} style={`--i:${i}`}>
+          <div class="tel__val">
+            {n != null ? (
+              <span class="tel__n" data-countup={n} style={t.color ? `color:${t.color}` : undefined}>{t.value}</span>
+            ) : (
+              <span class="tel__n" style={t.color ? `color:${t.color}` : undefined}>{t.value}</span>
+            )}
+            {t.unit && <span class="tel__u">{t.unit}</span>}
+          </div>
+          <div class="tel__l" set:html={renderInline(t.label)} />
+          {t.note && <div class="tel__note" set:html={renderInline(t.note)} />}
         </div>
-        <div class="px-readout__label" set:html={renderInline(t.label)} />
-        {t.note && <div class="px-readout__note" set:html={renderInline(t.note)} />}
-      </div>
-    ))}
+      );
+    })}
   </div>
-  {source && <div class="px-readout__source">{source}</div>}
+  {source && <div class="tel__src">Sources · {source}</div>}
 </div>

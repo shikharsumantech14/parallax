@@ -1,19 +1,23 @@
 ---
-/*
-  AdoptionCurve — technology S-curve adoption chart.
-  SVG, build-time, zero runtime JS.
-
-  Shows technology diffusion over time (Rogers' curve).
-  Milestones annotate key moments on or near the curve.
-
-  props:
-    points[]      — { year: number, pct: number }  (0–100)
-    milestones[]  — { year: number, label: string, pct?: number }
-    xLabel        — x-axis label (e.g. "Year")
-    yLabel        — y-axis label (e.g. "% Adoption")
-    caption
-    source
-*/
+/**
+ * AdoptionCurve — v2 technology S-curve (.adc) inside the elevated .px-viz
+ * card. The curve stroke-draws left→right on scroll, the gradient area fades
+ * in behind, milestone pins pop in sequence, and a milestone strip lists the
+ * key moments below. Faithful port of the publication-v2 kit <AdoptionCurve>.
+ * Build-time SVG, zero runtime JS (reveal handled by CSS; core/Reveal.astro
+ * toggles .is-in on the .px-viz shell). Reuses the shared .ac__grid / .ac__axis
+ * classes (defined in dataviz-v2.css).
+ *
+ * Shows technology diffusion over time (Rogers' curve).
+ *
+ * props:
+ *   points[]     — { year: number, pct: number }  (0–100)
+ *   milestones[] — { year: number, label: string }
+ *   xLabel       — x-axis label (kept for schema parity; not rendered by kit)
+ *   yLabel       — caption unit chip (e.g. "% Adoption")
+ *   caption
+ *   source
+ */
 interface CurvePoint { year: number; pct: number; }
 interface Milestone  { year: number; label: string; pct?: number; }
 interface Props {
@@ -27,147 +31,69 @@ interface Props {
 const {
   points = [],
   milestones = [],
-  xLabel = 'Year',
   yLabel = '% Adoption',
   caption,
   source,
 } = Astro.props;
 
-const W = 760, H = 280;
-const PAD = { top: 28, right: 24, bottom: 44, left: 50 };
-const cW  = W - PAD.left - PAD.right;
-const cH  = H - PAD.top - PAD.bottom;
+const W = 640, H = 300, padL = 36, padR = 16, padT = 16, padB = 30;
+const iw = W - padL - padR, ih = H - padT - padB;
+const n = points.length;
+const x = (i: number) => padL + (n > 1 ? i / (n - 1) : 0.5) * iw;
+const y = (v: number) => padT + (1 - Math.max(0, Math.min(100, v)) / 100) * ih;
 
-if (points.length < 2) { /* nothing to render */ }
-
-const minYear = Math.min(...points.map(p => p.year));
-const maxYear = Math.max(...points.map(p => p.year));
-const yearSpan = maxYear - minYear || 1;
-
-const xOf = (yr: number) => PAD.left + ((yr - minYear) / yearSpan) * cW;
-const yOf = (pct: number) => PAD.top + cH - (Math.max(0, Math.min(100, pct)) / 100) * cH;
-
-const curvePath = points.map((p, i) =>
-  `${i === 0 ? 'M' : 'L'} ${xOf(p.year).toFixed(1)},${yOf(p.pct).toFixed(1)}`
-).join(' ');
-
-// Closed area path for fill under curve
-const areaPath = points.length >= 2
-  ? `${curvePath} L ${xOf(maxYear).toFixed(1)},${(PAD.top + cH).toFixed(1)}` +
-    ` L ${xOf(minYear).toFixed(1)},${(PAD.top + cH).toFixed(1)} Z`
-  : '';
-
-const yTicks = [0, 25, 50, 75, 100];
-
-// Year axis: show first, middle, last
-const xYears = points.length >= 2
-  ? [...new Set([minYear, Math.round((minYear + maxYear) / 2), maxYear])]
-  : [minYear];
-
-// Find approximate pct for each milestone (interpolate curve)
-function curveAt(yr: number): number {
-  if (points.length === 0) return 0;
-  for (let i = 1; i < points.length; i++) {
-    if (yr <= points[i].year) {
-      const t = (yr - points[i - 1].year) / (points[i].year - points[i - 1].year || 1);
-      return points[i - 1].pct + t * (points[i].pct - points[i - 1].pct);
-    }
-  }
-  return points[points.length - 1].pct;
-}
-
-interface MilestoneData {
-  year: number;
-  label: string;
-  cx: number;
-  cy: number;
-  above: boolean;
-  anchor: string;   // SVG text-anchor
-}
-
-const msData: MilestoneData[] = milestones.map((m, i) => {
-  const pct = m.pct ?? curveAt(m.year);
-  const mx  = xOf(m.year);
-  // Near right edge → right-align so label doesn't clip
-  const nearRight = mx > PAD.left + cW - 90;
-  const nearLeft  = mx < PAD.left + 40;
-  return {
-    year: m.year,
-    label: m.label,
-    cx: mx,
-    cy: yOf(pct),
-    above: i % 2 === 0,
-    anchor: nearRight ? 'end' : nearLeft ? 'start' : 'middle',
-  };
-});
+const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ');
+const area = n > 1 ? `${line} L${x(n - 1).toFixed(1)} ${padT + ih} L${padL} ${padT + ih} Z` : '';
+const idxForYear = (yr: number) => points.findIndex((p) => p.year === yr);
+const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
 ---
 
-<div class="px-scurve">
-  {caption && <div class="px-scurve__caption">{caption}</div>}
+<div class="px-viz" data-reveal>
+  <div class="px-viz__cap"><span>{caption}</span>{yLabel && <b>{yLabel}</b>}</div>
 
-  <svg viewBox={`0 0 ${W} ${H}`} class="px-scurve__svg" role="img"
-    aria-label={`Technology adoption curve${caption ? ': ' + caption : ''}`}>
-
-    <!-- Y gridlines + labels -->
-    {yTicks.map(t => (
-      <>
-        <line x1={PAD.left} x2={PAD.left + cW} y1={yOf(t)} y2={yOf(t)}
-          style={t === 50
-            ? 'stroke:var(--accent);stroke-width:0.7;stroke-dasharray:5 4;opacity:0.4'
-            : 'stroke:var(--rule);stroke-width:0.4;opacity:0.6'} />
-        <text x={PAD.left - 6} y={yOf(t)} text-anchor="end" dominant-baseline="middle"
-          style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.04em">
-          {t}%
-        </text>
-      </>
-    ))}
-
-    <!-- Y axis label -->
-    <text
-      transform={`translate(12, ${PAD.top + cH / 2}) rotate(-90)`}
-      text-anchor="middle"
-      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.08em;text-transform:uppercase">
-      {yLabel}
-    </text>
-
-    <!-- Area fill -->
-    <path d={areaPath} style="fill:var(--accent);fill-opacity:0.08" />
-
-    <!-- Curve line -->
-    <path d={curvePath}
-      style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round" />
-
-    <!-- Milestone markers -->
-    {msData.map(m => {
-      const lblY = m.above ? m.cy - 22 : m.cy + 26;
+  <svg class="adc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
+    aria-label={caption ? `Adoption curve: ${caption}` : 'Technology adoption curve'}>
+    <g class="ac__grid">
+      {[0, 25, 50, 75, 100].map((v) => (
+        <g>
+          <line x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} stroke="var(--rule)" />
+          <text class="ac__axis" x={padL - 8} y={y(v) + 3} text-anchor="end">{v}</text>
+        </g>
+      ))}
+    </g>
+    <defs>
+      <linearGradient id="adcFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22" />
+        <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    {area && <path class="adc__area" d={area} fill="url(#adcFill)" />}
+    <path class="adc__line" d={line} style="--len:1700" />
+    {milestones.map((m, k) => {
+      const i = idxForYear(m.year);
+      if (i < 0) return null;
+      const px = x(i), py = y(points[i].pct);
       return (
-        <>
-          <line x1={m.cx} y1={m.cy} x2={m.cx} y2={lblY}
-            style="stroke:var(--ink-soft);stroke-width:0.7;stroke-dasharray:3 3;opacity:0.5" />
-          <circle cx={m.cx} cy={m.cy} r={4}
-            style="fill:var(--accent);stroke:var(--bg);stroke-width:1.5" />
-          <text x={m.cx} y={lblY - (m.above ? 2 : -2)} text-anchor={m.anchor}
-            style="font-family:'JetBrains Mono',monospace;font-size:9.5px;
-                   fill:var(--ink-soft);letter-spacing:0.03em">
-            {m.label}
-          </text>
-        </>
+        <g class="adc__pin" style={`transition-delay:${900 + k * 120}ms`}>
+          <circle cx={px} cy={py} r="3.5" fill="var(--accent)" stroke="var(--paper)" stroke-width="1.5" />
+        </g>
       );
     })}
-
-    <!-- X axis labels -->
-    {xYears.map(yr => (
-      <text x={xOf(yr)} y={H - 6} text-anchor="middle"
-        style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.04em">
-        {yr}
-      </text>
+    {xShow.map((i) => (
+      <text class="ac__axis" x={x(i)} y={H - 8} text-anchor="middle">{String(points[i].year).slice(2)}</text>
     ))}
-
-    <!-- X axis label -->
-    <text x={PAD.left + cW / 2} y={H - 6} text-anchor="middle"
-      style="font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted);letter-spacing:0.08em;text-transform:uppercase">
-    </text>
   </svg>
 
-  {source && <div class="px-scurve__source">{source}</div>}
+  {milestones.length > 0 && (
+    <div class="adc__milestones">
+      {milestones.map((m) => (
+        <div class="adc__ms">
+          <div class="adc__ms-yr">{m.year}</div>
+          <div class="adc__ms-lbl">{m.label}</div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

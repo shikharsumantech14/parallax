@@ -156,7 +156,8 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     text-transform: uppercase;
     padding: 8px 14px;
     cursor: pointer;
-    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    border-radius: var(--r-card);
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
     line-height: 1;
   }
   .px-save__btn:hover:not(:disabled) {
@@ -177,11 +178,11 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     border: 1.5px solid currentColor;
     border-bottom: none;
     clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
   }
   .px-save__btn[data-state="saved"] {
-    color: var(--accent);
-    border-color: var(--accent);
+    color: var(--accent-deep, var(--accent));
+    border-color: var(--accent-deep, var(--accent));
   }
   .px-save__btn[data-state="saved"]:hover {
     color: var(--accent-deep, var(--accent));

@@ -1,0 +1,180 @@
+---
+/**
+ * ArchStack (tech) — an exploded architecture stack. Horizontal slabs stack in
+ * 3D perspective (top slab = frontend/app, bottom = infra) on the shared
+ * `.px3d-stage` + `.px3d-tilt` (global core/Tilt.astro `data-tilt` island gives
+ * the stack pointer-tilt). Each slab carries a label + optional sublabel and an
+ * optional per-layer color. On reveal the slabs "explode" apart from a collapsed
+ * (flush) state — staggered translateY/translateZ + opacity. Hovering a slab
+ * lifts it toward the reader. Build-time geometry; zero runtime JS.
+ *
+ * No-JS / reduced-motion: slabs paint in their FINAL exploded, separated layout
+ * (the collapsed hidden state sits behind `html.js`; reduced-motion resets with
+ * !important). Labels are plain text, always present.
+ *
+ * data: { layers[]{ label, sublabel?, color? }, caption?, source? }
+ */
+interface Layer { label: string; sublabel?: string; color?: string; }
+interface Props { layers: Layer[]; caption?: string; source?: string; }
+const { layers = [], caption, source } = Astro.props;
+
+// Geometry — slabs are separated along the depth axis. Each slab gets a
+// translateZ that steps the layers forward, plus a small vertical offset so the
+// exploded planes read as discrete, stacked sheets receding into the scene.
+const n = layers.length;
+// Depth budget: the nearest slab is magnified by perspective (≈ persp/(persp−z),
+// persp≈1100px). To stop a tall stack from magnifying the front slab past the
+// card width (and overflowing on mobile), cap the TOTAL depth and divide it
+// across the layers — so STEP_Z shrinks as layers grow. Front-slab z stays
+// ≤ Z_BUDGET → magnification ≤ ~1.1×.
+const Z_BUDGET = 108; // px of total depth front-to-back (was (n-1)*26, uncapped)
+const STEP_Z = n > 1 ? Math.min(26, Z_BUDGET / (n - 1)) : 0;
+const STEP_Y = 4;    // px of vertical drift per slab (subtle parallax)
+const slabs = layers.map((l, i) => {
+  // top of the list (i = 0) sits highest + nearest the reader
+  const depth = (n - 1 - i) * STEP_Z; // bottom slab pushed furthest back
+  const drift = (i - (n - 1) / 2) * STEP_Y;
+  return {
+    ...l,
+    color: l.color || 'var(--accent)',
+    z: depth.toFixed(1),
+    y: drift.toFixed(1),
+    i,
+  };
+});
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>architecture</b></div>}
+
+  <div class="px-arch px3d-stage">
+    <div class="px-arch__tilt px3d-tilt" data-tilt="7">
+      <div class="px-arch__stack">
+        {slabs.map((s) => (
+          <div
+            class="px-arch__slab"
+            style={`--i:${s.i}; --z:${s.z}px; --y:${s.y}px; --slab:${s.color}`}
+          >
+            <span class="px-arch__face">
+              <span class="px-arch__label">{s.label}</span>
+              {s.sublabel && <span class="px-arch__sub">{s.sublabel}</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-arch {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    /* horizontal padding reserves headroom for the perspective magnification of
+       the front slab (≈1.1×) so it can't bleed past the card edge */
+    padding: 14px 22px;
+    box-sizing: border-box;
+  }
+  .px-arch__tilt {
+    transform-origin: 50% 50%;
+    /* the stack itself sits in 3D space so slab translateZ separates the planes */
+    transform-style: preserve-3d;
+  }
+  .px-arch__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transform-style: preserve-3d;
+  }
+
+  .px-arch__slab {
+    position: relative;
+    transform-style: preserve-3d;
+    /* base/resting = final exploded state: each slab pushed to its own plane */
+    transform: translateZ(var(--z)) translateY(var(--y));
+    transition: transform var(--t-slow) var(--ease-snap), opacity var(--t-slow) var(--ease);
+    opacity: 1;
+    will-change: transform, opacity;
+  }
+
+  .px-arch__face {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 16px 20px;
+    border-radius: var(--r-tile);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--slab) 18%, var(--paper)) 0%,
+        var(--paper) 100%
+      );
+    border: 1px solid color-mix(in oklab, var(--slab) 36%, var(--rule));
+    border-left: 3px solid var(--slab);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 5%, transparent),
+      0 18px 38px -26px color-mix(in oklab, var(--ink) 55%, transparent);
+    transition: transform var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
+  }
+
+  .px-arch__label {
+    /* big layer label — the issue's signature face (mono for tech), ink, tabular
+       figures so any version/port digits in a layer name align */
+    font-family: var(--issue-face, var(--font-mono));
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    overflow-wrap: anywhere;   /* long tokens wrap instead of widening the slab */
+  }
+  .px-arch__sub {
+    /* sublabel — mono uppercase muted, legend-scale letter-spacing */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    /* trailing letter-spacing adds phantom width on the right; pull it back so
+       the text stays optically inside the slab padding */
+    margin-right: -0.14em;
+  }
+
+  /* hover: lift the slab toward the reader */
+  .px-arch__slab:hover { z-index: 2; }
+  .px-arch__slab:hover .px-arch__face {
+    transform: translateZ(22px) translateY(-2px);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 5%, transparent),
+      0 26px 52px -24px color-mix(in oklab, var(--ink) 60%, transparent);
+  }
+
+  /* reveal: slabs start collapsed (flush, no depth) + faded, then explode apart
+     (gated behind html.js so no-JS renders the final exploded layout) */
+  html.js .px-viz:not(.is-in) .px-arch__slab {
+    transform: translateZ(0) translateY(0);
+    opacity: 0;
+  }
+  .px-viz.is-in .px-arch__slab { transition-delay: calc(var(--i) * 90ms); }
+
+  /* mobile: tighten padding + slab inner spacing so the (perspective-magnified)
+     stack can't push horizontal overflow on a narrow card */
+  @media (max-width: 420px) {
+    .px-arch { padding: 12px 14px; }
+    .px-arch__face { padding: 13px 15px; }
+    .px-arch__label { font-size: 13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-arch__slab {
+      transform: translateZ(var(--z)) translateY(var(--y)) !important;
+      opacity: 1 !important;
+    }
+  }
+</style>

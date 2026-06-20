@@ -1,4 +1,14 @@
 ---
+/**
+ * VoteResult — v2 vote bar (.vb): animated for/against segments, a dashed
+ * threshold marker, a rotated "slam" stamp, and the 44-column MP-dot chamber.
+ * Faithful port of publication-v2 Components.jsx <VoteBar>. Props/semantics
+ * unchanged from the previous version, so existing MDX usages keep working.
+ *
+ * Reveal: the .vb root carries data-reveal; core/Reveal.astro adds .is-in and
+ * the segments/threshold/stamp/dots animate in (gated no-JS-safe in
+ * dataviz-v2.css). For/Against numbers count up via core/VizMotion.astro.
+ */
 interface Props {
   for: number;
   against: number;
@@ -8,39 +18,47 @@ interface Props {
   label?: string;
   stamp?: string;
 }
-
 const { for: forVotes, against, required, present, shortfall, label, stamp = 'Defeated' } = Astro.props;
 
-const total = forVotes + against;
-const forPct = total === 0 ? 0 : (forVotes / total) * 100;
-const againstPct = total === 0 ? 0 : (against / total) * 100;
+const cast = forVotes + against;
+const forPct = cast === 0 ? 0 : (forVotes / cast) * 100;
+const againstPct = cast === 0 ? 0 : (against / cast) * 100;
 const thresholdPct = present === 0 ? 0 : (required / present) * 100;
+
+// MP-dot chamber: one dot per member present — the first `for` voted for, the
+// next `against` voted against, the remainder abstained / were absent.
+const seats = present > 0 ? present : cast;
+const dots = Array.from({ length: seats }, (_, i) =>
+  i < forVotes ? 'for' : i < forVotes + against ? 'against' : 'abs'
+);
 ---
 
-<div class="px-vote">
-  {label && <div class="px-vote__caption">{label}</div>}
+<div class="vb" data-reveal role="img" aria-label={`Vote: ${forVotes} for, ${against} against — ${required} required`}>
+  {label && <div class="vb__cap">{label}</div>}
 
-  <div class="px-vote__bar-wrap">
-    <div class="px-vote__bar" role="img" aria-label={`Vote: ${forVotes} for, ${against} against, ${required} needed`}>
-      <div class="px-vote__seg px-vote__seg--for" style={`width: ${forPct}%;`}>
-        <span>FOR · {forVotes}</span>
-      </div>
-      <div class="px-vote__seg px-vote__seg--against" style={`width: ${againstPct}%;`}>
-        <span>{against} · AGAINST</span>
-      </div>
-
-      <div class="px-vote__threshold" style={`left: ${thresholdPct}%;`}>
-        <span class="px-vote__threshold-label">2/3 line · {required} needed</span>
-      </div>
+  <div class="vb__rail">
+    <div class="vb__th" style={`left: ${thresholdPct}%;`}>
+      <span class="vb__th-label">{required} required</span>
     </div>
-
-    {stamp && <span class="px-vote__stamp">{stamp}</span>}
+    <div class="vb__bar">
+      <div class="vb__seg vb__seg--for" style={`width: ${forPct}%;`}>For&nbsp;<span data-countup={forVotes}>{forVotes}</span></div>
+      <div class="vb__seg vb__seg--against" style={`width: ${againstPct}%;`}>Against&nbsp;<span data-countup={against}>{against}</span></div>
+    </div>
+    {stamp && <div class="vb__stamp">{stamp}</div>}
   </div>
 
-  <div class="px-vote__legend">
-    <div><span class="px-vote__legend-num">{forVotes}</span>For</div>
-    <div><span class="px-vote__legend-num">{against}</span>Against</div>
-    <div><span class="px-vote__legend-num">{required}</span>Needed</div>
-    <div><span class="px-vote__legend-num">−{shortfall}</span>Shortfall</div>
+  {seats > 0 && (
+    <div class="vb__chamber" aria-hidden="true">
+      {dots.map((kind) => (
+        <span class={`vb__mp${kind === 'for' ? ' vb__mp--for' : kind === 'against' ? ' vb__mp--against' : ''}`}></span>
+      ))}
+    </div>
+  )}
+
+  <div class="vb__legend">
+    <div><span class="vb__n vb__n--for" data-countup={forVotes}>{forVotes}</span>For</div>
+    <div><span class="vb__n vb__n--neg" data-countup={against}>{against}</span>Against</div>
+    <div><span class="vb__n">{required}</span>Required</div>
+    <div><span class="vb__n vb__n--neg">−{shortfall}</span>Short</div>
   </div>
 </div>

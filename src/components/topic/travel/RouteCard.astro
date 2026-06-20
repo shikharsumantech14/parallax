@@ -1,7 +1,9 @@
 ---
 /*
-  RouteCard — multi-leg journey itinerary.
-  HTML strip cards, build-time, zero runtime JS.
+  RouteCard — v2 vertical multi-leg journey (.rc) inside the elevated .px-viz
+  card. A dashed rail threads mode-glyph nodes; legs slide in on a stagger as
+  the card reveals on scroll. Faithful port of publication-v2 DataViz <RouteCard>.
+  Build-time, zero runtime JS.
 
   Use for: trip itineraries, migration routes, trade routes,
   logistical supply chains, flight paths.
@@ -13,29 +15,6 @@
     caption
     source
 */
-const MODE_ICON: Record<string, string> = {
-  flight:   '✈',
-  train:    '🚆',
-  drive:    '🚗',
-  car:      '🚗',
-  walk:     '🚶',
-  ferry:    '⛴',
-  ship:     '🚢',
-  bus:      '🚌',
-  bike:     '🚲',
-  cycle:    '🚲',
-  metro:    '🚇',
-  tuk:      '🛺',
-  cable:    '🚡',
-  road:     '🛣',
-};
-const MODE_LABEL: Record<string, string> = {
-  flight:  'Flight',  train: 'Train', drive: 'Drive', car: 'Drive',
-  walk:    'Walk',    ferry: 'Ferry', ship: 'Ship',   bus: 'Bus',
-  bike:    'Cycle',   cycle: 'Cycle', metro: 'Metro', tuk: 'Tuk-tuk',
-  cable:   'Cable car', road: 'Road',
-};
-
 interface Leg {
   from: string;
   to: string;
@@ -52,66 +31,74 @@ interface Props {
 }
 const { legs = [], title, caption, source } = Astro.props;
 
-// Compute total distance/duration if all provided
-const totalDist = legs.every(l => l.distance)
-  ? legs.map(l => l.distance!).join(' + ')
-  : null;
+// Glyph keyed off the leg mode (lowercased); anything unknown falls back to fly.
+const glyphFor = (mode: string): 'train' | 'drive' | 'ferry' | 'fly' => {
+  const m = mode.toLowerCase();
+  if (m === 'train') return 'train';
+  if (m === 'drive' || m === 'car') return 'drive';
+  if (m === 'ferry' || m === 'ship') return 'ferry';
+  return 'fly';
+};
 ---
 
-<div class="px-route">
-  {caption && <div class="px-route__caption">{caption}</div>}
-  {title  && <div class="px-route__title">{title}</div>}
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
 
-  <div class="px-route__legs">
+  <div class="rc__head">
+    <span class="rc__title">{title}</span>
+    <span class="rc__count">{legs.length} legs</span>
+  </div>
+
+  <div class="rc__legs">
     {legs.map((leg, i) => {
-      const icon  = MODE_ICON[leg.mode.toLowerCase()]  ?? '→';
-      const modeL = MODE_LABEL[leg.mode.toLowerCase()] ?? leg.mode;
+      const glyph = glyphFor(leg.mode);
       return (
-        <div class="px-route__leg">
-          {/* Connector dot */}
-          <div class="px-route__stop">
-            <span class={`px-route__dot${i === 0 ? ' px-route__dot--first' : ''}`}></span>
-            {i > 0 && <span class="px-route__line"></span>}
-          </div>
-
-          {/* Card */}
-          <div class="px-route__card">
-            <div class="px-route__cities">
-              <span class="px-route__city px-route__city--from">{leg.from}</span>
-              <span class="px-route__arrow" aria-hidden="true">→</span>
-              <span class="px-route__city px-route__city--to">{leg.to}</span>
-            </div>
-            <div class="px-route__meta">
-              <span class="px-route__mode">
-                <span class="px-route__mode-icon" aria-hidden="true">{icon}</span>
-                {modeL}
-              </span>
-              {leg.distance && (
-                <span class="px-route__stat">{leg.distance}</span>
-              )}
-              {leg.duration && (
-                <span class="px-route__stat">{leg.duration}</span>
-              )}
-            </div>
-            {leg.note && (
-              <div class="px-route__note">{leg.note}</div>
+        <div class="rc__leg" style={`transition-delay:${i * 70}ms`}>
+          <span class="rc__node">
+            {glyph === 'train' && (
+              <svg viewBox="0 0 24 24">
+                <rect x="6" y="3" width="12" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="6" y1="11" x2="18" y2="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="9" cy="19" r="1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="15" cy="19" r="1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="8" y1="21" x2="6" y2="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="16" y1="21" x2="18" y2="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
             )}
+            {glyph === 'drive' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M4 13l1.5-5h13L20 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <rect x="3" y="13" width="18" height="5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="7" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="17" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'ferry' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M4 17l1-5h14l1 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M3 17c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="12" y1="5" x2="12" y2="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'fly' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M2 16l20-7-9 11-2-5-9 1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+          </span>
+          <div class="rc__leg-body">
+            <div class="rc__cities">{leg.from}<span class="arr">→</span>{leg.to}</div>
+            <div class="rc__meta">
+              <span>{leg.mode}</span>
+              {leg.distance && <span>{leg.distance}</span>}
+              {leg.duration && <span>{leg.duration}</span>}
+            </div>
+            {leg.note && <div class="rc__note">{leg.note}</div>}
           </div>
         </div>
       );
     })}
-
-    {/* Final destination dot */}
-    {legs.length > 0 && (
-      <div class="px-route__leg px-route__leg--end">
-        <div class="px-route__stop">
-          <span class="px-route__line"></span>
-          <span class="px-route__dot px-route__dot--last"></span>
-        </div>
-        <div class="px-route__end-label">{legs[legs.length - 1]?.to}</div>
-      </div>
-    )}
   </div>
 
-  {source && <div class="px-route__source">{source}</div>}
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

@@ -1,0 +1,200 @@
+---
+/**
+ * BillPassage (politics) — a horizontal sequence of legislative-stage cards on
+ * a shallow 3D plane. The connecting track runs behind a row of stage cards;
+ * each card carries a status treatment (passed / current / failed / pending)
+ * and staggers in on scroll-in. Build-time only; the global core/Tilt.astro
+ * `data-tilt` island supplies the pointer-tilt, everything else is CSS.
+ *
+ * No-JS / reduced-motion: cards paint in their FINAL position (hidden offsets
+ * sit behind `html.js`; reduced-motion resets with !important). The status
+ * dot + glyph + text label carry the meaning without animation.
+ *
+ * data: { stages[]{ label, status, date?, note? }, caption?, source? }
+ */
+type Status = 'passed' | 'failed' | 'pending' | 'current';
+interface Stage { label: string; status: Status; date?: string; note?: string; }
+interface Props { stages: Stage[]; caption?: string; source?: string; }
+const { stages = [], caption, source } = Astro.props;
+
+const glyph: Record<Status, string> = {
+  passed: '✓',
+  failed: '✕',
+  current: '◆',
+  pending: '',
+};
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>passage</b></div>}
+
+  <div class="px-billp px3d-stage">
+    <div class="px-billp__row px3d-tilt" data-tilt="5">
+      <div class="px-billp__track" aria-hidden="true"></div>
+      {stages.map((s, i) => (
+        <div class="px-billp__stage" data-status={s.status} style={`--i:${i}`}>
+          <span class="px-billp__dot">{glyph[s.status]}</span>
+          <div class="px-billp__card">
+            {s.date && <div class="px-billp__date">{s.date}</div>}
+            <div class="px-billp__label">{s.label}</div>
+            {s.note && <div class="px-billp__note">{s.note}</div>}
+            <div class="px-billp__status">{s.status}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-billp { width: 100%; }
+  .px-billp__row {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 14px;
+    align-items: start;
+    /* extra side padding gives the outer cards room under the 3D tilt + the
+       dot's 4px paper ring + card shadow, so neither clips the card edge */
+    padding: 26px 12px 8px;
+  }
+
+  /* connecting track behind the dots */
+  .px-billp__track {
+    position: absolute;
+    /* dot center = row padding-top (26px) + half the 30px dot = 41px */
+    top: 41px;
+    left: 8%;
+    right: 8%;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--rule), var(--rule) 6px,
+      transparent 6px, transparent 12px
+    );
+    z-index: 0;
+  }
+
+  .px-billp__stage {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+
+  .px-billp__dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+    background: color-mix(in oklab, var(--ink) 6%, var(--bg));
+    border: 2px solid var(--rule);
+    color: var(--muted);
+    box-shadow: 0 0 0 4px var(--paper);
+  }
+
+  .px-billp__card {
+    width: 100%;
+    border-radius: var(--r-tile);
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 13px 14px 12px;
+    text-align: center;
+    box-shadow: 0 14px 30px -24px color-mix(in oklab, var(--ink) 50%, transparent);
+  }
+  /* date — axis-tick role: mono muted tabular */
+  .px-billp__date {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+    font-variant-numeric: tabular-nums; margin-bottom: 5px;
+  }
+  /* stage label — in-viz title role: display serif, readable */
+  .px-billp__label {
+    font-family: var(--font-display); font-weight: 600; font-size: 14px;
+    line-height: 1.25; color: var(--ink);
+  }
+  .px-billp__note {
+    font-family: var(--font-body); font-size: 11.5px; line-height: 1.45;
+    color: var(--ink-soft); margin-top: 6px;
+  }
+  /* status tag — legend role: mono uppercase muted */
+  .px-billp__status {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px); letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin-top: 9px;
+  }
+
+  /* ── status treatments ───────────────────────────────────────────────── */
+  .px-billp__stage[data-status="passed"] .px-billp__dot {
+    background: var(--accent); border-color: var(--accent); color: var(--paper);
+  }
+  .px-billp__stage[data-status="passed"] .px-billp__card { border-color: color-mix(in oklab, var(--accent) 45%, var(--rule)); }
+  .px-billp__stage[data-status="passed"] .px-billp__status { color: var(--accent-deep, var(--accent)); }
+
+  .px-billp__stage[data-status="failed"] .px-billp__dot {
+    background: #c0392b; border-color: #c0392b; color: #fff;
+  }
+  .px-billp__stage[data-status="failed"] .px-billp__card { border-color: color-mix(in oklab, #c0392b 45%, var(--rule)); }
+  .px-billp__stage[data-status="failed"] .px-billp__status { color: #c0392b; }
+
+  .px-billp__stage[data-status="current"] .px-billp__dot {
+    background: var(--paper); border-color: var(--accent); color: var(--accent);
+    animation: lensPulse 2s infinite;
+  }
+  .px-billp__stage[data-status="current"] .px-billp__card {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 14px 30px -22px color-mix(in oklab, var(--accent) 60%, transparent);
+  }
+  .px-billp__stage[data-status="current"] .px-billp__status { color: var(--accent); }
+
+  .px-billp__stage[data-status="pending"] .px-billp__card { opacity: 0.62; }
+  .px-billp__stage[data-status="pending"] .px-billp__label { color: var(--ink-soft); }
+
+  /* ── reveal: stagger cards in (gated behind html.js) ─────────────────── */
+  html.js .px-viz:not(.is-in) .px-billp__stage {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  .px-viz.is-in .px-billp__stage { transition-delay: calc(var(--i) * 110ms); }
+
+  /* ── mobile: stack to a vertical list with a left rail ───────────────── */
+  @media (max-width: 640px) {
+    .px-billp__row {
+      grid-auto-flow: row;
+      grid-auto-columns: auto;
+      gap: 0;
+      padding: 6px 0 6px 0;
+    }
+    .px-billp__track {
+      top: 8px; bottom: 8px; left: 14px; right: auto;
+      width: 2px; height: auto;
+      background: repeating-linear-gradient(
+        180deg,
+        var(--rule), var(--rule) 6px,
+        transparent 6px, transparent 12px
+      );
+    }
+    .px-billp__stage {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 9px 0;
+    }
+    /* dot keeps its size; card takes the remaining row width without forcing
+       overflow (width:100% as a flex-basis + the dot would exceed 100%) */
+    .px-billp__dot { flex: 0 0 auto; }
+    .px-billp__card { flex: 1 1 auto; width: auto; min-width: 0; text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-billp__stage { opacity: 1 !important; transform: none !important; }
+  }
+</style>

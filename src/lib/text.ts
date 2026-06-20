@@ -17,6 +17,11 @@ export function renderInline(input: string): string {
     .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
+/** Strip *italic* / **bold** markers, leaving plain text — for <title>, og:title, RSS. */
+export function stripEmphasis(input: string): string {
+  return input.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
+}
+
 export function formatIssueDate(d: Date): string {
   return d.toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'

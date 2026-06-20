@@ -1,0 +1,281 @@
+---
+/**
+ * TimezoneArc (travel) — a day/night arc across time zones. A horizontal 24h
+ * timeline carries a day-band and a night-band (a gradient from dawn → noon →
+ * dusk → night); each city is pinned at its current local hour, showing the
+ * local time and a sun/moon day-night glyph. A "now" marker sits at the
+ * reference zone's local hour. Cities reveal on a stagger (CSS, reveal-gated).
+ * Flat SVG/CSS — no 3D, no JS.
+ *
+ * Deterministic build: "now" is NOT read from the live clock (that would make
+ * every build differ). Instead UTC is anchored at noon (12:00 UTC); each zone's
+ * local hour is derived from its offset, and the reference zone defines the
+ * "now" marker position. The result is stable across builds while still showing
+ * a coherent set of relative local times + day/night states.
+ *
+ * No-JS / reduced-motion: city rows + the now marker paint in their FINAL state
+ * (hidden offsets sit behind `html.js`; reduced-motion resets with !important).
+ * Each city's local time + day/night word is stated textually.
+ *
+ * data: { zones[]{ city, offset }, refOffset?, caption?, source? }  (offset = hrs from UTC)
+ */
+interface Zone { city: string; offset: number; }
+interface Props {
+  zones: Zone[];
+  refOffset?: number;
+  caption?: string;
+  source?: string;
+}
+const { zones = [], refOffset, caption, source } = Astro.props;
+
+const data = zones.filter((z) => z && z.city && Number.isFinite(z.offset));
+const hasData = data.length > 0;
+
+// Deterministic UTC anchor: noon. (No live Date — stable builds.)
+const UTC_ANCHOR = 12;
+// Reference offset defaults to the first zone's offset if not given.
+const refOff = Number.isFinite(refOffset as number)
+  ? (refOffset as number)
+  : (hasData ? data[0].offset : 0);
+
+// Local decimal hour for a UTC offset, wrapped to [0,24).
+const localHour = (off: number) => ((UTC_ANCHOR + off) % 24 + 24) % 24;
+
+// Day/night classification by local hour (dawn 6, dusk 18).
+const isDay = (h: number) => h >= 6 && h < 18;
+// A finer phase for the glyph: dawn / day / dusk / night.
+const phaseOf = (h: number): 'dawn' | 'day' | 'dusk' | 'night' => {
+  if (h >= 5 && h < 8) return 'dawn';
+  if (h >= 8 && h < 17) return 'day';
+  if (h >= 17 && h < 20) return 'dusk';
+  return 'night';
+};
+
+const fmtHM = (h: number) => {
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  // handle 60-min rounding
+  const H = (hh + Math.floor(mm / 60)) % 24;
+  const M = mm % 60;
+  return `${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}`;
+};
+const fmtOff = (o: number) => `UTC${o >= 0 ? '+' : '−'}${Math.abs(o) % 1 === 0 ? Math.abs(o) : Math.abs(o).toFixed(1)}`;
+
+// Build city rows, sorted west→east (by offset) for a readable ladder.
+const cities = data
+  .map((z) => {
+    const lh = localHour(z.offset);
+    const ph = phaseOf(lh);
+    return {
+      city: z.city,
+      offset: z.offset,
+      lh,
+      day: isDay(lh),
+      phase: ph,
+      xPct: (lh / 24) * 100,
+      timeStr: fmtHM(lh),
+      offStr: fmtOff(z.offset),
+      isRef: z.offset === refOff,
+    };
+  })
+  .sort((a, b) => a.offset - b.offset);
+
+const nowPct = (localHour(refOff) / 24) * 100;
+const refCity = cities.find((c) => c.isRef);
+// Edge-aware alignment for the "now" label so a marker near 0% / 100% doesn't
+// spill past the band. Near the left, anchor the label's left edge to the
+// marker; near the right, anchor its right edge; otherwise centre it.
+const nowEdge = nowPct < 12 ? 'l' : nowPct > 88 ? 'r' : 'c';
+
+// Hour ticks along the band: 0, 6, 12, 18. (24 == 0, so it's dropped — its
+// right-edge label would otherwise clip past the band.)
+const ticks = [0, 6, 12, 18].map((h) => ({ h, xPct: (h / 24) * 100 }));
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>time zones</b></div>}
+
+  {hasData ? (
+    <div class="px-tzarc">
+      <!-- 24h day/night band -->
+      <div class="px-tzarc__band" role="img" aria-label="24-hour day and night band">
+        <div class="px-tzarc__sky"></div>
+        {ticks.map((t) => (
+          <span class="px-tzarc__tick" style={`left:${t.xPct}%`}>
+            <span class="px-tzarc__tickl">{String(t.h % 24).padStart(2, '0')}</span>
+          </span>
+        ))}
+        <!-- now marker (reference zone's local hour) -->
+        <span class="px-tzarc__now" data-edge={nowEdge} style={`left:${nowPct.toFixed(2)}%`} aria-hidden="true">
+          <span class="px-tzarc__nowl">now{refCity ? ` · ${refCity.city}` : ''}</span>
+        </span>
+      </div>
+
+      <!-- city ladder -->
+      <div class="px-tzarc__cities">
+        {cities.map((c, i) => (
+          <div class="px-tzarc__city" data-day={c.day ? 'true' : 'false'} data-ref={c.isRef ? 'true' : 'false'} style={`--i:${i}`}>
+            <span class="px-tzarc__glyph" data-phase={c.phase}>
+              {c.day ? (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4.4" fill="currentColor" />
+                  <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <line x1="12" y1="2.5" x2="12" y2="5" />
+                    <line x1="12" y1="19" x2="12" y2="21.5" />
+                    <line x1="2.5" y1="12" x2="5" y2="12" />
+                    <line x1="19" y1="12" x2="21.5" y2="12" />
+                    <line x1="5.2" y1="5.2" x2="7" y2="7" />
+                    <line x1="17" y1="17" x2="18.8" y2="18.8" />
+                    <line x1="18.8" y1="5.2" x2="17" y2="7" />
+                    <line x1="7" y1="17" x2="5.2" y2="18.8" />
+                  </g>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 14.5A8 8 0 1 1 9.5 4a6.4 6.4 0 0 0 10.5 10.5z" fill="currentColor" />
+                </svg>
+              )}
+            </span>
+            <span class="px-tzarc__name">{c.city}</span>
+            <span class="px-tzarc__off">{c.offStr}</span>
+            <span class="px-tzarc__time">{c.timeStr}</span>
+            <span class="px-tzarc__state">{c.day ? 'day' : 'night'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : (
+    <p class="px-tzarc__empty">No time-zone data.</p>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-tzarc { width: 100%; }
+
+  /* ── 24h day/night band ─────────────────────────────────────────────────── */
+  .px-tzarc__band {
+    position: relative;
+    height: 46px;
+    border-radius: var(--r-pill);
+    /* NB: no overflow:hidden here — the "now" label (top:-16px) and the hour
+       labels need to escape the band. Clipping is done on .px-tzarc__sky. */
+    border: 1px solid var(--rule);
+    margin-bottom: 26px;
+  }
+  .px-tzarc__sky {
+    position: absolute; inset: 0;
+    border-radius: var(--r-pill);
+    overflow: hidden;
+    /* night → dawn → day → dusk → night across 0..24h (neutral, data-semantic) */
+    background: linear-gradient(90deg,
+      #1a2740 0%, #2b3a5c 18%, #c9a06a 26%,
+      #e9d8b0 38%, #f4ecd6 50%, #e9d8b0 62%,
+      #c9806a 74%, #2b3a5c 82%, #1a2740 100%);
+  }
+  .px-tzarc__tick {
+    position: absolute; top: 0; bottom: 0; width: 0;
+    border-left: 1px dashed color-mix(in oklab, #ffffff 45%, transparent);
+    transform: translateX(-0.5px);
+  }
+  .px-tzarc__tickl {
+    position: absolute; bottom: 4px; left: 4px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.92); font-variant-numeric: tabular-nums;
+    /* halo so the tick stays legible over the bright noon band */
+    text-shadow: 0 0 3px rgba(0,0,0,0.45);
+  }
+  .px-tzarc__now {
+    position: absolute; top: -4px; bottom: -4px; width: 0;
+    border-left: 2px solid var(--ink);
+    transform: translateX(-1px);
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease) 700ms;
+  }
+  .px-tzarc__now::before {
+    content: ''; position: absolute; top: -3px; left: -3px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ink);
+  }
+  .px-tzarc__nowl {
+    position: absolute; top: -16px; left: 0; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink); white-space: nowrap; font-weight: 700;
+    /* paper halo so the marker label reads cleanly over the band edge */
+    text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper);
+  }
+  /* edge-aware: pin the label inside the band near 0% / 100% so it can't spill */
+  .px-tzarc__now[data-edge="l"] .px-tzarc__nowl { left: 0; transform: translateX(0); }
+  .px-tzarc__now[data-edge="r"] .px-tzarc__nowl { left: auto; right: 0; transform: translateX(0); }
+  html.js .px-viz:not(.is-in) .px-tzarc__now { opacity: 0; }
+
+  /* ── city ladder ─────────────────────────────────────────────────────────── */
+  .px-tzarc__cities { display: flex; flex-direction: column; gap: 0; }
+  .px-tzarc__city {
+    display: grid;
+    grid-template-columns: 26px 1fr auto auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule);
+    /* base/resting = final visible state (no-JS safe) */
+    opacity: 1; transform: none;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  .px-tzarc__city[data-ref="true"] {
+    box-shadow: inset 3px 0 0 var(--accent);
+    padding-left: 10px;
+  }
+
+  .px-tzarc__glyph {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--muted);
+  }
+  .px-tzarc__glyph svg { width: 20px; height: 20px; }
+  .px-tzarc__city[data-day="true"] .px-tzarc__glyph { color: var(--accent-deep, var(--accent)); }
+  .px-tzarc__glyph[data-phase="dawn"],
+  .px-tzarc__glyph[data-phase="dusk"] { color: color-mix(in oklab, var(--accent) 65%, var(--muted)); }
+  .px-tzarc__glyph[data-phase="night"] { color: var(--ink-soft); }
+
+  .px-tzarc__name {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 600;
+    font-size: 17px; color: var(--ink); line-height: 1; min-width: 0;
+  }
+  .px-tzarc__off {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-tzarc__time {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
+    font-size: 19px; color: var(--ink); font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em; min-width: 4ch; text-align: right;
+  }
+  .px-tzarc__state {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); min-width: 5ch; text-align: right;
+  }
+  .px-tzarc__city[data-day="true"] .px-tzarc__state { color: var(--accent-deep, var(--accent)); }
+
+  /* reveal: cities slide in on a stagger (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-tzarc__city { opacity: 0; transform: translateX(8px); }
+  .px-viz.is-in .px-tzarc__city { transition-delay: calc(var(--i) * 70ms); }
+
+  .px-tzarc__empty {
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    text-align: center; padding: 28px 0;
+  }
+
+  @media (max-width: 560px) {
+    .px-tzarc__city { grid-template-columns: 22px 1fr auto auto; gap: 10px; }
+    .px-tzarc__state { display: none; }
+    .px-tzarc__name { font-size: 15px; }
+    .px-tzarc__time { font-size: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-tzarc__now { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-tzarc__city { opacity: 1 !important; transform: none !important; }
+  }
+</style>

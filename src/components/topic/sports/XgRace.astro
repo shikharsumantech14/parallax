@@ -1,0 +1,223 @@
+---
+/**
+ * XgRace (sports) — a cumulative expected-goals "race". Each shot event adds to
+ * its team's running xG total; the result is two step-lines climbing across the
+ * match minutes (home in the accent, away in muted ink). Both step paths draw
+ * themselves in on scroll-in (stroke-dash). End-value labels sit at each line's
+ * final point; a faint half-time gridline marks 45'. A legend below carries the
+ * team names + final xG. Flat SVG, build-time only; the only motion is the CSS
+ * stroke-draw.
+ *
+ * No-JS / reduced-motion: both paths paint fully drawn (the dashoffset hidden
+ * rule sits behind `html.js`; reduced-motion resets with !important). The
+ * legend states each team's final xG textually.
+ *
+ * data: { events[]{ minute, team, xg }, home?, away?, caption?, source? }
+ */
+type Side = 'home' | 'away';
+interface Ev { minute: number; team: Side; xg: number; }
+interface Props { events: Ev[]; home?: string; away?: string; caption?: string; source?: string; }
+const { events = [], home = 'Home', away = 'Away', caption, source } = Astro.props;
+
+// ── viewBox + plot box ──────────────────────────────────────────────────────
+const W = 720, H = 320;
+const padL = 44, padR = 64, padT = 20, padB = 38;
+const plotL = padL, plotR = W - padR, plotT = padT, plotB = H - padB;
+const plotW = plotR - plotL, plotH = plotB - plotT;
+
+const evs = (events || []).filter((e) => e && Number.isFinite(e.minute) && Number.isFinite(e.xg));
+const lastMin = Math.max(90, ...evs.map((e) => e.minute || 0));
+const maxMin = Math.ceil(lastMin / 5) * 5;     // round axis up to a clean 5'
+
+// Build a cumulative step series for one side: start at (0,0), and after each
+// event jump to the new running total. Points are [minute, cumXg].
+function series(side: Side): [number, number][] {
+  const pts: [number, number][] = [[0, 0]];
+  let acc = 0;
+  evs
+    .filter((e) => e.team === side)
+    .sort((a, b) => a.minute - b.minute)
+    .forEach((e) => {
+      acc += Math.max(0, e.xg || 0);
+      pts.push([Math.max(0, Math.min(maxMin, e.minute)), acc]);
+    });
+  // extend the final value flat to the end of the match
+  if (pts[pts.length - 1][0] < maxMin) pts.push([maxMin, acc]);
+  return pts;
+}
+const homeSeries = series('home');
+const awaySeries = series('away');
+const homeFinal = homeSeries[homeSeries.length - 1][1];
+const awayFinal = awaySeries[awaySeries.length - 1][1];
+const maxXg = Math.max(0.5, homeFinal, awayFinal);
+
+const px = (m: number) => plotL + (m / maxMin) * plotW;
+const py = (xg: number) => plotB - (xg / maxXg) * plotH;
+
+// Step path: horizontal to the next minute, then vertical to the new total.
+function stepPath(pts: [number, number][]): string {
+  if (!pts.length) return '';
+  let d = `M ${px(pts[0][0]).toFixed(1)} ${py(pts[0][1]).toFixed(1)}`;
+  for (let k = 1; k < pts.length; k++) {
+    const [m, v] = pts[k];
+    const prevV = pts[k - 1][1];
+    d += ` H ${px(m).toFixed(1)}`;
+    if (v !== prevV) d += ` V ${py(v).toFixed(1)}`;
+  }
+  return d;
+}
+const homePath = stepPath(homeSeries);
+const awayPath = stepPath(awaySeries);
+
+// y-axis ticks (xG) + x-axis ticks (minutes)
+const yTicks = [0, 0.5, 1, 1.5, 2, 2.5, 3].filter((t) => t <= maxXg + 0.001);
+const xTicks = Array.from({ length: Math.floor(maxMin / 15) + 1 }, (_, i) => i * 15);
+const htX = px(45);
+
+const homeEnd = { x: px(homeSeries[homeSeries.length - 1][0]), y: py(homeFinal) };
+const awayEnd = { x: px(awaySeries[awaySeries.length - 1][0]), y: py(awayFinal) };
+
+// End-value labels share the far-right gutter; when the two lines finish at a
+// similar xG their labels (≈14px tall) would overlap. Split them vertically
+// when too close — push the upper label up, the lower one down — and keep both
+// inside the plot band so neither clips the top/bottom edge. The marker circles
+// stay on their true y; only the text y is nudged.
+const LBL_MIN_GAP = 15;
+let homeLblY = homeEnd.y;
+let awayLblY = awayEnd.y;
+if (Math.abs(homeLblY - awayLblY) < LBL_MIN_GAP) {
+  const c = (homeLblY + awayLblY) / 2;
+  if (homeFinal >= awayFinal) {
+    homeLblY = c - LBL_MIN_GAP / 2;
+    awayLblY = c + LBL_MIN_GAP / 2;
+  } else {
+    awayLblY = c - LBL_MIN_GAP / 2;
+    homeLblY = c + LBL_MIN_GAP / 2;
+  }
+}
+// keep labels off the plot's top/bottom edges (text baseline padding)
+const clampLblY = (y: number) => Math.max(plotT + 6, Math.min(plotB - 4, y));
+homeLblY = clampLblY(homeLblY);
+awayLblY = clampLblY(awayLblY);
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>xG race</b></div>}
+
+  <div class="px-xgr">
+    <svg
+      class="px-xgr__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={`Cumulative xG race: ${home} ${homeFinal.toFixed(2)} vs ${away} ${awayFinal.toFixed(2)}`}
+    >
+      <!-- y gridlines + labels -->
+      {yTicks.map((t) => (
+        <g>
+          <line class="px-xgr__grid" x1={plotL} y1={py(t).toFixed(1)} x2={plotR} y2={py(t).toFixed(1)} />
+          <text class="px-xgr__ax" x={plotL - 8} y={py(t).toFixed(1)} text-anchor="end" dominant-baseline="middle">{t.toFixed(1)}</text>
+        </g>
+      ))}
+
+      <!-- x ticks (minutes) -->
+      {xTicks.map((m) => (
+        <text class="px-xgr__ax" x={px(m).toFixed(1)} y={plotB + 18} text-anchor="middle">{m}'</text>
+      ))}
+
+      <!-- half-time line -->
+      <line class="px-xgr__ht" x1={htX.toFixed(1)} y1={plotT} x2={htX.toFixed(1)} y2={plotB} />
+      <text class="px-xgr__ht-lbl" x={htX.toFixed(1)} y={plotT - 4} text-anchor="middle">HT</text>
+
+      <!-- step lines -->
+      <path class="px-xgr__line px-xgr__line--away" d={awayPath} pathLength="1" />
+      <path class="px-xgr__line px-xgr__line--home" d={homePath} pathLength="1" />
+
+      <!-- end-value labels -->
+      <g class="px-xgr__end px-xgr__end--away">
+        <circle cx={awayEnd.x.toFixed(1)} cy={awayEnd.y.toFixed(1)} r="3.5" />
+        <text x={(awayEnd.x + 8).toFixed(1)} y={awayLblY.toFixed(1)} dominant-baseline="middle">{awayFinal.toFixed(2)}</text>
+      </g>
+      <g class="px-xgr__end px-xgr__end--home">
+        <circle cx={homeEnd.x.toFixed(1)} cy={homeEnd.y.toFixed(1)} r="3.5" />
+        <text x={(homeEnd.x + 8).toFixed(1)} y={homeLblY.toFixed(1)} dominant-baseline="middle">{homeFinal.toFixed(2)}</text>
+      </g>
+    </svg>
+
+    <div class="px-xgr__legend">
+      <span class="px-xgr__key px-xgr__key--home"><i></i>{home} · {homeFinal.toFixed(2)} xG</span>
+      <span class="px-xgr__key px-xgr__key--away"><i></i>{away} · {awayFinal.toFixed(2)} xG</span>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-xgr { width: 100%; }
+  .px-xgr__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-xgr__grid { stroke: var(--rule); stroke-width: 1; }
+  .px-xgr__ax {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em; fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .px-xgr__ht { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .px-xgr__ht-lbl {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
+  }
+
+  /* step lines — base/resting = fully drawn (no-JS safe) */
+  .px-xgr__line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1500ms var(--ease);
+  }
+  .px-xgr__line--home { stroke: var(--accent); }
+  .px-xgr__line--away { stroke: var(--ink-soft); }
+
+  .px-xgr__end circle { fill: currentColor; }
+  .px-xgr__end text {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
+    font-size: 14px; font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    /* end labels sit in the far-right gutter over the y-gridlines — give the
+       serif figure a paper halo so it reads cleanly off the rules */
+    paint-order: stroke;
+    stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
+  }
+  .px-xgr__end--home { color: var(--accent-deep, var(--accent)); }
+  .px-xgr__end--away { color: var(--ink-soft); }
+
+  /* end markers fade in after the lines draw */
+  .px-xgr__end { opacity: 1; transition: opacity var(--t-soft) var(--ease) 1300ms; }
+  html.js .px-viz:not(.is-in) .px-xgr__end { opacity: 0; }
+
+  /* reveal: draw both step paths (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-xgr__line { stroke-dashoffset: 1; }
+  .px-viz.is-in .px-xgr__line--home { transition-delay: 200ms; }
+
+  .px-xgr__legend {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    margin-top: 16px;
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-xgr__key { display: inline-flex; align-items: center; gap: 8px; }
+  .px-xgr__key i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+  .px-xgr__key--home i { background: var(--accent); }
+  .px-xgr__key--away i { background: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-xgr__line { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-xgr__end { opacity: 1 !important; }
+  }
+</style>

@@ -1,0 +1,146 @@
+---
+/**
+ * MarginLadder (politics) — constituencies/seats ranked by win margin as
+ * horizontal bars on a slightly tilted, receding 3D plane. Rows are sorted by
+ * margin (widest first); each bar's width is proportional to the largest
+ * margin. The global core/Tilt.astro `data-tilt` island adds pointer-tilt to
+ * the plane; bars grow from zero on scroll-in (CSS, reveal-gated) and a row
+ * lifts/brightens on hover.
+ *
+ * No-JS / reduced-motion: bars paint at their FINAL width (the width:0 hidden
+ * rule sits behind `html.js`; reduced-motion resets with !important). The
+ * numeric margin sits beside every bar regardless.
+ *
+ * data: { rows[]{ label, margin, winner?, color? }, caption?, source? }
+ */
+interface Row { label: string; margin: number; winner?: string; color?: string; }
+interface Props { rows: Row[]; caption?: string; source?: string; }
+const { rows = [], caption, source } = Astro.props;
+
+const sorted = [...rows].sort((a, b) => (b.margin || 0) - (a.margin || 0));
+const maxMargin = Math.max(1, ...sorted.map((r) => Math.abs(r.margin) || 0));
+const fmt = (n: number) => n.toLocaleString();
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>win margins</b></div>}
+
+  <div class="px-mladr px3d-stage">
+    <div class="px-mladr__plane px3d-tilt" data-tilt="6">
+      {sorted.map((r, i) => {
+        const w = (Math.abs(r.margin) / maxMargin) * 100;
+        return (
+          <div class="px-mladr__row" style={`--i:${i}`}>
+            <div class="px-mladr__label">
+              <span class="px-mladr__name">{r.label}</span>
+              {r.winner && <span class="px-mladr__winner">{r.winner}</span>}
+            </div>
+            <div class="px-mladr__track">
+              <span
+                class="px-mladr__fill"
+                style={`--w:${w.toFixed(2)}%; background:${r.color || 'var(--accent)'}`}
+              ></span>
+            </div>
+            <div class="px-mladr__val">{fmt(r.margin)}</div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-mladr { width: 100%; }
+  .px-mladr__plane {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    /* small inset so rows clear the card edge once the plane tilts/recedes
+       (right-aligned value sits on the plane's right edge otherwise) */
+    padding-inline: 4px;
+    /* tilt origin near the top so the plane recedes from the reader */
+    transform-origin: 50% 0%;
+  }
+
+  .px-mladr__row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.1fr) 2.4fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: var(--r-tile);
+    /* base/resting = final visible state (no-JS safe) */
+    transition: transform var(--t-soft) var(--ease), background var(--t-soft) var(--ease);
+  }
+  .px-mladr__row:hover {
+    background: color-mix(in oklab, var(--accent) 7%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .px-mladr__label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: right;
+    min-width: 0;
+  }
+  /* row label — in-viz title role: display serif ink */
+  .px-mladr__name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  /* winner — legend role: mono uppercase muted */
+  .px-mladr__winner {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .px-mladr__track {
+    position: relative;
+    height: 20px;
+    background: color-mix(in oklab, var(--ink) 5%, var(--bg));
+    border-radius: var(--r-pill);
+    overflow: hidden;
+  }
+  .px-mladr__fill {
+    display: block;
+    height: 100%;
+    width: var(--w);
+    border-radius: var(--r-pill);
+    /* base/resting = final width (no-JS safe) */
+    transition: width 950ms var(--ease), filter var(--t-soft) var(--ease);
+  }
+  .px-mladr__row:hover .px-mladr__fill { filter: brightness(1.12); }
+
+  /* margin value — big-value role: display serif ink tabular */
+  .px-mladr__val {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 3ch;
+  }
+
+  /* reveal: bars grow from 0 width, staggered (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-mladr__fill { width: 0; }
+  .px-viz.is-in .px-mladr__fill { transition-delay: calc(var(--i) * 70ms); }
+
+  @media (max-width: 560px) {
+    .px-mladr__row { grid-template-columns: minmax(90px, 1fr) 1.6fr auto; gap: 10px; }
+    .px-mladr__name { font-size: 13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-mladr__fill { width: var(--w) !important; }
+  }
+</style>

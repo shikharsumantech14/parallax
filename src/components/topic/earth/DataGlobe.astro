@@ -1,0 +1,63 @@
+---
+/**
+ * DataGlobe (earth) — a 3D dot-matrix globe with data bubbles plotted at
+ * lat/lon, sized by value. Lazy WebGL (scenes 'data-globe'); drag to spin.
+ *
+ * No-JS / reduced-motion: an inline equirectangular static map (graticule +
+ * value bubbles) stays, and a legend lists every region textually.
+ *
+ * data: { markers[]{ name, lat, lon, value, color? }, unit?, caption?, source? }
+ */
+interface Marker { name: string; lat: number; lon: number; value: number; color?: string; }
+interface Props { markers: Marker[]; unit?: string; caption?: string; source?: string; }
+const { markers = [], unit = '', caption, source } = Astro.props;
+
+const W = 320, H = 180;
+const maxVal = Math.max(1, ...markers.map((m) => m.value || 0));
+const pts = markers.map((m) => ({
+  x: ((m.lon + 180) / 360) * W,
+  y: ((90 - m.lat) / 180) * H,
+  r: 3 + 12 * Math.sqrt((m.value || 0) / maxVal),
+  color: m.color || 'var(--accent)',
+}));
+const grat = { vx: [0.25, 0.5, 0.75], hy: [0.25, 0.5, 0.75] };
+const payload = JSON.stringify({ markers });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>data globe</b></div>}
+
+  <div class="viz3d viz3d--globe" data-viz3d="data-globe" role="img"
+    aria-label={caption ? `3D data globe: ${caption}` : '3D data globe'}>
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="0" width={W} height={H} fill="color-mix(in oklab, var(--ink) 4%, var(--bg))" />
+        {grat.vx.map((f) => <line x1={f * W} y1="0" x2={f * W} y2={H} stroke="var(--rule)" stroke-width="0.5" opacity="0.5" />)}
+        {grat.hy.map((f) => <line x1="0" y1={f * H} x2={W} y2={f * H} stroke="var(--rule)" stroke-width="0.5" opacity="0.5" />)}
+        {pts.map((p) => <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} opacity="0.8" />)}
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to spin</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ul class="px-dg__legend">
+    {markers.map((m) => (
+      <li class="px-dg__row">
+        <span class="px-dg__dot" style={`background:${m.color || 'var(--accent)'}`}></span>
+        <span class="px-dg__name">{m.name}</span>
+        <span class="px-dg__val">{m.value.toLocaleString()}{unit ? ` ${unit}` : ''}</span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-dg__legend { list-style: none; margin: 18px 0 0; padding: 0; }
+  .px-dg__row { display: grid; grid-template-columns: 14px 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px dashed var(--rule); font-variant-numeric: tabular-nums; }
+  .px-dg__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
+  .px-dg__name { font-family: var(--issue-face, var(--font-display)); font-size: 16px; letter-spacing: -0.005em; color: var(--ink); }
+  .px-dg__val { font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px); letter-spacing: 0.04em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+</style>

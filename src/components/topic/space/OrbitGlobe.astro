@@ -1,0 +1,77 @@
+---
+/**
+ * OrbitGlobe (space) — the realistic 3D orbital diagram. A dot-matrix Earth with
+ * inclined orbit rings and moving satellites, rendered lazily by the WebGL
+ * runtime (core/Viz3DRuntime.astro → scenes 'orbit-globe'). Drag to spin; it
+ * auto-rotates when idle.
+ *
+ * No-JS / reduced-motion: the inline static SVG fallback (concentric rings +
+ * sats, themed) stays — same data, no canvas. An always-visible legend lists
+ * the orbits textually (a11y + no-JS). Themes via the page's `data-topic` vars.
+ *
+ * data: { orbits[]{ name, altKm, inclDeg?, color?, satCount? }, maxAltKm?, caption?, source? }
+ */
+interface Orbit { name: string; altKm: number; inclDeg?: number; color?: string; satCount?: number; }
+interface Props { orbits: Orbit[]; maxAltKm?: number; caption?: string; source?: string; }
+const { orbits = [], maxAltKm, caption, source } = Astro.props;
+
+const maxAlt = maxAltKm ?? Math.max(1, ...orbits.map((o) => o.altKm || 0));
+// Static fallback geometry (2D rings) — mirrors the 3D scene's log-radius scale.
+const cx = 160, cy = 160, earthR = 16, maxR = 150;
+const rFor = (alt: number) => earthR + (Math.log((alt || 0) + 1) / Math.log(maxAlt + 1)) * (maxR - earthR);
+const rings = orbits.map((o, i) => {
+  const r = rFor(o.altKm);
+  const ang = (i / Math.max(1, orbits.length)) * Math.PI * 2 - Math.PI / 2;
+  return {
+    r, color: o.color || 'var(--accent)', name: o.name, alt: o.altKm,
+    inclDeg: o.inclDeg, satCount: o.satCount,
+    sx: cx + Math.cos(ang) * r, sy: cy + Math.sin(ang) * r,
+  };
+});
+const payload = JSON.stringify({ orbits, maxAltKm: maxAlt });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>live orbits</b></div>}
+
+  <div class="viz3d viz3d--globe" data-viz3d="orbit-globe" role="img"
+    aria-label={caption ? `3D orbital diagram: ${caption}` : '3D orbital diagram'}>
+    <div class="viz3d__fallback">
+      <svg viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet">
+        <circle cx={cx} cy={cy} r={earthR} fill="color-mix(in oklab, var(--accent) 70%, var(--ink))" opacity="0.85" />
+        {rings.map((g) => (
+          <>
+            <circle cx={cx} cy={cy} r={g.r} fill="none" stroke={g.color} stroke-width="1" opacity="0.5" />
+            <circle cx={g.sx} cy={g.sy} r="4" fill={g.color} />
+          </>
+        ))}
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to orbit</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ul class="px-og__legend">
+    {orbits.map((o) => (
+      <li class="px-og__row">
+        <span class="px-og__dot" style={`background:${o.color || 'var(--accent)'}`}></span>
+        <span class="px-og__name">{o.name}</span>
+        <span class="px-og__alt">{o.altKm.toLocaleString()} km{o.inclDeg != null ? ` · ${o.inclDeg}°` : ''}{o.satCount != null ? ` · ${o.satCount.toLocaleString()} active` : ''}</span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-og__legend { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  .px-og__row {
+    display: grid; grid-template-columns: 14px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-og__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
+  .px-og__name { font-family: var(--font-display); font-size: 15px; color: var(--ink); font-weight: 600; }
+  .px-og__alt { font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.06em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+</style>

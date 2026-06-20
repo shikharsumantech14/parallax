@@ -1,0 +1,245 @@
+---
+/**
+ * SwingDial (politics) — a semicircle "swing-o-meter" gauge. A needle swings
+ * from dead-center to the value's angle on scroll-in, mapping a -100..100
+ * lean onto a ±82° arc. Build-time SVG; the only motion is the needle's CSS
+ * rotate transition (reveal-gated, no-JS-safe). A subtle pointer-tilt (the
+ * global core/Tilt.astro `data-tilt` island) gives the dial card depth.
+ *
+ * No-JS / reduced-motion: the needle paints at its FINAL angle (the hidden
+ * rule sits behind `html.js`; reduced-motion resets to final with !important).
+ * The numeric readout below states value + leading side textually.
+ *
+ * data: { leftLabel?, rightLabel?, value (-100..100), markers[]{ at, label },
+ *         caption?, source? }
+ */
+interface Marker { at: number; label: string; }
+interface Props {
+  leftLabel?: string;
+  rightLabel?: string;
+  value: number;
+  markers?: Marker[];
+  caption?: string;
+  source?: string;
+}
+const {
+  leftLabel = 'Left',
+  rightLabel = 'Right',
+  value,
+  markers = [],
+  caption,
+  source,
+} = Astro.props;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const v = clamp(value ?? 0, -100, 100);
+
+// Geometry — a 180° dial drawn in the top half of the viewBox.
+const W = 360, H = 210;
+const cx = W / 2, cy = 184;       // hub sits low; arc bows up
+const rArc = 150;                 // arc radius
+const SWING = 82;                 // ±82° needle throw
+
+// value (-100..100) → angle (-82..+82). Negative leans left, positive right.
+const angle = (v / 100) * SWING;
+
+// Map an angle in dial-space to an SVG point on the arc.
+// 0° = straight up; negative = left, positive = right.
+const ptOnArc = (deg: number, r = rArc) => {
+  const rad = ((deg - 90) * Math.PI) / 180; // -90 so 0° points up
+  return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
+};
+
+// The 180° arc path (left end -90° → right end +90°).
+const aStart = ptOnArc(-90);
+const aEnd = ptOnArc(90);
+const arcPath = `M ${aStart.x.toFixed(1)} ${aStart.y.toFixed(1)} A ${rArc} ${rArc} 0 0 1 ${aEnd.x.toFixed(1)} ${aEnd.y.toFixed(1)}`;
+
+// Evenly spaced minor ticks across the arc (for the dial face).
+const TICKS = 9;
+const ticks = Array.from({ length: TICKS }, (_, i) => {
+  const deg = -90 + (i / (TICKS - 1)) * 180;
+  const major = i === 0 || i === TICKS - 1 || i === (TICKS - 1) / 2;
+  const inner = ptOnArc(deg, rArc - (major ? 16 : 9));
+  const outer = ptOnArc(deg, rArc + 1);
+  return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, major };
+});
+
+// Optional named markers (value in -100..100 along the arc).
+// Labels sit just outside the arc; near the ends a middle-anchored label
+// would spill past the viewBox, so anchor by side and clamp x into a safe
+// interior band. The vertical nudge keeps near-horizontal end labels off
+// the arc stroke.
+const LBL_PAD = 10; // keep label box this far inside the viewBox edges
+const markerGeo = markers.map((m) => {
+  const md = (clamp(m.at, -100, 100) / 100) * SWING;
+  const inner = ptOnArc(md, rArc - 20);
+  const outer = ptOnArc(md, rArc + 2);
+  const lbl = ptOnArc(md, rArc + 16);
+  // anchor: hug the arc end so the text grows back toward center
+  const anchor = md < -18 ? 'start' : md > 18 ? 'end' : 'middle';
+  const lx = clamp(lbl.x, LBL_PAD, W - LBL_PAD);
+  return { ...m, x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, lx, ly: lbl.y, anchor };
+});
+
+// End-label anchor points (just inside the arc ends).
+const leftAnchor = ptOnArc(-90, rArc - 30);
+const rightAnchor = ptOnArc(90, rArc - 30);
+
+// Needle reaches most of the radius.
+const needleLen = rArc - 24;
+const lean = v === 0 ? 'even' : v < 0 ? leftLabel : rightLabel;
+const mag = Math.abs(v);
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>swing meter</b></div>}
+
+  <div class="px-swdial px3d-stage">
+    <div class="px-swdial__tilt px3d-tilt" data-tilt="6">
+      <svg
+        class="px-swdial__svg"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`Swing meter: ${mag}-point lean toward ${lean === 'even' ? 'neither side' : lean}`}
+      >
+        <!-- dial face -->
+        <path class="px-swdial__arc" d={arcPath} />
+        {ticks.map((t) => (
+          <line
+            class={`px-swdial__tick${t.major ? ' px-swdial__tick--major' : ''}`}
+            x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)}
+            x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)}
+          />
+        ))}
+
+        <!-- named markers -->
+        {markerGeo.map((m) => (
+          <g class="px-swdial__marker">
+            <line x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} />
+            <text x={m.lx.toFixed(1)} y={m.ly.toFixed(1)} text-anchor={m.anchor}>{m.label}</text>
+          </g>
+        ))}
+
+        <!-- bloc labels at the arc ends -->
+        <text class="px-swdial__end px-swdial__end--l" x={leftAnchor.x.toFixed(1)} y={leftAnchor.y.toFixed(1)} text-anchor="middle">{leftLabel}</text>
+        <text class="px-swdial__end px-swdial__end--r" x={rightAnchor.x.toFixed(1)} y={rightAnchor.y.toFixed(1)} text-anchor="middle">{rightLabel}</text>
+
+        <!-- needle (rotates around the hub; from 0° at center → --swing on reveal) -->
+        <g
+          class="px-swdial__needle"
+          style={`--swing:${angle.toFixed(2)}deg; transform-origin:${cx}px ${cy}px`}
+        >
+          <polygon
+            class="px-swdial__needle-tri"
+            points={`${cx - 5},${cy} ${cx + 5},${cy} ${cx},${(cy - needleLen).toFixed(1)}`}
+          />
+        </g>
+
+        <!-- center hub -->
+        <circle class="px-swdial__hub" cx={cx} cy={cy} r="11" />
+        <circle class="px-swdial__hub-dot" cx={cx} cy={cy} r="4" />
+      </svg>
+    </div>
+
+    <div class="px-swdial__readout" data-lean={v === 0 ? 'even' : v < 0 ? 'left' : 'right'}>
+      <span class="px-swdial__val">{v > 0 ? '+' : ''}{v}</span>
+      <span class="px-swdial__lead">
+        {lean === 'even'
+          ? 'evenly split'
+          : <>{mag}-pt swing → <b>{lean}</b></>}
+      </span>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-swdial { max-width: 420px; margin: 0 auto; }
+  .px-swdial__tilt { border-radius: var(--r-card); transform-origin: 50% 90%; }
+  .px-swdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-swdial__arc {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .px-swdial__tick { stroke: var(--rule); stroke-width: 1.5; }
+  .px-swdial__tick--major { stroke: var(--ink-soft); stroke-width: 2; }
+
+  .px-swdial__marker line { stroke: var(--accent); stroke-width: 2; }
+  /* marker labels — axis-tick role: mono muted, tabular, sit just off the arc */
+  .px-swdial__marker text {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  /* bloc end labels — legend role: mono uppercase muted-to-soft */
+  .px-swdial__end {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  /* Needle — base/resting state is the FINAL angle (no-JS safe). */
+  .px-swdial__needle {
+    transform: rotate(var(--swing));
+    transform-box: view-box;
+    transition: transform var(--t-page) var(--ease-snap);
+  }
+  .px-swdial__needle-tri {
+    fill: var(--accent-deep, var(--accent));
+  }
+
+  .px-swdial__hub { fill: var(--ink); }
+  .px-swdial__hub-dot { fill: var(--paper); }
+
+  /* Reveal: needle sits dead-center, then swings to --swing once in view. */
+  html.js .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(0deg); }
+
+  .px-swdial__readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 6px;
+    text-align: center;
+  }
+  .px-swdial__val {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-swdial__readout[data-lean="left"] .px-swdial__val,
+  .px-swdial__readout[data-lean="right"] .px-swdial__val { color: var(--accent-deep, var(--accent)); }
+  .px-swdial__lead {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-swdial__lead b { color: var(--ink); font-weight: 700; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(var(--swing)) !important; }
+  }
+</style>

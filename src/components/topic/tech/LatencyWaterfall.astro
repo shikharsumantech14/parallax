@@ -1,0 +1,213 @@
+---
+/**
+ * LatencyWaterfall (tech) — a request waterfall. One row per span; a bar
+ * positioned by its `start` (x-offset %) with width proportional to `dur`, all
+ * on a shared time axis (0 → max(start + dur)). Bar tint comes from a small
+ * kind → color map derived from the theme accent/muted. Row label sits left,
+ * the duration value right (mono). On reveal each bar grows in (scaleX from its
+ * left edge) staggered down the rows, over a faint vertical gridline scale with
+ * axis ticks. Flat (no 3D). Build-time geometry; zero runtime JS.
+ *
+ * No-JS / reduced-motion: bars paint at their FINAL width (the scaleX(0) hidden
+ * state sits behind `html.js`; reduced-motion resets with !important). Numbers
+ * are plain text, always present.
+ *
+ * data: { spans[]{ label, start, dur, kind? }, unit?, caption?, source? }
+ */
+interface Span { label: string; start: number; dur: number; kind?: string; }
+interface Props { spans: Span[]; unit?: string; caption?: string; source?: string; }
+const { spans = [], unit = 'ms', caption, source } = Astro.props;
+
+// Shared time axis: 0 → the latest span end. Guard empty / degenerate data.
+const ends = spans.map((s) => (s.start || 0) + (s.dur || 0));
+const total = Math.max(1, ...ends);
+
+// kind → tint. Unknown / missing kinds fall back to the accent.
+const tint: Record<string, string> = {
+  dns: 'color-mix(in oklab, var(--muted) 70%, var(--paper))',
+  connect: 'color-mix(in oklab, var(--accent) 55%, var(--muted))',
+  tls: 'color-mix(in oklab, var(--accent) 35%, var(--muted))',
+  ttfb: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
+  wait: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
+  server: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
+  download: 'var(--accent)',
+  transfer: 'var(--accent)',
+  client: 'color-mix(in oklab, var(--accent) 40%, var(--paper))',
+};
+const colorFor = (k?: string) => (k && tint[k.toLowerCase()]) || 'var(--accent)';
+
+const rows = spans.map((s, i) => {
+  const start = Math.max(0, s.start || 0);
+  const dur = Math.max(0, s.dur || 0);
+  return {
+    ...s,
+    i,
+    left: (start / total) * 100,
+    width: (dur / total) * 100,
+    color: colorFor(s.kind),
+  };
+});
+
+// Axis ticks — 5 evenly spaced gridlines across the time axis.
+const TICKS = 5;
+const ticks = Array.from({ length: TICKS }, (_, i) => {
+  const frac = i / (TICKS - 1);
+  return { frac: frac * 100, val: Math.round(total * frac) };
+});
+const fmt = (n: number) => n.toLocaleString();
+---
+
+<div class="px-viz" data-reveal>
+  <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
+
+  <div
+    class="px-lwf"
+    role="img"
+    aria-label={caption ? `Request waterfall: ${caption}` : 'Request latency waterfall'}
+  >
+    <!-- gridline scale behind the rows -->
+    <div class="px-lwf__grid" aria-hidden="true">
+      {ticks.map((t) => (
+        <span class="px-lwf__gridline" style={`left:${t.frac}%`}></span>
+      ))}
+    </div>
+
+    <div class="px-lwf__rows">
+      {rows.map((r) => (
+        <div class="px-lwf__row" style={`--i:${r.i}`}>
+          <span class="px-lwf__label" title={r.label}>{r.label}</span>
+          <span class="px-lwf__track">
+            <span
+              class="px-lwf__bar"
+              style={`left:${r.left.toFixed(2)}%; width:${Math.max(r.width, 0.5).toFixed(2)}%; background:${r.color}; transition-delay:${r.i * 70}ms`}
+            ></span>
+          </span>
+          <span class="px-lwf__val">{fmt(r.dur)}</span>
+        </div>
+      ))}
+    </div>
+
+    <!-- axis tick labels -->
+    <div class="px-lwf__axis" aria-hidden="true">
+      {ticks.map((t) => (
+        <span class="px-lwf__tick" style={`left:${t.frac}%`}>{fmt(t.val)}</span>
+      ))}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-lwf {
+    position: relative;
+    width: 100%;
+    /* shared column geometry — label rail | bar track | value rail */
+    --rail-l: 150px;
+    --rail-r: 56px;
+    --gap: 14px;
+  }
+
+  /* gridlines span only the bar-track region */
+  .px-lwf__grid {
+    position: absolute;
+    top: 0;
+    bottom: 26px;            /* leave room for the axis row */
+    left: calc(var(--rail-l) + var(--gap));
+    right: calc(var(--rail-r) + var(--gap));
+    pointer-events: none;
+  }
+  .px-lwf__gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+    opacity: 0.6;
+    transform: translateX(-0.5px);
+  }
+
+  .px-lwf__rows { position: relative; display: flex; flex-direction: column; gap: 7px; }
+
+  .px-lwf__row {
+    display: grid;
+    grid-template-columns: var(--rail-l) 1fr var(--rail-r);
+    gap: var(--gap);
+    align-items: center;
+  }
+
+  .px-lwf__label {
+    /* span name rail — mono, ink-soft, axis-register letter-spacing */
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .px-lwf__track {
+    position: relative;
+    height: 16px;
+    border-radius: var(--r-pill);
+    background: color-mix(in oklab, var(--ink) 4%, var(--bg));
+  }
+  .px-lwf__bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: var(--r-pill);
+    /* base/resting = final width; grow from the left edge */
+    transform: scaleX(1);
+    transform-origin: left center;
+    transition: transform 850ms var(--ease);
+  }
+
+  .px-lwf__val {
+    /* big duration value — signature face (mono for tech), ink, tabular figures */
+    font-family: var(--issue-face, var(--font-mono));
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;     /* keep multi-digit durations on one line */
+  }
+
+  .px-lwf__axis {
+    position: relative;
+    height: 26px;
+    margin-left: calc(var(--rail-l) + var(--gap));
+    margin-right: calc(var(--rail-r) + var(--gap));
+    margin-top: 4px;
+  }
+  .px-lwf__tick {
+    /* axis ticks — mono muted, system axis scale + letter-spacing, tabular */
+    position: absolute;
+    top: 6px;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* reveal: bars grow in from the left, staggered (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-lwf__bar { transform: scaleX(0); }
+
+  @media (max-width: 560px) {
+    .px-lwf { --rail-l: 92px; --rail-r: 48px; --gap: 10px; }
+    .px-lwf__label { font-size: 10px; }
+    .px-lwf__val { font-size: 10.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-lwf__bar { transform: scaleX(1) !important; }
+  }
+</style>

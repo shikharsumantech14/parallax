@@ -54,7 +54,7 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
       </div>
     </div>
   ) : (
-    <ol class="px-erh-index__sheets">
+    <ol class="px-erh-index__sheets" data-reveal>
       {issues.map((issue) => (
         <li class="px-erh-index__sheet">
           <a class="px-erh-index__sheet-link" href={`/issues/${issue.slug}/`}>
@@ -147,16 +147,16 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     border-bottom: 1px dashed var(--rule);
   }
   .px-erh-index__title {
-    font-family: var(--font-display);
+    font-family: var(--issue-face, var(--font-display));
     font-weight: 600;
-    font-size: clamp(40px, 6vw, 78px);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
+    font-size: clamp(42px, 6.2vw, 82px);
+    line-height: 1.02;
+    letter-spacing: -0.022em;
     color: var(--ink);
     margin: 0 0 20px;
     max-width: 18ch;
   }
-  .px-erh-index__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-erh-index__title em { font-style: italic; font-weight: 400; color: var(--accent-deep, var(--accent)); }
   .px-erh-index__manifesto {
     font-family: var(--font-display);
     font-style: italic;
@@ -167,13 +167,26 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     max-width: 60ch;
   }
 
-  /* --- Sheets list --- */
+  /* --- Sheets list (v2 archive-row treatment) --- */
   .px-erh-index__sheets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
   .px-erh-index__sheet {
     border: 1px solid var(--rule);
     background: var(--paper);
     padding: 0;
+    position: relative;
+    overflow: hidden;
   }
+  /* Hover accent bar on the left + subtle accent bg tint (v2 .arch__row) */
+  .px-erh-index__sheet::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+    z-index: 1;
+  }
+  .px-erh-index__sheet:hover::before { width: 3px; }
   .px-erh-index__sheet-link {
     display: grid;
     grid-template-columns: 200px 1fr;
@@ -181,9 +194,33 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     padding: 22px 24px;
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: background var(--t-soft) var(--ease), padding-left var(--t-soft) var(--ease);
   }
-  .px-erh-index__sheet-link:hover { background: var(--paper-2); }
+  .px-erh-index__sheet-link:hover {
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+    padding-left: 30px;
+  }
+
+  /* Staggered scroll-reveal rows (gated behind html.js per motion-v2 contract). */
+  .px-erh-index__sheet {
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-erh-index__sheets:not(.is-in) .px-erh-index__sheet {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(1) { transition-delay: 80ms; }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(2) { transition-delay: 140ms; }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(3) { transition-delay: 200ms; }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(4) { transition-delay: 260ms; }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(5) { transition-delay: 320ms; }
+  .px-erh-index__sheets.is-in .px-erh-index__sheet:nth-child(6) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-erh-index__sheets:not(.is-in) .px-erh-index__sheet {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
   .px-erh-index__sheet-corner {
     border-right: 1px dashed var(--rule);
     padding-right: 18px;
@@ -192,7 +229,7 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     font-family: var(--font-display);
     font-weight: 600;
     font-size: 30px;
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
     letter-spacing: -0.01em;
     line-height: 1;
     margin-bottom: 6px;
@@ -213,7 +250,7 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     letter-spacing: -0.01em;
     margin: 0 0 8px;
   }
-  .px-erh-index__sheet-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-erh-index__sheet-title em { font-style: italic; font-weight: 400; color: var(--accent-deep, var(--accent)); }
   .px-erh-index__sheet-hook {
     font-family: var(--font-display);
     font-style: italic;
@@ -232,15 +269,27 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     color: var(--muted);
   }
   .px-erh-index__sheet-sep { color: var(--rule); }
-  .px-erh-index__sheet-cta { color: var(--accent); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
+  .px-erh-index__sheet-cta { color: var(--accent-deep, var(--accent)); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
 
-  /* --- Empty: cartographic survey placeholder --- */
+  /* --- Empty: cartographic survey placeholder (v2 elevated card) --- */
   .px-erh-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     background: var(--paper);
     padding: 56px 48px;
     position: relative;
     overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-erh-index__empty::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
+    z-index: 2;
   }
   .px-erh-index__empty-rings {
     position: absolute;
@@ -284,7 +333,7 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     line-height: 1.4;
     position: relative;
   }
-  .px-erh-index__empty-body em { color: var(--accent); }
+  .px-erh-index__empty-body em { color: var(--accent-deep, var(--accent)); }
   .px-erh-index__empty-legend {
     display: flex;
     gap: 24px;

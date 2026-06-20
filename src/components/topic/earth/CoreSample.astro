@@ -1,0 +1,202 @@
+---
+/**
+ * CoreSample (earth) — an ice / sediment core column read top→bottom. A tall
+ * vertical column is split into equal-height layer bands, each tinted by its
+ * own `color` (or a stepwise earth-tone tint derived from the accent), with the
+ * depth marker + label + optional value sitting beside it. A depth axis runs
+ * down the left rail. The column lives on a CSS-3D stage (core/Tilt.astro
+ * `data-tilt`) so it reads as a recovered core lifted from the ground.
+ *
+ * No-JS / reduced-motion: every band paints in its FINAL state (the hidden
+ * scaleY/opacity rule sits behind `html.js`; reduced-motion resets with
+ * !important). The depth + label + value text carries the reading regardless.
+ *
+ * data: { layers[]{ depth, label, value?, color? }, unit?, caption?, source? }
+ */
+interface Layer { depth: string; label: string; value?: number; color?: string; }
+interface Props {
+  layers: Layer[];
+  unit?: string;
+  caption?: string;
+  source?: string;
+}
+const { layers = [], unit = '', caption, source } = Astro.props;
+
+const n = layers.length;
+
+// Stepwise earth-tone tint for layers without an explicit colour. Darker /
+// richer toward the bottom (older, deeper material), built off the accent +
+// ink so it re-themes cleanly. t runs 0 (top) → 1 (deepest).
+function tintFor(i: number): string {
+  const t = n > 1 ? i / (n - 1) : 0;
+  const accentPct = Math.round(74 - t * 30);          // 74% → 44% accent
+  const inkPct = Math.round(8 + t * 34);              // mix in more ink lower down
+  return `color-mix(in oklab, color-mix(in oklab, var(--accent) ${accentPct}%, var(--paper)) ${100 - inkPct}%, var(--ink) ${inkPct}%)`;
+}
+
+const bands = layers.map((l, i) => ({
+  ...l,
+  fill: l.color || tintFor(i),
+}));
+
+const fmtVal = (v: number) => `${v}${unit ? ' ' + unit : ''}`;
+
+const topDepth = layers[0]?.depth ?? '';
+const bottomDepth = layers[n - 1]?.depth ?? '';
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>core sample</b></div>}
+
+  <div class="px-core">
+    <!-- depth axis rail -->
+    <div class="px-core__axis" aria-hidden="true">
+      <span class="px-core__axis-top">{topDepth || '0'}</span>
+      <span class="px-core__axis-cap">depth ↓</span>
+      <span class="px-core__axis-btm">{bottomDepth}</span>
+    </div>
+
+    <!-- the core column, on a 3D stage -->
+    <div class="px-core__stage px3d-stage">
+      <div class="px-core__col px3d-tilt" data-tilt="6"
+        role="img"
+        aria-label={caption ? `Core sample column: ${caption}` : 'Core sample column'}>
+        {bands.map((b, i) => (
+          <div class="px-core__band" style={`--i:${i}; --fill:${b.fill}`}>
+            <span class="px-core__swatch" style={`background:${b.fill}`}></span>
+            <span class="px-core__meta">
+              <span class="px-core__depth">{b.depth}</span>
+              <span class="px-core__label">{b.label}</span>
+            </span>
+            {b.value != null && <span class="px-core__val">{fmtVal(b.value)}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-core {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 18px;
+    align-items: stretch;
+  }
+
+  /* ── depth axis rail ─────────────────────────────────────────────────── */
+  .px-core__axis {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 4px 10px 4px 0;
+    border-right: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .px-core__axis-cap {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: var(--viz-ls-wide, 0.2em);
+    text-transform: uppercase;
+    font-size: 9px;
+    color: var(--muted);
+    margin: auto 0;
+  }
+  .px-core__axis-top,
+  .px-core__axis-btm { color: var(--ink-soft); font-weight: 700; }
+
+  /* ── the 3D core column ──────────────────────────────────────────────── */
+  .px-core__stage { perspective-origin: 50% 30%; }
+  .px-core__col {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--r-tile);
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    transform-origin: 50% 0%;     /* recede from the top — lifted from ground */
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+      0 22px 48px -28px color-mix(in oklab, var(--ink) 55%, transparent);
+  }
+
+  .px-core__band {
+    position: relative;
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    min-height: 58px;
+    padding: 12px 16px;
+    background: color-mix(in oklab, var(--fill) 26%, var(--paper));
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+    /* base/resting = final visible state (no-JS safe) */
+    transform: scaleY(1);
+    transform-origin: top;
+    opacity: 1;
+    transition: transform 620ms var(--ease), opacity var(--t-soft) var(--ease);
+  }
+  .px-core__band:last-child { border-bottom: none; }
+
+  .px-core__swatch {
+    width: 14px;
+    height: 100%;
+    min-height: 34px;
+    border-radius: 3px;
+    align-self: stretch;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 18%, transparent);
+  }
+
+  .px-core__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .px-core__depth {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: var(--viz-ls-mono, 0.16em);
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    /* long depth ranges must wrap, not overflow the narrow meta column */
+    overflow-wrap: anywhere;
+  }
+  .px-core__label {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-core__val {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── reveal: bands drop in top→bottom (scaleY + fade), staggered ─────── */
+  html.js .px-viz:not(.is-in) .px-core__band { transform: scaleY(0); opacity: 0; }
+  .px-viz.is-in .px-core__band { transition-delay: calc(var(--i) * 90ms); }
+
+  @media (max-width: 560px) {
+    .px-core { grid-template-columns: 40px 1fr; gap: 12px; }
+    .px-core__band { min-height: 52px; padding: 10px 13px; gap: 11px; }
+    .px-core__label { font-size: 15px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-core__band { transform: scaleY(1) !important; opacity: 1 !important; }
+  }
+</style>

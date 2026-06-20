@@ -1,0 +1,91 @@
+---
+/* ManifestoStrip — three editorial promises, shown under the chord on the
+   home page. Ports the v2 design kit's `.mf-strip` (publication-v2/styles.css
+   + Sections.jsx). Pure CSS, no JS. Prefix: px-mstrip.
+
+   Copy is the canonical v2 wording; do not reword without an editorial pass. */
+interface Promise {
+  no: string;
+  title: string;
+  detail: string;
+}
+
+const promises: Promise[] = [
+  { no: '01', title: 'Independent', detail: 'Not for profit. No investors. No advertisers.' },
+  { no: '02', title: 'Sourced', detail: 'Every claim cites a primary source. Every dataset is linked.' },
+  { no: '03', title: 'Slow', detail: 'Read in six minutes. Argued in sixty days.' }
+];
+---
+
+<ul class="px-mstrip" aria-label="Editorial promises">
+  {promises.map((p) => (
+    <li class="px-mstrip__item">
+      <span class="px-mstrip__no">{p.no}</span>
+      <span class="px-mstrip__t">{p.title}</span>
+      <span class="px-mstrip__d">{p.detail}</span>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .px-mstrip {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: 0 0 8px;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-mstrip__item {
+    padding: 18px 24px 18px 0;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 14px;
+    align-items: start;
+    position: relative;
+  }
+  .px-mstrip__item + .px-mstrip__item {
+    border-left: 1px solid var(--rule);
+    padding-left: 24px;
+  }
+  .px-mstrip__no {
+    grid-row: 1 / span 2;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1;
+    /* accent-as-text on meta paper → use the deep variant for contrast */
+    color: var(--accent-deep, var(--accent));
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .px-mstrip__t {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .px-mstrip__d {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 720px) {
+    .px-mstrip { grid-template-columns: 1fr; }
+    .px-mstrip__item + .px-mstrip__item {
+      border-left: 0;
+      border-top: 1px solid var(--rule);
+      padding-left: 0;
+      padding-top: 16px;
+    }
+  }
+</style>

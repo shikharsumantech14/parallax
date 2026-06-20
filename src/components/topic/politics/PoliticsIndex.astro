@@ -48,7 +48,7 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
       <p class="px-poli-index__empty-body" set:html={renderEmphasis(empty.tagline)} />
     </div>
   ) : (
-    <ol class="px-poli-index__leads">
+    <ol class="px-poli-index__leads" data-reveal>
       {issues.map((issue) => (
         <li class="px-poli-index__lead">
           <a class="px-poli-index__lead-link" href={`/issues/${issue.slug}/`}>
@@ -101,11 +101,11 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     flex-wrap: wrap;
   }
   .px-poli-index__nameplate {
-    font-family: var(--font-display);
+    font-family: var(--issue-face, var(--font-display));
     font-weight: 700;
-    font-size: clamp(36px, 5.5vw, 64px);
-    line-height: 1;
-    letter-spacing: -0.025em;
+    font-size: clamp(38px, 5.8vw, 68px);
+    line-height: 0.98;
+    letter-spacing: -0.028em;
     color: var(--ink);
     display: flex;
     align-items: center;
@@ -142,7 +142,7 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     font-size: 11px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
     margin-bottom: 18px;
   }
   .px-poli-index__editorial-body {
@@ -164,9 +164,9 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     padding: 6px 14px 0 0;
   }
 
-  /* --- Issue list as columnar leads --- */
+  /* --- Issue list as columnar leads (v2 archive-row treatment) --- */
   .px-poli-index__leads { list-style: none; padding: 0; margin: 0; }
-  .px-poli-index__lead { padding: 0; }
+  .px-poli-index__lead { padding: 0; position: relative; }
   .px-poli-index__lead + .px-poli-index__lead {
     border-top: 1px solid var(--ink);
     margin-top: 8px;
@@ -176,13 +176,48 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     display: grid;
     grid-template-columns: 100px 1fr;
     gap: 28px;
-    padding: 28px 0;
+    padding: 28px 8px;
     text-decoration: none;
     color: inherit;
     border-bottom: 1px solid var(--rule);
-    transition: background 0.15s ease;
+    position: relative;
+    transition: background var(--t-soft) var(--ease), padding-left var(--t-soft) var(--ease);
   }
-  .px-poli-index__lead-link:hover { background: var(--paper); }
+  /* Hover accent bar on the left + subtle accent bg tint (v2 .arch__row) */
+  .px-poli-index__lead-link::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+  }
+  .px-poli-index__lead-link:hover {
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+    padding-left: 18px;
+  }
+  .px-poli-index__lead-link:hover::before { width: 3px; }
+
+  /* Staggered scroll-reveal rows (gated behind html.js per motion-v2 contract). */
+  .px-poli-index__lead {
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-poli-index__leads:not(.is-in) .px-poli-index__lead {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(1) { transition-delay: 80ms; }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(2) { transition-delay: 140ms; }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(3) { transition-delay: 200ms; }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(4) { transition-delay: 260ms; }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(5) { transition-delay: 320ms; }
+  .px-poli-index__leads.is-in .px-poli-index__lead:nth-child(6) { transition-delay: 380ms; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-poli-index__leads:not(.is-in) .px-poli-index__lead {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
   .px-poli-index__lead-no {
     font-family: var(--font-display);
     font-weight: 700;
@@ -196,7 +231,7 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     font-size: 11px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
     margin-bottom: 10px;
   }
   .px-poli-index__lead-title {
@@ -208,7 +243,7 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     color: var(--ink);
     margin: 0 0 10px;
   }
-  .px-poli-index__lead-title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-poli-index__lead-title em { font-style: italic; font-weight: 400; color: var(--accent-deep, var(--accent)); }
   .px-poli-index__lead-hook {
     font-family: var(--font-display);
     font-size: 17px;
@@ -230,14 +265,26 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     color: var(--muted);
   }
   .px-poli-index__lead-sep { color: var(--rule); }
-  .px-poli-index__lead-cta { color: var(--accent); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
+  .px-poli-index__lead-cta { color: var(--accent-deep, var(--accent)); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
 
-  /* --- Empty state — broadsheet "FILING" placeholder --- */
+  /* --- Empty state — broadsheet "FILING" placeholder (v2 elevated card) --- */
   .px-poli-index__empty {
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     padding: 48px;
     background: var(--paper);
     position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-poli-index__empty::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
   }
   .px-poli-index__empty-stamp {
     position: absolute;
@@ -276,7 +323,7 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     margin: 0;
     max-width: 56ch;
   }
-  .px-poli-index__empty-body em { color: var(--accent); }
+  .px-poli-index__empty-body em { color: var(--accent-deep, var(--accent)); }
 
   @media (max-width: 720px) {
     .px-poli-index__masthead { padding-top: 18px; }

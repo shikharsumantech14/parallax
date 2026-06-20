@@ -1,22 +1,24 @@
 ---
-/*
-  BenchmarkChart — horizontal comparison bars.
-  SVG, build-time, zero runtime JS.
-
-  Use for: LLM benchmark scores, hardware performance,
-  framework speed comparisons, pricing tables.
-
-  props:
-    items[]       — { label: string, value: number, sublabel?: string,
-                      highlight?: boolean, color?: string }
-    maxValue      — right-end of scale (default: auto from data)
-    unit          — appended to value label (e.g. "tokens/s", "pts", "%")
-    refValue      — optional reference line (e.g. human baseline)
-    refLabel      — label for reference line
-    sortDesc      — sort items descending by value (default true)
-    caption
-    source
-*/
+/**
+ * BenchmarkChart — v2 horizontal comparison bars (.bc) inside the elevated
+ * .px-viz card. Bars grow-in left→right on scroll, an optional dashed
+ * reference line drops in over the track grid. Faithful port of the
+ * publication-v2 kit <BenchmarkChart>. Build-time, zero runtime JS (reveal
+ * handled by CSS; core/Reveal.astro toggles .is-in on the .px-viz shell).
+ *
+ * Use for: LLM benchmark scores, hardware performance, framework speed
+ * comparisons, pricing tables.
+ *
+ * props:
+ *   items[]   — { label, value, sublabel?, highlight?, color? }
+ *   maxValue  — right-end of scale (default: auto from data × 1.05)
+ *   unit      — caption unit chip (e.g. "tokens/s", "pts", "%")
+ *   refValue  — optional reference line value (e.g. human baseline)
+ *   refLabel  — label for the reference line
+ *   sortDesc  — sort items descending by value (default true)
+ *   caption
+ *   source
+ */
 interface Item {
   label: string;
   value: number;
@@ -36,6 +38,7 @@ interface Props {
 }
 const {
   items = [],
+  maxValue,
   unit = '',
   refValue,
   refLabel,
@@ -44,104 +47,46 @@ const {
   source,
 } = Astro.props;
 
-let { maxValue } = Astro.props;
+const rows = sortDesc ? [...items].sort((a, b) => b.value - a.value) : items;
+// Honor an explicit maxValue; otherwise derive as the kit does (data peak × 1.05).
+const dataMax = Math.max(refValue ?? 0, ...items.map((i) => i.value), 1) * 1.05;
+const max = maxValue ?? dataMax;
 
-const sorted = sortDesc
-  ? [...items].sort((a, b) => b.value - a.value)
-  : [...items];
-
-const dataMax = Math.max(...sorted.map(d => d.value), refValue ?? 0, 1);
-const scale = maxValue ?? dataMax * 1.08;
-
-// Layout constants
-const ROW_H   = 42;
-const LABEL_W = 200;
-const BAR_GAP = 8;
-const PAD     = { top: 8, right: 80, bottom: 12, left: 8 };
-const W       = 760;
-const BAR_AREA_W = W - LABEL_W - PAD.left - PAD.right;
-const H       = sorted.length * ROW_H + PAD.top + PAD.bottom;
-
-const barW = (v: number) => (v / scale) * BAR_AREA_W;
-const barX  = PAD.left + LABEL_W;
-const barY  = (i: number) => PAD.top + i * ROW_H + BAR_GAP;
-const bH    = ROW_H - BAR_GAP * 2;
-
-const refX = refValue != null ? barX + barW(refValue) : null;
-
-const fmt = (v: number) =>
-  (v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v % 1 === 0 ? String(v) : v.toFixed(1))
-  + (unit ? ' ' + unit : '');
+const hasRef = refValue != null;
 ---
 
-<div class="px-bench">
-  {caption && <div class="px-bench__caption">{caption}</div>}
+<div class="px-viz" data-reveal>
+  <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
-  <svg viewBox={`0 0 ${W} ${H}`} class="px-bench__svg" role="img"
-    aria-label="Benchmark comparison chart">
+  {hasRef && (
+    <div class="bc__ref">
+      <div
+        class="bc__refline"
+        style={`left:calc(150px + 14px + (100% - 150px - 14px - 52px - 14px) * ${refValue! / max})`}
+      >
+        <span class="bc__reflabel">{refLabel ? `${refLabel} · ${refValue}` : refValue}</span>
+      </div>
+    </div>
+  )}
 
-    <!-- Row backgrounds (alternating subtle) -->
-    {sorted.map((_, i) => i % 2 === 1 && (
-      <rect x={0} y={PAD.top + i * ROW_H} width={W} height={ROW_H}
-        style="fill:var(--paper-2,var(--paper));opacity:0.4" />
+  <div
+    role="img"
+    aria-label={caption ? `Benchmark comparison: ${caption}` : 'Benchmark comparison chart'}
+    style={`margin-top:${hasRef ? 18 : 0}px`}
+  >
+    {rows.map((it, i) => (
+      <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'}>
+        <span class="bc__label">{it.label}</span>
+        <span class="bc__track">
+          <span
+            class="bc__fill"
+            style={`--w:${(it.value / max) * 100}%;transition-delay:${i * 60}ms${it.color ? `;background:${it.color}` : ''}`}
+          ></span>
+        </span>
+        <span class="bc__val">{it.value}</span>
+      </div>
     ))}
+  </div>
 
-    <!-- Reference line -->
-    {refX != null && (
-      <>
-        <line x1={refX} y1={PAD.top} x2={refX} y2={H - PAD.bottom}
-          style="stroke:var(--accent);stroke-width:1;stroke-dasharray:4 3;opacity:0.6" />
-        <text x={refX + 4} y={PAD.top + 8} text-anchor="start"
-          style="font-family:'JetBrains Mono',monospace;font-size:9px;
-                 fill:var(--accent);letter-spacing:0.08em;text-transform:uppercase">
-          {refLabel ?? 'Reference'}
-        </text>
-      </>
-    )}
-
-    {sorted.map((item, i) => {
-      const bw = barW(item.value);
-      const by = barY(i);
-      const barColor = item.highlight
-        ? 'var(--accent)'
-        : (item.color ?? 'var(--accent-deep)');
-      return (
-        <>
-          {/* Label */}
-          <text x={PAD.left + LABEL_W - 10} y={by + bH / 2 + 1}
-            text-anchor="end" dominant-baseline="middle"
-            style={`font-family:'JetBrains Mono',monospace;font-size:12px;
-                   fill:${item.highlight ? 'var(--accent)' : 'var(--ink)'};
-                   letter-spacing:0.03em;${item.highlight ? 'font-weight:600' : ''}`}>
-            {item.label}
-          </text>
-          {item.sublabel && (
-            <text x={PAD.left + LABEL_W - 10} y={by + bH / 2 + 13}
-              text-anchor="end" dominant-baseline="middle"
-              style="font-family:'JetBrains Mono',monospace;font-size:9px;
-                     fill:var(--muted);letter-spacing:0.04em">
-              {item.sublabel}
-            </text>
-          )}
-
-          {/* Bar */}
-          <rect x={barX} y={by} width={Math.max(0, bw)} height={bH}
-            rx={2}
-            style={`fill:${barColor};opacity:${item.highlight ? 1 : 0.75}`}
-          />
-
-          {/* Value label */}
-          <text x={barX + bw + 6} y={by + bH / 2 + 1}
-            text-anchor="start" dominant-baseline="middle"
-            style={`font-family:'JetBrains Mono',monospace;font-size:11px;
-                   fill:${item.highlight ? 'var(--accent)' : 'var(--ink-soft)'};
-                   letter-spacing:0.04em`}>
-            {fmt(item.value)}
-          </text>
-        </>
-      );
-    })}
-  </svg>
-
-  {source && <div class="px-bench__source">{source}</div>}
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

@@ -1,0 +1,167 @@
+---
+/**
+ * ReadingToolbar — the v2 floating glass reading bar (kit Components.jsx
+ * <ReadingToolbar>). Replaces the inline SkimToggle. Two pieces:
+ *   • a hairline reading-progress bar pinned to the top of the viewport, and
+ *   • a bottom-centered glass pill that fades in after you start scrolling,
+ *     carrying the Full/Skim segmented toggle, the live progress %, a keyboard
+ *     hint, and the Save-for-later control.
+ *
+ * The Full/Skim toggle drives `#px-article[data-mode]` (same mechanism the old
+ * SkimToggle used, so the existing skim CSS keeps working). Pressing "S"
+ * toggles it too. All of this is progressive enhancement — with no JS the pill
+ * never appears and the reader gets the full article (skim was always JS-only).
+ *
+ * Scoped styles (Astro-hashed) — no global class collisions. Uses the v2 glass
+ * + motion tokens from tokens-v2.css, themed by `data-theme` (dark worlds).
+ */
+import SaveButton from './SaveButton.astro';
+
+interface Props {
+  readTime?: number;
+  issueId: string;
+  theme?: 'light' | 'dark';
+}
+const { readTime = 7, issueId, theme = 'light' } = Astro.props;
+---
+
+<div class="rtb-rp" aria-hidden="true"><span class="rtb-rp__fill"></span></div>
+
+<div class="rtb" data-theme={theme} role="group" aria-label="Reading controls">
+  <div class="rtb__seg" data-mode="full">
+    <span class="rtb__thumb" aria-hidden="true"></span>
+    <button class="rtb__seg-btn is-active" type="button" data-mode="full" aria-pressed="true">Full</button>
+    <button class="rtb__seg-btn" type="button" data-mode="skim" aria-pressed="false">Skim</button>
+  </div>
+  <span class="rtb__sep" aria-hidden="true"></span>
+  <span class="rtb__meta"><b class="rtb__pct">0%</b> · {readTime} min</span>
+  <span class="rtb__sep rtb__sep--hide" aria-hidden="true"></span>
+  <span class="rtb__meta rtb__meta--hide">Press <b>S</b></span>
+  <span class="rtb__sep" aria-hidden="true"></span>
+  <SaveButton issueId={issueId} />
+</div>
+
+<script is:inline>
+  (function () {
+    var rp = document.querySelector('.rtb-rp__fill');
+    var bar = document.querySelector('.rtb');
+    if (!bar) return;
+    var seg = bar.querySelector('.rtb__seg');
+    var pctEl = bar.querySelector('.rtb__pct');
+    var article = document.getElementById('px-article');
+    var btns = bar.querySelectorAll('.rtb__seg-btn');
+
+    function setMode(mode) {
+      if (article) article.setAttribute('data-mode', mode);
+      if (seg) seg.setAttribute('data-mode', mode);
+      btns.forEach(function (b) {
+        var on = b.getAttribute('data-mode') === mode;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 's' && e.key !== 'S') return;
+      var t = e.target || {};
+      var tag = t.tagName || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable) return;
+      var cur = article ? article.getAttribute('data-mode') : 'full';
+      setMode(cur === 'skim' ? 'full' : 'skim');
+    });
+
+    function onScroll() {
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      if (rp) rp.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+      if (pctEl) pctEl.textContent = Math.round(p * 100) + '%';
+      bar.classList.toggle('is-shown', p > 0.04);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+  })();
+</script>
+
+<style>
+  /* Reading progress — hairline accent across the very top */
+  .rtb-rp {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px;
+    background: transparent; z-index: 100; pointer-events: none;
+  }
+  .rtb-rp__fill {
+    display: block; height: 100%;
+    background: var(--accent);
+    transform: scaleX(0); transform-origin: 0 0;
+    transition: transform 80ms linear;
+  }
+
+  /* Bottom-floating glass pill */
+  .rtb {
+    position: fixed; left: 50%; bottom: 24px;
+    transform: translate(-50%, 12px);
+    z-index: 90;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-pill);
+    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.4) inset;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  .rtb.is-shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .rtb[data-theme="dark"] {
+    background: var(--glass-bg-dark);
+    border-color: rgba(232,238,247,0.12);
+    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,238,247,0.08) inset;
+  }
+
+  .rtb__seg {
+    position: relative; display: inline-flex; padding: 2px;
+    background: color-mix(in oklab, var(--ink) 6%, transparent);
+    border-radius: var(--r-pill);
+  }
+  .rtb__thumb {
+    position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px);
+    background: var(--paper); border-radius: var(--r-pill);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: left var(--t-soft) var(--ease-snap);
+  }
+  .rtb__seg[data-mode="skim"] .rtb__thumb { left: 50%; }
+  .rtb__seg-btn {
+    position: relative; z-index: 1;
+    padding: 6px 14px;
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted);
+    background: none; border: 0; cursor: pointer;
+    border-radius: var(--r-pill);
+    transition: color var(--t-quick) var(--ease);
+  }
+  .rtb__seg-btn.is-active { color: var(--accent); }
+  .rtb__sep { width: 1px; height: 18px; background: var(--rule); flex: 0 0 1px; }
+  .rtb__meta {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); padding: 0 4px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .rtb__meta b { color: var(--ink); }
+
+  /* Save control reads as a pill inside the bar */
+  .rtb :global(.px-save__btn) { border-radius: var(--r-pill); padding: 7px 14px; }
+
+  @media (max-width: 600px) {
+    .rtb__meta--hide, .rtb__sep--hide { display: none; }
+  }
+  @media (max-width: 420px) {
+    .rtb { gap: 8px; padding: 8px 10px; }
+    .rtb__meta { display: none; }
+  }
+</style>

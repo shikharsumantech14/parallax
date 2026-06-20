@@ -17,7 +17,6 @@ interface Props {
     hook: string;
     issueNumber: number;
     publishedAt: Date;
-    ogImage?: string;
   };
   emptyLabel: string;
   emptyTag: string;
@@ -65,6 +64,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
 
 <a class="px-cat" data-topic={topic} data-empty={latest ? undefined : 'true'} href={href}>
   <div class="px-cat__motif" aria-hidden="true"></div>
+  <div class="px-cat__warmth" aria-hidden="true"></div>
 
   {/* ============================================================
       PER-TOPIC HEADER — distinct chrome line per category
@@ -143,16 +143,6 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
       ============================================================ */}
   {latest ? (
     <div class="px-cat__issue">
-      {latest.ogImage && (
-        <img
-          class="px-cat__cover"
-          src={latest.ogImage}
-          alt=""
-          loading="lazy"
-          width="380"
-          height="200"
-        />
-      )}
       <div class="px-cat__issue-label">Latest issue</div>
       <h3 class="px-cat__issue-title" set:html={renderEmphasis(latest.title)} />
       <p class="px-cat__issue-hook">{latest.hook}</p>
@@ -185,24 +175,50 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     background: var(--bg);
     color: var(--ink);
     border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
     padding: 28px 30px 30px;
     text-decoration: none;
     overflow: hidden;
+    isolation: isolate;
     min-height: 400px;
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    /* cursor-warmth radial defaults (CSS-only, no JS to update them) */
+    --mx: 0.5;
+    --my: 0.5;
+    transition: transform var(--t-soft) var(--ease), border-color var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
   }
   .px-cat:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     border-color: var(--accent);
     box-shadow: 0 18px 36px -28px rgba(0,0,0,0.45);
   }
+  /* Top accent stripe — thickens on hover (v2 .tile__stripe) */
   .px-cat::after {
     content: '';
     position: absolute;
     inset: 0 0 auto 0;
     height: 4px;
     background: var(--accent);
+    border-radius: var(--r-tile) var(--r-tile) 0 0;
+    z-index: 3;
+    transition: height var(--t-soft) var(--ease);
   }
+  .px-cat:hover::after { height: 7px; }
+  /* Cursor-warmth radial — faint accent glow, fixed centre (no JS). */
+  .px-cat__warmth {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      220px circle at calc(var(--mx) * 100%) calc(var(--my) * 100%),
+      color-mix(in oklab, var(--accent) 16%, transparent) 0%,
+      transparent 60%
+    );
+    transition: opacity var(--t-soft) var(--ease);
+  }
+  .px-cat:hover .px-cat__warmth { opacity: 1; }
 
   /* --- Shared header skeleton --- */
   .px-cat__head {
@@ -401,17 +417,6 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     position: relative;
     z-index: 2;
   }
-  .px-cat__cover {
-    display: block;
-    width: 100%;
-    aspect-ratio: 19 / 10;
-    object-fit: cover;
-    border: 1px solid var(--rule);
-    background: var(--paper);
-    margin-bottom: 14px;
-    transition: border-color 0.18s ease;
-  }
-  .px-cat:hover .px-cat__cover { border-color: var(--accent); }
   .px-cat__issue-label {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -462,7 +467,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
      PER-TOPIC TOKEN BLOCKS — scoped to keep colors local to this card
      ============================================================================ */
   .px-cat[data-topic="politics"] {
-    --bg: #f7f3ea;
+    --bg: linear-gradient(160deg, #f7f2e7 0%, #efe6d2 100%);
     --paper: #ffffff;
     --rule: #d8cfbf;
     --ink: #161412;
@@ -475,7 +480,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   .px-cat[data-topic="space"] {
-    --bg: #0a1628;
+    --bg: radial-gradient(180% 140% at 100% 0%, #1a2d4d 0%, #0a1628 60%, #050d1a 100%);
     --paper: #111f36;
     --rule: #1e3352;
     --ink: #e8eef7;
@@ -488,7 +493,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
   }
   .px-cat[data-topic="earth"] {
-    --bg: #f0e9d8;
+    --bg: linear-gradient(170deg, #f4ecd4 0%, #ece3c0 100%);
     --paper: #fbf6e9;
     --rule: #d4c8a8;
     --ink: #1f2a1c;
@@ -501,7 +506,8 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   .px-cat[data-topic="tech"] {
-    --bg: #0d0d0d;
+    /* base diagonal wash; the monospace lattice rides on .px-cat__motif */
+    --bg: linear-gradient(135deg, #161616 0%, #0a0a0a 100%);
     --paper: #1a1a1a;
     --rule: #2b2b2b;
     --ink: #fafafa;
@@ -514,7 +520,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   .px-cat[data-topic="travel"] {
-    --bg: #faf6ef;
+    --bg: linear-gradient(165deg, #fffdf6 0%, #f4ead3 100%);
     --paper: #fffdf7;
     --rule: #e5d9c4;
     --ink: #2a1f15;
@@ -527,7 +533,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   }
   .px-cat[data-topic="sports"] {
-    --bg: #0f2820;
+    --bg: radial-gradient(180% 140% at 100% 100%, #1a4030 0%, #0f2820 65%, #08180f 100%);
     --paper: #143328;
     --rule: #1f4434;
     --ink: #f5f5f0;

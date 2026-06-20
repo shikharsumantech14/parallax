@@ -1,0 +1,271 @@
+---
+/**
+ * DeltaVLadder (space) — a stacked Δv / energy budget. Segments stack bottom-up
+ * (Earth → LEO → GEO → escape), each segment's height proportional to its Δv,
+ * labelled with its name + value and coloured by segment.color or a stepwise
+ * accent tint. A right-side scale rail marks cumulative Δv with the grand total
+ * on top. Segments grow + stack in on scroll-in (scaleY from the bottom,
+ * staggered). The stack sits on a shallow 3D plane (global core/Tilt.astro
+ * `data-tilt` island).
+ *
+ * No-JS / reduced-motion: segments paint at full height (the scaleY:0 hidden
+ * rule sits behind `html.js`; reduced-motion resets with !important). Each
+ * segment's Δv value sits in its label regardless.
+ *
+ * data: { segments[]{ label, dv, color? }, unit?, caption?, source? }
+ */
+interface Segment { label: string; dv: number; color?: string; }
+interface Props {
+  segments: Segment[];
+  unit?: string;
+  caption?: string;
+  source?: string;
+}
+const { segments = [], unit = 'm/s', caption, source } = Astro.props;
+
+const segs = (Array.isArray(segments) ? segments : [])
+  .map((s) => ({ label: s?.label ?? '', dv: Math.max(0, s?.dv ?? 0), color: s?.color }));
+
+const total = segs.reduce((a, s) => a + s.dv, 0);
+const denom = Math.max(1, total);
+
+const fmt = (n: number) => Math.round(n).toLocaleString();
+
+// Stepwise accent tints when a segment has no explicit colour (lighter at the
+// base, full accent near the top — reads as "energy climbing").
+const tintFor = (i: number, n: number) => {
+  const pct = 34 + Math.round((i / Math.max(1, n - 1)) * 56); // 34%..90%
+  return `color-mix(in oklab, var(--accent) ${pct}%, var(--bg))`;
+};
+
+// Build the stack TOP→BOTTOM in markup (flex-column), but compute cumulative
+// totals BOTTOM→UP so the right-rail ticks read like a launch budget.
+const n = segs.length;
+const reversed = segs.map((s, i) => ({ ...s, idx: i })).reverse(); // top of stack first
+const ticks = segs.map((_, i) => {
+  // cumulative Δv below segment i's lower boundary (bottom-up tick marks)
+  const below = segs.slice(0, i).reduce((a, x) => a + x.dv, 0);
+  return { at: below, frac: below / denom };
+});
+ticks.push({ at: total, frac: 1 });
+
+// A segment whose band is too short to hold one text row gets its label+value
+// rendered OUTSIDE the band (as a right-side callout) instead of clipped
+// inside. Reference height = the stack's min-height (360px); ~22px is the
+// minimum band that comfortably fits the 13px label baseline.
+const STACK_MIN_H = 360;
+const MIN_INSIDE_PX = 22;
+const isShort = (h: number) => (h / 100) * STACK_MIN_H < MIN_INSIDE_PX;
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{fmt(total)} {unit} total</b></div>}
+
+  <div class="px-dvl px3d-stage">
+    <div class="px-dvl__plane px3d-tilt" data-tilt="6">
+      <div class="px-dvl__stack" role="img"
+        aria-label={caption ? `Delta-v budget: ${caption}, total ${fmt(total)} ${unit}` : `Delta-v budget, total ${fmt(total)} ${unit}`}>
+        {reversed.map((s) => {
+          const h = (s.dv / denom) * 100;
+          // stagger from the bottom of the stack upward
+          const delay = (n - 1 - s.idx);
+          const short = isShort(h);
+          return (
+            <div
+              class:list={['px-dvl__seg', { 'px-dvl__seg--short': short }]}
+              style={`--h:${h.toFixed(2)}%; --i:${delay}; background:${s.color || tintFor(s.idx, n)}`}
+            >
+              <div class="px-dvl__seg-inner">
+                <span class="px-dvl__seg-label">{s.label}</span>
+                <span class="px-dvl__seg-dv">{fmt(s.dv)} <i>{unit}</i></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div class="px-dvl__scale" aria-hidden="true">
+        {ticks.map((t) => (
+          <span class="px-dvl__tick" style={`bottom:${(t.frac * 100).toFixed(2)}%`}>
+            <i></i><b>{fmt(t.at)}</b>
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <div class="px-dvl__total">
+      <span class="px-dvl__total-n">{fmt(total)}</span>
+      <span class="px-dvl__total-u">{unit}</span>
+      <span class="px-dvl__total-l">cumulative Δv</span>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-dvl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 26px;
+    align-items: stretch;
+  }
+  .px-dvl__plane {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 64px;
+    gap: 14px;
+    min-height: 360px;
+    transform-origin: 50% 100%;
+  }
+
+  /* the stacked bar */
+  .px-dvl__stack {
+    display: flex;
+    flex-direction: column;     /* top segment first in DOM */
+    justify-content: flex-start;
+    height: 100%;
+    border-radius: var(--r-tile);
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: color-mix(in oklab, var(--ink) 4%, var(--bg));
+  }
+  .px-dvl__seg {
+    height: var(--h);
+    min-height: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 -1px 0 0 color-mix(in oklab, var(--bg) 50%, transparent);
+    /* base/resting = full height (no-JS safe) */
+    transform: scaleY(1);
+    transform-origin: bottom;
+    transition: transform 760ms var(--ease-snap);
+  }
+  html.js .px-viz:not(.is-in) .px-dvl__seg { transform: scaleY(0); }
+  .px-viz.is-in .px-dvl__seg { transition-delay: calc(var(--i) * 120ms); }
+
+  /* short band: too thin to hold its text without clipping. Let the label/value
+     overflow onto the neighbouring band (still inside the clipped stack, so the
+     stack's rounded edge isn't broken) and lift it above siblings. overflow is
+     only released once revealed so the scaleY(0) start state stays clipped. */
+  .px-dvl__seg--short { z-index: 2; }
+  .px-viz.is-in .px-dvl__seg--short,
+  html:not(.js) .px-dvl__seg--short { overflow: visible; }
+  .px-dvl__seg--short .px-dvl__seg-inner { gap: 8px; }
+  .px-dvl__seg--short .px-dvl__seg-label { font-size: 12px; }
+  .px-dvl__seg--short .px-dvl__seg-dv { font-size: 11px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-dvl__seg--short { overflow: visible; }
+  }
+
+  .px-dvl__seg-inner {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    /* counter-scale so text doesn't squash during the grow (best-effort) */
+  }
+  .px-dvl__seg-label {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--paper);
+    line-height: 1.15;
+    text-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 45%, transparent);
+  }
+  .px-dvl__seg-dv {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--paper);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 45%, transparent);
+  }
+  .px-dvl__seg-dv i {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-weight: 500;
+    opacity: 0.82;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* right-side cumulative scale rail */
+  .px-dvl__scale {
+    position: relative;
+    border-left: 1px solid var(--rule);
+  }
+  .px-dvl__tick {
+    position: absolute;
+    left: 0;
+    transform: translateY(50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .px-dvl__tick i {
+    width: 7px; height: 1px;
+    background: var(--rule);
+    display: inline-block;
+  }
+  .px-dvl__tick b {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* total readout */
+  .px-dvl__total {
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 96px;
+  }
+  .px-dvl__total-n {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-dvl__total-u {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .px-dvl__total-l {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  @media (max-width: 600px) {
+    .px-dvl { grid-template-columns: 1fr; gap: 18px; }
+    .px-dvl__total { flex-direction: row; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-dvl__seg { transform: scaleY(1) !important; }
+  }
+</style>

@@ -1,0 +1,298 @@
+---
+/**
+ * VoteFlow (politics) — a Sankey-style vote diagram. Source blocs (left) flow
+ * through three vote categories (For / Against / Abstain, middle) into a single
+ * outcome node (right). Node heights are proportional to seats; ribbon widths
+ * match the seats they carry, attaching at running y-offsets on both ends so
+ * the bands stack flush inside each node. All geometry is computed at build
+ * time; the only motion is a reveal fade/scale (gated, no-JS-safe) plus a CSS
+ * hover that raises a ribbon/node's opacity.
+ *
+ * No-JS / reduced-motion: every node + ribbon paints in its FINAL state (hidden
+ * rules sit behind `html.js`; reduced-motion resets with !important). The legend
+ * states each bloc's seats + vote textually.
+ *
+ * data: { blocs[]{ name, seats, color?, vote }, outcome?{ label, passed },
+ *         caption?, source? }
+ */
+type Vote = 'for' | 'against' | 'abstain';
+interface Bloc { name: string; seats: number; color?: string; vote: Vote; }
+interface Outcome { label: string; passed: boolean; }
+interface Props { blocs: Bloc[]; outcome?: Outcome; caption?: string; source?: string; }
+const { blocs = [], outcome, caption, source } = Astro.props;
+
+// ── viewBox + columns ──────────────────────────────────────────────────────
+const W = 720, H = 360, padT = 18, padB = 18;
+const innerH = H - padT - padB;
+const nodeW = 26;
+const xBloc = 8;                 // left node x
+const xCat = (W - nodeW) / 2;    // middle node x (centered)
+const xOut = W - nodeW - 8;      // right node x
+
+const totalSeats = Math.max(1, blocs.reduce((s, b) => s + (b.seats || 0), 0));
+// seats → pixels (shared scale across all three columns so widths line up)
+// GAP doubles as the clearance for the middle column's above-node labels
+// (~9.5px tall): keeping it ≥16 stops a category label overlapping the
+// node stacked above it.
+const GAP = 16;                  // gap between stacked node segments
+const blocGapTotal = GAP * Math.max(0, blocs.length - 1);
+const px = (innerH - blocGapTotal) / totalSeats; // px per seat
+
+// ── LEFT: bloc nodes, stacked top→bottom ───────────────────────────────────
+let by = padT;
+const blocNodes = blocs.map((b) => {
+  const h = (b.seats || 0) * px;
+  const node = {
+    ...b,
+    color: b.color || 'var(--accent)',
+    x: xBloc, y: by, h,
+    cy: by + h / 2,
+  };
+  by += h + GAP;
+  return node;
+});
+
+// ── MIDDLE: three category nodes (For / Against / Abstain) ──────────────────
+const CATS: { key: Vote; label: string; color: string }[] = [
+  { key: 'for', label: 'For', color: '#1e5a3f' },
+  { key: 'against', label: 'Against', color: '#c0392b' },
+  { key: 'abstain', label: 'Abstain', color: 'var(--muted)' },
+];
+const catSeats: Record<Vote, number> = {
+  for: blocs.filter((b) => b.vote === 'for').reduce((s, b) => s + (b.seats || 0), 0),
+  against: blocs.filter((b) => b.vote === 'against').reduce((s, b) => s + (b.seats || 0), 0),
+  abstain: blocs.filter((b) => b.vote === 'abstain').reduce((s, b) => s + (b.seats || 0), 0),
+};
+// only render category nodes that carry seats (keeps gaps honest)
+const activeCats = CATS.filter((c) => catSeats[c.key] > 0);
+const catGapTotal = GAP * Math.max(0, activeCats.length - 1);
+const catStackH = activeCats.reduce((s, c) => s + catSeats[c.key] * px, 0) + catGapTotal;
+let cy = padT + (innerH - catStackH) / 2; // vertically center the middle stack
+const catNodes = activeCats.map((c) => {
+  const h = catSeats[c.key] * px;
+  const node = { ...c, x: xCat, y: cy, h, top: cy, cy: cy + h / 2 };
+  cy += h + GAP;
+  return node;
+});
+const catNodeByKey: Record<string, (typeof catNodes)[number]> = Object.fromEntries(
+  catNodes.map((n) => [n.key, n]),
+);
+
+// ── RIGHT: single outcome node (full active height) ─────────────────────────
+const outSeats = catNodes.reduce((s, c) => s + catSeats[c.key], 0);
+const outH = outSeats * px;
+const outTop = padT + (innerH - outH) / 2;
+const outNode = { x: xOut, y: outTop, h: outH, cy: outTop + outH / 2 };
+const outPassed = outcome?.passed ?? false;
+const outColor = outcome ? (outPassed ? '#1e5a3f' : '#c0392b') : 'var(--accent)';
+
+// ── RIBBONS — smooth cubic-bezier bands ─────────────────────────────────────
+// A band runs from (x0, y0)..(x0,y0+w) on the left edge to (x1,y1)..(x1,y1+w)
+// on the right edge. We trace top edge L→R, down the right, bottom edge R→L.
+function band(x0: number, y0: number, x1: number, y1: number, w: number) {
+  const mx = (x0 + x1) / 2;
+  const t0 = y0, t1 = y1;            // top edge endpoints
+  const b0 = y0 + w, b1 = y1 + w;    // bottom edge endpoints
+  return [
+    `M ${x0.toFixed(1)} ${t0.toFixed(1)}`,
+    `C ${mx.toFixed(1)} ${t0.toFixed(1)} ${mx.toFixed(1)} ${t1.toFixed(1)} ${x1.toFixed(1)} ${t1.toFixed(1)}`,
+    `L ${x1.toFixed(1)} ${b1.toFixed(1)}`,
+    `C ${mx.toFixed(1)} ${b1.toFixed(1)} ${mx.toFixed(1)} ${b0.toFixed(1)} ${x0.toFixed(1)} ${b0.toFixed(1)}`,
+    'Z',
+  ].join(' ');
+}
+
+// Bloc → category. Track running offsets on each side: the bloc's right edge
+// (full height consumed by its single category) and each category's left edge.
+const catLeftCursor: Record<string, number> = Object.fromEntries(catNodes.map((n) => [n.key, n.y]));
+const ribbonsA = blocNodes
+  .filter((b) => catNodeByKey[b.vote])
+  .map((b) => {
+    const cat = catNodeByKey[b.vote];
+    const w = b.h; // a bloc votes as one block → full bloc height flows
+    const y0 = b.y;
+    const y1 = catLeftCursor[b.vote];
+    catLeftCursor[b.vote] += w;
+    return {
+      d: band(b.x + nodeW, y0, cat.x, y1, w),
+      color: b.color,
+      key: `${b.name}-${b.vote}`,
+    };
+  });
+
+// Category → outcome. Each category's full height flows into the outcome,
+// stacked top→bottom on the outcome's left edge in category order.
+let outLeftCursor = outNode.y;
+const ribbonsB = catNodes.map((c) => {
+  const w = c.h;
+  const y0 = c.y;
+  const y1 = outLeftCursor;
+  outLeftCursor += w;
+  return {
+    d: band(c.x + nodeW, y0, outNode.x, y1, w),
+    color: c.color,
+    key: `${c.key}-out`,
+  };
+});
+
+const fmt = (n: number) => n.toLocaleString();
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>vote flow</b></div>}
+
+  <div class="px-vflow">
+    <svg
+      class="px-vflow__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Vote-flow diagram: ${caption}` : 'Vote-flow diagram'}
+    >
+      <!-- ribbons (drawn first, under nodes) -->
+      <g class="px-vflow__ribbons">
+        {ribbonsA.map((r) => (
+          <path class="px-vflow__ribbon" d={r.d} style={`fill:${r.color}`} />
+        ))}
+        {ribbonsB.map((r) => (
+          <path class="px-vflow__ribbon" d={r.d} style={`fill:${r.color}`} />
+        ))}
+      </g>
+
+      <!-- left: bloc nodes -->
+      {blocNodes.map((b) => (
+        <g class="px-vflow__node">
+          <rect x={b.x} y={b.y.toFixed(1)} width={nodeW} height={Math.max(1, b.h).toFixed(1)} rx="3" style={`fill:${b.color}`} />
+          <text class="px-vflow__nlabel px-vflow__nlabel--l" x={b.x + nodeW + 8} y={(b.cy).toFixed(1)} dominant-baseline="middle">
+            {b.name} <tspan class="px-vflow__nseats">{fmt(b.seats)}</tspan>
+          </text>
+        </g>
+      ))}
+
+      <!-- middle: category nodes -->
+      {catNodes.map((c) => (
+        <g class="px-vflow__node">
+          <rect x={c.x} y={c.y.toFixed(1)} width={nodeW} height={Math.max(1, c.h).toFixed(1)} rx="3" style={`fill:${c.color}`} />
+          <text class="px-vflow__nlabel px-vflow__nlabel--c" x={c.x + nodeW / 2} y={Math.max(11, c.y - 6).toFixed(1)} text-anchor="middle">
+            {c.label} · {fmt(catSeats[c.key])}
+          </text>
+        </g>
+      ))}
+
+      <!-- right: outcome node -->
+      <g class="px-vflow__node">
+        <rect x={outNode.x} y={outNode.y.toFixed(1)} width={nodeW} height={Math.max(1, outNode.h).toFixed(1)} rx="3" style={`fill:${outColor}`} />
+        {outcome && (
+          <text class="px-vflow__nlabel px-vflow__nlabel--r" x={outNode.x - 8} y={(outNode.cy).toFixed(1)} text-anchor="end" dominant-baseline="middle">
+            <tspan class="px-vflow__outlbl">{outcome.label}</tspan>
+            <tspan class="px-vflow__outstat" x={outNode.x - 8} dy="16">{outPassed ? 'PASSED' : 'FAILED'}</tspan>
+          </text>
+        )}
+      </g>
+    </svg>
+
+    <div class="px-vflow__legend">
+      {CATS.filter((c) => catSeats[c.key] > 0).map((c) => (
+        <span class="px-vflow__key"><i style={`background:${c.color}`}></i>{c.label} · {fmt(catSeats[c.key])}</span>
+      ))}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-vflow { width: 100%; }
+  .px-vflow__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* ribbons — translucent bands, raise on hover */
+  .px-vflow__ribbon {
+    fill-opacity: 0.34;
+    transition: fill-opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  .px-vflow__ribbon:hover { fill-opacity: 0.6; }
+
+  /* nodes */
+  .px-vflow__node rect {
+    transition: opacity var(--t-soft) var(--ease);
+  }
+  /* node labels — in-viz title role: display serif ink. They sit over the
+     ribbons/nodes, so every label text class carries a paper halo. */
+  .px-vflow__nlabel {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  /* seats — axis-tick role inside the bloc label: mono muted tabular */
+  .px-vflow__nseats {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  /* category labels — legend role (count appended): mono uppercase muted tabular */
+  .px-vflow__nlabel--c {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  /* outcome name — in-viz title role: display serif ink */
+  .px-vflow__outlbl {
+    font-family: var(--issue-face, var(--font-display));
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--ink);
+  }
+  /* PASSED / FAILED — legend role: mono uppercase muted */
+  .px-vflow__outstat {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    fill: var(--muted);
+  }
+
+  /* reveal: ribbons + nodes fade/scale in (gated behind html.js) */
+  .px-vflow__ribbons,
+  .px-vflow__node {
+    opacity: 1;
+    transform: none;
+    transform-box: view-box;
+    transform-origin: center;
+    transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-vflow__ribbons { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-vflow__node { opacity: 0; transform: scale(0.96); }
+  .px-viz.is-in .px-vflow__ribbons { transition-delay: 220ms; }
+
+  /* legend — mono uppercase muted, tabular (carries seat counts) */
+  .px-vflow__legend {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-vflow__key { display: inline-flex; align-items: center; gap: 8px; }
+  .px-vflow__key i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-vflow__ribbons,
+    .px-viz:not(.is-in) .px-vflow__node { opacity: 1 !important; transform: none !important; }
+  }
+</style>

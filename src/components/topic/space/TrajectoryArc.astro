@@ -1,0 +1,296 @@
+---
+/**
+ * TrajectoryArc (space) — a launch→orbit ascent profile plotted in a faint
+ * starfield. The x-axis is downrange distance (km), the y-axis is altitude
+ * (km); a smooth rising arc threads the phase points, sitting above a ground
+ * line. The path stroke-draws on scroll-in (like ApprovalChart's .ac__line)
+ * and the phase pins pop in staggered. The plot lives on a shallow 3D plane
+ * (global core/Tilt.astro `data-tilt` island), with static star dots behind.
+ *
+ * No-JS / reduced-motion: the path paints fully drawn and every pin is visible
+ * (hidden rules sit behind `html.js`; reduced-motion resets with !important).
+ * Build-time SVG only; the tilt is the sole interactive layer.
+ *
+ * data: { phases[]{ label, altKm, downrangeKm, note? }, apoapsisKm?, caption?, source? }
+ */
+interface Phase { label: string; altKm: number; downrangeKm: number; note?: string; }
+interface Props {
+  phases: Phase[];
+  apoapsisKm?: number;
+  caption?: string;
+  source?: string;
+}
+const { phases = [], apoapsisKm, caption, source } = Astro.props;
+
+const pts = (Array.isArray(phases) ? phases : [])
+  .map((p) => ({
+    label: p?.label ?? '',
+    altKm: Math.max(0, p?.altKm ?? 0),
+    downrangeKm: Math.max(0, p?.downrangeKm ?? 0),
+    note: p?.note,
+  }))
+  .sort((a, b) => a.downrangeKm - b.downrangeKm);
+
+// ── viewBox + plot frame ───────────────────────────────────────────────────
+const W = 640, H = 320, padL = 46, padR = 22, padT = 24, padB = 40;
+const iw = W - padL - padR, ih = H - padT - padB;
+const groundY = padT + ih;
+
+const maxDown = Math.max(1, ...pts.map((p) => p.downrangeKm));
+const maxAltRaw = Math.max(1, apoapsisKm ?? 0, ...pts.map((p) => p.altKm));
+const maxAlt = maxAltRaw * 1.08; // headroom above the apex
+
+const X = (d: number) => padL + (d / maxDown) * iw;
+const Y = (a: number) => padT + (1 - a / maxAlt) * ih;
+
+const nodes = pts.map((p) => ({ ...p, x: X(p.downrangeKm), y: Y(p.altKm) }));
+
+// Smooth trajectory through the nodes (Catmull-Rom → cubic bezier).
+function smoothPath(ps: { x: number; y: number }[]): string {
+  if (ps.length === 0) return '';
+  if (ps.length === 1) return `M ${ps[0].x.toFixed(1)} ${ps[0].y.toFixed(1)}`;
+  let d = `M ${ps[0].x.toFixed(1)} ${ps[0].y.toFixed(1)}`;
+  for (let i = 0; i < ps.length - 1; i++) {
+    const p0 = ps[i - 1] ?? ps[i];
+    const p1 = ps[i];
+    const p2 = ps[i + 1];
+    const p3 = ps[i + 2] ?? p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+const trajPath = smoothPath(nodes);
+const len = 2000; // generous over-estimate for the dasharray draw
+
+// Area under the trajectory (faint fill down to the ground line).
+const areaPath = nodes.length > 1
+  ? `${trajPath} L ${nodes[nodes.length - 1].x.toFixed(1)} ${groundY} L ${nodes[0].x.toFixed(1)} ${groundY} Z`
+  : '';
+
+// Axis ticks (mono labels).
+const xTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: maxDown * f, x: X(maxDown * f) }));
+const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: maxAlt * f, y: Y(maxAlt * f) }));
+
+const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : Math.round(n).toString());
+
+// Deterministic starfield (no Math.random at build → stable SSR output).
+const STARS = 34;
+const stars = Array.from({ length: STARS }, (_, i) => {
+  const a = (i * 2654435761) % 1000 / 1000;
+  const b = (i * 40503 + 17) % 1000 / 1000;
+  const c = (i * 97 + 13) % 100 / 100;
+  return {
+    cx: (8 + a * (W - 16)).toFixed(1),
+    cy: (6 + b * (groundY - 12)).toFixed(1),
+    r: (0.5 + c * 1.1).toFixed(2),
+    o: (0.18 + c * 0.5).toFixed(2),
+  };
+});
+
+const apex = nodes.length ? nodes.reduce((m, p) => (p.altKm > m.altKm ? p : m), nodes[0]) : null;
+const summary = apoapsisKm != null ? `apoapsis ${fmt(apoapsisKm)} km` : (apex ? `apex ${fmt(apex.altKm)} km` : 'ascent');
+
+// ── phase-pin label placement (declutter so labels don't clip or collide) ───
+// Each label sits beside its pin; we resolve its anchor side (so it stays
+// inside the frame) and a baseline y that avoids both the viewBox top and
+// vertically-adjacent labels. Markup/data are untouched — only label
+// coordinates change.
+const LBL_LINE = 11;          // approx label line height for collision spacing
+const LBL_TOP = padT + 2;     // never let a baseline rise above the plot top
+const LBL_BOT = groundY - 6;  // never let a baseline drop below the ground line
+const placed: { x: number; y: number }[] = [];
+const pinLabels = nodes.map((p) => {
+  const flip = p.x > W * 0.66;            // labels go left near the right edge
+  const anchor: 'start' | 'end' = flip ? 'end' : 'start';
+  const lx = p.x + (flip ? -10 : 10);
+  // preferred baseline: just above the pin; clamp into the interior band
+  let ly = Math.min(LBL_BOT, Math.max(LBL_TOP, p.y - 9));
+  // if a previously-placed label shares roughly this x column and sits within
+  // a line-height, push this one down (or up if that would clip the top)
+  for (const q of placed) {
+    if (Math.abs(q.x - lx) < 60 && Math.abs(q.y - ly) < LBL_LINE) {
+      const down = q.y + LBL_LINE;
+      ly = down <= LBL_BOT ? down : Math.max(LBL_TOP, q.y - LBL_LINE);
+    }
+  }
+  placed.push({ x: lx, y: ly });
+  return { anchor, lx, ly };
+});
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{summary}</b></div>}
+
+  <div class="px-traj px3d-stage">
+    <div class="px-traj__plot px3d-tilt" data-tilt="6">
+      <svg
+        class="px-traj__svg"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={caption ? `Launch trajectory: ${caption}` : 'Launch trajectory, altitude vs downrange distance'}
+      >
+        <!-- starfield -->
+        <g class="px-traj__stars" aria-hidden="true">
+          {stars.map((s) => (
+            <circle cx={s.cx} cy={s.cy} r={s.r} opacity={s.o} />
+          ))}
+        </g>
+
+        <defs>
+          <linearGradient id="trajFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.20" />
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+
+        <!-- gridlines -->
+        <g class="px-traj__grid">
+          {yTicks.map((t) => (
+            <line x1={padL} y1={t.y.toFixed(1)} x2={W - padR} y2={t.y.toFixed(1)} />
+          ))}
+        </g>
+
+        <!-- area under the arc -->
+        {areaPath && <path class="px-traj__area" d={areaPath} fill="url(#trajFill)" />}
+
+        <!-- ground line -->
+        <line class="px-traj__ground" x1={padL} y1={groundY} x2={W - padR} y2={groundY} />
+
+        <!-- the trajectory (stroke-draws on reveal) -->
+        {trajPath && <path class="px-traj__line" d={trajPath} style={`--len:${len}`} />}
+
+        <!-- axis labels (mono) -->
+        {yTicks.map((t) => (
+          <text class="px-traj__axis" x={padL - 8} y={(t.y + 3).toFixed(1)} text-anchor="end">{fmt(t.v)}</text>
+        ))}
+        {xTicks.map((t) => (
+          <text class="px-traj__axis" x={t.x.toFixed(1)} y={H - 22} text-anchor="middle">{fmt(t.v)}</text>
+        ))}
+        <text class="px-traj__axis px-traj__axis--unit" x={padL - 8} y={padT - 10} text-anchor="end">ALT km</text>
+        <text class="px-traj__axis px-traj__axis--unit" x={W - padR} y={H - 6} text-anchor="end">DOWNRANGE km</text>
+
+        <!-- phase pins -->
+        {nodes.map((p, i) => {
+          const L = pinLabels[i];
+          return (
+            <g class="px-traj__pin" style={`--i:${i}`}>
+              <circle class="px-traj__pin-ring" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="7" />
+              <circle class="px-traj__pin-dot" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="3.2" />
+              <text
+                class="px-traj__pin-lbl"
+                x={L.lx.toFixed(1)}
+                y={L.ly.toFixed(1)}
+                text-anchor={L.anchor}
+              >{p.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+
+    <ul class="px-traj__legend">
+      {nodes.map((p) => (
+        <li class="px-traj__row">
+          <span class="px-traj__name">{p.label}</span>
+          <span class="px-traj__nums">{fmt(p.altKm)} km · {fmt(p.downrangeKm)} km dr</span>
+          {p.note && <span class="px-traj__note">{p.note}</span>}
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-traj { width: 100%; }
+  .px-traj__plot { border-radius: var(--r-tile); transform-origin: 50% 70%; }
+  .px-traj__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-traj__stars circle { fill: var(--ink-soft); }
+  .px-traj__grid line { stroke: var(--rule); stroke-width: 1; opacity: 0.5; }
+  .px-traj__ground { stroke: var(--ink-soft); stroke-width: 1.5; }
+
+  .px-traj__area {
+    opacity: 1;
+    transition: opacity var(--t-slow) var(--ease) 700ms;
+  }
+  html.js .px-viz:not(.is-in) .px-traj__area { opacity: 0; }
+
+  /* trajectory line — base/resting = fully drawn (no-JS safe) */
+  .px-traj__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1600ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-traj__line { stroke-dashoffset: var(--len); }
+
+  .px-traj__axis {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-traj__axis--unit { letter-spacing: var(--viz-ls-mono, 0.16em); text-transform: uppercase; fill: var(--muted); font-size: var(--viz-fs-eyebrow, 10px); }
+
+  /* phase pins — base/resting = visible (no-JS safe) */
+  .px-traj__pin-ring { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.5; }
+  .px-traj__pin-dot { fill: var(--accent-deep, var(--accent)); }
+  .px-traj__pin-lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    fill: var(--ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  .px-traj__pin {
+    opacity: 1;
+    transform: none;
+    transform-box: view-box;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-traj__pin { opacity: 0; transform: translateY(7px); }
+  .px-viz.is-in .px-traj__pin { transition-delay: calc(700ms + var(--i) * 130ms); }
+
+  /* textual legend (a11y + no-JS) */
+  .px-traj__legend {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0 22px;
+  }
+  .px-traj__row {
+    display: grid;
+    gap: 1px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-traj__name { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); }
+  .px-traj__nums { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-traj__note { font-family: var(--font-body); font-size: 11.5px; line-height: 1.45; color: var(--ink-soft); margin-top: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-traj__line { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-traj__area { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-traj__pin { opacity: 1 !important; transform: none !important; }
+  }
+</style>

@@ -1,0 +1,114 @@
+---
+/**
+ * PlayerCard (sports) — a CSS-3D flip rating card. The card tilts toward the
+ * pointer (core/Tilt.astro `data-tilt`) and flips on the button to reveal the
+ * full stat breakdown on the back. Pure CSS-3D — no WebGL.
+ *
+ * No-JS / reduced-motion: renders flat and front-facing (vars default to 0, no
+ * flip transition); the front already carries the rating + headline stats, and
+ * the back stats are still in the DOM (reachable, just not animated).
+ *
+ * data: { name, position, team?, rating, stats[]{ label, value, max? }, caption?, source? }
+ */
+interface Stat { label: string; value: number; max?: number; }
+interface Props { name: string; position?: string; team?: string; rating: number; stats: Stat[]; caption?: string; source?: string; }
+const { name, position, team, rating, stats = [], caption, source } = Astro.props;
+const front = stats.slice(0, 3);
+const pct = (s: Stat) => Math.max(0, Math.min(100, (s.value / (s.max ?? 100)) * 100));
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+
+  <div class="px-pcard px3d-stage" data-flip-card>
+    <div class="px-pcard__tilt px3d-tilt" data-tilt="9">
+      <div class="px-pcard__flip px3d-flip">
+        <!-- FRONT -->
+        <div class="px3d-face px-pcard__face px-pcard__front">
+          <div class="px-pcard__rating"><b>{rating}</b>{position && <span>{position}</span>}</div>
+          <div class="px-pcard__id">
+            <div class="px-pcard__name">{name}</div>
+            {team && <div class="px-pcard__team">{team}</div>}
+          </div>
+          <div class="px-pcard__bars">
+            {front.map((s) => (
+              <div class="px-pcard__bar">
+                <span class="px-pcard__bar-l">{s.label}</span>
+                <span class="px-pcard__bar-track"><span class="px-pcard__bar-fill" style={`width:${pct(s)}%`}></span></span>
+                <span class="px-pcard__bar-v">{s.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <!-- BACK -->
+        <div class="px3d-face px3d-face--back px-pcard__face px-pcard__back">
+          <div class="px-pcard__back-h">{name} · full card</div>
+          <div class="px-pcard__bars">
+            {stats.map((s) => (
+              <div class="px-pcard__bar">
+                <span class="px-pcard__bar-l">{s.label}</span>
+                <span class="px-pcard__bar-track"><span class="px-pcard__bar-fill" style={`width:${pct(s)}%`}></span></span>
+                <span class="px-pcard__bar-v">{s.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="px-pcard__flip-btn" type="button" data-flip-btn aria-pressed="false">Flip ⟳</button>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-pcard { max-width: 300px; }
+  .px-pcard__tilt { border-radius: var(--r-tile); }
+  .px-pcard__flip { width: 100%; }
+  .px-pcard__face {
+    border-radius: var(--r-tile);
+    padding: 22px 22px 20px;
+    background:
+      radial-gradient(140% 100% at 100% 0%, color-mix(in oklab, var(--accent) 20%, var(--paper)) 0%, var(--paper) 60%);
+    border: 1px solid var(--rule);
+    box-shadow: 0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent), 0 22px 48px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+    min-height: 380px;
+    display: flex; flex-direction: column; gap: 18px;
+    /* The back face is position:absolute inset:0, so the flip container's
+       height is driven by the FRONT face. Clip each face to its rounded
+       silhouette so a long back-stat list can never spill past the card onto
+       the page (or under the flip button) — it stays a clean card. */
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .px-pcard__rating { display: flex; align-items: baseline; gap: 12px; }
+  .px-pcard__rating b {
+    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
+    font-size: 64px; line-height: 0.9; letter-spacing: -0.03em;
+    color: var(--accent-deep, var(--accent)); font-variant-numeric: tabular-nums;
+  }
+  .px-pcard__rating span {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--paper); background: var(--ink); padding: 5px 9px; border-radius: var(--r-pill); align-self: center;
+  }
+  .px-pcard__name { font-family: var(--issue-face, var(--font-display)); font-weight: 700; font-size: 26px; line-height: 1; letter-spacing: -0.01em; color: var(--ink); }
+  .px-pcard__team { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .px-pcard__bars { display: flex; flex-direction: column; gap: 12px; margin-top: auto; }
+  .px-pcard__bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+  .px-pcard__bar-l { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .px-pcard__bar-v { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-pcard__bar-track { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: color-mix(in oklab, var(--ink) 8%, var(--bg)); overflow: hidden; }
+  .px-pcard__bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+  .px-pcard__back { justify-content: flex-start; gap: 12px; }
+  .px-pcard__back-h { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  /* tighter row gap on the back so a fuller stat list fits before the clip */
+  .px-pcard__back .px-pcard__bars { margin-top: 0; gap: 9px; }
+  .px-pcard__flip-btn {
+    margin-top: 14px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-soft); background: transparent; border: 1px solid var(--rule);
+    border-radius: var(--r-pill); padding: 7px 14px; cursor: pointer;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  .px-pcard__flip-btn:hover { color: var(--accent); border-color: var(--accent); }
+</style>

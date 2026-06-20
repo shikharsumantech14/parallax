@@ -1,0 +1,233 @@
+---
+/**
+ * ClimateSpiral (earth) — the warming spiral. A build-time polar SVG: angle =
+ * month (January at the top, advancing clockwise), radius ∝ the month's value
+ * normalised across the whole series (larger value → larger radius). The
+ * spiral is drawn as a chain of short connected segments through every month
+ * in chronological order, each segment coloured by its value (cool → warm).
+ * On scroll-in the segments stroke-draw in sequence, tracing the spiral
+ * outward in time. Faint concentric reference rings + month labels ring the rim.
+ *
+ * No-JS / reduced-motion: every segment paints fully drawn (the dash-offset
+ * hidden rule sits behind `html.js`; reduced-motion resets with !important).
+ *
+ * data: { months[]{ year, month (1–12), value }, unit?, baseline?, caption?, source? }
+ */
+interface MonthPt { year: number; month: number; value: number; }
+interface Props {
+  months: MonthPt[];
+  unit?: string;
+  baseline?: string;
+  caption?: string;
+  source?: string;
+}
+const { months = [], unit = '', baseline, caption, source } = Astro.props;
+
+// ── geometry ────────────────────────────────────────────────────────────────
+const SIZE = 460;
+const cx = SIZE / 2, cy = SIZE / 2;
+const rInner = 40;            // radius for the minimum value
+const rOuter = 196;          // radius for the maximum value
+
+// viewBox headroom: month labels sit at rOuter+20 and the 3/9-o'clock ones
+// are anchored outward, so their text runs ~24px past the rim point. Pad the
+// viewBox on every side (drawing stays centred on cx/cy) so no label clips.
+const PAD = 30;
+const VB = SIZE + PAD * 2;   // padded viewBox extent
+
+// chronological order (year, then month) so the spiral winds forward in time
+const pts = [...months].sort((a, b) => (a.year - b.year) || (a.month - b.month));
+const n = pts.length;
+
+const vals = pts.map((p) => p.value);
+const minVal = vals.length ? Math.min(...vals) : 0;
+const maxVal = vals.length ? Math.max(...vals) : 0;
+const range = maxVal - minVal || 1;
+const norm = (v: number) => (v - minVal) / range;          // 0 = coolest, 1 = warmest
+
+// month (1–12) → angle. Jan at top (−90°), clockwise.
+const angleFor = (month: number) => (-90 + ((month - 1) / 12) * 360) * (Math.PI / 180);
+const radiusFor = (v: number) => rInner + norm(v) * (rOuter - rInner);
+
+const coord = (month: number, v: number) => {
+  const a = angleFor(month);
+  const r = radiusFor(v);
+  return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
+};
+
+const xy = pts.map((p) => coord(p.month, p.value));
+
+// diverging cool→warm ramp (semantic blue → red, theme-neutral)
+const RAMP = ['#2166ac', '#67a9cf', '#d1e5f0', '#fddbc7', '#ef8a62', '#c0392b'];
+function hexToRgb(h: string): [number, number, number] {
+  const x = parseInt(h.replace('#', ''), 16);
+  return [(x >> 16) & 255, (x >> 8) & 255, x & 255];
+}
+const lerp = (a: number, b: number, t: number) => Math.round(a + (b - a) * t);
+function rampColor(t: number): string {
+  const s = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+  const lo = Math.floor(s), hi = Math.min(lo + 1, RAMP.length - 1), f = s - lo;
+  const [r1, g1, b1] = hexToRgb(RAMP[lo]);
+  const [r2, g2, b2] = hexToRgb(RAMP[hi]);
+  return `rgb(${lerp(r1, r2, f)},${lerp(g1, g2, f)},${lerp(b1, b2, f)})`;
+}
+
+// one segment per consecutive pair, coloured by the segment's mean value.
+// length approximated for the per-segment dash-draw (--len, generous pad).
+const segments = xy.slice(1).map((p, i) => {
+  const a = xy[i], b = p;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.ceil(Math.hypot(dx, dy)) + 2;
+  const meanT = (norm(pts[i].value) + norm(pts[i + 1].value)) / 2;
+  return { d: `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`,
+    color: rampColor(meanT), len, i };
+});
+
+// per-segment draw delay so the whole spiral traces in ~1.6s regardless of n
+const totalDraw = 1600;
+const stepDelay = n > 1 ? totalDraw / (n - 1) : 0;
+
+// concentric reference rings (evenly spaced between inner and outer radius)
+const RINGS = 4;
+const rings = Array.from({ length: RINGS }, (_, i) =>
+  rInner + ((i + 1) / RINGS) * (rOuter - rInner)
+);
+
+// month labels around the rim (just outside the outer radius). Anchor +
+// baseline are chosen per quadrant so a label hugs the rim point from its
+// outer side instead of overrunning the spiral (or the SVG edge) — the
+// 3-o'clock / 9-o'clock labels especially need horizontal anchoring.
+const MONTH_LBL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const EPS = 0.5;
+const monthLabels = MONTH_LBL.map((m, idx) => {
+  const a = angleFor(idx + 1);
+  const r = rOuter + 20;
+  const dx = Math.cos(a), dy = Math.sin(a);
+  // anchor by horizontal direction; baseline by vertical direction
+  const anchor = dx > EPS ? 'start' : dx < -EPS ? 'end' : 'middle';
+  const baseline = dy > EPS ? 'hanging' : dy < -EPS ? 'auto' : 'middle';
+  return { m, x: cx + dx * r, y: cy + dy * r, anchor, baseline };
+});
+
+const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
+const firstYear = pts[0]?.year ?? '';
+const lastYear = pts[n - 1]?.year ?? '';
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span>{n > 0 && <b>{fmtVal(maxVal)} peak</b>}</div>}
+
+  <div class="px-spiral">
+    <svg
+      class="px-spiral__svg"
+      viewBox={`${-PAD} ${-PAD} ${VB} ${VB}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Climate spiral: ${caption}, ${firstYear}–${lastYear}` : `Climate spiral, ${firstYear}–${lastYear}`}
+    >
+      <!-- reference rings -->
+      <g class="px-spiral__rings">
+        {rings.map((r) => (
+          <circle cx={cx} cy={cy} r={r.toFixed(1)} class="px-spiral__ring" />
+        ))}
+      </g>
+
+      <!-- month labels (anchored per quadrant so they hug the rim, not the spiral) -->
+      <g class="px-spiral__months">
+        {monthLabels.map((l) => (
+          <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} dominant-baseline={l.baseline}>{l.m}</text>
+        ))}
+      </g>
+
+      <!-- the spiral, coloured segment by segment -->
+      <g class="px-spiral__path">
+        {segments.map((s) => (
+          <path
+            class="px-spiral__seg"
+            d={s.d}
+            style={`stroke:${s.color}; --len:${s.len}; --d:${(s.i * stepDelay).toFixed(0)}ms`}
+          />
+        ))}
+      </g>
+
+      <!-- center span readout -->
+      <text class="px-spiral__yr px-spiral__yr--lo" x={cx} y={cy - 8} text-anchor="middle">{firstYear}</text>
+      <text class="px-spiral__yr px-spiral__yr--hi" x={cx} y={cy + 14} text-anchor="middle">{lastYear}</text>
+    </svg>
+
+    <div class="px-spiral__scale">
+      <span>Cooler</span>
+      <span class="px-spiral__grad"></span>
+      <span>Warmer</span>
+      {baseline && <span class="px-spiral__base">Baseline · {baseline}</span>}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-spiral { width: 100%; }
+  /* max-width tracks the padded viewBox (SIZE 460 + 2×30 pad) so the spiral
+     keeps its drawn size while the label headroom stays inside the box. */
+  .px-spiral__svg { width: 100%; height: auto; max-width: 520px; margin: 0 auto; display: block; overflow: visible; }
+
+  .px-spiral__ring { fill: none; stroke: var(--rule); stroke-width: 1; opacity: 0.7; }
+
+  .px-spiral__months text {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    /* month labels sit over the reference rings — paper halo keeps them legible */
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  .px-spiral__seg {
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    /* base/resting = fully drawn (no-JS safe) */
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 240ms linear var(--d);
+  }
+
+  .px-spiral__yr {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    fill: var(--ink);
+  }
+  .px-spiral__yr--lo { font-size: 14px; fill: var(--muted); }
+  .px-spiral__yr--hi { font-size: 20px; fill: var(--ink); }
+
+  /* reveal: each segment draws in chronological order (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-spiral__seg { stroke-dashoffset: var(--len); }
+
+  .px-spiral__scale {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-spiral__grad {
+    width: 120px; height: 12px; border-radius: 6px;
+    background: linear-gradient(90deg, #2166ac, #67a9cf, #d1e5f0, #fddbc7, #ef8a62, #c0392b);
+  }
+  .px-spiral__base { margin-left: auto; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-spiral__seg { stroke-dashoffset: 0 !important; }
+  }
+</style>

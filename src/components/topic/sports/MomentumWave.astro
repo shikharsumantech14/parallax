@@ -1,0 +1,248 @@
+---
+/**
+ * MomentumWave (sports) — a match-momentum ribbon. A baseline runs across the
+ * center; the wave swells ABOVE it (home, accent) when momentum is positive and
+ * BELOW it (away, muted ink) when negative, tracing the swing of pressure
+ * across the match minutes. The filled area grows out from the baseline on
+ * scroll-in (a vertical scale). Event pins drop at their minutes with labels;
+ * a faint half-time gridline marks 45'. Team labels sit top (home) / bottom
+ * (away). Flat SVG, build-time only; the only motion is the CSS grow-in.
+ *
+ * No-JS / reduced-motion: the wave paints at FULL height (the scaleY(0) hidden
+ * rule sits behind `html.js`; reduced-motion resets with !important). Every pin
+ * + label is in the DOM regardless of JS.
+ *
+ * data: { points[]{ minute, value }, events?[]{ minute, label, team? },
+ *         home?, away?, caption?, source? }
+ * value in -100..100: + = home push (swell up), - = away push (swell down).
+ */
+type Side = 'home' | 'away';
+interface Pt { minute: number; value: number; }
+interface Ev { minute: number; label: string; team?: Side; }
+interface Props {
+  points: Pt[];
+  events?: Ev[];
+  home?: string;
+  away?: string;
+  caption?: string;
+  source?: string;
+}
+const { points = [], events = [], home = 'Home', away = 'Away', caption, source } = Astro.props;
+
+// ── viewBox ─────────────────────────────────────────────────────────────────
+const W = 720, H = 280;
+const padL = 14, padR = 14, padT = 26, padB = 26;
+const plotL = padL, plotR = W - padR, plotT = padT, plotB = H - padB;
+const plotW = plotR - plotL, plotH = plotB - plotT;
+const mid = plotT + plotH / 2;        // baseline (value = 0)
+const halfH = plotH / 2;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const pts = (points || [])
+  .filter((p) => p && Number.isFinite(p.minute) && Number.isFinite(p.value))
+  .sort((a, b) => a.minute - b.minute);
+const lastMin = Math.max(90, ...pts.map((p) => p.minute || 0));
+const maxMin = Math.ceil(lastMin / 5) * 5;
+
+const px = (m: number) => plotL + (clamp(m, 0, maxMin) / maxMin) * plotW;
+const py = (v: number) => mid - (clamp(v, -100, 100) / 100) * halfH;
+
+// Smooth (Catmull-Rom → bezier) line through the momentum points.
+function smoothLine(p: { x: number; y: number }[]): string {
+  if (!p.length) return '';
+  if (p.length === 1) return `M ${p[0].x} ${p[0].y}`;
+  let d = `M ${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i === 0 ? 0 : i - 1];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2 < p.length ? i + 2 : i + 1];
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+const screen = pts.map((p) => ({ x: px(p.minute), y: py(p.value) }));
+const linePath = screen.length ? smoothLine(screen) : '';
+// Close the line down to the baseline at both ends → fillable area.
+const areaPath = screen.length
+  ? `${linePath} L ${screen[screen.length - 1].x.toFixed(1)} ${mid.toFixed(1)} L ${screen[0].x.toFixed(1)} ${mid.toFixed(1)} Z`
+  : '';
+
+const htX = px(45);
+const xTicks = Array.from({ length: Math.floor(maxMin / 15) + 1 }, (_, i) => i * 15);
+
+// event pins — clamp the label minute to the plot, derive a side for colour.
+// Two defensive passes so labels never clip or pile up:
+//  • anchor: a pin near the left/right edge would centre its label past the
+//    viewBox; switch text-anchor to start/end so the label grows inward.
+//  • stagger: same-side pins that are close in x get an increasing extra
+//    vertical offset (one "step" per collision) so their labels don't overlap.
+const EDGE_PAD = 56;          // within this of an edge → anchor inward
+const PIN_NEAR_X = 64;        // pins closer than this (same side) collide
+const STAGGER_STEP = 12;      // px pushed per stagger level
+const rawPins = (events || [])
+  .filter((e) => e && Number.isFinite(e.minute))
+  .map((e) => ({ ...e, x: px(e.minute), side: (e.team ?? 'home') as Side }))
+  .sort((a, b) => a.x - b.x);
+
+const lastXBySide: Record<Side, number> = { home: -Infinity, away: -Infinity };
+const stepBySide: Record<Side, number> = { home: 0, away: 0 };
+const pins = rawPins.map((e) => {
+  // horizontal de-collision within a side
+  if (e.x - lastXBySide[e.side] < PIN_NEAR_X) {
+    stepBySide[e.side] += 1;
+  } else {
+    stepBySide[e.side] = 0;
+  }
+  lastXBySide[e.side] = e.x;
+  const stagger = stepBySide[e.side] * STAGGER_STEP;
+  // home labels sit below the top edge (grow downward); away above the bottom.
+  // Clamp so a deep stagger never crosses the baseline into the other half.
+  const labelY = e.side === 'away'
+    ? Math.max(mid + 14, plotB - 8 - stagger)
+    : Math.min(mid - 14, plotT + 12 + stagger);
+  // edge-aware horizontal anchor
+  const anchor = e.x <= plotL + EDGE_PAD ? 'start' : e.x >= plotR - EDGE_PAD ? 'end' : 'middle';
+  // nudge the text x off the pin a touch when anchored to an edge so it clears
+  // the dotted pin line
+  const labelX = anchor === 'start' ? e.x + 4 : anchor === 'end' ? e.x - 4 : e.x;
+  return { ...e, stagger, labelY, anchor, labelX };
+});
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>momentum</b></div>}
+
+  <div class="px-mom">
+    <svg
+      class="px-mom__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Match momentum: ${caption}` : `Match momentum, ${home} vs ${away}`}
+    >
+      <defs>
+        <!-- clip the area to above-baseline (home) and below-baseline (away) -->
+        <clipPath id="px-mom-up"><rect x={plotL} y={plotT} width={plotW} height={(mid - plotT).toFixed(1)} /></clipPath>
+        <clipPath id="px-mom-dn"><rect x={plotL} y={mid.toFixed(1)} width={plotW} height={(plotB - mid).toFixed(1)} /></clipPath>
+      </defs>
+
+      <!-- x ticks -->
+      {xTicks.map((m) => (
+        <text class="px-mom__ax" x={px(m).toFixed(1)} y={plotB + 18} text-anchor="middle">{m}'</text>
+      ))}
+
+      <!-- half-time line -->
+      <line class="px-mom__ht" x1={htX.toFixed(1)} y1={plotT} x2={htX.toFixed(1)} y2={plotB} />
+      <text class="px-mom__ht-lbl" x={htX.toFixed(1)} y={plotT - 6} text-anchor="middle">HT</text>
+
+      <!-- the wave: same area path, clipped twice + coloured per half. Grows
+           out of the baseline on reveal (scaleY from the mid). -->
+      <g class="px-mom__wave" style={`transform-origin:center ${mid.toFixed(1)}px`}>
+        <path class="px-mom__area px-mom__area--home" d={areaPath} clip-path="url(#px-mom-up)" />
+        <path class="px-mom__area px-mom__area--away" d={areaPath} clip-path="url(#px-mom-dn)" />
+        <path class="px-mom__line" d={linePath} />
+      </g>
+
+      <!-- baseline (drawn over the wave) -->
+      <line class="px-mom__base" x1={plotL} y1={mid.toFixed(1)} x2={plotR} y2={mid.toFixed(1)} />
+
+      <!-- event pins -->
+      {pins.map((e, i) => (
+        <g class="px-mom__pin" data-side={e.side} style={`--i:${i}`}>
+          <line x1={e.x.toFixed(1)} y1={plotT} x2={e.x.toFixed(1)} y2={plotB} />
+          <circle cx={e.x.toFixed(1)} cy={e.side === 'away' ? plotB.toFixed(1) : plotT.toFixed(1)} r="3" />
+          <text
+            x={e.labelX.toFixed(1)}
+            y={e.labelY.toFixed(1)}
+            text-anchor={e.anchor}
+          >{e.label}</text>
+        </g>
+      ))}
+    </svg>
+
+    <div class="px-mom__labels">
+      <span class="px-mom__team px-mom__team--home"><i></i>{home}</span>
+      <span class="px-mom__team px-mom__team--away"><i></i>{away}</span>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-mom { width: 100%; }
+  .px-mom__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-mom__ax {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em; fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-mom__base { stroke: var(--ink-soft); stroke-width: 1.5; }
+  .px-mom__ht { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .px-mom__ht-lbl {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
+  }
+
+  .px-mom__area--home { fill: color-mix(in oklab, var(--accent) 42%, transparent); }
+  .px-mom__area--away { fill: color-mix(in oklab, var(--ink) 28%, transparent); }
+  .px-mom__line {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+
+  /* reveal: wave grows out of the baseline (gated behind html.js) */
+  .px-mom__wave {
+    transform: scaleY(1);
+    transform-box: view-box;
+    transition: transform var(--t-page) var(--ease-snap);
+  }
+  html.js .px-viz:not(.is-in) .px-mom__wave { transform: scaleY(0); }
+
+  /* event pins — base/resting = final visible state (no-JS safe) */
+  .px-mom__pin line { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 3; }
+  .px-mom__pin circle { fill: var(--accent); }
+  .px-mom__pin[data-side="away"] circle { fill: var(--ink-soft); }
+  .px-mom__pin text {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; text-transform: uppercase; fill: var(--ink);
+    /* pins drop their labels over the wave fills + momentum line — paper halo
+       keeps them legible against the filled areas */
+    paint-order: stroke;
+    stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
+  }
+  .px-mom__pin {
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-mom__pin { opacity: 0; }
+  .px-viz.is-in .px-mom__pin { transition-delay: calc(420ms + var(--i) * 80ms); }
+
+  .px-mom__labels {
+    display: flex; gap: 24px; flex-wrap: wrap; align-items: center;
+    margin-top: 16px;
+  }
+  /* team labels read as in-viz titles — display serif ink, not mono legend */
+  .px-mom__team {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: var(--issue-face, var(--font-display)); font-weight: 600;
+    font-size: 16px; letter-spacing: -0.005em; color: var(--ink);
+  }
+  .px-mom__team i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  .px-mom__team--home i { background: color-mix(in oklab, var(--accent) 60%, transparent); }
+  .px-mom__team--away i { background: color-mix(in oklab, var(--ink) 40%, transparent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-mom__wave { transform: scaleY(1) !important; }
+    .px-viz:not(.is-in) .px-mom__pin { opacity: 1 !important; }
+  }
+</style>

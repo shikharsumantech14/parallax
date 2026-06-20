@@ -1,0 +1,101 @@
+/* ============================================================================
+   PARALLAX V2 — 3D / INTERACTIVE COMPONENT FOUNDATION
+   ----------------------------------------------------------------------------
+   Shared primitives for the interactive component library:
+     • the WebGL mount (.viz3d) + its static fallback swap, and
+     • the CSS-3D mechanics (perspective stage, pointer-tilt, flip cards)
+       consumed by the lighter components via core/Tilt.astro.
+
+   Loaded after dataviz-v2.css in both layouts. Per-component cosmetic styles
+   live in each component's scoped <style>; this file holds only the shared
+   scaffolding + the no-JS / reduced-motion contracts.
+
+   Contracts (same as motion-v2.css / dataviz-v2.css):
+     • No-JS: WebGL mounts keep their static SVG/HTML fallback; CSS-3D pieces
+       render flat (tilt vars default to 0). Nothing is hidden without html.js.
+     • prefers-reduced-motion: no tilt, no flip transition, no canvas loop.
+   ============================================================================ */
+:root {
+  --persp: 1100px;   /* shared perspective depth for CSS-3D stages */
+  --tilt-max: 10deg; /* clamp for pointer-tilt */
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   WEBGL MOUNT — static fallback by default; JS swaps in the <canvas>
+   ────────────────────────────────────────────────────────────────────────── */
+.viz3d {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  isolation: isolate;
+}
+.viz3d__canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+.viz3d__fallback {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+.viz3d__fallback svg { width: 100%; height: 100%; display: block; }
+.viz3d--live .viz3d__fallback { display: none; }   /* canvas took over */
+.viz3d__data { display: none; }
+.viz3d__hint {
+  position: absolute; left: 12px; bottom: 10px; z-index: 2;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--muted); opacity: 0;
+  pointer-events: none; transition: opacity var(--t-soft) var(--ease);
+}
+.viz3d--live .viz3d__hint { opacity: 0.7; }
+
+/* near-side labels projected over the globe canvas (positioned by the runtime) */
+.viz3d__labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.viz3d__label {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 140ms var(--ease);
+}
+.viz3d__label--data {
+  color: var(--accent-deep, var(--accent));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 20%, transparent);
+}
+.viz3d__label--country { color: var(--muted); font-size: 8px; letter-spacing: 0.1em; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CSS-3D MECHANICS — perspective stage + pointer-tilt (core/Tilt.astro writes
+   --rx/--ry on [data-tilt]; reduced-motion + no-JS leave them at 0 = flat)
+   ────────────────────────────────────────────────────────────────────────── */
+.px3d-stage { perspective: var(--persp); perspective-origin: 50% 40%; }
+.px3d-tilt {
+  --rx: 0deg; --ry: 0deg;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform var(--t-soft) var(--ease);
+  will-change: transform;
+}
+
+/* Flip card — front/back faces; core/Tilt toggles .is-flipped on the card */
+.px3d-flip { position: relative; transform-style: preserve-3d; transition: transform var(--t-slow) var(--ease-snap); }
+.px3d-flip.is-flipped { transform: rotateY(180deg); }
+.px3d-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.px3d-face--back { position: absolute; inset: 0; transform: rotateY(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .px3d-tilt { transform: none !important; transition: none !important; }
+  .px3d-flip { transition: none !important; }
+}

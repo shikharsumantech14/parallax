@@ -87,11 +87,23 @@ For each candidate, fill:
 - Status: open
 - Why now (1-2 sentences, anchored to specific recent event)
 - Angle (the perspective shift Parallax would bring)
-- Suggested section kinds (only from registered set in
-  `src/content/config.ts`: hero, timeline, bill-breakdown, vote-result,
-  seat-chart, comparison, paradox, analogy, quote, beat-sheet, prose,
-  data-readout, orbital-shells, commit-grid, journey-map,
-  match-stat-line, elevation-profile)
+- Suggested section kinds (only from the registered set in
+  `src/content/config.ts` — ~60 kinds; the full catalog with `data` shapes
+  lives in `src/content/issues/_AGENTS.md` §11, and the six
+  `2026-06-03-<world>-showcase` issues demonstrate every one with real data).
+  Beyond the universal narrative kinds (hero, timeline, prose, quote,
+  comparison, paradox, analogy, beat-sheet, bill-breakdown, vote-result,
+  seat-chart, data-readout), actively reach for the world's **signature +
+  v2 3D / interactive** kinds wherever the data fits:
+  - politics → approval-chart, power-matrix, coalition-orbit, swing-dial, bill-passage, vote-flow, margin-ladder
+  - space → orbit-trace, launch-stats, orbit-globe, trajectory-arc, delta-v-ladder, signal-readout, descent-profile
+  - earth → climate-strip, region-map, carbon-gauge, data-globe, core-sample, sea-level-tank, climate-spiral, quake-depth
+  - tech → benchmark-chart, adoption-curve, commit-grid, arch-stack, latency-waterfall, version-graph, scaling-plot, throughput-dial
+  - travel → route-card, city-compare, journey-map, route-globe, elevation-trek, itinerary-reel, climate-calendar, timezone-arc
+  - sports → league-table, player-radar, match-stat-line, tactics-pitch, shot-map, xg-race, momentum-wave, player-card
+
+  Pick kinds that genuinely fit the data and flag what data each would need;
+  don't force a 3D showpiece where a plain chart reads clearer.
 - Estimated read time (5-8 minutes typical)
 - 3-5 source URLs (must be from the allowlist)
 - Notes (paywall flags, sparse data, contested facts, breaking story)

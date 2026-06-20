@@ -1,0 +1,120 @@
+---
+/* SubscribeStrip — single editorial line + the working newsletter form.
+   Ports the v2 design kit's `.sub` (publication-v2/styles.css + Sections.jsx)
+   as the editorial layout, and embeds the EXISTING NewsletterForm island
+   (core/NewsletterForm.astro) for the real, JS-backed signup. We do not
+   reimplement the form here — only wrap it in the kit's `.sub` framing.
+   Prefix: px-sub. */
+import NewsletterForm from '../core/NewsletterForm.astro';
+---
+
+<section class="px-sub" id="subscribe" aria-labelledby="px-sub-title">
+  <div class="px-sub__head">
+    <div class="px-sub__eb">— The dispatch</div>
+    <h2 class="px-sub__t" id="px-sub-title">
+      One <em>letter</em> per issue. <span>That's it.</span>
+    </h2>
+    <p class="px-sub__h">
+      We send a short note when a new issue is published — usually once a
+      month. No drips. No marketing. Unsubscribe in one click.
+    </p>
+  </div>
+
+  <div class="px-sub__form">
+    <NewsletterForm />
+  </div>
+
+  <p class="px-sub__fine">
+    We never share your email.
+    <a href="/about/privacy/">Privacy</a>
+  </p>
+</section>
+
+<style>
+  .px-sub {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    align-items: end;
+    margin: 0 0 64px;
+    padding: 48px 0 40px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-sub__head { max-width: 64ch; }
+  .px-sub__eb {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    /* accent-as-text on meta paper → deep variant for contrast */
+    color: var(--accent-deep, var(--accent));
+    margin-bottom: 16px;
+  }
+  .px-sub__t {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .px-sub__t em { color: var(--accent-deep, var(--accent)); font-style: italic; font-weight: 400; }
+  .px-sub__t span { color: var(--muted); font-weight: 400; }
+  .px-sub__h {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0;
+  }
+
+  /* The form column embeds the real NewsletterForm island. Strip its own
+     standalone framing (borders, big margins, duplicate heading/dek) so it
+     reads as the inline form of this strip. */
+  .px-sub__form :global(.px-newsletter) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .px-sub__form :global(.px-newsletter__inner) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .px-sub__form :global(.px-newsletter__title),
+  .px-sub__form :global(.px-newsletter__dek) {
+    display: none;
+  }
+
+  .px-sub__fine {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  .px-sub__fine a {
+    color: var(--muted);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1px;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  .px-sub__fine a:hover {
+    color: var(--accent-deep, var(--accent));
+    border-bottom-color: var(--accent-deep, var(--accent));
+  }
+
+  @media (min-width: 880px) {
+    .px-sub {
+      grid-template-columns: 1fr 520px;
+      gap: 48px;
+      align-items: end;
+    }
+    .px-sub__fine { grid-column: 1 / -1; margin-top: -8px; }
+  }
+</style>

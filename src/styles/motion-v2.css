@@ -1,0 +1,36 @@
+/* ============================================================================
+   PARALLAX V2 — SCROLL-REVEAL MECHANISM (no-JS safe)
+   ----------------------------------------------------------------------------
+   Base state is VISIBLE: with JS disabled (or print / headless), every
+   [data-reveal] element paints in its FINAL state. The hidden resting state is
+   gated behind `html.js` (set by a one-line inline guard in the layouts), so it
+   only applies when JS is present to add `.is-in` via core/Reveal.astro.
+
+   This deliberately fixes the design-export bug where reveal targets used a bare
+   `:not(.is-in)` hidden rule and stayed invisible whenever JS never ran.
+
+   Per-component reveal rules (chart line-draws, bar grows, staggered rows) are
+   added in their component styles in later phases, each likewise gated behind
+   `html.js …:not(.is-in)`, with matching resets in the reduced-motion block.
+   ============================================================================ */
+
+/* Generic reveal: visible by default; JS hides then reveals on scroll-in. */
+[data-reveal] {
+  transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+}
+html.js [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+/* Reduced motion: never hide, never animate — paint the final state. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  html.js [data-reveal]:not(.is-in) {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

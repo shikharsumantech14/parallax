@@ -1,0 +1,242 @@
+---
+/**
+ * SignalReadout (space) — a telemetry / EM-band readout. Each row is a
+ * horizontal level meter (value / max) with a band label + frequency and mono
+ * numerics. A faint repeating scan-line motif sits over the panel, and a subtle
+ * sweep highlight crosses it once on scroll-in (a `::before` gradient sweep, in
+ * the spirit of dataviz-v2.css `.tel__tile::before` / `telSweep`). Bars fill
+ * from 0 on reveal; a status pulse dot reuses the global `@keyframes lensPulse`.
+ * Flat panel — no 3D.
+ *
+ * No-JS / reduced-motion: bars paint at full width and the sweep is idle
+ * (hidden rules sit behind `html.js`; reduced-motion resets with !important).
+ *
+ * data: { bands[]{ label, freq, value, max?, color? }, caption?, source? }
+ */
+interface Band { label: string; freq: string; value: number; max?: number; color?: string; }
+interface Props {
+  bands: Band[];
+  caption?: string;
+  source?: string;
+}
+const { bands = [], caption, source } = Astro.props;
+
+const rows = (Array.isArray(bands) ? bands : []).map((b) => {
+  const max = (b?.max && b.max > 0) ? b.max : 100;
+  const value = Math.max(0, b?.value ?? 0);
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  return {
+    label: b?.label ?? '',
+    freq: b?.freq ?? '',
+    value,
+    max,
+    pct,
+    color: b?.color,
+  };
+});
+
+const fmtN = (n: number) =>
+  Number.isInteger(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>telemetry</b></div>}
+
+  <div class="px-sig" role="img"
+    aria-label={caption ? `Signal readout: ${caption}` : 'Signal / band-level readout'}>
+    <div class="px-sig__scan" aria-hidden="true"></div>
+    <div class="px-sig__sweep" aria-hidden="true"></div>
+
+    <div class="px-sig__head">
+      <span class="px-sig__status"><i></i>acquiring</span>
+      <span class="px-sig__count">{rows.length} band{rows.length === 1 ? '' : 's'}</span>
+    </div>
+
+    <ul class="px-sig__rows">
+      {rows.map((r, i) => (
+        <li class="px-sig__row" style={`--i:${i}`}>
+          <div class="px-sig__meta">
+            <span class="px-sig__label">{r.label}</span>
+            <span class="px-sig__freq">{r.freq}</span>
+          </div>
+          <div class="px-sig__meter">
+            <span class="px-sig__fill" style={`--w:${r.pct.toFixed(2)}%; ${r.color ? `background:${r.color}` : ''}`}></span>
+            <span class="px-sig__ticks" aria-hidden="true"></span>
+          </div>
+          <div class="px-sig__nums">
+            <b>{fmtN(r.value)}</b><span class="px-sig__max">/ {fmtN(r.max)}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-sig {
+    position: relative;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
+    background: color-mix(in oklab, var(--paper) 92%, var(--bg));
+    padding: 18px 20px 8px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* faint repeating scan-line motif */
+  .px-sig__scan {
+    position: absolute; inset: 0; z-index: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      color-mix(in oklab, var(--ink) 4%, transparent) 0,
+      color-mix(in oklab, var(--ink) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    opacity: 0.6;
+  }
+
+  /* sweep highlight — crosses once on reveal */
+  .px-sig__sweep {
+    position: absolute; top: 0; bottom: 0; left: -45%; width: 45%; z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklab, var(--accent) 20%, transparent) 50%,
+      transparent 100%
+    );
+    opacity: 0;
+    transform: translateX(0);
+  }
+  .px-viz.is-in .px-sig__sweep { animation: sigSweep 1500ms var(--ease) 200ms forwards; }
+  @keyframes sigSweep {
+    0% { opacity: 0; transform: translateX(0); }
+    18% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(320%); }
+  }
+
+  .px-sig__head {
+    position: relative; z-index: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 14px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-sig__status { display: inline-flex; align-items: center; gap: 10px; color: var(--accent); }
+  /* status pulse dot — absolutely-centred wrapper so global lensPulse's
+     translate(-50%,-50%) stays put */
+  .px-sig__status i {
+    position: relative;
+    width: 8px; height: 8px;
+    display: inline-block;
+  }
+  .px-sig__status i::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    animation: lensPulse 2s infinite;
+  }
+  .px-sig__count { font-variant-numeric: tabular-nums; }
+
+  .px-sig__rows { position: relative; z-index: 2; list-style: none; margin: 0; padding: 0; }
+  .px-sig__row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.1fr) 2.2fr minmax(74px, auto);
+    gap: 16px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-sig__row:last-child { border-bottom: none; }
+
+  .px-sig__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .px-sig__label {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+    overflow-wrap: anywhere;   /* long band names wrap instead of overflowing */
+  }
+  .px-sig__freq {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  .px-sig__meter {
+    position: relative;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: color-mix(in oklab, var(--ink) 7%, var(--bg));
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  .px-sig__fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: var(--w);
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    /* base/resting = final width (no-JS safe) */
+    transition: width 1000ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-sig__fill { width: 0; }
+  .px-viz.is-in .px-sig__fill { transition-delay: calc(var(--i) * 90ms); }
+  .px-sig__ticks {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(10% - 1px),
+      color-mix(in oklab, var(--bg) 55%, transparent) calc(10% - 1px),
+      color-mix(in oklab, var(--bg) 55%, transparent) 10%
+    );
+  }
+
+  .px-sig__nums {
+    display: flex; align-items: baseline; gap: 5px;
+    justify-content: flex-end;
+    text-align: right;
+    white-space: nowrap;          /* keep "value / max" on one line */
+    font-variant-numeric: tabular-nums;
+  }
+  .px-sig__nums b {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-sig__max {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 560px) {
+    .px-sig__row { grid-template-columns: 1fr auto; gap: 6px 12px; }
+    .px-sig__meter { grid-column: 1 / -1; order: 3; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-sig__fill { width: var(--w) !important; }
+    .px-sig__sweep { animation: none !important; opacity: 0 !important; }
+  }
+</style>

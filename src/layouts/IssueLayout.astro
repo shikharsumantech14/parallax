@@ -1,5 +1,7 @@
 ---
 import type { Topic } from '../content/config';
+import { stripEmphasis } from '../lib/text';
+import '../styles/tokens-v2.css';
 import '../styles/base.css';
 import '../styles/meta.css';
 import '../styles/themes/politics.css';
@@ -8,9 +10,20 @@ import '../styles/themes/earth.css';
 import '../styles/themes/tech.css';
 import '../styles/themes/travel.css';
 import '../styles/themes/sports.css';
+import '../styles/type-v2.css';
+import '../styles/motion-v2.css';
+import '../styles/dataviz-v2.css';
+import '../styles/viz-type.css';
+import '../styles/components-3d.css';
+import '../styles/modal.css';
 
 import Masthead from '../components/core/Masthead.astro';
-import Footer from '../components/core/Footer.astro';
+import Colophon from '../components/core/Colophon.astro';
+import Reveal from '../components/core/Reveal.astro';
+import VizMotion from '../components/core/VizMotion.astro';
+import Viz3DRuntime from '../components/core/Viz3DRuntime.astro';
+import Tilt from '../components/core/Tilt.astro';
+import ExpandModal from '../components/core/ExpandModal.astro';
 
 interface Props {
   topic: Topic;
@@ -18,34 +31,32 @@ interface Props {
   description: string;
   issueNumber?: string;
   publishedAt?: Date;
-  ogImage?: string;
 }
-const { topic, title, description, issueNumber, publishedAt, ogImage } = Astro.props;
+const { topic, title, description, issueNumber, publishedAt } = Astro.props;
 
 const issueDate = publishedAt
   ? publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase()
   : undefined;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
-const ogUrl = ogImage ? new URL(ogImage, Astro.site).toString() : undefined;
 ---
 
 <!doctype html>
 <html lang="en" data-topic={topic}>
   <head>
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} · Parallax Lens</title>
+    <title>{stripEmphasis(title)} · Parallax Lens</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <meta property="og:type" content="article" />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={stripEmphasis(title)} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    {ogUrl && <meta property="og:image" content={ogUrl} />}
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="summary" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -62,7 +73,12 @@ const ogUrl = ogImage ? new URL(ogImage, Astro.site).toString() : undefined;
       <main>
         <slot />
       </main>
-      <Footer />
+      <Colophon />
     </div>
+    <Reveal />
+    <VizMotion />
+    <Viz3DRuntime />
+    <Tilt />
+    <ExpandModal />
   </body>
 </html>

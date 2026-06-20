@@ -1,7 +1,9 @@
 ---
 /*
-  CityCompare — side-by-side city comparison table.
-  HTML, build-time, zero runtime JS.
+  CityCompare — v2 head-to-head comparison (.cc) inside the elevated .px-viz
+  card. Two city columns flank a centred metric label; the winning side glows
+  via data-win. Rows fade + rise on a stagger as the card reveals on scroll.
+  Faithful port of publication-v2 DataViz <CityCompare>. Build-time, zero JS.
 
   Use for: cost-of-living, travel planning, demographic
   comparisons, infrastructure snapshots.
@@ -26,50 +28,28 @@ interface Props {
 const { cityA, cityB, rows = [], caption, source } = Astro.props;
 ---
 
-<div class="px-ccomp">
-  {caption && <div class="px-ccomp__caption">{caption}</div>}
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
 
-  <div class="px-ccomp__scroll">
-    <table class="px-ccomp__table">
-      <thead>
-        <tr class="px-ccomp__header-row">
-          <th class="px-ccomp__th px-ccomp__th--label"></th>
-          <th class="px-ccomp__th px-ccomp__th--city px-ccomp__th--a">
-            {cityA.flag && <span class="px-ccomp__flag">{cityA.flag}</span>}
-            <span class="px-ccomp__city-name">{cityA.name}</span>
-            {cityA.subtitle && <span class="px-ccomp__city-sub">{cityA.subtitle}</span>}
-          </th>
-          <th class="px-ccomp__th px-ccomp__th--city px-ccomp__th--b">
-            {cityB.flag && <span class="px-ccomp__flag">{cityB.flag}</span>}
-            <span class="px-ccomp__city-name">{cityB.name}</span>
-            {cityB.subtitle && <span class="px-ccomp__city-sub">{cityB.subtitle}</span>}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(row => (
-          <>
-            <tr class="px-ccomp__row">
-              <td class="px-ccomp__label">{row.label}</td>
-              <td class={`px-ccomp__val px-ccomp__val--a${row.winner === 'a' ? ' px-ccomp__val--winner' : ''}`}>
-                {row.a}
-                {row.winner === 'a' && <span class="px-ccomp__win-dot" aria-label="better">●</span>}
-              </td>
-              <td class={`px-ccomp__val px-ccomp__val--b${row.winner === 'b' ? ' px-ccomp__val--winner' : ''}`}>
-                {row.b}
-                {row.winner === 'b' && <span class="px-ccomp__win-dot" aria-label="better">●</span>}
-              </td>
-            </tr>
-            {row.note && (
-              <tr class="px-ccomp__note-row">
-                <td colspan={3} class="px-ccomp__note">{row.note}</td>
-              </tr>
-            )}
-          </>
-        ))}
-      </tbody>
-    </table>
+  <div class="cc__head">
+    <div class="cc__city">
+      <span class="cc__city-name">{cityA.name}</span>
+      {cityA.subtitle && <span class="cc__city-sub">{cityA.subtitle}</span>}
+    </div>
+    <span class="cc__vs">vs</span>
+    <div class="cc__city cc__city--b">
+      <span class="cc__city-name">{cityB.name}</span>
+      {cityB.subtitle && <span class="cc__city-sub">{cityB.subtitle}</span>}
+    </div>
   </div>
 
-  {source && <div class="px-ccomp__source">{source}</div>}
+  {rows.map((r, i) => (
+    <div class="cc__row" style={`transition-delay:${i * 50}ms`}>
+      <span class="cc__a" data-win={r.winner === 'a' ? 'true' : 'false'}>{r.a}</span>
+      <span class="cc__metric">{r.label}</span>
+      <span class="cc__b" data-win={r.winner === 'b' ? 'true' : 'false'}>{r.b}</span>
+    </div>
+  ))}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

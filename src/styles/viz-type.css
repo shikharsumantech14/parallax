@@ -1,0 +1,68 @@
+/* ============================================================================
+   PARALLAX — UNIFIED DATA-VIZ TYPE SYSTEM
+   ----------------------------------------------------------------------------
+   One coherent label scale for every data-viz/3D component, so they read as a
+   family instead of each setting tiny mono labels ad-hoc. Editorial blend:
+   the display serif carries viz titles/captions; crisp mono with TABULAR
+   figures carries axes / values / legends. Loaded after dataviz-v2.css.
+
+   Roles (use these classes OR the tokens in a component's scoped <style>):
+     .vz-eyebrow  mono kicker / unit            .vz-caption  serif caption (human)
+     .vz-axis     mono axis ticks (tabular)     .vz-legend   mono legend (uppercase)
+     .vz-value    display number (tabular)      .vz-annot    display-italic note
+     .vz-src      mono italic source            .vz-num      tabular-figures helper
+
+   The tokens below are overridden inside the expand modal (.px-modal__viz) so the
+   enlarged view reads as intentionally sized, not zoomed-up tiny text.
+   ============================================================================ */
+:root {
+  --viz-fs-eyebrow: 10px;
+  --viz-fs-legend:  10px;
+  --viz-fs-axis:    9.5px;
+  --viz-fs-caption: 15.5px;
+  --viz-fs-annot:   13px;
+  --viz-fs-src:     10px;
+  --viz-ls-mono:    0.16em;
+  --viz-ls-wide:    0.2em;
+}
+
+.vz-eyebrow {
+  font-family: var(--font-mono); font-size: var(--viz-fs-eyebrow);
+  letter-spacing: var(--viz-ls-wide); text-transform: uppercase; color: var(--muted);
+}
+.vz-caption {
+  font-family: var(--font-display); font-weight: 500; font-size: var(--viz-fs-caption);
+  line-height: 1.3; letter-spacing: -0.005em; color: var(--ink-soft);
+}
+.vz-axis {
+  font-family: var(--font-mono); font-size: var(--viz-fs-axis); letter-spacing: 0.04em;
+  fill: var(--muted); color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.vz-legend {
+  font-family: var(--font-mono); font-size: var(--viz-fs-legend);
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.vz-value {
+  font-family: var(--font-display); font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}
+.vz-annot {
+  font-family: var(--font-display); font-style: italic; font-size: var(--viz-fs-annot);
+  line-height: 1.5; color: var(--ink-soft);
+}
+.vz-src {
+  font-family: var(--font-mono); font-size: var(--viz-fs-src); letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); font-style: italic;
+}
+.vz-num { font-variant-numeric: tabular-nums; }
+
+/* In the expand modal, bump the scale a notch so labels look deliberate at size. */
+.px-modal__viz {
+  --viz-fs-eyebrow: 11px;
+  --viz-fs-legend:  11px;
+  --viz-fs-axis:    11px;
+  --viz-fs-caption: 19px;
+  --viz-fs-annot:   15px;
+  --viz-fs-src:     11px;
+}
+.px-modal__viz .px-viz__cap { font-size: 18px; margin-bottom: 26px; }

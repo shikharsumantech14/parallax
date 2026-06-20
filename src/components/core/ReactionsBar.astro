@@ -223,12 +223,14 @@ const KINDS = [
     text-transform: uppercase;
     padding: 10px 14px;
     cursor: pointer;
-    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    border-radius: var(--r-pill);
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
     line-height: 1;
   }
   .px-reactions__btn:hover:not(:disabled) {
     color: var(--ink);
     border-color: var(--ink);
+    transform: translateY(-1px);
   }
   .px-reactions__btn:disabled {
     opacity: 0.6;
@@ -236,9 +238,9 @@ const KINDS = [
   }
 
   .px-reactions__btn[data-active="true"] {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: rgba(184, 52, 31, 0.04);
+    color: var(--accent-deep, var(--accent));
+    border-color: var(--accent-deep, var(--accent));
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
   }
 
   .px-reactions__label {
@@ -256,7 +258,7 @@ const KINDS = [
     display: none;
   }
   .px-reactions__btn[data-active="true"] .px-reactions__count {
-    color: var(--accent);
+    color: var(--accent-deep, var(--accent));
   }
 
   .px-reactions__status {

@@ -1,0 +1,75 @@
+---
+/**
+ * CoalitionOrbit (politics) — parties as bodies orbiting a government "core",
+ * each sized by seat share, on tilted rings. Lazy WebGL (scenes 'coalition-orbit');
+ * drag to spin, gentle idle rotation.
+ *
+ * No-JS / reduced-motion: the inline static SVG (core + orbiting party dots
+ * sized by seats) stays; the legend lists every party textually. Themed via the
+ * page `data-topic` vars + per-party colors.
+ *
+ * data: { parties[]{ name, seats, color?, bloc? }, totalSeats?, caption?, source? }
+ */
+interface Party { name: string; seats: number; color?: string; bloc?: string; }
+interface Props { parties: Party[]; totalSeats?: number; caption?: string; source?: string; }
+const { parties = [], totalSeats, caption, source } = Astro.props;
+
+const total = totalSeats ?? parties.reduce((n, p) => n + (p.seats || 0), 0);
+const maxSeats = Math.max(1, ...parties.map((p) => p.seats || 0));
+const cx = 160, cy = 160;
+const bodies = parties.map((p, i) => {
+  const r = 50 + i * 26;
+  const ang = (i / Math.max(1, parties.length)) * Math.PI * 2 - Math.PI / 2;
+  const dotR = 5 + 15 * Math.sqrt((p.seats || 0) / maxSeats);
+  return { r, color: p.color || 'var(--accent)', x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r, dotR };
+});
+const payload = JSON.stringify({ parties, totalSeats: total });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{total} seats</b></div>}
+
+  <div class="viz3d viz3d--globe" data-viz3d="coalition-orbit" role="img"
+    aria-label={caption ? `3D coalition diagram: ${caption}` : '3D coalition diagram'}>
+    <div class="viz3d__fallback">
+      <svg viewBox="0 0 320 320" preserveAspectRatio="xMidYMid meet">
+        <circle cx={cx} cy={cy} r="24" fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.3" />
+        <circle cx={cx} cy={cy} r="14" fill="var(--accent)" opacity="0.85" />
+        {bodies.map((b) => (
+          <>
+            <circle cx={cx} cy={cy} r={b.r} fill="none" stroke={b.color} stroke-width="1" opacity="0.22" />
+            <circle cx={b.x} cy={b.y} r={b.dotR} fill={b.color} />
+          </>
+        ))}
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to orbit</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ul class="px-co__legend">
+    {parties.map((p) => (
+      <li class="px-co__row">
+        <span class="px-co__dot" style={`background:${p.color || 'var(--accent)'}`}></span>
+        <span class="px-co__name">{p.name}{p.bloc ? <em> · {p.bloc}</em> : null}</span>
+        <span class="px-co__seats">{p.seats.toLocaleString()} {total ? `· ${Math.round((p.seats / total) * 100)}%` : ''}</span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-co__legend { list-style: none; margin: 18px 0 0; padding: 0; }
+  .px-co__row {
+    display: grid; grid-template-columns: 14px 1fr auto; gap: 12px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--rule); font-variant-numeric: tabular-nums;
+  }
+  .px-co__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
+  /* party name — in-viz title role: display serif ink (bloc tag stays muted italic) */
+  .px-co__name { font-family: var(--font-display); font-size: 15px; color: var(--ink); font-weight: 600; }
+  .px-co__name em { color: var(--muted); font-style: italic; font-weight: 400; font-size: 0.9em; }
+  /* seats + share — legend role: mono uppercase muted tabular */
+  .px-co__seats { font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.08em; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+</style>

@@ -1,0 +1,290 @@
+---
+id: "2026-06-03-travel-showcase"
+topic: travel
+title: "The Travel *Atlas* — every signature component"
+hook: "A field guide to the travel data-viz library, built from real journeys."
+dek: "Route globes, trek profiles, itinerary reels, climate ribbons, time-zone arcs — each demonstrated with verifiable, real-world travel data."
+publishedAt: 2026-06-03
+status: draft
+tags: [styleguide]
+readTimeMinutes: 6
+primer: "A styleguide issue that exercises every travel signature component once, with real coordinates, real elevation profiles, and real climate normals. Each section names the data it carries and how the component behaves when you scroll or hover it."
+
+sections:
+  - kind: prose
+    eyebrow: "ABOUT THIS ISSUE"
+    title: "A working *atlas* of the travel components"
+    intro: "This is a styleguide, not a story. It renders each travel signature component once so the rendering, the reveal animation, and the no-JS fallback can all be checked against real data."
+    data:
+      lead: "Every block below is fed real-world travel data — coordinates pulled from gazetteers, an elevation profile from a published trekking route, climate normals from a national meteorological agency. The point is to see how the components behave, not to tell a single journey."
+      paragraphs:
+        - "The travel world spans eight components. Five are new to the v2 interactive library: a **route globe** that spins under WebGL, an **elevation trek** profile, an **itinerary reel** of flip cards, a **climate calendar** ribbon, and a **time-zone arc**. Three are the earlier signature pieces: the **route card**, the **city comparison**, and the vertical **journey map**."
+        - "Each section's intro states exactly what data the component is carrying and how it responds to interaction. Where a component uses motion — a stroke that draws on scroll, cards that fan in, a globe you can drag — there is always a static fallback that paints the full meaning with no JavaScript. The data here is sourced and verifiable; the captions and sources name where each figure comes from."
+
+  - kind: route-globe
+    eyebrow: "COMPONENT · ROUTE-GLOBE"
+    title: "An eastward arc, *Lisbon* to Tokyo"
+    intro: "This carries an ordered list of city stops with real latitude/longitude. The interactive view is a draggable dot-matrix globe with great-circle arcs between stops; the static fallback is an equirectangular map plus a numbered legend of coordinates."
+    data:
+      caption: "Six-stop eastward route · coordinates from gazetteer data"
+      source: "GeoNames gazetteer, 2026"
+      stops:
+        - { city: "Lisbon", lat: 38.7223, lon: -9.1393, note: "departure" }
+        - { city: "Marrakesh", lat: 31.6295, lon: -7.9811 }
+        - { city: "Cairo", lat: 30.0444, lon: 31.2357, note: "halfway by longitude" }
+        - { city: "Mumbai", lat: 19.0760, lon: 72.8777 }
+        - { city: "Bangkok", lat: 13.7563, lon: 100.5018 }
+        - { city: "Tokyo", lat: 35.6762, lon: 139.6503, note: "arrival" }
+
+  - kind: elevation-trek
+    eyebrow: "COMPONENT · ELEVATION-TREK"
+    title: "The Annapurna Circuit, *floor* to high pass"
+    intro: "This carries waypoints of cumulative distance (km) against elevation (m) along a real trekking route. On scroll the terrain line draws itself and the area fills; min/max markers and the peak/gain/distance readout are static. Labelled points become waypoint pins."
+    data:
+      unit: "m"
+      caption: "Annapurna Circuit elevation profile · Besisahar to Jomsom"
+      source: "Discovery World Trekking route data, 2026"
+      points:
+        - { km: 0, elevM: 760, label: "Besisahar" }
+        - { km: 30, elevM: 1300, label: "Jagat" }
+        - { km: 64, elevM: 2670, label: "Chame" }
+        - { km: 90, elevM: 3200, label: "Upper Pisang" }
+        - { km: 108, elevM: 3540, label: "Manang" }
+        - { km: 128, elevM: 4450, label: "Thorong Phedi" }
+        - { km: 136, elevM: 5416, label: "Thorong La" }
+        - { km: 144, elevM: 3760, label: "Muktinath" }
+        - { km: 165, elevM: 2720, label: "Jomsom" }
+
+  - kind: itinerary-reel
+    eyebrow: "COMPONENT · ITINERARY-REEL"
+    title: "*Five* days in Kyoto, as day cards"
+    intro: "This carries a list of days, each with a place and an optional bullet list of activities. The interactive view is a perspective row of cards that tilt toward the pointer and fan in on scroll; on mobile they become a horizontal scroll-snap rail. The card text is fully static."
+    data:
+      caption: "A five-day Kyoto walking itinerary"
+      source: "Itinerary planning, 2026"
+      days:
+        - day: 1
+          place: "Higashiyama & Gion"
+          items:
+            - "Kiyomizu-dera at opening, before the crowds"
+            - "Sannenzaka and Ninenzaka lanes downhill"
+            - "Evening walk through Gion's Hanami-koji"
+        - day: 2
+          place: "Arashiyama"
+          items:
+            - "Bamboo grove and Tenryu-ji garden"
+            - "Cross the Togetsukyo bridge"
+            - "Iwatayama monkey park viewpoint"
+        - day: 3
+          place: "Fushimi & Tofuku-ji"
+          items:
+            - "Fushimi Inari's torii gates to the summit"
+            - "Sake breweries of the Fushimi district"
+        - day: 4
+          place: "Northwest temples"
+          items:
+            - "Kinkaku-ji, the Golden Pavilion"
+            - "Ryoan-ji rock garden"
+            - "Stone path of the Philosopher's Walk"
+        - day: 5
+          place: "Central Kyoto"
+          items:
+            - "Nijo Castle and its nightingale floors"
+            - "Nishiki Market food stalls"
+
+  - kind: climate-calendar
+    eyebrow: "COMPONENT · CLIMATE-CALENDAR"
+    title: "*Kyoto's* year, month by month"
+    intro: "This carries twelve months, each with an average temperature and rainfall. It renders as a ribbon: an upper temperature cell tinted cool-to-warm and a lower rainfall bar. The mildest and wettest months get a highlight ring; cells reveal left-to-right. All values are flat SVG/CSS."
+    data:
+      tempUnit: "°C"
+      caption: "Kyoto climate normals, 1991–2020 · temperature (°C) and rainfall (mm)"
+      source: "Japan Meteorological Agency normals, 1991–2020"
+      months:
+        - { month: "January", temp: 5.3, rainfall: 55 }
+        - { month: "February", temp: 6.0, rainfall: 69 }
+        - { month: "March", temp: 9.6, rainfall: 113 }
+        - { month: "April", temp: 15.4, rainfall: 116 }
+        - { month: "May", temp: 20.5, rainfall: 161 }
+        - { month: "June", temp: 24.4, rainfall: 215 }
+        - { month: "July", temp: 28.5, rainfall: 225, note: "peak of the Baiu rainy season" }
+        - { month: "August", temp: 29.6, rainfall: 154 }
+        - { month: "September", temp: 25.5, rainfall: 179 }
+        - { month: "October", temp: 19.6, rainfall: 130 }
+        - { month: "November", temp: 13.4, rainfall: 73 }
+        - { month: "December", temp: 7.8, rainfall: 55 }
+
+  - kind: timezone-arc
+    eyebrow: "COMPONENT · TIMEZONE-ARC"
+    title: "Six cities across the *day*"
+    intro: "This carries cities with their UTC offset in hours. A 24-hour day/night band anchors a 'now' marker at the reference zone, and each city sits at its local hour with a sun or moon glyph. Cities sort west-to-east and reveal on a stagger. Time is anchored deterministically, not read from a live clock."
+    data:
+      refOffset: 9
+      caption: "Standard-time UTC offsets for the six route cities · reference: Tokyo"
+      source: "IANA time zone database, 2026"
+      zones:
+        - { city: "Lisbon", offset: 0 }
+        - { city: "Marrakesh", offset: 1 }
+        - { city: "Cairo", offset: 2 }
+        - { city: "Mumbai", offset: 5.5 }
+        - { city: "Bangkok", offset: 7 }
+        - { city: "Tokyo", offset: 9 }
+
+  - kind: route-card
+    eyebrow: "COMPONENT · ROUTE-CARD"
+    title: "*London* to Tokyo, overland and by sea"
+    intro: "This carries ordered legs, each with from/to cities, a transport mode, distance and duration. A dashed rail threads mode glyphs (train, drive, ferry, fly); legs slide in on a stagger as the card reveals. The mode keys the icon."
+    data:
+      title: "London → Tokyo  ·  Trans-Siberian no-fly route"
+      caption: "A rail-and-sea crossing of Eurasia"
+      source: "Rail route planning, 2026"
+      legs:
+        - from: "London"
+          to: "Moscow"
+          mode: "train"
+          distance: "3,200 km"
+          duration: "2 days"
+          note: "Via Brussels, Cologne, Warsaw, Minsk. Multiple connections."
+        - from: "Moscow"
+          to: "Irkutsk"
+          mode: "train"
+          distance: "5,185 km"
+          duration: "3.5 days"
+          note: "Trans-Siberian Railway — crosses five time zones to Lake Baikal."
+        - from: "Irkutsk"
+          to: "Ulan-Ude"
+          mode: "train"
+          distance: "456 km"
+          duration: "8 hrs"
+        - from: "Ulan-Ude"
+          to: "Vladivostok"
+          mode: "train"
+          distance: "3,640 km"
+          duration: "3 days"
+          note: "Eastern leg of the Trans-Siberian to the Pacific coast."
+        - from: "Vladivostok"
+          to: "Donghae"
+          mode: "ferry"
+          distance: "780 km"
+          duration: "23 hrs"
+          note: "DBS Cruise Ferry to South Korea, when operating."
+        - from: "Donghae"
+          to: "Busan"
+          mode: "train"
+          distance: "330 km"
+          duration: "4.5 hrs"
+        - from: "Busan"
+          to: "Fukuoka"
+          mode: "ferry"
+          distance: "215 km"
+          duration: "3 hrs (hydrofoil)"
+          note: "Across the Korea Strait to Kyushu."
+        - from: "Fukuoka"
+          to: "Tokyo"
+          mode: "train"
+          distance: "1,170 km"
+          duration: "5 hrs (Shinkansen)"
+
+  - kind: city-compare
+    eyebrow: "COMPONENT · CITY-COMPARE"
+    title: "*Lisbon* vs Porto — a portrait in metrics"
+    intro: "This carries two cities and a set of labelled rows, each with a value for side A and side B plus an optional winner. The winning side glows; rows fade and rise on a stagger as the card reveals. A head-to-head comparison table."
+    data:
+      caption: "Lisbon vs Porto — key metrics, 2024"
+      source: "INE Portugal · Câmaras Municipais · various, 2024"
+      cityA: { name: "Lisbon", flag: "🌊", subtitle: "Capital, on the Tagus" }
+      cityB: { name: "Porto", flag: "🍷", subtitle: "Northern port, on the Douro" }
+      rows:
+        - { label: "City population", a: "545,000", b: "232,000", winner: "a" }
+        - { label: "Metro-area population", a: "2.9 million", b: "1.7 million", winner: "a" }
+        - { label: "Annual sunshine hours", a: "2,800 hrs", b: "2,500 hrs", winner: "a" }
+        - { label: "Average annual rainfall", a: "725 mm", b: "1,250 mm", winner: "a", note: "Porto is markedly wetter — Atlantic fronts hit the north coast harder." }
+        - { label: "Metro network", a: "56 km (4 lines)", b: "67 km (6 lines)", winner: "b" }
+        - { label: "Founded (as Roman settlement)", a: "Olisipo, 138 BCE", b: "Portus Cale, ~200 BCE", winner: "b" }
+        - { label: "UNESCO World Heritage sites", a: "2 (Belém, Sintra nearby)", b: "1 (Ribeira old town)", winner: "a" }
+        - { label: "Average summer high", a: "28 °C", b: "25 °C", winner: "tie" }
+
+  - kind: journey-map
+    eyebrow: "COMPONENT · JOURNEY-MAP"
+    title: "The Camino *Francés*, stage by stage"
+    intro: "This carries vertical stops, each with a place, region, cumulative distance, elevation, an arrival label, a note, and a tag (origin/transit/detour/arrival). A terracotta connector threads the pins; notes support italic and bold. CSS-only, no JavaScript."
+    data:
+      caption: "The French Way to Santiago — selected stages"
+      source: "Confraternity of Saint James stage data, 2026"
+      stops:
+        - place: "Saint-Jean-Pied-de-Port"
+          region: "French Pyrenees"
+          km: "0 km"
+          elev: "180 m"
+          arrival: "Day 1"
+          note: "The classic **starting point**, just north of the Spanish border."
+          tag: "origin"
+        - place: "Roncesvalles"
+          region: "Navarre"
+          km: "+25 km"
+          elev: "950 m"
+          arrival: "Day 1"
+          note: "Over the *Route de Napoléon* across the Pyrenees — the hardest first day on the route."
+          tag: "transit"
+        - place: "Pamplona"
+          region: "Navarre"
+          km: "+47 km"
+          elev: "450 m"
+          arrival: "Day 3"
+          note: "First major city; the cathedral and the *encierro* bull-run streets."
+          tag: "transit"
+        - place: "Burgos"
+          region: "Castile and León"
+          km: "+283 km"
+          elev: "860 m"
+          arrival: "Day 12"
+          note: "Gothic cathedral, a **UNESCO** World Heritage site."
+          tag: "transit"
+        - place: "León"
+          region: "Castile and León"
+          km: "+461 km"
+          elev: "840 m"
+          arrival: "Day 19"
+          note: "End of the high *meseta* plateau; the stained glass of León Cathedral."
+          tag: "transit"
+        - place: "O Cebreiro"
+          region: "Galicia"
+          km: "+638 km"
+          elev: "1,300 m"
+          arrival: "Day 26"
+          note: "A steep climb into Galicia and its stone *pallozas* — the trek's last big ascent."
+          tag: "detour"
+        - place: "Santiago de Compostela"
+          region: "Galicia"
+          km: "+779 km"
+          elev: "260 m"
+          arrival: "Day 33"
+          note: "The cathedral and the tomb of **St James** — journey's end."
+          tag: "arrival"
+
+sources:
+  - id: "src-geonames"
+    title: "GeoNames Geographical Database — populated places"
+    publisher: "GeoNames"
+    url: "https://www.geonames.org/"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-dwt-annapurna"
+    title: "Thorong La Pass: Highest Point on the Annapurna Circuit"
+    publisher: "Discovery World Trekking"
+    url: "https://www.discoveryworldtrekking.com/blog/thorong-la-pass"
+    accessedAt: "2026-06-03"
+    kind: secondary
+  - id: "src-jma-normals"
+    title: "Tables of Climatological Normals (1991–2020) — Kyoto"
+    publisher: "Japan Meteorological Agency"
+    url: "https://www.data.jma.go.jp/stats/data/en/normal/normal.html"
+    accessedAt: "2026-06-03"
+    kind: primary
+  - id: "src-iana-tz"
+    title: "Time Zone Database (tzdata)"
+    publisher: "IANA"
+    url: "https://www.iana.org/time-zones"
+    accessedAt: "2026-06-03"
+    kind: primary
+---

@@ -7,6 +7,20 @@
    ============================================================================ */
 
 :root {
+  /* v2 tokens — keep in sync with src/styles/tokens-v2.css
+     (motion+radii subset; app omits glass + issue-face). */
+  --t-instant: 80ms;
+  --t-quick:   140ms;
+  --t-soft:    220ms;
+  --t-slow:    420ms;
+  --t-page:    600ms;
+  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --r-card: 6px;
+  --r-tile: 14px;
+  --r-pill: 999px;
+
   --bg: #faf7f0;
   --paper: #ffffff;
   --rule: #d8cfbf;
@@ -201,13 +215,13 @@ hr {
   border: 1px solid var(--rule);
   background: var(--paper);
   color: var(--ink);
-  border-radius: 0;
-  transition: border-color 0.15s ease;
+  border-radius: var(--r-card);
+  transition: border-color var(--t-quick) var(--ease);
 }
 
 .field input:focus {
   outline: none;
-  border-color: var(--ink);
+  border-color: var(--accent);
 }
 
 .field input:disabled {
@@ -239,8 +253,8 @@ hr {
   color: var(--paper);
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-  border-radius: 0;
+  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  border-radius: var(--r-card);
 }
 
 .btn:hover {
@@ -361,4 +375,13 @@ hr {
     --pad-x: 20px;
   }
   h1, .h1 { font-size: 30px; }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+/* App-local: the app does not import the publication's motion-v2.css. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

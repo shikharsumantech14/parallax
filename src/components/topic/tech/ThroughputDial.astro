@@ -1,0 +1,267 @@
+---
+/**
+ * ThroughputDial (tech) — a req/s gauge. A 270° arc dial with an accent fill arc
+ * proportional to value / max, optional colored `zones` painted along the track,
+ * and a big mono value readout in the center. The dial sits in the shared
+ * `.px3d-stage` + `.px3d-tilt` (global core/Tilt.astro `data-tilt` island) for
+ * depth. On reveal the fill arc sweeps from 0 → value (stroke-dashoffset draw,
+ * reveal-gated). The center number carries the FINAL value as its text content
+ * AND a `data-countup` hook (per core/VizMotion.astro's contract: real number is
+ * always in the DOM, so no-JS / print shows it; count-up only enhances). Arc
+ * geometry computed in frontmatter; zero component-level runtime JS.
+ *
+ * No-JS / reduced-motion: the fill arc paints fully drawn (hidden state behind
+ * `html.js`; reduced-motion resets with !important); count-up jumps to final.
+ *
+ * data: { value, max, unit?, label?, zones[]{ from, to, label? }, caption?, source? }
+ */
+interface Zone { from: number; to: number; label?: string; }
+interface Props {
+  value: number;
+  max: number;
+  unit?: string;
+  label?: string;
+  zones?: Zone[];
+  caption?: string;
+  source?: string;
+}
+const { value, max, unit = 'req/s', label, zones = [], caption, source } = Astro.props;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const safeMax = Math.max(1, max || 1);
+const val = clamp(value ?? 0, 0, safeMax);
+const frac = val / safeMax;
+
+// Geometry — a 270° arc, open at the bottom (gap centered on 6 o'clock).
+const W = 280, H = 260;
+const cx = W / 2, cy = 132;
+const R = 104;
+const SWEEP = 270;               // total arc degrees
+const START = 135;               // start angle (clockwise) — 135° = lower-left
+// angle (degrees clockwise from +x axis, SVG y-down) → point on the arc
+const pt = (deg: number, r = R) => {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
+};
+// arc path from fraction a→b of the full sweep
+const arc = (a: number, b: number, r = R) => {
+  const d0 = START + a * SWEEP;
+  const d1 = START + b * SWEEP;
+  const p0 = pt(d0, r), p1 = pt(d1, r);
+  const large = (b - a) * SWEEP > 180 ? 1 : 0;
+  return `M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+};
+
+const trackPath = arc(0, 1);
+const fillPath = arc(0, frac);
+// circumference of the full 270° arc, for the stroke-dash draw
+const arcLen = (SWEEP / 360) * 2 * Math.PI * R;
+
+// zones along the track (clamped + normalized to fraction of max)
+const Z_R = R;
+const zoneColors = [
+  'color-mix(in oklab, var(--muted) 55%, var(--paper))',
+  'color-mix(in oklab, var(--accent) 45%, var(--muted))',
+  'var(--accent)',
+];
+const zoneGeo = zones
+  .map((z, i) => {
+    const a = clamp(z.from, 0, safeMax) / safeMax;
+    const b = clamp(z.to, 0, safeMax) / safeMax;
+    if (b <= a) return null;
+    return { d: arc(a, b, Z_R), color: zoneColors[i % zoneColors.length], label: z.label, i };
+  })
+  .filter((z): z is NonNullable<typeof z> => z !== null);
+
+// tick marks at 0%, 25%, 50%, 75%, 100% of the sweep
+const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+  const deg = START + f * SWEEP;
+  const inner = pt(deg, R - 14);
+  const outer = pt(deg, R - 2);
+  return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, val: Math.round(safeMax * f) };
+});
+
+// Endpoint scale labels (0 at the lower-left arc end, max at the lower-right).
+// Centre-anchored just below each track end: ~150px apart so they never
+// collide, and well clear of the centre readout above. Mono, faint.
+const fmtTick = (n: number) => n.toLocaleString();
+const e0 = pt(START, R + 15);                 // 0 end (135°, lower-left)
+const e1 = pt(START + SWEEP, R + 15);         // max end (45°, lower-right)
+const endLabels = [
+  { x: e0.x, y: e0.y + 4, val: 0 },
+  { x: e1.x, y: e1.y + 4, val: safeMax },
+];
+
+const valText = Number.isInteger(val) ? val.toLocaleString() : (Math.round(val * 100) / 100).toLocaleString();
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}</b></div>}
+
+  <div class="px-tdial px3d-stage">
+    <div class="px-tdial__tilt px3d-tilt" data-tilt="6">
+      <svg
+        class="px-tdial__svg"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`${label ? label + ': ' : ''}${valText} of ${safeMax.toLocaleString()} ${unit}`}
+      >
+        <!-- zones along the track (under everything) -->
+        {zoneGeo.map((z) => (
+          <path class="px-tdial__zone" d={z.d} style={`stroke:${z.color}`} />
+        ))}
+
+        <!-- background track -->
+        <path class="px-tdial__track" d={trackPath} />
+
+        <!-- tick marks -->
+        {ticks.map((t) => (
+          <line class="px-tdial__tick" x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)} x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)} />
+        ))}
+
+        <!-- 0 / max scale labels at the arc ends -->
+        {endLabels.map((e) => (
+          <text class="px-tdial__scale" x={e.x.toFixed(1)} y={e.y.toFixed(1)} text-anchor="middle">{fmtTick(e.val)}</text>
+        ))}
+
+        <!-- fill arc (sweeps 0 → value on reveal) -->
+        <path
+          class="px-tdial__fill"
+          d={fillPath}
+          style={`--len:${arcLen.toFixed(1)}`}
+        />
+      </svg>
+
+      <!-- center readout -->
+      <div class="px-tdial__readout">
+        <span class="px-tdial__val" data-countup={val}>{valText}</span>
+        <span class="px-tdial__unit">{unit}</span>
+        {label && <span class="px-tdial__label">{label}</span>}
+      </div>
+    </div>
+
+    {zoneGeo.some((z) => z.label) && (
+      <div class="px-tdial__legend">
+        {zoneGeo.filter((z) => z.label).map((z) => (
+          <span class="px-tdial__key"><i style={`background:${z.color}`}></i>{z.label}</span>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-tdial { max-width: 320px; margin: 0 auto; }
+  .px-tdial__tilt {
+    position: relative;
+    border-radius: var(--r-tile);
+    transform-origin: 50% 55%;
+  }
+  .px-tdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-tdial__zone {
+    fill: none;
+    stroke-width: 14;
+    stroke-linecap: butt;
+    opacity: 0.5;
+  }
+  .px-tdial__track {
+    fill: none;
+    stroke: color-mix(in oklab, var(--ink) 8%, var(--bg));
+    stroke-width: 14;
+    stroke-linecap: round;
+  }
+  .px-tdial__tick { stroke: var(--ink-soft); stroke-width: 2; opacity: 0.5; }
+  .px-tdial__scale {
+    /* arc end scale (0 / max) — mono muted, system axis scale, tabular, with a
+       paper halo so the labels stay legible against the track / zone strokes */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  .px-tdial__fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 14;
+    stroke-linecap: round;
+    /* base/resting = fully drawn to the value (no-JS safe) */
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1200ms var(--ease-snap);
+  }
+
+  /* center readout — absolutely centered over the dial hub */
+  .px-tdial__readout {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-58%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    pointer-events: none;
+  }
+  .px-tdial__val {
+    /* big center readout — signature face (mono for tech), ink, tabular figures */
+    font-family: var(--issue-face, var(--font-mono));
+    font-weight: 700;
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-tdial__unit {
+    /* unit chip — mono uppercase, eyebrow letter-spacing; accent ties it to the
+       fill arc (semantic colour, per the type-system greys/semantic allowance) */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .px-tdial__label {
+    /* sub-label — mono uppercase muted, legend register */
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .px-tdial__legend {
+    /* zone legend — mono uppercase muted, legend register */
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-tdial__key { display: inline-flex; align-items: center; gap: 7px; }
+  .px-tdial__key i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* reveal: fill arc sweeps from empty → value (gated behind html.js) */
+  html.js .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: var(--len); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: 0 !important; }
+  }
+</style>

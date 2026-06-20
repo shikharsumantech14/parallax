@@ -1,0 +1,80 @@
+---
+/**
+ * Banner — per-world standing plate above the issue hero (v2).
+ *
+ * A press-style nameplate ("Politics Desk") + register sub-line + a right-hand
+ * readout (the world's signature register, plus issue №, date, read time). The
+ * nameplate uses the world's signature face via --issue-face; everything else
+ * is the unified mono/body system.
+ *
+ * Since the masthead is now one unified press header (F1), each world's
+ * distinctive register microcopy — the old per-topic masthead's right-hand
+ * readout (telemetry orbit, atlas coordinates, build hash + version, vol/no
+ * dateline, matchday) — now reads here, in the per-issue banner. Values are
+ * derived from the issue number (deterministic; no build-time clock).
+ *
+ * Pure markup + base.css (.px-bnr) — no client JS.
+ */
+import type { Topic } from '../../content/config';
+
+interface Props {
+  topic: Topic;
+  issueNumber?: string;
+  publishedAt?: Date;
+  readTime?: number;
+}
+const { topic, issueNumber, publishedAt, readTime } = Astro.props;
+
+const desk: Record<Topic, { name: string; sub: string }> = {
+  politics: { name: 'Politics Desk',        sub: 'The Parliamentary Broadsheet' },
+  space:    { name: 'Mission Control',      sub: 'Flight Telemetry' },
+  earth:    { name: 'The Field Atlas',      sub: 'USGS · Field Survey' },
+  tech:     { name: 'parallax/tech',        sub: 'Build Log' },
+  travel:   { name: 'The Field Bureau',     sub: 'Dispatches' },
+  sports:   { name: 'Matchday Programme',   sub: 'The Athletic Desk' },
+};
+const d = desk[topic];
+
+// ── Per-world register: the microcopy the old per-topic masthead carried ──
+const pad = (n: number) => String(n).padStart(2, '0');
+const toRoman = (n: number) => {
+  const map: [number, string][] = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let out = ''; let x = n;
+  for (const [v, s] of map) { while (x >= v) { out += s; x -= v; } }
+  return out || 'I';
+};
+const rawNum = issueNumber ? parseInt(issueNumber, 10) : 1;
+const num = Number.isNaN(rawNum) ? 1 : rawNum;
+const hashes = ['a3f1c9', 'b7d42e', 'c0e8a1', 'd1f9b7', 'e5a3c4'];
+const techHash = hashes[(num - 1 + hashes.length) % hashes.length] ?? 'a3f1c9';
+
+const register: Record<Topic, { v: string; l: string }> = {
+  politics: { v: 'In Session',           l: 'The House' },
+  space:    { v: `Orbit ${pad(num)}A`,   l: 'Trajectory' },
+  earth:    { v: '14.6°N · 121.0°E',     l: 'Field Survey' },
+  tech:     { v: `main@${techHash}`,     l: `v0.${num}.0` },
+  travel:   { v: `Vol. ${toRoman(num)}`, l: `No. ${pad(num)}` },
+  sports:   { v: `Matchday ${pad(num)}`, l: 'Programme' },
+};
+const reg = register[topic];
+
+const dateLabel = publishedAt
+  ? publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase()
+  : undefined;
+const sub = issueNumber ? `${d.sub} · № ${issueNumber}` : d.sub;
+---
+
+<div class="px-bnr">
+  <div class="px-bnr__plate">
+    <span class="px-bnr__name"><span class="dot" aria-hidden="true"></span>{d.name}</span>
+    <span class="px-bnr__sub">{sub}</span>
+  </div>
+  <div class="px-bnr__readout">
+    <span class="px-bnr__stat px-bnr__stat--reg"><b>{reg.v}</b>{reg.l}</span>
+    {dateLabel && <span class="px-bnr__stat"><b>{dateLabel}</b>Published</span>}
+    {readTime && <span class="px-bnr__stat"><b>{readTime} min</b>Read</span>}
+  </div>
+</div>

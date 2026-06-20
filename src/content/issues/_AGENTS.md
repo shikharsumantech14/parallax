@@ -23,7 +23,9 @@ shape:
   tags: string[];                        // default []
   readTimeMinutes?: number;
   primer?: string;                       // 80–420 chars (Zod-enforced)
-  ogImage?: string;
+  ogImage?: string;                      // deprecated/unused — kept optional so
+                                         //   legacy MDX validates; do NOT set it.
+                                         //   The site renders no raster cover art.
   sections: Section[];                   // see §2
   sources: Source[];                     // see §3
 }
@@ -53,9 +55,10 @@ Every section conforms to:
 ```
 
 `SECTION_KINDS` is the source of truth for valid `kind` values. Current
-list (33 kinds) is exported from `src/content/config.ts`. Each maps to a
+list (63 kinds) is exported from `src/content/config.ts`. Each maps to a
 component dispatched by `src/components/SectionRenderer.astro` — see
-`src/components/AGENTS.md` for the full table.
+`src/components/AGENTS.md` for the full table. The 30 v2 3D / interactive
+kinds and their `data` shapes are in §11 below.
 
 ---
 
@@ -104,8 +107,9 @@ finalising.
 
 ## 5. SkimCaption rules
 
-The site has two reading modes (`SkimToggle.astro` toggles
-`#px-article[data-mode]` between `full` and `skim`).
+The site has two reading modes (the Full/Skim segmented control in
+`core/ReadingToolbar.astro` toggles `#px-article[data-mode]` between `full`
+and `skim`; it replaced the old `SkimToggle.astro`).
 
 In skim mode:
 - Prose sections are hidden (their `.px-prose-full` div has `display: none`).
@@ -197,7 +201,78 @@ both before starting. Voice consistency matters more than feature parity.
 
 ---
 
+## 11. v2 3D / interactive section kinds (2026-06-03)
+
+Thirty new section kinds, five per world, in the v2 design language. Four are
+lazy WebGL scenes (marked **WebGL** — they load Three.js only when scrolled
+into view; everything else is CSS-3D or animated SVG/canvas). The rendering
+architecture is in `src/components/AGENTS.md` §10; here is only what an issue
+author needs — the `kind` and the `data` shape.
+
+**Two universals for all 30:**
+- Every one also accepts `caption?` and `source?` (same as the other viz).
+- Every one renders a static SVG/HTML fallback with no JS / under
+  `prefers-reduced-motion`, so the section is always meaningful.
+
+**Canonical examples.** The six
+`src/content/issues/2026-06-03-<world>-showcase/index.mdx` issues exercise
+each world's five kinds with real `data`. They are `status: draft` —
+URL-viewable at `/issues/2026-06-03-<world>-showcase/` but unlisted (excluded
+from the archive + RSS). Copy a section out of the matching showcase as a
+starting point.
+
+### politics
+- **`coalition-orbit`** (WebGL) — `{ parties[]{ name, seats, color?, bloc? }, totalSeats? }`
+- **`swing-dial`** — `{ leftLabel?, rightLabel?, value(-100..100), markers?[]{ at, label } }`
+- **`bill-passage`** — `{ stages[]{ label, status: 'passed'|'failed'|'pending'|'current', date?, note? } }`
+- **`vote-flow`** — `{ blocs[]{ name, seats, color?, vote: 'for'|'against'|'abstain' }, outcome?{ label, passed } }`
+- **`margin-ladder`** — `{ rows[]{ label, margin, winner?, color? } }`
+
+### space
+- **`orbit-globe`** (WebGL) — `{ orbits[]{ name, altKm, inclDeg?, color?, satCount? }, maxAltKm? }`
+- **`trajectory-arc`** — `{ phases[]{ label, altKm, downrangeKm, note? }, apoapsisKm? }`
+- **`delta-v-ladder`** — `{ segments[]{ label, dv, color? }, unit? }`
+- **`signal-readout`** — `{ bands[]{ label, freq, value, max?, color? } }`
+- **`descent-profile`** — `{ points[]{ t, altKm, phase? }, events?[]{ t, label }, craftLabel? }`
+
+### earth
+- **`data-globe`** (WebGL) — `{ markers[]{ name, lat, lon, value, color? }, unit? }`
+- **`core-sample`** — `{ layers[]{ depth, label, value?, color? }, unit? }`
+- **`sea-level-tank`** — `{ levels[]{ label, riseM, year? }, landmarks?[]{ name, heightM }, maxM? }`
+- **`climate-spiral`** — `{ months[]{ year, month(1-12), value }, unit?, baseline? }`
+- **`quake-depth`** — `{ quakes[]{ date, depthKm, mag, place? } }`
+
+### tech
+- **`arch-stack`** — `{ layers[]{ label, sublabel?, color? } }`
+- **`latency-waterfall`** — `{ spans[]{ label, start, dur, kind? }, unit? }`
+- **`version-graph`** — `{ nodes[]{ id, parents?[], label?, tag?, lane? } }`
+- **`scaling-plot`** — `{ points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit? }`
+- **`throughput-dial`** — `{ value, max, unit?, label?, zones?[]{ from, to, label? } }`
+
+### travel
+- **`route-globe`** (WebGL) — `{ stops[]{ city, lat, lon, note? } }`
+- **`elevation-trek`** — `{ points[]{ km, elevM, label? }, unit? }`
+- **`itinerary-reel`** — `{ days[]{ day, place, items?[] } }`
+- **`climate-calendar`** — `{ months[]{ month, temp?, rainfall?, note? }, tempUnit? }`
+- **`timezone-arc`** — `{ zones[]{ city, offset }, refOffset? }`
+
+### sports
+- **`tactics-pitch`** — `{ players[]{ x(0-100), y(0-100), num?, name?, role? }, formation?, team? }`
+- **`shot-map`** — `{ shots[]{ x, y, xg, outcome: 'goal'|'saved'|'miss'|'blocked' } }`
+- **`xg-race`** — `{ events[]{ minute, team: 'home'|'away', xg }, home?, away? }`
+- **`momentum-wave`** — `{ points[]{ minute, value(-100..100) }, events?[]{ minute, label, team? }, home?, away? }`
+- **`player-card`** (CSS-3D flip) — `{ name, position?, team?, rating, stats[]{ label, value, max? } }`
+
+---
+
 ## Change log
+
+### 2026-06-03 — v2 3D / interactive section kinds
+Added §11: the 30 new v2 3D / interactive section kinds (5 per world) and
+their `data` shapes, for issue authors and the drafter. `SECTION_KINDS` went
+33 → 63. Noted the six `2026-06-03-<world>-showcase` draft issues as the
+canonical worked examples (URL-viewable, unlisted). Rendering architecture is
+in `src/components/AGENTS.md` §10.
 
 ### 2026-05-20 — File created
 Initial version. Captures schema, primer + skimCaption rules, source

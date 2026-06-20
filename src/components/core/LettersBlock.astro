@@ -240,10 +240,21 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     font-size: 15px;
   }
   .px-letter__item {
-    padding: 16px 0 18px;
-    border-bottom: 1px solid var(--rule);
+    padding: 18px 20px;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+    transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
   }
-  .px-letter__item:last-child { border-bottom: none; }
+  .px-letter__item:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+      0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+  }
   .px-letter__item-meta {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -252,7 +263,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     color: var(--muted);
     margin-bottom: 10px;
   }
-  .px-letter__item[data-status="approved"] .px-letter__item-meta { color: var(--accent); }
+  .px-letter__item[data-status="approved"] .px-letter__item-meta { color: var(--accent-deep, var(--accent)); }
   .px-letter__item-body {
     font-family: var(--font-body);
     font-size: 15px;
@@ -284,9 +295,9 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     color: var(--ink);
     background: var(--paper);
     border: 1px solid var(--rule);
-    border-radius: 0;
+    border-radius: var(--r-card);
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: border-color var(--t-quick) var(--ease);
   }
   .px-letter__name {
     font-size: 14px;
@@ -301,7 +312,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     min-height: 110px;
   }
   .px-letter__name:focus,
-  .px-letter__input:focus { border-color: var(--ink); }
+  .px-letter__input:focus { border-color: var(--accent); }
   .px-letter__meta {
     display: flex;
     justify-content: flex-end;
@@ -320,12 +331,12 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     font-size: 14px;
     font-weight: 500;
     padding: 11px 22px;
-    border-radius: 0;
+    border-radius: var(--r-pill);
     cursor: pointer;
     border: 1px solid var(--ink);
     background: var(--ink);
     color: var(--paper);
-    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
   }
   .px-letter__submit:hover {
     background: var(--accent-deep, var(--accent));

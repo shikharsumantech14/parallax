@@ -1,0 +1,116 @@
+/* ============================================================================
+   PARALLAX — EXPAND-TO-MODAL (in-page lightbox for data-viz)
+   ----------------------------------------------------------------------------
+   core/ExpandModal.astro adds an expand button to every viz card
+   (.px-viz / .vb / .tl / .tel) and PORTALS the live node into this modal — so
+   the same WebGL context + island state move in, just bigger. The page keeps a
+   same-height placeholder so nothing shifts; the reader's scroll position is
+   untouched. No-JS: the island never runs, so there are no buttons and the
+   cards render in place exactly as before.
+   ============================================================================ */
+
+/* the expand affordance — a hover-revealed pill, top-right of each viz card */
+.px-vexp {
+  position: absolute; top: 10px; right: 10px; z-index: 6;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1; color: var(--muted);
+  background: color-mix(in oklab, var(--paper) 86%, transparent);
+  border: 1px solid var(--rule); border-radius: var(--r-pill);
+  cursor: pointer; opacity: 0;
+  transition: opacity var(--t-soft) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+.px-viz:hover > .px-vexp, .vb:hover > .px-vexp, .tl:hover > .px-vexp, .tel:hover > .px-vexp,
+.px-vexp:focus-visible { opacity: 1; }
+.px-vexp:hover { color: var(--accent); border-color: var(--accent); }
+/* roots that aren't already positioned (px-viz/.vb/.tl/.tel are, defensively) */
+.vb, .tl, .tel { position: relative; }
+
+/* ── the modal ─────────────────────────────────────────────────────────── */
+.px-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.px-modal[hidden] { display: none; }
+.px-modal__backdrop {
+  position: absolute; inset: 0;
+  /* fixed near-black (NOT var(--ink) — that's light on dark themes → a blue-white wash) */
+  background: rgba(6, 6, 8, 0.76);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity 340ms var(--ease);
+}
+.px-modal.is-open .px-modal__backdrop { opacity: 1; }
+.px-modal__panel {
+  position: relative; z-index: 1;
+  width: min(1180px, 94vw); max-height: 90vh;
+  display: flex; flex-direction: column;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: var(--r-tile);
+  box-shadow: 0 40px 120px -40px rgba(0,0,0,0.7), 0 0 0 1px color-mix(in oklab, var(--ink) 6%, transparent);
+  opacity: 0; transform: translateY(22px) scale(0.965);
+  transition: opacity 300ms var(--ease), transform 380ms var(--ease);
+  overflow: hidden;
+}
+.px-modal.is-open .px-modal__panel { opacity: 1; transform: none; }
+.px-modal__bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 15px 18px 15px 22px; border-bottom: 1px solid var(--rule); flex: 0 0 auto;
+}
+.px-modal__title { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); }
+.px-modal__close {
+  flex: 0 0 auto; width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; color: var(--muted);
+  background: transparent; border: 1px solid var(--rule); border-radius: var(--r-pill);
+  cursor: pointer; transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+.px-modal__close:hover { color: var(--accent); border-color: var(--accent); }
+.px-modal__body { padding: 30px; overflow: auto; -webkit-overflow-scrolling: touch; }
+.px-modal__stage { min-width: 0; }
+/* the explainer study panel — plain-language "what + how + context" */
+.px-modal__aside { margin-top: 28px; }
+.px-modal__aside-h {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--accent-deep, var(--accent));
+  margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+}
+.px-modal__aside-h::before { content: ''; width: 22px; height: 1px; background: var(--accent); }
+.px-modal__lede {
+  font-family: var(--font-display); font-weight: 400; font-size: 18px; line-height: 1.5;
+  color: var(--ink); margin: 0 0 16px; max-width: 62ch;
+}
+.px-modal__how {
+  display: flex; gap: 12px; align-items: baseline;
+  font-family: var(--font-body); font-size: 14px; line-height: 1.55; color: var(--ink-soft);
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+  border-left: 2px solid var(--accent); border-radius: 0 var(--r-card) var(--r-card) 0;
+  padding: 12px 16px; margin: 0 0 16px; max-width: 62ch;
+}
+.px-modal__how b {
+  flex: 0 0 auto; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--accent-deep, var(--accent));
+}
+.px-modal__ctx {
+  font-family: var(--font-display); font-style: italic; font-weight: 300; font-size: 15px;
+  line-height: 1.55; color: var(--muted); max-width: 62ch; margin: 0;
+  padding-top: 16px; border-top: 1px dashed var(--rule);
+}
+@media (min-width: 900px) {
+  .px-modal__body { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 36px; align-items: start; }
+  .px-modal__aside { margin-top: 0; }
+}
+
+/* the portaled viz fills the panel; globes/3D get more room */
+.px-modal__viz { max-width: none !important; width: 100% !important; margin: 0 !important; }
+.px-modal__viz.viz3d, .px-modal__viz .viz3d { aspect-ratio: 16 / 10; }
+.px-modal__viz .px-vexp { display: none; } /* no expand button while expanded */
+
+body.px-modal-open { overflow: hidden; }
+
+@media (max-width: 640px) {
+  .px-modal { padding: 0; }
+  .px-modal__panel { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; }
+  .px-modal__body { padding: 20px; }
+  .px-vexp { opacity: 1; } /* always visible on touch (no hover) */
+}
+@media (prefers-reduced-motion: reduce) {
+  .px-modal__backdrop, .px-modal__panel { transition: none !important; }
+}

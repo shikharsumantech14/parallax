@@ -1,0 +1,426 @@
+---
+/**
+ * DescentProfile (space) — an altitude-vs-time profile (descent or ascent).
+ * The x-axis is time t, the y-axis is altitude; the profile path stroke-draws
+ * on scroll-in, phase bands shade the area under the curve where a point names
+ * a `phase`, event pins drop in at their times, and a small craft glyph sits on
+ * the curve at the final point. The glyph also rides the curve once on reveal
+ * via a CSS offset-path animation (gated to `.is-in`, reset under reduced
+ * motion). Flat SVG — no 3D.
+ *
+ * No-JS / reduced-motion: the path paints drawn, the craft rests at the end
+ * point, pins are visible (hidden rules sit behind `html.js`; reduced-motion
+ * resets with !important).
+ *
+ * data: { points[]{ t, altKm, phase? }, events?[]{ t, label }, craftLabel?,
+ *         caption?, source? }
+ */
+interface Point { t: number; altKm: number; phase?: string; }
+interface EventMark { t: number; label: string; }
+interface Props {
+  points: Point[];
+  events?: EventMark[];
+  craftLabel?: string;
+  caption?: string;
+  source?: string;
+}
+const { points = [], events = [], craftLabel, caption, source } = Astro.props;
+
+const pts = (Array.isArray(points) ? points : [])
+  .map((p) => ({ t: p?.t ?? 0, altKm: Math.max(0, p?.altKm ?? 0), phase: p?.phase }))
+  .sort((a, b) => a.t - b.t);
+const evs = (Array.isArray(events) ? events : []).map((e) => ({ t: e?.t ?? 0, label: e?.label ?? '' }));
+
+// ── viewBox + plot frame ───────────────────────────────────────────────────
+const W = 640, H = 320, padL = 46, padR = 22, padT = 24, padB = 40;
+const iw = W - padL - padR, ih = H - padT - padB;
+const baseY = padT + ih;
+
+const ts = pts.map((p) => p.t);
+const tMin = pts.length ? Math.min(...ts) : 0;
+const tMax = pts.length ? Math.max(...ts) : 1;
+const tSpan = Math.max(1e-6, tMax - tMin);
+const maxAltRaw = Math.max(1, ...pts.map((p) => p.altKm));
+const maxAlt = maxAltRaw * 1.08;
+
+const X = (t: number) => padL + ((t - tMin) / tSpan) * iw;
+const Y = (a: number) => padT + (1 - a / maxAlt) * ih;
+
+const nodes = pts.map((p) => ({ ...p, x: X(p.t), y: Y(p.altKm) }));
+
+// Smooth profile path (Catmull-Rom → cubic bezier).
+function smoothPath(ps: { x: number; y: number }[]): string {
+  if (ps.length === 0) return '';
+  if (ps.length === 1) return `M ${ps[0].x.toFixed(1)} ${ps[0].y.toFixed(1)}`;
+  let d = `M ${ps[0].x.toFixed(1)} ${ps[0].y.toFixed(1)}`;
+  for (let i = 0; i < ps.length - 1; i++) {
+    const p0 = ps[i - 1] ?? ps[i];
+    const p1 = ps[i];
+    const p2 = ps[i + 1];
+    const p3 = ps[i + 2] ?? p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+const profilePath = smoothPath(nodes);
+const len = 2200;
+
+// Phase bands: contiguous runs sharing the same `phase` → a shaded area under
+// the curve spanning that run (uses straight segments of the curve nodes).
+type Band = { phase: string; from: number; to: number; mid: number; tone: number };
+const bands: Band[] = [];
+if (nodes.length > 1) {
+  let start = 0;
+  for (let i = 1; i <= nodes.length; i++) {
+    const cur = nodes[i]?.phase;
+    const prev = nodes[start]?.phase;
+    if (i === nodes.length || cur !== prev) {
+      if (prev) {
+        const seg = nodes.slice(start, i + (i < nodes.length ? 1 : 0)); // include the boundary node for continuity
+        if (seg.length >= 2) {
+          bands.push({
+            phase: prev,
+            from: seg[0].x,
+            to: seg[seg.length - 1].x,
+            mid: (seg[0].x + seg[seg.length - 1].x) / 2,
+            tone: bands.length,
+          });
+        }
+      }
+      start = i;
+    }
+  }
+}
+function bandArea(b: Band): string {
+  const seg = nodes.filter((nd) => nd.x >= b.from - 0.1 && nd.x <= b.to + 0.1);
+  if (seg.length < 2) return '';
+  const top = smoothPath(seg);
+  return `${top} L ${seg[seg.length - 1].x.toFixed(1)} ${baseY} L ${seg[0].x.toFixed(1)} ${baseY} Z`;
+}
+const bandGeo = bands.map((b) => ({ ...b, d: bandArea(b) })).filter((b) => b.d);
+
+// Band labels share one baseline at the bottom; declutter them so adjacent
+// labels (common when the curve compresses on one side) don't overprint, and
+// re-anchor the first/last so they don't clip the frame edges. A rough px/char
+// estimate gives each label a footprint; if it would overlap the previously
+// kept label we hide just the text (the band fill stays).
+const CHARW = 5.6;          // approx px per uppercase mono char at 8.5px
+const bandLabels = (() => {
+  let lastRight = -Infinity;
+  return bandGeo.map((b) => {
+    const w = Math.max(20, b.phase.length * CHARW);
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    let lx = b.mid;
+    let left = b.mid - w / 2;
+    let right = b.mid + w / 2;
+    if (left < padL + 2) { anchor = 'start'; lx = padL + 2; left = lx; right = lx + w; }
+    else if (right > (W - padR) - 2) { anchor = 'end'; lx = (W - padR) - 2; right = lx; left = lx - w; }
+    const show = left >= lastRight + 6;
+    if (show) lastRight = right;
+    return { anchor, lx, show };
+  });
+})();
+
+// Axis ticks (mono).
+const xTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: tMin + tSpan * f, x: X(tMin + tSpan * f) }));
+const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: maxAlt * f, y: Y(maxAlt * f) }));
+
+const fmtAlt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : Math.round(n).toString());
+const fmtT = (n: number) => (Number.isInteger(n) ? n.toString() : n.toFixed(1));
+
+// Event geometry — interpolate altitude on the polyline at the event time.
+function altAt(t: number): number {
+  if (!nodes.length) return 0;
+  if (t <= nodes[0].t) return nodes[0].altKm;
+  if (t >= nodes[nodes.length - 1].t) return nodes[nodes.length - 1].altKm;
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i], b = nodes[i + 1];
+    if (t >= a.t && t <= b.t) {
+      const f = (t - a.t) / Math.max(1e-6, b.t - a.t);
+      return a.altKm + (b.altKm - a.altKm) * f;
+    }
+  }
+  return nodes[nodes.length - 1].altKm;
+}
+const eventGeo = evs.map((e) => ({ ...e, x: X(e.t), y: Y(altAt(e.t)) }));
+
+// ── event-label placement (declutter so labels don't clip or collide) ───────
+// Each event label is centred over its pin by default, but near the frame
+// edges we switch the anchor + clamp x so the text stays inside; when two
+// labels sit close in x we raise alternate ones onto a taller stem so they
+// don't overprint. Markup/data unchanged — only label/stem coords change.
+const EDGE = 64;            // px from a side edge within which we re-anchor
+const STEM_LO = 26;         // default stem length (matches the original)
+const STEM_HI = 46;         // raised tier for a clashing neighbour (clears the low row)
+const EV_TOP = padT + 8;    // never let a label baseline clip the plot top
+const evLabels = (() => {
+  const sorted = eventGeo.map((e, i) => ({ ...e, i })).sort((a, b) => a.x - b.x);
+  let prevX = -Infinity;
+  let prevHi = false;
+  const out: Record<number, { anchor: 'start' | 'middle' | 'end'; lx: number; stem: number }> = {};
+  for (const e of sorted) {
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    let lx = e.x;
+    if (e.x < padL + EDGE) { anchor = 'start'; lx = Math.max(padL, e.x - 4); }
+    else if (e.x > (W - padR) - EDGE) { anchor = 'end'; lx = Math.min(W - padR, e.x + 4); }
+    // raise this label if the previous one is close in x and sat low
+    const hi = (e.x - prevX) < 130 && !prevHi;
+    out[e.i] = { anchor, lx, stem: hi ? STEM_HI : STEM_LO };
+    prevX = e.x;
+    prevHi = hi;
+  }
+  return out;
+})();
+
+const craft = nodes.length ? nodes[nodes.length - 1] : null;
+// keep the craft label inside the frame when the craft rests near the right edge
+const craftLabelFlip = craft ? craft.x > (W - padR) - 70 : false;
+const summary = nodes.length
+  ? `${fmtAlt(nodes[0].altKm)}→${fmtAlt(nodes[nodes.length - 1].altKm)} km`
+  : 'profile';
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{summary}</b></div>}
+
+  <div class="px-desc">
+    <svg
+      class="px-desc__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Descent profile: ${caption}` : 'Altitude versus time profile'}
+    >
+      <!-- gridlines -->
+      <g class="px-desc__grid">
+        {yTicks.map((t) => (
+          <line x1={padL} y1={t.y.toFixed(1)} x2={W - padR} y2={t.y.toFixed(1)} />
+        ))}
+      </g>
+
+      <!-- phase bands under the curve -->
+      {bandGeo.map((b, i) => {
+        const L = bandLabels[i];
+        return (
+          <g class="px-desc__band" data-tone={b.tone % 3}>
+            <path class="px-desc__band-fill" d={b.d} />
+            {L.show && (
+              <text class="px-desc__band-lbl" x={L.lx.toFixed(1)} y={baseY - 8} text-anchor={L.anchor}>{b.phase}</text>
+            )}
+          </g>
+        );
+      })}
+
+      <!-- baseline -->
+      <line class="px-desc__base" x1={padL} y1={baseY} x2={W - padR} y2={baseY} />
+
+      <!-- profile path (stroke-draws on reveal) -->
+      {profilePath && <path class="px-desc__line" d={profilePath} style={`--len:${len}`} />}
+
+      <!-- axis labels (mono) -->
+      {yTicks.map((t) => (
+        <text class="px-desc__axis" x={padL - 8} y={(t.y + 3).toFixed(1)} text-anchor="end">{fmtAlt(t.v)}</text>
+      ))}
+      {xTicks.map((t) => (
+        <text class="px-desc__axis" x={t.x.toFixed(1)} y={H - 22} text-anchor="middle">{fmtT(t.v)}</text>
+      ))}
+      <text class="px-desc__axis px-desc__axis--unit" x={padL - 8} y={padT - 10} text-anchor="end">ALT km</text>
+      <text class="px-desc__axis px-desc__axis--unit" x={W - padR} y={H - 6} text-anchor="end">TIME</text>
+
+      <!-- event pins -->
+      {eventGeo.map((e, i) => {
+        const L = evLabels[i];
+        const stemTop = e.y - L.stem;
+        const lblY = Math.max(EV_TOP, stemTop - 5);
+        return (
+          <g class="px-desc__ev" style={`--i:${i}`}>
+            <line class="px-desc__ev-stem" x1={e.x.toFixed(1)} y1={e.y.toFixed(1)} x2={e.x.toFixed(1)} y2={stemTop.toFixed(1)} />
+            <circle class="px-desc__ev-dot" cx={e.x.toFixed(1)} cy={e.y.toFixed(1)} r="3.4" />
+            <text class="px-desc__ev-lbl" x={L.lx.toFixed(1)} y={lblY.toFixed(1)} text-anchor={L.anchor}>{e.label}</text>
+          </g>
+        );
+      })}
+
+      <!-- craft glyph (rests at the final point; rides the curve once on reveal) -->
+      {craft && profilePath && (
+        <g
+          class="px-desc__craft"
+          style={`offset-path: path('${profilePath}'); --craft-x:${craft.x.toFixed(1)}px; --craft-y:${craft.y.toFixed(1)}px`}
+        >
+          <polygon class="px-desc__craft-tri" points="0,-7 6,5 -6,5" />
+          {craftLabel && (
+            <text
+              class="px-desc__craft-lbl"
+              x={craftLabelFlip ? -10 : 10}
+              y="3"
+              text-anchor={craftLabelFlip ? 'end' : 'start'}
+            >{craftLabel}</text>
+          )}
+        </g>
+      )}
+    </svg>
+
+    <ul class="px-desc__legend">
+      {eventGeo.map((e) => (
+        <li class="px-desc__row">
+          <span class="px-desc__t">t {fmtT(e.t)}</span>
+          <span class="px-desc__lbl">{e.label}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-desc { width: 100%; }
+  .px-desc__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  .px-desc__grid line { stroke: var(--rule); stroke-width: 1; opacity: 0.5; }
+  .px-desc__base { stroke: var(--ink-soft); stroke-width: 1.5; }
+
+  /* phase bands — stepped accent tints, fade in */
+  .px-desc__band-fill {
+    stroke: none;
+    opacity: 1;
+    transition: opacity var(--t-slow) var(--ease) 500ms;
+  }
+  .px-desc__band[data-tone="0"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 12%, transparent); }
+  .px-desc__band[data-tone="1"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 20%, transparent); }
+  .px-desc__band[data-tone="2"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 28%, transparent); }
+  html.js .px-viz:not(.is-in) .px-desc__band-fill { opacity: 0; }
+  .px-desc__band-lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  /* profile line — base/resting = fully drawn (no-JS safe) */
+  .px-desc__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1700ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-desc__line { stroke-dashoffset: var(--len); }
+
+  .px-desc__axis {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-desc__axis--unit { letter-spacing: var(--viz-ls-mono, 0.16em); text-transform: uppercase; fill: var(--muted); font-size: var(--viz-fs-eyebrow, 10px); }
+
+  /* event pins — base/resting = visible (no-JS safe) */
+  .px-desc__ev-stem { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 2 2; }
+  .px-desc__ev-dot { fill: var(--accent-deep, var(--accent)); }
+  .px-desc__ev-lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    fill: var(--ink);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  .px-desc__ev {
+    opacity: 1;
+    transform: none;
+    transform-box: view-box;
+    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-desc__ev { opacity: 0; transform: translateY(-6px); }
+  .px-viz.is-in .px-desc__ev { transition-delay: calc(900ms + var(--i) * 120ms); }
+
+  /* craft glyph — rests at the end point; rides the curve once on reveal */
+  .px-desc__craft {
+    transform-box: view-box;
+    /* fallback for no offset-path support: position at the final node */
+    transform: translate(var(--craft-x), var(--craft-y));
+  }
+  .px-desc__craft-tri { fill: var(--ink); stroke: var(--paper); stroke-width: 1; }
+  .px-desc__craft-lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  @supports (offset-distance: 0%) {
+    .px-desc__craft {
+      transform: none;
+      offset-distance: 100%;       /* resting = end of the path (no-JS safe) */
+      offset-rotate: 0deg;
+    }
+    html.js .px-viz.is-in .px-desc__craft {
+      animation: descRide 1700ms var(--ease) forwards;
+    }
+    @keyframes descRide {
+      0% { offset-distance: 0%; }
+      100% { offset-distance: 100%; }
+    }
+  }
+
+  /* textual event legend (a11y + no-JS) */
+  .px-desc__legend {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0 22px;
+  }
+  .px-desc__row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-desc__t {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-desc__lbl { font-family: var(--font-body); font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-desc__line { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-desc__band-fill { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-desc__ev { opacity: 1 !important; transform: none !important; }
+    .px-desc__craft { animation: none !important; }
+  }
+</style>

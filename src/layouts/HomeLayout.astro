@@ -1,5 +1,7 @@
 ---
 import type { Topic } from '../content/config';
+import { stripEmphasis } from '../lib/text';
+import '../styles/tokens-v2.css';
 import '../styles/base.css';
 import '../styles/meta.css';
 // Topic themes are loaded so topic indexes + scoped FeaturedIssue cards
@@ -10,28 +12,38 @@ import '../styles/themes/earth.css';
 import '../styles/themes/tech.css';
 import '../styles/themes/travel.css';
 import '../styles/themes/sports.css';
+import '../styles/type-v2.css';
+import '../styles/motion-v2.css';
+import '../styles/dataviz-v2.css';
+import '../styles/viz-type.css';
 
-import Footer from '../components/core/Footer.astro';
+import Colophon from '../components/core/Colophon.astro';
+import Reveal from '../components/core/Reveal.astro';
+import VizMotion from '../components/core/VizMotion.astro';
 
 interface Props {
   title: string;
   description: string;
   topic?: Topic;
+  /* Render the newsletter signup above the colophon. Default on; the home
+     page passes false because its SubscribeStrip already carries the form. */
+  footerNewsletter?: boolean;
 }
-const { title, description, topic } = Astro.props;
+const { title, description, topic, footerNewsletter = true } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 ---
 
 <!doctype html>
 <html lang="en" data-topic={topic}>
   <head>
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{stripEmphasis(title)}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={stripEmphasis(title)} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
@@ -49,7 +61,8 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
       <main>
         <slot />
       </main>
-      <Footer />
+      <Colophon newsletter={footerNewsletter} />
     </div>
+    <Reveal />
   </body>
 </html>
