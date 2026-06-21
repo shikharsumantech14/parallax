@@ -1,0 +1,163 @@
+---
+/**
+ * IntroExperience — the home first-visit overlay (hybrid: story → optional tour).
+ *
+ * On a NEW visitor's first arrival at the home page, this full-screen overlay
+ * auto-plays the IntroStory, then offers a short spotlight tour of the REAL home
+ * (the desks → the dispatch). Remembered via localStorage so it shows once;
+ * force-replayable with ?intro=1.
+ *
+ * Contract: the overlay is `hidden` by default and only the inline script (when
+ * JS runs) reveals it on first visit — so NO-JS sees nothing and the home renders
+ * normally. Reduced-motion: the story doesn't auto-advance (manual), tour scrolls
+ * instantly. Mounted once, at the end of the home page.
+ */
+import IntroStory from './IntroStory.astro';
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const signupUrl = `${appUrl}/login?next=${encodeURIComponent(siteUrl + '/')}`;
+---
+
+<div class="px-xp" data-intro-xp data-signup-url={signupUrl} hidden aria-hidden="true" tabindex="-1">
+  <div class="px-xp__story">
+    <IntroStory auto="manual" homeHref="/" />
+  </div>
+
+  <!-- handoff shown on the final story scene -->
+  <div class="px-xp__handoff" data-xp-handoff hidden>
+    <button class="px-xp__tour-start" type="button" data-xp-tour-start>Take the quick tour →</button>
+    <button class="px-xp__enter" type="button" data-xp-enter>Skip into the site</button>
+  </div>
+
+  <!-- spotlight tour -->
+  <div class="px-xp__spot" data-xp-spot hidden aria-hidden="true"></div>
+  <div class="px-xp__tip" data-xp-tip hidden role="dialog" aria-label="A quick tour">
+    <p class="px-xp__tip-eb" data-xp-tip-eb></p>
+    <p class="px-xp__tip-tx" data-xp-tip-tx></p>
+    <div class="px-xp__tip-row">
+      <span class="px-xp__tip-count" data-xp-tip-count></span>
+      <div class="px-xp__tip-btns">
+        <button class="px-xp__tip-skip" type="button" data-xp-tip-skip>Done</button>
+        <button class="px-xp__tip-next" type="button" data-xp-tip-next>Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var xp = document.querySelector('[data-intro-xp]');
+    if (!xp) return;
+    var KEY = 'px_intro_seen_v1';
+
+    function shouldShow() {
+      try {
+        if (new URLSearchParams(location.search).get('intro') === '1') return true;
+        return !localStorage.getItem(KEY);
+      } catch (e) { return false; }
+    }
+    function markSeen() { try { localStorage.setItem(KEY, '1'); } catch (e) {} }
+    if (!shouldShow()) return;
+
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var intro = xp.querySelector('.px-intro');
+    var spot = xp.querySelector('[data-xp-spot]');
+    var tip = xp.querySelector('[data-xp-tip]');
+    var tipEb = xp.querySelector('[data-xp-tip-eb]');
+    var tipTx = xp.querySelector('[data-xp-tip-tx]');
+    var tipCount = xp.querySelector('[data-xp-tip-count]');
+    var tipNext = xp.querySelector('[data-xp-tip-next]');
+    var tipSkip = xp.querySelector('[data-xp-tip-skip]');
+    var handoff = xp.querySelector('[data-xp-handoff]');
+
+    var TOUR = [
+      { sel: '.px-cat', eb: 'The desks', tx: 'Each card is a world. Open one and the whole thing shifts — palette, charts, voice — to match the desk.' },
+      { sel: '#subscribe', eb: 'The dispatch', tx: 'When an issue is worth keeping, one quiet letter brings the next. No ads, no trackers, ever.' }
+    ];
+    var step = 0;
+
+    function lock() { document.body.style.overflow = 'hidden'; }
+    function unlock() { document.body.style.overflow = ''; }
+
+    function currentTarget() { return document.querySelector(TOUR[step].sel); }
+
+    function reposition() {
+      var el = currentTarget(); if (!el) return;
+      var r = el.getBoundingClientRect(), pad = 8;
+      spot.style.top = (r.top - pad) + 'px';
+      spot.style.left = (r.left - pad) + 'px';
+      spot.style.width = (r.width + pad * 2) + 'px';
+      spot.style.height = (r.height + pad * 2) + 'px';
+      var tipH = tip.offsetHeight || 150, tipW = tip.offsetWidth || 320;
+      var clampL = function (x) { return Math.max(16, Math.min(window.innerWidth - tipW - 16, x)); };
+      var top, left;
+      if (window.innerHeight - r.bottom > tipH + 26) { top = r.bottom + 14; left = clampL(r.left); }
+      else if (r.top > tipH + 26) { top = r.top - tipH - 14; left = clampL(r.left); }
+      else { top = window.innerHeight - tipH - 24; left = (window.innerWidth - tipW) / 2; }
+      tip.style.top = top + 'px';
+      tip.style.left = left + 'px';
+    }
+
+    function showStep() {
+      var s = TOUR[step], el = currentTarget();
+      if (!el) { if (step < TOUR.length - 1) { step++; showStep(); return; } else { endExperience(); return; } }
+      tipEb.textContent = s.eb;
+      tipTx.textContent = s.tx;
+      tipCount.textContent = (step + 1) + ' / ' + TOUR.length;
+      tipNext.textContent = (step === TOUR.length - 1) ? 'Create your free account →' : 'Next';
+      spot.hidden = false; tip.hidden = false;
+      el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      window.setTimeout(reposition, reduce ? 0 : 440);
+      try { tipNext.focus(); } catch (e) {}
+    }
+
+    function startTour() {
+      xp.classList.add('is-tour');
+      if (handoff) handoff.hidden = true;
+      unlock(); // allow programmatic scroll to targets
+      step = 0;
+      showStep();
+      window.addEventListener('scroll', reposition, true);
+      window.addEventListener('resize', reposition);
+    }
+
+    var signupUrl = xp.getAttribute('data-signup-url') || (location.origin + '/');
+    function nextStep() { if (step < TOUR.length - 1) { step++; showStep(); } else { location.href = signupUrl; } }
+
+    function endExperience() {
+      xp.classList.remove('is-tour');
+      xp.classList.add('is-closing');
+      unlock();
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+      var done = function () { xp.hidden = true; xp.setAttribute('aria-hidden', 'true'); xp.classList.remove('is-closing'); };
+      if (reduce) done(); else window.setTimeout(done, 420);
+    }
+
+    function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); endExperience(); } }
+
+    if (tipNext) tipNext.addEventListener('click', nextStep);
+    if (tipSkip) tipSkip.addEventListener('click', endExperience);
+    var tourStart = xp.querySelector('[data-xp-tour-start]');
+    var enterBtn = xp.querySelector('[data-xp-enter]');
+    if (tourStart) tourStart.addEventListener('click', startTour);
+    if (enterBtn) enterBtn.addEventListener('click', endExperience);
+
+    xp.addEventListener('px-intro:skip', endExperience);
+    xp.addEventListener('px-intro:scene', function (e) {
+      if (handoff) handoff.hidden = !(e.detail && e.detail.last);
+    });
+
+    // boot
+    markSeen();
+    xp.hidden = false;
+    xp.setAttribute('aria-hidden', 'false');
+    lock();
+    document.addEventListener('keydown', onKey, true);
+    try { xp.focus(); } catch (e) {}
+    var begin = function () { if (intro && intro.__intro) { intro.__intro.reset(); intro.__intro.start(); } };
+    if (intro && intro.__intro) begin(); else window.setTimeout(begin, 80);
+  })();
+</script>

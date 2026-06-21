@@ -1,0 +1,26 @@
+---
+/**
+ * Beat 7 — JOIN. The earned invitation: conversion as the story's last line, not
+ * a CTA bolted on. PRIMARY = the newsletter via the real SubscribeStrip (which
+ * embeds core/NewsletterForm → double opt-in). SECONDARY = the account, a quiet
+ * subordinate sibling (AccountLine). One ask, no modal, no counter, no timer.
+ */
+import { renderEmphasis } from '../../lib/text';
+import SubscribeStrip from '../home/SubscribeStrip.astro';
+import AccountLine from './AccountLine.astro';
+
+interface Props {
+  appUrl: string;
+}
+const { appUrl } = Astro.props;
+---
+<section class="px-wj-beat px-wj-beat--wide" data-accent="travel" data-reveal>
+  <div class="px-wj-beat__inner">
+    <p class="px-wj__eyebrow" data-reveal-row>The standing invitation</p>
+    <h2 class="px-wj__headline" data-reveal-row set:html={renderEmphasis('Come read from the *second* angle.')} />
+    <p class="px-wj__dek" data-reveal-row>You've seen the idea. Here is how to keep it close.</p>
+  </div>
+
+  <SubscribeStrip />
+  <AccountLine appUrl={appUrl} nextPath="/welcome/" />
+</section>

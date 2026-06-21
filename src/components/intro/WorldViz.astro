@@ -1,0 +1,80 @@
+---
+/**
+ * WorldViz — a tiny, category-specific mini data-viz for each world card in the
+ * intro "six worlds" scene. Each glances at the kind of visual that world
+ * actually produces (vote split, orbit, warming stripes, commit grid, route,
+ * momentum), so the cards feel custom — not placeholders. Tinted by the card's
+ * --wc accent via currentColor (except the climate strip, which is a real
+ * blue→red ramp). Decorative (aria-hidden on the wrapper).
+ */
+interface Props {
+  a: 'politics' | 'space' | 'earth' | 'tech' | 'travel' | 'sports' | string;
+}
+const { a } = Astro.props;
+
+// earth — warming-stripes ramp (blue → red), 16 bars
+const stripeRamp = ['#2166ac','#4393c3','#92c5de','#d1e5f0','#fddbc7','#f4a582','#d6604d','#b2182b'];
+const stripes = Array.from({ length: 16 }, (_, i) => stripeRamp[Math.floor(i / 2)]);
+
+// tech — commit heatmap, deterministic intensity
+const cols = 18, rows = 4;
+const cells = [] as { x: number; y: number; o: number }[];
+const ramp = [0.12, 0.34, 0.62, 1];
+for (let i = 0; i < cols; i++) {
+  for (let j = 0; j < rows; j++) {
+    cells.push({ x: i * 11, y: j * 13 + 2, o: ramp[(i * 3 + j * 7) % 4] });
+  }
+}
+---
+
+{a === 'politics' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="vote split">
+    <rect x="0" y="21" width="200" height="13" rx="6.5" fill="currentColor" opacity="0.14" />
+    <rect x="0" y="21" width="119" height="13" rx="6.5" fill="currentColor" />
+    <line x1="100" y1="12" x2="100" y2="43" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.65" />
+    <circle cx="14" cy="48" r="2" fill="currentColor" /><circle cx="26" cy="48" r="2" fill="currentColor" /><circle cx="38" cy="48" r="2" fill="currentColor" />
+    <circle cx="174" cy="48" r="2" fill="currentColor" opacity="0.3" /><circle cx="186" cy="48" r="2" fill="currentColor" opacity="0.3" />
+  </svg>
+)}
+
+{a === 'space' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="orbit">
+    <ellipse cx="100" cy="28" rx="86" ry="21" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5" />
+    <ellipse cx="100" cy="28" rx="54" ry="12" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.32" />
+    <circle cx="100" cy="28" r="7.5" fill="currentColor" />
+    <circle cx="186" cy="28" r="3.5" fill="currentColor" />
+    <circle cx="46" cy="28" r="2.5" fill="currentColor" opacity="0.7" />
+  </svg>
+)}
+
+{a === 'earth' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="warming stripes">
+    {stripes.map((c, i) => (
+      <rect x={i * 12.5} y="0" width="12.5" height="56" fill={c} />
+    ))}
+  </svg>
+)}
+
+{a === 'tech' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="commit activity">
+    {cells.map((c) => (
+      <rect x={c.x} y={c.y} width="8.5" height="8.5" rx="2" fill="currentColor" opacity={c.o} />
+    ))}
+  </svg>
+)}
+
+{a === 'travel' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="route">
+    <line x1="16" y1="28" x2="184" y2="28" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 5" opacity="0.55" />
+    {[16, 72, 128, 184].map((x) => (
+      <g><circle cx={x} cy="28" r="6" fill="currentColor" /><circle cx={x} cy="28" r="2.4" fill="#fffdf7" /></g>
+    ))}
+  </svg>
+)}
+
+{a === 'sports' && (
+  <svg viewBox="0 0 200 56" width="100%" role="img" aria-label="momentum">
+    <line x1="0" y1="28" x2="200" y2="28" stroke="currentColor" stroke-width="1" opacity="0.2" />
+    <path d="M0 28 C 28 9, 52 11, 72 26 S 112 50, 140 29 S 180 10, 200 21" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+  </svg>
+)}

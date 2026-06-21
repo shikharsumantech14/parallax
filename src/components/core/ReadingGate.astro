@@ -1,0 +1,143 @@
+---
+/**
+ * ReadingGate — soft, metered registration wall for issue pages.
+ *
+ * Anonymous readers get the primer + the first N sections (the teaser), then a
+ * "create a free account to keep reading" wall; the rest of the issue + the
+ * sources/interaction blocks are hidden. Signed-in readers (detected via the
+ * shared `.parallaxlens.com` Supabase auth cookie set by @supabase/ssr — which
+ * is client-readable, not HttpOnly) see the full issue, no wall.
+ *
+ * This is a SOFT gate by design (the publication is static; the content is in
+ * the page source). It drives signups for the vast majority of visitors while
+ * keeping the teaser shareable + Google-discoverable. No-JS / bots: the gate
+ * stays `hidden`, so the full article renders (SEO-safe). A future robustness
+ * upgrade is the operator-deployed app `/api/me` (see app/src/pages/api/me.ts).
+ */
+interface Props {
+  /** Sections shown free before the wall (primer is always free, on top). */
+  freeSections?: number;
+}
+const { freeSections = 2 } = Astro.props;
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<div class="px-gate" data-reading-gate data-free={freeSections} data-app-url={appUrl} hidden>
+  <div class="px-gate__fade" aria-hidden="true"></div>
+  <div class="px-gate__card">
+    <p class="px-gate__eyebrow">Keep reading — free</p>
+    <h2 class="px-gate__title">Create a free account to finish this issue.</h2>
+    <p class="px-gate__sub">
+      One account opens every issue, saves your place, and follows the worlds you
+      care about. No ads, no trackers, no noise.
+    </p>
+    <div class="px-gate__actions">
+      <a class="px-gate__cta" data-gate-cta href="#">Create your free account →</a>
+      <a class="px-gate__alt" data-gate-alt href="#">Already a member? Sign in</a>
+    </div>
+    <p class="px-gate__fine">Free forever · we never sell your data</p>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var gate = document.currentScript ? document.currentScript.previousElementSibling : null;
+    while (gate && !(gate.classList && gate.classList.contains('px-gate'))) {
+      gate = gate.previousElementSibling;
+    }
+    if (!gate) return;
+
+    // Signed in? @supabase/ssr writes a client-readable cookie: sb-<ref>-auth-token
+    // (sometimes chunked .0/.1). Presence ⇒ a session.
+    function isAuthed() {
+      return /(?:^|;\s*)sb-[^=;]*-auth-token(?:\.\d+)?=/.test(document.cookie || '');
+    }
+    if (isAuthed()) { gate.parentNode && gate.parentNode.removeChild(gate); return; }
+
+    var article = document.getElementById('px-article');
+    if (!article) { gate.parentNode && gate.parentNode.removeChild(gate); return; }
+
+    var FREE = parseInt(gate.getAttribute('data-free') || '2', 10);
+    var appUrl = gate.getAttribute('data-app-url') || 'https://app.parallaxlens.com';
+
+    var kids = Array.prototype.slice.call(article.children);
+    var shown = 0, gating = false;
+    kids.forEach(function (el) {
+      if (el.id === 'px-finish-sentinel') return;
+      var isContent = el.classList.contains('px-section') || el.classList.contains('px-prose-full');
+      if (!gating) {
+        if (isContent) {
+          shown++;
+          if (shown > FREE) {
+            gating = true;
+            article.insertBefore(gate, el);
+            gate.hidden = false;
+            el.classList.add('px-gate-hidden');
+          }
+        }
+      } else {
+        el.classList.add('px-gate-hidden');
+      }
+    });
+
+    if (!gating) { gate.parentNode && gate.parentNode.removeChild(gate); return; } // short issue: no wall
+
+    // hide the full-read trailings too (sources, interactions, bottom nav).
+    // These sit AFTER this script in the DOM, so wait until the document is
+    // parsed before querying for them.
+    var hideTrailing = function () {
+      document.querySelectorAll('.px-sources, .px-annot, .px-reactions, .px-letter, .px-back-to-desk--bottom')
+        .forEach(function (el) { el.classList.add('px-gate-hidden'); });
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hideTrailing);
+    else hideTrailing();
+
+    var loginUrl = appUrl + '/login?next=' + encodeURIComponent(location.href);
+    var cta = gate.querySelector('[data-gate-cta]'); if (cta) cta.setAttribute('href', loginUrl);
+    var alt = gate.querySelector('[data-gate-alt]'); if (alt) alt.setAttribute('href', loginUrl);
+  })();
+</script>
+
+<style is:global>
+  .px-gate-hidden { display: none !important; }
+</style>
+
+<style>
+  .px-gate { position: relative; max-width: var(--col-prose, 720px); margin: 0 auto; padding-top: 36px; }
+  .px-gate__fade {
+    position: absolute; left: 0; right: 0; top: -150px; height: 150px;
+    background: linear-gradient(to bottom, transparent, var(--bg));
+    pointer-events: none;
+  }
+  .px-gate__card {
+    background: var(--paper); border: 1px solid var(--rule);
+    border-radius: var(--r-tile, 14px); padding: 38px 32px; text-align: center;
+    box-shadow: 0 24px 60px -36px color-mix(in oklab, var(--ink) 50%, transparent);
+  }
+  .px-gate__eyebrow {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent-deep, var(--accent)); margin: 0 0 14px;
+  }
+  .px-gate__title {
+    font-family: var(--font-display); font-weight: 500; font-size: clamp(24px, 3.4vw, 34px);
+    line-height: 1.15; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 12px;
+  }
+  .px-gate__sub {
+    font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+    color: var(--ink-soft); max-width: 46ch; margin: 0 auto 24px;
+  }
+  .px-gate__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .px-gate__cta {
+    font-family: var(--font-body); font-weight: 500; font-size: 15px;
+    padding: 14px 28px; background: var(--ink); color: var(--paper);
+    border: 1px solid var(--ink); border-radius: var(--r-pill, 999px); text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+  .px-gate__cta:hover {
+    background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent));
+    transform: translateY(-1px);
+  }
+  .px-gate__alt { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--muted); text-decoration: none; }
+  .px-gate__alt:hover { color: var(--accent-deep, var(--accent)); }
+  .px-gate__fine { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 18px 0 0; }
+</style>

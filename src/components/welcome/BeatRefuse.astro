@@ -1,0 +1,29 @@
+---
+/**
+ * Beat 6 — REFUSE. The emotional core: independence stated as concrete refusals,
+ * not adjectives. The feed layer is gone; the page is all calm structure. Reuses
+ * ManifestoStrip verbatim (block-level reveal only — no per-item restagger) and
+ * the Colophon legal microcopy as a small proof badge.
+ */
+import { renderEmphasis } from '../../lib/text';
+import ManifestoStrip from '../home/ManifestoStrip.astro';
+
+interface Props {
+  tag?: string;
+}
+const { tag = 'h2' } = Astro.props;
+const Heading = tag;
+---
+<section class="px-wj-beat" data-accent="tech" data-reveal>
+  <div class="px-wj-beat__inner">
+    <p class="px-wj__eyebrow" data-reveal-row>Independence, concretely</p>
+    <Heading class="px-wj__headline" data-reveal-row set:html={renderEmphasis("Reader-funded, and that's the whole *point*.")} />
+    <p class="px-wj-refuse__line" data-reveal-row>
+      No investors deciding what's worth your attention. No advertisers renting your eyes. No tracker following you out the door.
+    </p>
+    <div class="px-wj-refuse__strip" data-reveal-row>
+      <ManifestoStrip />
+    </div>
+    <span class="px-wj-refuse__badge">No analytics · no cookies · no trackers · no ads</span>
+  </div>
+</section>

@@ -1,0 +1,425 @@
+/* ============================================================================
+   PARALLAX — THE ARRIVAL (first-visit intro experience)
+   ----------------------------------------------------------------------------
+   A DELIBERATELY DISTINCT design language from the publication — this is a
+   marketing/onboarding surface, not an article. Own fonts, own palettes, richer
+   motion. Scoped entirely under `.px-intro` so it never touches the articles'
+   system. Mixes three worlds: NOCTURNE (dark cinematic base), KINETIC (loud
+   palette-flip climax), AURORA (soft glass). Fonts are added in HomeLayout's
+   Google Fonts link.
+
+   CONTRACT: no-JS / reduced-motion safe.
+   - No JS  → the story renders as normal-flow full-height scenes you scroll
+     through (the player/overlay machinery is gated behind `html.js`). Controls
+     are hidden without JS.
+   - Reduced-motion → no auto-advance, no drift/kinetic keyframes; scenes simply
+     appear. (Player still works by click/key.)
+   ============================================================================ */
+
+.px-intro {
+  /* THREE families only — variety comes from treatment, not new fonts.
+     Fraunces = editorial serif voice · Sora = structural sans · JetBrains Mono = labels */
+  --i-serif: 'Fraunces', Georgia, serif;
+  --i-grotesk: 'Schibsted Grotesk', system-ui, sans-serif;
+  --i-sans: 'Schibsted Grotesk', system-ui, sans-serif;
+  --i-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* cohesive palette — one dark base, one off-white, one signature accent.
+     The six topic colours appear in exactly two places (feed swarm + worlds). */
+  --noct-bg: #07090f;
+  --noct-ink: #f4f1ea;
+  --noct-mut: #8b94ad;
+  --noct-cyan: #5bd6ff;
+  --noct-violet: #a78bfa;
+
+  --aur-bg: #ece9ff;
+  --aur-ink: #1a1640;
+  --aur-violet: #6b4cff;
+  --aur-mint: #19c2a8;
+  --aur-peach: #ffb38a;
+
+  --i-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* topic accents reused for the feed swarm + world tiles */
+.px-intro {
+  --t-politics: #b8341f; --t-space: #00d4ff; --t-earth: #2d6a4f;
+  --t-tech: #c6f432; --t-travel: #c85a3c; --t-sports: #e8f048;
+}
+
+/* ── Story container + scene layout ──────────────────────────────────────── */
+.px-intro-story {
+  position: relative;
+  font-family: var(--i-sans);
+}
+.px-intro-scene {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 88px 24px 96px;
+  position: relative;
+  overflow: hidden;
+  color: var(--noct-ink);
+  background: var(--noct-bg);
+}
+.px-intro-scene__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* PLAYER MODE (JS): scenes stack and cross-fade; only .is-active is shown. */
+html.js .px-intro-story.is-player { height: 100svh; overflow: hidden; }
+html.js .px-intro-story.is-player .px-intro-scene {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.02);
+  transition: opacity 0.7s var(--i-ease), transform 1.1s var(--i-ease), visibility 0s linear 0.7s;
+}
+html.js .px-intro-story.is-player .px-intro-scene.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.7s var(--i-ease), transform 1.1s var(--i-ease);
+}
+
+/* ── Shared type ─────────────────────────────────────────────────────────── */
+.px-intro__eyebrow {
+  font-family: var(--i-mono);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin: 0 0 26px;
+  opacity: 0.85;
+}
+.px-intro__big {
+  font-family: var(--i-serif);
+  font-weight: 400;
+  font-size: clamp(40px, 8.5vw, 116px);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.px-intro__big em { font-style: italic; }
+.px-intro__sub {
+  font-family: var(--i-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(18px, 2.6vw, 30px);
+  line-height: 1.4;
+  margin: 26px auto 0;
+  max-width: 40ch;
+  opacity: 0.9;
+}
+
+/* ── Scene-in reveal (per-element, gated; final state = visible) ─────────── */
+.px-intro-scene [data-in] { transition: opacity 0.8s var(--i-ease), transform 0.8s var(--i-ease); }
+html.js .px-intro-story.is-player .px-intro-scene:not(.is-active) [data-in] {
+  opacity: 0;
+  transform: translateY(26px);
+}
+html.js .px-intro-story.is-player .px-intro-scene.is-active [data-in] { transition-delay: 0.15s; }
+html.js .px-intro-story.is-player .px-intro-scene.is-active [data-in]:nth-child(2) { transition-delay: 0.3s; }
+html.js .px-intro-story.is-player .px-intro-scene.is-active [data-in]:nth-child(3) { transition-delay: 0.45s; }
+html.js .px-intro-story.is-player .px-intro-scene.is-active [data-in]:nth-child(4) { transition-delay: 0.6s; }
+
+/* ── Scene 1 — THE FEED (nocturne, drifting six-accent noise) ───────────── */
+.px-intro-scene[data-scene="feed"] { background: radial-gradient(120% 90% at 50% 0%, #0e1426 0%, #07090f 70%); }
+.px-intro-feed__swarm { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.px-intro-feed__frag {
+  position: absolute;
+  font-family: var(--i-mono);
+  font-size: clamp(10px, 1.3vw, 14px);
+  white-space: nowrap;
+  opacity: 0.22;
+  color: var(--fc, var(--noct-mut));
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+html.js .px-intro-scene[data-scene="feed"].is-active .px-intro-feed__frag {
+  animation: pxIntroDrift var(--dur, 16s) linear infinite;
+}
+@keyframes pxIntroDrift {
+  0%   { transform: translate(-50%, -50%) translateY(8px); opacity: 0.05; }
+  20%  { opacity: 0.3; }
+  80%  { opacity: 0.3; }
+  100% { transform: translate(-50%, -50%) translateY(-24px); opacity: 0.05; }
+}
+.px-intro-feed__frag[data-a="politics"] { --fc: var(--t-politics); }
+.px-intro-feed__frag[data-a="space"]    { --fc: var(--t-space); }
+.px-intro-feed__frag[data-a="earth"]    { --fc: #5fb98e; }
+.px-intro-feed__frag[data-a="tech"]     { --fc: var(--t-tech); }
+.px-intro-feed__frag[data-a="travel"]   { --fc: var(--t-travel); }
+.px-intro-feed__frag[data-a="sports"]   { --fc: var(--t-sports); }
+.px-intro-scene[data-scene="feed"] .px-intro__big em { color: var(--noct-cyan); }
+
+/* ── Scene 2 — THE SHIFT (parallax: two offset layers converge) ──────────── */
+.px-intro-scene[data-scene="shift"] { background: radial-gradient(120% 90% at 50% 100%, #121a30 0%, #07090f 72%); }
+.px-intro-shift {
+  position: relative;
+  font-family: var(--i-serif);
+  font-weight: 600;
+  font-size: clamp(52px, 14vw, 190px);
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+}
+.px-intro-shift__layer { display: block; }
+.px-intro-shift__layer--a,
+.px-intro-shift__layer--b {
+  position: absolute;
+  inset: 0;
+  transition: transform 1.1s var(--i-ease), opacity 1.1s var(--i-ease);
+}
+.px-intro-shift__layer--a { color: var(--noct-cyan); mix-blend-mode: screen; }
+.px-intro-shift__layer--b { color: var(--noct-violet); mix-blend-mode: screen; }
+.px-intro-shift__layer--base { color: var(--noct-ink); opacity: 0.96; }
+/* offset only while the scene is NOT active (gated) → registers on activate */
+html.js .px-intro-story.is-player .px-intro-scene[data-scene="shift"]:not(.is-active) .px-intro-shift__layer--a { transform: translate(-22px, 10px); opacity: 0.7; }
+html.js .px-intro-story.is-player .px-intro-scene[data-scene="shift"]:not(.is-active) .px-intro-shift__layer--b { transform: translate(22px, -10px); opacity: 0.7; }
+
+/* ── Scene 3 — THE REBUILD (KINETIC climax, palette flip) ────────────────── */
+.px-intro-scene[data-scene="rebuild"] { background: radial-gradient(120% 95% at 50% 110%, #122033 0%, #07090f 68%); }
+.px-intro-scene[data-scene="rebuild"] .px-intro__eyebrow { color: var(--noct-cyan); }
+.px-intro-rebuild__h {
+  font-family: var(--i-grotesk);
+  font-weight: 800;
+  font-size: clamp(40px, 9vw, 128px);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  color: var(--noct-ink);
+  margin: 0;
+}
+.px-intro-rebuild__h mark {
+  font-family: var(--i-serif);
+  font-style: italic;
+  font-weight: 500;
+  background: transparent;
+  color: var(--noct-cyan);
+  border-bottom: 0.06em solid var(--noct-cyan);
+  padding-bottom: 0.02em;
+}
+.px-intro-rebuild__bars { display: flex; align-items: flex-end; justify-content: center; gap: clamp(6px, 1.4vw, 16px); height: clamp(90px, 16vh, 180px); margin: 44px auto 0; max-width: 560px; }
+.px-intro-rebuild__bar { width: clamp(16px, 3.6vw, 40px); height: 100%; background: rgba(244, 241, 234, 0.22); transform-origin: bottom; transform: scaleY(0.06); transition: transform 0.9s var(--i-ease); }
+.px-intro-rebuild__bar:nth-child(3n) { background: var(--noct-cyan); }
+html.js .px-intro-story.is-player .px-intro-scene[data-scene="rebuild"].is-active .px-intro-rebuild__bar { transform: scaleY(var(--h, 1)); }
+
+/* ── Scene 4 — SIX WORLDS (AURORA glass) ─────────────────────────────────── */
+.px-intro-scene[data-scene="worlds"] {
+  color: var(--aur-ink);
+  background:
+    radial-gradient(58% 48% at 14% 8%, rgba(168, 139, 250, 0.55) 0%, transparent 60%),
+    radial-gradient(52% 44% at 92% 18%, rgba(91, 214, 255, 0.38) 0%, transparent 56%),
+    radial-gradient(62% 60% at 74% 102%, rgba(25, 194, 168, 0.42) 0%, transparent 62%),
+    linear-gradient(180deg, #efeaff 0%, #eaf6f2 100%);
+}
+.px-intro-scene[data-scene="worlds"] .px-intro__eyebrow { color: var(--aur-violet); }
+.px-intro-worlds__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 36px auto 0;
+  max-width: 760px;
+}
+.px-intro-world {
+  position: relative;
+  background: rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  backdrop-filter: saturate(160%) blur(16px);
+  border: 1px solid rgba(107, 76, 255, 0.16);
+  border-radius: 18px;
+  padding: 20px 18px 18px 26px;
+  text-align: left;
+  min-height: 196px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  box-shadow: 0 18px 40px -30px rgba(40, 30, 90, 0.5);
+  transition: transform 0.3s var(--i-ease), box-shadow 0.3s var(--i-ease);
+}
+.px-intro-world:hover { transform: translateY(-3px); box-shadow: 0 26px 50px -28px rgba(40, 30, 90, 0.5); }
+.px-intro-world > .px-intro-world__w,
+.px-intro-world > .px-intro-world__desc,
+.px-intro-world > .px-intro-world__t { position: relative; z-index: 2; }
+/* one font for all six — distinguished by COLOUR + a consistent accent rule, not six typefaces */
+.px-intro-world__w { font-family: var(--i-sans); font-weight: 600; font-size: clamp(21px, 2.7vw, 31px); line-height: 1; letter-spacing: -0.01em; color: var(--wc, var(--aur-ink)); }
+.px-intro-world__desc { font-family: var(--i-sans); font-weight: 400; font-size: 13px; line-height: 1.45; color: #524d78; margin-top: 9px; max-width: 24ch; }
+.px-intro-world__t { font-family: var(--i-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6a6592; margin-top: auto; padding-top: 16px; }
+.px-intro-world::before { content: ''; position: absolute; left: 0; top: 18px; width: 3px; height: 26px; border-radius: 3px; background: var(--wc, var(--aur-violet)); z-index: 2; }
+
+/* category-specific mini-viz — each card glances at the viz that world makes */
+.px-intro-world__viz { width: 100%; margin: 16px 0 2px; color: var(--wc, var(--aur-violet)); position: relative; z-index: 2; }
+.px-intro-world__viz svg { width: 100%; height: auto; display: block; border-radius: 6px; overflow: hidden; }
+.px-intro-world[data-a="politics"] { --wc: #b8341f; }
+.px-intro-world[data-a="space"]    { --wc: #0085a1; }
+.px-intro-world[data-a="earth"]    { --wc: #1a4a36; }
+.px-intro-world[data-a="tech"]     { --wc: #5a6e16; }
+.px-intro-world[data-a="travel"]   { --wc: #9a4028; }
+.px-intro-world[data-a="sports"]   { --wc: #3f5428; }
+
+/* ── Scene 5 — JOIN (nocturne calm + CTAs) ───────────────────────────────── */
+.px-intro-scene[data-scene="join"] { background: radial-gradient(120% 100% at 50% 50%, #101728 0%, #07090f 72%); }
+.px-intro-scene[data-scene="join"] .px-intro__eyebrow { color: var(--noct-cyan); }
+.px-intro-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin: 36px 0 0; }
+.px-intro-btn {
+  font-family: var(--i-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 15px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 241, 234, 0.3);
+  color: var(--noct-ink);
+  cursor: pointer;
+  transition: transform 0.2s var(--i-ease), background 0.2s var(--i-ease), color 0.2s var(--i-ease);
+}
+.px-intro-btn:hover { transform: translateY(-2px); }
+.px-intro-btn--primary { background: var(--noct-cyan); color: #04222e; border-color: var(--noct-cyan); }
+.px-intro-btn--primary:hover { background: #8fe6ff; }
+.px-intro-btn--ghost:hover { background: rgba(244, 241, 234, 0.08); }
+
+/* ── Controls (player chrome) — hidden without JS ────────────────────────── */
+.px-intro-controls { display: none; }
+html.js .px-intro-story.is-player .px-intro-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(12, 16, 28, 0.55);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(244, 241, 234, 0.14);
+}
+.px-intro-dots { display: flex; gap: 8px; }
+.px-intro-dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(244, 241, 234, 0.28); border: 0; padding: 0; cursor: pointer; transition: background 0.2s, transform 0.2s; }
+.px-intro-dot.is-on { background: var(--noct-cyan); transform: scale(1.25); }
+.px-intro-cbtn {
+  font-family: var(--i-mono); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--noct-ink); background: transparent; border: 0; cursor: pointer; opacity: 0.8;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.px-intro-cbtn:hover { opacity: 1; }
+.px-intro-cbtn:disabled { opacity: 0.3; cursor: default; }
+
+/* skip — top right, hidden without JS */
+.px-intro-skip { display: none; }
+html.js .px-intro-story.is-player .px-intro-skip {
+  display: inline-flex; align-items: center; gap: 6px;
+  position: fixed; top: 18px; right: 20px; z-index: 30;
+  font-family: var(--i-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--noct-ink); background: rgba(12, 16, 28, 0.5); border: 1px solid rgba(244, 241, 234, 0.16);
+  padding: 9px 14px; border-radius: 999px; cursor: pointer; opacity: 0.85;
+}
+.px-intro-skip:hover { opacity: 1; }
+
+/* worlds + join heading overrides (mix the type per world) */
+.px-intro-scene[data-scene="worlds"] .px-intro__big { font-family: var(--i-sans); font-weight: 800; font-size: clamp(32px, 5.5vw, 68px); letter-spacing: -0.02em; }
+.px-intro-scene[data-scene="worlds"] .px-intro__big em { font-family: var(--i-serif); font-style: italic; font-weight: 500; color: var(--aur-violet); }
+.px-intro-scene[data-scene="join"] .px-intro__big em { color: var(--noct-cyan); }
+
+/* brand / back chip — always visible, dark glass pill so it reads on any scene */
+.px-intro-brand {
+  position: fixed; top: 18px; left: 20px; z-index: 30;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--i-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--noct-ink); text-decoration: none; opacity: 0.88;
+  background: rgba(12, 16, 28, 0.5); border: 1px solid rgba(244, 241, 234, 0.16);
+  padding: 8px 13px; border-radius: 999px;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.px-intro-brand:hover { opacity: 1; }
+
+/* progress bar across the very top in player mode */
+.px-intro-progress { display: none; }
+html.js .px-intro-story.is-player .px-intro-progress {
+  display: block; position: fixed; top: 0; left: 0; height: 3px; z-index: 31;
+  width: var(--p, 0%); background: var(--noct-cyan); transition: width 0.5s var(--i-ease);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .px-intro-worlds__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .px-intro-scene { padding: 80px 18px 96px; }
+}
+
+/* ── Reduced motion: kill drift/kinetic/auto, keep scenes legible ────────── */
+@media (prefers-reduced-motion: reduce) {
+  html.js .px-intro-scene[data-scene="feed"].is-active .px-intro-feed__frag { animation: none !important; opacity: 0.22; }
+  .px-intro-scene, .px-intro-scene * { transition: none !important; }
+  .px-intro-shift__layer--a, .px-intro-shift__layer--b { transform: none !important; opacity: 1 !important; }
+  .px-intro-rebuild__bar { transform: scaleY(var(--h, 1)) !important; }
+  html.js .px-intro-story.is-player .px-intro-scene:not(.is-active) [data-in] { opacity: 1; transform: none; }
+}
+
+/* ============================================================================
+   HOME FIRST-VISIT OVERLAY + SPOTLIGHT TOUR (px-xp)
+   Hidden by default (the [hidden] attr) → no-JS shows nothing, home renders
+   normally. The inline script reveals it only on first visit.
+   ============================================================================ */
+.px-xp { position: fixed; inset: 0; z-index: 1000; }
+.px-xp[hidden] { display: none; }
+.px-xp__story { position: absolute; inset: 0; background: var(--noct-bg); }
+.px-xp.is-tour .px-xp__story { display: none; }
+.px-xp.is-closing { opacity: 0; transition: opacity 0.4s var(--i-ease); }
+
+/* in overlay mode the story's own join CTAs are replaced by the handoff buttons */
+.px-xp .px-intro-cta { display: none; }
+
+.px-xp__handoff {
+  position: fixed; left: 50%; bottom: 116px; transform: translateX(-50%);
+  z-index: 8; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center;
+}
+.px-xp__handoff[hidden] { display: none; }
+.px-xp__tour-start {
+  font-family: var(--i-mono); font-size: 13px; letter-spacing: 0.04em;
+  padding: 14px 24px; border-radius: 999px; cursor: pointer;
+  background: var(--noct-cyan); color: #04222e; border: 1px solid var(--noct-cyan);
+  transition: transform 0.2s var(--i-ease), background 0.2s var(--i-ease);
+}
+.px-xp__tour-start:hover { transform: translateY(-2px); background: #8fe6ff; }
+.px-xp__enter {
+  font-family: var(--i-mono); font-size: 12px; letter-spacing: 0.04em;
+  background: transparent; border: 0; color: var(--noct-ink); opacity: 0.8; cursor: pointer;
+}
+.px-xp__enter:hover { opacity: 1; }
+
+/* spotlight — a rounded hole punched in a full-viewport dim via huge box-shadow */
+.px-xp__spot {
+  position: fixed; z-index: 5; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(7, 9, 15, 0.86);
+  transition: top 0.45s var(--i-ease), left 0.45s var(--i-ease), width 0.45s var(--i-ease), height 0.45s var(--i-ease);
+}
+.px-xp__spot[hidden] { display: none; }
+
+.px-xp__tip {
+  position: fixed; z-index: 6; max-width: 320px;
+  background: rgba(12, 16, 28, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(244, 241, 234, 0.16); border-radius: 16px; padding: 18px 20px;
+  color: var(--noct-ink); box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+}
+.px-xp__tip[hidden] { display: none; }
+.px-xp__tip-eb { font-family: var(--i-mono); font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--noct-cyan); margin: 0 0 8px; }
+.px-xp__tip-tx { font-family: var(--i-sans); font-size: 14.5px; line-height: 1.5; color: var(--noct-ink); margin: 0 0 16px; }
+.px-xp__tip-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.px-xp__tip-count { font-family: var(--i-mono); font-size: 11px; color: var(--noct-mut); }
+.px-xp__tip-btns { display: flex; gap: 8px; }
+.px-xp__tip-skip { font-family: var(--i-mono); font-size: 12px; background: transparent; border: 0; color: var(--noct-mut); cursor: pointer; padding: 8px 10px; }
+.px-xp__tip-skip:hover { color: var(--noct-ink); }
+.px-xp__tip-next { font-family: var(--i-mono); font-size: 12px; background: var(--noct-cyan); color: #04222e; border: 0; border-radius: 999px; padding: 9px 16px; cursor: pointer; }
+.px-xp__tip-next:hover { background: #8fe6ff; }
+
+@media (max-width: 720px) {
+  .px-xp__tip { max-width: calc(100vw - 32px); }
+  .px-xp__handoff { bottom: 96px; }
+}

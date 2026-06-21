@@ -1,0 +1,223 @@
+---
+/**
+ * IntroStory — the cinematic "Second Angle" story (5 scenes), in the distinct
+ * intro identity. Self-contained: ships its own player script so /welcome can
+ * render it standalone. The same markup is embedded by IntroExperience for the
+ * home first-visit overlay.
+ *
+ * Modes:
+ *   auto="load"   → JS player auto-advances on load (used on /welcome)
+ *   auto="manual" → JS player waits (the overlay starts it when shown)
+ * No-JS: scenes render as normal-flow full-height sections you scroll through;
+ * all player chrome is gated behind html.js. Reduced-motion: no auto-advance,
+ * no drift/kinetic keyframes.
+ */
+import WorldViz from './WorldViz.astro';
+import '../../styles/intro.css';
+
+interface Props {
+  auto?: 'load' | 'manual';
+  appUrl?: string;
+  homeHref?: string;
+}
+const {
+  auto = 'load',
+  homeHref = '/',
+  appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com',
+} = Astro.props;
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const signupHref = `${appUrl}/login?next=${encodeURIComponent(siteUrl + '/')}`;
+
+const frags = [
+  { t: 'BREAKING', a: 'politics', top: '14%', left: '12%', dur: '15s', delay: '-2s' },
+  { t: 'your feed refreshed 47 times today', a: 'tech', top: '8%', left: '64%', dur: '18s', delay: '-7s' },
+  { t: 'TRENDING', a: 'sports', top: '20%', left: '84%', dur: '13s', delay: '-1s' },
+  { t: "you won't believe what happened next", a: 'travel', top: '30%', left: '22%', dur: '19s', delay: '-9s' },
+  { t: 'LIVE', a: 'space', top: '26%', left: '50%', dur: '12s', delay: '-4s' },
+  { t: '↑ 2.4k shares', a: 'politics', top: '38%', left: '78%', dur: '16s', delay: '-11s' },
+  { t: 'opinion: why everyone is wrong', a: 'tech', top: '46%', left: '10%', dur: '17s', delay: '-3s' },
+  { t: 'sponsored', a: 'travel', top: '44%', left: '60%', dur: '14s', delay: '-8s' },
+  { t: '12 reasons the market is crashing', a: 'space', top: '58%', left: '30%', dur: '20s', delay: '-5s' },
+  { t: 'watch: the clip going viral', a: 'earth', top: '62%', left: '74%', dur: '15s', delay: '-12s' },
+  { t: 'developing story', a: 'politics', top: '70%', left: '16%', dur: '18s', delay: '-6s' },
+  { t: 'hot take', a: 'sports', top: '74%', left: '52%', dur: '13s', delay: '-2s' },
+  { t: "share before it's deleted", a: 'travel', top: '82%', left: '70%', dur: '16s', delay: '-10s' },
+  { t: 'NEW', a: 'tech', top: '86%', left: '34%', dur: '12s', delay: '-7s' },
+  { t: '•••', a: 'space', top: '54%', left: '90%', dur: '14s', delay: '-1s' },
+  { t: 'everyone is talking about this', a: 'earth', top: '16%', left: '40%', dur: '19s', delay: '-13s' },
+];
+
+const worlds = [
+  { a: 'politics', w: 'Politics', t: 'Broadsheet',      desc: 'Bills, votes, coalitions — read from the floor.' },
+  { a: 'space',    w: 'Space',    t: 'Mission control',  desc: 'Orbits, missions, the telemetry behind them.' },
+  { a: 'earth',    w: 'Earth',    t: 'Atlas',            desc: 'Climate, oceans, deep time.' },
+  { a: 'tech',     w: 'tech',     t: 'Changelog',        desc: 'Models, systems, what actually ships.' },
+  { a: 'travel',   w: 'Travel',   t: 'Field journal',    desc: 'Cities, crossings, quiet rooms.' },
+  { a: 'sports',   w: 'Sports',   t: 'Match programme',  desc: 'Tactics, xG, the shape of the table.' },
+];
+
+const bars = [0.34, 0.52, 0.41, 0.7, 0.58, 0.86, 0.74, 1, 0.66];
+const sceneCount = 5;
+---
+
+<div class="px-intro" data-intro>
+  <div class="px-intro-story" data-auto={auto} role="region" aria-label="Why Parallax — an introduction">
+
+    <a class="px-intro-brand" href={homeHref}><i class="ti" aria-hidden="true">←</i> Parallax</a>
+    <button class="px-intro-skip" data-intro-skip type="button">Skip intro →</button>
+    <div class="px-intro-progress" aria-hidden="true"></div>
+
+    <!-- Scene 1 — THE FEED -->
+    <section class="px-intro-scene" data-scene="feed" aria-label="The feed">
+      <div class="px-intro-feed__swarm" aria-hidden="true">
+        {frags.map((f) => (
+          <span
+            class="px-intro-feed__frag"
+            data-a={f.a}
+            style={`top:${f.top};left:${f.left};--dur:${f.dur};animation-delay:${f.delay}`}
+          >{f.t}</span>
+        ))}
+      </div>
+      <div class="px-intro-scene__inner">
+        <p class="px-intro__eyebrow" data-in>You already know this feeling</p>
+        <h2 class="px-intro__big" data-in>You read all day,<br />and remember <em>none</em> of it.</h2>
+      </div>
+    </section>
+
+    <!-- Scene 2 — THE SHIFT -->
+    <section class="px-intro-scene" data-scene="shift" aria-label="The shift">
+      <div class="px-intro-scene__inner">
+        <p class="px-intro__eyebrow" data-in>A second viewpoint</p>
+        <div class="px-intro-shift" data-in aria-label="Parallax">
+          <span class="px-intro-shift__layer px-intro-shift__layer--base">Parallax</span>
+          <span class="px-intro-shift__layer px-intro-shift__layer--a" aria-hidden="true">Parallax</span>
+          <span class="px-intro-shift__layer px-intro-shift__layer--b" aria-hidden="true">Parallax</span>
+        </div>
+        <p class="px-intro__sub" data-in>The shift you get when you move to a second angle. We do it to one story at a time.</p>
+      </div>
+    </section>
+
+    <!-- Scene 3 — THE REBUILD (kinetic) -->
+    <section class="px-intro-scene" data-scene="rebuild" aria-label="The rebuild">
+      <div class="px-intro-scene__inner">
+        <p class="px-intro__eyebrow" data-in>So we rebuild it</p>
+        <h2 class="px-intro-rebuild__h" data-in set:html={'From the <mark>structure</mark> up.'} />
+        <div class="px-intro-rebuild__bars" data-in aria-hidden="true">
+          {bars.map((h) => (<span class="px-intro-rebuild__bar" style={`--h:${h}`}></span>))}
+        </div>
+        <p class="px-intro__sub" data-in>Timelines, votes, charts, paradoxes. The shape was there the whole time.</p>
+      </div>
+    </section>
+
+    <!-- Scene 4 — SIX WORLDS (aurora) -->
+    <section class="px-intro-scene" data-scene="worlds" aria-label="Six worlds">
+      <div class="px-intro-scene__inner">
+        <p class="px-intro__eyebrow" data-in>Six worlds, one lens</p>
+        <h2 class="px-intro__big" data-in>Each one its own <em>light</em>.</h2>
+        <div class="px-intro-worlds__grid" data-in>
+          {worlds.map((w) => (
+            <div class="px-intro-world" data-a={w.a}>
+              <span class="px-intro-world__w">{w.w}</span>
+              <span class="px-intro-world__desc">{w.desc}</span>
+              <div class="px-intro-world__viz" aria-hidden="true"><WorldViz a={w.a} /></div>
+              <span class="px-intro-world__t">{w.t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Scene 5 — JOIN -->
+    <section class="px-intro-scene" data-scene="join" aria-label="Come in">
+      <div class="px-intro-scene__inner">
+        <p class="px-intro__eyebrow" data-in>The standing invitation</p>
+        <h2 class="px-intro__big" data-in>Come read from the <em>second</em> angle.</h2>
+        <p class="px-intro__sub" data-in>One letter per issue. No ads, no investors, no trackers. Reader-funded, and quiet.</p>
+        <div class="px-intro-cta" data-in>
+          <a class="px-intro-btn px-intro-btn--primary" href={signupHref}>Create your free account →</a>
+          <a class="px-intro-btn px-intro-btn--ghost" href={homeHref}>Browse first →</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="px-intro-controls" role="group" aria-label="Story navigation">
+      <button class="px-intro-cbtn" data-intro-prev type="button">Back</button>
+      <div class="px-intro-dots">
+        {Array.from({ length: sceneCount }).map((_, n) => (
+          <button class="px-intro-dot" type="button" aria-label={`Go to scene ${n + 1}`}></button>
+        ))}
+      </div>
+      <button class="px-intro-cbtn" data-intro-next type="button">Next</button>
+    </div>
+
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript ? document.currentScript.previousElementSibling : null;
+    while (root && !(root.classList && root.classList.contains('px-intro'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root || root.__introInit) return;
+    root.__introInit = true;
+
+    var story = root.querySelector('.px-intro-story');
+    var scenes = Array.prototype.slice.call(root.querySelectorAll('.px-intro-scene'));
+    if (!story || !scenes.length) return;
+
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var dots = Array.prototype.slice.call(root.querySelectorAll('.px-intro-dot'));
+    var prevBtn = root.querySelector('[data-intro-prev]');
+    var nextBtn = root.querySelector('[data-intro-next]');
+    var skipBtn = root.querySelector('[data-intro-skip]');
+    var bar = root.querySelector('.px-intro-progress');
+    var i = 0, timer = 0;
+    var auto = story.getAttribute('data-auto') === 'load' && !reduce;
+    var DUR = 6200;
+
+    story.classList.add('is-player');
+
+    function clearTimer() { if (timer) { clearTimeout(timer); timer = 0; } }
+    function schedule() { clearTimer(); if (auto && i < scenes.length - 1) timer = setTimeout(function () { go(i + 1); }, DUR); }
+    function stopAuto() { auto = false; clearTimer(); }
+
+    function render() {
+      scenes.forEach(function (s, n) { s.classList.toggle('is-active', n === i); });
+      dots.forEach(function (d, n) { d.classList.toggle('is-on', n === i); d.setAttribute('aria-current', n === i ? 'true' : 'false'); });
+      if (prevBtn) prevBtn.disabled = i === 0;
+      if (nextBtn) nextBtn.disabled = i === scenes.length - 1;
+      if (bar) bar.style.setProperty('--p', Math.round(((i + 1) / scenes.length) * 100) + '%');
+      root.dispatchEvent(new CustomEvent('px-intro:scene', { bubbles: true, detail: { index: i, last: i === scenes.length - 1 } }));
+    }
+    function go(n) { i = Math.max(0, Math.min(scenes.length - 1, n)); render(); schedule(); }
+
+    if (prevBtn) prevBtn.addEventListener('click', function () { stopAuto(); go(i - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { stopAuto(); go(i + 1); });
+    if (skipBtn) skipBtn.addEventListener('click', function () {
+      stopAuto();
+      root.dispatchEvent(new CustomEvent('px-intro:skip', { bubbles: true }));
+      go(scenes.length - 1);
+    });
+    dots.forEach(function (d, n) { d.addEventListener('click', function () { stopAuto(); go(n); }); });
+
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { stopAuto(); go(i + 1); }
+      else if (e.key === 'ArrowLeft') { stopAuto(); go(i - 1); }
+    });
+    root.setAttribute('tabindex', '-1');
+
+    // expose a tiny API for the overlay
+    root.__intro = {
+      go: go,
+      stopAuto: stopAuto,
+      start: function () { if (!reduce) auto = true; schedule(); },
+      reset: function () { go(0); },
+      count: scenes.length,
+      current: function () { return i; },
+    };
+
+    render();
+    schedule();
+  })();
+</script>

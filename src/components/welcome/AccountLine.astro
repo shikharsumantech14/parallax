@@ -1,0 +1,21 @@
+---
+/**
+ * AccountLine — the subordinate, value-first account invitation that sits AFTER
+ * the SubscribeStrip (a sibling — never edit SubscribeStrip, it's shared with
+ * the home page). A plain demoted <a>, no button styling, no urgency. Links to
+ * the app's /login with ?next= back to the current page, mirroring Colophon's
+ * appUrl derivation.
+ */
+interface Props {
+  appUrl: string;
+  /** Where the app returns the reader after sign-in. */
+  nextPath?: string;
+}
+const { appUrl, nextPath = '/welcome/' } = Astro.props;
+const href = `${appUrl}/login?next=${encodeURIComponent(nextPath)}`;
+---
+<div class="px-wj-join">
+  <p class="px-wj-join__account">
+    When you find an issue worth keeping, open your shelf — save it, follow a world, and pick up where you left off. Free, and quiet. <a href={href}>Open your shelf →</a>
+  </p>
+</div>

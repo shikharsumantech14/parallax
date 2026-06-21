@@ -1,0 +1,476 @@
+/* ============================================================================
+   PARALLAX — THE SECOND ANGLE (welcome journey) + ABOUT additions
+   ----------------------------------------------------------------------------
+   Prefixes: px-wj (welcome-journey) and px-abt (about). Both verified free of
+   existing namespaces. Imported by src/pages/welcome.astro, the home opener in
+   src/pages/index.astro, and src/pages/about.astro.
+
+   THE NO-JS / REDUCED-MOTION CONTRACT (mirrors motion-v2.css — read before edit)
+   ----------------------------------------------------------------------------
+   Every animated beat is a [data-reveal] block (core/Reveal.astro adds .is-in on
+   scroll-in). The DEFAULT (non-html.js) state of every element here is its FINAL,
+   REGISTERED, SNAPPED state. Motion is expressed ONLY as the *offset* resting
+   state, gated behind `html.js [data-reveal]:not(.is-in)` — so:
+     • No JS  → no `.js` class → the gated offset never applies → painted final.
+     • Reduced-motion → Reveal adds .is-in to everything immediately, so the
+       :not(.is-in) offset never matches → painted final (and motion-v2's global
+       reduce block kills any transition).
+   NEVER write an offset/translated state as a plain default and animate it to
+   zero — that inverts no-JS + reduced-motion. Offset lives in the gated rule only.
+   ============================================================================ */
+
+/* ── Journey shell + beat rhythm ─────────────────────────────────────────── */
+.px-wj {
+  --wj-off: 56px;                 /* horizontal parallax travel (small, never scroll-jacks) */
+  --wj-accent: var(--accent-deep, var(--accent));
+  --wj-accent-vivid: var(--accent);
+}
+
+/* Per-beat accent — same device as TypographicChord's [data-accent], mapping the
+   always-available --topic-* tokens (so it works on meta pages with no data-topic). */
+.px-wj-beat[data-accent="politics"] { --wj-accent: var(--topic-politics-deep); --wj-accent-vivid: var(--topic-politics); }
+.px-wj-beat[data-accent="space"]    { --wj-accent: var(--topic-space-deep);    --wj-accent-vivid: var(--topic-space); }
+.px-wj-beat[data-accent="earth"]    { --wj-accent: var(--topic-earth-deep);    --wj-accent-vivid: var(--topic-earth); }
+.px-wj-beat[data-accent="tech"]     { --wj-accent: var(--topic-tech-deep);     --wj-accent-vivid: var(--topic-tech); }
+.px-wj-beat[data-accent="travel"]   { --wj-accent: var(--topic-travel-deep);   --wj-accent-vivid: var(--topic-travel); }
+.px-wj-beat[data-accent="sports"]   { --wj-accent: var(--topic-sports-deep);   --wj-accent-vivid: var(--topic-sports); }
+
+.px-wj-beat {
+  position: relative;
+  max-width: var(--col-bleed);
+  margin: 0 auto;
+  padding: clamp(72px, 14vh, 148px) 0;
+  border-top: 1px solid var(--rule);
+}
+.px-wj-beat:first-child { border-top: 0; }
+.px-wj-beat__inner {
+  max-width: var(--col-prose);
+  margin: 0 auto;
+}
+.px-wj-beat--wide .px-wj-beat__inner { max-width: var(--col-wide); }
+
+/* ── Type grammar (shared with the chord: Fraunces clamp + one em accent) ──── */
+.px-wj__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--wj-accent);
+  margin: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.px-wj__eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+.px-wj__headline {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(34px, 6vw, 72px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 0 0 24px;
+  text-wrap: balance;
+}
+.px-wj__headline em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--wj-accent);
+}
+.px-wj__dek {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(17px, 2.1vw, 22px);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 54ch;
+}
+.px-wj__dek + .px-wj__dek { margin-top: 14px; }
+
+/* Reveal stagger for a beat's text rows (gated, no-JS-safe). */
+.px-wj-beat [data-reveal-row] {
+  transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+}
+html.js .px-wj-beat[data-reveal]:not(.is-in) [data-reveal-row] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+html.js .px-wj-beat.is-in [data-reveal-row]:nth-child(1) { transition-delay: 40ms; }
+html.js .px-wj-beat.is-in [data-reveal-row]:nth-child(2) { transition-delay: 110ms; }
+html.js .px-wj-beat.is-in [data-reveal-row]:nth-child(3) { transition-delay: 180ms; }
+html.js .px-wj-beat.is-in [data-reveal-row]:nth-child(4) { transition-delay: 250ms; }
+
+/* ── Beat 1 — THE FEED (six-accent noise wall, frozen, static HTML) ───────── */
+.px-wj-feed { overflow: hidden; }
+.px-wj-feed__wall {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.px-wj-feed__frag {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0.16;
+  color: var(--frag, var(--muted));
+  transform: rotate(var(--rot, 0deg));
+  user-select: none;
+}
+.px-wj-feed__frag[data-accent="politics"] { --frag: var(--topic-politics); }
+.px-wj-feed__frag[data-accent="space"]    { --frag: var(--topic-space-deep); }
+.px-wj-feed__frag[data-accent="earth"]    { --frag: var(--topic-earth); }
+.px-wj-feed__frag[data-accent="tech"]     { --frag: var(--topic-tech-deep); }
+.px-wj-feed__frag[data-accent="travel"]   { --frag: var(--topic-travel); }
+.px-wj-feed__frag[data-accent="sports"]   { --frag: var(--topic-sports-deep); }
+.px-wj-feed__frag--ping { opacity: 0.3; }
+/* JS-only: the noise drifts in then settles when the headline reveals. */
+.px-wj-feed__frag { transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease); }
+html.js .px-wj-feed[data-reveal]:not(.is-in) .px-wj-feed__frag {
+  opacity: 0.26;
+  transform: rotate(var(--rot, 0deg)) translateY(-8px);
+}
+.px-wj-feed__content { position: relative; z-index: 1; }
+.px-wj-feed__cta {
+  margin: 28px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.px-wj-feed__cta a {
+  color: var(--wj-accent);
+  border-bottom: 1px solid color-mix(in oklab, var(--wj-accent) 40%, transparent);
+  padding-bottom: 2px;
+  transition: border-color var(--t-quick) var(--ease);
+}
+.px-wj-feed__cta a:hover { border-bottom-color: var(--wj-accent); }
+
+/* Skip-to-issues affordance for returning readers (no storage, plain anchor). */
+.px-wj-skip {
+  display: inline-block;
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid transparent;
+  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+.px-wj-skip:hover { color: var(--ink); border-bottom-color: var(--rule); }
+
+/* ── Registration mark — the calm progress affordance (cross-hair + numeral) ─
+   Drifts apart in the gated/offset state, converges to a single cross by default
+   (so no-JS + reduced-motion show it converged = aligned). */
+.px-wj-reg {
+  position: absolute;
+  top: 50%;
+  right: clamp(8px, 3vw, 40px);
+  transform: translateY(-50%);
+  width: 26px;
+  height: 56px;
+  z-index: 2;
+  pointer-events: none;
+  color: var(--wj-accent);
+  opacity: 0.5;
+}
+.px-wj-reg__tick {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  height: 14px;
+  background: currentColor;
+  transition: transform var(--t-page) var(--ease);
+}
+.px-wj-reg__tick--a { top: 0; transform: translateX(-50%); }
+.px-wj-reg__tick--b { bottom: 0; transform: translateX(-50%); }
+.px-wj-reg__cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity var(--t-soft) var(--ease);
+}
+.px-wj-reg__cross::before,
+.px-wj-reg__cross::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+}
+.px-wj-reg__cross::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+.px-wj-reg__cross::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+.px-wj-reg__num {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: currentColor;
+}
+/* Default = converged (cross shown, ticks centred). Offset state drifts ticks
+   apart + hides the cross — applied only while gated-hidden. Gated on any
+   [data-reveal] ancestor so the mark is reusable on the About hero too. */
+[data-reveal].is-in .px-wj-reg__cross { opacity: 0.9; }
+html.js [data-reveal]:not(.is-in) .px-wj-reg__cross { opacity: 0; }
+html.js [data-reveal]:not(.is-in) .px-wj-reg__tick--a { transform: translateX(-50%) translateY(-7px); }
+html.js [data-reveal]:not(.is-in) .px-wj-reg__tick--b { transform: translateX(-50%) translateY(7px); }
+/* the converge "lock" pulse — runs once on reveal only (JS present, motion ok) */
+@media (prefers-reduced-motion: no-preference) {
+  html.js [data-reveal].is-in .px-wj-reg { animation: pxwjLock var(--t-slow) var(--ease) 1; }
+}
+@keyframes pxwjLock {
+  0% { opacity: 0.5; }
+  40% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* ── Beat 4 — THE SNAP (two offset layers register; doorway rule crosses) ─── */
+.px-wj-snap__stack {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);   /* never size to the nowrap noise */
+  margin-top: 36px;
+  min-height: 220px;
+  place-items: center;
+  max-width: 100%;
+}
+.px-wj-snap__layer { grid-area: 1 / 1; width: 100%; min-width: 0; transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease); }
+.px-wj-snap__near { z-index: 1; opacity: 0.14; }   /* the feed echo, recedes */
+.px-wj-snap__far  { z-index: 2; opacity: 1; }      /* the structure, registered */
+/* Offset only while gated-hidden → defaults are registered (no-JS/reduce safe) */
+html.js .px-wj-beat[data-reveal]:not(.is-in) .px-wj-snap__near { transform: translateX(calc(-1 * var(--wj-off))); opacity: 0.5; }
+html.js .px-wj-beat[data-reveal]:not(.is-in) .px-wj-snap__far  { transform: translateX(var(--wj-off)); opacity: 0.55; }
+.px-wj-snap__rule {
+  grid-area: 1 / 1;
+  z-index: 3;
+  width: 100%;
+  height: 1px;
+  background: var(--wj-accent);
+  opacity: 0.85;
+  transition: transform var(--t-page) var(--ease), opacity var(--t-page) var(--ease);
+}
+html.js .px-wj-beat[data-reveal]:not(.is-in) .px-wj-snap__rule { transform: translateY(-90px); opacity: 0; }
+/* the structural panel that resolves */
+.px-wj-snap__panel {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-tile);
+  background: var(--paper);
+  padding: 26px 30px;
+  box-shadow: 0 18px 40px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+.px-wj-snap__panel-eb {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--wj-accent);
+  margin: 0 0 10px;
+}
+.px-wj-snap__panel-t {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0;
+}
+.px-wj-snap__noise {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* ── Beat 3 — DEMONSTRATE (count-up stat above a real viz) ─────────────────── */
+.px-wj-demo__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 8px 0 6px;
+}
+.px-wj-demo__num {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(56px, 11vw, 132px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--wj-accent);
+  font-variant-numeric: tabular-nums;
+}
+.px-wj-demo__unit {
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 1.6vw, 18px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-wj-demo__note {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 28px;
+  max-width: 50ch;
+}
+.px-wj-demo__viz { margin-top: 8px; }
+.px-wj-demo__hint {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 16px 0 0;
+}
+
+/* ── Beat 6 — REFUSE (refusals line + manifesto + proof badge) ────────────── */
+.px-wj-refuse__line {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(18px, 2.4vw, 26px);
+  line-height: 1.45;
+  color: var(--ink);
+  margin: 0 0 36px;
+  max-width: 58ch;
+}
+.px-wj-refuse__line b { font-weight: 500; color: var(--wj-accent); }
+.px-wj-refuse__strip { margin-top: 28px; }
+.px-wj-refuse__badge {
+  display: inline-block;
+  margin-top: 28px;
+  padding: 9px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Beat 7 — JOIN (the account sibling, appended AFTER SubscribeStrip) ────── */
+.px-wj-join { max-width: var(--col-wide); margin: -32px auto 64px; }
+.px-wj-join__account {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 60ch;
+}
+.px-wj-join__account a {
+  color: var(--wj-accent);
+  border-bottom: 1px solid color-mix(in oklab, var(--wj-accent) 40%, transparent);
+  padding-bottom: 1px;
+  white-space: nowrap;
+  transition: border-color var(--t-quick) var(--ease);
+}
+.px-wj-join__account a:hover { border-bottom-color: var(--wj-accent); }
+
+/* ── Worlds payoff heading (Beat 5 wraps the existing CategoryGrid) ────────── */
+.px-wj-worlds__head { max-width: var(--col-prose); margin: 0 auto 36px; }
+
+/* ── ABOUT additions (px-abt) — the still-frame companion ─────────────────── */
+.px-abt-specimen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 8px 0 0;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.px-abt-tile {
+  background: var(--paper);
+  padding: 22px 20px;
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.px-abt-tile[data-accent="politics"] { --tile-accent: var(--topic-politics); }
+.px-abt-tile[data-accent="space"]    { --tile-accent: var(--topic-space-deep); }
+.px-abt-tile[data-accent="earth"]    { --tile-accent: var(--topic-earth); }
+.px-abt-tile[data-accent="tech"]     { --tile-accent: var(--topic-tech-deep); }
+.px-abt-tile[data-accent="travel"]   { --tile-accent: var(--topic-travel); }
+.px-abt-tile[data-accent="sports"]   { --tile-accent: var(--topic-sports-deep); }
+.px-abt-tile__word {
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1;
+  color: var(--tile-accent);
+  letter-spacing: -0.01em;
+}
+/* one font (the sans), six colours; light treatment differences only */
+.px-abt-tile__word { font-family: var(--font-body); font-weight: 600; }
+.px-abt-tile--earth .px-abt-tile__word  { font-style: italic; }
+.px-abt-tile--tech .px-abt-tile__word   { text-transform: lowercase; }
+.px-abt-tile--sports .px-abt-tile__word { text-transform: uppercase; letter-spacing: 0.02em; }
+.px-abt-tile__tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-abt-hero { position: relative; }
+.px-abt__more {
+  display: inline-block;
+  margin-top: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-deep, var(--accent));
+  border-bottom: 1px solid color-mix(in oklab, var(--accent-deep, var(--accent)) 40%, transparent);
+  padding-bottom: 2px;
+  transition: border-color var(--t-quick) var(--ease);
+}
+.px-abt__more:hover { border-bottom-color: var(--accent-deep, var(--accent)); }
+
+/* ── Mobile: drop the parallax/offset to a calm stacked flow (<720px) ──────── */
+@media (max-width: 720px) {
+  .px-wj { --wj-off: 0px; }
+  .px-wj-beat { padding: 64px 0; }
+  .px-wj-reg { display: none; }
+  .px-wj-snap__stack { min-height: 0; }
+  .px-wj-snap__near { display: none; }     /* no offset echo to stack on mobile */
+  html.js .px-wj-beat[data-reveal]:not(.is-in) .px-wj-snap__far { transform: none; opacity: 0.001; }
+  html.js .px-wj-beat[data-reveal]:not(.is-in) .px-wj-snap__rule { transform: none; }
+  .px-abt-specimen { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Reduced-motion: belt-and-braces (motion-v2 already neutralises reveals) ─ */
+@media (prefers-reduced-motion: reduce) {
+  .px-wj-feed__frag,
+  .px-wj-snap__near,
+  .px-wj-snap__far,
+  .px-wj-snap__rule,
+  .px-wj-reg__tick,
+  .px-wj-reg__cross { transition: none !important; transform: none !important; }
+  .px-wj-snap__near { opacity: 0.14; }
+  .px-wj-snap__far { opacity: 1; }
+  .px-wj-snap__rule { opacity: 0.85; }
+  .px-wj-reg__cross { opacity: 0.9; }
+}

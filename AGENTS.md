@@ -46,7 +46,7 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts (Fraunces, Inter Tight, JetBrains Mono, Space Grotesk, Cormorant Garamond, Oswald, IBM Plex) |
+| Fonts        | Google Fonts — unified trio: **Fraunces** (serif voice: headlines, leads, nameplates, the one italic accent word), **Schibsted Grotesk** (the single sans: body, UI, structural headings — replaced Inter Tight as `--font-body`), **JetBrains Mono** (labels, eyebrows, numerals). The old per-world display faces (Space Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex) are retired; see §3 / §7. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `>=20.0.0`                                          |
 | Hosting      | Vercel (static, auto-deploy on push to `main`)      |
@@ -85,11 +85,25 @@ so it never loads on home/non-3D pages) and `core/Tilt.astro` (CSS-3D
 pointer-tilt + flip) and `core/ExpandModal.astro` (in-page expand-to-modal — on
 its ⤢ button it portals any viz card into a focused modal "study view" with a
 plain-language explainer; the page never scrolls), plus the Phase-B reader
-islands (Save, Reactions, ReadingTracker, AnnotationLayer, Letters, NewsletterForm). The contract:
+islands (Save, Reactions, ReadingTracker, AnnotationLayer, Letters, NewsletterForm),
+plus the metered soft signup gate `core/ReadingGate.astro` (client-side
+cookie-detected auth wall on issues — see §7). The contract:
 everything degrades to its final painted state under no-JS (hidden states
 are gated behind an `html.js` class set by an inline `<head>` guard) and
 under `prefers-reduced-motion`. Count-ups tween to the value already in the
 HTML. Any new interactivity must honour this contract and be justified.
+
+**Exception — the onboarding surface (`/welcome` + the home first-visit
+overlay).** "The Second Angle" is a deliberately *cinematic*, distinct-identity
+marketing/onboarding surface (its own `intro.css` palette, never touches
+article styles), so it carries **more** JS than the near-zero-JS articles:
+the `intro/IntroStory.astro` 5-scene player (auto/manual modes, keyboard +
+dots + skip) and the `intro/IntroExperience.astro` home overlay (auto-plays
+the story, then an optional spotlight tour of the real home, gated by
+`localStorage px_intro_seen_v1`; `?intro=1` force-replays). Still honours the
+fallback contract: no-JS stacks/scrolls the scenes and shows nothing for the
+overlay (hidden via the `[hidden]` attr + `html.js`/`.is-player` gating);
+reduced-motion drops auto-advance.
 
 ---
 
@@ -106,6 +120,12 @@ and signature section kinds.
 | tech     | Stripe docs / Linear changelog      | near-black | `#c6f432`   | JetBrains Mono      |
 | travel   | Condé Nast / field journal          | cream      | `#c85a3c`   | Cormorant Garamond  |
 | sports   | The Athletic / match programme      | pitch green| `#e8f048`   | Oswald (Druk proxy) |
+
+**The "Display font" column is historical.** As of 2026-06-21 the type system
+is unified product-wide to the Fraunces / Schibsted Grotesk / JetBrains Mono
+trio (§2, §7) — the worlds no longer carry per-world display faces. They now
+differ by **accent colour + treatment** (case / weight / italic / ornament /
+motif), not typeface. The table records what each world used to be.
 
 Each topic also has a `-deep` accent variant in `meta.css` for large text on
 light paper where the vivid accent would fail WCAG contrast. See
@@ -125,12 +145,19 @@ src/
 │   └── issues/<slug>/index.mdx
 ├── layouts/
 │   ├── HomeLayout.astro       ← used by / and /topics/* and /about
-│   └── IssueLayout.astro      ← used by /issues/*
+│   ├── IssueLayout.astro      ← used by /issues/*
+│   └── IntroLayout.astro      ← minimal full-bleed shell for the onboarding
+│                                surface (no .px-wrap/masthead; loads only the
+│                                trio fonts + intro.css). Used by /welcome.
 ├── pages/
 │   ├── index.astro            ← home: chord + strip + category grid + archive
+│   │                            + <IntroExperience/> first-visit overlay
 │   ├── about.astro
+│   ├── welcome.astro          ← standalone full-screen auto-playing intro
+│   │                            story (IntroLayout + IntroStory)
 │   ├── rss.xml.ts
-│   ├── issues/[slug].astro    ← dynamic issue route (one per published+draft)
+│   ├── issues/[slug].astro    ← dynamic issue route (one per published+draft);
+│   │                            mounts core/ReadingGate.astro (soft signup wall)
 │   └── topics/[topic].astro   ← dynamic: 6 routes, dispatches to <Topic>Index
 ├── components/
 │   ├── SectionRenderer.astro  ← single dispatcher: section.kind → component
@@ -138,8 +165,13 @@ src/
 │   │                            Primer, Section, Quote, Prose, Comparison,
 │   │                            DataReadout, BeatSheet, Sources, Colophon,
 │   │                            ReadingToolbar [replaced SkimToggle], the
-│   │                            Reveal + VizMotion motion islands, and the
-│   │                            Viz3DRuntime + Tilt islands for the 3D library)
+│   │                            Reveal + VizMotion motion islands, the
+│   │                            Viz3DRuntime + Tilt islands for the 3D library,
+│   │                            and ReadingGate [metered soft signup wall])
+│   ├── intro/                 ← onboarding ("The Second Angle"): IntroStory
+│   │                            (5-scene player), IntroExperience (home
+│   │                            first-visit overlay + spotlight tour),
+│   │                            WorldViz (per-category mini data-viz)
 │   ├── home/                  ← meta-brand pieces (TypographicChord,
 │   │                            TopicStrip, CategoryCard, CategoryGrid,
 │   │                            ArchiveList, FeaturedIssue)
@@ -151,6 +183,11 @@ src/
 │   ├── components-3d.css      ← shared 3D mechanics (.px3d-* tilt/flip) + the .viz3d WebGL mount for the v2 3D/interactive library
 │   ├── viz-type.css           ← unified data-viz type scale (caption/axis/legend/value label roles)
 │   ├── modal.css              ← ExpandModal lightbox (in-page expand-to-modal study view)
+│   ├── intro.css              ← onboarding design system (px-intro scenes/player
+│   │                            + px-xp home overlay/tour). Own palette tokens;
+│   │                            loaded only where the intro/overlay render.
+│   │                            (welcome.css is now largely superseded — survives
+│   │                            only for AccountLine + the About px-abt bits.)
 │   └── themes/<topic>.css     ← Layer B — full theme per topic
 ├── lib/
 │   └── text.ts                ← renderEmphasis, renderInline,
@@ -332,19 +369,46 @@ em-dashes still needs to be fixed.
 
 ### Visual rules
 
+- **Unified type system (product-wide).** One trio everywhere: **Fraunces**
+  (serif voice), **Schibsted Grotesk** (the single sans / `--font-body`),
+  **JetBrains Mono** (labels / numerals). The six worlds differ by **accent
+  colour + treatment** (case / weight / italic / ornament / motif), **not**
+  by typeface — do not reintroduce per-world display faces. Single lever:
+  `src/styles/type-v2.css` normalises `--font-display`/`--font-body`/
+  `--font-mono` + `--issue-face`/`--face-*` across `:root` and all six
+  `:root[data-topic]`, imported last so it wins. The §3 topics-table
+  "Display font" column is historical only.
 - **Minimal JS, progressive enhancement only.** The client-side JS is a
   small set of tiny vanilla `is:inline` islands (no framework):
   `core/Reveal.astro` (scroll-reveal), `core/VizMotion.astro` (count-up +
   cursor-warmth), `core/ReadingToolbar.astro` (reading progress + Full/Skim
-  toggle + Save), plus the Phase-B reader islands. Every other component is
-  pure Astro / CSS. Contract: all of it degrades to the final painted state
-  under no-JS (hidden states gated behind an `html.js` class) and
-  `prefers-reduced-motion`. New interactivity must honour this and be
-  justified.
+  toggle + Save), the Phase-B reader islands, and `core/ReadingGate.astro`.
+  Every other component is pure Astro / CSS. Contract: all of it degrades to
+  the final painted state under no-JS (hidden states gated behind an
+  `html.js` class) and `prefers-reduced-motion`. New interactivity must
+  honour this and be justified. **Sole exception:** the onboarding surface
+  ("The Second Angle" — `/welcome` + the home first-visit overlay) is a
+  distinct-identity marketing surface and intentionally carries more JS (the
+  IntroStory player + IntroExperience overlay/spotlight tour); it still
+  honours the no-JS + reduced-motion fallback contract (see §2).
+- **Metered soft signup gate.** `core/ReadingGate.astro` (mounted in
+  `issues/[slug].astro`) shows anonymous readers the primer + first 2
+  sections, then a per-topic-themed "create a free account to finish" wall;
+  the rest of the article + sources + interaction blocks are hidden. Auth is
+  detected **client-side** via the shared, client-readable
+  `sb-<ref>-auth-token` cookie (`@supabase/ssr` sets it non-HttpOnly on
+  `.parallaxlens.com`). **Soft by design** — the publication is static, so
+  teaser content is in the page source: chosen over a hard server gate to
+  keep teasers shareable + Google-indexable. No-JS / crawlers ⇒ the gate
+  stays hidden ⇒ the full article renders (SEO-safe). Intro CTAs funnel to
+  `app/login?next=`.
 - **CSS class prefix isolation.** Each component owns a unique `px-<abbrev>`
   prefix (≤6 chars). Check `meta.css` for collisions before choosing — the
   `px-strip` namespace is owned by `TopicStrip`; the climate-strip
-  component uses `px-cstrip` to avoid it.
+  component uses `px-cstrip` to avoid it. Reserved: `px-intro` + `px-xp`
+  (intro experience + home overlay/tour, in `intro.css`), `px-gate` (the
+  reading gate); `px-wj` / `px-abt` survive from the onboarding pass
+  (AccountLine + About).
 - **No sitemap integration.** `@astrojs/sitemap` was tried and removed —
   it errored on the collection shape. Verify before re-adding.
 
@@ -391,6 +455,48 @@ em-dashes still needs to be fixed.
 ---
 
 ## 10. Change log for this file
+
+### 2026-06-21 — Unified type trio + "The Second Angle" onboarding + signup gate
+
+Three product-wide shifts (all shipped in-repo, build-green, uncommitted —
+operator commits/deploys). **(1) Unified type system:** collapsed ~11 fonts
+to a strict trio used everywhere — Fraunces (serif voice), Schibsted Grotesk
+(the single sans, replacing Inter Tight as `--font-body`), JetBrains Mono
+(labels/numerals). The six worlds no longer carry per-world display faces;
+they differ by accent colour + treatment. Retired as differentiators: Space
+Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex. Single lever:
+`src/styles/type-v2.css` (imported last). Updated §2 Fonts row, §3 note, §7
+visual rules. **(2) "The Second Angle" onboarding:** a distinct-identity,
+cinematic first-visit surface (own `intro.css` palette) — new
+`src/layouts/IntroLayout.astro`, `src/components/intro/{IntroStory,
+IntroExperience,WorldViz}.astro`, `src/styles/intro.css`. `/welcome` rebuilt
+as the standalone story; `index.astro` mounts the home first-visit overlay +
+spotlight tour (gated by `localStorage px_intro_seen_v1`, `?intro=1`
+replays). Documented as the sole more-JS exception to the minimal-JS rule
+(still no-JS / reduced-motion safe). `welcome.css` now largely superseded.
+**(3) Metered soft signup gate:** `core/ReadingGate.astro`, mounted in
+`issues/[slug].astro` — primer + 2 sections free, then a per-topic wall;
+client-side auth via the shared `sb-<ref>-auth-token` cookie. Soft by design
+(static site, SEO-safe: no-JS/crawlers see the full article). New prefix
+reservations: `px-intro`, `px-xp`, `px-gate`. Full detail in `docs/PROJECT.md`.
+
+### 2026-06-04 — First full editorial run (6 issues) + title-emphasis fix
+
+Produced one issue per category end-to-end (research → draft → stylist →
+verify) **on Opus via the Claude Code route**, then flipped all six to
+`status: published` and the operator **committed + pushed them live** on
+2026-06-04 (build-green + frontend-verified; go-live was the operator's step,
+since git here is owner-locked to the `user` account). Slugs under
+`src/content/issues/2026-06-04-*`: `cockroach-janta-party` (politics,
+sensitive), `asteroid-2024-yr4` (space), `amazon-tipping-point` (earth),
+`ai-coding-token-bill` (tech), `queue-is-the-product` (travel),
+`arsenal-set-piece-title` (sports). Confirmed the route policy now in §5 +
+`CLAUDE.md`: Claude Code route = Opus on every phase; the
+`pipeline.config.ts` Sonnet/Opus split is API-CLI only. Also fixed an
+emphasis leak — `*…*` in issue titles rendered literally in
+`<title>`/`og:title`/RSS; added `stripEmphasis()` to `src/lib/text.ts`,
+applied in both layouts + `rss.xml.ts`. Full detail in `docs/PROJECT.md` §12
+(2026-06-04).
 
 ### 2026-06-03 — 3D / interactive component library (30 kinds)
 Added a 30-kind interactive + 3D section library (5 per world): 4 lazy WebGL

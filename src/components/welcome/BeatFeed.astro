@@ -1,0 +1,61 @@
+---
+/**
+ * Beat 1 — THE FEED. Cold open: name the reader's exhaustion before the brand
+ * appears. A frozen six-accent wall of fragmentary feed-noise (static HTML, no
+ * raster, no CLS) settles behind the headline on reveal. Spends the issue's one
+ * permitted "It is not X. It is Y." reframe deliberately — it is the argument.
+ */
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  /** Heading tag — 'h1' on /welcome, 'h2' when used inside the home opener. */
+  tag?: string;
+  /** Optional bridge link (home opener → the full /welcome journey). */
+  cta?: { href: string; label: string };
+}
+const { tag = 'h2', cta } = Astro.props;
+const Heading = tag;
+
+// Frozen feed fragments. Generic feed-speak only — no real outlet names, no
+// fabricated facts. Positions hardcoded (deterministic build).
+const frags = [
+  { t: 'BREAKING', a: 'politics', top: '6%',  left: '3%',  rot: '-3deg', ping: true },
+  { t: 'your feed refreshed 47 times today', a: 'tech', top: '3%', left: '34%', rot: '-1deg' },
+  { t: 'TRENDING', a: 'sports', top: '9%', left: '76%', rot: '3deg', ping: true },
+  { t: "you won't believe what happened next", a: 'travel', top: '17%', left: '55%', rot: '2deg' },
+  { t: '5 things to know before 9am', a: 'earth', top: '22%', left: '9%', rot: '-1deg' },
+  { t: 'LIVE', a: 'space', top: '29%', left: '83%', rot: '4deg', ping: true },
+  { t: '↑ 2.4k shares', a: 'politics', top: '37%', left: '31%', rot: '-2deg' },
+  { t: 'opinion: why everyone is wrong', a: 'tech', top: '45%', left: '5%', rot: '1deg' },
+  { t: '•••', a: 'sports', top: '43%', left: '90%', rot: '0deg', ping: true },
+  { t: 'sponsored', a: 'travel', top: '52%', left: '63%', rot: '-3deg' },
+  { t: '12 reasons the market is crashing', a: 'space', top: '60%', left: '20%', rot: '2deg' },
+  { t: 'watch: the clip going viral', a: 'earth', top: '67%', left: '70%', rot: '-1deg' },
+  { t: 'developing story', a: 'politics', top: '74%', left: '41%', rot: '3deg' },
+  { t: 'hot take', a: 'tech', top: '80%', left: '8%', rot: '-2deg', ping: true },
+  { t: "share before it's deleted", a: 'travel', top: '88%', left: '37%', rot: '1deg' },
+  { t: 'NEW', a: 'sports', top: '86%', left: '79%', rot: '4deg', ping: true },
+];
+---
+<section class="px-wj-beat px-wj-feed" data-accent="politics" data-reveal>
+  <div class="px-wj-feed__wall" aria-hidden="true">
+    {frags.map((f) => (
+      <span
+        class={`px-wj-feed__frag${f.ping ? ' px-wj-feed__frag--ping' : ''}`}
+        data-accent={f.a}
+        style={`top:${f.top};left:${f.left};--rot:${f.rot}`}
+      >{f.t}</span>
+    ))}
+  </div>
+
+  <div class="px-wj-beat__inner px-wj-feed__content">
+    <p class="px-wj__eyebrow" data-reveal-row>You already know this feeling</p>
+    <Heading class="px-wj__headline" data-reveal-row set:html={renderEmphasis('You read all day and remember *none* of it.')} />
+    <p class="px-wj__dek" data-reveal-row>The feed is built to be fast. Fast is the opposite of understood.</p>
+    {cta && (
+      <p class="px-wj-feed__cta" data-reveal-row>
+        <a href={cta.href}>{cta.label}</a>
+      </p>
+    )}
+  </div>
+</section>

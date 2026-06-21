@@ -1,0 +1,28 @@
+---
+/**
+ * Beat 5 — THE SIX WORLDS (payoff). The publication revealed: the one earned
+ * moment all six accents reappear, ordered not colliding. Reuses the existing
+ * CategoryGrid + CategoryCard verbatim (the cherished cards), each linking to
+ * its /topics/* index.
+ */
+import { renderEmphasis } from '../../lib/text';
+import CategoryGrid from '../home/CategoryGrid.astro';
+import type { CollectionEntry } from 'astro:content';
+import type { Topic } from '../../content/config';
+
+interface Props {
+  issuesByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>>;
+  issueNumberFor: (slug: string) => number;
+}
+const { issuesByTopic, issueNumberFor } = Astro.props;
+---
+<section class="px-wj-beat px-wj-beat--wide" data-reveal>
+  <div class="px-wj-worlds__head">
+    <p class="px-wj__eyebrow" data-reveal-row>The publication</p>
+    <h2 class="px-wj__headline" data-reveal-row set:html={renderEmphasis('Six worlds. One way of *seeing*.')} />
+    <p class="px-wj__dek" data-reveal-row>
+      Politics, space, earth, tech, travel, sports. Each one its own light. None of them a feed.
+    </p>
+  </div>
+  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} cols={2} />
+</section>

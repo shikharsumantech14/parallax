@@ -28,6 +28,18 @@ Components split into:
   `section.kind` from the issue MDX, renders the matching component, and
   passes through the section's `data` payload.
 
+**One 3-font type system (2026-06-21, supersedes per-topic display fonts).**
+The product now uses a single trio everywhere — **Fraunces** (serif: headlines,
+leads, nameplates, the one italic accent word), **Schibsted Grotesk** (sans:
+body, UI, structural headings; replaced Inter Tight as `--font-body`), and
+**JetBrains Mono** (labels, eyebrows, numerals). The six worlds no longer carry
+per-world display fonts (Space Grotesk / Cormorant / Oswald etc. are retired) —
+they differ by **accent colour + treatment** (case / weight / italic / ornament /
+motif), not typeface. Normalised in `src/styles/type-v2.css` (imported last so it
+wins); also touches `meta.css`, the six `themes/<topic>.css`, and SVG
+`font-family` in `RegionMap`/`CarbonGauge` (now Fraunces, not Cormorant — note
+this overrides the old §5 "Display labels: Cormorant Garamond" guidance).
+
 ---
 
 ## 2. Section-kind → component map
@@ -260,9 +272,10 @@ Any component that emits inline SVG must follow these:
   `filter: drop-shadow(...)`), then fill group with borders. Creates
   raised-land depth without SVG-filter complexity.
 - **SVG text fonts.** Use
-  `style="font-family:'Cormorant Garamond',Georgia,serif"` — *not* the
+  `style="font-family:'Fraunces',Georgia,serif"` — *not* the
   `font-family="..."` presentation attribute. CSS variables do not work
-  in SVG presentation attributes. Display labels: Cormorant Garamond.
+  in SVG presentation attributes. Display labels: Fraunces (the serif voice;
+  changed from Cormorant Garamond on 2026-06-21 with the unified type system).
   Coord/axis text: JetBrains Mono.
 - **Text halo.** `paint-order="stroke"` plus a `stroke` on the SVG `<text>`
   for readable labels over any fill. Never use a separate shadow element.
@@ -346,6 +359,7 @@ These render directly in templates, not via the dispatcher:
 | `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) |
 | `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
 | `core/Banner.astro` | inline in `[slug].astro` (per-issue standing plate; carries the per-world register readout — telemetry orbit / atlas coords / build hash / vol-no / matchday — that the unified masthead no longer shows) |
+| `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
 | `core/Colophon.astro` | in both layouts (editorial footer; replaced `core/Footer.astro`) |
 | `core/Reveal.astro` | both layouts, after content — scroll-reveal island (adds `.is-in` to `[data-reveal]`) |
@@ -353,6 +367,9 @@ These render directly in templates, not via the dispatcher:
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
 | `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. |
+| `intro/IntroStory.astro` | `welcome.astro` (and inside `IntroExperience`) — the 5-scene "The Second Angle" onboarding player. Vanilla `is:inline` player (auto/manual, prev/next/dots/skip/keyboard); no-JS scenes stack + scroll. `px-intro`. |
+| `intro/IntroExperience.astro` | `index.astro`, once — home first-visit overlay. Auto-plays the story, then an optional spotlight tour of the real home. Gated by localStorage `px_intro_seen_v1`; `?intro=1` force-replays; `[hidden]` by default (no-JS shows nothing). `px-xp`. |
+| `intro/WorldViz.astro` | inside `IntroStory` — per-category mini data-viz on the six worlds cards (vote split / orbit / stripes / commit grid / route / momentum wave) |
 | `home/*` | in home + topic-index templates |
 | `topic/<topic>/<Topic>Index.astro` | dispatched from `src/pages/topics/[topic].astro` |
 
@@ -378,6 +395,10 @@ experience.
 | `px-mstrip` | ManifestoStrip (home, three editorial promises — v2 `.mf-strip` port) |
 | `px-sub` | SubscribeStrip (home, editorial `.sub` framing wrapping NewsletterForm) |
 | `px-col` | Colophon (editorial footer, replaces Footer in both layouts — v2 `.col` port) |
+| `px-intro` | "The Second Angle" onboarding (scenes/player/controls, in `intro.css`) |
+| `px-xp` | home first-visit overlay + spotlight tour (`IntroExperience`, in `intro.css`) |
+| `px-gate` | ReadingGate (metered signup wall, scoped in `ReadingGate.astro`) |
+| `px-wj` / `px-abt` | now mainly serve AccountLine + About (the rest of the earlier welcome pass is retired) |
 
 ### Client island pattern
 
@@ -433,6 +454,12 @@ The finish sentinel for `ReadingTracker` is a
 `<span id="px-finish-sentinel">` placed **inside the article element**
 just before the closing `</article>` tag. `AnnotationLayer.astro` and
 `ReactionsBar.astro` render **outside** the article, after it.
+
+**Orphaned/retired (2026-06-21).** An earlier "issue-like" onboarding pass is
+superseded by `intro/`: `intro/RegistrationMark.astro`, the
+`welcome/Beat*.astro` set, and most of `welcome/` are now unused. `welcome.css`
+survives only for `AccountLine` (`px-wj-join`, used on home + welcome) and the
+About `px-abt` / `px-wj-reg` bits.
 
 When adding a meta-brand or layout-chrome piece, render it directly. Only
 narrative section components flow through `SectionRenderer.astro`.
@@ -603,6 +630,32 @@ unlisted (excluded from the archive + RSS). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-06-21 — unified type system + onboarding + signup gate
+- **One 3-font system (§1).** Collapsed ~11 fonts to **Fraunces** (serif) +
+  **Schibsted Grotesk** (sans, replaced Inter Tight as `--font-body`) +
+  **JetBrains Mono**. Worlds now differ by accent colour + treatment, not
+  per-world display fonts (Space Grotesk / Cormorant / Oswald etc. retired).
+  Normalised in `src/styles/type-v2.css` (imported last); also `meta.css`, the
+  six `themes/<topic>.css`, `home/CategoryCard.astro`, and SVG `font-family` in
+  `RegionMap`/`CarbonGauge`. This overrides the old §5 "Display labels:
+  Cormorant Garamond" note.
+- **"The Second Angle" onboarding (§7).** New `intro/` components in a distinct
+  cinematic identity (scoped to `px-intro` / `px-xp` in `src/styles/intro.css`,
+  loaded via `src/layouts/IntroLayout.astro`): `IntroStory` (5-scene player),
+  `IntroExperience` (home first-visit overlay + spotlight tour, gated by
+  localStorage `px_intro_seen_v1`, `?intro=1` replays), `WorldViz` (per-category
+  mini data-viz). `welcome.astro` rebuilt as a standalone story; `index.astro`
+  mounts the overlay. No-JS / reduced-motion safe.
+- **Retired/orphaned (§7).** `intro/RegistrationMark.astro` + the earlier
+  `welcome/Beat*.astro` issue-like pass are now unused; `welcome.css` survives
+  only for AccountLine + About.
+- **Metered signup gate (§7).** New `core/ReadingGate.astro` (`px-gate`),
+  mounted in `[slug].astro` — soft wall after primer + first 2 sections;
+  client-side cookie auth heuristic; no-JS / crawlers render the full article
+  (SEO-safe).
+- **Prefix reservations (§8):** added `px-intro`, `px-xp`, `px-gate`; noted
+  `px-wj` / `px-abt` now mainly serve AccountLine + About.
 
 ### 2026-06-03 — expand-to-modal + unified viz typography
 - **Expand-to-modal.** New `core/ExpandModal.astro` (+ `src/styles/modal.css`,

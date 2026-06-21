@@ -1,0 +1,61 @@
+---
+/**
+ * Beat 3 — DEMONSTRATE. Show, don't tell: a familiar number counts up to a
+ * value most people don't carry, then a real published-issue viz (the warming
+ * stripes) resolves beneath it. The ExpandModal ⤢ (rendered once on the page)
+ * lets the curious open it into the "what you're looking at" study view — so
+ * "visuals make hard things easy" is felt, not asserted.
+ */
+import { renderEmphasis } from '../../lib/text';
+import ClimateStrip from '../topic/earth/ClimateStrip.astro';
+
+interface Props {
+  tag?: string;
+}
+const { tag = 'h2' } = Astro.props;
+const Heading = tag;
+
+// Global surface temperature anomaly, °C above the 1850–1900 average.
+// Illustrative series from the public record (Berkeley Earth / NASA GISS).
+const warming = [
+  { year: 1900, value: -0.02 }, { year: 1910, value: -0.42 },
+  { year: 1920, value: -0.22 }, { year: 1930, value: -0.13 },
+  { year: 1940, value: 0.12 },  { year: 1950, value: -0.06 },
+  { year: 1960, value: 0.03 },  { year: 1970, value: 0.00 },
+  { year: 1980, value: 0.30 },  { year: 1990, value: 0.45 },
+  { year: 1995, value: 0.46 },  { year: 2000, value: 0.55 },
+  { year: 2005, value: 0.68 },  { year: 2010, value: 0.72 },
+  { year: 2015, value: 0.90 },  { year: 2016, value: 1.02 },
+  { year: 2018, value: 0.85 },  { year: 2020, value: 1.02 },
+  { year: 2023, value: 1.17 },  { year: 2024, value: 1.29 },
+];
+---
+<section class="px-wj-beat px-wj-beat--wide" data-accent="earth" data-reveal>
+  <div class="px-wj-beat__inner">
+    <p class="px-wj__eyebrow" data-reveal-row>Show, don't tell</p>
+    <Heading class="px-wj__headline" data-reveal-row set:html={renderEmphasis('Take any story you think you already *understand*.')} />
+    <p class="px-wj__dek" data-reveal-row>
+      We rebuild it from the structure up. The shape was there the whole time; the feed just never showed it to you.
+    </p>
+
+    <div class="px-wj-demo__stat" data-reveal-row>
+      <span class="px-wj-demo__num" data-countup="424">424</span>
+      <span class="px-wj-demo__unit">ppm CO₂</span>
+    </div>
+    <p class="px-wj-demo__note" data-reveal-row>
+      Three hundred and fifty parts per million was the ceiling scientists called safe. We passed it in 1988, and never came back.
+    </p>
+  </div>
+
+  <div class="px-wj-beat__inner px-wj-demo__viz">
+    <ClimateStrip
+      values={warming}
+      palette="warming"
+      baseline="1850–1900"
+      unit="°C"
+      caption="A century and a quarter of warming, one stripe per reading"
+      source="Berkeley Earth · NASA GISS"
+    />
+    <p class="px-wj-demo__hint">Sit with one. Open it up ⤢</p>
+  </div>
+</section>

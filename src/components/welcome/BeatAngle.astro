@@ -1,0 +1,28 @@
+---
+/**
+ * Beat 2 — THE SECOND ANGLE. Name the brand as the escape and introduce the
+ * registration mark (in its offset state). The page has resolved from the
+ * six-accent feed to a single calm accent and one column.
+ */
+import { renderEmphasis } from '../../lib/text';
+import RegistrationMark from './RegistrationMark.astro';
+
+interface Props {
+  tag?: string;
+}
+const { tag = 'h2' } = Astro.props;
+const Heading = tag;
+---
+<section class="px-wj-beat" data-accent="space" data-reveal>
+  <RegistrationMark num="02" />
+  <div class="px-wj-beat__inner">
+    <p class="px-wj__eyebrow" data-reveal-row>The second angle</p>
+    <Heading class="px-wj__headline" data-reveal-row set:html={renderEmphasis('Parallax is the shift you get from a second *angle*.')} />
+    <p class="px-wj__dek" data-reveal-row>
+      Move your viewpoint and the world rearranges. We do that to one story at a time.
+    </p>
+    <p class="px-wj__dek" data-reveal-row>
+      One topic per issue. Read in six minutes, argued over sixty days.
+    </p>
+  </div>
+</section>

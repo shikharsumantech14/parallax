@@ -1,0 +1,19 @@
+---
+/**
+ * /welcome — "The Second Angle", the standalone cinematic intro experience in
+ * its own identity (full-bleed, own fonts + palettes). Auto-plays the 5-scene
+ * story; degrades to a scrollable stack of scenes with no JS. The home page
+ * runs the same story as a first-visit overlay (IntroExperience).
+ */
+import IntroLayout from '../layouts/IntroLayout.astro';
+import IntroStory from '../components/intro/IntroStory.astro';
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+---
+
+<IntroLayout
+  title="Why Parallax — the second angle"
+  description="See the idea behind Parallax: a calm, sourced, reader-funded escape from the feed. One topic per issue, rebuilt from the structure up until you can see its shape."
+>
+  <IntroStory auto="load" homeHref="/" appUrl={appUrl} />
+</IntroLayout>

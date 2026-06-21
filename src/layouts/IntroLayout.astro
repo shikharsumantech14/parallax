@@ -1,0 +1,51 @@
+---
+/**
+ * IntroLayout — a minimal, full-bleed HTML shell for the standalone intro
+ * experience (/welcome). Deliberately does NOT use the publication's `.px-wrap`
+ * container or press masthead — the intro owns the whole viewport in its own
+ * identity. Loads the same Google Fonts link (so the new intro faces resolve)
+ * and only intro.css. The articles' layout/system are untouched.
+ */
+import { stripEmphasis } from '../lib/text';
+import '../styles/intro.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{stripEmphasis(title)}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content={stripEmphasis(title)} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;700;800&display=swap"
+    />
+
+    <style is:inline>
+      html, body { margin: 0; padding: 0; }
+      body { background: #07090f; color: #f4f1ea; }
+      @media (prefers-color-scheme: light) { body { background: #07090f; } }
+    </style>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

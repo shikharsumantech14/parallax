@@ -42,7 +42,7 @@ comments, engagement metrics, trackers.
 | Content      | **Astro Content Collections** + MDX (@astrojs/mdx 3.1.x) |
 | Types        | **TypeScript 5.6** strict       |
 | Styles       | Plain CSS, CSS custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts (Fraunces, Inter Tight, JetBrains Mono, Space Grotesk, Cormorant Garamond, Oswald, IBM Plex Sans/Mono) |
+| Fonts        | Google Fonts — **one strict 3-font system**: Fraunces (serif voice — headlines, leads, nameplates, the italic accent word), Schibsted Grotesk (the single sans — body, UI, structural headings), JetBrains Mono (labels, eyebrows, numerals). The old per-world display fonts (Space Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex) are retired; worlds now differ by **accent colour + treatment**, not font. |
 | Feed         | **@astrojs/rss 4.0.x**          |
 | 3D / WebGL   | **three** (lazy-loaded + code-split; only the 4 WebGL globe kinds) |
 | Data viz     | build-time SVG + CSS-3D; `d3-geo` / `topojson-client` / `world-atlas` (maps + the 3D globe) |
@@ -81,16 +81,20 @@ npm run new-issue  # scaffold a new issue folder (scripts/new-issue.mjs)
 
 ### 3.2 Topic worlds
 
-Each topic has its own visual identity. Current themes:
+Each topic has its own visual identity. Since the unified type system landed
+(2026-06-21) every world shares the same 3-font trio (Fraunces / Schibsted
+Grotesk / JetBrains Mono); worlds are now differentiated by **accent colour +
+treatment** (case / weight / italic / ornament / motif), not by a per-world
+display font. Current themes:
 
-| Topic    | Vibe                                | BG         | Accent      | Display font        |
-| -------- | ----------------------------------- | ---------- | ----------- | ------------------- |
-| politics | The Hindu / Caravan broadsheet      | warm paper | oxide red   | Fraunces serif      |
-| space    | NASA / JPL mission control          | deep navy  | bright cyan | Space Grotesk       |
-| earth    | USGS / National Geographic atlas    | map paper  | forest green| Cormorant Garamond  |
-| tech     | Stripe docs / Linear changelog      | near-black | lime        | JetBrains Mono      |
-| travel   | Condé Nast / field journal          | cream      | terracotta  | Cormorant Garamond  |
-| sports   | The Athletic / match programme      | pitch green| neon lime   | Oswald (Druk proxy) |
+| Topic    | Vibe                                | BG         | Accent      | Differentiator (font is shared) |
+| -------- | ----------------------------------- | ---------- | ----------- | ------------------------------- |
+| politics | The Hindu / Caravan broadsheet      | warm paper | oxide red   | Fraunces serif + red drop-cap   |
+| space    | NASA / JPL mission control          | deep navy  | bright cyan | cyan + telemetry / cursor mono  |
+| earth    | USGS / National Geographic atlas    | map paper  | forest green| italic serif + coord ornament   |
+| tech     | Stripe docs / Linear changelog      | near-black | lime        | lowercase mono + lime slash     |
+| travel   | Condé Nast / field journal          | cream      | terracotta  | italic + terracotta underline   |
+| sports   | The Athletic / match programme      | pitch green| neon lime   | uppercase bracketed treatment   |
 
 ### 3.3 Masthead variants
 
@@ -133,7 +137,7 @@ travel-on-paper no longer collapse into the same gestalt:
 | earth    | `SHEET 01 · 14.6°N · 121.0°E`     | italic serif "Earth" + sage coords below | Turn the sheet →   |
 | tech     | `$ parallax/tech v0.1.0` prompt   | mono lowercase "tech/" with lime slash | → git pull          |
 | travel   | dashed PRX stamp box top-left     | italic "Travel" with terracotta underline | Open the postcard → |
-| sports   | `MATCHDAY 01 · KO 15:00`          | uppercase Oswald `[ SPORTS ]` brackets | Read the match report → |
+| sports   | `MATCHDAY 01 · KO 15:00`          | uppercase bracketed `[ SPORTS ]` treatment | Read the match report → |
 
 Cards scope `data-topic` locally so politics reds and space cyans don't
 leak to neighbours. Each card also carries a **topic-signature backdrop
@@ -396,16 +400,24 @@ Dispatched by `SectionRenderer.astro` based on `section.kind`:
 src/
 ├── layouts/
 │   ├── HomeLayout.astro     # used by / and /topics/* and /about
-│   └── IssueLayout.astro    # used by /issues/*
+│   ├── IssueLayout.astro    # used by /issues/*
+│   └── IntroLayout.astro    # minimal full-bleed shell for the intro (no masthead/.px-wrap; trio fonts + intro.css)
 ├── pages/
-│   ├── index.astro          # home: chord + strip + featured + archive
-│   ├── about.astro
+│   ├── index.astro          # home: chord + strip + featured + archive; mounts <IntroExperience/> (first-visit overlay)
+│   ├── about.astro          # redesigned still-frame; six-world type specimen is now one font + colour
 │   ├── rss.xml.ts
-│   ├── issues/[slug].astro
+│   ├── issues/[slug].astro  # mounts <ReadingGate/> metered soft signup wall
+│   ├── welcome.astro        # rebuilt: standalone full-screen auto-playing "Second Angle" story (IntroLayout + IntroStory)
 │   └── topics/[topic].astro # dynamic: 5 routes, getStaticPaths from TOPICS
 ├── components/
+│   ├── intro/               # "The Second Angle" first-visit onboarding (distinct identity, px-intro/px-xp)
+│   │   ├── IntroStory.astro       # 5-scene player (feed→shift→rebuild→worlds→join)
+│   │   ├── IntroExperience.astro  # home first-visit overlay + spotlight tour (px_intro_seen_v1; ?intro=1 replays)
+│   │   ├── WorldViz.astro         # per-category mini data-viz on the worlds cards
+│   │   └── RegistrationMark.astro # (legacy from the earlier issue-like pass — now orphaned)
 │   ├── core/                # topic-agnostic
 │   │   ├── Masthead.astro   # 6 variants
+│   │   ├── ReadingGate.astro # metered soft signup wall (primer + 2 sections, then themed account wall)
 │   │   ├── Hero.astro
 │   │   ├── Section.astro
 │   │   ├── Quote.astro
@@ -478,6 +490,8 @@ src/
 ├── styles/
 │   ├── base.css             # Layer A — topic-agnostic rhythm
 │   ├── meta.css             # Meta brand tokens + home/topic-index styles
+│   ├── intro.css            # "The Second Angle" intro design system (px-intro scenes/player + px-xp home overlay/tour; own palette tokens)
+│   ├── welcome.css          # largely superseded — survives only for AccountLine (px-wj) + About px-abt bits
 │   └── themes/
 │       ├── politics.css     # Layer B — full theme
 │       ├── space.css        # Layer B — full theme (dark mission-control)
@@ -509,6 +523,31 @@ them without discussion.
   Fraunces again (italic, lighter weight) for the dek. Never revert to the
   old four-font ransom-note composition (Oswald + Cormorant + Space Grotesk
   + Fraunces all on one line). One italic accent word only.
+- **Unified 3-font type system (2026-06-21).** The whole product uses exactly
+  three faces — **Fraunces** (serif voice), **Schibsted Grotesk** (the single
+  sans, `--font-body`), **JetBrains Mono** (labels/numerals). The six worlds
+  **no longer carry per-world display fonts**; they differ by **accent colour +
+  treatment** (case / weight / italic / ornament / motif). `type-v2.css` is
+  imported last and normalises `--font-display`/`--issue-face`/`--face-*` to
+  Fraunces across `:root` and all six `:root[data-topic]`, so it wins. Do not
+  reintroduce Space Grotesk / Cormorant Garamond / Oswald / Inter Tight / IBM
+  Plex as world differentiators, and keep SVG `font-family` strings on the trio.
+- **Onboarding is a distinct-identity surface.** "The Second Angle" intro
+  (`/welcome`, the home first-visit overlay, the spotlight tour) is a
+  marketing/onboarding world, not an article. It is allowed to carry **more JS
+  than the near-zero-JS publication** for its cinematic player, *provided* it
+  keeps a graceful no-JS fallback (scenes stack & scroll; hidden states gated
+  behind `html.js` + `.is-player`) and honours `prefers-reduced-motion` (no
+  auto-advance). It is fully scoped under `.px-intro` / `.px-xp` in `intro.css`
+  with its own palette tokens and never touches article styles.
+- **Metered soft signup gate.** `core/ReadingGate.astro` (mounted in
+  `issues/[slug].astro`) shows anonymous readers the primer + first 2 sections,
+  then a per-topic-themed "create a free account to finish" wall; the rest is
+  hidden. **Soft by design** — teaser content is in the page source (the site is
+  static), chosen over a hard server gate to keep teasers shareable +
+  Google-indexable. Auth is detected client-side via the shared non-HttpOnly
+  `sb-<ref>-auth-token` cookie. No-JS / crawlers ⇒ the gate stays hidden ⇒ the
+  full article renders (SEO-safe). Prefix: `px-gate`.
 - **Byline.** `author` is schema-optional with no default. If absent, the
   Hero component omits the "By" line entirely. No hardcoded names anywhere
   in `src/`.
@@ -545,9 +584,10 @@ them without discussion.
   - **Two-pass country rendering** — shadow group (no stroke,
     `filter: drop-shadow(...)`) then fill group (with borders). Creates
     raised-land depth without SVG filter complexity.
-  - **SVG text fonts** — use `style="font-family:'Cormorant Garamond',Georgia,serif"` 
+  - **SVG text fonts** — use `style="font-family:'Fraunces',Georgia,serif"` 
     (not `font-family="..."` presentation attribute — CSS vars don't work there).
-    Display/label text: Cormorant Garamond. Coord/axis text: JetBrains Mono.
+    Display/label text: Fraunces (changed from Cormorant Garamond on 2026-06-21
+    with the unified type system). Coord/axis text: JetBrains Mono.
   - **Text halo** — `paint-order="stroke"` + `stroke` on SVG `<text>` for
     readable labels over any fill. Never use `<textStroke>` or a separate
     shadow element.
@@ -611,7 +651,7 @@ them without discussion.
 --muted            #7a6d5e
 --accent           #161412   (near-black — meta has no topic color)
 --font-display     Fraunces
---font-body        Inter Tight
+--font-body        Schibsted Grotesk   (was Inter Tight — unified type system, 2026-06-21)
 --font-mono        JetBrains Mono
 ```
 
@@ -829,6 +869,104 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 ---
 
 ## 12. Change log
+
+### 2026-06-21 — Unified type system + "The Second Angle" onboarding + soft signup gate
+
+Three product-wide passes; all shipped in-repo, **build green (34 pages)** and
+**uncommitted** (code-only account — operator commits/pushes/deploys).
+
+- **Unified 3-font type system.** Collapsed ~11 fonts to a strict trio used
+  everywhere — **Fraunces** (serif voice), **Schibsted Grotesk** (the single
+  sans, replacing Inter Tight as `--font-body`), **JetBrains Mono** (labels /
+  numerals). The six worlds no longer use per-world display fonts; they differ
+  by **accent colour + treatment**. Retired as differentiators: Space Grotesk,
+  Cormorant Garamond, Oswald, Inter Tight, IBM Plex (and the intro-only Sora /
+  Syne / Instrument Serif / Space Mono). Lever: `type-v2.css` (imported last)
+  normalises `--font-display`/`--issue-face`/`--face-*` to Fraunces across
+  `:root` + all six `:root[data-topic]`; also touched `meta.css`, all six
+  `themes/<topic>.css`, `home/CategoryCard.astro`, the earth SVGs
+  (`RegionMap`/`CarbonGauge` Cormorant → Fraunces), the Google-Fonts `<link>` in
+  all three layouts (trimmed to the trio), and the `about.astro` colophon copy.
+- **"The Second Angle" first-visit onboarding** — a cinematic, distinct-identity
+  surface (NOCTURNE / kinetic / AURORA on the trio), scoped under
+  `.px-intro` / `.px-xp` in the new `intro.css` (own palette tokens, never
+  touches article styles). New files: `styles/intro.css`,
+  `layouts/IntroLayout.astro`, `components/intro/{IntroStory,IntroExperience,
+  WorldViz}.astro`. `pages/welcome.astro` rebuilt as a standalone full-screen
+  auto-playing story (linked from the Colophon "Why Parallax"); `index.astro`
+  mounts `<IntroExperience/>` (auto-story → optional spotlight tour of the real
+  home, gated by `px_intro_seen_v1`; `?intro=1` force-replays) and the earlier
+  issue-like home opener was removed. Carries more JS than the near-zero-JS
+  articles by design, with a graceful no-JS fallback (scenes stack & scroll,
+  `html.js`-gated) + reduced-motion (no auto-advance). The earlier issue-like
+  pass (`components/welcome/Beat*.astro`, `RegistrationMark.astro`) is now
+  orphaned; `welcome.css` survives only for AccountLine + the About bits.
+- **Metered soft signup gate** — `core/ReadingGate.astro`, mounted in
+  `issues/[slug].astro`. Anonymous readers get the primer + first 2 sections,
+  then a per-topic-themed account wall; the rest is hidden. Soft by design
+  (teasers in page source — shareable + indexable), client-side auth via the
+  shared non-HttpOnly `sb-<ref>-auth-token` cookie; no-JS / crawlers ⇒ wall
+  hidden ⇒ full article (SEO-safe). Intro CTAs now funnel to `app/login?next=`.
+  Prefix: `px-gate`.
+- **About redesign** — rebuilt as a ~5-section still-frame on the existing
+  hero/section rhythm (+ `px-abt`), incl. a six-world type specimen that is now
+  one font + colour; colophon credit updated to the trio.
+- **App drafts (operator-deployed, not yet wired/active):** `app/src/pages/api/
+  join.ts` (Tier-1 unified email → newsletter + magic-link account) and
+  `app/src/pages/api/me.ts` (server-confirmed `{ authed }` probe — optional
+  robustness upgrade for ReadingGate).
+- **New CSS prefix reservations:** `px-intro` + `px-xp` (intro.css), `px-gate`
+  (ReadingGate). `px-wj` / `px-abt` remain from the earlier pass.
+
+Verified: `npm run build` exits 0 (34 pages), zero console errors; intro / home
+overlay / spotlight tour / signup gate all work; return-visit gating + `?intro=1`
+replay work; mobile 375px no horizontal overflow; no-JS + reduced-motion
+contracts hold.
+
+### 2026-06-04 — First full editorial run: 6 issues produced + published (in-repo)
+
+Ran the four-phase pipeline (research → draft → stylist → verify) **on Opus
+for every phase via the Claude Code route** for one issue per category, then
+flipped all six to `status: published`. All build-green (33 pages) and
+frontend-verified on the dev server (home/topic/RSS listing, per-issue render,
+expand-modal, mobile, console). **Shipped** — the operator committed and pushed these live on 2026-06-04
+(Vercel auto-deploy). This code-only session can't commit/push (the repo is
+owned by the `user` account, and Vercel only accepts the operator's commit
+author), so go-live was the operator's step.
+
+The six (`src/content/issues/2026-06-04-<slug>/`):
+- **politics** · `cockroach-janta-party` — "The Ban That Made It *Bigger*"
+  (suppression-as-amplification; the §69A IT-Act block of the Cockroach Janta
+  Party. Sensitive: CJI Surya Kant's 15 May remark is quoted verbatim and
+  always paired with his 16 May clarification; verifier PASS on all nine
+  sensitivity checks.)
+- **space** · `asteroid-2024-yr4` — "The Asteroid We *Talked* Down" (2024 YR4;
+  the rising-then-vanishing impact odds as the signature of a working
+  planetary-defense system. trajectory-arc + signal-readout captioned as
+  schematics.)
+- **earth** · `amazon-tipping-point` — "The Forest Has a Dial, and It *Isn't*
+  Temperature" (deforestation, not warming, is the lever.)
+- **tech** · `ai-coding-token-bill` — "The Bill Came Due in *April*"
+  (price-per-token down, spend-per-task up; Uber's $1,500/mo cap. The
+  off-allowlist Goldman projection was cut — rests entirely on Willison.)
+- **travel** · `queue-is-the-product` — "The Queue Is the *Product*"
+  (Everest/Fuji access priced as the bottleneck; the unverifiable pay-to-skip
+  tier was cut; Nepal package labelled "proposed".)
+- **sports** · `arsenal-set-piece-title` — "The Title Nobody Could *Watch*"
+  (Arsenal's title on lowest xGA + set pieces; counting stats accepted as
+  Opta-attributed since Guardian/StatsBomb are uncrawlable.)
+
+Route policy (now in `CLAUDE.md` + `AGENTS.md` §5): the Claude Code route pins
+**every** phase to **Opus**; the `scripts/pipeline.config.ts` Sonnet/Opus split
+is the API-CLI route only. Dossiers + verification reports live in
+`research/<cat>/2026-06-04-*`.
+
+**Bug fixed during publish QA:** `*emphasis*` markers leaked literally into
+`<title>`, `og:title`, and RSS item titles (existing issues never used emphasis
+in titles, so the path was untested). Added `stripEmphasis()` to
+`src/lib/text.ts`, applied in `layouts/IssueLayout.astro`,
+`layouts/HomeLayout.astro`, and `pages/rss.xml.ts`. Verified zero asterisk
+leaks across all 33 built pages + RSS.
 
 ### 2026-06-03 — expand-to-modal + unified viz typography
 Two reader-experience passes on the data-viz library:

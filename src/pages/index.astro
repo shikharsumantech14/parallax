@@ -7,8 +7,13 @@ import ManifestoStrip from '../components/home/ManifestoStrip.astro';
 import CategoryGrid from '../components/home/CategoryGrid.astro';
 import ArchiveList from '../components/home/ArchiveList.astro';
 import SubscribeStrip from '../components/home/SubscribeStrip.astro';
+import AccountLine from '../components/welcome/AccountLine.astro';
+import IntroExperience from '../components/intro/IntroExperience.astro';
 import { TOPICS, type Topic } from '../content/config';
 import type { CollectionEntry } from 'astro:content';
+import '../styles/welcome.css';
+
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
 
 const allIssues = await getCollection('issues', (entry) => entry.data.status !== 'draft');
 const issuesByDate = allIssues.sort(
@@ -56,4 +61,7 @@ const archive = issuesByDate.map((issue) => ({
   <ArchiveList items={archive} />
 
   <SubscribeStrip />
+  <AccountLine appUrl={appUrl} nextPath="/" />
+
+  <IntroExperience />
 </HomeLayout>

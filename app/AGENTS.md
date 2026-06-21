@@ -25,9 +25,21 @@ auth-aware:
 - **Moderation APIs** (admin-only): `/api/admin/comments`,
   `/api/admin/comments/[id]`.
 - **Health.** `/api/health` returns env booleans + runtime info.
+- **DRAFT (pending operator deploy — not yet wired/active):**
+  `/api/join` (Tier-1 unified "Join": one email → newsletter subscribe
+  + Supabase magic-link account in a single step; not yet wired into
+  the publication form) and `/api/me` (server-confirmed `{ authed }`
+  probe; optional robustness upgrade for the publication's ReadingGate
+  metered signup wall, which today reads auth client-side).
 
 Two Vercel projects deploy from this one repo: the publication (root
 directory `.`) and the app (root directory `app/`).
+
+The publication's new soft signup gate (`ReadingGate.astro`) detects
+auth client-side via the shared, client-readable `sb-<ref>-auth-token`
+cookie — already set non-HttpOnly on `.parallaxlens.com` by
+`@supabase/ssr`, so it's visible across both subdomains. `/api/me`
+exists as an optional server-confirmed upgrade to that heuristic.
 
 ---
 
@@ -108,6 +120,8 @@ app/
         │   └── comments.astro    ← MODERATION QUEUE UI ✓ (admin-gated)
         └── api/
             ├── health.ts
+            ├── join.ts           ← DRAFT: Tier-1 unified Join (newsletter + magic-link); not yet wired
+            ├── me.ts             ← DRAFT: server-confirmed { authed } probe for ReadingGate; optional
             ├── auth/
             │   └── signout.ts
             ├── account/
@@ -337,6 +351,21 @@ bottom list only.
 ---
 
 ## Change log
+
+### 2026-06-21 — Two draft endpoints + publication soft signup gate
+- `src/pages/api/join.ts` — **DRAFT, pending operator deploy.** Tier-1
+  unified "Join": one email → newsletter subscribe + Supabase magic-link
+  account in a single step. Not yet wired into the publication form.
+- `src/pages/api/me.ts` — **DRAFT, pending operator deploy.** Server-
+  confirmed `{ authed }` probe. Optional robustness upgrade for the
+  publication's new `ReadingGate` metered signup wall.
+- Publication context: `ReadingGate.astro` gates anonymous readers after
+  the first sections behind a "create a free account" wall. It detects
+  auth client-side via the shared, client-readable `sb-<ref>-auth-token`
+  cookie (set non-HttpOnly on `.parallaxlens.com` by `@supabase/ssr`).
+  Soft by design (the publication is static); the cookie heuristic is
+  sufficient, with `/api/me` as the optional server-confirmed upgrade.
+- Both endpoints are uncommitted drafts; the operator deploys.
 
 ### 2026-06-01 — Letters block shipped (Phase B-6, code complete)
 - `supabase/migrations/20260601000000_phase_b_letters_author.sql` — adds a

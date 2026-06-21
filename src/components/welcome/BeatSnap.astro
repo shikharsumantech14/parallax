@@ -1,0 +1,40 @@
+---
+/**
+ * Beat 4 — THE SNAP. The signature moment. Two offset layers (the feed echo and
+ * the structural panel) close to register as the beat reveals; a doorway rule
+ * crosses the centre and the registration ticks converge. The reader feels they
+ * produced the alignment by scrolling.
+ *
+ * Hard rule (welcome.css): the DEFAULT state of every layer here is the
+ * REGISTERED (final) one; the offset lives only in `html.js …:not(.is-in)`, so
+ * no-JS and reduced-motion both paint the snapped state.
+ */
+import { renderEmphasis } from '../../lib/text';
+import RegistrationMark from './RegistrationMark.astro';
+
+interface Props {
+  tag?: string;
+}
+const { tag = 'h2' } = Astro.props;
+const Heading = tag;
+---
+<section class="px-wj-beat px-wj-beat--wide" data-accent="politics" data-reveal>
+  <RegistrationMark num="04" />
+  <div class="px-wj-beat__inner">
+    <p class="px-wj__eyebrow" data-reveal-row>The second angle, registered</p>
+    <Heading class="px-wj__headline" data-reveal-row set:html={renderEmphasis('Same story. Second angle. Now you can see its *shape*.')} />
+
+    <div class="px-wj-snap__stack" data-reveal-row>
+      <div class="px-wj-snap__layer px-wj-snap__near" aria-hidden="true">
+        <p class="px-wj-snap__noise">BREAKING · LIVE · TRENDING · 5 things to know · ↑ 2.4k shares · sponsored · hot take · developing story · watch the clip · •••</p>
+      </div>
+      <div class="px-wj-snap__rule" aria-hidden="true"></div>
+      <div class="px-wj-snap__layer px-wj-snap__far">
+        <div class="px-wj-snap__panel">
+          <p class="px-wj-snap__panel-eb">In register</p>
+          <p class="px-wj-snap__panel-t">One claim, one source, one shape you can hold in your head and carry back out the door.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

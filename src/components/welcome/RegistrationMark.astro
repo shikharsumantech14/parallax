@@ -1,0 +1,19 @@
+---
+/**
+ * RegistrationMark — the calm progress affordance of the Second Angle journey.
+ * A hairline print registration cross-hair: two ticks that drift apart in the
+ * gated/offset state and converge into one cross on reveal. Decorative only
+ * (aria-hidden); the real reading is the snap itself. Styles in welcome.css.
+ */
+interface Props {
+  /** Two-digit beat numeral shown under the mark. */
+  num?: string;
+}
+const { num = '01' } = Astro.props;
+---
+<span class="px-wj-reg" aria-hidden="true">
+  <span class="px-wj-reg__tick px-wj-reg__tick--a"></span>
+  <span class="px-wj-reg__tick px-wj-reg__tick--b"></span>
+  <span class="px-wj-reg__cross"></span>
+  <span class="px-wj-reg__num">{num}</span>
+</span>

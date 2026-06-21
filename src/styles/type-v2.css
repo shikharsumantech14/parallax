@@ -1,29 +1,33 @@
 /* ============================================================================
-   PARALLAX V2 — UNIFIED TYPE SYSTEM
+   PARALLAX — UNIFIED TYPE SYSTEM (3 fonts, product-wide)
    ----------------------------------------------------------------------------
-   Fixes the "too many fonts" jumble. One body + one mono on EVERY page; each
-   world keeps a single SIGNATURE display face exposed as --issue-face, applied
-   ONLY to that world's banner nameplate + hero headline (never body/sections),
-   so topic identity survives without the page reading as a font catalogue.
+   ONE system everywhere. Differentiation between the six worlds comes from
+   ACCENT COLOUR + treatment (weight / case / italic / ornament), NOT from a
+   per-world typeface. Locked 2026-06-20.
 
-   Imported LAST (after the six theme files) so the body/mono normalisation
-   wins the :root[data-topic] specificity contest without !important. The theme
-   files no longer override --font-body/--font-mono (see each theme's :root).
-   --font-display stays per-topic (topic headings keep their face).
+     • Fraunces           — the serif voice: headlines, nameplates, the one
+                            italic accent word. (--font-display, --issue-face)
+     • Schibsted Grotesk  — the single sans: body, UI, structural text.
+                            (--font-body)
+     • JetBrains Mono     — labels, eyebrows, numerals. (--font-mono)
+
+   Imported LAST (after the six theme files) so this normalisation wins the
+   :root[data-topic] specificity contest without !important — the theme files'
+   per-topic --font-display is intentionally overridden here.
    ============================================================================ */
 
-/* Signature faces (one per world + meta) */
+/* Signature face = Fraunces for every world (worlds differ by colour, not font). */
 :root {
   --face-meta:     'Fraunces', Georgia, serif;
   --face-politics: 'Fraunces', Georgia, serif;
-  --face-space:    'Space Grotesk', 'Inter Tight', sans-serif;
-  --face-earth:    'Cormorant Garamond', 'Fraunces', Georgia, serif;
-  --face-tech:     'JetBrains Mono', ui-monospace, monospace;
-  --face-travel:   'Cormorant Garamond', 'Fraunces', Georgia, serif;
-  --face-sports:   'Oswald', 'Inter Tight', sans-serif;
+  --face-space:    'Fraunces', Georgia, serif;
+  --face-earth:    'Fraunces', Georgia, serif;
+  --face-tech:     'Fraunces', Georgia, serif;
+  --face-travel:   'Fraunces', Georgia, serif;
+  --face-sports:   'Fraunces', Georgia, serif;
 }
 
-/* Normalise body + mono across all topics. */
+/* The three families, normalised across meta + all six topics. */
 :root,
 :root[data-topic="politics"],
 :root[data-topic="space"],
@@ -31,11 +35,12 @@
 :root[data-topic="tech"],
 :root[data-topic="travel"],
 :root[data-topic="sports"] {
-  --font-body: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-/* Per-issue signature face — banner nameplate + hero headline opt in. */
+/* Per-issue signature face — all resolve to Fraunces now (kept for the token API). */
 :root { --issue-face: var(--face-meta); }
 :root[data-topic="politics"] { --issue-face: var(--face-politics); }
 :root[data-topic="space"]    { --issue-face: var(--face-space); }

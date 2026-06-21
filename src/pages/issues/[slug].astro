@@ -12,6 +12,7 @@ import AnnotationLayer from '../../components/core/AnnotationLayer.astro';
 import LettersBlock from '../../components/core/LettersBlock.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
+import ReadingGate from '../../components/core/ReadingGate.astro';
 import TopicStrip from '../../components/home/TopicStrip.astro';
 
 export async function getStaticPaths() {
@@ -101,6 +102,8 @@ const toolbarTheme: 'light' | 'dark' = darkTopics.includes(data.topic) ? 'dark' 
     ))}
     <span id="px-finish-sentinel" aria-hidden="true"></span>
   </article>
+
+  <ReadingGate freeSections={2} />
 
   <ReadingTracker issueId={issue.slug} />
 

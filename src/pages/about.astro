@@ -1,7 +1,21 @@
 ---
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
+import ManifestoStrip from '../components/home/ManifestoStrip.astro';
+import RegistrationMark from '../components/welcome/RegistrationMark.astro';
 import { renderEmphasis } from '../lib/text';
+import '../styles/welcome.css';
+
+// Six worlds, as a type-and-accent specimen — the only place on About where
+// all six accents coexist.
+const worlds = [
+  { topic: 'politics', word: 'Politics', tag: 'Broadsheet' },
+  { topic: 'space', word: 'Space', tag: 'Mission control' },
+  { topic: 'earth', word: 'Earth', tag: 'Atlas' },
+  { topic: 'tech', word: 'tech', tag: 'Changelog' },
+  { topic: 'travel', word: 'Travel', tag: 'Field journal' },
+  { topic: 'sports', word: 'Sports', tag: 'Match programme' },
+];
 ---
 
 <HomeLayout
@@ -9,44 +23,76 @@ import { renderEmphasis } from '../lib/text';
   description="Parallax Lens — a visual explainer publication. One topic per issue. Cited, structured, built for reference value."
 >
   <Masthead variant="meta" />
-  <section class="px-hero">
-    <div class="px-eyebrow">ABOUT</div>
+
+  <section class="px-hero px-abt-hero" data-reveal>
+    <RegistrationMark num="00" />
+    <div class="px-eyebrow">About</div>
     <h1 class="px-home__title" set:html={renderEmphasis('A different *angle*.')} />
     <p class="px-home__tagline">
-      Parallax is a visual explainer publication. Long-form, cited, structured.
-      One topic per issue. Built for reference value and sharing — not
-      engagement metrics.
+      Most of what you read is built to be scrolled past. This is built to be kept.
     </p>
+    <a class="px-abt__more" href="/welcome/">See the idea in motion →</a>
   </section>
 
-  <section class="px-section">
+  <section class="px-section" data-reveal>
     <div class="px-section__num">— 01</div>
-    <h2 class="px-section__title">What you'll find here.</h2>
+    <h2 class="px-section__title">Why this exists.</h2>
     <p class="px-section__intro">
-      Every issue takes a topic most people think they already understand —
-      politics, space, earth, tech, travel, sports — and rebuilds it from the
-      structure up. Timelines, breakdowns, charts, paradoxes. Every claim
-      sourced.
+      Somewhere between the push notification and the third hot take of the morning,
+      understanding quietly went missing. Parallax is where we keep it: one topic per
+      issue, rebuilt from the structure up until you can see its shape.
     </p>
   </section>
 
-  <section class="px-section">
+  <section class="px-section" data-reveal>
     <div class="px-section__num">— 02</div>
-    <h2 class="px-section__title">What you <em>won't</em>.</h2>
+    <h2 class="px-section__title">What we <em>refuse</em>.</h2>
     <p class="px-section__intro">
-      No real-time news. No hot takes. No unstructured blog posts. No trackers.
-      No comments thread. Just the piece, and the sources behind it.
+      No advertising, so no one buys back the attention you arrived with. No investors,
+      so no quarterly target decides what runs. No trackers, no cookies, no comment
+      section to police into a shouting match. What's left is the piece, and the sources
+      under it.
+    </p>
+    <div class="px-wj-refuse__strip" data-reveal>
+      <ManifestoStrip />
+    </div>
+    <span class="px-wj-refuse__badge">No analytics · no cookies · no trackers · no ads</span>
+  </section>
+
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 03</div>
+    <h2 class="px-section__title">How we work.</h2>
+    <p class="px-section__intro">
+      Every issue starts as a question we can't answer yet. We read the primary sources,
+      link every one, and rebuild the topic until its shape is visible on the page. Six
+      minutes to read. Sixty days to argue.
     </p>
   </section>
 
-  <section class="px-section">
-    <div class="px-section__num">— 03</div>
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 04</div>
+    <h2 class="px-section__title">Six worlds, six <em>lights</em>.</h2>
+    <p class="px-section__intro">
+      Each topic is its own aesthetic world — its own type, its own colour, its own way
+      of reading the evidence.
+    </p>
+    <div class="px-abt-specimen">
+      {worlds.map((w) => (
+        <div class={`px-abt-tile px-abt-tile--${w.topic}`} data-accent={w.topic}>
+          <span class="px-abt-tile__word">{w.word}</span>
+          <span class="px-abt-tile__tag">{w.tag}</span>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 05</div>
     <h2 class="px-section__title">Colophon.</h2>
     <p class="px-section__intro">
       Parallax is published by <strong>Parallax Lens</strong>™. Set in Fraunces,
-      Inter Tight, JetBrains Mono, Cormorant Garamond, Space Grotesk, and Oswald.
-      Built with Astro on a static stack — no trackers, no JavaScript bloat, no
-      cookies.
+      Schibsted Grotesk, and JetBrains Mono. Built with Astro on a static stack —
+      no trackers, no JavaScript bloat, no cookies.
     </p>
   </section>
 </HomeLayout>
