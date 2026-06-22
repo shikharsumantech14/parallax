@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <defs>
+    <!-- paper vignette -->
+    <radialGradient id="paperVig" cx="50%" cy="44%" r="62%">
+      <stop offset="0%" stop-color="#f7f4ee"/>
+      <stop offset="68%" stop-color="#f4f1ea"/>
+      <stop offset="100%" stop-color="#e7e2d6"/>
+    </radialGradient>
+
+    <!-- glass sphere body: top-left light, lower-right dark core -->
+    <radialGradient id="glassBody" cx="38%" cy="33%" r="78%">
+      <stop offset="0%" stop-color="#fbfaf7"/>
+      <stop offset="22%" stop-color="#e9e4d9"/>
+      <stop offset="52%" stop-color="#cfc7b7"/>
+      <stop offset="78%" stop-color="#8f8775"/>
+      <stop offset="100%" stop-color="#403a30"/>
+    </radialGradient>
+
+    <!-- inner well shading of the ring aperture -->
+    <radialGradient id="aperture" cx="42%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#f4f1ea"/>
+      <stop offset="60%" stop-color="#efeadf"/>
+      <stop offset="100%" stop-color="#d8d1c2"/>
+    </radialGradient>
+
+    <!-- ring stroke gradient: bright top-left, dark lower-right -->
+    <linearGradient id="ringStroke" x1="25%" y1="18%" x2="80%" y2="88%">
+      <stop offset="0%" stop-color="#2a2622"/>
+      <stop offset="50%" stop-color="#161412"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+
+    <!-- the offset filled dot: glassy ink bead -->
+    <radialGradient id="dotBody" cx="36%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#4a443c"/>
+      <stop offset="34%" stop-color="#2a2622"/>
+      <stop offset="72%" stop-color="#161412"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+
+    <!-- specular highlight on the sphere rim glass -->
+    <radialGradient id="specGlass" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- soft floating drop shadow -->
+    <filter id="floatShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+      <feOffset dx="0" dy="26" result="off"/>
+      <feFlood flood-color="#2a2118" flood-opacity="0.34"/>
+      <feComposite in2="off" operator="in" result="sh"/>
+      <feMerge>
+        <feMergeNode in="sh"/>
+      </feMerge>
+    </filter>
+
+    <!-- gentle blur for the chromatic fringe arcs -->
+    <filter id="fringeBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.2"/>
+    </filter>
+  </defs>
+
+  <!-- full-bleed background -->
+  <rect width="1000" height="1000" fill="url(#paperVig)"/>
+
+  <!-- ===== floating glass lens (centered, ~560 wide, generous margin) ===== -->
+
+  <!-- drop shadow source (rendered via filter on an invisible-ish disc) -->
+  <circle cx="500" cy="500" r="262" fill="#161412" filter="url(#floatShadow)" opacity="0.9"/>
+
+  <!-- glass sphere body -->
+  <circle cx="500" cy="500" r="262" fill="url(#glassBody)"/>
+
+  <!-- chromatic fringe: cyan arc upper-left, red arc lower-right (offset duplicates) -->
+  <g filter="url(#fringeBlur)">
+    <!-- cyan rim, shifted up-left -->
+    <circle cx="492" cy="492" r="258" fill="none" stroke="#00d4ff" stroke-width="7" opacity="0.55"
+            stroke-dasharray="300 1400" stroke-dashoffset="980" stroke-linecap="round"/>
+    <!-- red rim, shifted down-right -->
+    <circle cx="509" cy="510" r="258" fill="none" stroke="#b8341f" stroke-width="7" opacity="0.55"
+            stroke-dasharray="300 1400" stroke-dashoffset="180" stroke-linecap="round"/>
+  </g>
+
+  <!-- thin defining rim of the glass body -->
+  <circle cx="500" cy="500" r="262" fill="none" stroke="#1c1813" stroke-width="2.5" opacity="0.55"/>
+
+  <!-- inner aperture well (the negative space the ring encloses) -->
+  <circle cx="500" cy="500" r="150" fill="url(#aperture)"/>
+
+  <!-- THE RING: stroked outer circle (the original mark, now dimensional) -->
+  <circle cx="500" cy="500" r="186" fill="none" stroke="url(#ringStroke)" stroke-width="40"/>
+  <!-- ring inner shadow lip for depth -->
+  <circle cx="500" cy="500" r="166" fill="none" stroke="#000000" stroke-width="3" opacity="0.35"/>
+  <!-- ring top-left glass highlight -->
+  <circle cx="500" cy="500" r="186" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.18"
+          stroke-dasharray="170 1000" stroke-dashoffset="940" stroke-linecap="round"/>
+
+  <!-- offset chromatic ghost of the inner dot (parallax displacement of the dot) -->
+  <circle cx="566" cy="430" r="62" fill="#00d4ff" opacity="0.22" filter="url(#fringeBlur)"/>
+  <circle cx="580" cy="446" r="62" fill="#b8341f" opacity="0.22" filter="url(#fringeBlur)"/>
+
+  <!-- THE OFFSET FILLED DOT (the original mark's small circle), as a glass ink bead -->
+  <circle cx="573" cy="438" r="62" fill="url(#dotBody)"/>
+  <circle cx="573" cy="438" r="62" fill="none" stroke="#000000" stroke-width="1.5" opacity="0.4"/>
+  <!-- dot specular -->
+  <ellipse cx="556" cy="420" rx="20" ry="14" fill="#ffffff" opacity="0.55"/>
+  <circle cx="551" cy="416" r="5" fill="#ffffff" opacity="0.85"/>
+
+  <!-- big sphere specular hotspot, upper-left -->
+  <ellipse cx="412" cy="392" rx="92" ry="64" fill="url(#specGlass)" transform="rotate(-28 412 392)"/>
+  <circle cx="388" cy="372" r="15" fill="#ffffff" opacity="0.9"/>
+
+  <!-- faint lower glass bounce-light -->
+  <ellipse cx="520" cy="700" rx="120" ry="40" fill="#ffffff" opacity="0.06"/>
+</svg>

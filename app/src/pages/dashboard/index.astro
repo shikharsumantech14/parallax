@@ -84,7 +84,10 @@ const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
   )}
 
   {userIsAdmin && (
-    <a class="dash-admin-link" href="/admin/comments">Admin · Moderation queue →</a>
+    <p class="dash-admin-links">
+      <a class="dash-admin-link" href="/admin/comments">Admin · Moderation queue →</a>
+      <a class="dash-admin-link" href="/admin/social">Admin · Social queue →</a>
+    </p>
   )}
 
   {/* ── Account ────────────────────────────────────────────────────── */}
@@ -185,7 +188,13 @@ const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
 </AppLayout>
 
 <style>
-  /* Eyebrow-level entry point to the moderation queue (admins only). */
+  /* Eyebrow-level entry points to the admin queues (admins only). */
+  .dash-admin-links {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 0 0 var(--gap-md);
+  }
   .dash-admin-link {
     display: inline-block;
     font-family: var(--font-mono);
@@ -196,7 +205,6 @@ const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
     text-decoration: none;
     border-bottom: 1px solid var(--rule);
     padding-bottom: 3px;
-    margin-bottom: var(--gap-md);
   }
   .dash-admin-link:hover {
     color: var(--accent-deep);

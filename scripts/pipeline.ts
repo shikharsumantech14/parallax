@@ -31,6 +31,7 @@ import {
   findIssueByTopic,
 }                                                    from './lib/prompts.js';
 import { runAgent }                                  from './lib/runner.js';
+import { ragMcpServer }                              from './lib/rag-mcp.js';
 import { CONFIG }                                    from './pipeline.config.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -214,7 +215,12 @@ async function main(): Promise<void> {
 
   // ── Run ───────────────────────────────────────────────────────────────────
 
-  const result = await runAgent({ agent, prompt, model, cwd, verbose });
+  // Expose the RAG corpus to the editorial agents (only discovery/researcher/
+  // verifier list the tool in their frontmatter, so others ignore it).
+  const result = await runAgent({
+    agent, prompt, model, cwd, verbose,
+    mcpServers: { parallax_rag: ragMcpServer },
+  });
 
   // ── Footer ────────────────────────────────────────────────────────────────
 

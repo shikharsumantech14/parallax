@@ -1,4 +1,4 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import { query, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentDef } from './agent-loader.js';
 
 export interface RunResult {
@@ -19,6 +19,9 @@ export async function runAgent(opts: {
   model: string;
   cwd: string;
   verbose?: boolean;
+  /** In-process MCP servers (e.g. the RAG corpus). Only the editorial pipeline
+   *  passes this; an agent can call a tool only if its frontmatter lists it. */
+  mcpServers?: Record<string, McpServerConfig>;
 }): Promise<RunResult> {
   const startMs = Date.now();
   let lastAssistantText = '';
@@ -32,6 +35,7 @@ export async function runAgent(opts: {
         allowedTools: opts.agent.tools,
         model: opts.model,
         cwd: opts.cwd,
+        ...(opts.mcpServers ? { mcpServers: opts.mcpServers } : {}),
       },
     })) {
       const type = (msg as { type?: string }).type;

@@ -1,0 +1,41 @@
+name: Social poster (drain approved)
+
+# Posts approved social_posts whose scheduled_at is null or past, then marks them
+# posted (or failed). Approval already happened in /admin/social — this only
+# publishes what a human OK'd. Native-first: the issue link goes in the first
+# reply. Caps + spaces posts per run for ToS compliance.
+#
+# Required secrets (set the backend you use):
+#   PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (always)
+#   POSTER_BACKEND  (repo variable: 'bluesky' or 'typefully')
+#   bluesky:   BLUESKY_IDENTIFIER, BLUESKY_APP_PASSWORD
+#   typefully: TYPEFULLY_API_KEY
+
+on:
+  schedule:
+    - cron: '30 * * * *' # hourly (posts only what's approved + due)
+  workflow_dispatch: {}
+
+concurrency:
+  group: social-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      POSTER_BACKEND: ${{ vars.POSTER_BACKEND }}
+      BLUESKY_IDENTIFIER: ${{ secrets.BLUESKY_IDENTIFIER }}
+      BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+      TYPEFULLY_API_KEY: ${{ secrets.TYPEFULLY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Post approved
+        run: npm run social:post

@@ -1,0 +1,46 @@
+name: Evergreen social promotion
+
+# Generates ONE pending evergreen post per run from a published issue and queues
+# it for human approval at /admin/social. Nothing posts automatically — this only
+# fills the queue. GitHub cron timing is approximate (±15-60 min); that's fine
+# since posting is human-gated and the scheduler handles exact timing.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY, PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, PUBLIC_SITE_URL
+# Operator-held only; never in the repo.
+
+on:
+  schedule:
+    - cron: '17 9 * * *' # ~09:17 UTC daily (off-peak offset)
+  workflow_dispatch: {}
+
+# Avoid overlapping runs writing the queue at once.
+concurrency:
+  group: evergreen-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Fetch card fonts (best-effort)
+        run: node scripts/fetch-fonts.mjs
+        continue-on-error: true
+
+      - name: Generate + queue one evergreen post
+        run: npm run social:evergreen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}

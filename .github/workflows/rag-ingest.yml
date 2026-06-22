@@ -1,0 +1,51 @@
+name: RAG corpus ingest
+
+# Builds / refreshes the research corpus (rag_chunks) the editorial agents query.
+# Weekly for fast-moving primary/data tiers; books (T5) are a one-off the operator
+# runs manually. Tier-gated: only ingest:full sources are full-text-ingested.
+#
+# Required repo secrets:
+#   VOYAGE_API_KEY, PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+# Optional: GROBID_URL (a reachable GROBID server for academic-PDF parsing).
+# Apply app/supabase/migrations/*_rag_chunks.sql to Supabase first.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays ~04:00 UTC
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Topic to ingest (politics|space|earth|tech|travel|sports). Blank = all.'
+        required: false
+        default: ''
+
+concurrency:
+  group: rag-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      GROBID_URL: ${{ secrets.GROBID_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+
+      - name: Ingest
+        run: |
+          if [ -n "${{ github.event.inputs.topic }}" ]; then
+            npm run rag:ingest -- "${{ github.event.inputs.topic }}"
+          else
+            for t in politics space earth tech travel sports; do
+              echo "=== $t ==="
+              npm run rag:ingest -- "$t" || true
+            done
+          fi

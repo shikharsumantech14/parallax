@@ -28,10 +28,14 @@ for what each section is doing rhetorically.
 
 Read these files before changing anything:
 
-1. **`research/_voice/mode-library.md`** — the canonical mode library.
-   Read it fully, including every mode card AND the Quick-Reference
-   Pattern Cards at the bottom. The Pattern Cards are your runtime
-   recipe. The Failure Modes section tells you what not to write.
+1. **`research/_voice/_voice-core.md`** — the shared runtime voice contract
+   (the 8 modes as pattern cards, the AI-tell catalog, the blending rules, the
+   short-form rules). This is the same contract the drafter, social-writer, and
+   news classifier load, so voice stays consistent across the publication and
+   social. Then **`research/_voice/mode-library.md`** — the canonical deep
+   reference. Read it fully, including every mode card AND the Quick-Reference
+   Pattern Cards at the bottom. The Pattern Cards are your runtime recipe; the
+   Failure Modes section tells you what not to write.
 
 2. **The issue MDX file** (path given in the prompt). Read it fully.
    Map every section: kind, eyebrow, title, intro, and any prose fields.

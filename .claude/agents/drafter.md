@@ -28,6 +28,11 @@ Read these files before writing a single word:
 3. `src/content/issues/_template/index.mdx` — for frontmatter structure
 4. `src/content/issues/2026-04-24-delimitation/index.mdx` — primary voice reference
 5. `src/content/issues/2026-04-24-kessler-cascade/index.mdx` — secondary voice reference
+6. `research/_voice/_voice-core.md` — the shared runtime voice contract (the 8
+   modes, the AI-tell catalog, the blending rules). Keep it open while writing —
+   the voice rules in Step 4 below are the same contract, and it is what the
+   stylist and the social pipeline also read, so voice stays consistent
+   everywhere.
 
 Study the existing issues closely. Pay attention to:
 - How `eyebrow` labels are written (ALL CAPS, short, descriptive)

@@ -1,0 +1,61 @@
+name: Reactive news pipeline
+
+# Scrapes free, commercial-clean news (GDELT + RSS), clusters same-story-across-
+# outlets, scores trending, and routes the trending ones to EITHER an issue
+# candidate (research/<topic>/<date>-reactive-candidates.md) OR a pending reactive
+# social post in /admin/social — always human-gated, never auto-published.
+#
+# Required repo secrets:
+#   ANTHROPIC_API_KEY, VOYAGE_API_KEY, PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+# Apply app/supabase/migrations/*_trend_items_clusters.sql + *_social_pipeline.sql first.
+#
+# Issue candidates are appended to files in the repo — the routing job opens a PR
+# (or commits to a branch) so the operator reviews them. (Posting still requires
+# the operator to wire the committer token; by default the candidate files are
+# left as workspace artifacts the operator pulls.)
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # every 6h (routing sweep). Ingest+cluster run each time.
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Topic (or "all")'
+        required: false
+        default: 'all'
+
+concurrency:
+  group: reactive-news
+  cancel-in-progress: false
+
+jobs:
+  reactive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+
+      - name: Ingest news
+        run: npm run reactive:ingest -- "${{ github.event.inputs.topic || 'all' }}"
+      - name: Cluster
+        run: npm run reactive:cluster -- "${{ github.event.inputs.topic || 'all' }}"
+      - name: Route (classify + queue posts / candidates)
+        run: npm run reactive:route -- "${{ github.event.inputs.topic || 'all' }}"
+
+      # Surface any new reactive issue-candidate files for the operator to review.
+      - name: Upload reactive candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reactive-candidates
+          path: research/**/*-reactive-candidates.md
+          if-no-files-found: ignore
