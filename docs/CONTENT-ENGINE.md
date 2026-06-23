@@ -107,3 +107,46 @@ when the corpus outgrows the 500 MB free tier; wire the monetization milestones
   migrations, commit, deploy.
 - **Excluded news sources (cost/ToS):** X, Reddit, GNews, NewsAPI.org. GDELT +
   Google News RSS + NewsData.io (fallback) are commercial-clean.
+
+---
+
+## Social v2 — explainer threads + bespoke cards + a learning loop
+
+The social product was rebuilt from terse one-liners into **threaded explainers
+that teach**, each carrying **per-beat visual cards**, with a **voice that learns**.
+
+**Voice.** `research/_voice/_voice-social.md` is the social contract (distinct
+from the literary site voice): a casual "sharp-friend-over-coffee" register,
+adaptive-but-short threads, ≤280/post (X-fit), and per-platform hashtags (a
+deliberate, social-only override of the site's no-hashtag rule). `social-writer`
+now produces a full thread (`body`=hook, `thread[]`=beats) and emits `image_beats`
+(which posts carry which card). Default model bumped to **Sonnet** (`SOCIAL_MODEL`
+overrides) — explainer reasoning needs more than Haiku.
+
+**Cards (`scripts/social/cards.ts`).** Five bespoke, data-driven archetypes —
+`hero` · `data-readout` · `paradox` · `timeline` · `comparison` — themed per world
+(six palettes), wide (1600×900) + square (1080), raw SVG→PNG via resvg, reusing
+the brand mark. `scripts/social/extract.ts` pulls an issue's **real** section data
+into the card shapes. `promote.ts` renders the writer's beats (hero from
+`image_brief` + section cards) → uploads to the `social-cards` bucket →
+`social_posts.images`; the poster attaches each card to its own post; `/admin/social`
+shows the gallery. (Hybrid plan: bespoke cards are the workhorse; faithful on-site
+component screenshots via Playwright are reserved for hero/launch — not yet added.)
+Migration: `20260623000000_social_post_images.sql` (adds `images`).
+
+**Learning loop.** `scripts/social/metrics.ts` (`npm run social:metrics`; daily
+`social-metrics.yml`) reads Bluesky like/repost/reply/quote counts from the public
+AppView (no creds) into `social_posts.engagement`. `scripts/social/refine-voice.ts`
+(`npm run social:refine`, operator-run; uses `.claude/agents/voice-refiner.md`)
+ranks top vs bottom performers + recent rejections and **appends dated, evidence-
+backed heuristic proposals** to `research/_voice/_voice-social-learned.md` — which
+the social-writer reads every run. You curate (promote keepers, delete noise).
+Cold-start: it no-ops until ~6 posts have measured engagement. Operator-edit signal
+is a noted follow-up (needs inline editing in `/admin/social`). Migration:
+`20260623010000_social_engagement.sql` (adds `engagement` + `engagement_fetched_at`).
+
+**Operator go-live for v2:** apply both migrations (`_social_post_images`,
+`_social_engagement`); the metrics cron needs only the existing
+`PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` secrets. Then a fresh
+`social:evergreen` run renders + attaches cards; approve in `/admin/social`; the
+poster posts the thread with images.

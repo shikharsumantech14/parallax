@@ -1,0 +1,36 @@
+name: Social metrics (engagement)
+
+# Pulls Bluesky like/repost/reply counts for posted rows into
+# social_posts.engagement — the learning-loop signal the voice-refiner reads.
+# Read-only against the public AppView, so NO Bluesky credentials are needed.
+#
+# Required repo secrets: PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+#
+# (The refiner itself — npm run social:refine — is operator-run for now: it
+# proposes edits to a repo file you curate + commit. A weekly PR-cron is the
+# natural next step once enough posts have accumulated engagement.)
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily ~06:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: social-metrics
+  cancel-in-progress: false
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Fetch engagement
+        run: npm run social:metrics
