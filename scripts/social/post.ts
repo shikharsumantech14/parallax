@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('social_posts')
-    .select('id, body, thread, link_url, scheduled_at, topic, kind, variant')
+    .select('id, body, thread, link_url, images, scheduled_at, topic, kind, variant')
     .eq('status', 'approved')
     .or(`scheduled_at.is.null,scheduled_at.lte.${nowIso}`)
     .order('created_at', { ascending: true })

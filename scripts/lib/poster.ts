@@ -20,15 +20,22 @@ export interface PostablePost {
   body: string;
   thread: string[] | null;
   link_url: string | null;
+  /** segment-index (0 = hook/body, 1..N = thread) → rendered card {ref,alt}. */
+  images?: Record<string, { ref: string; alt?: string }> | null;
 }
 
 export interface PostResult { permalink: string }
 
-/** [body, link (first reply), ...thread] — empty segments dropped. */
+/**
+ * [body, ...thread, link] — empty segments dropped. The link is the FINAL
+ * segment: for a single post that's the first reply (native-first); for a
+ * threaded explainer it's the closing post, so the link never interrupts the
+ * thread right after the hook.
+ */
 export function buildSegments(p: PostablePost): string[] {
   const segs = [p.body.trim()];
-  if (p.link_url) segs.push(p.link_url.trim());
   for (const t of p.thread ?? []) if (t.trim()) segs.push(t.trim());
+  if (p.link_url) segs.push(p.link_url.trim());
   return segs;
 }
 
@@ -44,6 +51,21 @@ async function bskyXrpc<T>(method: string, body: unknown, jwt?: string): Promise
   });
   if (!res.ok) throw new Error(`bluesky ${method} ${res.status}: ${await res.text()}`);
   return (await res.json()) as T;
+}
+
+/** Fetch a card image by URL and upload it as a Bluesky blob (≤1MB). */
+async function bskyUploadImage(jwt: string, url: string): Promise<unknown> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`fetch image ${r.status}`);
+  const mime = r.headers.get('content-type') ?? 'image/png';
+  const bytes = new Uint8Array(await r.arrayBuffer());
+  const res = await fetch(`${BSKY}/xrpc/com.atproto.repo.uploadBlob`, {
+    method: 'POST',
+    headers: { 'Content-Type': mime, Authorization: `Bearer ${jwt}` },
+    body: bytes,
+  });
+  if (!res.ok) throw new Error(`uploadBlob ${res.status}: ${await res.text()}`);
+  return ((await res.json()) as { blob: unknown }).blob;
 }
 
 /** Build a richtext link facet covering the whole text (UTF-8 byte range). */
@@ -66,7 +88,7 @@ export async function postViaBluesky(p: PostablePost): Promise<PostResult> {
 
   for (let i = 0; i < segs.length; i++) {
     const text = segs[i];
-    const isLink = i === 1 && p.link_url === text;
+    const isLink = p.link_url != null && text === p.link_url.trim();
     const record: Record<string, unknown> = {
       $type: 'app.bsky.feed.post',
       text,
@@ -75,6 +97,16 @@ export async function postViaBluesky(p: PostablePost): Promise<PostResult> {
       ...(isLink ? { facets: linkFacet(text, text) } : {}),
       ...(root && parent ? { reply: { root, parent } } : {}),
     };
+    // attach this post's card (the link reply carries none)
+    const img = isLink ? undefined : p.images?.[String(i)];
+    if (img?.ref) {
+      try {
+        const blob = await bskyUploadImage(session.accessJwt, img.ref);
+        record.embed = { $type: 'app.bsky.embed.images', images: [{ alt: img.alt ?? '', image: blob, aspectRatio: { width: 1600, height: 900 } }] };
+      } catch (err) {
+        console.warn(`  image attach skipped (post ${i}): ${err instanceof Error ? err.message : err}`);
+      }
+    }
     const out = await bskyXrpc<{ uri: string; cid: string }>(
       'com.atproto.repo.createRecord',
       { repo: session.did, collection: 'app.bsky.feed.post', record },

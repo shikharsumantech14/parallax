@@ -34,7 +34,7 @@ const admin = adminClient();
 const { data: rows, error } = await admin
   .from('social_posts')
   .select(
-    'id, issue_id, topic, platform, kind, variant, angle, body, thread, link_url, alt_text, image_ref, status, scheduled_at, permalink, error_log, created_at',
+    'id, issue_id, topic, platform, kind, variant, angle, body, thread, link_url, alt_text, image_ref, images, status, scheduled_at, permalink, error_log, created_at',
   )
   .eq('status', status)
   .order('created_at', { ascending: status === 'pending' })
@@ -57,6 +57,7 @@ type PostRow = {
   link_url: string | null;
   alt_text: string | null;
   image_ref: string | null;
+  images: Record<string, { ref: string; alt?: string }> | null;
   status: string;
   scheduled_at: string | null;
   permalink: string | null;
@@ -172,7 +173,7 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
             {
               row.link_url && (
                 <p class="sq-link">
-                  ↳ first reply:{' '}
+                  ↳ link (posts last):{' '}
                   <a href={row.link_url} target="_blank" rel="noreferrer">
                     {row.link_url}
                   </a>
@@ -181,10 +182,21 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
             }
 
             {
-              row.image_ref ? (
+              row.images && Object.keys(row.images).length > 0 ? (
+                <div class="sq-imgs">
+                  {Object.entries(row.images)
+                    .sort((a, b) => Number(a[0]) - Number(b[0]))
+                    .map(([idx, img]) => (
+                      <figure class="sq-fig">
+                        <img class="sq-img" src={img.ref} alt={img.alt ?? ''} loading="lazy" />
+                        <figcaption class="sq-figcap">post {Number(idx) + 1}</figcaption>
+                      </figure>
+                    ))}
+                </div>
+              ) : row.image_ref ? (
                 <img class="sq-img" src={row.image_ref} alt={row.alt_text ?? ''} loading="lazy" />
               ) : (
-                <p class="sq-noimg">No card rendered yet{row.alt_text ? ` · alt: ${row.alt_text}` : ''}</p>
+                <p class="sq-noimg">No cards yet{row.alt_text ? ` · alt: ${row.alt_text}` : ''}</p>
               )
             }
 
@@ -381,6 +393,16 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
     border-radius: var(--r-card);
     border: 1px solid var(--rule);
     margin: 0 0 14px;
+  }
+  .sq-imgs { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
+  .sq-fig { flex: 1 1 320px; margin: 0; }
+  .sq-fig .sq-img { margin: 0 0 4px; }
+  .sq-figcap {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
   .sq-noimg,
   .sq-errlog,

@@ -75,6 +75,15 @@ export type Angle = (typeof ANGLES)[number];
 
 export type Variant = 'hook' | 'thread' | 'data-card' | 'paradox' | 'quote';
 
+/** One per-post visual: which thread post (0 = hook), which archetype, alt. */
+export interface ImageBeat {
+  post: number;
+  kind: 'comparison' | 'data-readout' | 'paradox' | 'timeline' | 'hero';
+  alt?: string;
+  /** for kind:'hero' only — a synthetic stat card (no issue section behind it) */
+  hero?: { value: string; label: string; claim?: string };
+}
+
 /** The JSON shape the social-writer agent returns (its final message). */
 export interface SocialWriterOutput {
   issue_slug: string;
@@ -88,6 +97,7 @@ export interface SocialWriterOutput {
   link_url: string;
   alt_text: string;
   image_brief: { eyebrow: string; headline: string; datum: string; accent_topic: Topic };
+  image_beats?: ImageBeat[];
   char_count: number;
   ai_tell_pass: boolean;
   notes?: string;

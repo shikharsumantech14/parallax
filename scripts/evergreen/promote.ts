@@ -29,8 +29,13 @@ import {
   type SocialWriterOutput,
 } from '../lib/social.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { heroCard, renderByKind, toPng } from '../social/cards.js';
+import { loadIssue, findSection, sectionToCard } from '../social/extract.js';
 
-const SOCIAL_MODEL = process.env.SOCIAL_MODEL ?? 'claude-haiku-4-5-20251001';
+// Threaded explainers need real reasoning (the asteroid-paradox class of idea),
+// so default to Sonnet, not Haiku. Override with SOCIAL_MODEL (e.g. an Opus id
+// for max quality, or a Haiku id to cut cost).
+const SOCIAL_MODEL = process.env.SOCIAL_MODEL ?? 'claude-sonnet-4-6';
 const COOLDOWN_DAYS = Number(process.env.EVERGREEN_COOLDOWN_DAYS ?? '21');
 const STORAGE_BUCKET = process.env.SOCIAL_BUCKET ?? 'social-cards';
 
@@ -91,32 +96,51 @@ function parseWriterJson(message: string): SocialWriterOutput {
   return JSON.parse(s.slice(start, end + 1)) as SocialWriterOutput;
 }
 
-/** Render the card and upload to a public Supabase Storage bucket. Best-effort:
- *  returns null on any failure (missing fonts, missing bucket, render error) so
- *  the post still queues text-only. */
-async function renderAndUpload(
+/** Render every image_beat (the hook hero + per-beat section cards) and upload to
+ *  the public Storage bucket. Best-effort per beat: a failed render/upload is
+ *  skipped (the post still posts, just with fewer/no images). Returns the
+ *  segment-index → {ref,alt} map + the hook image for the admin thumbnail. */
+async function renderBeats(
   supabase: SupabaseClient,
   out: SocialWriterOutput,
-  slug: string,
-  angle: Angle,
-): Promise<string | null> {
-  try {
-    const { renderCard } = await import('../social-cards.js');
-    const png = await renderCard(
-      { ...out.image_brief, accentTopic: out.image_brief.accent_topic },
-      'wide',
-    );
-    const path = `${slug}/${angle}.png`;
-    const { error: upErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, png, { contentType: 'image/png', upsert: true });
-    if (upErr) { console.warn(`  card upload skipped: ${upErr.message}`); return null; }
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    return data.publicUrl ?? null;
-  } catch (err) {
-    console.warn(`  card render skipped: ${err instanceof Error ? err.message : err}`);
-    return null;
+  issue: IssueRef,
+): Promise<{ images: Record<string, { ref: string; alt: string }>; hookRef: string | null }> {
+  const images: Record<string, { ref: string; alt: string }> = {};
+  let hookRef: string | null = null;
+  let sections: ReturnType<typeof loadIssue>['sections'] | null = null;
+
+  for (const b of out.image_beats ?? []) {
+    try {
+      let svg: string | null = null;
+      if (b.kind === 'hero') {
+        if (!b.hero) continue;
+        svg = heroCard(
+          { eyebrow: out.image_brief?.eyebrow ?? issue.topic, claim: b.hero.claim ?? '', value: b.hero.value, label: b.hero.label, source: 'parallaxlens.com' },
+          issue.topic,
+        );
+      } else {
+        if (!sections) sections = loadIssue(issue.path).sections;
+        const section = findSection(sections, b.kind);
+        if (!section) continue;
+        const card = sectionToCard(section);
+        if (!card) continue;
+        svg = renderByKind(card.kind, card.data, issue.topic);
+      }
+      if (!svg) continue;
+      const png = toPng(svg, 'wide');
+      const path = `${issue.slug}/${b.post}-${b.kind}.png`;
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, png, { contentType: 'image/png', upsert: true });
+      if (error) { console.warn(`  card upload skipped (${b.kind}): ${error.message}`); continue; }
+      const ref = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+      if (!ref) continue;
+      images[String(b.post)] = { ref, alt: b.alt ?? out.alt_text ?? '' };
+      if (b.post === 0) hookRef = ref;
+    } catch (err) {
+      console.warn(`  card render skipped (${b.kind}): ${err instanceof Error ? err.message : err}`);
+    }
   }
+  if (!hookRef) hookRef = Object.values(images)[0]?.ref ?? null;
+  return { images, hookRef };
 }
 
 async function main(): Promise<void> {
@@ -151,14 +175,14 @@ async function main(): Promise<void> {
 
   const agent = loadAgent('social-writer');
   const prompt = [
-    `Write one evergreen social post for this published Parallax issue.`,
+    `Write a threaded social explainer for this published Parallax issue — a short thread that makes its hard idea easy for a stranger scrolling.`,
     ``,
     `issue path: ${issue.path.replace(/\\/g, '/')}`,
-    `angle: ${angle}`,
+    `entry angle: ${angle}`,
     `platform: x`,
     `link_url: ${issueUrl(issue.slug)}`,
     ``,
-    `Follow your agent definition exactly. Read research/_voice/_voice-core.md and the issue, atomize for the angle, run the AI-tell + short-form rules, and return EXACTLY one JSON object (no surrounding prose).`,
+    `Follow your agent definition exactly. Read research/_voice/_voice-social.md + research/_voice/_voice-social-learned.md and the issue, build the teaching arc (adaptive length, biased short — only as many posts as the idea needs), run the AI-tell + accessibility rules, and return EXACTLY one JSON object (no surrounding prose).`,
   ].join('\n');
 
   const result = await runAgent({ agent, prompt, model: SOCIAL_MODEL, cwd });
@@ -173,7 +197,8 @@ async function main(): Promise<void> {
   console.log(`\n--- ${out.variant} · ${out.mode} · ${out.body.length} chars ---`);
   console.log(out.body);
   if (out.thread?.length) out.thread.forEach((t, i) => console.log(`  ${i + 1}. ${t}`));
-  console.log(`↳ first reply: ${out.link_url}`);
+  if (out.image_beats?.length) out.image_beats.forEach((b) => console.log(`  🖼 post ${b.post}: ${b.kind}${b.hero ? ` (${b.hero.value})` : ''}`));
+  console.log(`↳ link (closes thread): ${out.link_url}`);
   if (out.notes) console.log(`notes: ${out.notes}`);
 
   if (dry || !supabase) {
@@ -181,7 +206,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const imageRef = await renderAndUpload(supabase, out, issue.slug, angle);
+  const { images, hookRef } = await renderBeats(supabase, out, issue);
 
   const { data: inserted, error: insErr } = await supabase
     .from('social_posts')
@@ -196,7 +221,8 @@ async function main(): Promise<void> {
       thread: out.thread?.length ? out.thread : null,
       link_url: out.link_url,
       alt_text: out.alt_text,
-      image_ref: imageRef,
+      image_ref: hookRef,
+      images,
       image_brief: out.image_brief,
       content_hash: hash,
       created_by: 'evergreen-cron',
@@ -217,7 +243,8 @@ async function main(): Promise<void> {
     .from('promotions')
     .insert({ issue_id: issue.slug, angle, social_post_id: inserted?.id ?? null });
 
-  console.log(`\n✓ Queued pending post ${inserted?.id} (${imageRef ? 'with card' : 'text-only'}). Review at /admin/social.`);
+  const nCards = Object.keys(images).length;
+  console.log(`\n✓ Queued pending post ${inserted?.id} (${nCards} card${nCards === 1 ? '' : 's'}). Review at /admin/social.`);
 }
 
 main().catch((err) => {
