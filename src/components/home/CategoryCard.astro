@@ -66,7 +66,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 ---
 
-<a class="px-cat" data-topic={topic} data-empty={latest ? undefined : 'true'} href={href}>
+<a class="px-cat" data-warmth data-topic={topic} data-empty={latest ? undefined : 'true'} href={href}>
   <div class="px-cat__motif" aria-hidden="true"></div>
   <div class="px-cat__warmth" aria-hidden="true"></div>
 
@@ -136,7 +136,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
       <><span class="px-cat__topic-bracket">[</span> {labelMap[topic]} <span class="px-cat__topic-bracket">]</span></>
     )}
     {topic === 'politics' && (
-      <><span class="px-cat__topic-cap">P</span>olitics</>
+      <span class="px-cat__topic-plate">Politics</span>
     )}
   </div>
 
@@ -314,13 +314,27 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
   }
 
   .px-cat__topic--politics {
-    line-height: 0.9;
+    line-height: 0.95;
   }
-  .px-cat__topic-cap {
+  /* politics = broadsheet nameplate: a clean upright serif wordmark sitting on
+     a gazette double-rule (the record-plate world). Replaces the odd italic
+     accent "P" cap the operator flagged. */
+  .px-cat__topic-plate {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-style: italic;
-    color: var(--accent);
+    font-weight: 600;
+    color: var(--ink);
+    position: relative;
+    padding-bottom: 10px;
+  }
+  .px-cat__topic-plate::after {
+    content: '';
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    bottom: 2px;
+    height: 3px;
+    border-top: 1.5px solid var(--accent);
+    border-bottom: 1px solid var(--accent);
   }
 
   .px-cat__topic--space {

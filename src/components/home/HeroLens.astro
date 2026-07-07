@@ -2,13 +2,13 @@
 /**
  * HeroLens — the home hero: "The Second Angle, enacted" (HOME-SPEC §2).
  *
- * The locked brand figure (two lens rings + the red hero sphere in the
- * vesica) drawn large in ink line-work. Under the cursor the two rings
- * drift in OPPOSITE directions around the fixed sphere — two viewpoints
- * shifting around one object: the brand's own physics, enacted exactly
- * once on this surface (the sanctioned CANON §11 parallax exception,
- * documented in HOME-SPEC). Touch devices get a slow idle sway instead;
- * reduced-motion / no-JS get the static registered figure.
+ * The brand's two viewpoints, drawn as EYES inside their lens rings, both
+ * trained on the red focal object below (review R2-4 / operator direction
+ * 2026-07-06). Under the cursor the object shifts and BOTH pupils track it —
+ * two eyes holding the same object from a moving angle: parallax made
+ * literal. The static default (pupils converged on the centred object) is
+ * also the no-JS / reduced-motion / touch state, so the idea reads without
+ * any interaction. The sanctioned CANON §11 motion exception, per HOME-SPEC.
  *
  * Story mode is the front door: the primary CTA opens the newest issue's
  * 60-second version. Prefix: px-hlens.
@@ -40,74 +40,214 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
   </div>
 
   <div class="px-hlens__figure" aria-hidden="true">
-    <svg viewBox="0 0 532 400" preserveAspectRatio="xMidYMid meet">
+    <svg viewBox="0 0 532 420" preserveAspectRatio="xMidYMid meet" id="px-hlens-svg">
       <defs>
-        <radialGradient id="hlens-sphere" cx="38%" cy="32%" r="72%">
-          <stop offset="0%" stop-color="#d4573f"/>
-          <stop offset="55%" stop-color="#b8341f"/>
-          <stop offset="100%" stop-color="#7a1f12"/>
+        {/* little-earth focal object */}
+        <radialGradient id="hlens-earth" cx="36%" cy="30%" r="78%">
+          <stop offset="0%" stop-color="#93d072"/>
+          <stop offset="42%" stop-color="#5da653"/>
+          <stop offset="78%" stop-color="#3c7d40"/>
+          <stop offset="100%" stop-color="#265c30"/>
         </radialGradient>
+        <radialGradient id="hlens-sheen" cx="34%" cy="26%" r="60%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.42"/>
+          <stop offset="55%" stop-color="#ffffff" stop-opacity="0.06"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="hlens-core" cx="70%" cy="78%" r="70%">
+          <stop offset="58%" stop-color="#123016" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#123016" stop-opacity="0.5"/>
+        </radialGradient>
+        <radialGradient id="hlens-tree" cx="34%" cy="28%" r="72%">
+          <stop offset="0%" stop-color="#69ba5a"/>
+          <stop offset="65%" stop-color="#3f8a41"/>
+          <stop offset="100%" stop-color="#2b6733"/>
+        </radialGradient>
+        <linearGradient id="hlens-dome" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d6543c"/>
+          <stop offset="100%" stop-color="#9e2a1a"/>
+        </linearGradient>
+        <linearGradient id="hlens-stone" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#f0e6d2"/>
+          <stop offset="62%" stop-color="#ddcbab"/>
+          <stop offset="100%" stop-color="#c3ac87"/>
+        </linearGradient>
+        <clipPath id="hlens-planet"><circle cx="266" cy="262" r="54"/></clipPath>
+        <clipPath id="hlens-eyeL"><path d="M122,165 Q168,138 214,165 Q168,192 122,165 Z"/></clipPath>
+        <clipPath id="hlens-eyeR"><path d="M318,165 Q364,138 410,165 Q364,192 318,165 Z"/></clipPath>
       </defs>
 
-      {/* two overlapping fields of view — the tinted lenses. Their OVERLAP
-          (the vesica) is where both can see, so it reads darker: the object
-          resolves only where the two viewpoints agree. That IS parallax. */}
-      <g class="px-hlens__fields">
-        <g class="px-hlens__ring px-hlens__ring--a">
-          <circle cx="170" cy="200" r="170" fill="var(--ink)" fill-opacity="0.045"
-            stroke="var(--ink)" stroke-width="1.5" stroke-opacity="0.4"
-            pathLength={RING_C} class="px-hlens__stroke"/>
-          <circle cx="170" cy="200" r="150" fill="none" stroke="var(--ink)"
-            stroke-width="1" stroke-opacity="0.14"/>
-        </g>
-        <g class="px-hlens__ring px-hlens__ring--b">
-          <circle cx="362" cy="200" r="170" fill="var(--ink)" fill-opacity="0.045"
-            stroke="var(--ink)" stroke-width="1.5" stroke-opacity="0.4"
-            pathLength={RING_C} class="px-hlens__stroke px-hlens__stroke--late"/>
-          <circle cx="362" cy="200" r="150" fill="none" stroke="var(--ink)"
-            stroke-width="1" stroke-opacity="0.14"/>
-        </g>
-      </g>
+      {/* two viewpoints, drawn as eyes inside their lens rings — both trained
+          on the red focal object below. As the object shifts under your cursor
+          the pupils track it: two eyes holding the same object from a moving
+          angle. That is parallax, made literal. */}
 
-      {/* the two lines of sight converging on the object from each viewpoint */}
+      {/* the two lines of sight from each eye to the object */}
       <g class="px-hlens__sight">
-        <line x1="170" y1="200" x2="266" y2="200" stroke="var(--accent-deep, #8b2416)"
-          stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 5"/>
-        <line x1="362" y1="200" x2="266" y2="200" stroke="var(--accent-deep, #8b2416)"
-          stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 5"/>
+        <line class="px-hlens__sight-l" x1="168" y1="165" x2="266" y2="262"
+          stroke="var(--accent-deep, #8b2416)" stroke-width="1" stroke-opacity="0.28" stroke-dasharray="3 5"/>
+        <line class="px-hlens__sight-r" x1="364" y1="165" x2="266" y2="262"
+          stroke="var(--accent-deep, #8b2416)" stroke-width="1" stroke-opacity="0.28" stroke-dasharray="3 5"/>
       </g>
 
-      {/* the focal object — resolved in the overlap, with a quiet focus reticle */}
-      <g class="px-hlens__sphere">
-        <circle cx="266" cy="200" r="84" fill="none" stroke="var(--accent-deep, #8b2416)"
-          stroke-width="1" stroke-opacity="0.28" stroke-dasharray="1.5 6"/>
-        <circle cx="266" cy="200" r="66" fill="url(#hlens-sphere)"/>
-        <ellipse cx="245" cy="172" rx="18" ry="11" fill="#ffffff" opacity="0.28"
-          transform="rotate(-24 245 172)"/>
+      {/* left eye */}
+      <g class="px-hlens__eye">
+        <circle cx="168" cy="165" r="86" fill="none" stroke="var(--ink)" stroke-width="1.5"
+          stroke-opacity="0.28" pathLength={RING_C} class="px-hlens__stroke"/>
+        <path d="M122,165 Q168,138 214,165 Q168,192 122,165 Z" fill="none"
+          stroke="var(--ink)" stroke-width="2" stroke-opacity="0.6"/>
+        <g clip-path="url(#hlens-eyeL)">
+          <circle cx="168" cy="165" r="26" fill="var(--ink)" fill-opacity="0.08"
+            stroke="var(--ink)" stroke-width="1" stroke-opacity="0.35"/>
+          <circle class="px-hlens__pupil px-hlens__pupil--l" cx="176.5" cy="173.5" r="12"
+            fill="var(--ink)" fill-opacity="0.92"/>
+          <circle class="px-hlens__glint px-hlens__glint--l" cx="172" cy="169" r="3.2" fill="#fff" opacity="0.75"/>
+        </g>
+      </g>
+
+      {/* right eye */}
+      <g class="px-hlens__eye">
+        <circle cx="364" cy="165" r="86" fill="none" stroke="var(--ink)" stroke-width="1.5"
+          stroke-opacity="0.28" pathLength={RING_C} class="px-hlens__stroke px-hlens__stroke--late"/>
+        <path d="M318,165 Q364,138 410,165 Q364,192 318,165 Z" fill="none"
+          stroke="var(--ink)" stroke-width="2" stroke-opacity="0.6"/>
+        <g clip-path="url(#hlens-eyeR)">
+          <circle cx="364" cy="165" r="26" fill="var(--ink)" fill-opacity="0.08"
+            stroke="var(--ink)" stroke-width="1" stroke-opacity="0.35"/>
+          <circle class="px-hlens__pupil px-hlens__pupil--r" cx="355.5" cy="173.5" r="12"
+            fill="var(--ink)" fill-opacity="0.92"/>
+          <circle class="px-hlens__glint px-hlens__glint--r" cx="360" cy="169" r="3.2" fill="#fff" opacity="0.75"/>
+        </g>
+      </g>
+
+      {/* the focal object both eyes hold — a little green world: greenery, a
+          couple of trees and a small civic skyline (the politics nod), shaded
+          for a dimensional, earthly read. Both eyes above train on it. */}
+      <g class="px-hlens__sphere" id="px-hlens-obj">
+        {/* atmosphere */}
+        <circle cx="266" cy="262" r="61" fill="none" stroke="#8fce6e" stroke-opacity="0.13" stroke-width="7"/>
+        <circle cx="266" cy="262" r="57.5" fill="none" stroke="#cdeab4" stroke-opacity="0.30" stroke-width="1"/>
+        {/* focus reticle — marks the observed object */}
+        <circle cx="266" cy="262" r="74" fill="none" stroke="var(--accent-deep, #8b2416)"
+          stroke-width="1" stroke-opacity="0.24" stroke-dasharray="1.5 6"/>
+
+        {/* planet surface */}
+        <g clip-path="url(#hlens-planet)">
+          <circle cx="266" cy="262" r="54" fill="url(#hlens-earth)"/>
+          <ellipse cx="244" cy="247" rx="15" ry="9" fill="#3f8140" fill-opacity="0.5" transform="rotate(-18 244 247)"/>
+          <ellipse cx="288" cy="278" rx="13" ry="8" fill="#33702f" fill-opacity="0.45" transform="rotate(12 288 278)"/>
+          {/* earthy underside */}
+          <path d="M212,283 Q266,306 320,283 L320,318 L212,318 Z" fill="#6b4128" fill-opacity="0.5"/>
+          <path d="M214,284 Q266,305 318,284" fill="none" stroke="#93643f" stroke-opacity="0.4" stroke-width="1"/>
+          {/* dimensional shading */}
+          <circle cx="266" cy="262" r="54" fill="url(#hlens-core)"/>
+          <circle cx="266" cy="262" r="54" fill="url(#hlens-sheen)"/>
+        </g>
+        <circle cx="266" cy="262" r="54" fill="none" stroke="#1f3f22" stroke-opacity="0.3" stroke-width="1"/>
+
+        {/* cast shadows on the surface (clipped to the globe) */}
+        <g clip-path="url(#hlens-planet)" fill="#21421f" fill-opacity="0.3">
+          <ellipse cx="247" cy="250" rx="10" ry="2.6"/>
+          <ellipse cx="270" cy="253" rx="14" ry="3"/>
+          <ellipse cx="294" cy="251" rx="7.5" ry="2.4"/>
+          <ellipse cx="309" cy="252" rx="6" ry="2"/>
+        </g>
+
+        {/* left tree */}
+        <g>
+          <rect x="241.5" y="232" width="3" height="15" rx="1.3" fill="#6f4a2c"/>
+          <circle cx="243" cy="229" r="10" fill="url(#hlens-tree)"/>
+          <circle cx="239" cy="225" r="3" fill="#bfe6a2" fill-opacity="0.55"/>
+        </g>
+
+        {/* civic building — a small domed capitol (the politics nod) */}
+        <g>
+          <rect x="252" y="248.5" width="28" height="2.5" fill="#cbb794"/>
+          <rect x="255" y="229" width="22" height="20.5" fill="url(#hlens-stone)"/>
+          <rect x="271" y="229" width="6" height="20.5" fill="#c3ac87" fill-opacity="0.55"/>
+          <g stroke="#b59a76" stroke-opacity="0.75" stroke-width="1.5">
+            <line x1="259" y1="233" x2="259" y2="248"/>
+            <line x1="263" y1="233" x2="263" y2="248"/>
+            <line x1="267" y1="233" x2="267" y2="248"/>
+            <line x1="271" y1="233" x2="271" y2="248"/>
+          </g>
+          <rect x="252.5" y="226" width="27" height="3.4" fill="#ece1cb"/>
+          <path d="M256,226 A10,11 0 0 1 276,226 Z" fill="url(#hlens-dome)"/>
+          <path d="M258,226 A8,9 0 0 1 266,217.2" fill="none" stroke="#f0b6a6" stroke-opacity="0.5" stroke-width="1.2"/>
+          <line x1="266" y1="216.5" x2="266" y2="211" stroke="#cbb794" stroke-width="1.4"/>
+          <circle cx="266" cy="210" r="1.7" fill="#ece1cb"/>
+        </g>
+
+        {/* right tower */}
+        <g>
+          <polygon points="284,221 288,217 298,217 294,221" fill="#f0e6d2"/>
+          <polygon points="294,221 298,217 298,244 294,248" fill="#bda07c"/>
+          <rect x="284" y="221" width="10" height="27" fill="url(#hlens-stone)"/>
+          <g fill="#6f5638" fill-opacity="0.55">
+            <rect x="286.3" y="226" width="2.6" height="3"/>
+            <rect x="290" y="226" width="2.6" height="3"/>
+            <rect x="286.3" y="232" width="2.6" height="3"/>
+            <rect x="290" y="232" width="2.6" height="3"/>
+            <rect x="286.3" y="238" width="2.6" height="3"/>
+            <rect x="290" y="238" width="2.6" height="3"/>
+          </g>
+        </g>
+
+        {/* small right tree */}
+        <g>
+          <rect x="303.7" y="241" width="2.6" height="9" rx="1.1" fill="#6f4a2c"/>
+          <circle cx="305" cy="237" r="7" fill="url(#hlens-tree)"/>
+          <circle cx="302.5" cy="234.5" r="2.2" fill="#bfe6a2" fill-opacity="0.5"/>
+        </g>
       </g>
     </svg>
-    <p class="px-hlens__cap">The same object — from a second angle.</p>
+    <p class="px-hlens__cap">Two eyes. One object. A second angle.</p>
   </div>
 </section>
 
 <script is:inline>
   (function () {
     var root = document.getElementById('px-hlens');
-    if (!root) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return; // CSS sway handles touch
-    var raf = 0, target = 0;
+    var svg = document.getElementById('px-hlens-svg');
+    var obj = document.getElementById('px-hlens-obj');
+    if (!root || !svg || !obj) return;
+    var pupL = svg.querySelector('.px-hlens__pupil--l');
+    var pupR = svg.querySelector('.px-hlens__pupil--r');
+    var glL = svg.querySelector('.px-hlens__glint--l');
+    var glR = svg.querySelector('.px-hlens__glint--r');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // eye centres + default object centre (SVG viewBox coords)
+    var EY = 165, LX = 168, RX = 364, OX0 = 266, OY0 = 262;
+    var REACH = 12, GLINT = 15;
+
+    // point a pupil (+ its glint) at the object
+    function look(pup, gl, ex, tx, ty) {
+      var dx = tx - ex, dy = ty - EY, len = Math.hypot(dx, dy) || 1;
+      pup.setAttribute('cx', (ex + dx / len * REACH).toFixed(1));
+      pup.setAttribute('cy', (EY + dy / len * REACH).toFixed(1));
+      gl.setAttribute('cx', (ex + dx / len * REACH - 4).toFixed(1));
+      gl.setAttribute('cy', (EY + dy / len * REACH - 4).toFixed(1));
+    }
+    function aim(ox, oy) {
+      obj.setAttribute('transform', 'translate(' + (ox - OX0).toFixed(1) + ' ' + (oy - OY0).toFixed(1) + ')');
+      look(pupL, glL, LX, ox, oy);
+      look(pupR, glR, RX, ox, oy);
+    }
+    aim(OX0, OY0); // default: both trained on the centred object (also the no-JS state)
+    if (reduce) return;
+
+    // cursor moves the object; both eyes hold it (parallax on a shifting angle)
+    var raf = 0, tx = OX0, ty = OY0;
+    function apply() { raf = 0; aim(tx, ty); }
     root.addEventListener('pointermove', function (e) {
-      var r = root.getBoundingClientRect();
-      target = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
-      if (!raf) raf = requestAnimationFrame(function () {
-        raf = 0;
-        root.style.setProperty('--hx', target.toFixed(3));
-      });
+      var r = svg.getBoundingClientRect();
+      var u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
+      tx = OX0 + (Math.max(0, Math.min(1, u)) * 2 - 1) * 40;   // ±40px horizontal
+      ty = OY0 + (Math.max(0, Math.min(1, v)) * 2 - 1) * 22;   // ±22px vertical
+      if (!raf) raf = requestAnimationFrame(apply);
     }, { passive: true });
-    root.addEventListener('pointerleave', function () {
-      root.style.setProperty('--hx', '0');
-    }, { passive: true });
+    root.addEventListener('pointerleave', function () { tx = OX0; ty = OY0; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
   })();
 </script>
 
@@ -182,12 +322,12 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
   /* ── the figure ── */
   .px-hlens__figure { min-width: 0; }
   .px-hlens__figure svg { width: 100%; height: auto; display: block; overflow: visible; }
-  /* the two view-fields multiply so their overlap (the vesica) reads darker —
-     the object resolves where both viewpoints agree. */
-  .px-hlens__fields { mix-blend-mode: multiply; }
+  /* the object glides as it's re-held; pupils re-aim per frame (set in JS) */
+  .px-hlens__sphere { transition: transform var(--t-soft) var(--ease); }
+  .px-hlens__pupil, .px-hlens__glint { transition: cx 90ms linear, cy 90ms linear; }
   .px-hlens__cap {
     text-align: center;
-    margin: 14px 0 0;
+    margin: 16px 0 0;
     font-family: var(--font-mono);
     font-size: 10px;
     letter-spacing: 0.18em;
@@ -195,19 +335,6 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
     color: var(--muted);
   }
   @media (max-width: 959px) { .px-hlens__cap { display: none; } }
-
-  /* the enactment: rings drift opposite ways under --hx (island-written) */
-  .px-hlens__ring--a { transform: translateX(calc(var(--hx, 0) * 10px)); }
-  .px-hlens__ring--b { transform: translateX(calc(var(--hx, 0) * -10px)); }
-  .px-hlens__ring { transition: transform 600ms var(--ease-snap); will-change: transform; }
-
-  /* touch: a slow idle sway instead of cursor drift */
-  @media (hover: none) {
-    html.js .px-hlens__ring--a { animation: px-hlens-swayA 14s var(--ease) infinite alternate; }
-    html.js .px-hlens__ring--b { animation: px-hlens-swayB 14s var(--ease) infinite alternate; }
-  }
-  @keyframes px-hlens-swayA { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
-  @keyframes px-hlens-swayB { from { transform: translateX(6px); } to { transform: translateX(-6px); } }
 
   /* draw-in: rings sweep once on load (html.js-gated; no-JS = final state) */
   html.js .px-hlens__stroke {
