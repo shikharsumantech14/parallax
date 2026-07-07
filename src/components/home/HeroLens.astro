@@ -207,19 +207,18 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
 
 <script is:inline>
   (function () {
-    var root = document.getElementById('px-hlens');
     var svg = document.getElementById('px-hlens-svg');
     var obj = document.getElementById('px-hlens-obj');
-    if (!root || !svg || !obj) return;
+    if (!svg || !obj) return;
     var pupL = svg.querySelector('.px-hlens__pupil--l');
     var pupR = svg.querySelector('.px-hlens__pupil--r');
     var glL = svg.querySelector('.px-hlens__glint--l');
     var glR = svg.querySelector('.px-hlens__glint--r');
+    if (!pupL || !pupR || !glL || !glR) return;
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // eye centres + default object centre (SVG viewBox coords)
-    var EY = 165, LX = 168, RX = 364, OX0 = 266, OY0 = 262;
-    var REACH = 12, GLINT = 15;
+    var EY = 165, LX = 168, RX = 364, OX0 = 266, OY0 = 262, REACH = 12;
 
     // point a pupil (+ its glint) at the object
     function look(pup, gl, ex, tx, ty) {
@@ -234,20 +233,27 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
       look(pupL, glL, LX, ox, oy);
       look(pupR, glR, RX, ox, oy);
     }
-    aim(OX0, OY0); // default: both trained on the centred object (also the no-JS state)
+    aim(OX0, OY0); // static converged default (also the no-JS / reduced-motion / touch state)
     if (reduce) return;
 
-    // cursor moves the object; both eyes hold it (parallax on a shifting angle)
+    // The eyes follow the pointer ANYWHERE on the page. We key off the viewport,
+    // not the hero element, so nothing stacked above it (e.g. the first-visit
+    // intro overlay) can intercept the move — two eyes holding one object from a
+    // shifting angle: parallax, made literal.
     var raf = 0, tx = OX0, ty = OY0;
     function apply() { raf = 0; aim(tx, ty); }
-    root.addEventListener('pointermove', function (e) {
-      var r = svg.getBoundingClientRect();
-      var u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
-      tx = OX0 + (Math.max(0, Math.min(1, u)) * 2 - 1) * 40;   // ±40px horizontal
-      ty = OY0 + (Math.max(0, Math.min(1, v)) * 2 - 1) * 22;   // ±22px vertical
+    function onMove(e) {
+      var vw = window.innerWidth || 1, vh = window.innerHeight || 1;
+      var u = Math.max(0, Math.min(1, e.clientX / vw));
+      var v = Math.max(0, Math.min(1, e.clientY / vh));
+      tx = OX0 + (u * 2 - 1) * 40;   // ±40px horizontal
+      ty = OY0 + (v * 2 - 1) * 22;   // ±22px vertical
       if (!raf) raf = requestAnimationFrame(apply);
-    }, { passive: true });
-    root.addEventListener('pointerleave', function () { tx = OX0; ty = OY0; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
+    }
+    function recenter() { tx = OX0; ty = OY0; if (!raf) raf = requestAnimationFrame(apply); }
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('blur', recenter);
+    if (document.documentElement) document.documentElement.addEventListener('mouseleave', recenter);
   })();
 </script>
 
