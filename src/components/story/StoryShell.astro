@@ -1,0 +1,92 @@
+---
+/**
+ * StoryShell — the snap container + progress + nav chevrons + keyboard.
+ * Spec: docs/design/STORY-MODE-SPEC.md §3.
+ *
+ * The cards render as ordinary stacked DOM inside the scrolling shell —
+ * no-JS = natural scroll, nothing hidden. This island only ADDS: the
+ * progress UI, the visible 44×44 prev/next chevrons, exact-card arrow keys.
+ * Reduced-motion: proximity snap (CSS) + behavior:'auto' scrolls.
+ */
+interface Props {
+  cardCount: number;
+}
+const { cardCount } = Astro.props;
+---
+
+<div class="pxs-shell" id="pxs-shell">
+  <slot />
+</div>
+
+<div class="pxs-progress" id="pxs-progress" hidden aria-hidden="true">
+  {Array.from({ length: cardCount }).map(() => (
+    <span class="pxs-progress__seg"></span>
+  ))}
+</div>
+
+<div class="pxs-nav" id="pxs-nav" hidden>
+  <button class="pxs-nav__btn" id="pxs-prev" type="button" aria-label="Previous card">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path d="M3 10.5 8 5.5l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <button class="pxs-nav__btn" id="pxs-next" type="button" aria-label="Next card">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path d="M3 5.5 8 10.5l5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+
+<script is:inline>
+  (function () {
+    var shell = document.getElementById('pxs-shell');
+    if (!shell) return;
+    var cards = Array.prototype.slice.call(shell.querySelectorAll('.pxs-card'));
+    if (!cards.length) return;
+    var progress = document.getElementById('pxs-progress');
+    var nav = document.getElementById('pxs-nav');
+    var prevBtn = document.getElementById('pxs-prev');
+    var nextBtn = document.getElementById('pxs-next');
+    var segs = progress ? Array.prototype.slice.call(progress.children) : [];
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var current = 0;
+
+    if (progress) progress.hidden = false;
+    if (nav) nav.hidden = false;
+
+    function paint() {
+      for (var i = 0; i < segs.length; i++) {
+        segs[i].classList.toggle('is-done', i <= current);
+        segs[i].classList.toggle('is-current', i === current);
+      }
+      if (prevBtn) prevBtn.disabled = current === 0;
+      if (nextBtn) nextBtn.disabled = current === cards.length - 1;
+    }
+
+    // Track the current card: the one whose center is nearest the viewport center.
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+          var idx = cards.indexOf(e.target);
+          if (idx >= 0 && idx !== current) { current = idx; paint(); }
+        }
+      });
+    }, { root: shell, threshold: 0.5 });
+    cards.forEach(function (c) { io.observe(c); });
+
+    function go(idx) {
+      idx = Math.max(0, Math.min(cards.length - 1, idx));
+      cards[idx].scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+    if (prevBtn) prevBtn.addEventListener('click', function () { go(current - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { go(current + 1); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName)) return;
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); go(current + 1); }
+      else if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); go(current - 1); }
+    });
+
+    paint();
+  })();
+</script>

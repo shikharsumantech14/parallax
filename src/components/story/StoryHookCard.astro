@@ -1,0 +1,26 @@
+---
+/**
+ * StoryHookCard — card 1: the specificity-first opener.
+ * eyebrow (world · issue №) → title → the hook line → swipe affordance.
+ */
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  topic: string;
+  issueNumber: string;
+  title: string;
+  hook: string;
+}
+const { topic, issueNumber, title, hook } = Astro.props;
+---
+
+<section class="pxs-card" id="c1" aria-label="Story cover">
+  <div class="pxs-card__inner">
+    <p class="pxs-hook__eyebrow">Parallax · {topic} desk · — {issueNumber}</p>
+    <h1 class="pxs-hook__title" set:html={renderEmphasis(title)} />
+    <p class="pxs-hook__hook">{hook}</p>
+    <svg class="pxs-hook__chevron" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M3 5.5 8 10.5l5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</section>

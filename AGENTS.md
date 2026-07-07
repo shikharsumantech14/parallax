@@ -378,19 +378,23 @@ em-dashes still needs to be fixed.
   `--font-mono` + `--issue-face`/`--face-*` across `:root` and all six
   `:root[data-topic]`, imported last so it wins. The §3 topics-table
   "Display font" column is historical only.
-- **Minimal JS, progressive enhancement only.** The client-side JS is a
-  small set of tiny vanilla `is:inline` islands (no framework):
-  `core/Reveal.astro` (scroll-reveal), `core/VizMotion.astro` (count-up +
-  cursor-warmth), `core/ReadingToolbar.astro` (reading progress + Full/Skim
-  toggle + Save), the Phase-B reader islands, and `core/ReadingGate.astro`.
-  Every other component is pure Astro / CSS. Contract: all of it degrades to
-  the final painted state under no-JS (hidden states gated behind an
-  `html.js` class) and `prefers-reduced-motion`. New interactivity must
-  honour this and be justified. **Sole exception:** the onboarding surface
-  ("The Second Angle" — `/welcome` + the home first-visit overlay) is a
-  distinct-identity marketing surface and intentionally carries more JS (the
-  IntroStory player + IntroExperience overlay/spotlight tour); it still
-  honours the no-JS + reduced-motion fallback contract (see §2).
+- **JS budget: rich on issues, lean everywhere else (2026-07-05 policy;
+  operator-approved — supersedes "minimal JS everywhere").** Issue pages
+  (`/issues/*`) and story mode (`/s/*`) carry a generous interactive budget —
+  3D scenes, scroll-driven states, hover inspection — under three absolutes:
+  every interactive byte serves **comprehension, not decoration** (see
+  `docs/design/CANON.md` §12); everything is **lazy-loaded / code-split**
+  (the `viz3d` runtime pattern: nothing heavy loads until its mount scrolls
+  in, and never on pages that don't use it); and the **fallback contract is
+  untouchable** — every component paints its final/composed state under
+  no-JS (hidden states gated behind `html.js`), `prefers-reduced-motion`,
+  and missing WebGL. Home, topic indexes, and about stay in the near-zero-JS
+  posture: the small vanilla `is:inline` island set (`core/Reveal.astro`,
+  `core/VizMotion.astro`, `core/ReadingToolbar.astro`, the Phase-B reader
+  islands, `core/ReadingGate.astro`) and nothing framework-shaped. The
+  onboarding surface ("The Second Angle" — `/welcome` + the home first-visit
+  overlay) keeps its existing exception. The design canon in
+  `docs/design/` governs how the budget is spent.
 - **Metered soft signup gate.** `core/ReadingGate.astro` (mounted in
   `issues/[slug].astro`) shows anonymous readers the primer + first 2
   sections, then a per-topic-themed "create a free account to finish" wall;
@@ -455,6 +459,28 @@ em-dashes still needs to be fixed.
 ---
 
 ## 10. Change log for this file
+
+### 2026-07-05 — Product-elevation plan approved: design canon + JS-budget rule change
+
+Operator approved the master elevation plan (per-world component inventories,
+casual-reader "plain" layer, layout variety, complete UX journey, and the
+`/s/<slug>/` shareable story mode). Two durable changes land now: **(1) the
+design canon** — a new `docs/design/` doc set (`CANON.md` master canon,
+`motion.md` named-motion vocabulary, `catalog.md` component catalog,
+`JOURNEY-SPEC.md` + `APP-DESIGN-SPEC.md` + `STORY-MODE-SPEC.md`, `physics/`
+formula sheets, `worlds/` per-world language specs, `blueprints/` component
+contracts) that encodes every visual decision as checkable rules — read it
+before any visual work; plus `shared/design/{tokens,worlds}.css` as the
+canonical token source for BOTH projects (`npm run design:sync` regenerates
+the checked-in copies; `design:check` gates the root build; `tokens-v2.css`
+is now a re-export). **(2) The §7 "minimal JS" rule is rewritten** to
+*rich-on-issues, lean-elsewhere*: issues + story mode get a generous
+lazy-loaded interactive budget (comprehension-only, fallback contract
+absolute); home/topics/about stay near-zero-JS. Decisions locked with the
+operator: plain layer added while the literary voice stays; flagship worlds
+= space + politics first; story mode ships fully free (CTA card funnels to
+the gated issue). Full plan + phases in the session plan file; execution
+tracked P0–P8.
 
 ### 2026-06-21 — Unified type trio + "The Second Angle" onboarding + signup gate
 

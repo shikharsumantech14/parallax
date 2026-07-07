@@ -1,0 +1,100 @@
+---
+/**
+ * AccountEntry — the masthead's account slot (JOURNEY-SPEC fix #1).
+ *
+ * Static default: a mono "Sign in" link → app login with `next=` (this page)
+ * — crawlers/no-JS see a harmless link. The island upgrades it: adds the
+ * page's world to the login URL (desk-tinted auth plate), and when the
+ * shared Supabase auth cookie is present swaps to the "Shelf" entry
+ * (lens-dot glyph → dashboard), with `/api/me` as a stale-session CONFIRMER
+ * only (never a gatekeeper; fails silent). No layout shift: fixed slot.
+ * Prefix: px-acct.
+ */
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const next = `${siteUrl}${Astro.url.pathname}`;
+const loginHref = `${appUrl}/login?next=${encodeURIComponent(next)}`;
+---
+
+<div class="px-acct" data-app-url={appUrl}>
+  <a class="px-acct__link" href={loginHref} data-acct-anon>Sign in</a>
+  <a class="px-acct__link px-acct__link--shelf" href={`${appUrl}/dashboard`} data-acct-authed hidden>
+    <span class="px-acct__dot" aria-hidden="true"></span>Shelf
+  </a>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-acct'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+    var anon = root.querySelector('[data-acct-anon]');
+    var shelf = root.querySelector('[data-acct-authed]');
+    var authed = /(?:^|;\s*)sb-[^=;]*-auth-token(?:\.\d+)?=/.test(document.cookie);
+
+    if (!authed) {
+      var topic = document.documentElement.getAttribute('data-topic');
+      if (anon && topic) anon.href += '&world=' + encodeURIComponent(topic);
+      return;
+    }
+    if (anon) anon.hidden = true;
+    if (shelf) shelf.hidden = false;
+    try {
+      fetch(root.dataset.appUrl + '/api/me', { credentials: 'include' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (j && j.authed === false) {
+            if (shelf) shelf.hidden = true;
+            if (anon) anon.hidden = false;
+          }
+        })
+        .catch(function () {});
+    } catch (e) { /* confirmer only — never break the masthead */ }
+  })();
+</script>
+
+<style>
+  .px-acct {
+    display: inline-flex;
+    justify-content: flex-end;
+    min-width: 58px; /* fixed slot — the anon/authed swap never shifts layout */
+  }
+  .px-acct__link {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    white-space: nowrap;
+    border-bottom: 1px solid transparent;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  /* inline-flex would override the UA [hidden] rule — restate it */
+  .px-acct__link[hidden] { display: none; }
+  .px-acct__link:hover {
+    color: var(--accent-deep, var(--accent));
+    border-bottom-color: var(--accent-deep, var(--accent));
+  }
+  .px-acct__dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    position: relative;
+  }
+  .px-acct__dot::after {
+    content: '';
+    position: absolute; inset: 1.5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  @media (max-width: 720px) {
+    .px-acct { min-width: 0; }
+  }
+</style>

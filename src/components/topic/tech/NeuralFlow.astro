@@ -1,0 +1,276 @@
+---
+/**
+ * NeuralFlow (tech · FLAGSHIP + world signature) — "The machine, mid-thought."
+ * A real (small) network's forward pass, rendered as the machine it is: every
+ * unit of every layer is an instanced node at the layer's TRUE size (large
+ * layers honestly sampled, and labelled so), and a lime activation wave sweeps
+ * the columns layer-by-layer — the build log of a thought. The parameter count
+ * is COMPUTED from the architecture, on screen, so scale claims are earned.
+ *
+ * Rendered lazily by the WebGL runtime (scene 'neural-flow'); drag to inspect,
+ * scroll to zoom, hover any column for its unit + weight counts.
+ *
+ * Blueprint (the contract): docs/design/blueprints/tech/neural-flow.md.
+ * Math: src/scripts/viz3d/neural.ts — the SAME functions (sampling, layouts,
+ * param count, 96-edge pseudo-shuffle) compute the static fallback below at
+ * build time, so the no-JS / reduced-motion / no-WebGL reader gets the
+ * identical machine as a composed SVG still, with the wave frozen on the middle
+ * hidden layer.
+ *
+ * data: { layers: [{n, label}] (2–8), paramsNote?, wave_ms?, caption?, source? }
+ */
+import {
+  resolveArchitecture, nodeLocal, gapEdges, middleLayer,
+  formatCount, waveMs, type LayerSpec,
+} from '../../../scripts/viz3d/neural';
+
+interface Props {
+  layers: LayerSpec[];
+  paramsNote?: string;
+  wave_ms?: number;
+  caption?: string;
+  source?: string;
+}
+const { layers: rawLayers = [], paramsNote, wave_ms, caption, source } = Astro.props;
+
+/* schema guard: 2–8 layers (build error outside that range, blueprint §3/§11) */
+const layers: LayerSpec[] = (rawLayers ?? [])
+  .filter((l) => l && typeof l.n === 'number' && l.n >= 1)
+  .map((l) => ({ n: l.n, label: String(l.label ?? '') }));
+if (layers.length < 2 || layers.length > 8) {
+  throw new Error(
+    `neural-flow: needs 2–8 layers (got ${layers.length}). Each layer is { n, label }; see docs/design/blueprints/tech/neural-flow.md §3.`,
+  );
+}
+
+const R = resolveArchitecture(layers);
+const L = R.L;
+const midL = middleLayer(L); // the frozen-wave layer in the composed still
+const cyclMs = waveMs(wave_ms);
+
+/* ── build-time fallback geometry — shallow isometric (blueprint §7) ──
+   px = 360 + (x − z·0.36)·150 ; py = 168 − (y + z·0.16)·150 ; viewBox 720×360.
+   Same neural.ts inputs as the live scene, so layout/sampling never diverge. */
+const VW = 720, VH = 360;
+const px = (x: number, z: number) => +(360 + (x - z * 0.36) * 150).toFixed(1);
+const py = (y: number, z: number) => +(168 - (y + z * 0.16) * 150).toFixed(1);
+
+/* nodes per layer, projected; column layers get a fatter radius */
+const svgLayers = R.layers.map((ly) => {
+  const column = ly.shown <= 16;
+  const pts = [];
+  for (let k = 0; k < ly.shown; k++) {
+    const p = nodeLocal(k, ly.layout);
+    pts.push({ x: px(ly.x, p.z), y: py(p.y, p.z) });
+  }
+  // bottom-edge anchor for the layer label (0.18 below the lowest node, z = 0)
+  const rows = ly.layout.rows;
+  const bottomY = -((rows - 1) / 2) * ly.layout.s;
+  return { pts, r: column ? 2.6 : 1.6, labelX: px(ly.x, 0), labelY: py(bottomY - 0.18, 0) };
+});
+
+/* 96 sampled edges per gap (same pseudo-shuffle) */
+const svgGaps = [];
+for (let l = 0; l < L - 1; l++) {
+  const a = R.layers[l], b = R.layers[l + 1];
+  const es = gapEdges(a.shown, b.shown);
+  const inbound = l + 1 === midL; // this gap feeds the frozen (middle) layer
+  const segs = es.map((e) => {
+    const pa = nodeLocal(e.from, a.layout);
+    const pb = nodeLocal(e.to, b.layout);
+    return {
+      x1: px(a.x, pa.z), y1: py(pa.y, pa.z),
+      x2: px(b.x, pb.z), y2: py(pb.y, pb.z),
+    };
+  });
+  svgGaps.push({ segs, inbound });
+}
+
+/* legend rows — the AT-readable data source (blueprint §7). Sampled rows
+   append the ratio; input row says "input". Rows > 5 collapse behind a
+   disclosure. */
+const legend = R.layers.map((ly, l) => ({
+  label: ly.label || `layer ${l}`,
+  n: formatCount(ly.n),
+  paramsIn: l === 0 ? 'input' : `${formatCount(ly.paramsIn)} params in`,
+  sampledNote: ly.every > 1 ? `showing 1 in ${ly.every}` : '',
+}));
+const collapse = legend.length > 5;
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const HALO = 'paint-order:stroke;stroke:var(--paper);stroke-width:3';
+
+const payload = JSON.stringify({
+  layers,
+  ...(paramsNote ? { paramsNote } : {}),
+  ...(wave_ms ? { wave_ms } : {}),
+});
+const paramsStr = formatCount(R.params);
+---
+
+<div class="px-viz px-nflow" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      {R.sampled && <b>sampled — showing 1 in {R.maxEvery}</b>}
+    </div>
+  )}
+
+  <div
+    class="viz3d viz3d--nflow"
+    data-viz3d="neural-flow"
+    role="img"
+    aria-label={caption ? `Neural-network forward pass: ${caption}` : 'Neural-network forward pass'}
+  >
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+        {/* edges (0.75px @ 0.10; the middle layer's inbound gap @ 0.55 = frozen wave) */}
+        {svgGaps.map((gap) => (
+          gap.segs.map((s) => (
+            <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+              stroke={gap.inbound ? 'var(--accent)' : 'var(--ink)'}
+              stroke-width="0.75" opacity={gap.inbound ? 0.55 : 0.1} />
+          ))
+        ))}
+        {/* nodes — resting ink-mix dim; the middle hidden layer frozen lime @ 1.0 */}
+        {svgLayers.map((ly, l) => (
+          ly.pts.map((p) => (
+            <circle cx={p.x} cy={p.y} r={ly.r}
+              fill={l === midL ? 'var(--accent)' : 'var(--ink)'}
+              opacity={l === midL ? 1 : 0.45} />
+          ))
+        ))}
+        {/* layer labels — mono 9.5px with paper halo, centred under each slab */}
+        {svgLayers.map((ly, l) => (
+          <text x={ly.labelX} y={ly.labelY} text-anchor="middle"
+            style={MONO + ';' + HALO} font-size="9.5"
+            letter-spacing="0.06em"
+            fill={l === midL ? 'var(--accent)' : 'var(--muted)'}>{legend[l].label}</text>
+        ))}
+      </svg>
+    </div>
+
+    {/* param readout — static in the fallback; the live scene re-mounts its own
+        count-up version. Hidden once the canvas is live (.viz3d--live). */}
+    <div class="px-nflow__readout px-nflow__readout--static" aria-hidden="true">
+      <span class="px-nflow__params vz-value"><b>{paramsStr}</b> params</span>
+      {paramsNote && <span class="px-nflow__note vz-legend">{paramsNote}</span>}
+    </div>
+
+    <span class="viz3d__hint" aria-hidden="true">drag to inspect · scroll to zoom</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ul class="px-nflow__legend" data-collapse={collapse ? 'true' : 'false'}>
+    {legend.map((r, i) => (
+      <li class={`px-nflow__row${collapse && i >= 5 ? ' px-nflow__row--extra' : ''}`}>
+        <span class="px-nflow__k">{r.label}</span>
+        <span class="px-nflow__v">
+          <b>{r.n}</b> units · {r.paramsIn}{r.sampledNote ? ` · ${r.sampledNote}` : ''}
+        </span>
+      </li>
+    ))}
+  </ul>
+  {collapse && (
+    <>
+      <button type="button" class="px-nflow__more" aria-expanded="false">show all layers</button>
+      <script is:inline>
+        (function () {
+          var btn = document.currentScript && document.currentScript.previousElementSibling;
+          while (btn && !(btn.classList && btn.classList.contains('px-nflow__more'))) {
+            btn = btn.previousElementSibling;
+          }
+          if (!btn) return;
+          var list = btn.previousElementSibling;
+          while (list && !(list.classList && list.classList.contains('px-nflow__legend'))) {
+            list = list.previousElementSibling;
+          }
+          if (!list) return;
+          btn.addEventListener('click', function () {
+            var open = list.getAttribute('data-open') === 'true';
+            list.setAttribute('data-open', open ? 'false' : 'true');
+            btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+            btn.textContent = open ? 'show all layers' : 'show fewer layers';
+          });
+        })();
+      </script>
+    </>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  /* the figure is wider than tall — a printed diagram first (blueprint §4) */
+  .viz3d--nflow { aspect-ratio: 720 / 360; }
+
+  /* param readout — pinned top-left of the mount, mono value + muted note */
+  .px-nflow__readout {
+    position: absolute; top: 10px; left: 12px; z-index: 3;
+    display: flex; flex-direction: column; gap: 2px;
+    pointer-events: none;
+  }
+  .px-nflow__params { font-size: 17px; letter-spacing: -0.01em; }
+  .px-nflow__params b { color: var(--accent-deep, var(--accent)); font-weight: 700; }
+  .px-nflow__note { margin-top: 1px; letter-spacing: 0.1em; }
+
+  /* the static readout hides once the live canvas takes over (its own count-up
+     version mounts inside the mount); the live one hides under no-JS. */
+  .viz3d--live .px-nflow__readout--static { display: none; }
+
+  /* live-only wave-honesty chip (scene appends .px-nflow__chip) */
+  .px-nflow__chip {
+    position: absolute; top: 12px; right: 12px; z-index: 3;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    background: color-mix(in oklab, var(--paper) 82%, transparent);
+    border: 1px solid var(--rule); border-radius: var(--r-pill, 999px);
+    padding: 4px 9px; pointer-events: none; font-variant-numeric: tabular-nums;
+  }
+
+  /* legend list — the AT-readable data source */
+  .px-nflow__legend { list-style: none; margin: 18px 0 0; padding: 0; }
+  .px-nflow__row {
+    display: grid; grid-template-columns: minmax(90px, auto) 1fr; gap: 14px;
+    align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-nflow__k {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent-deep, var(--accent));
+  }
+  .px-nflow__v {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.04em; color: var(--muted); text-align: right;
+  }
+  .px-nflow__v b { color: var(--ink); font-weight: 600; }
+
+  /* rows 6–8 collapse behind the disclosure until opened */
+  .px-nflow__legend[data-collapse='true'] .px-nflow__row--extra { display: none; }
+  .px-nflow__legend[data-open='true'] .px-nflow__row--extra { display: grid; }
+
+  .px-nflow__more {
+    margin-top: 10px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-soft);
+    background: transparent; border: 1px solid var(--rule); border-radius: 999px;
+    padding: 7px 13px; min-height: 30px; cursor: pointer;
+    transition: color 140ms var(--ease), border-color 140ms var(--ease);
+  }
+  .px-nflow__more:hover { color: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
+  /* no-JS: the disclosure can't open, so show every row and hide the dead button */
+  html:not(.js) .px-nflow__legend[data-collapse='true'] .px-nflow__row--extra { display: grid; }
+  html:not(.js) .px-nflow__more { display: none; }
+
+  @media (pointer: coarse) {
+    .px-nflow__more { min-height: 44px; padding: 11px 15px; }
+  }
+  @media (max-width: 560px) {
+    .px-nflow__params { font-size: 15px; }
+    .px-nflow__row { grid-template-columns: 1fr; gap: 3px; }
+    .px-nflow__v { text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .px-nflow__more { transition: none; }
+  }
+</style>

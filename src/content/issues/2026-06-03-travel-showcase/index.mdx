@@ -14,7 +14,7 @@ sections:
   - kind: prose
     eyebrow: "ABOUT THIS ISSUE"
     title: "A working *atlas* of the travel components"
-    intro: "This is a styleguide, not a story. It renders each travel signature component once so the rendering, the reveal animation, and the no-JS fallback can all be checked against real data."
+    intro: "A styleguide, not a story — it renders each travel signature component once against real data."
     data:
       lead: "Every block below is fed real-world travel data — coordinates pulled from gazetteers, an elevation profile from a published trekking route, climate normals from a national meteorological agency. The point is to see how the components behave, not to tell a single journey."
       paragraphs:
@@ -24,7 +24,7 @@ sections:
   - kind: route-globe
     eyebrow: "COMPONENT · ROUTE-GLOBE"
     title: "An eastward arc, *Lisbon* to Tokyo"
-    intro: "This carries an ordered list of city stops with real latitude/longitude. The interactive view is a draggable dot-matrix globe with great-circle arcs between stops; the static fallback is an equirectangular map plus a numbered legend of coordinates."
+    intro: "A draggable dot-matrix globe with great-circle arcs between real city stops."
     data:
       caption: "Six-stop eastward route · coordinates from gazetteer data"
       source: "GeoNames gazetteer, 2026"
@@ -39,7 +39,7 @@ sections:
   - kind: elevation-trek
     eyebrow: "COMPONENT · ELEVATION-TREK"
     title: "The Annapurna Circuit, *floor* to high pass"
-    intro: "This carries waypoints of cumulative distance (km) against elevation (m) along a real trekking route. On scroll the terrain line draws itself and the area fills; min/max markers and the peak/gain/distance readout are static. Labelled points become waypoint pins."
+    intro: "Cumulative distance (km) against elevation (m) along a real trekking route, the terrain line drawing itself on scroll."
     data:
       unit: "m"
       caption: "Annapurna Circuit elevation profile · Besisahar to Jomsom"
@@ -58,7 +58,7 @@ sections:
   - kind: itinerary-reel
     eyebrow: "COMPONENT · ITINERARY-REEL"
     title: "*Five* days in Kyoto, as day cards"
-    intro: "This carries a list of days, each with a place and an optional bullet list of activities. The interactive view is a perspective row of cards that tilt toward the pointer and fan in on scroll; on mobile they become a horizontal scroll-snap rail. The card text is fully static."
+    intro: "A perspective row of day cards that tilt toward the pointer and fan in on scroll."
     data:
       caption: "A five-day Kyoto walking itinerary"
       source: "Itinerary planning, 2026"
@@ -95,7 +95,7 @@ sections:
   - kind: climate-calendar
     eyebrow: "COMPONENT · CLIMATE-CALENDAR"
     title: "*Kyoto's* year, month by month"
-    intro: "This carries twelve months, each with an average temperature and rainfall. It renders as a ribbon: an upper temperature cell tinted cool-to-warm and a lower rainfall bar. The mildest and wettest months get a highlight ring; cells reveal left-to-right. All values are flat SVG/CSS."
+    intro: "Twelve months rendered as a ribbon: an upper temperature cell tinted cool-to-warm and a lower rainfall bar."
     data:
       tempUnit: "°C"
       caption: "Kyoto climate normals, 1991–2020 · temperature (°C) and rainfall (mm)"
@@ -117,7 +117,7 @@ sections:
   - kind: timezone-arc
     eyebrow: "COMPONENT · TIMEZONE-ARC"
     title: "Six cities across the *day*"
-    intro: "This carries cities with their UTC offset in hours. A 24-hour day/night band anchors a 'now' marker at the reference zone, and each city sits at its local hour with a sun or moon glyph. Cities sort west-to-east and reveal on a stagger. Time is anchored deterministically, not read from a live clock."
+    intro: "A 24-hour day/night band anchors a 'now' marker at the reference zone, and each city sits at its local hour with a sun or moon glyph."
     data:
       refOffset: 9
       caption: "Standard-time UTC offsets for the six route cities · reference: Tokyo"
@@ -133,7 +133,7 @@ sections:
   - kind: route-card
     eyebrow: "COMPONENT · ROUTE-CARD"
     title: "*London* to Tokyo, overland and by sea"
-    intro: "This carries ordered legs, each with from/to cities, a transport mode, distance and duration. A dashed rail threads mode glyphs (train, drive, ferry, fly); legs slide in on a stagger as the card reveals. The mode keys the icon."
+    intro: "Ordered journey legs with from/to cities, transport mode, distance, and duration, threaded on a dashed rail of mode glyphs."
     data:
       title: "London → Tokyo  ·  Trans-Siberian no-fly route"
       caption: "A rail-and-sea crossing of Eurasia"
@@ -188,7 +188,7 @@ sections:
   - kind: city-compare
     eyebrow: "COMPONENT · CITY-COMPARE"
     title: "*Lisbon* vs Porto — a portrait in metrics"
-    intro: "This carries two cities and a set of labelled rows, each with a value for side A and side B plus an optional winner. The winning side glows; rows fade and rise on a stagger as the card reveals. A head-to-head comparison table."
+    intro: "A head-to-head comparison table: two cities and labelled rows, each with a value for either side and an optional winner."
     data:
       caption: "Lisbon vs Porto — key metrics, 2024"
       source: "INE Portugal · Câmaras Municipais · various, 2024"
@@ -207,7 +207,7 @@ sections:
   - kind: journey-map
     eyebrow: "COMPONENT · JOURNEY-MAP"
     title: "The Camino *Francés*, stage by stage"
-    intro: "This carries vertical stops, each with a place, region, cumulative distance, elevation, an arrival label, a note, and a tag (origin/transit/detour/arrival). A terracotta connector threads the pins; notes support italic and bold. CSS-only, no JavaScript."
+    intro: "Vertical stops — place, region, cumulative distance, elevation, arrival, tag — threaded on a terracotta connector."
     data:
       caption: "The French Way to Santiago — selected stages"
       source: "Confraternity of Saint James stage data, 2026"
@@ -261,6 +261,20 @@ sections:
           arrival: "Day 33"
           note: "The cathedral and the tomb of **St James** — journey's end."
           tag: "arrival"
+
+  - kind: terminator-globe
+    eyebrow: "THE FLAGSHIP · DAY, NIGHT & THE RED-EYE"
+    title: "Where your body clock *breaks*."
+    intro: "A real globe lit for the departure moment — night shaded, the day/night line drawn, and the flight arc crossing it; press ARRIVAL to jump the sun to landing."
+    plain: "The shaded half is night, the line across it is where day meets dark, and the terracotta arc is the flight crossing from one into the other."
+    skimCaption: "A Delhi→San Francisco red-eye on the live day/night terminator — the travel desk's flagship, jet lag made visible."
+    data:
+      epoch: "2026-01-15T02:30:00Z"
+      from: { city: "Delhi", lat: 28.5562, lon: 77.1000, tzOffsetH: 5.5 }
+      to: { city: "San Francisco", lat: 37.6213, lon: -122.3790, tzOffsetH: -8 }
+      flightHours: 16.5
+      caption: "Leave Delhi at 08:00, land in San Francisco at 11:00 the same morning — 16½ hours aloft for a clock that barely moved, which is why the body lands ~13.5 hours out of phase."
+      source: "Great-circle distance from airport coordinates; UTC offsets IST/PST."
 
 sources:
   - id: "src-geonames"

@@ -25,7 +25,7 @@ sections:
   - kind: data-globe
     eyebrow: "THE GLOBE"
     title: "Surface warming, *station by station*."
-    intro: "A 3D dot-matrix globe with one bubble per location, sized by its 2024 mean surface-temperature anomaly above the 1951–1980 baseline. Drag to spin; the static fallback plots the same points on an equirectangular grid with a textual legend below."
+    intro: "A 3D dot-matrix globe with one bubble per location, sized by its 2024 surface-temperature anomaly above the 1951–1980 baseline — drag to spin."
     data:
       unit: "°C anomaly"
       caption: "2024 ANNUAL SURFACE-TEMPERATURE ANOMALY vs 1951–1980 · SELECTED STATIONS"
@@ -43,7 +43,7 @@ sections:
   - kind: core-sample
     eyebrow: "THE CORE"
     title: "A column of *frozen time*."
-    intro: "An ice-core column read top (recent) to bottom (older), each band a depth interval with its approximate age and the CO₂ trapped in its bubbles. Bands drop in top-to-bottom on scroll; the depth axis and labels read without animation."
+    intro: "An ice-core column read top (recent) to bottom (older), each band a depth interval with its approximate age and the CO₂ trapped in its bubbles."
     data:
       unit: "ppm CO₂"
       caption: "GREENLAND / ANTARCTIC ICE-CORE COMPOSITE · DEPTH → AGE → TRAPPED CO₂"
@@ -59,7 +59,7 @@ sections:
   - kind: sea-level-tank
     eyebrow: "THE TANK"
     title: "How high the *water comes*."
-    intro: "A cross-section tank whose water rises to the highest scenario marker on scroll-in. Each line is a projected global mean sea-level rise above the 2000 baseline; the outer ticks are reference heights it can be read against. Marker lines and labels stay visible without JavaScript."
+    intro: "A cross-section tank where each marker line is a projected global mean sea-level rise above the 2000 baseline."
     data:
       maxM: 2.0
       caption: "PROJECTED GLOBAL MEAN SEA-LEVEL RISE ABOVE 2000 BASELINE"
@@ -77,7 +77,7 @@ sections:
   - kind: climate-spiral
     eyebrow: "THE SPIRAL"
     title: "Every month, *winding outward*."
-    intro: "The warming spiral: January at the top, months advancing clockwise, radius growing with each month's temperature anomaly. Several recent years are plotted so the line spirals outward as the planet warms. The segments stroke-draw in chronological order on scroll; the fallback shows the full spiral."
+    intro: "The warming spiral: January at the top, months advancing clockwise, radius growing with each month's temperature anomaly."
     data:
       unit: "°C"
       baseline: "1850–1900 pre-industrial mean"
@@ -136,7 +136,7 @@ sections:
   - kind: quake-depth
     eyebrow: "THE TREMORS"
     title: "Where the ground *broke*, and how deep."
-    intro: "Significant earthquakes plotted on a depth-versus-time axis: the surface line runs across the top, depth increases downward, and each circle is sized and coloured by magnitude. Circles pop in along the time axis; hover (or focus) reveals place and magnitude. The depth axis and legend carry the no-JS reading."
+    intro: "Significant earthquakes plotted on a depth-versus-time axis, each circle sized and coloured by magnitude."
     data:
       caption: "SELECTED M6.5+ EARTHQUAKES · 2023–2024 · DEPTH vs TIME"
       source: "USGS Earthquake Catalog (ANSS ComCat), 2023–2024"
@@ -155,7 +155,7 @@ sections:
   - kind: climate-strip
     eyebrow: "THE STRIPES"
     title: "A century in *one bar each*."
-    intro: "Warming stripes: one vertical bar per year, blue for cooler than the baseline and red for warmer. Each bar is the annual global surface-temperature anomaly relative to the 1951–1980 mean. The strip reads as a single block of colour from cool past to hot present."
+    intro: "Warming stripes: one vertical bar per year, blue for cooler than the baseline and red for warmer."
     data:
       palette: warming
       baseline: "1951–1980 global average"
@@ -268,7 +268,7 @@ sections:
   - kind: region-map
     eyebrow: "THE MAP"
     title: "Forest loss, *country by country*."
-    intro: "A build-time choropleth world map shading countries by a value — here, relative primary-forest-loss pressure, 2020–2024. Markers pin the major tropical forest basins. Zero runtime JS; the SVG is rendered at build time."
+    intro: "A build-time choropleth world map shading countries by a value — here, relative primary-forest-loss pressure, 2020–2024."
     data:
       projection: naturalEarth
       palette: heat
@@ -324,7 +324,7 @@ sections:
   - kind: carbon-gauge
     eyebrow: "THE BUDGET"
     title: "What's left under *1.5 °C*."
-    intro: "A half-speedometer arc showing how much of the 1.5°C carbon budget remains versus how much has already been emitted. The needle marks the boundary between used and remaining; values are the remaining, used, and total budget from the start of 2025."
+    intro: "A half-speedometer arc showing how much of the 1.5°C carbon budget remains versus how much has already been emitted."
     data:
       remaining: 0.16
       remainingGt: "130 Gt CO₂ remaining"
@@ -334,6 +334,27 @@ sections:
       year: "from 2025"
       caption: "REMAINING CARBON BUDGET FOR A 50% CHANCE OF 1.5 °C"
       source: "Global Carbon Budget 2024 · IPCC AR6 WG1, 2024"
+
+  - kind: terrain-relief
+    eyebrow: "THE FLAGSHIP · REAL RELIEF"
+    title: "The Khumbu massif, at *true* scale."
+    intro: "A real digital elevation model of the Everest region as contour rings and ridgelines — drag to tilt, press the ×-scale to swap true vs exaggerated height."
+    plain: "The real shape of the ground as contour rings and crest lines; the vertical scale is stretched to read, and the caption says by how much."
+    skimCaption: "The Everest massif rendered from a real 30 m DEM — the earth desk's flagship landscape component."
+    data:
+      dem: "/geo/2026-07-everest-khumbu-dem.json"
+      place: "Khumbu Himal · 27.99° N, 86.93° E"
+      exaggeration: 1.8
+      exaggerateTo: 5
+      contourInterval_m: 250
+      peaks:
+        - { name: "Everest", lat: 27.9881, lon: 86.9250, elev_m: 8849 }
+        - { name: "Lhotse", lat: 27.9617, lon: 86.9330, elev_m: 8516 }
+        - { name: "Nuptse", lat: 27.9667, lon: 86.8894, elev_m: 7861 }
+        - { name: "Pumori", lat: 28.0147, lon: 86.8297, elev_m: 7161 }
+      seaLevel: false
+      caption: "The Khumbu massif at true horizontal scale — several of the fourteen 8,000 m peaks in one ~60 km frame."
+      source: "NASA SRTM 30 m (SRTMGL1 v3), resampled to 128×128"
 
 sources:
   - id: "src-01"

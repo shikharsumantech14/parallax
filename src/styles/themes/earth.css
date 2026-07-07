@@ -20,6 +20,7 @@
   --tape: #d8c89a;
   --font-display: 'Fraunces', Georgia, serif;
   /* --font-body / --font-mono unified across topics in type-v2.css */
+  /* Accent values mirrored in shared/design/worlds.css — change both together */
 }
 
 /* --- Global tweaks (mirror politics light-paper pattern) ----------------- */
@@ -497,4 +498,70 @@
   box-shadow:
     0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
     0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EARTH WORLD MOTIFS (2026-07-06 · docs/design/worlds/earth.md · review R5)
+   "The field atlas." Contours, coordinates, specimen labels, survey rules —
+   so earth reads as earth even between vizzes.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 0 · The atlas paper — whole-world texture: faint contour loops on the bg.
+   Data-URI SVG, ~2.5% ink; fixed so it reads as the paper, not the content. */
+[data-topic="earth"] body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360' viewBox='0 0 360 360'%3E%3Cg fill='none' stroke='%231f2a1c' stroke-opacity='0.05' stroke-width='1'%3E%3Cpath d='M40 300c-30-40-20-90 10-110s90-16 110 10 24 76-6 100-84 40-114 0z'/%3E%3Cpath d='M60 285c-20-30-14-66 8-82s66-12 82 8 18 56-4 74-66 30-86 0z'/%3E%3Cpath d='M82 268c-12-18-8-40 5-50s40-7 50 5 11 34-3 45-40 18-52 0z'/%3E%3Cpath d='M300 120c24-28 60-24 76-4s14 60-10 76-64 12-78-8-12-36 12-64z'/%3E%3Cpath d='M312 132c16-18 40-16 51-3s9 40-7 51-43 8-52-5-8-25 8-43z'/%3E%3C/g%3E%3C/svg%3E");
+  background-attachment: fixed;
+}
+
+/* 1 · The coordinate margin — every earth surface is SOMEWHERE */
+.ear-coords {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ear-coords b { color: var(--accent-deep); font-weight: 600; }
+
+/* 2 · The specimen label — field-notebook naming */
+.ear-specimen { display: flex; align-items: baseline; gap: 10px; }
+.ear-specimen__name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+}
+.ear-specimen__id {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* 3 · The survey rule — a scale bar instead of a plain hairline */
+.ear-scalebar {
+  display: flex; align-items: flex-end; gap: 0;
+  height: 9px; margin: 40px 0;
+  max-width: 220px;
+}
+.ear-scalebar i {
+  flex: 1; border-left: 1px solid var(--accent-deep);
+  border-bottom: 1px solid var(--accent-deep);
+  height: 5px;
+}
+.ear-scalebar i:nth-child(odd) { height: 9px; }
+.ear-scalebar i:last-child { border-right: 1px solid var(--accent-deep); }
+.ear-scalebar + .ear-scalebar__label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em;
+  color: var(--muted); margin: -34px 0 34px;
+}
+
+/* 4 · The contour plate — card backdrop utility for desk surfaces */
+.ear-contours {
+  position: relative;
+  background-color: color-mix(in oklab, var(--paper) 60%, var(--bg));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%23a04922' stroke-opacity='0.10' stroke-width='1'%3E%3Cpath d='M30 220c-24-30-16-70 8-86s70-12 86 8 18 60-6 78-64 30-88 0z'/%3E%3Cpath d='M48 206c-15-22-10-48 6-60s48-9 60 6 13 42-4 55-47 21-62-1z'/%3E%3Cpath d='M66 192c-9-13-6-29 4-36s29-5 36 4 8 25-2 33-29 12-38-1z'/%3E%3C/g%3E%3C/svg%3E");
+  border: 1px solid var(--rule);
 }

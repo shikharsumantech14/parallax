@@ -1,0 +1,78 @@
+---
+/**
+ * StoryLayout — the minimal full-screen shell for story mode (/s/<slug>/).
+ * Spec: docs/design/STORY-MODE-SPEC.md §5.
+ *
+ * Theme CSS + the html.js guard + the three runtime islands (Reveal,
+ * VizMotion, Viz3DRuntime) — and NOTHING else: no masthead, no toolbar, no
+ * gate, no Tilt/ExpandModal. `noindex` (the issue page stays canonical);
+ * self-describing OG tags so the link unfurls in WhatsApp/Slack.
+ */
+import type { Topic } from '../content/config';
+import { stripEmphasis } from '../lib/text';
+import '../styles/tokens-v2.css';
+import '../styles/base.css';
+import '../styles/meta.css';
+import '../styles/themes/politics.css';
+import '../styles/themes/space.css';
+import '../styles/themes/earth.css';
+import '../styles/themes/tech.css';
+import '../styles/themes/travel.css';
+import '../styles/themes/sports.css';
+import '../styles/type-v2.css';
+import '../styles/motion-v2.css';
+import '../styles/dataviz-v2.css';
+import '../styles/viz-type.css';
+import '../styles/components-3d.css';
+import '../styles/story.css';
+
+import Reveal from '../components/core/Reveal.astro';
+import VizMotion from '../components/core/VizMotion.astro';
+import Viz3DRuntime from '../components/core/Viz3DRuntime.astro';
+
+interface Props {
+  topic: Topic;
+  title: string;
+  description: string;
+  slug: string;
+  ogImage?: string;   // absolute URL — wired in P7 (scripts/story/og.ts)
+}
+const { topic, title, description, slug, ogImage } = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const storyUrl = `${siteUrl}/s/${slug}/`;
+const cleanTitle = stripEmphasis(title);
+---
+
+<!doctype html>
+<html lang="en" data-topic={topic}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    <title>{cleanTitle} — the short version · Parallax Lens</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Parallax Lens" />
+    <meta property="og:title" content={cleanTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={storyUrl} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image:width" content="1200" />}
+    {ogImage && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;700;800&display=swap"
+    />
+  </head>
+  <body>
+    <slot />
+    <Reveal />
+    <VizMotion />
+    <Viz3DRuntime />
+  </body>
+</html>

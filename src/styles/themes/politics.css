@@ -16,6 +16,7 @@
   --tape: #d9c896;
   --font-display: 'Fraunces', Georgia, serif;
   /* --font-body / --font-mono unified across topics in type-v2.css */
+  /* Accent values mirrored in shared/design/worlds.css — change both together */
 }
 
 /* --- TIMELINE --- */
@@ -586,4 +587,83 @@
   box-shadow:
     0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
     0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   POLITICS WORLD MOTIFS (2026-07-05 · docs/design/worlds/politics.md)
+   "The official record, annotated." Reusable identity classes so politics
+   reads as politics even between vizzes — division rules, inked stamps,
+   ledger rows, the red-pen annotation, gazette-plate card chrome.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1 · The division rule — section-break ornament that splits into AYES | NOES */
+.pol-division {
+  display: flex; align-items: center; gap: 14px;
+  margin: 44px auto; max-width: var(--col-prose);
+}
+.pol-division::before, .pol-division::after {
+  content: ''; flex: 1; height: 1px; background: var(--rule);
+}
+.pol-division > span {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted); white-space: nowrap;
+}
+.pol-division > span b { color: var(--accent-deep); font-weight: 600; }
+
+/* 2 · The stamp — verdicts as an inked rubber stamp (extends .vb__stamp world-wide) */
+.pol-stamp {
+  display: inline-block; padding: 5px 12px 4px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--accent-deep); border: 1.5px solid var(--accent-deep);
+  border-radius: 2px; transform: rotate(-2deg);
+  text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
+}
+
+/* 3 · The ledger row — data as ruled ledger lines with dot leaders */
+.pol-ledger { list-style: none; margin: 0; padding: 0; }
+.pol-ledger li {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+.pol-ledger .pol-ledger__k {
+  font-family: var(--font-body); font-size: 14px; color: var(--ink);
+}
+.pol-ledger .pol-ledger__dots {
+  flex: 1; border-bottom: 1.5px dotted color-mix(in oklab, var(--muted) 55%, transparent);
+  transform: translateY(-3px);
+}
+.pol-ledger .pol-ledger__v {
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft);
+  letter-spacing: 0.03em;
+}
+.pol-ledger .pol-ledger__v b { color: var(--accent-deep); font-weight: 600; }
+
+/* 4 · The annotation — Parallax's red pen ON the record */
+.pol-annot {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 15.5px; line-height: 1.55; color: var(--accent-deep);
+  padding-left: 14px; border-left: 2px solid var(--accent);
+  max-width: 52ch; margin: 18px 0;
+}
+
+/* 5 · The record header — gazette-plate chrome for politics cards */
+.pol-record {
+  border-top: 3px solid var(--ink);
+  position: relative; padding-top: 10px;
+}
+.pol-record::before {
+  content: ''; position: absolute; top: 4px; left: 0; right: 0;
+  height: 1px; background: var(--ink);
+}
+.pol-record .pol-record__meta {
+  display: flex; justify-content: space-between; gap: 16px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.pol-record .pol-record__title {
+  font-family: var(--font-display); font-weight: 600; font-size: 17px;
+  letter-spacing: 0.04em; font-variant-caps: small-caps; color: var(--ink);
 }

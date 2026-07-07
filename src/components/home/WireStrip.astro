@@ -1,0 +1,109 @@
+---
+/**
+ * WireStrip — "THE WIRE //" latest-dispatch mono strip (HOME-SPEC §3).
+ * The "publication is alive" signal between hero and desk portals: the 3
+ * latest issues as inline links + a persistent story-mode tail link. Static
+ * row — horizontal scroll on overflow, NO marquee (the home's motion budget
+ * is spent on the hero). Prefix: px-wire.
+ */
+import { stripEmphasis, formatIssueNumber } from '../../lib/text';
+
+interface Props {
+  /** The 3 latest published issues, newest first. */
+  items: { slug: string; title: string; topic: string; issueNumber: number }[];
+  /** Newest issue's slug — target of the 60-second tail link. */
+  latestSlug: string;
+}
+const { items, latestSlug } = Astro.props;
+---
+
+<nav class="px-wire" aria-label="The wire — latest dispatches" data-reveal>
+  <div class="px-wire__row">
+    <span class="px-wire__label">The Wire <span class="px-wire__slashes" aria-hidden="true">//</span></span>
+    {items.map((item) => (
+      <a class="px-wire__item" href={`/issues/${item.slug}/`}>
+        <span class="px-wire__no">{formatIssueNumber(item.issueNumber)}</span>
+        <span class="px-wire__sep" aria-hidden="true">·</span>
+        <span class="px-wire__title">{stripEmphasis(item.title)}</span>
+        <span class="px-wire__sep" aria-hidden="true">·</span>
+        <span class="px-wire__topic">
+          <span class="px-wire__dot" style={`background: var(--topic-${item.topic})`} aria-hidden="true"></span>
+          {item.topic}
+        </span>
+      </a>
+    ))}
+    <a class="px-wire__tail" href={`/s/${latestSlug}/`}>Every issue has a 60-second version →</a>
+  </div>
+</nav>
+
+<style>
+  .px-wire {
+    margin: 48px 0 0;
+    border-block: 1px solid var(--rule);
+    background: color-mix(in oklab, var(--paper) 60%, var(--bg));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .px-wire::-webkit-scrollbar { display: none; }
+
+  .px-wire__row {
+    display: flex;
+    align-items: baseline;
+    gap: 30px;
+    min-width: max-content;
+    padding: 12px 4px;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .px-wire__label {
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    flex-shrink: 0;
+  }
+  .px-wire__slashes { color: var(--muted); font-weight: 400; }
+
+  .px-wire__item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    /* breathing room keeps the 44px tap-height on the strip's links */
+    padding-block: 6px;
+  }
+  .px-wire__no { color: var(--muted); }
+  .px-wire__sep { color: var(--muted); opacity: 0.6; }
+  .px-wire__title { color: inherit; }
+  .px-wire__item:hover .px-wire__title { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
+  .px-wire__topic { display: inline-flex; align-items: baseline; gap: 6px; color: var(--muted); }
+  .px-wire__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  .px-wire__tail {
+    margin-left: auto;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding-block: 6px;
+    flex-shrink: 0;
+  }
+  .px-wire__tail:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
+  @media (max-width: 720px) {
+    .px-wire { margin-top: 36px; }
+    .px-wire__row { gap: 22px; font-size: 10.5px; }
+  }
+</style>

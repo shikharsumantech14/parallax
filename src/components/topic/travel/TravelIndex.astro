@@ -34,14 +34,17 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     <div class="px-trv-index__dateline">
       <div class="px-trv-index__date-line">Filed</div>
       <div class="px-trv-index__date-val">{todayLong}</div>
+      <span class="trv-stamp px-trv-index__lh-stamp">Field Bureau</span>
     </div>
   </header>
 
   <section class="px-trv-index__intro">
-    <p class="px-trv-index__manifesto">
+    <p class="px-trv-index__manifesto trv-note">
       <em>Field notes from somewhere you haven't been.</em> Cities, crossings, rituals, quiet rooms. We write travel pieces about places that resist being summarised, and we leave the inside jokes out of the footnotes.
     </p>
   </section>
+
+  <div class="trv-route" aria-hidden="true"><i></i></div>
 
   {issues.length === 0 ? (
     <div class="px-trv-index__empty">
@@ -59,7 +62,7 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
       {issues.map((issue) => {
         const n = issueNumberFor(issue.slug);
         return (
-          <a class="px-trv-index__card" href={`/issues/${issue.slug}/`}>
+          <a class="px-trv-index__card trv-stub" href={`/issues/${issue.slug}/`}>
             <div class="px-trv-index__card-stamp">
               <div class="px-trv-index__card-stamp-mark">PRX</div>
               <div class="px-trv-index__card-stamp-date">{fmtStamp(issue.data.publishedAt)}</div>
@@ -158,23 +161,20 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     font-size: 17px;
     color: var(--ink);
   }
+  /* the ONE entry stamp on this desk (trv-stamp kit) — under the dateline */
+  .px-trv-index__lh-stamp { margin-top: 12px; }
 
-  /* --- Intro --- */
+  /* --- Intro — the journal margin note (R5). The old dashed bottom rule is
+     replaced by the .trv-route ornament, which carries the intro → rack
+     break with its own 40px margins. Voice (italic serif, accent-deep,
+     46ch) comes from the trv-note kit class; only the scale is adjusted
+     here (a desk manifesto, not an in-card aside). --- */
   .px-trv-index__intro {
-    margin: 0 0 56px;
-    padding-bottom: 28px;
-    border-bottom: 1px dashed var(--rule);
-  }
-  .px-trv-index__manifesto {
-    font-family: var(--font-display);
-    font-size: 22px;
-    line-height: 1.55;
-    color: var(--ink);
     margin: 0;
-    max-width: 60ch;
-    font-weight: 400;
   }
-  .px-trv-index__manifesto em { color: var(--accent-deep, var(--accent)); font-style: italic; font-weight: 500; }
+  .px-trv-index__manifesto { margin: 0; }
+  .px-trv-index__manifesto.trv-note { font-size: 19px; }
+  .px-trv-index__manifesto em { font-weight: 500; }
 
   /* --- Postcard rack --- */
   .px-trv-index__rack {
@@ -194,22 +194,15 @@ const todayLong = today.toLocaleDateString('en-US', { year: 'numeric', month: 'l
     transition: transform var(--t-soft) var(--ease), border-color var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
     overflow: hidden;
   }
-  /* Hover accent bar on the left (v2 .arch__row), kept atop the stamp column */
-  .px-trv-index__card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 0;
-    background: var(--accent);
-    transition: width var(--t-soft) var(--ease);
-    z-index: 2;
-  }
+  /* No hover accent bar here — the card is a trv-stub ticket, and its
+     ::before/::after are the kit's tear rule + punched perforations (the
+     card's overflow:hidden clips the punch circles to inside the edge, so
+     no 375px overflow). Hover affordance = lift + border + shadow below. */
   .px-trv-index__card:hover {
     transform: translateY(-2px);
     border-color: var(--accent);
     box-shadow: 0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
   }
-  .px-trv-index__card:hover::before { width: 3px; }
 
   /* Staggered scroll-reveal cards (gated behind html.js per motion-v2 contract). */
   .px-trv-index__card {

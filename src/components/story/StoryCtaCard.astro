@@ -1,0 +1,38 @@
+---
+/**
+ * StoryCtaCard — the last card: read-full funnel + share + soft account line.
+ * Fully free by design — the story IS the teaser; the metered gate lives on
+ * the issue page this button leads to.
+ */
+import StoryShare from './StoryShare.astro';
+
+interface Props {
+  slug: string;
+  sectionCount: number;
+  sourceCount: number;
+  cta?: string;
+  index: number;
+}
+const { slug, sectionCount, sourceCount, cta, index } = Astro.props;
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+const issueUrl = `${siteUrl}/issues/${slug}/?via=story`;
+const storyUrl = `${siteUrl}/s/${slug}/`;
+---
+
+<section class="pxs-card" id={`c${index}`} aria-label="Read the full issue">
+  <div class="pxs-card__inner">
+    <h2 class="pxs-cta__lede">{cta ?? "That's the short version."}</h2>
+    <p class="pxs-cta__stats">
+      Full issue · {sectionCount} sections · {sourceCount} sources, all linked
+    </p>
+    <div>
+      <a class="pxs-cta__btn" href={issueUrl}>Read the full issue →</a>
+    </div>
+    <StoryShare storyUrl={storyUrl} />
+    <p class="pxs-cta__account">
+      Free forever · no ads · <a href={`${appUrl}/login?next=${encodeURIComponent(issueUrl)}`}>open your shelf</a>
+    </p>
+  </div>
+</section>

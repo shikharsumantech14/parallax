@@ -261,37 +261,36 @@ body {
   color: var(--muted);
 }
 
-/* PRIMER (v2 — soft elevated card, accent edge) */
+/* PRIMER — an editorial BRIEF, not a card (design review R1, 2026-07-05).
+   Tone-on-tone plate that sits IN the paper: document rules top+bottom, a
+   serif standfirst, no radius, no shadow, no floating white box. */
 .px-primer {
-  background: var(--paper);
-  border-radius: var(--r-card);
-  padding: 24px 30px;
-  margin: 16px 0 64px;
+  background: color-mix(in oklab, var(--paper) 45%, var(--bg));
+  border-top: 2px solid var(--accent-deep, var(--accent));
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 28px 24px;
+  margin: 16px 0 72px;
   max-width: var(--col-prose);
   position: relative;
-  overflow: hidden;
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-    0 14px 30px -24px color-mix(in oklab, var(--ink) 45%, transparent);
-}
-.px-primer::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; background: var(--accent);
 }
 .px-primer__eyebrow {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
+  color: var(--accent-deep, var(--accent));
+  margin-bottom: 10px;
 }
 .px-primer__text {
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--ink-soft);
-  max-width: 56ch;
+  font-family: var(--font-display);
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--ink);
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+@media (min-width: 640px) {
+  .px-primer__text { text-align: justify; hyphens: auto; }
 }
 
 /* SKIM MODE */
@@ -361,14 +360,21 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
     var(--rule) 30%, var(--rule) 100%);
 }
 .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+/* Standfirst — the lead-in voice. Serif at a confident regular weight
+   (review R2: the old 20px/300 read spindly and "like a fourth font");
+   clearly THE LEAD against the unified 16px sans body below it. */
 .px-section__intro {
   font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1.5;
+  font-size: 18.5px;
+  line-height: 1.55;
   color: var(--ink-soft);
   max-width: 62ch;
   margin-bottom: 32px;
-  font-weight: 300;
+  font-weight: 400;
+  text-wrap: pretty;
+}
+@media (min-width: 640px) {
+  .px-section__intro { text-align: justify; hyphens: auto; }
 }
 
 /* QUOTE (v2 — accent edge, soft tint, rounded trailing corners) */
@@ -406,13 +412,23 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   font-weight: 500;
   letter-spacing: -0.005em;
 }
-.px-prose__p {
+/* THE body register (review R2: ONE size/leading for all flow text —
+   prose paragraphs, quote/vote followups — CANON §5 rhythm rule). Justified
+   with hyphenation ≥640px (review R4: the print brand earns aligned edges). */
+.px-prose__p,
+.px-followup {
   font-family: var(--font-body);
-  font-size: 15.5px;
-  line-height: 1.72;
+  font-size: 16px;
+  line-height: 1.68;
   color: var(--ink-soft);
   margin-bottom: 18px;
+  text-wrap: pretty;
 }
+@media (min-width: 640px) {
+  .px-prose__p,
+  .px-followup { text-align: justify; hyphens: auto; }
+}
+.px-followup { margin-top: 28px; max-width: 680px; }
 .px-prose__p:last-child { margin-bottom: 0; }
 .px-prose strong { color: var(--ink); font-weight: 600; }
 .px-prose em { color: var(--accent); font-style: italic; }

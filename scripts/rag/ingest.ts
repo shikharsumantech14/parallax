@@ -36,9 +36,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const EMBED_BATCH = 64;
 
-interface Extracted { text: string; isPdf: boolean }
+export interface Extracted { text: string; isPdf: boolean }
 
-async function fetchAndExtract(url: string): Promise<Extracted | null> {
+export async function fetchAndExtract(url: string): Promise<Extracted | null> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'ParallaxResearchBot/1.0 (+https://parallaxlens.com)' },
     redirect: 'follow',

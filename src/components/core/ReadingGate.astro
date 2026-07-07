@@ -27,10 +27,28 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
   <div class="px-gate__card">
     <p class="px-gate__eyebrow">Keep reading — free</p>
     <h2 class="px-gate__title">Create a free account to finish this issue.</h2>
-    <p class="px-gate__sub">
-      One account opens every issue, saves your place, and follows the worlds you
-      care about. No ads, no trackers, no noise.
-    </p>
+    <ul class="px-gate__benefits">
+      <li class="px-gate__benefit">
+        <svg class="px-gate__glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5.5 3h9v14l-4.5-3.6L5.5 17z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <span>Save any issue to your shelf — pick up where you left off.</span>
+      </li>
+      <li class="px-gate__benefit">
+        <svg class="px-gate__glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4 16.5l2.5-.7 8-8-1.8-1.8-8 8zM12.2 5.5l1.8 1.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M4 19h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Annotate the margins — the editors read every note.</span>
+      </li>
+      <li class="px-gate__benefit">
+        <svg class="px-gate__glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="4.5" cy="7" r="1.7" fill="currentColor"/><circle cx="10" cy="7" r="1.7" fill="currentColor"/><circle cx="15.5" cy="7" r="1.7" fill="currentColor"/>
+          <circle cx="4.5" cy="13" r="1.7" fill="currentColor"/><circle cx="10" cy="13" r="1.7" fill="currentColor"/><circle cx="15.5" cy="13" r="1.7" fill="currentColor"/>
+        </svg>
+        <span>Six worlds, one account. No ads, ever.</span>
+      </li>
+    </ul>
     <div class="px-gate__actions">
       <a class="px-gate__cta" data-gate-cta href="#">Create your free account →</a>
       <a class="px-gate__alt" data-gate-alt href="#">Already a member? Sign in</a>
@@ -92,9 +110,23 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hideTrailing);
     else hideTrailing();
 
-    var loginUrl = appUrl + '/login?next=' + encodeURIComponent(location.href);
-    var cta = gate.querySelector('[data-gate-cta]'); if (cta) cta.setAttribute('href', loginUrl);
-    var alt = gate.querySelector('[data-gate-alt]'); if (alt) alt.setAttribute('href', loginUrl);
+    // World-tinted auth plate (JOURNEY-SPEC): carry the desk into the login URL.
+    var topic = document.documentElement.getAttribute('data-topic') || '';
+    var loginUrl = appUrl + '/login?next=' + encodeURIComponent(location.href) +
+      (topic ? '&world=' + encodeURIComponent(topic) : '');
+    // Resume-position save: WelcomeBack (P6) restores this after the auth
+    // round-trip ("continue where you left off").
+    var remember = function () {
+      try {
+        sessionStorage.setItem('px_resume', JSON.stringify({
+          path: location.pathname, y: Math.round(window.scrollY || 0),
+        }));
+      } catch (e) { /* storage may be unavailable — the journey still works */ }
+    };
+    var cta = gate.querySelector('[data-gate-cta]');
+    if (cta) { cta.setAttribute('href', loginUrl); cta.addEventListener('click', remember); }
+    var alt = gate.querySelector('[data-gate-alt]');
+    if (alt) { alt.setAttribute('href', loginUrl); alt.addEventListener('click', remember); }
   })();
 </script>
 
@@ -122,9 +154,30 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     font-family: var(--font-display); font-weight: 500; font-size: clamp(24px, 3.4vw, 34px);
     line-height: 1.15; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 12px;
   }
-  .px-gate__sub {
-    font-family: var(--font-body); font-size: 15px; line-height: 1.6;
-    color: var(--ink-soft); max-width: 46ch; margin: 0 auto 24px;
+  .px-gate__benefits {
+    list-style: none;
+    margin: 0 auto 26px;
+    padding: 0;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    text-align: left;
+  }
+  .px-gate__benefit {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 12px;
+    align-items: start;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .px-gate__glyph {
+    width: 19px; height: 19px;
+    color: var(--accent-deep, var(--accent));
+    margin-top: 1px;
   }
   .px-gate__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .px-gate__cta {

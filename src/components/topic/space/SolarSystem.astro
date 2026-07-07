@@ -1,0 +1,173 @@
+---
+/**
+ * SolarSystem (space · FLAGSHIP) — a real, navigable solar system. Bodies on
+ * elliptical Keplerian orbits at their actual positions for the issue's epoch
+ * date; the story object (comet / asteroid / probe) highlighted in amber with
+ * its trail. Rendered lazily by the WebGL runtime (scenes 'solar-system');
+ * drag to tilt/spin, scroll to zoom, hover any body for its live readout.
+ *
+ * Blueprint (the contract): docs/design/blueprints/space/solar-system.md.
+ * Math: src/scripts/viz3d/kepler.ts — the SAME functions compute the static
+ * fallback below at build time, so the no-JS / reduced-motion / no-WebGL
+ * reader gets the identical epoch-correct diagram as a composed SVG still.
+ *
+ * data: { epoch?, planets?, bodies?[{name, a_AU, e, i_deg, Omega_deg,
+ *         omega_deg, M0_deg, period_d, role?, note?}], scale?: 'log'|'true',
+ *         trailDays?, caption?, source? }
+ */
+import {
+  PLANETS, type Elements, elementsToPosition, daysSinceJ2000, logRadius,
+} from '../../../scripts/viz3d/kepler';
+
+interface StoryBody {
+  name: string; a_AU: number; e: number; i_deg: number;
+  Omega_deg: number; omega_deg: number; M0_deg: number; period_d: number;
+  role?: 'focus'; note?: string;
+}
+interface Props {
+  epoch?: string;
+  planets?: string[];
+  bodies?: StoryBody[];
+  scale?: 'log' | 'true';
+  trailDays?: number;
+  caption?: string;
+  source?: string;
+}
+const {
+  epoch = '2026-01-01', planets, bodies = [], scale = 'log',
+  trailDays = 120, caption, source,
+} = Astro.props;
+
+const NICE: Record<string, string> = {
+  mercury: 'Mercury', venus: 'Venus', earth: 'Earth', mars: 'Mars',
+  jupiter: 'Jupiter', saturn: 'Saturn', uranus: 'Uranus', neptune: 'Neptune',
+};
+const planetKeys = (planets && planets.length ? planets : Object.keys(PLANETS))
+  .filter((k) => PLANETS[k]);
+
+const K_LOG = 1.15, K_TRUE = 0.62;
+const mapR = (rAU: number) => (scale === 'log' ? logRadius(rAU, K_LOG) : K_TRUE * rAU);
+const elOf = (b: StoryBody): Elements => ({
+  a: b.a_AU, e: b.e, iDeg: b.i_deg, OmegaDeg: b.Omega_deg,
+  omegaDeg: b.omega_deg, M0Deg: b.M0_deg, periodDays: b.period_d,
+});
+const fmtPeriod = (d: number) =>
+  d >= 400 ? (d / 365.256).toFixed(1) + ' yr' : Math.round(d) + ' d';
+
+/* ── build-time fallback geometry (top-down ecliptic, same math as live) ── */
+const d0 = daysSinceJ2000(Date.parse(epoch + (epoch.length <= 10 ? 'T12:00:00Z' : '')));
+const W = 340, H = 300, cx = 170, cy = 152;
+const shown: { el: Elements; name: string; focus: boolean; note?: string }[] = [
+  ...planetKeys.map((k) => ({ el: PLANETS[k], name: NICE[k], focus: false, note: undefined as string | undefined })),
+  ...bodies.map((b) => ({ el: elOf(b), name: b.name, focus: b.role === 'focus', note: b.note })),
+];
+const Rmax = Math.max(...shown.map((s) => mapR(s.el.a * (1 + s.el.e))));
+const S = 136 / Rmax;
+const pt = (el: Elements, d: number) => {
+  const p = elementsToPosition(el, d);
+  const m = p.r > 1e-9 ? mapR(p.r) / p.r : 0;
+  return { x: cx + p.x * m * S, y: cy - p.y * m * S };
+};
+const pathFor = (el: Elements) => {
+  let d = '';
+  for (let k = 0; k <= 128; k++) {
+    const q = pt(el, (k / 128) * el.periodDays);
+    d += (k ? 'L' : 'M') + q.x.toFixed(1) + ' ' + q.y.toFixed(1);
+  }
+  return d + 'Z';
+};
+const trailFor = (el: Elements) => {
+  let d = '';
+  const steps = 48;
+  for (let k = 0; k <= steps; k++) {
+    const q = pt(el, d0 - trailDays + (k / steps) * trailDays);
+    d += (k ? 'L' : 'M') + q.x.toFixed(1) + ' ' + q.y.toFixed(1);
+  }
+  return d;
+};
+const marks = shown.map((s) => ({ ...s, p: pt(s.el, d0) }));
+
+const payload = JSON.stringify({ epoch, planets: planetKeys, bodies, scale, trailDays });
+const epochLabel = epoch.length <= 10 ? epoch : epoch.slice(0, 10);
+---
+
+<div class="px-viz" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      <b>{scale === 'log' ? 'distances log-compressed' : 'true scale'}</b>
+    </div>
+  )}
+
+  <div class="viz3d viz3d--solsys" data-viz3d="solar-system" role="img"
+    aria-label={caption ? `Solar-system map: ${caption}` : 'Solar-system map'}>
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        {/* orbit paths */}
+        {marks.map((s) => (
+          <path d={pathFor(s.el)} fill="none"
+            stroke={s.focus ? 'var(--accent-alt)' : 'var(--ink)'}
+            stroke-width={s.focus ? 1.4 : 1} opacity={s.focus ? 0.8 : 0.22} />
+        ))}
+        {/* focus trail */}
+        {marks.filter((s) => s.focus).map((s) => (
+          <path d={trailFor(s.el)} fill="none" stroke="var(--accent-alt)"
+            stroke-width="2.4" opacity="0.5" stroke-linecap="round" />
+        ))}
+        {/* Sun */}
+        <circle cx={cx} cy={cy} r="7" fill="var(--accent)" />
+        <circle cx={cx} cy={cy} r="13" fill="var(--accent)" opacity="0.18" />
+        {/* bodies at epoch */}
+        {marks.map((s) => (
+          <>
+            <circle cx={s.p.x} cy={s.p.y} r={s.focus ? 5 : 3.4}
+              fill={s.focus ? 'var(--accent-alt)' : 'var(--ink)'} opacity={s.focus ? 1 : 0.9} />
+            <text x={s.p.x + 7} y={s.p.y + 3}
+              style="font-family:'JetBrains Mono',ui-monospace,monospace"
+              font-size="9.5" fill={s.focus ? 'var(--accent-alt)' : 'var(--ink-soft)'}
+              paint-order="stroke" stroke="var(--paper)" stroke-width="3">{s.name}</text>
+          </>
+        ))}
+        {/* epoch stamp */}
+        <text x={W - 8} y={H - 8} text-anchor="end"
+          style="font-family:'JetBrains Mono',ui-monospace,monospace"
+          font-size="9" fill="var(--muted)" letter-spacing="0.08em">POSITIONS · {epochLabel}</text>
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to orbit · scroll to zoom · 1s = 10 days</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  <ul class="px-solsys__legend">
+    {marks.map((s) => (
+      <li class={`px-solsys__row${s.focus ? ' px-solsys__row--focus' : ''}`}>
+        <span class="px-solsys__dot" style={s.focus ? 'background:var(--accent-alt)' : 'background:var(--ink);opacity:.7'}></span>
+        <span class="px-solsys__name">{s.name}</span>
+        <span class="px-solsys__meta">
+          {s.el.a.toFixed(2)} AU · {fmtPeriod(s.el.periodDays)}{s.note ? ` · ${s.note}` : ''}
+        </span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .viz3d--solsys { aspect-ratio: 17 / 15; }
+
+  .px-solsys__legend { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .px-solsys__row {
+    display: grid; grid-template-columns: 14px auto 1fr; gap: 12px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-solsys__dot { width: 9px; height: 9px; border-radius: 50%; align-self: center; }
+  .px-solsys__name { font-family: var(--font-display); font-size: 15px; color: var(--ink); font-weight: 600; }
+  .px-solsys__meta {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.06em; color: var(--muted); text-align: right;
+  }
+  .px-solsys__row--focus .px-solsys__name { color: var(--accent-alt); }
+  .px-solsys__row--focus .px-solsys__meta { color: var(--ink-soft); }
+</style>

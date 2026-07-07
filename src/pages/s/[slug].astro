@@ -1,0 +1,69 @@
+---
+/**
+ * /s/<slug>/ — story mode: the shareable short version of an issue.
+ * Spec: docs/design/STORY-MODE-SPEC.md. Fully static, fully free (the CTA
+ * card funnels to the metered issue page). `status !== 'draft'` so branch
+ * previews can show review-stage stories while drafts stay unbuilt.
+ */
+import { getCollection, type CollectionEntry } from 'astro:content';
+import StoryLayout from '../../layouts/StoryLayout.astro';
+import StoryShell from '../../components/story/StoryShell.astro';
+import StoryHookCard from '../../components/story/StoryHookCard.astro';
+import StoryCard from '../../components/story/StoryCard.astro';
+import StoryCtaCard from '../../components/story/StoryCtaCard.astro';
+import { selectStoryCards } from '../../lib/story';
+
+export async function getStaticPaths() {
+  const issues = await getCollection('issues', ({ data }) => data.status !== 'draft');
+  return issues.map((issue) => ({ params: { slug: issue.slug }, props: { issue } }));
+}
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+}
+const { issue } = Astro.props;
+const { data } = issue;
+
+// Same numbering scheme as the issue page (position in the dated order).
+const allIssues = await getCollection('issues');
+const sorted = allIssues.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
+const issueNumber = String(sorted.findIndex((i) => i.slug === issue.slug) + 1).padStart(2, '0');
+
+const story = selectStoryCards({
+  hook: data.hook,
+  sections: data.sections,
+  story: data.story,
+});
+
+const cardCount = story.beats.length + 2; // hook + beats + cta
+
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const ogImage = `${siteUrl}/og/story/${issue.slug}.png`;
+---
+
+<StoryLayout
+  topic={data.topic}
+  title={data.title}
+  description={story.hook}
+  slug={issue.slug}
+  ogImage={ogImage}
+>
+  <StoryShell cardCount={cardCount}>
+    <StoryHookCard
+      topic={data.topic}
+      issueNumber={issueNumber}
+      title={data.title}
+      hook={story.hook}
+    />
+    {story.beats.map((beat, i) => (
+      <StoryCard section={beat.section} text={beat.text} kicker={beat.kicker} index={i + 2} />
+    ))}
+    <StoryCtaCard
+      slug={issue.slug}
+      sectionCount={data.sections.length}
+      sourceCount={data.sources.length}
+      cta={story.cta}
+      index={cardCount}
+    />
+  </StoryShell>
+</StoryLayout>

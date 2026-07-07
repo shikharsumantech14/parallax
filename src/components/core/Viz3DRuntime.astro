@@ -8,11 +8,11 @@
  * has no 3D mounts, runtime.initViz3D() returns immediately and three is never
  * fetched. Render onceper page (the layouts include it on issue pages).
  *
- * See src/scripts/viz3d/runtime.ts + scenes.ts.
+ * See src/scripts/viz3d/runtime.ts + scenes/ (per-scene lazy registry).
  */
 ---
 <script>
   import { initViz3D } from '../../scripts/viz3d/runtime';
-  import { builders } from '../../scripts/viz3d/scenes';
+  import { builders } from '../../scripts/viz3d/scenes/index';
   initViz3D(builders);
 </script>

@@ -870,6 +870,77 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-07-05 → 07-06 — Product-elevation program (design canon + flagships + home + story mode + 2 review rounds)
+
+Operator-approved master elevation of the whole product — visual depth,
+per-world component inventories, a casual-reader language layer, a complete UX
+journey, and a shareable story format — executed as a phased plan (P0–P8) with
+a **model-succession** design (Fable authored the design-critical artifacts;
+Opus executed breadth from them after Fable's budget capped mid-run — the
+succession the plan was built for). **All shipped in-repo, build green (44
+pages), and UNCOMMITTED** (code-only account — operator commits/pushes/deploys).
+Full detail lives in `docs/design/` (the canon); this is the summary. *(The
+2026-06-21→23 content/social-engine work sits between this and the entry below;
+it's logged in `AGENTS.md` change log + `docs/CONTENT-ENGINE.md` + agent
+memory, not backfilled here.)*
+
+- **P0 — Design canon (`docs/design/`).** The model-succession payload: turns
+  taste into checkable rules. `CANON.md` (one-metaphor rule, act-structure
+  density, line-art doctrine, type/color/honesty rules, anti-"generic-AI"
+  kill-list), `motion.md` (named motion vocabulary), `catalog.md` (the
+  what-to-use-when catalog, enforced by `npm run check:catalog`),
+  `JOURNEY-SPEC.md` / `APP-DESIGN-SPEC.md` / `STORY-MODE-SPEC.md`, `physics/`
+  (formula sheets), `worlds/` (per-world language), `blueprints/` (per-component
+  contracts). Plus `shared/design/{tokens,worlds}.css` as the canonical token
+  source for BOTH projects (`npm run design:sync`; `design:check` gates the
+  build; `tokens-v2.css` is now a re-export). The §7 "minimal JS" rule was
+  rewritten to **rich-on-issues, lean-elsewhere** (fallback contract absolute).
+- **P1 — Shared infrastructure.** Per-scene lazy WebGL chunks
+  (`viz3d/scenes/` + `helpers.ts` orbit/zoom/pick/tooltip/instancing +
+  `kepler.ts` pure math); the in-flow **"In plain terms" line** under every viz
+  (`src/lib/explainers.ts` + `core/Section.astro`); `section.layout`
+  variants + the `act-break` kind + `layout-v2.css` (incl. the zero-JS
+  `split` scrollytelling primitive); the `SectionBody.astro` extraction that
+  unlocked story mode.
+- **P2 + P6 — Flagship components, one hero per world.** Six navigable,
+  physics-grounded WebGL centerpieces: **solar-system** (Keplerian, epoch-
+  correct), **chamber** (instanced hemicycle + division walk), **power-flow**
+  (conservation-gated Sankey), **terrain-relief** (hillshaded hypsometric DEM
+  relief), **neural-flow** (instanced forward-pass), **terminator-globe** (jet
+  lag on the day/night line), **flight-of-the-ball** (drag+Magnus trajectory).
+  All browser-verified, physically correct, code-split, fallback-first.
+- **P3 — App design language + login.** `app.css` v2 (Schibsted Grotesk,
+  plate/chip/toggle/glass primitives), `AppLayout` v2, `LensMark`, and a
+  **fully redesigned `login.astro`** (5-state machine, world-tinted plate,
+  "check your inbox" state). App builds green; live verify is operator-side.
+- **P4 + P7 — Story mode + share.** `/s/<slug>/` — swipeable full-screen
+  visual stories reusing live components as cards (all 10 issues), snap UX,
+  `?via=story` funnel, `noindex`. Plus **OG images** auto-generated at build
+  (`scripts/story/og.ts` → `ogCard` 1200×630) for story AND issue pages
+  (issues shipped no `og:image` before) + a share button.
+- **P5 — All 26 remaining component blueprints** authored + adversarially
+  verified (~60 findings — formula/geometry/motion bugs — caught & fixed).
+  The full design-contract set (`docs/design/blueprints/`) that makes the
+  remaining breadth build model-agnostic.
+- **P2.5 / P2.6 / home — review round 1.** Primer → integrated brief;
+  unified body type + justification; optical drop cap; orbit-globe framing;
+  the three light worlds (politics/earth/travel) given distinct **motif kits**
+  (gazette / survey atlas / field journal) so each is identifiable with the
+  masthead cropped; masthead **Sign-in entry** + gate benefit rows (visible
+  journey); and a **full home revamp** (`HOME-SPEC.md`) — the enacted
+  brand-lens hero, wire strip, live desk portals, featured plate.
+- **Review round 2** (`docs/design/REVIEW-2026-07-05.md`): unified in-scene
+  labels (anchor dot + consistent offset, all 6 scenes); widened zoom-out
+  so scenes frame fully; **CANON §4 amended to allow restrained fills** →
+  terrain became a filled hillshaded relief (regenerated a clean sample DEM);
+  hero refined so the parallax concept reads (tinted overlapping fields +
+  sightlines + reticle + caption).
+
+**Remaining (not yet built):** ~20 breadth components (all blueprinted); the
+app Shelf-dashboard + welcome flow + join wiring (P6 app side); P8 pipeline
+wiring (teach the editorial agents the catalog). Standing gates: root `npm run
+build`, `npm run design:check`, `npm run check:catalog`.
+
 ### 2026-06-21 — Unified type system + "The Second Angle" onboarding + soft signup gate
 
 Three product-wide passes; all shipped in-repo, **build green (34 pages)** and

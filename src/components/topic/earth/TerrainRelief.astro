@@ -1,0 +1,452 @@
+---
+/**
+ * TerrainRelief (earth · FLAGSHIP + world signature) — "The reader holds the
+ * actual ground, drawn the way the atlas draws it." A per-issue DEM tile rebuilt
+ * as contour rings + ridgelines (a surveyor's plate lifted into 3-D). Drag to
+ * orbit the massif; one chip re-inks it at a truer or more dramatic vertical
+ * scale. Lazy WebGL (scenes 'terrain-relief').
+ *
+ * Blueprint (the contract): docs/design/blueprints/earth/terrain-relief.md.
+ * Math: src/scripts/viz3d/terrain.ts — the SAME decode + marching-squares +
+ * ridgeline functions compute the build-time fallback plate below, so the
+ * no-JS / reduced-motion / no-WebGL reader gets the identical topographic map
+ * as a composed top-down SVG still (§7): contours, ridgelines, named summits,
+ * a survey scale bar, corner coordinates, and a specimen field-note legend.
+ *
+ * data: { dem (URL, REQUIRED), place (REQUIRED), exaggeration?, exaggerateTo?,
+ *         contourInterval_m?, peaks?[{name,lat,lon,elev_m?}], seaLevel?,
+ *         caption?, source? (REQUIRED) }
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  decodeDEM, contourPolylines, ridgelines, autoInterval, tileAspect,
+  tileGroundWidthKm, niceScaleBar, fmtCoord, fmtElev,
+  type DEM, type Contour,
+} from '../../../scripts/viz3d/terrain';
+
+interface Peak { name: string; lat: number; lon: number; elev_m?: number; }
+interface Props {
+  dem?: string;
+  place?: string;
+  exaggeration?: number;
+  exaggerateTo?: number;
+  contourInterval_m?: number;
+  peaks?: Peak[];
+  seaLevel?: boolean;
+  caption?: string;
+  source?: string;
+}
+const {
+  dem: demUrl, place = '', exaggeration = 1.8, exaggerateTo,
+  contourInterval_m, peaks = [], seaLevel, caption, source,
+} = Astro.props;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const EX_REST = clamp(exaggeration, 1, 12);
+const hasToggle = typeof exaggerateTo === 'number';
+const EX_EXAG = hasToggle ? clamp(exaggerateTo as number, EX_REST + 1, 12) : EX_REST;
+
+/* ── load + decode the DEM at BUILD TIME (public/geo/<slug>-dem.json) ──
+   Missing / bad DEM ⇒ the component renders nothing (blueprint §11). We read
+   from public/ via process.cwd() (never import.meta.url) per geodesy §6. */
+let dem: DEM | null = null;
+let demErr = false;
+if (demUrl && demUrl.startsWith('/')) {
+  try {
+    const abs = join(process.cwd(), 'public', demUrl.replace(/^\//, ''));
+    dem = decodeDEM(JSON.parse(readFileSync(abs, 'utf8')));
+  } catch { demErr = true; }
+} else {
+  demErr = true;
+}
+
+/* Everything below is only computed when we have a valid tile. */
+const interval = dem
+  ? (typeof contourInterval_m === 'number' && contourInterval_m > 0 ? contourInterval_m : autoInterval(dem.minM, dem.maxM))
+  : 0;
+const useSea = dem ? (typeof seaLevel === 'boolean' ? seaLevel : dem.minM < 0) : false;
+
+/* ── fallback plate geometry — top-down orthographic (blueprint §7) ── */
+const PAD = 24;
+const VW = 720;
+const aspect = dem ? tileAspect(dem.latN, dem.latS, dem.lonW, dem.lonE) : 1;
+const VH = Math.round(VW * aspect);
+
+const sx = (col: number) => dem ? PAD + (col / (dem.w - 1)) * (VW - 2 * PAD) : 0;
+const sy = (row: number) => dem ? PAD + (row / (dem.h - 1)) * (VH - 2 * PAD) : 0;
+const pathOf = (pts: { col: number; row: number }[]) => {
+  let d = '';
+  for (let i = 0; i < pts.length; i++) {
+    d += (i ? 'L' : 'M') + sx(pts[i].col).toFixed(1) + ' ' + sy(pts[i].row).toFixed(1);
+  }
+  return d;
+};
+
+/* Contours — split into index / intermediate / sea; decimate to ≤ ~40 loops
+   for the fallback if a dense DEM overflows the SVG-node budget (§7/§10).
+   Priority: keep index loops (heavier, labelled) + the longest intermediates. */
+let idxLoops: Contour[] = [];
+let intLoops: Contour[] = [];
+let seaLoops: Contour[] = [];
+let ridgePaths: string[] = [];
+if (dem) {
+  const all = contourPolylines(dem, interval);
+  for (const c of all) {
+    if (useSea && c.level_m === 0) seaLoops.push(c);
+    else if (c.isIndex) idxLoops.push(c);
+    else intLoops.push(c);
+  }
+  // decimation budget (blueprint §7 ≤ 40 loops / §10 ≤ 900 SVG nodes): index +
+  // sea loops always kept (labelled, load-bearing); intermediates trimmed by
+  // length. Total path count is held well under the 900-node cap; drop the
+  // shortest (noisiest) index loops too if a very dense DEM overflows.
+  const MAX_LOOPS = 220;
+  idxLoops.sort((a, b) => b.pts.length - a.pts.length);
+  intLoops.sort((a, b) => b.pts.length - a.pts.length);
+  const idxBudget = Math.min(idxLoops.length, MAX_LOOPS - seaLoops.length);
+  idxLoops = idxLoops.slice(0, Math.max(0, idxBudget));
+  const keepInt = Math.max(0, MAX_LOOPS - idxLoops.length - seaLoops.length);
+  intLoops = intLoops.slice(0, keepInt);
+
+  ridgePaths = ridgelines(dem).map((r) => pathOf(r.pts));
+}
+
+/* Peaks → screen dots + labels (sampled elev if omitted) */
+interface PlatePeak { name: string; x: number; y: number; elev_m: number; lat: number; lon: number; }
+const platePeaks: PlatePeak[] = dem
+  ? peaks.filter((p) => typeof p.lat === 'number' && typeof p.lon === 'number').slice(0, 6).map((p) => {
+      const elev = typeof p.elev_m === 'number' ? p.elev_m : dem!.elevLL(p.lat, p.lon);
+      const col = clamp(((p.lon - dem!.lonW) / (dem!.lonE - dem!.lonW)) * (dem!.w - 1), 0, dem!.w - 1);
+      const row = clamp(((dem!.latN - p.lat) / (dem!.latN - dem!.latS)) * (dem!.h - 1), 0, dem!.h - 1);
+      return { name: p.name, x: sx(col), y: sy(row), elev_m: elev, lat: p.lat, lon: p.lon };
+    })
+  : [];
+
+/* Corner coordinates (motif 2) — sign-aware, outside the frame */
+const corners = dem
+  ? {
+      nw: fmtCoord(dem.latN, dem.lonW), ne: fmtCoord(dem.latN, dem.lonE),
+      sw: fmtCoord(dem.latS, dem.lonW), se: fmtCoord(dem.latS, dem.lonE),
+    }
+  : null;
+
+/* Survey scale bar (motif 4) — km length from the tile's true ground width */
+const groundKm = dem ? tileGroundWidthKm(dem.latN, dem.latS, dem.lonW, dem.lonE) : 0;
+const bar = niceScaleBar(groundKm);
+const barPx = bar.frac * (VW - 2 * PAD);
+
+/* Specimen legend rows (field-note table) */
+const legendRows = platePeaks.map((p) => ({
+  name: p.name, elev: fmtElev(p.elev_m), coord: fmtCoord(p.lat, p.lon),
+}));
+const showAll = legendRows.length <= 5;
+
+/* index-contour elevation labels: at most 4, on the longest index loops */
+const idxLabels = idxLoops
+  .slice()
+  .sort((a, b) => b.pts.length - a.pts.length)
+  .slice(0, 4)
+  .map((c) => {
+    const mid = c.pts[Math.floor(c.pts.length / 2)];
+    return { x: sx(mid.col), y: sy(mid.row), t: `${fmtElev(c.level_m)} m` };
+  });
+
+/* payload for the live scene — the DEM URL (not the grid), EX flags, peaks,
+   plus the earth brown / deep tokens injected for the scene (blueprint §6). */
+const payload = JSON.stringify({
+  dem: demUrl,
+  exaggeration: EX_REST,
+  exaggerateTo: hasToggle ? EX_EXAG : undefined,
+  contourInterval_m: interval,
+  peaks,
+  seaLevel: useSea,
+  _altColor: 'var(--accent-alt)',
+  _deepColor: 'var(--accent-deep)',
+});
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const SERIF = "font-family:var(--font-display),Georgia,serif";
+const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
+---
+
+{dem && (
+  <div class="px-viz px-trrlf" data-reveal>
+    {caption && (
+      <div class="px-viz__cap">
+        <span>{caption}</span>
+        <b>vertical ×{Math.round(EX_REST * 10) / 10}</b>
+      </div>
+    )}
+
+    <div class="px-trrlf__stage">
+      <div
+        class="viz3d viz3d--trrlf"
+        data-viz3d="terrain-relief"
+        data-viz3d-state="rest"
+        style={`aspect-ratio: ${VW} / ${VH}`}
+        role="img"
+        aria-label={caption ? `Terrain relief map: ${caption}` : `Terrain relief map of ${place}`}
+      >
+        <div class="viz3d__fallback">
+          {/* The print plate — a top-down surveyor's contour map (blueprint §7).
+              overflow visible so corner coords + labels bleed outside the frame. */}
+          <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" style="overflow:visible">
+            {/* survey-plate frame */}
+            <rect x={PAD} y={PAD} width={VW - 2 * PAD} height={VH - 2 * PAD}
+              fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.30" />
+
+            {/* intermediate contours (ink @ 0.22) */}
+            {intLoops.map((c) => (
+              <path d={pathOf(c.pts)} fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.22" />
+            ))}
+            {/* index contours (ink @ 0.42, heavier) */}
+            {idxLoops.map((c) => (
+              <path d={pathOf(c.pts)} fill="none" stroke="var(--ink)" stroke-width="1.4" opacity="0.42" />
+            ))}
+            {/* sea / 0 m contour (accent green) */}
+            {seaLoops.map((c) => (
+              <path d={pathOf(c.pts)} fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.9" />
+            ))}
+            {/* ridgelines (USGS brown, over the contours) */}
+            {ridgePaths.map((d) => (
+              <path d={d} fill="none" stroke="var(--accent-alt)" stroke-width="1.4" opacity="0.85"
+                stroke-linecap="round" stroke-linejoin="round" />
+            ))}
+
+            {/* index-contour elevation labels (mono 9.5) */}
+            {idxLabels.map((l) => (
+              <text x={l.x} y={l.y} style={MONO} font-size="9.5" fill="var(--muted)"
+                text-anchor="middle" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{l.t}</text>
+            ))}
+
+            {/* peaks — accent-deep dot + Fraunces-italic name + mono elev (specimen) */}
+            {platePeaks.map((p) => (
+              <>
+                <circle cx={p.x} cy={p.y} r="3" fill="var(--accent-deep)" />
+                <text x={p.x + 7} y={p.y - 5} style={`${SERIF};font-style:italic`} font-size="14"
+                  fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{p.name}</text>
+                <text x={p.x + 7} y={p.y + 9} style={MONO} font-size="9.5" fill="var(--accent-deep)"
+                  paint-order="stroke" stroke="var(--paper)" stroke-width="3">{fmtElev(p.elev_m)} m</text>
+              </>
+            ))}
+
+            {/* corner coordinates (motif 2) — sign-aware, outside the frame */}
+            {corners && (
+              <>
+                <text x={PAD} y={PAD - 8} style={MONO} font-size="9.5" fill="var(--muted)"
+                  letter-spacing="0.06em">{corners.nw}</text>
+                <text x={VW - PAD} y={PAD - 8} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
+                  letter-spacing="0.06em">{corners.ne}</text>
+                <text x={PAD} y={VH - PAD + 16} style={MONO} font-size="9.5" fill="var(--muted)"
+                  letter-spacing="0.06em">{corners.sw}</text>
+                <text x={VW - PAD} y={VH - PAD + 16} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
+                  letter-spacing="0.06em">{corners.se}</text>
+              </>
+            )}
+
+            {/* survey scale bar (motif 4) — bottom-left, ruled ticks, km length */}
+            {barPx > 8 && (
+              <>
+                <line x1={PAD} y1={VH - PAD - 10} x2={PAD + barPx} y2={VH - PAD - 10}
+                  stroke="var(--accent-deep)" stroke-width="1.4" />
+                <line x1={PAD} y1={VH - PAD - 14} x2={PAD} y2={VH - PAD - 6}
+                  stroke="var(--accent-deep)" stroke-width="1.4" />
+                <line x1={PAD + barPx / 2} y1={VH - PAD - 13} x2={PAD + barPx / 2} y2={VH - PAD - 7}
+                  stroke="var(--accent-deep)" stroke-width="1" />
+                <line x1={PAD + barPx} y1={VH - PAD - 14} x2={PAD + barPx} y2={VH - PAD - 6}
+                  stroke="var(--accent-deep)" stroke-width="1.4" />
+                <text x={PAD + barPx + 6} y={VH - PAD - 6} style={MONO} font-size="9" fill="var(--muted)"
+                  letter-spacing="0.1em">{bar.km} km</text>
+              </>
+            )}
+          </svg>
+        </div>
+
+        <span class="viz3d__hint" aria-hidden="true">drag to tilt · scroll to zoom</span>
+        <script type="application/json" class="viz3d__data" set:html={payload}></script>
+      </div>
+
+      {/* ONE control (CANON §9): the vertical-exaggeration chip. Hidden until
+          the WebGL scene is live (the fallback carries the honest rest EX). */}
+      {hasToggle && (
+        <div class="px-trrlf__chips">
+          <button type="button" class="px-trrlf__chip"
+            data-ex-rest={EX_REST} data-ex-exag={EX_EXAG} aria-pressed="false">
+            {exLabel(EX_REST)}
+          </button>
+        </div>
+      )}
+    </div>
+
+    {/* specimen legend / field-note table (AT-readable data source, motif 3) */}
+    {legendRows.length > 0 && (
+      <div class={`px-trrlf__legend${showAll ? '' : ' px-trrlf__legend--collapsed'}`}>
+        <div class="px-trrlf__legend-head">
+          <span>contour interval {interval} m</span>
+          <span>vertical ×{Math.round(EX_REST * 10) / 10}</span>
+        </div>
+        <ul class="px-trrlf__rows">
+          {legendRows.map((r, i) => (
+            <li class={`px-trrlf__row${!showAll && i >= 5 ? ' px-trrlf__row--extra' : ''}`}>
+              <span class="px-trrlf__pk">{r.name}</span>
+              <span class="px-trrlf__pk-el">{r.elev} m</span>
+              <span class="px-trrlf__pk-co">{r.coord}</span>
+            </li>
+          ))}
+        </ul>
+        {!showAll && (
+          <button type="button" class="px-trrlf__more" aria-expanded="false">show all {legendRows.length}</button>
+        )}
+      </div>
+    )}
+
+    {legendRows.length === 0 && (
+      <div class="px-trrlf__legend">
+        <div class="px-trrlf__legend-head">
+          <span>contour interval {interval} m</span>
+          <span>vertical ×{Math.round(EX_REST * 10) / 10}</span>
+        </div>
+        <p class="px-trrlf__place">{place}</p>
+      </div>
+    )}
+
+    {source && <div class="px-viz__src">Source · {source}</div>}
+
+    {/* chip + show-all bridge — sets data-viz3d-state; runtime mirrors it into
+        setState (runtime.ts state-chip bridge). The chip label re-inks live
+        from the scene's data-viz3d-ex once toggled. */}
+    <script is:inline>
+      (function () {
+        var root = document.currentScript && document.currentScript.previousElementSibling;
+        while (root && !(root.classList && root.classList.contains('px-trrlf'))) {
+          root = root.previousElementSibling;
+        }
+        if (!root) return;
+        var mount = root.querySelector('[data-viz3d="terrain-relief"]');
+        var chip = root.querySelector('.px-trrlf__chip');
+        if (mount && chip) {
+          var rest = chip.getAttribute('data-ex-rest');
+          var exag = chip.getAttribute('data-ex-exag');
+          var on = false;
+          var fmt = function (v) { return 'VERTICAL ×' + (Math.round(v * 10) / 10); };
+          chip.addEventListener('click', function () {
+            on = !on;
+            mount.setAttribute('data-viz3d-state', on ? 'exaggerate' : 'rest');
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+            chip.classList.toggle('is-on', on);
+            chip.textContent = fmt(parseFloat(on ? exag : rest));
+          });
+          // live re-ink: the scene writes data-viz3d-ex during the settle
+          var mo = new MutationObserver(function () {
+            var ex = mount.getAttribute('data-viz3d-ex');
+            if (ex) chip.textContent = fmt(parseFloat(ex));
+          });
+          mo.observe(mount, { attributes: true, attributeFilter: ['data-viz3d-ex'] });
+        }
+        // legend show-all
+        var more = root.querySelector('.px-trrlf__more');
+        var legend = root.querySelector('.px-trrlf__legend');
+        if (more && legend) {
+          more.addEventListener('click', function () {
+            legend.classList.remove('px-trrlf__legend--collapsed');
+            more.setAttribute('aria-expanded', 'true');
+            more.style.display = 'none';
+          });
+        }
+      })();
+    </script>
+  </div>
+)}
+
+<style>
+  .px-trrlf__stage { position: relative; }
+
+  /* survey-plate mount tint — atlas paper under the line-art */
+  .viz3d--trrlf {
+    background:
+      radial-gradient(ellipse 72% 64% at 50% 46%,
+        color-mix(in oklab, var(--ink) 5%, transparent), transparent 74%),
+      color-mix(in oklab, var(--paper) 70%, var(--bg));
+  }
+
+  /* the ONE control — mono pill, top-right; hidden until the scene is live
+     (the fallback plate already prints the honest rest EX). */
+  .px-trrlf__chips {
+    display: none;
+    position: absolute; top: 10px; right: 12px; z-index: 3;
+  }
+  .viz3d--live + .px-trrlf__chips { display: flex; }
+
+  .px-trrlf__chip {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 7px 12px; min-height: 30px; cursor: pointer;
+    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+  }
+  .px-trrlf__chip:active { transform: scale(0.98); }
+  .px-trrlf__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
+  @media (pointer: coarse) {
+    .px-trrlf__chip { min-height: 44px; padding: 10px 14px; } /* 44px touch floor */
+  }
+
+  /* specimen legend / field-note table (earth motif 3) */
+  .px-trrlf__legend {
+    margin-top: 18px;
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+  }
+  .px-trrlf__legend-head {
+    display: flex; justify-content: space-between; gap: 16px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep);
+    font-variant-numeric: tabular-nums;
+    padding-bottom: 12px;
+  }
+  .px-trrlf__rows { list-style: none; margin: 0; padding: 0; }
+  .px-trrlf__row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-trrlf__pk {
+    font-family: var(--font-display); font-style: italic; font-size: 16px;
+    color: var(--ink);
+  }
+  .px-trrlf__pk-el {
+    font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+  .px-trrlf__pk-co {
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
+    letter-spacing: 0.06em; text-align: right; min-width: 12ch;
+  }
+  .px-trrlf__place {
+    font-family: var(--font-display); font-style: italic; font-size: 15px;
+    color: var(--ink-soft); margin: 4px 0 0;
+  }
+
+  /* collapse behind "show all" past 5 rows (no-JS shows all; JS hides extras) */
+  html.js .px-trrlf__legend--collapsed .px-trrlf__row--extra { display: none; }
+  .px-trrlf__more {
+    margin-top: 12px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep);
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  html:not(.js) .px-trrlf__more { display: none; }
+
+  @media (max-width: 760px) {
+    .px-trrlf__row { grid-template-columns: 1fr auto; row-gap: 2px; }
+    .px-trrlf__pk-co { grid-column: 1 / -1; text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-trrlf__chip { transition: none; }
+    .px-trrlf__chip:active { transform: none; }
+  }
+</style>

@@ -37,10 +37,14 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     <h1 class="px-erh-index__title">
       The planet, in <em>the present tense</em>.
     </h1>
-    <p class="px-erh-index__manifesto">
+    <div class="ear-coords px-erh-index__intro-coords">Field atlas · <b>22.9734° N, 78.6569° E</b> · Survey current</div>
+    <p class="px-erh-index__manifesto ear-contours">
       Climate, oceans, biodiversity, geology — the working systems we live inside and routinely fail to measure. Each sheet of the atlas covers one of them, with the patience of a survey and the urgency of a thermometer.
     </p>
   </section>
+
+  <div class="ear-scalebar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="ear-scalebar__label" aria-hidden="true">0 ─ 500 KM</div>
 
   {issues.length === 0 ? (
     <div class="px-erh-index__empty">
@@ -65,8 +69,8 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
             <div class="px-erh-index__sheet-body">
               <h2 class="px-erh-index__sheet-title" set:html={renderEmphasis(issue.data.title)} />
               <p class="px-erh-index__sheet-hook">{issue.data.hook}</p>
-              <div class="px-erh-index__sheet-meta">
-                <span>{fmtDate(issue.data.publishedAt)}</span>
+              <div class="px-erh-index__sheet-meta ear-specimen">
+                <span class="ear-specimen__id">{fmtDate(issue.data.publishedAt)}</span>
                 <span class="px-erh-index__sheet-sep">·</span>
                 <span class="px-erh-index__sheet-cta">Turn the sheet →</span>
               </div>
@@ -140,12 +144,15 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
   .px-erh-index__coord-l { color: var(--muted); padding-right: 8px; text-transform: uppercase; letter-spacing: 0.16em; font-size: 10px; }
   .px-erh-index__coord strong { color: var(--ink); font-weight: 600; }
 
-  /* --- Intro / manifesto --- */
+  /* --- Intro / manifesto — the survey plate (R5). The old dashed bottom
+     rule is replaced by the .ear-scalebar survey rule, which carries the
+     intro → sheets break with its own 40px margins. --- */
   .px-erh-index__intro {
-    margin: 0 0 56px;
-    padding-bottom: 36px;
-    border-bottom: 1px dashed var(--rule);
+    margin: 0;
   }
+  .px-erh-index__intro-coords { margin: 0 0 18px; }
+  /* the manifesto sits on the ear-contours plate — give the plate its inset */
+  .px-erh-index__manifesto.ear-contours { padding: 20px 24px; }
   .px-erh-index__title {
     font-family: var(--issue-face, var(--font-display));
     font-weight: 600;
@@ -261,7 +268,8 @@ const sheetNo = (n: number) => `Sheet ${String(n).padStart(2, '0')}`;
     max-width: 60ch;
   }
   .px-erh-index__sheet-meta {
-    display: flex; gap: 10px; align-items: center;
+    /* baseline, not center — matches the ear-specimen pairing this row adopts */
+    display: flex; gap: 10px; align-items: baseline;
     font-family: var(--font-mono);
     font-size: 11px;
     letter-spacing: 0.16em;

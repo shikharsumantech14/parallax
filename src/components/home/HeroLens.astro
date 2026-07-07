@@ -1,0 +1,246 @@
+---
+/**
+ * HeroLens — the home hero: "The Second Angle, enacted" (HOME-SPEC §2).
+ *
+ * The locked brand figure (two lens rings + the red hero sphere in the
+ * vesica) drawn large in ink line-work. Under the cursor the two rings
+ * drift in OPPOSITE directions around the fixed sphere — two viewpoints
+ * shifting around one object: the brand's own physics, enacted exactly
+ * once on this surface (the sanctioned CANON §11 parallax exception,
+ * documented in HOME-SPEC). Touch devices get a slow idle sway instead;
+ * reduced-motion / no-JS get the static registered figure.
+ *
+ * Story mode is the front door: the primary CTA opens the newest issue's
+ * 60-second version. Prefix: px-hlens.
+ */
+interface Props {
+  latestSlug?: string;
+}
+const { latestSlug } = Astro.props;
+const storyHref = latestSlug ? `/s/${latestSlug}/` : '/#desks';
+
+// Locked mark geometry (brand-logo): rings r170 offset ±96, sphere r66.
+const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
+---
+
+<section class="px-hlens" id="px-hlens" aria-label="Parallax — stories from the second angle">
+  <div class="px-hlens__copy">
+    <p class="px-hlens__eyebrow" data-hl-reveal style="--d:0ms">Six worlds · one publication</p>
+    <h1 class="px-hlens__title" data-hl-reveal style="--d:90ms">
+      Stories you think you <em>already</em> understand.
+    </h1>
+    <p class="px-hlens__dek" data-hl-reveal style="--d:200ms">
+      Familiar headlines, rebuilt from the structure up — every number
+      sourced, every chart alive, every story the version you haven't heard.
+    </p>
+    <div class="px-hlens__ctas" data-hl-reveal style="--d:300ms">
+      <a class="px-hlens__cta" href={storyHref}>Start with a story <span aria-hidden="true">→</span></a>
+      <a class="px-hlens__how" href="/welcome/">How Parallax works</a>
+    </div>
+  </div>
+
+  <div class="px-hlens__figure" aria-hidden="true">
+    <svg viewBox="0 0 532 400" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <radialGradient id="hlens-sphere" cx="38%" cy="32%" r="72%">
+          <stop offset="0%" stop-color="#d4573f"/>
+          <stop offset="55%" stop-color="#b8341f"/>
+          <stop offset="100%" stop-color="#7a1f12"/>
+        </radialGradient>
+      </defs>
+
+      {/* two overlapping fields of view — the tinted lenses. Their OVERLAP
+          (the vesica) is where both can see, so it reads darker: the object
+          resolves only where the two viewpoints agree. That IS parallax. */}
+      <g class="px-hlens__fields">
+        <g class="px-hlens__ring px-hlens__ring--a">
+          <circle cx="170" cy="200" r="170" fill="var(--ink)" fill-opacity="0.045"
+            stroke="var(--ink)" stroke-width="1.5" stroke-opacity="0.4"
+            pathLength={RING_C} class="px-hlens__stroke"/>
+          <circle cx="170" cy="200" r="150" fill="none" stroke="var(--ink)"
+            stroke-width="1" stroke-opacity="0.14"/>
+        </g>
+        <g class="px-hlens__ring px-hlens__ring--b">
+          <circle cx="362" cy="200" r="170" fill="var(--ink)" fill-opacity="0.045"
+            stroke="var(--ink)" stroke-width="1.5" stroke-opacity="0.4"
+            pathLength={RING_C} class="px-hlens__stroke px-hlens__stroke--late"/>
+          <circle cx="362" cy="200" r="150" fill="none" stroke="var(--ink)"
+            stroke-width="1" stroke-opacity="0.14"/>
+        </g>
+      </g>
+
+      {/* the two lines of sight converging on the object from each viewpoint */}
+      <g class="px-hlens__sight">
+        <line x1="170" y1="200" x2="266" y2="200" stroke="var(--accent-deep, #8b2416)"
+          stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 5"/>
+        <line x1="362" y1="200" x2="266" y2="200" stroke="var(--accent-deep, #8b2416)"
+          stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 5"/>
+      </g>
+
+      {/* the focal object — resolved in the overlap, with a quiet focus reticle */}
+      <g class="px-hlens__sphere">
+        <circle cx="266" cy="200" r="84" fill="none" stroke="var(--accent-deep, #8b2416)"
+          stroke-width="1" stroke-opacity="0.28" stroke-dasharray="1.5 6"/>
+        <circle cx="266" cy="200" r="66" fill="url(#hlens-sphere)"/>
+        <ellipse cx="245" cy="172" rx="18" ry="11" fill="#ffffff" opacity="0.28"
+          transform="rotate(-24 245 172)"/>
+      </g>
+    </svg>
+    <p class="px-hlens__cap">The same object — from a second angle.</p>
+  </div>
+</section>
+
+<script is:inline>
+  (function () {
+    var root = document.getElementById('px-hlens');
+    if (!root) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) return; // CSS sway handles touch
+    var raf = 0, target = 0;
+    root.addEventListener('pointermove', function (e) {
+      var r = root.getBoundingClientRect();
+      target = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+      if (!raf) raf = requestAnimationFrame(function () {
+        raf = 0;
+        root.style.setProperty('--hx', target.toFixed(3));
+      });
+    }, { passive: true });
+    root.addEventListener('pointerleave', function () {
+      root.style.setProperty('--hx', '0');
+    }, { passive: true });
+  })();
+</script>
+
+<style>
+  .px-hlens {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 32px;
+    align-items: center;
+    min-height: min(78vh, 720px);
+    padding: 56px 0 40px;
+  }
+
+  .px-hlens__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .px-hlens__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(44px, 6.6vw, 84px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+  .px-hlens__title em {
+    font-style: italic;
+    color: var(--topic-politics-deep, #8b2416);
+  }
+  .px-hlens__dek {
+    font-family: var(--font-display);
+    font-size: 18.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin: 0 0 30px;
+    text-wrap: pretty;
+  }
+  .px-hlens__ctas { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .px-hlens__cta {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15.5px;
+    color: var(--paper);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: var(--r-pill);
+    padding: 14px 26px;
+    text-decoration: none;
+    transition: transform var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
+  }
+  .px-hlens__cta:hover { transform: translateY(-1px); background: var(--topic-politics-deep, #8b2416); border-color: var(--topic-politics-deep, #8b2416); }
+  .px-hlens__how {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  .px-hlens__how:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ── the figure ── */
+  .px-hlens__figure { min-width: 0; }
+  .px-hlens__figure svg { width: 100%; height: auto; display: block; overflow: visible; }
+  /* the two view-fields multiply so their overlap (the vesica) reads darker —
+     the object resolves where both viewpoints agree. */
+  .px-hlens__fields { mix-blend-mode: multiply; }
+  .px-hlens__cap {
+    text-align: center;
+    margin: 14px 0 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  @media (max-width: 959px) { .px-hlens__cap { display: none; } }
+
+  /* the enactment: rings drift opposite ways under --hx (island-written) */
+  .px-hlens__ring--a { transform: translateX(calc(var(--hx, 0) * 10px)); }
+  .px-hlens__ring--b { transform: translateX(calc(var(--hx, 0) * -10px)); }
+  .px-hlens__ring { transition: transform 600ms var(--ease-snap); will-change: transform; }
+
+  /* touch: a slow idle sway instead of cursor drift */
+  @media (hover: none) {
+    html.js .px-hlens__ring--a { animation: px-hlens-swayA 14s var(--ease) infinite alternate; }
+    html.js .px-hlens__ring--b { animation: px-hlens-swayB 14s var(--ease) infinite alternate; }
+  }
+  @keyframes px-hlens-swayA { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+  @keyframes px-hlens-swayB { from { transform: translateX(6px); } to { transform: translateX(-6px); } }
+
+  /* draw-in: rings sweep once on load (html.js-gated; no-JS = final state) */
+  html.js .px-hlens__stroke {
+    stroke-dasharray: 1068;
+    animation: px-hlens-draw 1200ms var(--ease) forwards;
+  }
+  html.js .px-hlens__stroke--late { animation-delay: 180ms; stroke-dashoffset: 1068; }
+  @keyframes px-hlens-draw { from { stroke-dashoffset: 1068; } to { stroke-dashoffset: 0; } }
+
+  /* copy reveal stagger (html.js-gated) */
+  html.js [data-hl-reveal] {
+    animation: px-hlens-in 700ms var(--ease) backwards;
+    animation-delay: var(--d, 0ms);
+  }
+  @keyframes px-hlens-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-hlens__ring--a, .px-hlens__ring--b { animation: none !important; transform: none !important; transition: none; }
+    html.js .px-hlens__stroke, html.js .px-hlens__stroke--late { animation: none; stroke-dashoffset: 0; }
+    html.js [data-hl-reveal] { animation: none; }
+  }
+
+  @media (max-width: 959px) {
+    .px-hlens {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      min-height: 0;
+      padding: 40px 0 24px;
+    }
+    .px-hlens__figure { max-width: 340px; margin: 8px auto 0; order: 2; }
+    .px-hlens__copy { order: 1; }
+  }
+</style>

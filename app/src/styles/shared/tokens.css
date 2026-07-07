@@ -1,0 +1,44 @@
+/* GENERATED from shared/design/tokens.css — DO NOT EDIT.
+   Edit the canonical file, then run: npm run design:sync */
+/* ============================================================================
+   PARALLAX SHARED DESIGN TOKENS — CANONICAL SOURCE
+   ----------------------------------------------------------------------------
+   THE single source for motion / radii / glass / column tokens across BOTH
+   projects (publication + app). Edit HERE, then `npm run design:sync` copies
+   into src/styles/shared/ and app/src/styles/shared/ (checked-in generated
+   copies; `npm run design:check` fails the build on drift).
+   Supersedes the hand-sync note that lived in src/styles/tokens-v2.css.
+   ============================================================================ */
+:root {
+  /* Motion — single ease-out ramp, editorial (see docs/design/motion.md) */
+  --t-instant: 80ms;
+  --t-quick:   140ms;
+  --t-soft:    220ms;
+  --t-slow:    420ms;
+  --t-page:    600ms;
+  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radii — used sparingly. Inline/secondary buttons stay square. */
+  --r-card: 6px;   /* soft cards (primer, vote bar, telemetry inner) */
+  --r-tile: 14px;  /* tiles + elevated viz cards + item cards + app plates */
+  --r-pill: 999px; /* status, CTAs, chips, toolbar, source numerals */
+
+  /* Glass — functional overlay chrome only (toolbar, modal, app masthead) */
+  --glass-bg: rgba(250, 247, 240, 0.78);
+  --glass-bg-dark: rgba(17, 31, 54, 0.72);
+  --glass-blur: saturate(140%) blur(18px);
+  --glass-border: rgba(21, 19, 15, 0.08);
+
+  /* Cursor warmth — accent radial that follows the pointer (home tiles) */
+  --warmth-color: var(--accent, #161412);
+
+  /* Editorial column widths */
+  --col-prose:  720px;
+  --col-wide:   980px;
+  --col-bleed:  1180px;
+
+  /* App shell tiers (consumed by app/; harmless in the publication) */
+  --col-narrow: 480px;  /* auth / onboarding plates */
+  --col-shelf:  960px;  /* dashboard / admin */
+}

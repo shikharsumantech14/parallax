@@ -44,13 +44,24 @@ this overrides the old §5 "Display labels: Cormorant Garamond" guidance).
 
 ## 2. Section-kind → component map
 
-**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (63 kinds —
-33 narrative/v2-viz kinds below, plus the 30-kind v2 3D / interactive
-library in the block after the table).
+**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**64 kinds**
+as of 2026-07-05 — 30 narrative/classic-viz kinds below + `act-break` + the
+33-kind v2 3D / interactive library in the block after the table; the "63"
+figure in older docs was wrong, verified against the array. The v2 block grew
+past 30 with `solar-system`, then `chamber` + `power-flow`). The catalog with
+per-kind usage rules is `docs/design/catalog.md`.
+
+**Dispatcher split (2026-07-05):** the kind → component switch lives in
+`src/components/SectionBody.astro` (no wrapper — shared with story mode);
+`SectionRenderer.astro` wraps it in the article chrome (`core/Section.astro`
+number/eyebrow/title/intro + the "In plain terms" line + `data-layout` +
+the skim-caption block, which any kind may now carry). **Add new kinds to
+SectionBody**, not SectionRenderer.
 
 | Kind | Component | Topic-scope |
 |---|---|---|
 | `hero` | inline in `src/pages/issues/[slug].astro` (not via renderer) | universal |
+| `act-break` | `core/ActBreak.astro` — chapter divider; consumes no section number | universal |
 | `prose` | `core/Prose.astro` | universal |
 | `quote` | `core/Quote.astro` | universal |
 | `comparison` | `core/Comparison.astro` (2–3 column side-by-side) | universal |
@@ -95,12 +106,13 @@ a deliberate, documented break from the `px-` prefix convention — see the
 `html.js`-gated reveal contract, and which components were left on their
 `px-` classes.
 
-### v2 3D / interactive library (2026-06-03) — 30 kinds, 5 per world
+### v2 3D / interactive library (2026-06-03, extended 2026-07-05) — 33 kinds
 
 These are the new interactive + 3D section kinds, all in the v2 design
-language. **Four are lazy WebGL scenes** (Three.js — marked **WebGL**
-below); the other 26 are CSS-3D (perspective / `transform-3d`) or animated
-SVG/canvas. The full architecture — the `Viz3DRuntime` lazy-WebGL pattern,
+language (originally 5 per world; the flagship pass added `solar-system`,
+`chamber` and `power-flow`). **Six are lazy WebGL scenes** (Three.js —
+marked **WebGL** below); the rest are CSS-3D (perspective / `transform-3d`)
+or animated SVG/canvas. The full architecture — the `Viz3DRuntime` lazy-WebGL pattern,
 the shared `.px3d-*` CSS-3D mechanics, and the no-JS / reduced-motion
 contract — is documented in the new "3D / interactive component library"
 section (§10). Each component's per-component cosmetic CSS is a **scoped
@@ -116,7 +128,10 @@ SVG/HTML fallback by default.
 | `bill-passage` | `topic/politics/BillPassage.astro` | politics | CSS-3D |
 | `vote-flow` | `topic/politics/VoteFlow.astro` | politics | SVG/CSS-3D |
 | `margin-ladder` | `topic/politics/MarginLadder.astro` | politics | SVG/CSS-3D |
+| `chamber` | `topic/politics/Chamber.astro` | politics | **WebGL** (FLAGSHIP — instanced hemicycle + division walk; shared math `scripts/viz3d/hemicycle.ts`) |
+| `power-flow` | `topic/politics/PowerFlow.astro` | politics | SVG (build-time Sankey + flowDash) |
 | `orbit-globe` | `topic/space/OrbitGlobe.astro` | space | **WebGL** |
+| `solar-system` | `topic/space/SolarSystem.astro` | space | **WebGL** (FLAGSHIP — Keplerian; shared math `scripts/viz3d/kepler.ts`) |
 | `trajectory-arc` | `topic/space/TrajectoryArc.astro` | space | SVG/CSS-3D |
 | `delta-v-ladder` | `topic/space/DeltaVLadder.astro` | space | SVG/CSS-3D |
 | `signal-readout` | `topic/space/SignalReadout.astro` | space | SVG/canvas |
@@ -142,29 +157,37 @@ SVG/HTML fallback by default.
 | `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG |
 | `player-card` | `topic/sports/PlayerCard.astro` | sports | CSS-3D flip |
 
-The four WebGL kinds (`coalition-orbit`, `orbit-globe`, `data-globe`,
-`route-globe`) are the only section kinds that load Three.js, and only when
-scrolled into view — see §10. Per-kind `data` shapes are documented for
-issue authors in `src/content/issues/_AGENTS.md`; the six
-`2026-06-03-<world>-showcase` draft issues are the canonical worked examples.
+The six WebGL kinds (`coalition-orbit`, `orbit-globe`, `data-globe`,
+`route-globe`, `solar-system`, `chamber`) are the only section kinds that
+load Three.js, and only when scrolled into view — see §10. Per-kind `data`
+shapes are documented for issue authors in `src/content/issues/_AGENTS.md`;
+the six `2026-06-03-<world>-showcase` draft issues are the canonical worked
+examples.
 
 ---
 
 ## 3. Adding a new section kind — checklist
 
-A new component touches five places. Miss one and the build either fails
-or silently renders nothing.
+A new component touches seven places (2026-07-05: +explainer, +catalog).
+Miss one and the build either fails, silently renders nothing, or fails
+`npm run check:catalog` once that gate exists.
 
 1. **Add the kind name** to `SECTION_KINDS` in `src/content/config.ts`.
 2. **Create the component** at `src/components/<scope>/<Name>.astro` (scope
    = `core/` or `topic/<topic>/`).
-3. **Dispatch the kind** in `src/components/SectionRenderer.astro`:
+3. **Dispatch the kind** in `src/components/SectionBody.astro` (NOT
+   SectionRenderer — that's the chrome shell):
    ```astro
-   {section.kind === 'new-kind' && <NewComponent section={section} />}
+   {section.kind === 'new-kind' && <NewComponent ...data props... />}
    ```
-4. **Add CSS** in the correct theme file (`src/styles/themes/<topic>.css`)
-   or `base.css` if the component is universal.
-5. **Document it here** — add a row to §2 and any non-obvious rule.
+4. **Add CSS** in the correct theme file (`src/styles/themes/<topic>.css`),
+   `base.css` if universal, or a scoped `<style>` (v2-library pattern).
+5. **Add the EXPLAIN entry** in `src/lib/explainers.ts` (what/how — feeds the
+   in-flow "In plain terms" line AND the expand modal; blueprint §9 wording).
+6. **Add the catalog block** in `docs/design/catalog.md` (same order as
+   SECTION_KINDS).
+7. **Document it here** — add a row to §2 and any non-obvious rule. New v2
+   kinds also need a blueprint (`docs/design/blueprints/<world>/<kind>.md`).
 
 For data viz components that emit SVG, follow the SVG conventions in §5.
 
@@ -199,7 +222,15 @@ Known reservations (still-live `px-` prefixes):
 | `px-analogy` | BrothersAnalogy | kept on `px-` |
 | `px-msl` | MatchStatLine | kept on `px-` |
 | `px-primer` | Primer | |
-| `px-prose-full` / `px-skim-caption-block` | skim-mode wrappers in `[slug].astro` | |
+| `px-prose-full` / `px-skim-caption-block` | skim-mode wrappers (now emitted by `SectionRenderer.astro`) | |
+| `px-plain` | the "In plain terms" line (`core/Section.astro`; CSS in `viz-type.css`) | |
+| `px-act` | ActBreak chapter divider (scoped in `core/ActBreak.astro`) | |
+| `px-acct` | AccountEntry masthead slot (scoped in `core/AccountEntry.astro`) | |
+| `px-hlens` | home hero (scoped in `home/HeroLens.astro`) — carries the ONE sanctioned cursor-parallax (HOME-SPEC §2) | |
+| `px-wire` | home wire strip (scoped in `home/WireStrip.astro`) | |
+| `px-fplate` | home featured plate (scoped in `home/FeaturedPlate.astro`) | |
+| `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | |
+| `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
 
 Retired prefixes (the v2 data-viz port replaced these with the kit's generic
 class above; the old per-component CSS in the theme files is now **inert dead
@@ -243,6 +274,8 @@ not in the theme files. (The shared 3D mechanics + the WebGL mount keep the
 | `px-ireel` | ItineraryReel | `px-xgr` | XgRace |
 | `px-ccal` | ClimateCalendar | `px-mom` | MomentumWave |
 | `px-tzarc` | TimezoneArc | `px-pcard` | PlayerCard |
+| `px-solsys` | SolarSystem | `px-chmbr` | Chamber |
+| `px-pflow` | PowerFlow | | |
 
 Because these are scoped to their `.astro`, they cannot collide with the
 global theme/`base.css`/`meta.css` namespaces — but the prefixes are still
@@ -630,6 +663,53 @@ unlisted (excluded from the archive + RSS). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-07-05 — politics flagships: `chamber` + `power-flow`
+
+- **`chamber`** (WebGL FLAGSHIP + politics world signature) — instanced 3D
+  hemicycle parliament per `docs/design/blueprints/politics/chamber.md`. New
+  pure-math module `src/scripts/viz3d/hemicycle.ts` (kepler.ts pattern —
+  feeds both `scenes/chamber.ts` and the component's build-time fallback
+  SVG). One InstancedMesh for all seats, dashed majority arc, rostrum,
+  `setState('composition'|'division')` staggered seat walk. State chips on
+  the component set `data-viz3d-state` on the mount; `runtime.ts` gained the
+  ~10-line MutationObserver **state-chip bridge** (watches the attribute IF
+  `handle.setState` exists; disconnected in teardown; zero cost otherwise).
+- **`power-flow`** (SVG flow flagship) — 100% build-time directional Sankey
+  per `docs/design/blueprints/politics/power-flow.md`, with a build-FAILING
+  conservation check on `via` nodes (unless `imbalance: 'the-point'` → the
+  accent-alt residual stub) and per-link `flowDash` speed ∝ value.
+- Registered in `config.ts` (SECTION_KINDS 62 → 64), `scenes/index.ts`
+  (chamber), `SectionBody.astro`, `src/lib/explainers.ts`,
+  `docs/design/catalog.md`; worked examples appended to
+  `2026-06-03-politics-showcase`. Prefixes `px-chmbr` / `px-pflow` reserved
+  (+ the previously undocumented `px-solsys`).
+
+### 2026-07-05 — P1 shared infrastructure (product-elevation plan)
+
+- **Dispatcher split.** The 61-kind switch moved to `SectionBody.astro`
+  (no wrapper; shared with the upcoming `/s/` story mode); `SectionRenderer`
+  = article chrome (CoreSection + plain line + layout attr + skim block —
+  the skim-caption block now renders for ANY kind carrying `skimCaption`,
+  and the prose wrapper moved here from `[slug].astro`). Build-verified
+  render-identical (word-diff: only block-boundary whitespace).
+- **Comprehension layer.** `section.plain` schema field + the in-flow
+  `IN PLAIN TERMS —` line under every viz (`core/Section.astro`), defaulting
+  from `src/lib/explainers.ts` — the EXPLAIN dict extracted from ExpandModal
+  (which now consumes it via a `#px-explain-data` JSON script; one dict, two
+  consumers). New kinds MUST add an entry (§3.5).
+- **Layout variants.** `section.layout` (`wide|bleed|split|split-flip|breath`)
+  → `data-layout` on `.px-section`; geometry in `src/styles/layout-v2.css`
+  (split = copy column + sticky stage — the zero-JS scrollytelling
+  primitive). New `act-break` kind (`core/ActBreak.astro`) — chapter divider,
+  consumes no number. Rhythm rules: `docs/design/CANON.md` §3.
+- **viz3d scaling.** `scenes.ts` → `scenes/` directory with a per-scene LAZY
+  registry (each scene its own chunk; `runtime.ts` accepts builder-or-loader,
+  backward-compatible). New `helpers.ts` (orbit+zoom controls, raycast
+  picker, shared `.viz3d__tip` tooltip, instancing, glowSprite — pass THREE,
+  never import it) + `kepler.ts` (pure math mirroring
+  `docs/design/physics/`). `SceneHandle.setState?` added for scroll-driven
+  scenes. Kind count corrected: 61, not the previously-documented 63.
 
 ### 2026-06-21 — unified type system + onboarding + signup gate
 - **One 3-font system (§1).** Collapsed ~11 fonts to **Fraunces** (serif) +

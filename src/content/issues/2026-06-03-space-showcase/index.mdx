@@ -24,7 +24,7 @@ sections:
   - kind: orbit-globe
     eyebrow: "THE 3D ORBIT GLOBE"
     title: "Active constellations on a *spinning* Earth."
-    intro: "This plots named satellite constellations by altitude and orbital inclination on a draggable dot-matrix globe; ring radius is log-scaled by altitude, ring tilt is the real inclination. Drag to orbit the view — it auto-rotates when idle, with a static SVG fallback and a textual legend for no-JS and reduced-motion."
+    intro: "Named satellite constellations plotted by altitude and inclination on a dot-matrix globe — drag to orbit the view."
     data:
       caption: "Active satellite constellations by altitude + inclination"
       source: "Union of Concerned Scientists Satellite Database · CelesTrak, 2024"
@@ -40,7 +40,7 @@ sections:
   - kind: trajectory-arc
     eyebrow: "THE ASCENT PROFILE"
     title: "A Falcon 9 climb, plotted *downrange*."
-    intro: "This is a launch-to-orbit ascent profile: the x-axis is downrange distance from the pad, the y-axis is altitude, and a smooth arc threads the real flight phases of a Falcon 9. The path stroke-draws on scroll, phase pins pop in staggered, and the whole plot sits on a shallow tilted plane over a faint starfield."
+    intro: "A launch-to-orbit ascent profile: downrange distance against altitude, with a smooth arc threading the real flight phases of a Falcon 9."
     data:
       caption: "Falcon 9 ascent · altitude vs. downrange distance"
       source: "SpaceX webcast telemetry · typical LEO profile, 2023"
@@ -56,7 +56,7 @@ sections:
   - kind: delta-v-ladder
     eyebrow: "THE ENERGY BUDGET"
     title: "What it *costs* to leave, step by step."
-    intro: "This stacks the velocity change (Δv, in metres per second) needed for each leg of a journey out of Earth's gravity well — surface to low orbit, the climb to geostationary transfer, and the final push to escape velocity. Segments grow and stack from the bottom on scroll, with a cumulative scale rail and the grand total on top."
+    intro: "The velocity change (Δv) needed for each leg out of Earth's gravity well, stacked from surface-to-orbit up to escape velocity."
     data:
       caption: "Δv budget · Earth surface to escape trajectory"
       source: "NASA mission-design references · idealised, excludes losses"
@@ -70,7 +70,7 @@ sections:
   - kind: signal-readout
     eyebrow: "THE TELEMETRY LINK"
     title: "Listening on the *Deep Space* bands."
-    intro: "This is a telemetry / radio-band readout: each row is a horizontal level meter for one frequency band the Deep Space Network uses, showing a received signal value against its scale. A faint scan-line motif and a one-time sweep cross the panel on scroll-in; bars fill from zero. It is a flat panel, no 3D."
+    intro: "A telemetry readout: each row is a level meter for one Deep Space Network frequency band, showing received signal against its scale."
     data:
       caption: "NASA Deep Space Network · downlink bands, relative signal"
       source: "NASA JPL · DSN telecommunications link design, 2024"
@@ -83,7 +83,7 @@ sections:
   - kind: descent-profile
     eyebrow: "THE LANDING CURVE"
     title: "Seven minutes from the *top* of the atmosphere."
-    intro: "This plots altitude against time for a Mars entry, descent, and landing — the Perseverance rover's real EDL sequence. The profile path stroke-draws on scroll, phase bands shade under the curve, event pins drop at their times, and a craft glyph rides the curve to the surface. Flat SVG, no 3D."
+    intro: "Altitude against time for a Mars entry, descent, and landing — the Perseverance rover's real EDL sequence."
     data:
       caption: "Mars 2020 / Perseverance · entry, descent & landing"
       source: "NASA JPL · Mars 2020 EDL timeline, Feb 18 2021"
@@ -102,10 +102,28 @@ sections:
         - { t: 360, label: "Backshell separation" }
         - { t: 417, label: "Wheels down · Jezero Crater" }
 
+  - kind: solar-system
+    eyebrow: "THE FLAGSHIP · KEPLERIAN MAP"
+    title: "The machine itself, running on *real* orbits."
+    intro: "A navigable solar system computed from real Keplerian elements — drag to tilt, scroll to zoom, hover any body for its live distance readout."
+    plain: "A top-down map of the solar system — each ring is one real orbit, each dot a body at its true position for the stamped date. The amber ellipse is the asteroid this demo follows."
+    skimCaption: "A real Keplerian solar-system map with an Earth-crossing asteroid highlighted — the space desk's hero component."
+    data:
+      caption: "An Earth-crosser in context: the demo asteroid's ellipse reaches from inside Earth's orbit to past Mars."
+      source: "Planet elements · JPL approximate mean elements (J2000); demo asteroid elements illustrative"
+      epoch: "2026-06-04"
+      planets: [mercury, venus, earth, mars, jupiter]
+      scale: log
+      trailDays: 120
+      bodies:
+        - { name: "2024 YR4 (demo)", a_AU: 2.52, e: 0.66, i_deg: 3.41,
+            Omega_deg: 271.4, omega_deg: 134.4, M0_deg: 351.1, period_d: 1461,
+            role: focus, note: "Earth-crosser · demo elements" }
+
   - kind: orbit-trace
     eyebrow: "THE 2D ORBIT DIAGRAM"
     title: "The same orbits as a flat *altitude* map."
-    intro: "This is the 2D companion to the globe: named constellations and missions drawn as concentric orbit rings, positioned by altitude with inclination noted on each label. It is a static SVG diagram — the at-a-glance reference when the 3D scene is overkill."
+    intro: "The 2D companion to the globe: constellations drawn as concentric orbit rings, positioned by altitude with inclination on each label."
     data:
       caption: "Orbital positions by altitude. Scale is approximate — not to scale."
       source: "Union of Concerned Scientists Satellite Database · ESA, 2024"
@@ -149,7 +167,7 @@ sections:
   - kind: launch-stats
     eyebrow: "THE LAUNCH RECORD"
     title: "Orbital launch attempts *per year*, 2020–2024."
-    intro: "This is the annual launch-count bar chart: global orbital launch attempts each year, broken down by the country or operator of the launch vehicle. Bars are grouped by year so the climb in total cadence reads at a glance."
+    intro: "The annual launch-count bar chart: global orbital launch attempts each year, broken down by country or operator of the launch vehicle."
     data:
       caption: "Orbital launch attempts by country of operator, 2020–2024"
       source: "Jonathan's Space Report · Gunter's Space Page, 2024"
@@ -188,7 +206,7 @@ sections:
   - kind: data-readout
     eyebrow: "2024, IN FIGURES"
     title: "The orbital year as a *tile* board."
-    intro: "This is the figure-tile readout: a grid of single-number tiles, each with a value, a label, a context note, and an emphasis level that tints the urgent ones. It is how an issue lands its hard numbers — here, a snapshot of the 2024 launch year."
+    intro: "The figure-tile readout: a grid of single-number tiles, each with a value, a label, a context note, and an emphasis level that tints the urgent ones."
     data:
       caption: "GLOBAL ORBITAL ACTIVITY · 2024 SNAPSHOT"
       source: "Jonathan's Space Report · FAA · NASA · SpaceX, 2024–2025"

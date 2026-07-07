@@ -48,17 +48,37 @@ Every section conforms to:
   title?: string;             // *italic* for one accent word
   eyebrow?: string;           // ALL CAPS short label
   intro?: string;             // 1–3 sentences setting up the section
-  skimCaption?: string;       // 90-sec-skim mode caption (PROSE sections only)
+  skimCaption?: string;       // 90-sec-skim caption — ANY kind may carry one
+                              // (2026-07-05; prose hides behind it in skim
+                              // mode, viz kinds show it alongside — author one
+                              // per viz so the skim rail reads complete)
+  plain?: string;             // ≤220 chars — the "In plain terms" line: one
+                              // sentence explaining the FORM of the viz ("each
+                              // block is one seat…"), NEVER the data (that's
+                              // the caption's job). Omit to fall back to the
+                              // per-kind default in src/lib/explainers.ts.
+  layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
+                              // geometry variant — rhythm rules in
+                              // docs/design/CANON.md §3: ≤1 bleed per act,
+                              // split ONLY for the issue's hero metaphor,
+                              // never two loud sections adjacent
   data?: unknown;             // section-kind-specific shape; see src/components/AGENTS.md
   sourceRefs: string[];       // ids that must exist in this issue's sources[]
 }
 ```
 
 `SECTION_KINDS` is the source of truth for valid `kind` values. Current
-list (63 kinds) is exported from `src/content/config.ts`. Each maps to a
-component dispatched by `src/components/SectionRenderer.astro` — see
-`src/components/AGENTS.md` for the full table. The 30 v2 3D / interactive
-kinds and their `data` shapes are in §11 below.
+list (**61 kinds** — the older "63" figure was wrong) is exported from
+`src/content/config.ts`. Each maps to a component dispatched by
+`src/components/SectionBody.astro` (the switch; `SectionRenderer.astro` is
+the article chrome around it) — see `src/components/AGENTS.md` for the full
+table and `docs/design/catalog.md` for per-kind usage rules. The 30 v2 3D /
+interactive kinds and their `data` shapes are in §11 below.
+
+**`act-break` (2026-07-05)** — the chapter divider giving issues their act
+structure (CANON.md §3: 2–4 acts per issue). `data: { act: 'II', title?,
+epigraph? }`. Consumes no section number. Use at real structural pivots
+only, not between every section.
 
 ---
 
@@ -115,15 +135,19 @@ In skim mode:
 - Prose sections are hidden (their `.px-prose-full` div has `display: none`).
 - Their `skimCaption` shows instead, in a `.px-skim-caption-block`.
 - All other section kinds (timeline, data-readout, paradox, etc.) stay
-  visible — those *are* the skimmable structural surface.
+  visible — those *are* the skimmable structural surface — and (2026-07-05)
+  any of them may ALSO carry a `skimCaption`, shown alongside in skim mode.
 
 **Rules:**
-- `skimCaption` only applies to `kind: prose` sections. On any other kind
-  it is ignored (the schema allows it but no component reads it).
-- 1–3 sentences. The job: "if someone reads only the skim view, what does
-  this section's prose contribute structurally?"
+- `skimCaption` on `kind: prose` = the replacement text (mandatory if the
+  prose carries structural weight). On any other kind = a one-line summary
+  next to the visible viz (author one per viz section so the skim rail reads
+  as a complete 90-second edition — rendered by `SectionRenderer.astro`).
+- 1–3 sentences (one for viz kinds). The job: "if someone reads only the
+  skim view, what does this section contribute structurally?"
 - Should be readable as a standalone caption, not a paraphrase of the
-  prose paragraphs.
+  prose paragraphs. Don't duplicate the `plain` line (plain = how to READ
+  the form; skimCaption = what this section SAYS).
 
 ---
 
@@ -227,6 +251,8 @@ starting point.
 - **`bill-passage`** — `{ stages[]{ label, status: 'passed'|'failed'|'pending'|'current', date?, note? } }`
 - **`vote-flow`** — `{ blocs[]{ name, seats, color?, vote: 'for'|'against'|'abstain' }, outcome?{ label, passed } }`
 - **`margin-ladder`** — `{ rows[]{ label, margin, winner?, color? } }`
+- **`chamber`** (WebGL · FLAGSHIP) — `{ chamber?{ rows?, arcDeg? }, parties[]{ name, seats, color?, side?: 'gov'|'opp'|'cross', short? }, majority?, division?{ label?, aye{party→n}, no{party→n} } }` — blueprint: `docs/design/blueprints/politics/chamber.md`
+- **`power-flow`** — `{ nodes[]{ id, label, group?: 'source'|'via'|'sink' }, links[]{ from, to, value, note? }, unit, imbalance?: 'the-point' }` — conservation is build-enforced; blueprint: `docs/design/blueprints/politics/power-flow.md`
 
 ### space
 - **`orbit-globe`** (WebGL) — `{ orbits[]{ name, altKm, inclDeg?, color?, satCount? }, maxAltKm? }`
@@ -234,6 +260,7 @@ starting point.
 - **`delta-v-ladder`** — `{ segments[]{ label, dv, color? }, unit? }`
 - **`signal-readout`** — `{ bands[]{ label, freq, value, max?, color? } }`
 - **`descent-profile`** — `{ points[]{ t, altKm, phase? }, events?[]{ t, label }, craftLabel? }`
+- **`solar-system`** (WebGL · FLAGSHIP) — `{ epoch, planets?['mercury'…], bodies?[]{ name, a_AU, e, i_deg, Omega_deg, omega_deg, M0_deg, period_d, role?: 'focus', note? }, scale?: 'log'|'true', trailDays? }` — blueprint: `docs/design/blueprints/space/solar-system.md`
 
 ### earth
 - **`data-globe`** (WebGL) — `{ markers[]{ name, lat, lon, value, color? }, unit? }`

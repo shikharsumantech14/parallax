@@ -13,6 +13,11 @@
 
    Each scene builder receives THREE as a parameter (it must NOT import three
    itself) so three stays out of the eager bundle and in one lazy chunk.
+
+   Scenes register via a per-scene LAZY registry (scenes/index.ts): each entry
+   is either a plain SceneBuilder or a { load } loader whose dynamic import is
+   its own code-split chunk — a scene's code only downloads when its mount
+   scrolls in, alongside three.
    ============================================================================ */
 
 export type SceneColors = { accent: string; ink: string; paper: string; muted: string };
@@ -20,6 +25,10 @@ export type SceneHandle = {
   resize: (w: number, h: number, dpr: number) => void;
   frame: (tMs: number) => void;
   dispose: () => void;
+  /** Optional named-state switch (motion.md `stateSwitch`) — lets scroll-driven
+      shells (layout: split chapters, state chips) re-pose a live scene, e.g.
+      the chamber's composition ↔ division. Absent on scenes without states. */
+  setState?: (name: string) => void;
 };
 export type SceneBuilder = (
   THREE: any,
@@ -27,6 +36,9 @@ export type SceneBuilder = (
   data: any,
   colors: SceneColors,
 ) => SceneHandle;
+export type SceneLoader = { load: () => Promise<{ build: SceneBuilder }> };
+export type SceneEntry = SceneBuilder | SceneLoader;
+export type SceneRegistry = Record<string, SceneEntry>;
 
 let threePromise: Promise<any> | null = null;
 function loadThree(): Promise<any> {
@@ -43,7 +55,7 @@ function hasWebGL(): boolean {
   }
 }
 
-export function initViz3D(builders: Record<string, SceneBuilder>): void {
+export function initViz3D(builders: SceneRegistry): void {
   if (typeof document === 'undefined') return;
   const mounts = Array.from(document.querySelectorAll<HTMLElement>('[data-viz3d]'));
   if (!mounts.length) return;
@@ -69,10 +81,10 @@ export function initViz3D(builders: Record<string, SceneBuilder>): void {
   });
 }
 
-async function boot(mount: HTMLElement, builders: Record<string, SceneBuilder>): Promise<void> {
+async function boot(mount: HTMLElement, builders: SceneRegistry): Promise<void> {
   const type = mount.getAttribute('data-viz3d') || '';
-  const builder = builders[type];
-  if (!builder) return;
+  const entry = builders[type];
+  if (!entry) return;
 
   let data: any = {};
   const dataEl = mount.querySelector('script.viz3d__data');
@@ -80,8 +92,14 @@ async function boot(mount: HTMLElement, builders: Record<string, SceneBuilder>):
     try { data = JSON.parse(dataEl.textContent); } catch { /* keep {} */ }
   }
 
-  let THREE: any;
-  try { THREE = await loadThree(); } catch { return; }
+  let THREE: any; let builder: SceneBuilder;
+  try {
+    const [t, b] = await Promise.all([
+      loadThree(),
+      typeof entry === 'function' ? Promise.resolve(entry) : entry.load().then((m) => m.build),
+    ]);
+    THREE = t; builder = b;
+  } catch { return; }
 
   const cs = getComputedStyle(mount);
   const colors: SceneColors = {
@@ -105,6 +123,18 @@ async function boot(mount: HTMLElement, builders: Record<string, SceneBuilder>):
   }
 
   mount.classList.add('viz3d--live'); // CSS hides the static fallback
+
+  // State-chip bridge (chamber blueprint §8): component chips set
+  // `data-viz3d-state` on the mount; if the scene exposes setState, mirror
+  // attribute changes into it. Zero cost to scenes without states.
+  let stateMO: MutationObserver | null = null;
+  if (handle.setState) {
+    stateMO = new MutationObserver(() => {
+      const s = mount.getAttribute('data-viz3d-state');
+      if (s) { try { handle.setState!(s); } catch { /* ignore */ } }
+    });
+    stateMO.observe(mount, { attributes: true, attributeFilter: ['data-viz3d-state'] });
+  }
 
   const size = () => {
     const r = mount.getBoundingClientRect();
@@ -134,6 +164,7 @@ async function boot(mount: HTMLElement, builders: Record<string, SceneBuilder>):
   const teardown = () => {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
+    if (stateMO) stateMO.disconnect();
     visIO.disconnect();
     window.removeEventListener('resize', size);
     try { handle.dispose(); } catch { /* ignore */ }

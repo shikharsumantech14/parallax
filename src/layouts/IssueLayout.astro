@@ -14,6 +14,7 @@ import '../styles/type-v2.css';
 import '../styles/motion-v2.css';
 import '../styles/dataviz-v2.css';
 import '../styles/viz-type.css';
+import '../styles/layout-v2.css';
 import '../styles/components-3d.css';
 import '../styles/modal.css';
 
@@ -31,14 +32,17 @@ interface Props {
   description: string;
   issueNumber?: string;
   publishedAt?: Date;
+  slug?: string;
 }
-const { topic, title, description, issueNumber, publishedAt } = Astro.props;
+const { topic, title, description, issueNumber, publishedAt, slug } = Astro.props;
 
 const issueDate = publishedAt
   ? publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).toUpperCase()
   : undefined;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const ogImage = slug ? `${siteUrl}/og/story/${slug}.png` : undefined;
 ---
 
 <!doctype html>
@@ -56,7 +60,10 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
     <meta property="og:title" content={stripEmphasis(title)} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    <meta name="twitter:card" content="summary" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image:width" content="1200" />}
+    {ogImage && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

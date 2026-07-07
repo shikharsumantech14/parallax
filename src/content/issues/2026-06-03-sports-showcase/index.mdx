@@ -14,7 +14,7 @@ sections:
   - kind: prose
     eyebrow: "THE STYLEGUIDE"
     title: "What this page is *for*"
-    intro: "This issue is not a story. It is a working catalogue of the sports world's data-viz components, each one wired to real numbers so editors can judge fit before drafting."
+    intro: "A working catalogue of the sports world's data-viz components, each wired to real numbers so editors can judge fit before drafting."
     data:
       lead: "Every block below is a sports signature component, rendered with real match and season data rather than placeholder values. Read it top to bottom and you have seen the full kit the sports world ships with."
       paragraphs:
@@ -25,7 +25,7 @@ sections:
   - kind: tactics-pitch
     eyebrow: "THE SHAPE"
     title: "How PSG *lined up* in Munich"
-    intro: "A tilted pitch carrying eleven player markers at their average positions in a 4-3-3. The pitch reclines on a fixed 3D base and tilts a few degrees toward the cursor; markers pop in staggered on scroll. Coordinates are x = width (0 left, 100 right), y = length (0 own goal-line, 100 attacking line)."
+    intro: "A tilted pitch carrying eleven player markers at their average positions in a 4-3-3."
     data:
       caption: "PSG starting XI · average positions · 2025 UCL final"
       source: "UEFA match centre · Opta lineups, 2025"
@@ -47,7 +47,7 @@ sections:
   - kind: shot-map
     eyebrow: "THE ATTEMPTS"
     title: "Where the *shots* fell"
-    intro: "A goal frame above an attacking-third plane, with one circle per shot. Circle radius scales with the shot's expected-goals value; fill treatment encodes the outcome. Hover a shot to scale it and read its xG. Coordinates are x = width across the goal-mouth, y = depth (0 on the goal-line, 100 at the edge of the third)."
+    intro: "A goal frame above an attacking-third plane, one circle per shot with radius scaled by expected goals — hover a shot to read its xG."
     data:
       caption: "PSG shots · 2025 UCL final · radius ∝ xG"
       source: "Opta / FBref shot data, 2025"
@@ -68,7 +68,7 @@ sections:
   - kind: xg-race
     eyebrow: "THE ACCUMULATION"
     title: "The expected-goals *race*"
-    intro: "Two cumulative step-lines: each shot adds its xG to its team's running total, so the lines climb across the match minutes and separate as one side dominates. The paths draw themselves in on scroll; end-value labels sit at each line's final point and a faint gridline marks half-time. Events take minute, team ('home' or 'away'), and xg."
+    intro: "Two cumulative step-lines: each shot adds its xG to its team's running total, so the lines climb across the match minutes and separate as one side dominates."
     data:
       caption: "Cumulative xG by minute · 2025 UCL final"
       source: "Opta / Understat xG timeline, 2025"
@@ -92,7 +92,7 @@ sections:
   - kind: momentum-wave
     eyebrow: "THE SWING"
     title: "Which way the *pressure* ran"
-    intro: "A ribbon around a centre baseline: it swells upward in the accent when home momentum is positive and downward in muted ink when the away side pushes. The fill grows out from the baseline on scroll; event pins drop at their minutes. Points take minute and value (−100 away dominance to +100 home dominance)."
+    intro: "A ribbon around a centre baseline: it swells upward in the accent when home momentum is positive and downward in muted ink when the away side pushes."
     data:
       caption: "Match momentum index by minute · 2025 UCL final"
       source: "Derived from Opta pressure / possession-value data, 2025"
@@ -125,7 +125,7 @@ sections:
   - kind: player-card
     eyebrow: "THE RATING CARD"
     title: "Ousmane Dembélé — *the flip card*"
-    intro: "A FIFA-style 3D rating card: it tilts toward the cursor on hover and flips on press to reveal the full attribute breakdown. The front carries the headline rating and the top three attributes; stats take label, value, and optional max (defaults to 100)."
+    intro: "A FIFA-style 3D rating card: it tilts toward the cursor on hover and flips on press to reveal the full attribute breakdown."
     data:
       caption: "2024/25 season attribute card · press Flip for all stats"
       source: "FBref / WhoScored season ratings, 2025"
@@ -144,7 +144,7 @@ sections:
   - kind: league-table
     eyebrow: "THE STANDINGS"
     title: "Ligue 1 2024/25 — final *table*"
-    intro: "A standings table with a five-match form guide per club. Position-change arrows show movement against the previous round; highlight bands mark the title, the Champions League places and the relegation zone. Rows take pos, team, played, won, drawn, lost, points, goals and a form array."
+    intro: "A standings table with a five-match form guide per club and position-change arrows against the previous round."
     data:
       caption: "Ligue 1 · 2024/25 · final standings (top 8 + bottom 2)"
       source: "LFP official classement, 2025"
@@ -291,7 +291,7 @@ sections:
   - kind: player-radar
     eyebrow: "THE PROFILE"
     title: "Ousmane Dembélé — *attribute radar*"
-    intro: "A spider chart plotting one player across six attributes on a 0–100 scale, so the overall shape reads as a profile at a glance. Same attribute set as the rating card above, here laid out radially. Stats take label, value and optional max."
+    intro: "A spider chart plotting one player across six attributes on a 0–100 scale, so the overall shape reads as a profile at a glance."
     data:
       player: "Ousmane Dembélé"
       team: "France · PSG"
@@ -307,7 +307,7 @@ sections:
   - kind: match-stat-line
     eyebrow: "THE TALE OF THE TAPE"
     title: "PSG vs Inter — *by the numbers*"
-    intro: "A bold scoreline above a set of horizontal comparison bars, each row splitting one stat between the two sides as a share of the row total. Rows take a label, home and away numeric values, an optional unit and an optional note."
+    intro: "A bold scoreline above a set of horizontal comparison bars, each row splitting one stat between the two sides as a share of the row total."
     data:
       source: "UEFA match centre · Opta full-time stats, 2025"
       competition: "UEFA Champions League · Final"
@@ -331,6 +331,30 @@ sections:
         - { label: "Pass accuracy", home: 89, away: 84, unit: "%" }
         - { label: "Corners", home: 7, away: 3, unit: "" }
         - { label: "Big chances", home: 8, away: 1, unit: "" }
+
+  - kind: flight-of-the-ball
+    eyebrow: "THE FLAGSHIP · ONE IMPOSSIBLE SHOT"
+    title: "The kick that *bent* physics."
+    intro: "Roberto Carlos's 1997 free kick reconstructed from real launch parameters — drag to look around, press REPLAY to watch drag and Magnus curl it back inside the post."
+    plain: "The bright line is the ball's real curved flight; the faint dashed line is the straight path with no air. The gap is how much the spin bent it."
+    skimCaption: "One famous free kick flown from its real launch speed, angle and spin — the sports desk's flagship physics component."
+    data:
+      sport: football
+      shot:
+        label: "Roberto Carlos vs France, 1997"
+        v0: 38
+        speedUnit: "m/s"
+        elevationDeg: 10
+        azimuthDeg: -16
+        spinRevPerS: 10
+        spinAxis: [0, 1, 0]
+        from: [30.0, 4.5]
+        note: "curled back inside the far post"
+      goal: { x_m: 0, width_m: 7.32, height_m: 2.44, z_m: 0 }
+      showGhost: true
+      slowmo: 3
+      caption: "Ten revs a second of sidespin bent the ball more than six metres — the wall, and Barthez, were watching a straight line aimed wide that curled back inside the post."
+      source: "Dupeux et al., New J. Phys. 12 (2010), trajectory reconstruction"
 
 sources:
   - id: "src-01"

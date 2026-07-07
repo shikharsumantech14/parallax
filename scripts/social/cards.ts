@@ -35,8 +35,12 @@ const frauncesFile = readdirSync(fontDir).find((f) => /fraunces/i.test(f) && /\.
 const monoFile = readdirSync(fontDir).find((f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f))!;
 
 // ── sizes ──────────────────────────────────────────────────────────────────
-export type Size = 'wide' | 'square';
-const DIMS: Record<Size, { w: number; h: number }> = { wide: { w: 1600, h: 900 }, square: { w: 1080, h: 1080 } };
+export type Size = 'wide' | 'square' | 'og';
+const DIMS: Record<Size, { w: number; h: number }> = {
+  wide: { w: 1600, h: 900 },
+  square: { w: 1080, h: 1080 },
+  og: { w: 1200, h: 630 }, // link-preview card (WhatsApp/Slack/Twitter)
+};
 
 // ── text helpers ─────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -88,8 +92,9 @@ export interface TimelineData { eyebrow: string; title: string; events: Timeline
 export interface CmpSide { label?: string; title: string; kicker?: string; tag?: string; }
 export interface CmpRow { label: string; values: string[]; }
 export interface ComparisonData { eyebrow: string; title: string; sides: [CmpSide, CmpSide]; rows: CmpRow[]; source: string; }
+export interface QuoteData { eyebrow?: string; quote: string; attribution: string; source: string; }
 
-export type CardKind = 'hero' | 'data-readout' | 'paradox' | 'timeline' | 'comparison';
+export type CardKind = 'hero' | 'data-readout' | 'paradox' | 'timeline' | 'comparison' | 'quote';
 
 // ── shared frame (bg + footer) ───────────────────────────────────────────────
 function frame(t: Theme, size: Size, inner: string, source: string): string {
@@ -127,6 +132,27 @@ export function heroCard(d: HeroData, topic: Topic, size: Size = 'wide'): string
     serif(d.value, cx, vy, vSize, t.ink, 'middle') +
     mono(d.label.toUpperCase(), cx, vy + 64, size === 'wide' ? 26 : 24, t.inkSoft, 4, 'middle');
   return frame(t, size, inner, d.source);
+}
+
+// ── archetype: og (link-preview: title + dek on the brand frame) ──────────────
+// Purpose-built for /og/story/<slug>.png. Reuses the frame/mark/type machinery
+// but composes title + dek rather than the number-centric hero — a far better
+// WhatsApp/Slack/Twitter preview than a giant value would make.
+export interface OgData { eyebrow: string; title: string; dek: string; source: string; }
+export function ogCard(d: OgData, topic: Topic): string {
+  const t = THEMES[topic];
+  const { w } = DIMS.og;
+  const titleLines = wrapWords(d.title, 24);
+  const tY = 208, tLineH = 82, tSize = 66;
+  const title = titleLines.map((ln, i) => serif(ln, 80, tY + i * tLineH, tSize, t.ink)).join('');
+  const dekY = tY + (titleLines.length - 1) * tLineH + 74;
+  const dek = wrapWords(d.dek, 62).slice(0, 2)
+    .map((ln, i) => serif(ln, 80, dekY + i * 44, 30, t.inkSoft)).join('');
+  const inner =
+    mono(d.eyebrow.toUpperCase(), 80, 108, 24, t.accent, 5) +
+    `<line x1="80" y1="140" x2="${w - 80}" y2="140" stroke="${t.ink}" stroke-width="1" opacity="0.14"/>` +
+    title + dek;
+  return frame(t, 'og', inner, d.source);
 }
 
 // ── archetype: data-readout (tiles) ───────────────────────────────────────────
@@ -225,6 +251,25 @@ export function comparisonCard(d: ComparisonData, topic: Topic, size: Size = 'wi
   return frame(t, size, inner, d.source);
 }
 
+// ── archetype: quote (pull-quote) ─────────────────────────────────────────────
+export function quoteCard(d: QuoteData, topic: Topic, size: Size = 'wide'): string {
+  const t = THEMES[topic];
+  const { w, h } = DIMS[size];
+  const qSize = size === 'wide' ? 64 : 56;
+  const maxChars = size === 'wide' ? 30 : 24;
+  const lines = wrapWords(d.quote, maxChars);
+  const lineH = Math.round(qSize * 1.2);
+  const first = Math.round(h * 0.47 - ((lines.length - 1) * lineH) / 2);
+  const quote = lines.map((ln, i) => serif(ln, 124, first + i * lineH, qSize, t.ink)).join('');
+  const inner =
+    (d.eyebrow ? mono(d.eyebrow.toUpperCase(), 124, 112, 24, t.accent, 5) : '') +
+    `<text x="86" y="${first - 26}" font-family="Fraunces" font-weight="600" font-size="190" fill="${t.accent}" opacity="0.85">“</text>` +
+    quote +
+    mono(`— ${d.attribution}`, 124, first + (lines.length - 1) * lineH + 72, 24, t.inkSoft, 2);
+  void w;
+  return frame(t, size, inner, d.source);
+}
+
 // ── render ─────────────────────────────────────────────────────────────────
 export function toPng(svg: string, size: Size): Buffer {
   const { w } = DIMS[size];
@@ -242,6 +287,7 @@ export function renderByKind(kind: CardKind, data: unknown, topic: Topic, size: 
     case 'paradox': return paradoxCard(data as ParadoxData, topic, size);
     case 'timeline': return timelineCard(data as TimelineData, topic, size);
     case 'hero': return heroCard(data as HeroData, topic, size);
+    case 'quote': return quoteCard(data as QuoteData, topic, size);
   }
 }
 
@@ -279,6 +325,12 @@ const TIMELINE_SAMPLE: TimelineData = {
   ],
   source: 'NASA ODPO · ESA',
 };
+const QUOTE_SAMPLE: QuoteData = {
+  eyebrow: 'Space · 2024 YR4',
+  quote: 'At that distance, the rock reflects about as much light as an almond.',
+  attribution: 'NASA, on tracking asteroid 2024 YR4 with JWST',
+  source: 'NASA',
+};
 
 function main(): void {
   const [arg1, arg2] = process.argv.slice(2);
@@ -291,6 +343,7 @@ function main(): void {
   else if (arg1 === 'readout') jobs.push({ name: `readout-${tp}`, svg: readoutCard(READOUT_SAMPLE, tp), size: 'wide' });
   else if (arg1 === 'paradox') jobs.push({ name: `paradox-${tp}`, svg: paradoxCard(PARADOX_SAMPLE, tp), size: 'wide' });
   else if (arg1 === 'timeline') jobs.push({ name: `timeline-${tp}`, svg: timelineCard(TIMELINE_SAMPLE, tp), size: 'wide' });
+  else if (arg1 === 'quote') jobs.push({ name: `quote-${tp}`, svg: quoteCard(QUOTE_SAMPLE, tp), size: 'wide' });
   else {
     // default sheet: every archetype, across themes (proves theming holds)
     jobs.push({ name: 'readout-space', svg: readoutCard(READOUT_SAMPLE, 'space'), size: 'wide' });

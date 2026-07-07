@@ -26,10 +26,14 @@
 .viz3d {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 11;
   border-radius: var(--r-card);
   overflow: hidden;
   isolation: isolate;
+  /* Soft radial lift so the scene never blends into the card (review R7):
+     ink @ low opacity = glow on dark worlds, vignette on light ones. */
+  background: radial-gradient(ellipse 72% 64% at 50% 46%,
+    color-mix(in oklab, var(--ink) 5%, transparent), transparent 74%);
 }
 .viz3d__canvas {
   position: absolute; inset: 0;
@@ -51,14 +55,16 @@
 }
 .viz3d--live .viz3d__hint { opacity: 0.7; }
 
-/* near-side labels projected over the globe canvas (positioned by the runtime) */
+/* near-side labels projected over the canvas (positioned by the runtime).
+   Every label = an anchor dot AT the point + a chip offset a consistent 10px
+   up-right, so the whole set reads as deliberate, uniform map annotation. */
 .viz3d__labels { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .viz3d__label {
   position: absolute;
-  transform: translate(-50%, -130%);
+  transform: translate(10px, -100%);
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 9.5px; /* CANON §5 floor — never below 9.5px rendered */
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1;
@@ -67,14 +73,29 @@
 }
 .viz3d__label--data {
   color: var(--accent-deep, var(--accent));
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  background: color-mix(in oklab, var(--paper) 82%, transparent);
-  padding: 2px 7px;
-  border-radius: var(--r-pill);
-  box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 20%, transparent);
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  padding: 1.5px 6px;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 14%, transparent);
 }
-.viz3d__label--country { color: var(--muted); font-size: 8px; letter-spacing: 0.1em; }
+.viz3d__label--country { color: var(--muted); font-weight: 500; letter-spacing: 0.1em; }
+
+/* the anchor dot — sits exactly on the projected point the label names */
+.viz3d__anchor {
+  position: absolute;
+  width: 4px; height: 4px;
+  margin: -2px 0 0 -2px; /* center on the point */
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 140ms var(--ease);
+}
+.viz3d__anchor--data {
+  background: var(--accent-deep, var(--accent));
+  box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--paper) 70%, transparent);
+}
+.viz3d__anchor--country { display: none; } /* country points aren't marked */
 
 /* ──────────────────────────────────────────────────────────────────────────
    CSS-3D MECHANICS — perspective stage + pointer-tilt (core/Tilt.astro writes
@@ -99,3 +120,25 @@
   .px3d-tilt { transform: none !important; transition: none !important; }
   .px3d-flip { transition: none !important; }
 }
+
+/* ── shared scene tooltip (helpers.ts makeTooltip) ─────────────────────────
+   One mono readout chip per mount; positioned in canvas coords by the picker. */
+.viz3d__tip {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-card);
+  padding: 6px 9px;
+  max-width: 200px;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+  transition: opacity 140ms var(--ease);
+}
+.viz3d__tip b { color: var(--accent-deep, var(--accent)); font-weight: 600; }

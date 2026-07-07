@@ -1,0 +1,26 @@
+---
+/**
+ * StoryCard — one beat: text (top) + the LIVE fitted section component
+ * (center, via SectionBody) + kicker (bottom). Spec §2 anatomy/dvh budget.
+ */
+import SectionBody from '../SectionBody.astro';
+import type { Section } from '../../content/config';
+
+interface Props {
+  section: Section;   // already fitted (lib/story.ts fitSectionForStory)
+  text: string;
+  kicker?: string;
+  index: number;      // 1-based card number (c2, c3, …)
+}
+const { section, text, kicker, index } = Astro.props;
+---
+
+<section class="pxs-card" id={`c${index}`} data-kind={section.kind}>
+  <div class="pxs-card__inner">
+    <p class="pxs-beat__text">{text}</p>
+    <div class="pxs-beat__viz" data-reveal>
+      <SectionBody section={section} />
+    </div>
+    {kicker && <p class="pxs-beat__kicker">{kicker}</p>}
+  </div>
+</section>

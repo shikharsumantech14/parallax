@@ -1,0 +1,313 @@
+---
+/**
+ * Chamber (politics · FLAGSHIP + world signature) — "The record, rendered."
+ * A 3D hemicycle parliament: every seat an instanced block on true hemicycle
+ * arcs, colored by party (contiguous wedges, gov → cross → opp), with the
+ * dashed majority arc sweeping the rim. When a `division` is attached, the
+ * COMPOSITION / DIVISION chips walk the seats to the Aye and No lobbies.
+ *
+ * Blueprint (the contract): docs/design/blueprints/politics/chamber.md.
+ * Math: src/scripts/viz3d/hemicycle.ts — the SAME functions compute the
+ * static fallback below at build time (2D projection x → x, z → y·0.72), so
+ * the no-JS / reduced-motion / no-WebGL reader gets the identical chamber as
+ * a composed SVG still, plus a second static division plate when one exists.
+ *
+ * data: { chamber?: {rows?, arcDeg?}, parties[]{name, seats, color?, side?,
+ *         short?}, majority?, division?: {label?, aye{}, no{}},
+ *         caption?, source? }
+ */
+import {
+  hemicycleSeats, lobbyGrid, lobbyCols, rowsFor, R0, ROW_GAP,
+} from '../../../scripts/viz3d/hemicycle';
+
+interface ChamberParty {
+  name: string;
+  seats: number;
+  color?: string;
+  side?: 'gov' | 'opp' | 'cross';
+  short?: string;
+}
+interface ChamberDivision {
+  label?: string;
+  aye: Record<string, number>;
+  no: Record<string, number>;
+}
+interface Props {
+  chamber?: { rows?: number; arcDeg?: number };
+  parties: ChamberParty[];
+  majority?: number;
+  division?: ChamberDivision;
+  caption?: string;
+  source?: string;
+}
+const {
+  chamber, parties: rawParties = [], majority: majorityProp, division, caption, source,
+} = Astro.props;
+
+/* wedge order: gov left → cross → opp right (stable within a side) */
+const SIDE_RANK: Record<string, number> = { gov: 0, cross: 1, opp: 2 };
+const parties = rawParties
+  .filter((p) => p && typeof p.name === 'string' && typeof p.seats === 'number' && p.seats > 0)
+  .map((p, i) => ({ p, i }))
+  .sort((a, b) => (SIDE_RANK[a.p.side ?? 'cross'] - SIDE_RANK[b.p.side ?? 'cross']) || a.i - b.i)
+  .map((x) => x.p);
+const total = parties.reduce((s, p) => s + p.seats, 0);
+const rows = chamber?.rows ?? rowsFor(total);
+const arcDeg = chamber?.arcDeg ?? 210;
+const majority = majorityProp ?? Math.floor(total / 2) + 1;
+
+/* party fill — data encoding (CANON §6 exemption); blueprint fallback cycle:
+   accent, accent-alt, then ink @ 0.7 / 0.5 / 0.35 */
+const FALLBACK_FILL: { fill: string; opacity: number }[] = [
+  { fill: 'var(--accent)', opacity: 1 },
+  { fill: 'var(--accent-alt)', opacity: 1 },
+  { fill: 'var(--ink)', opacity: 0.7 },
+  { fill: 'var(--ink)', opacity: 0.5 },
+  { fill: 'var(--ink)', opacity: 0.35 },
+];
+let fb = 0;
+const partyFill = parties.map((p) =>
+  p.color ? { fill: p.color, opacity: 1 } : FALLBACK_FILL[fb++ % FALLBACK_FILL.length]);
+
+/* α-sorted anchors + contiguous wedge assignment (same rule as the scene) */
+const anchors = hemicycleSeats(total, rows, arcDeg);
+const seatParty: number[] = new Array(total);
+{
+  let i = 0;
+  parties.forEach((p, k) => { for (let n = 0; n < p.seats; n++) seatParty[i++] = k; });
+}
+
+/* ── build-time fallback geometry: front-facing 2D projection ──
+   x → x, z → y·0.72 foreshortening (blueprint §7) */
+const W = 680;
+const M = 22;
+const FORE = 0.72;
+const theta = (arcDeg * Math.PI) / 180;
+const rArc = R0 + rows * ROW_GAP + 0.12;
+const S = (W - 2 * M) / (2 * rArc);
+const cy0 = M + 18 + rArc * S * FORE; // room above the arc apex for its label
+const dip = rArc * S * FORE * Math.max(0, -Math.cos(theta / 2)); // arc tips below center when θ > 180°
+let H = cy0 + dip + M;
+
+const px = (x: number) => W / 2 + x * S;
+const py = (z: number) => cy0 + z * S * FORE;
+const seats2d = anchors.map((a, i) => ({
+  cx: +px(a.x).toFixed(1), cy: +py(a.z).toFixed(1), k: seatParty[i],
+}));
+let arcPath = '';
+for (let k = 0; k <= 96; k++) {
+  const a = -theta / 2 + (theta * k) / 96;
+  arcPath += (k ? 'L' : 'M') + px(rArc * Math.sin(a)).toFixed(1) + ' ' + py(-rArc * Math.cos(a)).toFixed(1);
+}
+const dashOn = (0.04 * S).toFixed(1);  // scene dash 0.04/0.03, scaled
+const dashOff = (0.03 * S).toFixed(1);
+
+/* ── division: a second static plate (the fallback can't animate the walk) ── */
+interface PlateDot { cx: number; cy: number; k: number; }
+const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+let plate: null | {
+  y0: number; label: string;
+  aye: { dots: PlateDot[]; tally: number; x: number };
+  no: { dots: PlateDot[]; tally: number; x: number };
+} = null;
+if (division) {
+  const ayeKs: number[] = [];
+  const noKs: number[] = [];
+  parties.forEach((p, k) => {
+    const a = clampN(Math.round(division.aye[p.name] ?? 0), 0, p.seats);
+    const n = clampN(Math.round(division.no[p.name] ?? 0), 0, p.seats - a);
+    for (let s = 0; s < a; s++) ayeKs.push(k);
+    for (let s = 0; s < n; s++) noKs.push(k);
+  });
+  const y0 = H + 8;
+  const gridDots = (ks: number[], centerX: number): PlateDot[] => {
+    const n = ks.length;
+    if (!n) return [];
+    const cols = lobbyCols(n);
+    const gap = Math.min(9, (W / 2 - 48) / Math.max(1, cols - 1));
+    const g = lobbyGrid(n, cols, centerX - ((cols - 1) * gap) / 2, y0 + 40, gap, gap);
+    return g.map((pt, i) => ({ cx: +pt.x.toFixed(1), cy: +pt.z.toFixed(1), k: ks[i] }));
+  };
+  const ayeDots = gridDots(ayeKs, W * 0.27);
+  const noDots = gridDots(noKs, W * 0.73);
+  const depth = Math.max(
+    ayeDots.length ? ayeDots[ayeDots.length - 1].cy : y0 + 40,
+    noDots.length ? noDots[noDots.length - 1].cy : y0 + 40,
+  );
+  plate = {
+    y0,
+    label: (division.label ?? 'Division').toUpperCase(),
+    aye: { dots: ayeDots, tally: ayeKs.length, x: W * 0.27 },
+    no: { dots: noDots, tally: noKs.length, x: W * 0.73 },
+  };
+  H = depth + M;
+}
+const Hpx = Math.round(H);
+
+/* ledger legend rows — the AT-readable data source (blueprint §7) */
+const ledger = parties.map((p, k) => ({
+  name: p.name,
+  seats: p.seats,
+  pct: Math.round((p.seats / total) * 100),
+  fill: partyFill[k],
+  aye: division ? Math.round(division.aye[p.name] ?? 0) : 0,
+  no: division ? Math.round(division.no[p.name] ?? 0) : 0,
+}));
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const payload = JSON.stringify({ chamber: { rows, arcDeg }, parties, majority, division });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      <b>{total} seats · majority {majority}</b>
+    </div>
+  )}
+
+  <div class="px-chmbr__stage">
+    <div
+      class="viz3d viz3d--chmbr"
+      data-viz3d="chamber"
+      data-viz3d-state="composition"
+      style={`aspect-ratio: ${W} / ${Hpx}`}
+      role="img"
+      aria-label={caption ? `Chamber diagram: ${caption}` : 'Chamber seat diagram'}
+    >
+      <div class="viz3d__fallback">
+        <svg viewBox={`0 0 ${W} ${Hpx}`} preserveAspectRatio="xMidYMid meet">
+          {/* dashed majority arc + mono label (ink @ 0.42, blueprint §6) */}
+          <path d={arcPath} fill="none" stroke="var(--ink)" stroke-width="1.2"
+            stroke-dasharray={`${dashOn} ${dashOff}`} opacity="0.42" />
+          <text x={W / 2} y={(M + 11).toFixed(0)} text-anchor="middle"
+            style={MONO} font-size="9.5" letter-spacing="0.08em" fill="var(--ink)" opacity="0.42"
+            paint-order="stroke" stroke="var(--paper)" stroke-width="3">MAJORITY · {majority}</text>
+
+          {/* every seat, 3.2px dots — contiguous wedges gov→cross→opp */}
+          {seats2d.map((s) => (
+            <circle cx={s.cx} cy={s.cy} r="3.2"
+              fill={partyFill[s.k].fill} fill-opacity={partyFill[s.k].opacity} />
+          ))}
+
+          {/* the division as its own static plate (aye/no lobby dot grids + tallies) */}
+          {plate && (
+            <>
+              <text x={W / 2} y={plate.y0 + 10} text-anchor="middle"
+                style={MONO} font-size="9.5" letter-spacing="0.14em" fill="var(--muted)">{plate.label}</text>
+              <text x={plate.aye.x} y={plate.y0 + 28} text-anchor="middle"
+                style={MONO} font-size="10.5" letter-spacing="0.1em" fill="var(--ink-soft)"
+                paint-order="stroke" stroke="var(--paper)" stroke-width="3">AYE · {plate.aye.tally}</text>
+              <text x={plate.no.x} y={plate.y0 + 28} text-anchor="middle"
+                style={MONO} font-size="10.5" letter-spacing="0.1em" fill="var(--ink-soft)"
+                paint-order="stroke" stroke="var(--paper)" stroke-width="3">NO · {plate.no.tally}</text>
+              {plate.aye.dots.map((d) => (
+                <circle cx={d.cx} cy={d.cy} r="2.6"
+                  fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
+              ))}
+              {plate.no.dots.map((d) => (
+                <circle cx={d.cx} cy={d.cy} r="2.6"
+                  fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
+              ))}
+            </>
+          )}
+        </svg>
+      </div>
+      <span class="viz3d__hint" aria-hidden="true">drag to look around · hover a bloc</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
+    </div>
+
+    {division && (
+      <div class="px-chmbr__chips">
+        <button type="button" class="px-chmbr__chip is-on" data-state="composition" aria-pressed="true">
+          Composition
+        </button>
+        <button type="button" class="px-chmbr__chip" data-state="division" aria-pressed="false">
+          Division{division.label ? ` — ${division.label}` : ''}
+        </button>
+      </div>
+    )}
+  </div>
+
+  {division && (
+    <script is:inline>
+      (function () {
+        var root = document.currentScript && document.currentScript.previousElementSibling;
+        while (root && !(root.classList && root.classList.contains('px-chmbr__stage'))) {
+          root = root.previousElementSibling;
+        }
+        if (!root) return;
+        var mount = root.querySelector('[data-viz3d="chamber"]');
+        var chips = root.querySelectorAll('.px-chmbr__chip');
+        if (!mount || !chips.length) return;
+        function onClick() {
+          var s = this.getAttribute('data-state') || 'composition';
+          mount.setAttribute('data-viz3d-state', s);
+          for (var k = 0; k < chips.length; k++) {
+            var on = chips[k] === this;
+            chips[k].setAttribute('aria-pressed', on ? 'true' : 'false');
+            chips[k].classList.toggle('is-on', on);
+          }
+        }
+        for (var i = 0; i < chips.length; i++) chips[i].addEventListener('click', onClick);
+      })();
+    </script>
+  )}
+
+  <ul class="pol-ledger px-chmbr__ledger">
+    {ledger.map((r) => (
+      <li>
+        <span class="px-chmbr__swatch" style={`background:${r.fill.fill};opacity:${r.fill.opacity}`}></span>
+        <span class="pol-ledger__k">{r.name}</span>
+        <span class="pol-ledger__dots"></span>
+        <span class="pol-ledger__v">
+          <b>{r.seats}</b> seats · {r.pct}%{division ? ` · Aye ${r.aye} · No ${r.no}` : ''}
+        </span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-chmbr__stage { position: relative; }
+
+  /* State chips — hidden until the WebGL scene is live (the fallback shows
+     the division as its own static plate instead). Real buttons: focusable,
+     aria-pressed, mono pill per CANON §9. */
+  .px-chmbr__chips {
+    display: none;
+    position: absolute; top: 10px; right: 12px; z-index: 3;
+    gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  }
+  .viz3d--live + .px-chmbr__chips { display: flex; }
+
+  .px-chmbr__chip {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 7px 12px; min-height: 30px;
+    cursor: pointer;
+    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+  }
+  .px-chmbr__chip:active { transform: scale(0.98); } /* pressDown */
+  .px-chmbr__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
+  @media (pointer: coarse) {
+    .px-chmbr__chip { min-height: 44px; padding: 10px 14px; } /* 44px touch floor */
+  }
+
+  /* ledger legend (politics `.pol-ledger` rows, themes/politics.css) + swatch key */
+  .px-chmbr__ledger { margin-top: 18px; }
+  .px-chmbr__swatch {
+    width: 9px; height: 9px; border-radius: 2px;
+    align-self: center; flex: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-chmbr__chip { transition: none; }
+    .px-chmbr__chip:active { transform: none; }
+  }
+</style>

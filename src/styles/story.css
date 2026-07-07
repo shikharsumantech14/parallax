@@ -1,0 +1,247 @@
+/* ============================================================================
+   PARALLAX STORY MODE — /s/<slug>/ ("the short version")
+   ----------------------------------------------------------------------------
+   The pxs- layer. Spec (the contract): docs/design/STORY-MODE-SPEC.md —
+   snap spec §3, card anatomy + type scale §2. Cards are ordinary stacked DOM
+   in source order: no-JS = natural scroll with NOTHING hidden; snap is pure
+   CSS; progress/chevrons/share are unhidden by the shell's island.
+   ============================================================================ */
+
+/* ── the shell (snap container) ───────────────────────────────────────────── */
+.pxs-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+@media (max-height: 560px) {
+  .pxs-shell { scroll-snap-type: y proximity; }   /* short-viewport escape hatch */
+}
+@media (prefers-reduced-motion: reduce) {
+  .pxs-shell { scroll-snap-type: y proximity; }
+}
+
+/* ── cards ────────────────────────────────────────────────────────────────── */
+.pxs-card {
+  min-height: 100vh;
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(72px, env(safe-area-inset-bottom));
+  position: relative;
+}
+.pxs-card__inner {
+  width: 100%;
+  max-width: 520px;               /* desktop: centered column, no phone bezel */
+  display: grid;
+  gap: 14px;
+}
+/* soft accent field glow behind the column (desktop presentation) */
+.pxs-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 45% at 50% 42%,
+    color-mix(in oklab, var(--accent) 7%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+/* beat anatomy (dvh budget: text ≤26 · viz ≤62 · kicker ≤8) */
+.pxs-beat__text {
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+  max-height: 26dvh;
+  overflow: hidden;
+}
+.pxs-beat__viz {
+  max-height: 62dvh;
+  overflow-y: auto;               /* per-card internal scroller escape hatch */
+  overscroll-behavior: contain;
+  min-width: 0;
+  width: 100%;
+}
+.pxs-beat__viz .px-viz { margin: 0; }
+.pxs-beat__kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-deep, var(--accent));
+  max-height: 8dvh;
+}
+
+/* ── hook card ────────────────────────────────────────────────────────────── */
+.pxs-hook__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-deep, var(--accent));
+}
+.pxs-hook__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(34px, 9vw, 56px);
+  line-height: 1.05;
+  color: var(--ink);
+  margin: 10px 0 14px;
+}
+.pxs-hook__title em { font-style: italic; color: var(--accent-deep, var(--accent)); }
+.pxs-hook__hook {
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 44ch;
+}
+.pxs-hook__chevron {
+  margin-top: 26px;
+  width: 22px; height: 22px;
+  justify-self: start;
+  color: var(--muted);
+}
+html.js .pxs-hook__chevron { animation: pxs-bob 2.4s var(--ease) infinite; }
+@keyframes pxs-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+@media (prefers-reduced-motion: reduce) {
+  html.js .pxs-hook__chevron { animation: none; }
+}
+
+/* ── CTA card ─────────────────────────────────────────────────────────────── */
+.pxs-cta__lede {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(24px, 6vw, 32px);
+  line-height: 1.2;
+  color: var(--ink);
+}
+.pxs-cta__stats {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 10px 0 22px;
+}
+.pxs-cta__btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--paper);
+  background: var(--ink);
+  padding: 14px 26px;
+  text-decoration: none;
+  border: 1px solid var(--ink);
+  transition: background var(--t-quick) var(--ease);
+}
+.pxs-cta__btn:hover { background: var(--ink-soft, var(--ink)); }
+.pxs-cta__account {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-top: 22px;
+}
+.pxs-cta__account a { color: var(--accent-deep, var(--accent)); }
+
+/* dark worlds: CTA button inverts (ink is light there) */
+[data-topic='space'] .pxs-cta__btn,
+[data-topic='tech'] .pxs-cta__btn,
+[data-topic='sports'] .pxs-cta__btn { color: var(--bg); }
+
+/* ── progress (IG-style segments mobile · dot rail desktop) ──────────────── */
+.pxs-progress {
+  position: fixed;
+  z-index: 5;
+  pointer-events: none;
+}
+.pxs-progress[hidden] { display: none; }
+@media (max-width: 959px) {
+  .pxs-progress {
+    top: max(10px, env(safe-area-inset-top));
+    left: 14px; right: 14px;
+    display: flex; gap: 5px;
+  }
+  .pxs-progress__seg {
+    flex: 1; height: 2.5px; border-radius: var(--r-pill);
+    background: color-mix(in oklab, var(--ink) 18%, transparent);
+    overflow: hidden;
+  }
+  .pxs-progress__seg::after {
+    content: ''; display: block; height: 100%; width: 0%;
+    background: var(--accent);
+    transition: width var(--t-soft) var(--ease);
+  }
+  .pxs-progress__seg.is-done::after { width: 100%; }
+}
+@media (min-width: 960px) {
+  .pxs-progress {
+    right: 22px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .pxs-progress__seg {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: color-mix(in oklab, var(--ink) 22%, transparent);
+    transition: background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
+  }
+  .pxs-progress__seg.is-done { background: var(--accent); }
+  .pxs-progress__seg.is-current { transform: scale(1.5); background: var(--accent); }
+}
+
+/* ── nav chevrons (visible 44×44, bottom-right) ──────────────────────────── */
+.pxs-nav {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pxs-nav[hidden] { display: none; }
+.pxs-nav__btn {
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  cursor: pointer;
+  backdrop-filter: var(--glass-blur);
+  transition: transform var(--t-quick) var(--ease), opacity var(--t-quick) var(--ease);
+}
+.pxs-nav__btn:hover { transform: translateY(-1px); }
+.pxs-nav__btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+.pxs-nav__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── reveal interplay: cards re-use the standard [data-reveal] contract ──── */
+/* (Reveal island observes with the viewport root; the shell IS the visual
+   viewport, so reveals fire per card as it snaps in — no extra JS.) */
+
+/* ── share (StoryShare on the CTA card) ─────────────────────────────────── */
+.pxs-share { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.pxs-share[hidden] { display: none; }
+.pxs-share__btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-soft);
+  background: none; border: 1px solid var(--rule); border-radius: var(--r-pill);
+  padding: 8px 15px; cursor: pointer;
+  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+.pxs-share__btn:hover { color: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
+.pxs-share__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pxs-share__ok {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-deep, var(--accent));
+}
+.pxs-share__ok[hidden] { display: none; }

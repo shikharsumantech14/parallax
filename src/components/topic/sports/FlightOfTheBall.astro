@@ -1,0 +1,401 @@
+---
+/**
+ * FlightOfTheBall (sports · FLAGSHIP + world hero) — "The shot's real machinery."
+ * One famous struck ball rebuilt from its physics: a real launch speed + spin,
+ * bent by drag + Magnus over a to-scale chalk pitch to the goal, integrated by
+ * RK4. A dashed "no-air" ghost shows exactly how much the air did. The WebGL
+ * scene flies a marker down the arc (once on boot, again on REPLAY); the
+ * no-JS / reduced-motion reader gets the composed still below.
+ *
+ * Blueprint (the contract): docs/design/blueprints/sports/flight-of-the-ball.md.
+ * Math: src/scripts/viz3d/ballistics.ts — the SAME integrate() computes the
+ * fallback arc at build time AND the flown polyline at runtime, so the printed
+ * arc and the flown arc are byte-identical sample sets (one source of truth).
+ *
+ * data: { sport?, shot{label, v0, speedUnit?, elevationDeg, azimuthDeg,
+ *         spinRevPerS, spinAxis?, from, note?}, goal?, showGhost?, slowmo?,
+ *         caption?, source? }
+ */
+import {
+  SPORT_CONSTS, SPORT_GOAL, toMetersPerSec, integrate, swerveMeters, apexMeters,
+  type Sport, type Sample, type ShotInput,
+} from '../../../scripts/viz3d/ballistics';
+
+interface ShotProp {
+  label?: string;
+  v0?: number;
+  speedUnit?: 'm/s' | 'km/h';
+  elevationDeg?: number;
+  azimuthDeg?: number;
+  spinRevPerS?: number;
+  spinAxis?: [number, number, number];
+  from?: [number, number];
+  note?: string;
+}
+interface Props {
+  sport?: Sport;
+  shot?: ShotProp;
+  goal?: { x_m?: number; width_m?: number; height_m?: number; z_m?: number };
+  showGhost?: boolean;
+  slowmo?: number;
+  caption?: string;
+  source?: string;
+}
+const {
+  sport: sportProp, shot: shotProp = {}, goal: goalProp,
+  showGhost = true, slowmo = 3, caption, source,
+} = Astro.props;
+
+/* ── resolve inputs + degradation defaults (blueprint §3) ── */
+const sport: Sport = (['football', 'basketball', 'cricket'] as const).includes(sportProp as Sport)
+  ? (sportProp as Sport) : 'football';
+const consts = SPORT_CONSTS[sport];
+const v0Display = typeof shotProp.v0 === 'number' ? shotProp.v0 : 30;
+const speedUnit = shotProp.speedUnit === 'km/h' ? 'km/h' : 'm/s';
+const spinRevPerS = typeof shotProp.spinRevPerS === 'number' ? Math.max(0, shotProp.spinRevPerS) : 0;
+const elevationDeg = typeof shotProp.elevationDeg === 'number' ? shotProp.elevationDeg : 12;
+
+const shot: ShotInput = {
+  v0: toMetersPerSec(v0Display, speedUnit),
+  elevationDeg,
+  azimuthDeg: typeof shotProp.azimuthDeg === 'number' ? shotProp.azimuthDeg : 0,
+  spinRevPerS,
+  spinAxis: Array.isArray(shotProp.spinAxis) && shotProp.spinAxis.length === 3 ? shotProp.spinAxis : [0, 1, 0],
+  from: Array.isArray(shotProp.from) && shotProp.from.length === 2 ? shotProp.from : [30, 0],
+};
+const label = shotProp.label ?? 'the shot';
+const note = shotProp.note;
+
+const goal = {
+  x_m: goalProp?.x_m ?? SPORT_GOAL[sport].x_m,
+  width_m: goalProp?.width_m ?? SPORT_GOAL[sport].width_m,
+  height_m: goalProp?.height_m ?? SPORT_GOAL[sport].height_m,
+  z_m: goalProp?.z_m ?? SPORT_GOAL[sport].z_m,
+};
+
+/* ── integrate at BUILD TIME — same call the scene makes at runtime ── */
+const real: Sample[] = integrate(shot, consts, goal.x_m, false);
+const ghost: Sample[] = integrate(shot, consts, goal.x_m, true);
+const swerve = swerveMeters(real, ghost);
+const flightTime = real[real.length - 1].t;
+const apex = apexMeters(real);
+const realCross = real[real.length - 1];
+const ghostCross = ghost[ghost.length - 1];
+
+/* ── fallback geometry: two stacked panels sharing one downrange x-axis ──
+   viewBox 720×380. Top = elevation (side-on): downrange x vs height y.
+   Bottom = plan (top-down): downrange x vs lateral z (with the swerve bracket). */
+const VW = 720, VH = 380;
+const PL = 56, PR = 40;                 // plot left/right margins
+const PX0 = PL, PX1 = VW - PR;          // downrange axis pixel span
+const plotW = PX1 - PX0;
+
+// downrange domain: from the launch x back to the goal line x (x DECREASES to goal)
+const xStart = shot.from[0];
+const xGoal = goal.x_m;
+const downrangeSpan = Math.max(1, xStart - xGoal);
+// px(x): launch at the LEFT, goal at the RIGHT (reading downrange → goal)
+const dx = (x: number) => PX0 + ((xStart - x) / downrangeSpan) * plotW;
+
+// Top panel (elevation) vertical band
+const TOP_Y0 = 30, TOP_Y1 = 168;        // pixel band for the height plot
+const yMaxM = Math.max(goal.height_m, apex) * 1.12;
+const ey = (h: number) => TOP_Y1 - (Math.max(0, h) / yMaxM) * (TOP_Y1 - TOP_Y0);
+
+// Bottom panel (plan) vertical band — lateral z, 0 centered
+const BOT_Y0 = 214, BOT_Y1 = 330;
+const BOT_MID = (BOT_Y0 + BOT_Y1) / 2;
+const zAbs = Math.max(goal.width_m / 2, Math.abs(realCross.z), Math.abs(ghostCross.z), 1) * 1.15;
+const pz = (z: number) => BOT_MID - (z / (2 * zAbs)) * (BOT_Y1 - BOT_Y0);
+
+const round = (n: number) => +n.toFixed(1);
+// elevation polylines (x vs height)
+const elevReal = real.map((p) => `${round(dx(p.x))},${round(ey(p.y))}`).join(' ');
+const elevGhost = ghost.map((p) => `${round(dx(p.x))},${round(ey(p.y))}`).join(' ');
+// plan polylines (x vs lateral z)
+const planReal = real.map((p) => `${round(dx(p.x))},${round(pz(p.z))}`).join(' ');
+const planGhost = ghost.map((p) => `${round(dx(p.x))},${round(pz(p.z))}`).join(' ');
+
+// height axis ticks (0..ceil(yMax))
+const yTicks: number[] = [];
+for (let h = 0; h <= Math.floor(yMaxM); h++) yTicks.push(h);
+// downrange ticks every ~10 m
+const xTicks: number[] = [];
+{
+  const step = downrangeSpan > 45 ? 15 : 10;
+  for (let x = Math.round(xGoal); x <= Math.ceil(xStart); x += step) xTicks.push(x);
+  if (xTicks[xTicks.length - 1] !== Math.round(xStart)) xTicks.push(Math.round(xStart));
+}
+
+// goal mouth (plan) endpoints + post tick (elevation)
+const goalZTop = pz(goal.z_m - goal.width_m / 2);
+const goalZBot = pz(goal.z_m + goal.width_m / 2);
+const goalX_px = dx(xGoal);
+
+// swerve bracket span (plan): between the two crossings at the goal line
+const realZ_px = pz(realCross.z);
+const ghostZ_px = pz(ghostCross.z);
+const bracketX = goalX_px + 10;
+
+const fmtV0 = Number.isInteger(v0Display) ? String(v0Display) : v0Display.toFixed(1);
+const swerveAbs = Math.abs(swerve).toFixed(1);
+
+/* ── caption honesty chips (blueprint §3): slow-mo only live; cricket both ── */
+const isCricket = sport === 'cricket';
+const showSlowmoChip = slowmo > 1; // live only (rendered via the live chip node)
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const payload = JSON.stringify({
+  sport,
+  shot: {
+    label, v0: v0Display, speedUnit, elevationDeg,
+    azimuthDeg: shot.azimuthDeg, spinRevPerS, spinAxis: shot.spinAxis, from: shot.from, note,
+  },
+  goal, showGhost, slowmo,
+});
+---
+
+<div class="px-viz" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      <b>swerve {swerveAbs} m</b>
+    </div>
+  )}
+
+  <div class="px-fball__stage">
+    <div
+      class="viz3d viz3d--fball"
+      data-viz3d="flight-of-the-ball"
+      role="img"
+      aria-label={caption ? `Ball-flight diagram: ${caption}` : `Ball-flight diagram: ${label}`}
+    >
+      <div class="viz3d__fallback">
+        <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" class="px-fball__svg">
+          {/* ── panel frames + downrange rail (chalk: ink @ 0.35, round caps) ── */}
+          <g stroke="var(--ink)" stroke-opacity="0.35" stroke-width="1.4" stroke-linecap="round" fill="none">
+            {/* top panel baseline (the ground, y=0) */}
+            <line x1={PX0} y1={ey(0)} x2={PX1} y2={ey(0)} />
+            {/* bottom panel center line (z=0) */}
+            <line x1={PX0} y1={BOT_MID} x2={PX1} y2={BOT_MID} stroke-dasharray="2 4" />
+            {/* the shared downrange rail between the two panels */}
+            <line x1={PX0} y1={190} x2={PX1} y2={190} stroke-opacity="0.2" />
+          </g>
+
+          {/* ── downrange ticks (shared rail, the minute-rail motif as distance) ── */}
+          {xTicks.map((x) => (
+            <g>
+              <line x1={round(dx(x))} y1="186" x2={round(dx(x))} y2="194"
+                stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
+              <text x={round(dx(x))} y="204" text-anchor="middle"
+                style={MONO} font-size="9.5" fill="var(--muted)" letter-spacing="0.06em">{x} m</text>
+            </g>
+          ))}
+
+          {/* ── panel labels ── */}
+          <text x={PX0} y="22" style={MONO} font-size="9.5" fill="var(--muted)"
+            letter-spacing="0.16em">ELEVATION · SIDE-ON</text>
+          <text x={PX0} y="228" style={MONO} font-size="9.5" fill="var(--muted)"
+            letter-spacing="0.16em">PLAN · TOP-DOWN</text>
+
+          {/* ── TOP: height axis ticks ── */}
+          {yTicks.map((h) => (
+            <g>
+              <line x1={PX0 - 4} y1={round(ey(h))} x2={PX0} y2={round(ey(h))}
+                stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
+              <text x={PX0 - 8} y={round(ey(h)) + 3} text-anchor="end"
+                style={MONO} font-size="9.5" fill="var(--muted)">{h}</text>
+            </g>
+          ))}
+
+          {/* ── TOP: goal post (2.44 m vertical tick, ink @ 0.9) ── */}
+          <line x1={goalX_px} y1={round(ey(0))} x2={goalX_px} y2={round(ey(goal.height_m))}
+            stroke="var(--ink)" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round" />
+
+          {/* ── TOP: ghost (dashed) then real (volt) elevation paths ── */}
+          {showGhost && (
+            <polyline points={elevGhost} fill="none" stroke="var(--ink)" stroke-opacity="0.22"
+              stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" />
+          )}
+          <polyline points={elevReal} fill="none" stroke="var(--accent)" stroke-opacity="0.9"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          {/* ball resting at the goal end (elevation) */}
+          <circle cx={goalX_px} cy={round(ey(realCross.y))} r="3.2" fill="var(--ink)" />
+
+          {/* ── BOTTOM: goal mouth segment (ink @ 0.9) ── */}
+          <line x1={goalX_px} y1={round(goalZTop)} x2={goalX_px} y2={round(goalZBot)}
+            stroke="var(--ink)" stroke-opacity="0.9" stroke-width="2.4" stroke-linecap="round" />
+
+          {/* ── BOTTOM: ghost (dashed straight) then real (volt curving) plan paths ── */}
+          {showGhost && (
+            <polyline points={planGhost} fill="none" stroke="var(--ink)" stroke-opacity="0.22"
+              stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" />
+          )}
+          <polyline points={planReal} fill="none" stroke="var(--accent)" stroke-opacity="0.9"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+
+          {/* ── BOTTOM: the swerve bracket (accent-deep) + metre label — the money shot ── */}
+          {showGhost && (
+            <g stroke="var(--accent-deep)" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <line x1={bracketX} y1={round(realZ_px)} x2={bracketX} y2={round(ghostZ_px)} />
+              <line x1={bracketX - 4} y1={round(realZ_px)} x2={bracketX + 4} y2={round(realZ_px)} />
+              <line x1={bracketX - 4} y1={round(ghostZ_px)} x2={bracketX + 4} y2={round(ghostZ_px)} />
+            </g>
+          )}
+          {showGhost && (
+            <text x={bracketX + 8} y={round((realZ_px + ghostZ_px) / 2) + 3}
+              style={MONO} font-size="10.5" fill="var(--accent-deep)" letter-spacing="0.04em"
+              paint-order="stroke" stroke="var(--paper)" stroke-width="3">swerve {swerveAbs} m</text>
+          )}
+          {/* real crossing dot (plan) */}
+          <circle cx={goalX_px} cy={round(realZ_px)} r="3.2" fill="var(--accent)" />
+
+          {/* ── cricket honesty chip (fallback shows this, never the slow-mo chip) ── */}
+          {isCricket && (
+            <text x={PX1} y="22" text-anchor="end" style={MONO} font-size="9.5"
+              fill="var(--muted)" letter-spacing="0.1em">swing not modeled</text>
+          )}
+        </svg>
+      </div>
+
+      {/* REPLAY — the ONE control (CANON §9). Hidden until the island boots. */}
+      <div class="px-fball__chips">
+        <button type="button" class="px-fball__chip" data-state="replay" aria-pressed="false">
+          Replay
+        </button>
+      </div>
+
+      <span class="viz3d__hint" aria-hidden="true">drag to orbit · scroll to zoom</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
+    </div>
+  </div>
+
+  {/* ── caption honesty chips (live: slow-mo; always: cricket swing) ── */}
+  <div class="px-fball__caps">
+    {showSlowmoChip && (
+      <span class="px-fball__cap px-fball__cap--live">replay ×{slowmo} slow-mo</span>
+    )}
+    {isCricket && <span class="px-fball__cap">swing not modeled</span>}
+  </div>
+
+  {/* ── the readout ledger (AT-readable data source; exactly 3 rows, §7) ── */}
+  <ul class="px-fball__ledger">
+    <li>
+      <span class="px-fball__k">launch</span>
+      <span class="px-fball__v">{fmtV0} {speedUnit} · {elevationDeg}° · {spinRevPerS} rev/s</span>
+    </li>
+    <li>
+      <span class="px-fball__k">flight</span>
+      <span class="px-fball__v">{flightTime.toFixed(2)} s · apex {apex.toFixed(1)} m</span>
+    </li>
+    <li>
+      <span class="px-fball__k">swerve</span>
+      <span class="px-fball__v">{swerveAbs} m at goal</span>
+    </li>
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+{/* REPLAY chip → data-viz3d-state bridge (same path chamber uses). Momentary:
+    aria-pressed returns to false shortly after (the flight is one-shot). Also
+    mirrors the mount's live state onto the root so the slow-mo caption chip
+    (a live-only artefact) can reveal without a :has() selector. */}
+<script is:inline>
+  (function () {
+    var root = document.currentScript && document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-viz'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+    var mount = root.querySelector('[data-viz3d="flight-of-the-ball"]');
+    var chip = root.querySelector('.px-fball__chip');
+    if (!mount || !chip) return;
+    chip.addEventListener('click', function () {
+      // toggle the attribute so the MutationObserver in runtime.ts always fires
+      mount.setAttribute('data-viz3d-state', 'replay-' + Date.now());
+      mount.setAttribute('data-viz3d-state', 'replay');
+      chip.setAttribute('aria-pressed', 'true');
+      chip.classList.add('is-on');
+      setTimeout(function () {
+        chip.setAttribute('aria-pressed', 'false');
+        chip.classList.remove('is-on');
+      }, 600);
+    });
+    // reveal the live-only caption chip once the runtime marks the mount live
+    var mo = new MutationObserver(function () {
+      if (mount.classList.contains('viz3d--live')) {
+        root.classList.add('px-fball--live');
+        mo.disconnect();
+      }
+    });
+    mo.observe(mount, { attributes: true, attributeFilter: ['class'] });
+    if (mount.classList.contains('viz3d--live')) root.classList.add('px-fball--live');
+  })();
+</script>
+
+<style>
+  .px-fball__stage { position: relative; }
+  .viz3d--fball { aspect-ratio: 720 / 380; }
+  .px-fball__svg { overflow: visible; }
+
+  /* REPLAY chip — inside the mount, hidden until the WebGL scene is live (dead
+     controls never show; the no-JS reader gets the composed still + full
+     ledger instead). runtime.ts adds .viz3d--live to the mount on boot. */
+  .px-fball__chips {
+    display: none;
+    position: absolute; top: 10px; right: 12px; z-index: 3;
+  }
+  .viz3d--fball.viz3d--live .px-fball__chips { display: flex; }
+
+  .px-fball__chip {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+    background: color-mix(in oklab, var(--paper-2, var(--paper)) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 7px 14px; min-height: 30px;
+    cursor: pointer;
+    transition: transform 80ms var(--ease), border-color 140ms var(--ease);
+  }
+  .px-fball__chip:active { transform: scale(0.98); } /* pressDown */
+  .px-fball__chip.is-on { border-color: var(--accent-deep); }
+  @media (pointer: coarse) {
+    .px-fball__chip { min-height: 44px; padding: 11px 16px; } /* 44px touch floor */
+  }
+
+  /* honesty caption chips (mono pills under the mount) */
+  .px-fball__caps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .px-fball__caps:empty { display: none; }
+  .px-fball__cap {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px;
+  }
+  /* the slow-mo chip is a live artefact — hidden until the scene boots
+     (.px-fball--live is set on the root by the inline script when the mount
+     goes live; no-JS / no-WebGL never reveals it, matching the fallback). */
+  .px-fball__cap--live { display: none; }
+  .px-fball--live .px-fball__cap--live { display: inline-block; }
+
+  /* the readout ledger — this world's scoreboard idiom in text, exactly 3 rows */
+  .px-fball__ledger { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .px-fball__ledger li {
+    display: grid; grid-template-columns: 78px 1fr; gap: 14px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-fball__k {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent-deep);
+  }
+  .px-fball__v {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.06em; color: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-fball__chip { transition: none; }
+    .px-fball__chip:active { transform: none; }
+  }
+</style>

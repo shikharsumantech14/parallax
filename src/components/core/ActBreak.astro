@@ -1,0 +1,127 @@
+---
+/**
+ * ActBreak — the typographic chapter divider (`kind: act-break`).
+ *
+ * Gives an issue its act structure (CANON.md §3: 2–4 acts per issue, each
+ * with ≥1 quiet + ≤1 loud section). Data: { act: 'II', title?, epigraph? }.
+ * Pure type: a ghost numeral behind an ACT rule, an optional Fraunces title,
+ * an optional italic epigraph. No number, no plain line — it is air, not a
+ * section. Prefix: px-act.
+ */
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  act?: string;
+  title?: string;
+  epigraph?: string;
+}
+const { act = 'I', title, epigraph } = Astro.props;
+---
+
+<div class="px-act" data-reveal aria-label={`Act ${act}${title ? ` — ${title}` : ''}`}>
+  <div class="px-act__ghost" aria-hidden="true">{act}</div>
+  <div class="px-act__rule">
+    <span class="px-act__label">Act {act}</span>
+  </div>
+  {title && <h2 class="px-act__title" set:html={renderEmphasis(title)} />}
+  {epigraph && <p class="px-act__epigraph">{epigraph}</p>}
+</div>
+
+<style>
+  .px-act {
+    position: relative;
+    text-align: center;
+    padding: 96px 0 72px;
+    margin-bottom: 84px;
+    overflow: hidden;
+  }
+  @media (max-width: 640px) {
+    .px-act { padding: 64px 0 48px; }
+  }
+
+  /* ghost numeral — the depth echo, same register as the section openers */
+  .px-act__ghost {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(140px, 26vw, 240px);
+    line-height: 1;
+    color: var(--ink);
+    opacity: 0.045;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .px-act__rule {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .px-act__rule::before,
+  .px-act__rule::after {
+    content: '';
+    flex: 0 1 120px;
+    height: 1px;
+    background: var(--rule);
+  }
+  .px-act__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    white-space: nowrap;
+  }
+
+  .px-act__title {
+    position: relative;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(24px, 4vw, 32px);
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 20px auto 0;
+    max-width: 560px;
+  }
+  .px-act__title :global(em) {
+    font-style: italic;
+    color: var(--accent-deep, var(--accent));
+  }
+
+  .px-act__epigraph {
+    position: relative;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 14px auto 0;
+    max-width: 480px;
+  }
+
+  /* reveal: ghost drifts up as the rule fades in (html.js-gated; no-JS paints final) */
+  :global(html.js) .px-act:not(.is-in) .px-act__ghost { opacity: 0; transform: translateY(18px); }
+  :global(html.js) .px-act:not(.is-in) .px-act__rule,
+  :global(html.js) .px-act:not(.is-in) .px-act__title,
+  :global(html.js) .px-act:not(.is-in) .px-act__epigraph { opacity: 0; }
+  .px-act__ghost { transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
+  .px-act__rule { transition: opacity 700ms var(--ease) 120ms; }
+  .px-act__title { transition: opacity 700ms var(--ease) 220ms; }
+  .px-act__epigraph { transition: opacity 700ms var(--ease) 320ms; }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js) .px-act:not(.is-in) .px-act__ghost { opacity: 0.045; transform: none; }
+    :global(html.js) .px-act:not(.is-in) .px-act__rule,
+    :global(html.js) .px-act:not(.is-in) .px-act__title,
+    :global(html.js) .px-act:not(.is-in) .px-act__epigraph { opacity: 1; }
+    .px-act__ghost,
+    .px-act__rule,
+    .px-act__title,
+    .px-act__epigraph { transition: none; }
+  }
+</style>

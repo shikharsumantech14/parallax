@@ -1,0 +1,70 @@
+---
+/**
+ * LensMark — the app's brand mark (APP-DESIGN-SPEC §3).
+ *
+ * Ported from the locked brand concept (scripts/logo-mark.ts) and the
+ * publication masthead's `.mh__lens`: two overlapping lens rings (the two
+ * viewpoints) with the red hero sphere nested in their vesica — the focal
+ * object every viewpoint is trying to resolve.
+ *
+ * Geometry is the locked mark's, rescaled 1:1 (ring r 170 / sphere r 66 /
+ * center offset 96 → r 17 / r 6.6 / offset 9.6 in a 56×38 viewBox; the
+ * sphere sits inside the vesica: half-width 7.4 > 6.6). Rings inherit
+ * `currentColor`; the sphere is always #b8341f (brand-fixed, not themeable).
+ * Strokes render at 1.5px at every size (canon §11 line-drawn icon rule)
+ * via vector-effect="non-scaling-stroke".
+ *
+ * `animate` plays `lensSettle` ONCE (motion.md: rings from ±6 overlap into
+ * registration + sphere opacity 0→1 · 600ms --ease-snap). The animation CSS
+ * lives in app.css (§LensMark) and is gated behind `html.js` — no JS or
+ * reduced motion ⇒ this static registered lockup.
+ *
+ * App-only: the publication has its own mark usage — don't cross-import.
+ */
+interface Props {
+  /** Rendered height in px (the mark is wider than tall). Default 20. */
+  size?: number;
+  /** Play lensSettle once on paint (login/welcome brand moment only). */
+  animate?: boolean;
+  class?: string;
+}
+
+const { size = 20, animate = false, class: className } = Astro.props;
+const width = Math.round((size * 56) / 38);
+const classes = ['lens-mark', animate && 'lens-mark--animate', className]
+  .filter(Boolean)
+  .join(' ');
+---
+
+<svg
+  class={classes}
+  width={width}
+  height={size}
+  viewBox="0 0 56 38"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+  focusable="false"
+>
+  <g class="lens-mark__ring lens-mark__ring--l">
+    <circle
+      cx="18.4"
+      cy="19"
+      r="17"
+      stroke="currentColor"
+      stroke-width="1.5"
+      vector-effect="non-scaling-stroke"
+    ></circle>
+  </g>
+  <g class="lens-mark__ring lens-mark__ring--r">
+    <circle
+      cx="37.6"
+      cy="19"
+      r="17"
+      stroke="currentColor"
+      stroke-width="1.5"
+      vector-effect="non-scaling-stroke"
+    ></circle>
+  </g>
+  <circle class="lens-mark__sphere" cx="28" cy="19" r="6.6" fill="#b8341f"></circle>
+</svg>

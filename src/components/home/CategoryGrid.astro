@@ -10,8 +10,12 @@ interface Props {
   issuesByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>>;
   issueNumberFor: (slug: string) => number;
   cols?: 2 | 3;       // 2 = 2-across (2x3), 3 = 3-across (3x2)
+  /** Published-dispatch count per topic for the cards' meta line. Optional —
+      this grid only receives ONE issue per topic, so it cannot compute counts
+      itself; the orchestrator wires them when available (HOME-SPEC §4). */
+  countsByTopic?: Partial<Record<Topic, number>>;
 }
-const { issuesByTopic, issueNumberFor, cols = 3 } = Astro.props;
+const { issuesByTopic, issueNumberFor, cols = 3, countsByTopic } = Astro.props;
 
 // Per-topic copy for the 1-line manifesto on the card and for the
 // empty-state ribbon when no issue has been published yet.
@@ -73,7 +77,9 @@ const copy: Record<Topic, Copy> = {
           } : undefined}
           emptyLabel={c.emptyLabel}
           emptyTag={c.emptyTag}
+          count={countsByTopic?.[topic]}
         />
+
       );
     })}
   </div>

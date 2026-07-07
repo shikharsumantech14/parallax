@@ -1,5 +1,18 @@
 ---
+/**
+ * Section — the article chrome around every numbered section.
+ *
+ * 2026-07-05 additions (docs/design/CANON.md §10 + §3):
+ *  - the "In plain terms" line: one quiet sentence under every viz explaining
+ *    the FORM of the graphic. Authored `plain` overrides the per-kind default
+ *    from src/lib/explainers.ts; kinds with no entry (prose, quote…) render
+ *    nothing. Static HTML — no JS, no toggle.
+ *  - `layout` variants (data-layout attr; geometry in src/styles/layout-v2.css).
+ *    `split`/`split-flip` restructure into a copy column + sticky stage — the
+ *    scrollytelling primitive. All other layouts keep the flat structure.
+ */
 import { renderEmphasis } from '../../lib/text';
+import { EXPLAIN } from '../../lib/explainers';
 
 interface Props {
   number?: string;
@@ -7,14 +20,40 @@ interface Props {
   title?: string;
   intro?: string;
   kind?: string;
+  plain?: string;
+  layout?: string;
 }
-const { number, eyebrow, title, intro, kind } = Astro.props;
+const { number, eyebrow, title, intro, kind, plain, layout } = Astro.props;
+
+const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
+const layoutAttr = layout && layout !== 'default' ? layout : undefined;
+const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
 ---
 
-<section class="px-section" data-reveal data-kind={kind}>
-  {number && <div class="px-section__num" data-n={number}>{number}</div>}
-  {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
-  {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
-  {intro && <p class="px-section__intro">{intro}</p>}
-  <slot />
-</section>
+{isSplit ? (
+  <section class="px-section" data-reveal data-kind={kind} data-layout={layoutAttr}>
+    <div class="px-section__copy">
+      {number && <div class="px-section__num" data-n={number}>{number}</div>}
+      {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
+      {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
+      {intro && <p class="px-section__intro">{intro}</p>}
+      {plainText && (
+        <p class="px-plain"><span class="px-plain__k">In plain terms</span>{' ' + plainText}</p>
+      )}
+    </div>
+    <div class="px-section__stage">
+      <slot />
+    </div>
+  </section>
+) : (
+  <section class="px-section" data-reveal data-kind={kind} data-layout={layoutAttr}>
+    {number && <div class="px-section__num" data-n={number}>{number}</div>}
+    {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
+    {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
+    {intro && <p class="px-section__intro">{intro}</p>}
+    <slot />
+    {plainText && (
+      <p class="px-plain"><span class="px-plain__k">In plain terms</span>{' ' + plainText}</p>
+    )}
+  </section>
+)}

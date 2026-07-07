@@ -1,82 +1,128 @@
 ---
 import AppLayout from '../layouts/AppLayout.astro';
+import LensMark from '../components/LensMark.astro';
 import { safeNextPath } from '../lib/auth';
 
 /**
- * Login page.
+ * Login — the flagship reference implementation of the app design language
+ * (docs/design/APP-DESIGN-SPEC.md §4; copy verbatim from JOURNEY-SPEC.md §3;
+ * state machine from JOURNEY-SPEC.md §2).
  *
- * Two paths in:
- *   1. Continue with Google (OAuth)
- *   2. Get a sign-in link by email (magic link)
+ * Two paths in — Google OAuth (primary) and a magic sign-in link (secondary).
+ * Five states: idle · google-redirecting · magic-sending · link-sent (a full
+ * plate swap with inbox guidance + 60s resend cooldown) · error. A `world`
+ * query param (set by publication CTAs) tints the plate with that desk's
+ * accent — tint only, never the full world palette.
  *
- * Both initiate from client-side JS using the browser Supabase client,
- * which knows how to handle PKCE and the redirect dance.
- *
- * If a `next` query param is set (and safe), we round-trip it through
- * the OAuth flow so the user lands where they were trying to go.
+ * Supabase flows are untouched from v1: browser client, PKCE, `next`
+ * round-trip through /auth/callback. `world` rides along for /welcome.
  */
 
 const { user } = Astro.locals;
 
-// If already logged in, skip the login page entirely.
 if (user) {
   const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
   return Astro.redirect(next);
 }
 
 const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
+
+const WORLDS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
+const worldRaw = (Astro.url.searchParams.get('world') ?? '').toLowerCase();
+const world = (WORLDS as readonly string[]).includes(worldRaw) ? worldRaw : null;
+
+// Friendly error carried back from /auth/callback (expired/used links etc.)
+const noticeParam = Astro.url.searchParams.get('notice');
 ---
 
 <AppLayout title="Sign in" description="Sign in to your Parallax reader account.">
-  <p class="eyebrow">Sign in</p>
-  <h1>Open your <em>shelf</em>.</h1>
-  <p class="dek">
-    One sign-in to save issues, follow topics you care about, and pick up
-    reading where you left off.
-  </p>
-
-  <div class="field">
-    <button id="btn-google" class="btn btn--ghost btn--block" type="button">
-      <svg class="btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-        <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
-        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
-      </svg>
-      Continue with Google
-    </button>
-  </div>
-
-  <div class="divider">or</div>
-
-  <form id="magic-form" novalidate>
-    <div class="field">
-      <label for="email">Sign-in link by email</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        placeholder="you@example.com"
-        autocomplete="email"
-        required
-      />
-      <p class="field__hint">
-        We'll send a one-tap link. No password to remember.
-      </p>
+  <div class="login">
+    <div class="login__mark" aria-hidden="true">
+      <LensMark size={56} animate />
     </div>
 
-    <button id="btn-magic" class="btn btn--block" type="submit">
-      Send the link
-    </button>
-  </form>
+    <div class="plate login__plate" data-world={world ?? undefined}>
+      {/* ── state: idle / sending ─────────────────────────────────────── */}
+      <div id="pane-form">
+        <p class="eyebrow">Sign in</p>
+        <h1 class="login__h1">Open your <em>shelf</em>.</h1>
+        <p class="dek login__dek">
+          One sign-in to save issues, follow the worlds you care about, and
+          pick up reading where you left off.
+        </p>
+        {world && (
+          <p class="login__world" aria-label={`Returning you to the ${world} desk`}>
+            RETURNING YOU TO THE {world.toUpperCase()} DESK →
+          </p>
+        )}
 
-  <div id="notice" class="notice notice--info" style="display: none;"></div>
+        <button id="btn-google" class="btn btn--block login__google" type="button">
+          <svg class="btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+          </svg>
+          <span id="btn-google-label">Continue with Google</span>
+        </button>
 
-  <a class="app-back" href={import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com'}>
-    ← Back to the publication
-  </a>
+        <div class="divider">or use your email</div>
 
-  <span id="next-value" data-next={next} hidden></span>
+        <form id="magic-form" novalidate>
+          <div class="field">
+            <label for="email">Your email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              inputmode="email"
+              required
+            />
+          </div>
+          <button id="btn-magic" class="btn btn--ghost btn--block" type="submit">
+            Send me a sign-in link
+          </button>
+          <p class="login__assure">No password. The link signs you in instantly.</p>
+        </form>
+
+        <div id="notice" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
+      </div>
+
+      {/* ── state: link-sent (full plate swap) ────────────────────────── */}
+      <div id="pane-sent" hidden>
+        <div class="login__envelope" aria-hidden="true">
+          <svg viewBox="0 0 48 36" width="44" height="33">
+            <rect x="1.5" y="1.5" width="45" height="33" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M2 4 L24 20 L46 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="38" cy="26" r="6.5" fill="var(--paper)" stroke="#b8341f" stroke-width="1.5"/>
+            <circle cx="38" cy="26" r="2.4" fill="#b8341f"/>
+          </svg>
+        </div>
+        <h2 class="login__h1 login__h1--sent">Check your inbox.</h2>
+        <p class="dek login__dek">
+          We sent a sign-in link to <b id="sent-email" class="login__email"></b>.
+          It signs you in instantly and expires in 60 minutes.
+        </p>
+        <div class="login__inbox-row">
+          <a class="btn btn--ghost" href="https://mail.google.com" target="_blank" rel="noopener">Open Gmail</a>
+          <a class="btn btn--ghost" href="https://outlook.live.com" target="_blank" rel="noopener">Open Outlook</a>
+        </div>
+        <div class="login__sent-foot">
+          <button id="btn-resend" class="btn btn--ghost" type="button">Resend link</button>
+          <button id="btn-reset" class="login__reset" type="button">Wrong address? Use a different email</button>
+        </div>
+        <div id="notice-sent" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <a class="app-back login__back" href={import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com'}>
+      ← Back to the publication
+    </a>
+  </div>
+
+  <span id="next-value" data-next={next} data-world={world ?? ''} data-notice={noticeParam ?? ''} hidden></span>
 </AppLayout>
 
 <script>
@@ -90,41 +136,110 @@ const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
 
   const appUrl =
     import.meta.env.PUBLIC_APP_URL ?? `${window.location.protocol}//${window.location.host}`;
-  const next = document.getElementById('next-value')?.dataset.next ?? '/dashboard';
+  const meta = document.getElementById('next-value') as HTMLElement | null;
+  const next = meta?.dataset.next ?? '/dashboard';
+  const world = meta?.dataset.world ?? '';
+  const carriedNotice = meta?.dataset.notice ?? '';
 
-  const noticeEl = document.getElementById('notice');
-  const showNotice = (text: string, kind: 'info' | 'ok' | 'err') => {
-    if (!noticeEl) return;
-    noticeEl.textContent = text;
-    noticeEl.className =
-      'notice ' +
-      (kind === 'err' ? 'notice--err' : kind === 'ok' ? 'notice--ok' : 'notice--info');
-    (noticeEl as HTMLElement).style.display = 'block';
-  };
+  // world rides along so /auth/callback → /welcome can preselect the desk
+  const callbackUrl =
+    `${appUrl}/auth/callback?next=${encodeURIComponent(next)}` +
+    (world ? `&world=${encodeURIComponent(world)}` : '');
 
   const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T | null;
 
+  const paneForm = $('pane-form');
+  const paneSent = $('pane-sent');
+
+  const notice = (id: string, text: string, kind: 'info' | 'ok' | 'err') => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className =
+      'notice ' + (kind === 'err' ? 'notice--err' : kind === 'ok' ? 'notice--ok' : 'notice--info');
+    el.style.display = text ? 'block' : 'none';
+  };
+
+  // Error carried back from the auth callback (expired / used link…)
+  if (carriedNotice) notice('notice', carriedNotice, 'err');
+
   const setBusy = (busy: boolean) => {
-    const ids = ['btn-google', 'btn-magic', 'email'];
-    for (const id of ids) {
+    for (const id of ['btn-google', 'btn-magic', 'email']) {
       const el = $(id) as HTMLButtonElement | HTMLInputElement | null;
       if (el) el.disabled = busy;
     }
   };
 
+  let lastEmail = '';
+
+  // ── state: link-sent (full plate swap) ──
+  const showSent = () => {
+    const echo = $('sent-email');
+    if (echo) echo.textContent = lastEmail;
+    if (paneForm) paneForm.hidden = true;
+    if (paneSent) paneSent.hidden = false;
+    startCooldown();
+  };
+  const showForm = () => {
+    if (paneSent) paneSent.hidden = true;
+    if (paneForm) paneForm.hidden = false;
+    setBusy(false);
+    const btn = $('btn-magic') as HTMLButtonElement | null;
+    if (btn) btn.textContent = 'Send me a sign-in link';
+    notice('notice', '', 'info');
+    const email = $('email') as HTMLInputElement | null;
+    email?.focus();
+  };
+
+  // ── resend cooldown (60s, visible countdown) ──
+  let cooldownTimer = 0;
+  const startCooldown = () => {
+    const btn = $('btn-resend') as HTMLButtonElement | null;
+    if (!btn) return;
+    let left = 60;
+    btn.disabled = true;
+    btn.textContent = `Resend in ${left}s`;
+    window.clearInterval(cooldownTimer);
+    cooldownTimer = window.setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        window.clearInterval(cooldownTimer);
+        btn.disabled = false;
+        btn.textContent = 'Resend link';
+      } else {
+        btn.textContent = `Resend in ${left}s`;
+      }
+    }, 1000);
+  };
+
+  const sendLink = async (email: string, noticeId: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: callbackUrl, shouldCreateUser: true },
+    });
+    if (error) {
+      const msg = /rate/i.test(error.message)
+        ? 'Too many links too quickly — give it a minute, then try again.'
+        : 'Something broke on our side. Try again in a moment.';
+      notice(noticeId, msg, 'err');
+      return false;
+    }
+    return true;
+  };
+
   // ── Google OAuth ──
   $('btn-google')?.addEventListener('click', async () => {
     setBusy(true);
-    showNotice('Redirecting to Google…', 'info');
+    const label = $('btn-google-label');
+    if (label) label.textContent = 'Opening Google…';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
+      options: { redirectTo: callbackUrl },
     });
     if (error) {
-      showNotice(`Couldn’t start Google sign-in: ${error.message}`, 'err');
+      notice('notice', 'Something broke on our side. Try again in a moment.', 'err');
+      if (label) label.textContent = 'Continue with Google';
       setBusy(false);
     }
   });
@@ -132,31 +247,117 @@ const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
   // ── Magic link ──
   $('magic-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const emailInput = $<HTMLInputElement>('email');
+    const emailInput = $('email') as HTMLInputElement | null;
     const email = emailInput?.value.trim() ?? '';
-    if (!email) {
-      showNotice('Please enter your email address.', 'err');
+    if (!email || !emailInput?.checkValidity()) {
+      notice('notice', 'That doesn’t look like an email address — check it and try again.', 'err');
+      emailInput?.focus();
       return;
     }
     setBusy(true);
-    showNotice('Sending sign-in link…', 'info');
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
-        shouldCreateUser: true,
-      },
-    });
-    if (error) {
-      showNotice(`Couldn’t send the link: ${error.message}`, 'err');
+    const btn = $('btn-magic') as HTMLButtonElement | null;
+    if (btn) btn.textContent = 'Sending…';
+    lastEmail = email;
+    const ok = await sendLink(email, 'notice');
+    if (ok) showSent();
+    else {
       setBusy(false);
-      return;
+      if (btn) btn.textContent = 'Send me a sign-in link';
     }
-    showNotice(
-      'Check your inbox. The link signs you in instantly and expires in 60 minutes.',
-      'ok',
-    );
-    const btn = $<HTMLButtonElement>('btn-magic');
-    if (btn) btn.textContent = 'Sent — check your email';
   });
+
+  // ── link-sent actions ──
+  $('btn-resend')?.addEventListener('click', async () => {
+    const btn = $('btn-resend') as HTMLButtonElement | null;
+    if (btn?.disabled) return;
+    if (btn) btn.textContent = 'Sending…';
+    const ok = await sendLink(lastEmail, 'notice-sent');
+    if (ok) {
+      notice('notice-sent', 'A fresh link is on its way.', 'ok');
+      startCooldown();
+    } else if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Resend link';
+    }
+  });
+  $('btn-reset')?.addEventListener('click', showForm);
 </script>
+
+<style>
+  .login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4vh;
+  }
+  @media (min-height: 720px) {
+    .login { padding-top: 10vh; }
+  }
+  .login__mark { margin-bottom: 22px; color: var(--ink); }
+
+  .login__plate {
+    width: 100%;
+    max-width: 440px;
+    border-top: 3px solid var(--w-accent-deep, var(--accent-deep));
+  }
+  .login__h1 {
+    font-family: var(--font-display);
+    font-size: 34px;
+    line-height: 1.12;
+    font-weight: 600;
+    margin: 6px 0 10px;
+  }
+  .login__h1 em {
+    font-style: italic;
+    color: var(--w-accent-deep, var(--accent-deep));
+  }
+  .login__h1--sent { margin-top: 14px; }
+  .login__dek { margin-bottom: 20px; }
+
+  .login__world {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--w-accent-deep, var(--accent-deep));
+    margin: -8px 0 20px;
+  }
+
+  .login__google { gap: 10px; }
+  .login__assure {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 10px 0 0;
+    text-align: center;
+  }
+
+  .login__envelope { color: var(--ink-soft); }
+  .login__email { font-family: var(--font-mono); font-weight: 600; font-size: 0.92em; }
+  .login__inbox-row { display: flex; gap: 10px; margin: 18px 0 6px; }
+  .login__inbox-row .btn { flex: 1; }
+  .login__sent-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .login__reset {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .login__reset:hover { color: var(--ink); }
+
+  .login__back { margin-top: 26px; }
+</style>

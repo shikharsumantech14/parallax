@@ -1,0 +1,362 @@
+---
+/**
+ * TerminatorGlobe (travel · FLAGSHIP + world signature) — "The reason your body
+ * is wrong, drawn on the actual planet." A real country-outline Earth lit for
+ * one instant: the subsolar-anchored day/night terminator, the antisolar night
+ * wash, and the great-circle flight arc crossing it. Rendered lazily by the
+ * WebGL runtime (scene 'terminator-globe'); drag to spin, scroll to zoom, hover
+ * a city for its local clock, press ARRIVAL to advance the sun to landing.
+ *
+ * Blueprint (the contract): docs/design/blueprints/travel/terminator-globe.md.
+ * Math: kepler.ts (subsolarPoint / greatCircle) + terminator.ts (ring /
+ * day-night / clocks) — the SAME pure functions compute the static orthographic
+ * fallback below at build time, so the no-JS / reduced-motion / no-WebGL reader
+ * gets the identical epoch-correct still (departure instant), plus the
+ * ticket-stub ledger that carries every honest number in words.
+ *
+ * data: { epoch, from{city,lat,lon,tzOffsetH}, to{...}, flightHours,
+ *         arcBulge?, showEoT?, caption?, source? }
+ */
+import { geoOrthographic, geoPath, geoCircle } from 'd3-geo';
+import { mesh as topomesh } from 'topojson-client';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { subsolarPoint, greatCircle } from '../../../scripts/viz3d/kepler';
+import {
+  terminatorRing, antisolarPoint, isDaylight, groundDistanceKm,
+  localClock, offsetLabel, clampBulge, fmtHours, fmtKm,
+} from '../../../scripts/viz3d/terminator';
+
+interface City { city: string; lat: number; lon: number; tzOffsetH: number }
+interface Props {
+  epoch?: string;
+  from?: City;
+  to?: City;
+  flightHours?: number;
+  arcBulge?: number;
+  showEoT?: boolean;
+  caption?: string;
+  source?: string;
+}
+const {
+  epoch = '2026-01-01T00:00:00Z',
+  from = { city: 'From', lat: 0, lon: 0, tzOffsetH: 0 },
+  to = { city: 'To', lat: 0, lon: 0, tzOffsetH: 0 },
+  flightHours = 0,
+  arcBulge,
+  caption,
+  source,
+} = Astro.props;
+
+const bulge = clampBulge(arcBulge);
+const epochMs = Date.parse(epoch + (epoch.length <= 10 ? 'T00:00:00Z' : ''));
+const arrivalMs = epochMs + flightHours * 3600000;
+
+/* ── the departure-instant sun (the composed still is the departure state) ── */
+const sub = subsolarPoint(epochMs);
+const anti = antisolarPoint(sub);
+
+/* ── orthographic globe centred on the arc midpoint (crossing faces reader) ── */
+const W = 720, H = 460, cx = 360, cy = 220, Rpx = 180;
+const midPt = greatCircle({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, 2)[1];
+const proj = geoOrthographic()
+  .scale(Rpx)
+  .translate([cx, cy])
+  .clipAngle(90)                      // native near-hemisphere clipping
+  .rotate([-midPt.lon, -midPt.lat]);
+const pathGen = geoPath(proj);
+
+/* country outlines — 110m mesh (SAME resolution the live globe loads, so scene
+   and fallback match), one clipped path, coords rounded + lightly decimated to
+   respect the SVG-node budget (blueprint §10). */
+const topo = JSON.parse(
+  readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-110m.json'), 'utf-8'),
+) as any;
+const bordersGeo = topomesh(topo, topo.objects.countries);
+function orthoLinePath(geo: any, round = 1, minStep = 2.2): string {
+  const lines: number[][][] = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
+  let d = '';
+  for (const line of lines) {
+    let started = false, lx = 0, ly = 0;
+    for (const c of line) {
+      const p = proj(c as [number, number]);
+      if (!p) { started = false; continue; }         // point on the far hemisphere
+      const x = +p[0].toFixed(round), y = +p[1].toFixed(round);
+      if (!started) { d += `M${x} ${y}`; started = true; lx = x; ly = y; }
+      else if (Math.hypot(x - lx, y - ly) >= minStep) { d += `L${x} ${y}`; lx = x; ly = y; }
+    }
+  }
+  return d;
+}
+const countryPath = orthoLinePath(bordersGeo);
+
+/* graticule (equator + a few parallels/meridians), clipped by the projection */
+function graticulePath(): string {
+  let d = '';
+  const seg = (pts: [number, number][]) => {
+    let started = false;
+    for (const c of pts) {
+      const p = proj(c);
+      if (!p) { started = false; continue; }
+      d += (started ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+      started = true;
+    }
+  };
+  for (const lat of [-60, -30, 0, 30, 60]) {
+    const pts: [number, number][] = [];
+    for (let lon = -180; lon <= 180; lon += 6) pts.push([lon, lat]);
+    seg(pts);
+  }
+  for (let lon = -150; lon <= 180; lon += 30) {
+    const pts: [number, number][] = [];
+    for (let lat = -80; lat <= 80; lat += 4) pts.push([lon, lat]);
+    seg(pts);
+  }
+  return d;
+}
+const gratPath = graticulePath();
+
+/* ── terminator ring (128-sampled great circle 90° from the subsolar point) ── */
+const ringPts = terminatorRing(sub, 128);
+function ringPath(pts: { lat: number; lon: number }[]): string {
+  // project each vertex; break the path wherever a vertex is on the far side
+  let d = '';
+  let started = false;
+  for (const p of [...pts, pts[0]]) {
+    const q = proj([p.lon, p.lat]);
+    if (!q) { started = false; continue; }
+    d += (started ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1);
+    started = true;
+  }
+  return d;
+}
+const termPath = ringPath(ringPts);
+
+/* ── night wash: the antisolar hemisphere as a filled clipped region ──
+   d3.geoPath of a geoCircle(90° around the antisolar point) is auto-clipped to
+   the visible hemisphere by the orthographic projection, so it paints exactly
+   the dusk extent on the near face (blueprint §7). */
+const nightCircle = geoCircle().center([anti.lon, anti.lat]).radius(90)();
+const nightPath = pathGen(nightCircle) || '';
+
+/* ── flight arc: 64-seg great circle, bulged, projected (drop far-side pts) ── */
+const arcPts = greatCircle({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, 64);
+function arcPath(): string {
+  let d = '', started = false;
+  arcPts.forEach((p) => {
+    const q = proj([p.lon, p.lat]);
+    if (!q) { started = false; return; }
+    d += (started ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1);
+    started = true;
+  });
+  return d;
+}
+const flightPath = arcPath();
+
+/* endpoints — visible only if on the near hemisphere */
+const projPin = (c: City) => {
+  const q = proj([c.lon, c.lat]);
+  return q ? { x: q[0], y: q[1], vis: true } : { x: 0, y: 0, vis: false };
+};
+const fromPin = projPin(from);
+const toPin = projPin(to);
+const subPin = (() => { const q = proj([sub.lon, sub.lat]); return q ? { x: q[0], y: q[1], vis: true } : { x: 0, y: 0, vis: false }; })();
+
+/* ── stub-ledger numbers (the AT-readable data source, blueprint §7) ── */
+const distKm = groundDistanceKm({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon });
+const depClock = localClock(epochMs, from.tzOffsetH);
+const arrClock = localClock(arrivalMs, to.tzOffsetH);
+const dayTag = (d: number) => (d < 0 ? ' (prev day)' : d > 0 ? ' (+1)' : '');
+const phaseH = Math.abs(from.tzOffsetH - to.tzOffsetH);
+const tzShort = (offsetH: number) => offsetLabel(offsetH).replace('UTC', '').replace(':00', '');
+const stubLine = `${from.city} → ${to.city} · ${fmtKm(distKm)} km · dep ${depClock.hhmm}${dayTag(depClock.dayDelta)} ${tzShort(from.tzOffsetH)} · arr ${arrClock.hhmm}${dayTag(arrClock.dayDelta)} ${tzShort(to.tzOffsetH)} · ${fmtHours(phaseH)} out of phase`;
+
+/* ── legend rows (two cities — well under the 5-row collapse threshold, §7) ── */
+const rows = [from, to].map((c) => ({
+  city: c.city,
+  clock: localClock(epochMs, c.tzOffsetH),
+  tz: offsetLabel(c.tzOffsetH),
+  light: isDaylight({ lat: c.lat, lon: c.lon }, sub) ? 'in daylight' : 'in darkness',
+}));
+
+/* arrival-instant local clock for the ARRIVAL chip label */
+const arrLocalTo = localClock(arrivalMs, to.tzOffsetH);
+const arrChipLabel = `ARRIVAL — ${arrLocalTo.hhmm}${dayTag(arrLocalTo.dayDelta)}`;
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const payload = JSON.stringify({ epoch, from, to, flightHours, arcBulge: bulge });
+---
+
+<div class="px-viz" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      <b>{fmtKm(distKm)} km · {fmtHours(phaseH)} out of phase</b>
+    </div>
+  )}
+
+  <div class="px-tglobe__stage">
+    <div
+      class="viz3d viz3d--tglobe"
+      data-viz3d="terminator-globe"
+      data-viz3d-state="departure"
+      role="img"
+      aria-label={caption ? `Day/night globe: ${caption}` : 'Day/night globe with flight arc'}
+    >
+      <div class="viz3d__fallback">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+          {/* the globe disc — paper face so near-side lines read as line-art */}
+          <circle cx={cx} cy={cy} r={Rpx} fill="var(--paper)" stroke="var(--rule)" stroke-width="1" opacity="0.9" />
+          {/* graticule */}
+          <path d={gratPath} fill="none" stroke="var(--ink)" stroke-width="0.6" opacity="0.10" />
+          {/* night wash — antisolar hemisphere, --ink @ 0.28 (the print day/night line) */}
+          {nightPath && <path d={nightPath} fill="var(--ink)" fill-opacity="0.28" stroke="none" />}
+          {/* country outlines (near hemisphere), --ink @ 0.42 */}
+          <path d={countryPath} fill="none" stroke="var(--ink)" stroke-width="0.9" opacity="0.42"
+            stroke-linejoin="round" stroke-linecap="round" />
+          {/* terminator line — the day/night boundary, --ink @ 0.9 */}
+          {termPath && <path d={termPath} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.9" />}
+          {/* SUBSOLAR tick — where it is noon */}
+          {subPin.vis && (
+            <>
+              <circle cx={subPin.x} cy={subPin.y} r="2.4" fill="var(--ink)" opacity="0.55" />
+              <text x={subPin.x + 6} y={subPin.y - 5} style={MONO} font-size="9.5"
+                letter-spacing="0.1em" fill="var(--muted)"
+                paint-order="stroke" stroke="var(--paper)" stroke-width="3">SUBSOLAR</text>
+            </>
+          )}
+          {/* flight arc — --accent @ 0.85 */}
+          {flightPath && <path d={flightPath} fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.85" />}
+          {/* endpoints — accent dots + Fraunces-italic place names with paper halo */}
+          {[{ p: fromPin, c: from }, { p: toPin, c: to }].map(({ p, c }) => p.vis && (
+            <>
+              <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />
+              <text x={p.x + 8} y={p.y + 3.5}
+                style="font-family:var(--font-display);font-style:italic" font-size="13"
+                fill="var(--accent-deep)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{c.city}</text>
+            </>
+          ))}
+        </svg>
+      </div>
+      <span class="viz3d__hint" aria-hidden="true">drag to spin · scroll to zoom</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
+    </div>
+
+    {/* state chips — hidden until the WebGL scene is live (the fallback is a
+        single composed departure instant; §7). Real buttons: focusable,
+        aria-pressed, mono pill per CANON §9 (2 states ≤ 3). */}
+    <div class="px-tglobe__chips">
+      <button type="button" class="px-tglobe__chip is-on" data-state="departure" aria-pressed="true">Departure</button>
+      <button type="button" class="px-tglobe__chip" data-state="arrival" aria-pressed="false">{arrChipLabel}</button>
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var root = document.currentScript && document.currentScript.previousElementSibling;
+      while (root && !(root.classList && root.classList.contains('px-tglobe__stage'))) {
+        root = root.previousElementSibling;
+      }
+      if (!root) return;
+      var mount = root.querySelector('[data-viz3d="terminator-globe"]');
+      var chips = root.querySelectorAll('.px-tglobe__chip');
+      if (!mount || !chips.length) return;
+      function onClick() {
+        var s = this.getAttribute('data-state') || 'departure';
+        mount.setAttribute('data-viz3d-state', s);
+        for (var k = 0; k < chips.length; k++) {
+          var on = chips[k] === this;
+          chips[k].setAttribute('aria-pressed', on ? 'true' : 'false');
+          chips[k].classList.toggle('is-on', on);
+        }
+      }
+      for (var i = 0; i < chips.length; i++) chips[i].addEventListener('click', onClick);
+    })();
+  </script>
+
+  {/* ticket-stub ledger — the honest numbers in words (the AT-readable source) */}
+  <div class="px-tglobe__stub" aria-label="Flight ledger">
+    <span class="px-tglobe__perf" aria-hidden="true"></span>
+    <span class="px-tglobe__stub-line">{stubLine}</span>
+  </div>
+
+  {/* two-city legend (day/night at the departure instant) */}
+  <ul class="px-tglobe__legend">
+    {rows.map((r) => (
+      <li class="px-tglobe__row">
+        <span class="px-tglobe__dot"></span>
+        <span class="px-tglobe__name">{r.city}</span>
+        <span class="px-tglobe__meta">{r.clock.hhmm}{dayTag(r.clock.dayDelta)} · {r.tz} · {r.light}</span>
+      </li>
+    ))}
+  </ul>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .viz3d--tglobe { aspect-ratio: 720 / 460; }
+  .px-tglobe__stage { position: relative; }
+
+  /* state chips — shown only when the WebGL scene is live */
+  .px-tglobe__chips {
+    display: none;
+    position: absolute; top: 10px; right: 12px; z-index: 3;
+    gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  }
+  .viz3d--live + .px-tglobe__chips { display: flex; }
+  .px-tglobe__chip {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 7px 12px; min-height: 30px; cursor: pointer;
+    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+  }
+  .px-tglobe__chip:active { transform: scale(0.98); }
+  .px-tglobe__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
+  @media (pointer: coarse) {
+    .px-tglobe__chip { min-height: 44px; padding: 10px 14px; }
+  }
+
+  /* ticket-stub ledger (travel signature furniture — --tape fill, perforation) */
+  .px-tglobe__stub {
+    position: relative;
+    margin-top: 16px;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--tape);
+    border-radius: 6px;
+    padding: 11px 16px 11px 22px;
+    overflow: hidden;
+  }
+  .px-tglobe__perf {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 12px;
+    background-image: radial-gradient(circle at 6px center,
+      color-mix(in oklab, var(--ink) 22%, transparent) 1.6px, transparent 2.2px);
+    background-size: 12px 11px; background-repeat: repeat-y;
+  }
+  .px-tglobe__stub-line {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
+    line-height: 1.5; color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+
+  /* two-city legend */
+  .px-tglobe__legend { list-style: none; margin: 14px 0 0; padding: 0; }
+  .px-tglobe__row {
+    display: grid; grid-template-columns: 14px auto 1fr; gap: 12px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-tglobe__dot { width: 9px; height: 9px; border-radius: 50%; align-self: center; background: var(--accent); }
+  .px-tglobe__name { font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--accent-deep); font-weight: 500; }
+  .px-tglobe__meta {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.04em; color: var(--muted); text-align: right;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-tglobe__chip { transition: none; }
+    .px-tglobe__chip:active { transform: none; }
+  }
+</style>

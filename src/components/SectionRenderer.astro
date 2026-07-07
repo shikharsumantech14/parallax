@@ -1,73 +1,19 @@
 ---
+/**
+ * SectionRenderer — the article shell around every section.
+ *
+ * Composition (since 2026-07-05): the kind → component switch lives in
+ * SectionBody.astro (shared with story mode); this file owns the ARTICLE
+ * chrome — core/Section.astro (number / eyebrow / title / intro / plain line /
+ * layout attribute), the act-break divider, and the skim-mode caption block
+ * (any section kind may carry `skimCaption`; in skim mode prose hides behind
+ * its caption, viz sections show caption alongside — the skim rail reads as a
+ * complete summary).
+ */
 import type { Section } from '../content/config';
 import CoreSection from './core/Section.astro';
-import Quote from './core/Quote.astro';
-import BeatSheet from './core/BeatSheet.astro';
-import Prose from './core/Prose.astro';
-import Comparison from './core/Comparison.astro';
-import DataReadout from './core/DataReadout.astro';
-
-import Timeline from './topic/politics/Timeline.astro';
-import BillBreakdown from './topic/politics/BillBreakdown.astro';
-import VoteResult from './topic/politics/VoteResult.astro';
-import SeatChart from './topic/politics/SeatChart.astro';
-import Paradox from './topic/politics/Paradox.astro';
-import BrothersAnalogy from './topic/politics/BrothersAnalogy.astro';
-import ApprovalChart from './topic/politics/ApprovalChart.astro';
-import PowerMatrix from './topic/politics/PowerMatrix.astro';
-
-import OrbitalShells from './topic/space/OrbitalShells.astro';
-import OrbitTrace from './topic/space/OrbitTrace.astro';
-import LaunchStats from './topic/space/LaunchStats.astro';
-
-import CommitGrid from './topic/tech/CommitGrid.astro';
-import BenchmarkChart from './topic/tech/BenchmarkChart.astro';
-import AdoptionCurve from './topic/tech/AdoptionCurve.astro';
-
-import JourneyMap from './topic/travel/JourneyMap.astro';
-import RouteCard from './topic/travel/RouteCard.astro';
-import CityCompare from './topic/travel/CityCompare.astro';
-
-import MatchStatLine from './topic/sports/MatchStatLine.astro';
-import LeagueTable from './topic/sports/LeagueTable.astro';
-import PlayerRadar from './topic/sports/PlayerRadar.astro';
-
-// v2 3D / interactive component library
-import OrbitGlobe from './topic/space/OrbitGlobe.astro';
-import PlayerCard from './topic/sports/PlayerCard.astro';
-import CoalitionOrbit from './topic/politics/CoalitionOrbit.astro';
-import SwingDial from './topic/politics/SwingDial.astro';
-import BillPassage from './topic/politics/BillPassage.astro';
-import VoteFlow from './topic/politics/VoteFlow.astro';
-import MarginLadder from './topic/politics/MarginLadder.astro';
-import TrajectoryArc from './topic/space/TrajectoryArc.astro';
-import DeltaVLadder from './topic/space/DeltaVLadder.astro';
-import SignalReadout from './topic/space/SignalReadout.astro';
-import DescentProfile from './topic/space/DescentProfile.astro';
-import DataGlobe from './topic/earth/DataGlobe.astro';
-import CoreSample from './topic/earth/CoreSample.astro';
-import SeaLevelTank from './topic/earth/SeaLevelTank.astro';
-import ClimateSpiral from './topic/earth/ClimateSpiral.astro';
-import QuakeDepth from './topic/earth/QuakeDepth.astro';
-import ArchStack from './topic/tech/ArchStack.astro';
-import LatencyWaterfall from './topic/tech/LatencyWaterfall.astro';
-import VersionGraph from './topic/tech/VersionGraph.astro';
-import ScalingPlot from './topic/tech/ScalingPlot.astro';
-import ThroughputDial from './topic/tech/ThroughputDial.astro';
-import RouteGlobe from './topic/travel/RouteGlobe.astro';
-import ElevationTrek from './topic/travel/ElevationTrek.astro';
-import ItineraryReel from './topic/travel/ItineraryReel.astro';
-import ClimateCalendar from './topic/travel/ClimateCalendar.astro';
-import TimezoneArc from './topic/travel/TimezoneArc.astro';
-import TacticsPitch from './topic/sports/TacticsPitch.astro';
-import ShotMap from './topic/sports/ShotMap.astro';
-import XgRace from './topic/sports/XgRace.astro';
-import MomentumWave from './topic/sports/MomentumWave.astro';
-
-import ElevationProfile from './topic/earth/ElevationProfile.astro';
-import RegionMap from './topic/earth/RegionMap.astro';
-import ClimateStrip from './topic/earth/ClimateStrip.astro';
-import CarbonGauge from './topic/earth/CarbonGauge.astro';
+import SectionBody from './SectionBody.astro';
+import ActBreak from './core/ActBreak.astro';
 
 interface Props {
   section: Section;
@@ -80,369 +26,50 @@ const data: any = section.data ?? {};
 const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`;
 ---
 
-{section.kind !== 'hero' && (
-  <CoreSection
-    number={autoNumber}
-    eyebrow={section.eyebrow}
-    title={section.title}
-    intro={section.intro}
-    kind={section.kind}
-  >
-    {section.kind === 'timeline' && <Timeline events={data.events ?? []} />}
+{section.kind === 'act-break' && (
+  <ActBreak act={data.act} title={data.title ?? section.title} epigraph={data.epigraph} />
+)}
 
-    {section.kind === 'bill-breakdown' && <BillBreakdown cards={data.cards ?? []} />}
+{section.kind === 'prose' && (
+  <Fragment>
+    <div class="px-prose-full">
+      <CoreSection
+        number={autoNumber}
+        eyebrow={section.eyebrow}
+        title={section.title}
+        intro={section.intro}
+        kind={section.kind}
+        plain={section.plain}
+        layout={section.layout}
+      >
+        <SectionBody section={section} />
+      </CoreSection>
+    </div>
+    {section.skimCaption && (
+      <div class="px-skim-caption-block">
+        <p class="px-skim-caption-text">{section.skimCaption}</p>
+      </div>
+    )}
+  </Fragment>
+)}
 
-    {section.kind === 'vote-result' && (
-      <>
-        <VoteResult
-          for={data.for ?? 0}
-          against={data.against ?? 0}
-          required={data.required ?? 0}
-          present={data.present ?? 0}
-          shortfall={data.shortfall ?? 0}
-          label={data.label}
-          stamp={data.stamp}
-        />
-        {data.followup && <p style="margin-top: 28px; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 680px;">{data.followup}</p>}
-      </>
+{section.kind !== 'hero' && section.kind !== 'act-break' && section.kind !== 'prose' && (
+  <Fragment>
+    <CoreSection
+      number={autoNumber}
+      eyebrow={section.eyebrow}
+      title={section.title}
+      intro={section.intro}
+      kind={section.kind}
+      plain={section.plain}
+      layout={section.layout}
+    >
+      <SectionBody section={section} />
+    </CoreSection>
+    {section.skimCaption && (
+      <div class="px-skim-caption-block">
+        <p class="px-skim-caption-text">{section.skimCaption}</p>
+      </div>
     )}
-
-    {section.kind === 'seat-chart' && (
-      <>
-        <SeatChart subtitle={data.subtitle} source={data.source} rows={data.rows ?? []} />
-        {data.quote && <Quote quote={data.quote.text} attribution={data.quote.attribution} />}
-      </>
-    )}
-
-    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} />}
-
-    {section.kind === 'analogy' && (
-      <BrothersAnalogy
-        headline={data.headline}
-        brothers={data.brothers ?? []}
-        punchline={data.punchline}
-      />
-    )}
-
-    {section.kind === 'quote' && (
-      <>
-        <Quote quote={data.quote ?? ''} attribution={data.attribution} />
-        {data.followup && <p style="margin-top: 28px; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 680px;">{data.followup}</p>}
-      </>
-    )}
-
-    {section.kind === 'beat-sheet' && <BeatSheet beats={data.beats ?? []} />}
-
-    {section.kind === 'prose' && (
-      <Prose lead={data.lead} paragraphs={data.paragraphs ?? []} />
-    )}
-
-    {section.kind === 'comparison' && (
-      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} source={data.source} />
-    )}
-
-    {section.kind === 'data-readout' && (
-      <DataReadout tiles={data.tiles ?? []} caption={data.caption} source={data.source} />
-    )}
-
-    {section.kind === 'orbital-shells' && (
-      <OrbitalShells shells={data.shells ?? []} caption={data.caption} source={data.source} />
-    )}
-
-    {section.kind === 'commit-grid' && (
-      <CommitGrid
-        weeks={data.weeks ?? []}
-        months={data.months}
-        weekdays={data.weekdays}
-        caption={data.caption}
-        meta={data.meta}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'journey-map' && (
-      <JourneyMap stops={data.stops ?? []} caption={data.caption} source={data.source} />
-    )}
-
-    {section.kind === 'match-stat-line' && (
-      <MatchStatLine
-        home={data.home ?? { name: 'Home' }}
-        away={data.away ?? { name: 'Away' }}
-        competition={data.competition}
-        venue={data.venue}
-        date={data.date}
-        rows={data.rows ?? []}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'elevation-profile' && (
-      <ElevationProfile
-        bands={data.bands ?? []}
-        maxValue={data.maxValue}
-        axisLabel={data.axisLabel}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'climate-strip' && (
-      <ClimateStrip
-        values={data.values ?? []}
-        palette={data.palette}
-        baseline={data.baseline}
-        unit={data.unit}
-        showYears={data.showYears}
-        showLegend={data.showLegend}
-        customMin={data.customMin}
-        customMax={data.customMax}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'region-map' && (
-      <RegionMap
-        projection={data.projection}
-        palette={data.palette}
-        zones={data.zones ?? []}
-        markers={data.markers ?? []}
-        legend={data.legend}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'carbon-gauge' && (
-      <CarbonGauge
-        remaining={data.remaining ?? 0.31}
-        remainingGt={data.remainingGt}
-        usedGt={data.usedGt}
-        totalGt={data.totalGt}
-        target={data.target}
-        year={data.year}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'approval-chart' && (
-      <ApprovalChart
-        points={data.points ?? []}
-        subject={data.subject}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'power-matrix' && (
-      <PowerMatrix
-        institutions={data.institutions ?? []}
-        parties={data.parties ?? []}
-        cells={data.cells ?? []}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'orbit-trace' && (
-      <OrbitTrace
-        orbits={data.orbits ?? []}
-        earthRadiusPx={data.earthRadiusPx}
-        maxAltKm={data.maxAltKm}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'launch-stats' && (
-      <LaunchStats
-        years={data.years ?? []}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'benchmark-chart' && (
-      <BenchmarkChart
-        items={data.items ?? []}
-        maxValue={data.maxValue}
-        unit={data.unit}
-        refValue={data.refValue}
-        refLabel={data.refLabel}
-        sortDesc={data.sortDesc}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'adoption-curve' && (
-      <AdoptionCurve
-        points={data.points ?? []}
-        milestones={data.milestones ?? []}
-        xLabel={data.xLabel}
-        yLabel={data.yLabel}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'route-card' && (
-      <RouteCard
-        legs={data.legs ?? []}
-        title={data.title}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'city-compare' && (
-      <CityCompare
-        cityA={data.cityA ?? { name: 'City A' }}
-        cityB={data.cityB ?? { name: 'City B' }}
-        rows={data.rows ?? []}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'league-table' && (
-      <LeagueTable
-        rows={data.rows ?? []}
-        showDrawn={data.showDrawn}
-        showGoals={data.showGoals}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'player-radar' && (
-      <PlayerRadar
-        stats={data.stats ?? []}
-        player={data.player}
-        team={data.team}
-        color={data.color}
-        compare={data.compare}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {/* ── v2 3D / interactive component library ── */}
-    {section.kind === 'orbit-globe' && (
-      <OrbitGlobe
-        orbits={data.orbits ?? []}
-        maxAltKm={data.maxAltKm}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'player-card' && (
-      <PlayerCard
-        name={data.name}
-        position={data.position}
-        team={data.team}
-        rating={data.rating ?? 0}
-        stats={data.stats ?? []}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'coalition-orbit' && (
-      <CoalitionOrbit parties={data.parties ?? []} totalSeats={data.totalSeats} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'swing-dial' && (
-      <SwingDial leftLabel={data.leftLabel} rightLabel={data.rightLabel} value={data.value ?? 0} markers={data.markers} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'bill-passage' && (
-      <BillPassage stages={data.stages ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'vote-flow' && (
-      <VoteFlow blocs={data.blocs ?? []} outcome={data.outcome} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'margin-ladder' && (
-      <MarginLadder rows={data.rows ?? []} caption={data.caption} source={data.source} />
-    )}
-
-    {/* space */}
-    {section.kind === 'trajectory-arc' && (
-      <TrajectoryArc phases={data.phases ?? []} apoapsisKm={data.apoapsisKm} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'delta-v-ladder' && (
-      <DeltaVLadder segments={data.segments ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'signal-readout' && (
-      <SignalReadout bands={data.bands ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'descent-profile' && (
-      <DescentProfile points={data.points ?? []} events={data.events} craftLabel={data.craftLabel} caption={data.caption} source={data.source} />
-    )}
-
-    {/* earth */}
-    {section.kind === 'data-globe' && (
-      <DataGlobe markers={data.markers ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'core-sample' && (
-      <CoreSample layers={data.layers ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'sea-level-tank' && (
-      <SeaLevelTank levels={data.levels ?? []} landmarks={data.landmarks} maxM={data.maxM} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'climate-spiral' && (
-      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'quake-depth' && (
-      <QuakeDepth quakes={data.quakes ?? []} caption={data.caption} source={data.source} />
-    )}
-
-    {/* tech */}
-    {section.kind === 'arch-stack' && (
-      <ArchStack layers={data.layers ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'latency-waterfall' && (
-      <LatencyWaterfall spans={data.spans ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'version-graph' && (
-      <VersionGraph nodes={data.nodes ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'scaling-plot' && (
-      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'throughput-dial' && (
-      <ThroughputDial value={data.value ?? 0} max={data.max ?? 100} unit={data.unit} label={data.label} zones={data.zones} caption={data.caption} source={data.source} />
-    )}
-
-    {/* travel */}
-    {section.kind === 'route-globe' && (
-      <RouteGlobe stops={data.stops ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'elevation-trek' && (
-      <ElevationTrek points={data.points ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'itinerary-reel' && (
-      <ItineraryReel days={data.days ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'climate-calendar' && (
-      <ClimateCalendar months={data.months ?? []} tempUnit={data.tempUnit} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'timezone-arc' && (
-      <TimezoneArc zones={data.zones ?? []} refOffset={data.refOffset} caption={data.caption} source={data.source} />
-    )}
-
-    {/* sports */}
-    {section.kind === 'tactics-pitch' && (
-      <TacticsPitch players={data.players ?? []} formation={data.formation} team={data.team} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'shot-map' && (
-      <ShotMap shots={data.shots ?? []} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'xg-race' && (
-      <XgRace events={data.events ?? []} home={data.home} away={data.away} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'momentum-wave' && (
-      <MomentumWave points={data.points ?? []} events={data.events} home={data.home} away={data.away} caption={data.caption} source={data.source} />
-    )}
-  </CoreSection>
+  </Fragment>
 )}

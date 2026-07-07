@@ -1,0 +1,54 @@
+/* ============================================================================
+   PARALLAX SHARED WORLD ACCENTS — CANONICAL SOURCE
+   ----------------------------------------------------------------------------
+   Variables-only per-world palette, extracted 1:1 from the six publication
+   theme headers (src/styles/themes/<topic>.css) — those files remain the law
+   for the publication; THIS file is how OTHER surfaces (the app's auth
+   tinting, dashboard chips/cards; anything outside the theme cascade) consume
+   world color without duplicating hexes.
+   Edit HERE (and the matching theme header together), then `npm run
+   design:sync`. Two scopes:
+     1. :root  --world-<topic> / --world-<topic>-deep  → chips, dots, edges
+     2. [data-world="<topic>"]  --w-*                  → tint a subtree
+   The app tints with --w-* ACCENTS ONLY — never adopts a world's full dark
+   palette (APP-DESIGN-SPEC: "the app stays calm").
+   ============================================================================ */
+
+:root {
+  --world-politics: #b8341f;  --world-politics-deep: #8b2416;
+  --world-space:    #00d4ff;  --world-space-deep:    #0085a1;
+  --world-earth:    #2d6a4f;  --world-earth-deep:    #1a4a36;
+  --world-tech:     #c6f432;  --world-tech-deep:     #9cc528;
+  --world-travel:   #c85a3c;  --world-travel-deep:   #9a4028;
+  --world-sports:   #e8f048;  --world-sports-deep:   #b8c038;
+}
+
+/* NOTE: meta.css historically carries --topic-tech-deep #5a6e16 and
+   --topic-sports-deep #3f5428 (extra-dark, for large type on light paper).
+   Those remain in meta.css for that use; the -deep values here are the theme
+   files' own accent-deep (text-safe within their world). Do not merge them. */
+
+[data-world="politics"] {
+  --w-accent: #b8341f; --w-accent-deep: #8b2416; --w-accent-alt: #1e5a3f;
+  --w-bg: #f4f1ea; --w-paper: #ffffff; --w-ink: #161412;
+}
+[data-world="space"] {
+  --w-accent: #00d4ff; --w-accent-deep: #0085a1; --w-accent-alt: #ffb347;
+  --w-bg: #0a1628; --w-paper: #111f36; --w-ink: #e8eef7;
+}
+[data-world="earth"] {
+  --w-accent: #2d6a4f; --w-accent-deep: #1a4a36; --w-accent-alt: #a04922;
+  --w-bg: #f0e9d8; --w-paper: #fbf6e9; --w-ink: #1f2a1c;
+}
+[data-world="tech"] {
+  --w-accent: #c6f432; --w-accent-deep: #9cc528; --w-accent-alt: #ff5c8a;
+  --w-bg: #0d0d0d; --w-paper: #161616; --w-ink: #fafafa;
+}
+[data-world="travel"] {
+  --w-accent: #c85a3c; --w-accent-deep: #9a4028; --w-accent-alt: #2d6a7a;
+  --w-bg: #faf6ef; --w-paper: #fffdf7; --w-ink: #2a1f15;
+}
+[data-world="sports"] {
+  --w-accent: #e8f048; --w-accent-deep: #b8c038; --w-accent-alt: #ff6b35;
+  --w-bg: #0f2820; --w-paper: #143328; --w-ink: #f5f5f0;
+}

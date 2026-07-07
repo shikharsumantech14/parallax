@@ -1,48 +1,57 @@
 /* ============================================================================
-   Parallax app subdomain — base styles
+   Parallax app subdomain — design language v2
    ============================================================================
-   Matches the publication's token system. Borrowed from src/styles/meta.css
-   on the publication side, kept light because this surface is auth/dashboard
-   only — typography-led, not feature-rich.
+   Implements docs/design/APP-DESIGN-SPEC.md §1 (foundation), §2 (primitives),
+   §3 (LensMark styles), §5 (interaction/a11y floor). Motion names come from
+   docs/design/motion.md (`plateIn`, `lensSettle`, `reveal`, `pressDown`).
+
+   The doctrine: the app is the reading room of the same building — same trio
+   (Fraunces / Schibsted Grotesk / JetBrains Mono), same beige/ink/rust base,
+   same motion ramp and radii as the publication — but calmer. Worlds appear
+   only as ACCENTS via worlds.css `[data-world]` `--w-*` variables.
+
+   Contract mirror (publication motion-v2 pattern): every hidden-until-reveal
+   state is gated behind `html.js` (set by a one-line inline <head> guard in
+   AppLayout.astro). No JS ⇒ everything paints in its final state. Reduced
+   motion ⇒ the block at the bottom neutralises plateIn / reveal / lensSettle.
    ============================================================================ */
 
+/* Shared generated tokens — motion, radii, glass, column tiers (do not edit
+   the shared files; edit shared/design/* and run npm run design:sync). */
+@import './shared/tokens.css';
+@import './shared/worlds.css';
+
+/* ── App-specific tokens ─────────────────────────────────────────────────────
+   Colors, fonts, pads, gaps only. Motion/radii/glass/columns come from
+   shared/tokens.css above; world accents from shared/worlds.css. */
 :root {
-  /* v2 tokens — keep in sync with src/styles/tokens-v2.css
-     (motion+radii subset; app omits glass + issue-face). */
-  --t-instant: 80ms;
-  --t-quick:   140ms;
-  --t-soft:    220ms;
-  --t-slow:    420ms;
-  --t-page:    600ms;
-  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
-
-  --r-card: 6px;
-  --r-tile: 14px;
-  --r-pill: 999px;
-
   --bg: #faf7f0;
   --paper: #ffffff;
   --rule: #d8cfbf;
   --ink: #15130f;
   --ink-soft: #3d352c;
   --muted: #7a6d5e;
-  --accent: #b8341f;
+  --accent: #b8341f;        /* rust — the app's home world; emphasis, never primary buttons */
   --accent-deep: #8b2416;
   --danger: #c0392b;
   --ok: #1a6a3f;
 
   --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --pad-y: 48px;
   --pad-x: 24px;
-  --max-w: 640px;
   --gap-sm: 16px;
   --gap-md: 28px;
   --gap-lg: 48px;
   --gap-xl: 72px;
+
+  /* Shell tier default — overridden by [data-width="shelf"] (see below). */
+  --shell-w: var(--col-narrow);
+
+  /* Plate elevation (spec §2) */
+  --shadow-plate: 0 1px 2px rgba(21, 19, 15, 0.05), 0 12px 32px rgba(21, 19, 15, 0.07);
 }
 
 * { box-sizing: border-box; }
@@ -59,44 +68,111 @@ body {
   font-size: 16px;
   line-height: 1.6;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Layout shell ─────────────────────────────────────────────────────── */
+/* ── Focus floor (spec §5) ───────────────────────────────────────────────────
+   2px accent ring, offset 2, site-wide; world scopes tint via --w-accent-deep
+   (every world's deep value is AA on light paper). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[data-world] :focus-visible,
+[data-world]:focus-visible {
+  outline-color: var(--w-accent-deep, var(--accent));
+}
+
+/* ── Shell — two tiers (spec §1) ─────────────────────────────────────────────
+   narrow (480px, auth/onboarding) | shelf (960px, dashboard/admin).
+   AppLayout puts data-width on both the .app-shell and the .appbar so the
+   glass bar's inner row tracks the same column. */
+[data-width='shelf'] { --shell-w: var(--col-shelf); }
+
 .app-shell {
-  max-width: var(--max-w);
+  width: 100%;
+  max-width: var(--shell-w);
   margin: 0 auto;
   padding: var(--pad-y) var(--pad-x);
-  min-height: 100vh;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
 
-.app-masthead {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--gap-md);
-  padding-bottom: 14px;
-  border-bottom: 2px solid var(--ink);
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+/* ── Appbar — glass masthead (spec §2 table) ────────────────────────────── */
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex: none;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
 }
 
-.app-masthead__brand {
+.appbar__inner {
+  width: 100%;
+  max-width: var(--shell-w);
+  margin: 0 auto;
+  padding: 0 var(--pad-x);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.appbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   color: var(--ink);
   text-decoration: none;
+  transition: opacity var(--t-quick) var(--ease);
+}
+.appbar__brand:hover { opacity: 0.78; }
+
+.appbar__wordmark {
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-.app-masthead__brand:hover { color: var(--accent); }
 
-.app-masthead__meta {
+.appbar__session {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.appbar__email {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
   color: var(--muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.appbar__signout {
+  min-height: 44px; /* target floor, visually light */
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .appbar__email { max-width: 120px; }
+}
+
+/* ── Footer / back link ─────────────────────────────────────────────────── */
 .app-back {
   display: inline-block;
   margin-top: var(--gap-lg);
@@ -108,11 +184,11 @@ body {
   text-decoration: none;
   border-bottom: 1px solid var(--rule);
   padding-bottom: 3px;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
 }
 .app-back:hover {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: var(--accent-deep);
+  border-bottom-color: var(--accent-deep);
 }
 
 .app-footer {
@@ -135,10 +211,12 @@ h1, .h1 {
   color: var(--ink);
 }
 h1 em, .h1 em {
-  color: var(--accent);
+  color: var(--accent-deep); /* deep on light paper — AA (canon §6) */
   font-style: italic;
   font-weight: 400;
 }
+[data-world] h1 em,
+[data-world] .h1 em { color: var(--w-accent-deep, var(--accent-deep)); }
 
 h2 {
   font-family: var(--font-display);
@@ -177,12 +255,12 @@ p.dek {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-deep);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
-a:hover { color: var(--accent-deep); }
+a:hover { color: var(--accent); }
 
 hr {
   border: none;
@@ -190,102 +268,231 @@ hr {
   margin: var(--gap-md) 0;
 }
 
-/* ── Forms ──────────────────────────────────────────────────────────────── */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: var(--gap-md);
+/* ── Plate — the elevated card (spec §2) ────────────────────────────────────
+   plateIn (motion.md): opacity 0→1 + translateY 10px→0 · 420ms --ease · one
+   stagger level max (use inline animation-delay). html.js-gated: no JS ⇒ the
+   plate simply paints (the base state below is fully visible). */
+.plate {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-tile);
+  box-shadow: var(--shadow-plate);
+  padding: 32px;
 }
 
-.field label {
+html.js .plate {
+  animation: plateIn var(--t-slow) var(--ease) backwards;
+}
+
+@keyframes plateIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Tile — issue card (spec §2): plate anatomy at padding 20 + world edge ── */
+.tile {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--w-accent, var(--accent));
+  border-radius: var(--r-tile);
+  box-shadow: var(--shadow-plate);
+  padding: 20px;
+  transition: transform var(--t-quick) var(--ease), box-shadow var(--t-quick) var(--ease);
+}
+.tile:hover {
+  transform: translateY(-2px); /* lift only — hover never moves layout */
+  box-shadow: 0 1px 2px rgba(21, 19, 15, 0.05), 0 16px 40px rgba(21, 19, 15, 0.1);
+}
+
+/* ── Chip (spec §2) ──────────────────────────────────────────────────────────
+   Pill · 1px border · mono 11px uppercase +0.08em. World-typed chips carry an
+   8px dot (`.chip__dot`) in --w-accent — put data-world on the chip itself or
+   on an ancestor. Selected state: ink bg / paper text (`aria-pressed="true"`
+   or `.is-selected`). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease),
+    border-color var(--t-quick) var(--ease), transform var(--t-instant) var(--ease);
+}
+button.chip {
+  cursor: pointer;
+  min-height: 44px; /* interactive target floor (spec §5) */
+  padding: 12px 18px;
+}
+button.chip:hover { border-color: var(--ink); }
+button.chip:active { transform: scale(0.98); } /* pressDown */
+
+.chip__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--w-accent, var(--accent));
+}
+
+.chip.is-selected,
+.chip[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* ── Toggle (spec §2) ────────────────────────────────────────────────────────
+   Markup:
+     <label class="toggle">
+       <input type="checkbox" name="…" checked />
+       <span class="toggle__track" aria-hidden="true"></span>
+       <span class="toggle__label">Weekly digest</span>
+     </label>
+   Native checkbox = keyboard (space) + form semantics for free. AA both
+   states: track --muted (unchecked) / --accent-deep (checked) on paper. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px; /* target floor */
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.toggle__track {
+  flex: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: var(--muted);
+  transition: background var(--t-quick) var(--ease);
+}
+.toggle__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper);
+  transition: transform var(--t-quick) var(--ease);
+}
+
+.toggle input:checked + .toggle__track { background: var(--accent-deep); }
+.toggle input:checked + .toggle__track::after { transform: translateX(16px); }
+
+.toggle input:focus-visible + .toggle__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+[data-world] .toggle input:focus-visible + .toggle__track {
+  outline-color: var(--w-accent-deep, var(--accent));
+}
+
+.toggle input:disabled + .toggle__track { opacity: 0.45; }
+
+/* ── Stat — StatTile (spec §2) ──────────────────────────────────────────── */
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.stat__label {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.stat__value {
+  font-family: var(--font-display);
   font-weight: 500;
-}
-
-.field input[type="email"],
-.field input[type="text"] {
-  font-family: var(--font-body);
-  font-size: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--rule);
-  background: var(--paper);
+  font-size: 32px;
+  line-height: 1.1;
   color: var(--ink);
-  border-radius: var(--r-card);
-  transition: border-color var(--t-quick) var(--ease);
+  font-variant-numeric: tabular-nums;
 }
-
-.field input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.field input:disabled {
-  background: var(--bg);
-  color: var(--muted);
-  cursor: not-allowed;
-}
-
-.field__hint {
+.stat__note {
   font-size: 13px;
   color: var(--muted);
   margin: 0;
-  font-style: italic;
 }
 
-/* ── Buttons ────────────────────────────────────────────────────────────── */
+/* ── Buttons (restyled in place — API unchanged) ─────────────────────────────
+   Primary = filled ink (NOT rust; rust is emphasis). Square corners per the
+   publication's button rule — only chips/pills round. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  min-height: 44px; /* target floor */
   font-family: var(--font-body);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  padding: 14px 22px;
+  padding: 12px 22px;
   border: 1px solid var(--ink);
+  border-radius: 0;
   background: var(--ink);
   color: var(--paper);
   cursor: pointer;
   text-decoration: none;
-  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
-  border-radius: var(--r-card);
+  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease),
+    border-color var(--t-quick) var(--ease), transform var(--t-instant) var(--ease);
 }
 
 .btn:hover {
-  background: var(--accent-deep);
-  border-color: var(--accent-deep);
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
   color: var(--paper);
 }
+
+.btn:active { transform: scale(0.98); } /* pressDown (motion.md) */
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn--ghost {
-  background: var(--paper);
+  background: transparent;
   color: var(--ink);
   border-color: var(--rule);
 }
-
 .btn--ghost:hover {
-  background: var(--paper);
-  color: var(--accent-deep);
+  background: color-mix(in oklab, var(--ink) 4%, transparent);
+  color: var(--ink);
   border-color: var(--ink);
 }
 
+/* Destructive: --danger border+text; fills only at the confirm step (the
+   dashboard's delete button sits behind <details> + confirm(), so its hover
+   fill is the confirm-adjacent emphasis). */
 .btn--danger {
-  background: var(--paper);
+  background: transparent;
   color: var(--danger);
-  border-color: var(--rule);
+  border-color: var(--danger);
 }
-
 .btn--danger:hover {
   background: var(--danger);
   color: var(--paper);
@@ -302,20 +509,81 @@ hr {
   height: 18px;
 }
 
-/* ── Notice / status blocks ─────────────────────────────────────────────── */
+/* ── Fields (restyled in place — API unchanged) ──────────────────────────────
+   48px tall, 16px text (no iOS zoom). Labels always visible above. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--gap-md);
+}
+
+.field label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.field input[type='email'],
+.field input[type='text'],
+.field input[type='password'],
+.field select,
+.field textarea {
+  font-family: var(--font-body);
+  font-size: 16px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: var(--r-card);
+  transition: border-color var(--t-quick) var(--ease);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--accent);
+}
+[data-world] .field input:focus,
+[data-world] .field select:focus,
+[data-world] .field textarea:focus {
+  border-color: var(--w-accent-deep, var(--accent));
+}
+
+.field input:disabled {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.field__hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Notice / status blocks (API unchanged) ─────────────────────────────── */
 .notice {
-  padding: 16px 20px;
-  border-left: 3px solid var(--rule);
+  padding: 14px 18px;
+  border: 1px solid var(--rule);
+  border-left-width: 3px;
+  border-left-color: var(--rule);
+  border-radius: var(--r-card);
   background: var(--paper);
   margin: var(--gap-md) 0;
   font-size: 14px;
   color: var(--ink-soft);
 }
-.notice--ok    { border-left-color: var(--ok); }
-.notice--err   { border-left-color: var(--danger); color: var(--danger); }
-.notice--info  { border-left-color: var(--ink); }
+.notice--ok   { border-left-color: var(--ok); }
+.notice--err  { border-left-color: var(--danger); color: var(--danger); }
+.notice--info { border-left-color: var(--ink); }
 
-/* ── Divider with label ─────────────────────────────────────────────────── */
+/* ── Divider with label (API unchanged) ─────────────────────────────────── */
 .divider {
   display: flex;
   align-items: center;
@@ -335,11 +603,12 @@ hr {
   background: var(--rule);
 }
 
-/* ── Dashboard list rows ────────────────────────────────────────────────── */
+/* ── List rows (API unchanged) ──────────────────────────────────────────── */
 .row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 16px;
   padding: 16px 0;
   border-bottom: 1px solid var(--rule);
 }
@@ -368,18 +637,70 @@ hr {
   text-align: left;
 }
 
+/* ── LensMark (spec §3 — component: src/components/LensMark.astro) ──────────
+   lensSettle (motion.md): the two rings translate from ±6 overlap into
+   registration + sphere opacity 0→1 · 600ms --ease-snap · ONCE per surface.
+   Gated behind html.js: no JS ⇒ the static registered lockup below. */
+.lens-mark { display: inline-block; vertical-align: middle; overflow: visible; }
+
+html.js .lens-mark--animate .lens-mark__ring--l {
+  animation: lensSettleL var(--t-page) var(--ease-snap) both;
+}
+html.js .lens-mark--animate .lens-mark__ring--r {
+  animation: lensSettleR var(--t-page) var(--ease-snap) both;
+}
+html.js .lens-mark--animate .lens-mark__sphere {
+  animation: lensSettleDot var(--t-page) var(--ease-snap) both;
+}
+
+@keyframes lensSettleL {
+  from { transform: translateX(6px); }
+  to   { transform: translateX(0); }
+}
+@keyframes lensSettleR {
+  from { transform: translateX(-6px); }
+  to   { transform: translateX(0); }
+}
+@keyframes lensSettleDot {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Reveal (IO island port — bootstrap lives inline in AppLayout) ──────────
+   motion.md `reveal`, app calibration: translateY 10px / opacity 0 until
+   `.is-in`. Hidden state gated behind html.js; fires once (island unobserves). */
+.reveal {
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+html.js .reveal:not(.is-in) {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   :root {
-    --pad-y: 32px;
+    --pad-y: 28px; /* spec §1: 28px below 480px viewport */
     --pad-x: 20px;
   }
   h1, .h1 { font-size: 30px; }
+  .plate { padding: 24px; } /* spec §2: 24px mobile */
 }
 
-/* ── Reduced motion ─────────────────────────────────────────────────────── */
-/* App-local: the app does not import the publication's motion-v2.css. */
+/* ── Reduced motion (spec §5) ────────────────────────────────────────────────
+   plateIn / reveal / lensSettle render their final state; everything else
+   loses its transitions. Mirrors the publication's motion-v2 reset pattern. */
 @media (prefers-reduced-motion: reduce) {
+  html.js .plate,
+  html.js .lens-mark--animate .lens-mark__ring--l,
+  html.js .lens-mark--animate .lens-mark__ring--r,
+  html.js .lens-mark--animate .lens-mark__sphere {
+    animation: none !important;
+  }
+  html.js .reveal:not(.is-in) {
+    opacity: 1 !important;
+    transform: none !important;
+  }
   *, *::before, *::after {
     transition: none !important;
     animation: none !important;

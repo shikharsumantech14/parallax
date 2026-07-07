@@ -33,12 +33,17 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     </div>
   </header>
 
-  <section class="px-poli-index__editorial">
-    <div class="px-poli-index__editorial-eyebrow">From the editor's desk</div>
+  <section class="px-poli-index__editorial pol-record">
+    <div class="pol-record__meta">
+      <span>From the editor's desk</span>
+      <span>Vol. I · {fmtDate(today)}</span>
+    </div>
     <p class="px-poli-index__editorial-body">
       <span class="px-poli-index__dropcap">P</span>arallax Politics rebuilds familiar headlines from the procedural ground up — bills, vote rolls, constituencies, coalitions. Every number traceable; every claim sourced; nothing left as common knowledge.
     </p>
   </section>
+
+  <div class="pol-division" aria-hidden="true"><span>AYES <b>|</b> NOES</span></div>
 
   {issues.length === 0 ? (
     <div class="px-poli-index__empty">
@@ -57,10 +62,10 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
               <div class="px-poli-index__lead-kicker">Politics · Dispatch</div>
               <h2 class="px-poli-index__lead-title" set:html={renderEmphasis(issue.data.title)} />
               <p class="px-poli-index__lead-hook">{issue.data.hook}</p>
-              <div class="px-poli-index__lead-meta">
+              <div class="px-poli-index__lead-meta pol-ledger">
                 <span>{fmtDate(issue.data.publishedAt)}</span>
                 {issue.data.readTimeMinutes && <><span class="px-poli-index__lead-sep">·</span><span>{issue.data.readTimeMinutes} min read</span></>}
-                <span class="px-poli-index__lead-sep">·</span>
+                <span class="pol-ledger__dots" aria-hidden="true"></span>
                 <span class="px-poli-index__lead-cta">Read the dispatch →</span>
               </div>
             </div>
@@ -128,23 +133,17 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
   }
   .px-poli-index__edition-sep { color: var(--rule); }
 
-  /* --- Editor's note column --- */
+  /* --- Editor's note column — the record plate (pol-record chrome; R5).
+     The old dashed bottom rule is replaced by the .pol-division ornament,
+     which carries the editorial → leads break with its own 44px margins. --- */
   .px-poli-index__editorial {
-    margin: 0 0 56px;
+    margin: 0;
     max-width: 720px;
     padding-right: 24px;
     border-right: 1px solid var(--rule);
-    padding-bottom: 36px;
-    border-bottom: 1px dashed var(--rule);
   }
-  .px-poli-index__editorial-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    margin-bottom: 18px;
-  }
+  /* air between the gazette meta line and the drop-cap body; wrap at 375px */
+  .px-poli-index__editorial.pol-record .pol-record__meta { margin-bottom: 16px; flex-wrap: wrap; }
   .px-poli-index__editorial-body {
     font-family: var(--font-display);
     font-weight: 400;
@@ -154,15 +153,19 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
     letter-spacing: -0.005em;
     margin: 0;
   }
+  /* Optical drop cap (review R3) — hand-tuned float recipe: the cap spans
+     exactly three 31.9px lines of the 22px/1.45 body, cap-top aligned to
+     line one, baseline seated on line three. */
   .px-poli-index__dropcap {
     float: left;
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 88px;
-    line-height: 0.85;
-    color: var(--accent);
-    padding: 6px 14px 0 0;
+    font-weight: 600;
+    font-size: 86px;
+    line-height: 0.72;
+    color: var(--accent-deep, var(--accent));
+    padding: 12px 14px 4px 0;
   }
+  .px-poli-index__editorial-body { text-wrap: pretty; }
 
   /* --- Issue list as columnar leads (v2 archive-row treatment) --- */
   .px-poli-index__leads { list-style: none; padding: 0; margin: 0; }
@@ -266,6 +269,9 @@ const todayLong = today.toLocaleDateString('en-US', { weekday: 'long', year: 'nu
   }
   .px-poli-index__lead-sep { color: var(--rule); }
   .px-poli-index__lead-cta { color: var(--accent-deep, var(--accent)); text-transform: none; letter-spacing: 0.04em; font-size: 12px; }
+  /* ledger dot-leaders (pol-ledger kit) — keep a visible run even when the
+     flex-wrap meta row gets tight at 375px */
+  .px-poli-index__lead-meta .pol-ledger__dots { min-width: 32px; }
 
   /* --- Empty state — broadsheet "FILING" placeholder (v2 elevated card) --- */
   .px-poli-index__empty {

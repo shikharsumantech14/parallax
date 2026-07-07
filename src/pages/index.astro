@@ -2,7 +2,9 @@
 import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
-import TypographicChord from '../components/home/TypographicChord.astro';
+import HeroLens from '../components/home/HeroLens.astro';
+import WireStrip from '../components/home/WireStrip.astro';
+import FeaturedPlate from '../components/home/FeaturedPlate.astro';
 import ManifestoStrip from '../components/home/ManifestoStrip.astro';
 import CategoryGrid from '../components/home/CategoryGrid.astro';
 import ArchiveList from '../components/home/ArchiveList.astro';
@@ -43,6 +45,20 @@ const archive = issuesByDate.map((issue) => ({
   issueNumber: issueNumberFor(issue.slug),
   publishedAt: issue.data.publishedAt
 }));
+
+// The wire — 3 latest dispatches (HOME-SPEC §3)
+const wireItems = issuesByDate.slice(0, 3).map((issue) => ({
+  slug: issue.slug,
+  title: issue.data.title,
+  topic: issue.data.topic,
+  issueNumber: issueNumberFor(issue.slug)
+}));
+
+// Dispatch counts per desk (HOME-SPEC §4 portal meta line)
+const countsByTopic: Partial<Record<Topic, number>> = {};
+for (const issue of allIssues) {
+  countsByTopic[issue.data.topic] = (countsByTopic[issue.data.topic] ?? 0) + 1;
+}
 ---
 
 <HomeLayout
@@ -52,11 +68,15 @@ const archive = issuesByDate.map((issue) => ({
 >
   <Masthead variant="meta" issueNumber={featured ? String(issueNumberFor(featured.slug)).padStart(2, '0') : '01'} />
 
-  <TypographicChord accentTopic={featured?.data.topic} />
+  <HeroLens latestSlug={featured?.slug} />
+
+  {wireItems.length > 0 && featured && <WireStrip items={wireItems} latestSlug={featured.slug} />}
+
+  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} countsByTopic={countsByTopic} cols={2} />
+
+  {featured && <FeaturedPlate issue={featured} issueNumber={issueNumberFor(featured.slug)} />}
 
   <ManifestoStrip />
-
-  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} cols={2} />
 
   <ArchiveList items={archive} />
 

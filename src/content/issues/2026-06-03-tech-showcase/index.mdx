@@ -14,7 +14,7 @@ sections:
   - kind: prose
     eyebrow: "THE REGISTER"
     title: "What this *page* is for"
-    intro: "A styleguide, not an argument. It exists so the next draft can pick the right instrument without guessing."
+    intro: "A styleguide, not an argument — it exists so the next draft can pick the right instrument without guessing."
     data:
       lead: "The tech world owns nine signature components. Most issues use two or three. This page renders all of them in sequence, each fed a small slice of real-world data, so the shape and the interaction are visible before you commit one to a draft."
       paragraphs:
@@ -25,7 +25,7 @@ sections:
   - kind: arch-stack
     eyebrow: "THE STACK"
     title: "Anatomy of a *production* web app"
-    intro: "Each slab is one layer of a typical request-serving stack, top (what the browser touches) to bottom (what it all runs on). Hover a slab on desktop to lift it toward you."
+    intro: "Each slab is one layer of a typical request-serving stack, top (what the browser touches) to bottom (what it all runs on) — hover a slab to lift it."
     data:
       caption: "Reference architecture · edge-to-database request path"
       source: "Composite of common production stacks (Vercel / AWS reference architectures), 2026"
@@ -41,7 +41,7 @@ sections:
   - kind: latency-waterfall
     eyebrow: "THE TRACE"
     title: "One HTTPS request, *millisecond* by millisecond"
-    intro: "A single cold request to an API endpoint, broken into network and server phases. Each bar starts where the previous ends; the value at right is that phase's duration in ms."
+    intro: "A single cold request to an API endpoint, broken into network and server phases, each bar starting where the previous ends."
     data:
       unit: "ms"
       caption: "Cold GET /api/v1/feed · single request trace"
@@ -57,7 +57,7 @@ sections:
   - kind: version-graph
     eyebrow: "THE HISTORY"
     title: "A release branch, *merged*"
-    intro: "A git-style commit graph reading newest-first from the top. Lane 0 is main; lane 1 is a short-lived feature branch that merges back. Tags mark shipped releases."
+    intro: "A git-style commit graph reading newest-first from the top, with main in lane 0 and a feature branch merging back in lane 1."
     data:
       caption: "Service repository · last seven commits"
       source: "Illustrative semantic-versioned release history (semver.org conventions)"
@@ -73,7 +73,7 @@ sections:
   - kind: scaling-plot
     eyebrow: "THE LAW"
     title: "More parameters, *lower* loss"
-    intro: "Language-model test loss against parameter count, plotted on a log x-axis. The fitted line is the straight power-law relationship that scaling-law papers describe. Points pop in; the fit strokes itself across the frame."
+    intro: "Language-model test loss against parameter count on a log x-axis, the fitted line tracing the power law scaling papers describe."
     data:
       xLabel: "Parameters"
       yLabel: "Test loss"
@@ -94,7 +94,7 @@ sections:
   - kind: throughput-dial
     eyebrow: "THE LOAD"
     title: "Requests per second, *sustained*"
-    intro: "A 270-degree gauge showing one service node's current throughput against its tested ceiling. The colored zones mark nominal, busy, and saturating load. The fill arc sweeps up to the value on reveal."
+    intro: "A 270-degree gauge showing one service node's current throughput against its tested ceiling."
     data:
       value: 8400
       max: 12000
@@ -110,7 +110,7 @@ sections:
   - kind: benchmark-chart
     eyebrow: "THE BENCHMARK"
     title: "Reasoning models on *GPQA Diamond*"
-    intro: "Accuracy on GPQA Diamond, a set of graduate-level science questions written to resist web lookup. Higher is better; the dashed line marks the PhD-expert baseline reported with the benchmark."
+    intro: "Accuracy on GPQA Diamond, a set of graduate-level science questions written to resist web lookup."
     data:
       unit: "%"
       refValue: 65.4
@@ -131,7 +131,7 @@ sections:
   - kind: adoption-curve
     eyebrow: "THE DIFFUSION"
     title: "Electric cars cross *the* threshold"
-    intro: "Battery and plug-in electric vehicles as a share of new car sales worldwide. A classic diffusion S-curve: flat for a decade, then a steep climb past the early-majority threshold."
+    intro: "Battery and plug-in electric vehicles as a share of new car sales worldwide — a classic diffusion S-curve."
     data:
       yLabel: "% of new car sales"
       caption: "Global electric-car share of new car sales, 2013–2024"
@@ -158,7 +158,7 @@ sections:
   - kind: commit-grid
     eyebrow: "THE CADENCE"
     title: "A year of *deploys*"
-    intro: "A GitHub-style heatmap of deployment activity, one column per week and one cell per day. Darker cells are busier days; the quiet diagonal stretches are weekends and a holiday freeze."
+    intro: "A GitHub-style heatmap of deployment activity, one column per week and one cell per day."
     data:
       meta: "412 deploys · 52 weeks"
       caption: "Production deployment frequency, trailing 12 months"
@@ -218,6 +218,22 @@ sections:
         - [{ level: 4, label: "Quarter close" }, { level: 3 }, { level: 4 }, { level: 3 }, { level: 2 }, { level: 0 }, { level: 1 }]
         - [{ level: 2 }, { level: 1 }, { level: 2 }, { level: 1 }, { level: 1 }, { level: 0 }, { level: 0 }]
         - [{ level: 2 }, { level: 2 }, { level: 3 }, { level: 2 }, { level: 3 }, { level: 0 }, { level: 0 }]
+
+  - kind: neural-flow
+    eyebrow: "THE FLAGSHIP · A FORWARD PASS"
+    title: "The machine, *thinking* once."
+    intro: "A real network at true layer sizes — every dot one unit — with a single forward-pass wave sweeping input to answer; hover a column for its counts."
+    plain: "Each column is one layer and every dot one unit, at true sizes; the lime wave is one forward pass moving from input to output."
+    skimCaption: "The classic MNIST classifier rendered as instanced layers with a live activation wave — the tech desk's flagship."
+    data:
+      layers:
+        - { n: 784, label: "input 28×28" }
+        - { n: 512, label: "hidden 1" }
+        - { n: 512, label: "hidden 2" }
+        - { n: 10, label: "digits 0–9" }
+      paramsNote: "MNIST classifier · ~98% test accuracy"
+      caption: "Two hidden layers and 669,706 weights — everything this machine will ever know about handwriting."
+      source: "LeCun et al., MNIST benchmark architecture"
 
 sources:
   - id: "src-01"

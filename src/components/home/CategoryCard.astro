@@ -6,7 +6,8 @@
    Backdrop motifs (column rule, orbital ring, contour, lattice, postage
    perforation, pitch markings) ride on .px-cat__motif and are pure CSS. */
 import type { Topic } from '../../content/config';
-import { renderEmphasis } from '../../lib/text';
+import { renderEmphasis, formatIssueNumber } from '../../lib/text';
+import WorldViz from '../intro/WorldViz.astro';
 
 interface Props {
   topic: Topic;
@@ -20,8 +21,11 @@ interface Props {
   };
   emptyLabel: string;
   emptyTag: string;
+  /** Total published dispatches on this desk. Optional — the meta line
+      renders without the count until the orchestrator wires it. */
+  count?: number;
 }
-const { topic, manifesto, latest, emptyLabel, emptyTag } = Astro.props;
+const { topic, manifesto, latest, emptyLabel, emptyTag, count } = Astro.props;
 
 const labelMap: Record<Topic, string> = {
   politics: 'Politics',
@@ -146,6 +150,10 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
       <div class="px-cat__issue-label">Latest issue</div>
       <h3 class="px-cat__issue-title" set:html={renderEmphasis(latest.title)} />
       <p class="px-cat__issue-hook">{latest.hook}</p>
+      <div class="px-cat__viz" aria-hidden="true" data-reveal><WorldViz a={topic} /></div>
+      <div class="px-cat__dispatch">
+        {typeof count === 'number' && <span>{count} dispatch{count === 1 ? '' : 'es'} · </span>}latest {formatIssueNumber(latest.issueNumber)}
+      </div>
       <div class="px-cat__issue-meta">
         <span>{fmtDate(latest.publishedAt)}</span>
         <span class="px-cat__cta">{cta.read}</span>
@@ -155,6 +163,7 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     <div class="px-cat__issue px-cat__issue--empty">
       <div class="px-cat__issue-label">{emptyLabel}</div>
       <p class="px-cat__issue-hook" set:html={renderEmphasis(emptyTag)} />
+      <div class="px-cat__viz" aria-hidden="true" data-reveal><WorldViz a={topic} /></div>
       <div class="px-cat__issue-meta">
         <span>Dropping soon</span>
         <span class="px-cat__cta">{cta.empty}</span>
@@ -462,6 +471,72 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
   .px-cat[data-topic="tech"] .px-cat__cta { font-family: var(--font-mono); }
 
   .px-cat__issue--empty .px-cat__issue-label { color: var(--accent); }
+
+  /* ── Live micro-viz (HOME-SPEC §4) — the world's WorldViz figure, quiet,
+        currentColor-tinted by the card's accent. Height-capped wrapper. ── */
+  .px-cat__viz {
+    height: 52px;
+    max-height: 72px;
+    margin: 2px 0 14px;
+    color: var(--accent);
+    position: relative;
+    z-index: 2;
+  }
+  .px-cat__viz :global(svg) {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+  }
+  @media (max-width: 379px) {
+    .px-cat__viz { height: 38px; }
+  }
+
+  /* ── Dispatch meta line — `N DISPATCHES · LATEST — NN` (mono) ── */
+  .px-cat__dispatch {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    margin: 0 0 10px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── Light-world whispers (HOME-SPEC §4) — dark worlds unchanged ── */
+  /* Politics — broadsheet double-rule under the card head */
+  .px-cat__head--politics {
+    padding-bottom: 9px;
+    border-bottom: 3px double color-mix(in oklab, var(--ink) 42%, transparent);
+  }
+  /* Earth — .ear-coords-style survey line under the head (scoped copy of the
+     themes/earth.css kit look; head is position:relative + mono/uppercase,
+     both inherited) */
+  .px-cat__head--earth { margin-bottom: 32px; }
+  .px-cat__head--earth::after {
+    content: 'Datum WGS 84 · Contour 40 m · Survey current';
+    position: absolute;
+    top: calc(100% + 7px);
+    left: 0;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  /* Travel — ticket-stub perforation dots down the LEFT edge (mirrors the
+     right-edge motif; inset below the top accent stripe) */
+  .px-cat[data-topic="travel"]::before {
+    content: '';
+    position: absolute;
+    inset: 10px auto 10px 0;
+    width: 14px;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(circle at 7px 7px, var(--rule) 1.5px, transparent 2.5px) left top / 14px 14px repeat-y;
+  }
 
   /* ============================================================================
      PER-TOPIC TOKEN BLOCKS — scoped to keep colors local to this card

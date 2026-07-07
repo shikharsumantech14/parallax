@@ -1,0 +1,89 @@
+/* ============================================================================
+   PARALLAX — LAYOUT VARIANTS (section geometry)
+   ----------------------------------------------------------------------------
+   Consumed via `section.layout` → `data-layout` on `.px-section`
+   (core/Section.astro). Pure CSS — no per-component changes, no JS. Rhythm
+   rules live in docs/design/CANON.md §3 (≤1 bleed per act; split only for the
+   issue's hero metaphor; never two loud sections adjacent).
+
+   Geometry context: everything lives inside .px-wrap (max-width 980px,
+   32px side padding → 916px inner at full width). Breakouts widen a section
+   PAST the wrap while staying centered:  margin-inline: calc((100% − W) / 2)
+   goes negative when W exceeds the wrap's inner width.
+   ============================================================================ */
+
+/* ── wide — a modest breakout to the full wrap width (980) ────────────────── */
+.px-section[data-layout='wide'] {
+  width: min(var(--col-wide), 100vw - 40px);
+  margin-inline: calc((100% - min(var(--col-wide), 100vw - 40px)) / 2);
+}
+
+/* ── bleed — the big plate (1180), earns its own air ──────────────────────── */
+.px-section[data-layout='bleed'] {
+  width: min(var(--col-bleed), 100vw - 32px);
+  margin-inline: calc((100% - min(var(--col-bleed), 100vw - 32px)) / 2);
+  margin-top: 24px;
+  margin-bottom: 108px;
+}
+
+@media (max-width: 720px) {
+  /* On small screens the wrap padding is 20px; keep 16px gutters, no fancier */
+  .px-section[data-layout='wide'],
+  .px-section[data-layout='bleed'] {
+    width: calc(100vw - 32px);
+    margin-inline: calc((100% - (100vw - 32px)) / 2);
+  }
+}
+
+/* ── breath — the whitespace valve ────────────────────────────────────────── */
+.px-section[data-layout='breath'] {
+  padding-block: 96px 72px;
+  text-align: center;
+}
+.px-section[data-layout='breath'] .px-section__intro {
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2.6vw, 24px);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 560px;
+  margin-inline: auto;
+}
+.px-section[data-layout='breath'] .px-section__num { display: inline-block; }
+@media (max-width: 640px) {
+  .px-section[data-layout='breath'] { padding-block: 64px 48px; }
+}
+
+/* ── split / split-flip — the scrollytelling primitive ────────────────────────
+   Copy column (num/eyebrow/title/intro/plain) beside a STICKY stage holding
+   the viz. The reader scrolls the copy; the viz holds. Pairs with
+   SceneHandle.setState via the Reveal IO for state-switching scenes (P2+).
+   Below 960px it stacks back to the flat flow. */
+@media (min-width: 960px) {
+  .px-section[data-layout='split'],
+  .px-section[data-layout='split-flip'] {
+    display: grid;
+    grid-template-columns: minmax(0, 38ch) minmax(0, 1fr);
+    gap: 0 56px;
+    align-items: start;
+    /* split earns wide geometry so the stage has room */
+    width: min(var(--col-bleed), 100vw - 40px);
+    margin-inline: calc((100% - min(var(--col-bleed), 100vw - 40px)) / 2);
+  }
+  .px-section[data-layout='split-flip'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 38ch);
+  }
+  .px-section[data-layout='split-flip'] .px-section__copy { order: 2; }
+  .px-section[data-layout='split-flip'] .px-section__stage { order: 1; }
+
+  .px-section[data-layout='split'] .px-section__stage,
+  .px-section[data-layout='split-flip'] .px-section__stage {
+    position: sticky;
+    top: 88px;
+    min-width: 0;
+  }
+  .px-section[data-layout='split'] .px-section__copy,
+  .px-section[data-layout='split-flip'] .px-section__copy {
+    min-width: 0;
+    padding-bottom: 15vh; /* lets the copy scroll past while the stage holds */
+  }
+}

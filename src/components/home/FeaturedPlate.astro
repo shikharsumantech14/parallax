@@ -1,0 +1,202 @@
+---
+/**
+ * FeaturedPlate — the newest published issue as a full-width editorial plate
+ * (HOME-SPEC §5). Left: eyebrow / title / hook / links. Right: the issue's
+ * own highest-priority viz section as the art, rendered via SectionBody.
+ *
+ * Chunk isolation: the six WebGL kinds are excluded from selection so the
+ * home never requests the three.js chunk. Narrative kinds are excluded
+ * because they don't stand alone as art. The plate stays META-toned — the
+ * issue's world appears ONLY as the eyebrow color + a 3px accent rule on
+ * the art plate (spec: restraint, no full retheme). Prefix: px-fplate.
+ */
+import type { CollectionEntry } from 'astro:content';
+import SectionBody from '../SectionBody.astro';
+import { KIND_PRIORITY } from '../../lib/story';
+import { renderEmphasis, formatIssueNumber } from '../../lib/text';
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+  issueNumber: number;
+}
+const { issue, issueNumber } = Astro.props;
+const { topic, title, hook, sections } = issue.data;
+
+/* Never on the home — these kinds boot the WebGL runtime (three.js chunk). */
+const WEBGL_KINDS = new Set([
+  'solar-system', 'chamber', 'orbit-globe', 'coalition-orbit', 'data-globe', 'route-globe',
+]);
+/* Narrative kinds aren't standalone art. */
+const NARRATIVE_KINDS = new Set([
+  'prose', 'quote', 'act-break', 'hero', 'beat-sheet', 'analogy',
+]);
+
+/* Highest-KIND_PRIORITY qualifying section. sort() is stable, so on ties the
+   earlier (document-order) section wins. May be undefined — then the copy
+   column spans the full plate. */
+const art = sections
+  .map((section) => ({ section, prio: KIND_PRIORITY[section.kind] ?? 0 }))
+  .filter(({ section, prio }) =>
+    prio > 0 && !WEBGL_KINDS.has(section.kind) && !NARRATIVE_KINDS.has(section.kind))
+  .sort((a, b) => b.prio - a.prio)[0]?.section;
+---
+
+<section
+  class="px-fplate"
+  data-has-art={art ? 'true' : undefined}
+  style={`--fp-accent: var(--topic-${topic}); --fp-accent-deep: var(--topic-${topic}-deep);`}
+>
+  <div class="px-fplate__copy" data-reveal>
+    <p class="px-fplate__eyebrow">Latest dispatch · {topic} desk · {formatIssueNumber(issueNumber)}</p>
+    <h2 class="px-fplate__title" set:html={renderEmphasis(title)} />
+    <p class="px-fplate__hook">{hook}</p>
+    <div class="px-fplate__links">
+      <a class="px-fplate__read" href={`/issues/${issue.slug}/`}>Read the issue →</a>
+      <a class="px-fplate__story" href={`/s/${issue.slug}/`}>60-second version →</a>
+    </div>
+  </div>
+
+  {art && (
+    <div class="px-fplate__art" data-reveal>
+      <SectionBody section={art} />
+    </div>
+  )}
+</section>
+
+<style>
+  .px-fplate {
+    border-block: 1px solid var(--rule);
+    padding-block: 64px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  @media (min-width: 960px) {
+    .px-fplate[data-has-art] {
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 56px;
+    }
+  }
+
+  /* ── left column — the copy ─────────────────────────────────────────── */
+  .px-fplate__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--fp-accent-deep);
+    margin: 0 0 18px;
+  }
+  .px-fplate__title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(30px, 4vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  /* renderEmphasis injects the <em> via set:html, so it needs :global */
+  .px-fplate__title :global(em) {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--fp-accent-deep);
+  }
+  .px-fplate__hook {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.68;
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+    max-width: 56ch;
+    text-wrap: pretty;
+  }
+  @media (min-width: 640px) {
+    .px-fplate__hook {
+      text-align: justify;
+      hyphens: auto;
+    }
+  }
+
+  .px-fplate__links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .px-fplate__read {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--paper);
+    background: var(--ink);
+    border-radius: 999px;
+    padding: 13px 24px;
+    text-decoration: none;
+    transition: transform var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
+  }
+  .px-fplate__read:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -16px color-mix(in oklab, var(--ink) 60%, transparent);
+  }
+  .px-fplate__story {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 0;
+  }
+  .px-fplate__story:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ── right column — the art plate ───────────────────────────────────── */
+  /* Meta-toned .px-viz-style frame carried by the WRAPPER; the inner
+     component's own .px-viz card chrome is stripped so the section doesn't
+     double-frame. The world speaks once: the 3px accent top rule. */
+  .px-fplate__art {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
+    padding: 30px 32px;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-fplate__art::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--fp-accent);
+    border-radius: var(--r-tile) var(--r-tile) 0 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .px-fplate__art :global(.px-viz) {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ── stacked (mobile / narrow): copy first, art after, height-guarded ── */
+  @media (max-width: 959px) {
+    .px-fplate { padding-block: 48px; }
+    .px-fplate__art {
+      max-height: min(70vh, 460px);
+      overflow: hidden;
+    }
+  }
+  @media (max-width: 480px) {
+    .px-fplate__art { padding: 22px 20px; }
+  }
+</style>

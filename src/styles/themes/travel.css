@@ -20,6 +20,7 @@
   --tape: #e8d5a8;
   --font-display: 'Fraunces', Georgia, serif;
   /* --font-body / --font-mono unified across topics in type-v2.css */
+  /* Accent values mirrored in shared/design/worlds.css — change both together */
 }
 
 /* --- Global tweaks (light paper, like politics but warmer) ------------- */
@@ -398,4 +399,87 @@
   box-shadow:
     0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
     0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TRAVEL WORLD MOTIFS (2026-07-06 · docs/design/worlds/travel.md · review R5)
+   "The field journal with tickets stapled in." Stubs, route lines, entry
+   stamps, margin notes — travel reads as travel between vizzes.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 0 · The journal page — a single margin ruling down the left of the page
+   (the kept-notebook move; barely-there terracotta). */
+[data-topic="travel"] body {
+  background-image: linear-gradient(90deg,
+    transparent 0, transparent 26px,
+    color-mix(in oklab, var(--accent) 14%, transparent) 26px,
+    color-mix(in oklab, var(--accent) 14%, transparent) 27px,
+    transparent 27px);
+  background-attachment: fixed;
+}
+@media (max-width: 720px) {
+  [data-topic="travel"] body { background-image: none; }
+}
+
+/* 1 · The stub — ticket edge: punched perforations + dashed tear rule */
+.trv-stub {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding-left: 26px;
+}
+.trv-stub::before {
+  content: '';
+  position: absolute; left: 17px; top: 0; bottom: 0;
+  border-left: 1.5px dashed color-mix(in oklab, var(--ink) 24%, transparent);
+}
+.trv-stub::after {
+  content: '';
+  position: absolute; left: -5px; top: 0; bottom: 0; width: 10px;
+  background-image: radial-gradient(circle at 5px 5px, var(--bg) 3.4px, transparent 3.6px);
+  background-size: 10px 22px;
+  background-repeat: repeat-y;
+}
+
+/* 2 · The route line — dashed path with terminus dots (hr replacement) */
+.trv-route {
+  display: flex; align-items: center; gap: 0;
+  margin: 40px 0;
+}
+.trv-route::before, .trv-route::after {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+.trv-route i {
+  flex: 1; height: 0;
+  border-top: 2px dashed color-mix(in oklab, var(--accent) 55%, transparent);
+  margin: 0 4px;
+}
+
+/* 3 · The entry stamp — passport-mark furniture (sparing: 1–2 per surface) */
+.trv-stamp {
+  display: inline-block;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-alt);
+  border: 1.5px solid var(--accent-alt);
+  border-radius: 6px;
+  transform: rotate(-5deg);
+  opacity: 0.75;
+}
+.trv-stamp--warm { color: var(--accent-deep); border-color: var(--accent-deep); transform: rotate(3deg); }
+
+/* 4 · The margin note — the journal voice */
+.trv-note {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--accent-deep);
+  max-width: 46ch;
 }
