@@ -13,14 +13,20 @@ interface Props {
   index: number;      // 1-based card number (c2, c3, …)
 }
 const { section, text, kicker, index } = Astro.props;
+
+// prose beats are pure-text cards (STORY-MODE-SPEC §1): the beat text IS the
+// card — rendering the full prose section would just be a tall duplicate.
+const isText = section.kind === 'prose';
 ---
 
-<section class="pxs-card" id={`c${index}`} data-kind={section.kind}>
+<section class:list={['pxs-card', isText && 'pxs-card--text']} id={`c${index}`} data-kind={section.kind}>
   <div class="pxs-card__inner">
     <p class="pxs-beat__text">{text}</p>
-    <div class="pxs-beat__viz" data-reveal>
-      <SectionBody section={section} />
-    </div>
+    {!isText && (
+      <div class="pxs-beat__viz" data-reveal>
+        <SectionBody section={section} />
+      </div>
+    )}
     {kicker && <p class="pxs-beat__kicker">{kicker}</p>}
   </div>
 </section>

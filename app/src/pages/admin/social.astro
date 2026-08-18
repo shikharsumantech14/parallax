@@ -157,6 +157,21 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
                 {row.issue_id}
               </a>
               <span class="sq-chars">{row.body.length} chars</span>
+              <a
+                class="sq-card__story"
+                href={`${siteUrl}/s/${row.issue_id}/`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                ↗ story
+              </a>
+              <button
+                class="sq-copy"
+                type="button"
+                data-copy-url={`${siteUrl}/s/${row.issue_id}/`}
+              >
+                Copy story link
+              </button>
             </div>
 
             <p class="sq-body">{row.body}</p>
@@ -354,6 +369,30 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
     text-transform: uppercase;
     color: var(--muted);
   }
+  .sq-card__story {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+  .sq-card__story:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .sq-copy {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-pill);
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  }
+  .sq-copy:hover { color: var(--ink); border-color: var(--ink); }
 
   .sq-body {
     margin: 0 0 12px;
@@ -434,6 +473,23 @@ const itemNoun = items.length === 1 ? 'post' : 'posts';
    */
   const list = document.getElementById('sq-list');
   const countEl = document.getElementById('sq-count');
+
+  // Copy the /s/ story link to share when posting. Separate delegated handler
+  // so it never touches the approve/reject flow below.
+  list?.addEventListener('click', async (ev) => {
+    const cbtn = (ev.target as HTMLElement).closest('.sq-copy') as HTMLButtonElement | null;
+    if (!cbtn) return;
+    const url = cbtn.dataset.copyUrl;
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      const orig = cbtn.textContent;
+      cbtn.textContent = 'Copied ✓';
+      window.setTimeout(() => { cbtn.textContent = orig; }, 1600);
+    } catch {
+      /* clipboard blocked — the visible ↗ story link is the fallback */
+    }
+  });
 
   const updateCount = (delta: number) => {
     if (!countEl) return;

@@ -46,6 +46,14 @@ export const KIND_PRIORITY: Record<string, number> = {
   'version-graph': 76, 'throughput-dial': 76, 'elevation-trek': 76,
   'itinerary-reel': 74, 'climate-calendar': 74, 'timezone-arc': 74,
   'player-card': 74, 'player-radar': 72, 'orbital-shells': 72,
+  // P6 breadth library (2026-07) — ranked alongside their world-signature siblings
+  'constellation-swarm': 90, 'court-value': 86, 'coalition-calculus': 86,
+  'plate-motion': 84, 'storm-track': 84, 'packet-trace': 84,
+  'lagrange-map': 82, 'queue-cliff': 82, 'transfer-window': 80,
+  'gerrymander-lens': 80, 'ballot-flow': 80, 'chip-die': 78,
+  'eclipse-cone': 76, 'elo-river': 76, 'city-grid': 74, 'season-wheel': 74,
+  'pace-ridge': 72, 'carbon-loop': 66, 'moore-ladder': 64,
+  'atmosphere-column': 64, 'altitude-oxygen': 62, 'fare-terrain': 62,
   // classic data
   'data-readout': 70, 'timeline': 66, 'climate-strip': 64, 'carbon-gauge': 64,
   'approval-chart': 62, 'benchmark-chart': 62, 'adoption-curve': 62,
@@ -87,6 +95,8 @@ const TRIM: Record<string, Trim> = {
   'bill-breakdown': (d) => ({ ...d, cards: cap(d.cards, 2) }),
   'seat-chart': (d) => ({ ...d, rows: cap(d.rows, 4), quote: undefined }),
   'itinerary-reel': (d) => ({ ...d, days: cap(d.days, 4) }),
+  'city-grid': (d) => ({ ...d, cities: cap(d.cities, 2) }), // CityGrid hard-caps at 3; 2 roses fit a 375 card
+
   'quote': (d) => ({ ...d, followup: undefined }),
   'vote-result': (d) => ({ ...d, followup: undefined }),
   // WebGL kinds ship data untrimmed — their fallbacks/scenes self-scale.

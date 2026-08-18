@@ -3,9 +3,10 @@
 > The InShorts-class shareable story format: one issue → a full-screen,
 > vertically-snapping card story (hook → ≤6 beats → CTA), 100% free (locked
 > decision 2026-07-05 — the story IS the marketing surface; the CTA card
-> funnels to the gated full issue). STATUS: **P0 skeleton** — the anatomy,
-> type scale, and snap spec below are law; the per-kind trim table and the
-> flagship worked example land in P4 (marked TODO).
+> funnels to the gated full issue). STATUS 2026-07-14: **shipped in-repo,
+> uncommitted** — P0 skeleton, P4 flagship + share + OG, and the P7 breadth
+> pass are all built (§6). The anatomy, type scale, and snap spec below remain
+> law. Outstanding: the real-iPhone pass and per-world hook-card motifs.
 >
 > Prefix: `pxs-`. Files: `src/pages/s/[slug].astro` · `src/layouts/
 > StoryLayout.astro` · `src/components/story/*` · `src/lib/story.ts` ·
@@ -40,6 +41,12 @@
                       scroller if taller) · kicker ≤8dvh · [safe-bottom pad]
 padding: max(20px, env(safe-area-inset-top)) 20px max(72px, env(safe-area-inset-bottom))
 ```
+
+Two P7 amendments to the budget (both detailed in §4b): the viz slot **hides
+the section's own `__cap` / `__src` chrome** so the graphic gets the dvh rather
+than a duplicated title and citation, and a **prose beat drops the viz slot
+entirely** (`.pxs-card--text`) — the beat text becomes the whole card and is
+released from the 26dvh clamp. Neither hides data.
 
 Type scale (mobile-first; desktop = same, cards capped 520px wide, centered on
 the themed field with a soft `--accent` radial glow @ ≤0.08 — NO phone bezel):
@@ -84,8 +91,10 @@ the themed field with a soft `--accent` radial glow @ ≤0.08 — NO phone bezel
 ## 4. Fitting rule: trim DATA, never hide with CSS
 
 `fitSectionForStory(section)` returns a trimmed clone per kind — content
-decisions, not overflow surgery. TODO(P4): the full per-kind trim table with
-fits-375×667 checkboxes. Seed rules:
+decisions, not overflow surgery. The original TODO — a full per-kind trim table
+with fits-375×667 checkboxes for all ~90 kinds — was **deliberately not**
+completed; P7 instead trimmed the kinds that actually overflow and let the
+62dvh scroller cover the tail (see the residual at the end of §4b). Seed rules:
 
 | Kind | Trim |
 |---|---|
@@ -95,6 +104,64 @@ fits-375×667 checkboxes. Seed rules:
 | beat-sheet | ≤4 beats |
 | league-table | top 5 + story team |
 | quote | as-is (it's born card-shaped) |
+| city-grid | ≤2 cities (P7, 2026-07-14) |
+
+`TRIM` in `src/lib/story.ts` is the live table; it now also caps
+`launch-stats` (8 years), `benchmark-chart` (5 items), `margin-ladder` (6
+rows), `bill-breakdown` (2 cards), `seat-chart` (4 rows + drop quote),
+`itinerary-reel` (4 days), and drops `followup` on `quote` / `vote-result`.
+WebGL kinds ship data untrimmed — their scenes and fallbacks self-scale.
+
+**`city-grid` gotcha (worth reading before adding any cap).** `CityGrid.astro`
+**hard-throws** unless `cities.length` is 1–3, so a cap of 4 — the first value
+tried — was a guaranteed dead no-op: any issue that would have triggered it had
+already failed the build. The shipped cap is 2 (two wind roses fit a 375 card).
+Check a component's own input assertions before choosing a cap.
+
+**KIND_PRIORITY breadth (P7, 2026-07-14).** All 22 P6 breadth kinds are now
+ranked in `KIND_PRIORITY`. Before this they fell through to the default `30`,
+which left them effectively unrankable — an issue built on the new components
+could not surface them as beats. Rankings, slotted alongside their
+world-signature siblings: `constellation-swarm` 90 · `court-value` +
+`coalition-calculus` 86 · `plate-motion` + `storm-track` + `packet-trace` 84 ·
+`lagrange-map` + `queue-cliff` 82 · `transfer-window` + `gerrymander-lens` +
+`ballot-flow` 80 · `chip-die` 78 · `eclipse-cone` + `elo-river` 76 ·
+`city-grid` + `season-wheel` 74 · `pace-ridge` 72 · `carbon-loop` 66 ·
+`moore-ladder` + `atmosphere-column` 64 · `altitude-oxygen` + `fare-terrain` 62.
+All 22 names were cross-checked 1:1 against `SECTION_KINDS`.
+
+### 4b. Story-teaser compaction (CSS) — chrome only, never data
+
+Two CSS rules in `src/styles/story.css` reclaim the dvh a beat card was losing
+to duplicated framing. **This does not weaken the §4 rule.** "Trim DATA, never
+hide with CSS" still governs data: nothing carrying a value is ever hidden. The
+compaction hides *chrome* — the section's own title-caption and source
+citation, which in a story card are redundant (the beat text supplies the
+title; the CTA card links to the full issue, where the sources live):
+
+```css
+.pxs-beat__viz > * > [class$='__cap'],
+.pxs-beat__viz > * > [class$='__src'] { display: none; }
+.pxs-beat__viz > * { margin: 0; }
+```
+
+The `> * >` child selector is load-bearing: it reaches only direct children of
+the section root, never a nested data label. An adversarial review confirmed no
+graphic container in the catalog ends in `__cap` / `__src`. Worth 150–280px per
+card (`trajectory-arc` went 2.32× → 1.41× overflow).
+
+**Prose beats are pure-text cards** (spec §1, now enforced in code):
+`StoryCard.astro` skips `<SectionBody>` when `kind === 'prose'` and adds
+`.pxs-card--text` — editorial Fraunces at `clamp(21px, 5.4vw, 27px)`, no 26dvh
+text clamp. Rendering the full prose section was a tall duplicate of the beat
+text: 2.74× overflow became a 374px card that fits.
+
+**Honest residual.** Text-heavy narrative kinds still overflow and still lean on
+the spec-sanctioned 62dvh internal scroller: `comparison` ~3.8×, `paradox`
+~2.3×, `timeline` ~1.5×. This is a *content* problem, not a code gap — the real
+fix for a viz-poor issue is an authored `story:` frontmatter block where the
+editor hand-picks viz beats (as on the asteroid flagship). A per-kind
+compaction pass across all ~90 kinds was scoped out.
 
 ## 5. Route & head
 
@@ -110,7 +177,7 @@ fits-375×667 checkboxes. Seed rules:
   (Vercel path-level server logs count opens); the CTA carries `?via=story`
   into the issue → gate → login `next=` chain. No client analytics, ever.
 
-## 6. Status (P4 shipped 2026-07-05; P7 completes the tail)
+## 6. Status (P4 shipped 2026-07-05; P7 tail closed 2026-07-14 bar two items)
 
 - [x] Skeleton + scroll UX shipped and verified: `src/pages/s/[slug].astro`,
       `StoryLayout`, `StoryShell` (snap + segmented progress + 44×44 chevrons
@@ -128,7 +195,30 @@ fits-375×667 checkboxes. Seed rules:
       `_voice-social.md` register; every claim traces to the issue's own
       verified sections.
 - [x] `story` frontmatter schema (config.ts, additive/optional, 3–6 beats).
-- [ ] P7: trim-table breadth w/ per-kind 375×667 verification · OG images
-      (`scripts/story/og.ts`) + head wiring · `StoryShare` · real-iPhone pass
-      via Vercel branch preview · per-world hook-card motifs (design nicety,
-      optional).
+- [x] **OG images + head wiring** — `scripts/story/og.ts` runs as the npm
+      `prebuild` hook, rendering one 1200×630 PNG per non-draft issue into
+      `public/og/story/<slug>.png` via `ogCard` + `toPng(..., 'og')` from
+      `scripts/social/cards.ts`. Regenerates on every build; 10 valid PNGs
+      today (53–109KB). `og:image` + `twitter:card` tags live in
+      `StoryLayout.astro`. (Built in P4; verified 2026-07-14, not rebuilt.)
+- [x] **`StoryShare`** — `navigator.share` → clipboard fallback →
+      `role="status"` confirmation. (Built in P4; verified 2026-07-14.)
+- [x] **`?via=story` attribution** on `StoryCtaCard`. (P4; verified.)
+- [x] **Trim-table breadth** (2026-07-14) — all 22 P6 kinds ranked in
+      `KIND_PRIORITY`, `city-grid` trim added, story-teaser chrome compaction
+      and prose pure-text cards landed. Verified at **375×667 in the browser**
+      across the space / politics / earth stories: every card fits the
+      viewport, zero horizontal page overflow, graphics survive compaction.
+- [ ] **Real-iPhone pass via a Vercel branch preview** — NOT done. The iOS
+      checklist in §3 (rubber-band, URL-bar `dvh` collapse, `snap-stop` flick,
+      nested scroller in mandatory snap, safe-area, Reduce Motion) remains
+      unexercised on real hardware; 375×667 was emulated only. Operator task.
+- [ ] **Per-world hook-card motifs** — NOT done (design nicety, still optional).
+- [ ] Per-kind compaction across the remaining ~90 kinds — explicitly scoped
+      OUT; see the honest residual in §4b.
+
+**Coverage note.** Story pages build only for `status !== 'draft'` issues — 10
+today. The six `2026-06-03-*-showcase` issues are `status: draft`, so the P6
+breadth components have **no** story page yet; their story behaviour was
+verified through the ranking/trim code and the published issues, not through a
+showcase story URL.

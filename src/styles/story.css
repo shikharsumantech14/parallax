@@ -69,6 +69,14 @@
   width: 100%;
 }
 .pxs-beat__viz .px-viz { margin: 0; }
+/* Story-teaser compaction: the beat text frames the card and the CTA links to
+   the full issue (where the sources live), so the section's own top title-
+   caption + source-citation are redundant chrome here. Hiding them (direct
+   children of the section root only — never nested data labels) gives the
+   GRAPHIC the dvh budget and cuts internal scrolling. Data is never hidden. */
+.pxs-beat__viz > * > [class$='__cap'],
+.pxs-beat__viz > * > [class$='__src'] { display: none; }
+.pxs-beat__viz > * { margin: 0; }
 .pxs-beat__kicker {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -76,6 +84,18 @@
   text-transform: uppercase;
   color: var(--accent-deep, var(--accent));
   max-height: 8dvh;
+}
+
+/* prose beat = pure-text card (spec §1): no viz box, so let the beat text be
+   the whole card — editorial Fraunces, no 26dvh clamp. */
+.pxs-card--text .pxs-beat__text {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(21px, 5.4vw, 27px);
+  line-height: 1.36;
+  color: var(--ink);
+  max-height: none;
+  overflow: visible;
 }
 
 /* ── hook card ────────────────────────────────────────────────────────────── */
