@@ -71,13 +71,28 @@ rule (3px) and the H1 `em` take `--w-accent-deep` (light worlds) /
 the mono world line + focus rings tint; NOTHING else changes.
 Google-glyph exception: the G mark keeps its brand colors.
 
-### App /welcome
+### App /welcome — **BUILT 2026-07-14** (`app/src/pages/welcome.astro`)
 `narrow` shell, one `.plate`: H1 + sub, name `.field` (prefilled from
 user_metadata), six world `.chip`s (multi-select, `aria-pressed`), feature
 strip (3 mono rows), primary CTA + `Skip for now` ghost link. One screen, no
 scroll on 667px-tall mobile: compress via 12px chip padding if needed.
 
-### Dashboard ("The Shelf")
+Built as specified, with one **deliberate deviation**: the world chips are
+native `<input type="checkbox">` elements (visually hidden, wearing the `.chip`
+face, state via `.wchip__input:checked + .chip`) — **not** `aria-pressed`
+buttons. `aria-pressed` implies a JS-toggled button; the page ships **no client
+script**, and native checkboxes both submit and show selected state under
+no-JS. The fallback contract outranks the literal ARIA suggestion here. Same
+reasoning for the CTA pair: two submit buttons sharing `name="intent"`
+(`save` / `skip`, skip carrying `formnovalidate`) rather than a scripted skip.
+Name prefill chain: `profiles.display_name` → user_metadata `name` /
+`full_name`. Posts to `app/src/pages/api/onboarding.ts`, which always stamps
+`welcomed_at` (save *and* skip — welcome is genuinely once). Reached via the
+`welcomed_at` gate in `app/src/pages/auth/callback.ts`.
+**Not runtime-verified** (compile-verified only), and its migration is not yet
+applied — see `JOURNEY-SPEC.md` §5.
+
+### Dashboard ("The Shelf") — **BUILT 2026-07-14** (`app/src/pages/dashboard/index.astro`)
 `shelf` shell. Module order: greeting header → Shelf tile grid
 (`repeat(auto-fill, minmax(260px, 1fr))`, gap 16) → Reading log (3 `.stat`s +
 last-5 event lines) → Your worlds (six 4px accent bars, mono labels, %) →
@@ -92,10 +107,36 @@ title (clamp 2) · dek (clamp 2, `--muted`) · progress hairline (2px, world
 accent, % from reading_events mapping open10/25/75/finish100) · footer link
 `Continue reading →` / `Read again`.
 
+**Built 2026-07-14** — this is the rebuild that answers the operator's
+"dashboard = 2000s design" note. Shipped module order: greeting header → shelf
+tile grid (saved issues) → reading log (3 `.stat`s) → In the margins →
+Preferences (3 `.toggle` rows, progressive-enhancement fetch save) → Account
+plate → Admin tiles (admin only) → Danger zone. It uses the `width="shelf"`
+shell and the P3 app.css v2 primitives (`.plate` / `.tile` / `.chip` /
+`.toggle` / `.stat` / `.appbar` + the `.reveal` IO island) — no new primitives
+were needed. Queries are restricted to confirmed table shapes: `profiles`,
+`saved_issues`, and `comments(id, body_md, status, created_at, issue_id,
+user_id)`.
+
+**Three modules from the spec above are DEFERRED, not built** (each needs
+schema confirmation plus a runtime the authoring box cannot provide):
+
+1. **Per-issue progress hairlines** — the `reading_events` → open10/25/75/
+   finish100 mapping is unwired; tiles render without the 2px hairline.
+2. **"Your worlds" topic-affinity bars** — the whole module is absent from the
+   shipped order above.
+3. **Real issue titles** — tiles **title-case the slug**. The fix is the
+   issues-manifest bridge in `JOURNEY-SPEC.md` §5, which was never built.
+
+The page is compile-verified only (`cd app && npm run build` exits 0); the app
+cannot boot on the authoring box, so none of it is runtime-verified.
+
 ### Admin queues
 No structural redesign in this pass: they inherit restyled primitives. Only
 addition (P7): per-published-issue story-link row with a copy button in
-`admin/social.astro`.
+`admin/social.astro`. **Built 2026-07-14** — a per-post `↗ story` link to
+`/s/<issue_id>/` plus a "Copy story link" clipboard button, on its own
+delegated handler so it can never touch the approve/reject flow.
 
 ## 5. Interaction & a11y floor
 

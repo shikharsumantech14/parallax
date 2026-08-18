@@ -4,10 +4,9 @@ import { Resend } from 'resend';
 
 /**
  * ┌──────────────────────────────────────────────────────────────────────────┐
- * │ DRAFT — Tier 1 "unified Join" endpoint. NOT yet wired into the            │
- * │ publication form. Requires operator review + deploy (this endpoint runs   │
- * │ on the app subdomain with the service-role key + Resend, which the        │
- * │ code-only publication account cannot deploy or smoke-test).               │
+ * │ LIVE TARGET — the publication's NewsletterForm posts here (repointed      │
+ * │ 2026-07-14, uncommitted). Deploy this app BEFORE the publication, or the  │
+ * │ form will POST to an endpoint that isn't there yet.                       │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
  * PURPOSE — the owner's "club them together so users don't do it twice": ONE
@@ -16,25 +15,23 @@ import { Resend } from 'resend';
  * their account on click. One email → one inbox click → subscribed AND signed in.
  *
  * This mirrors api/subscribe.ts (CORS, validation, admin client, Resend) and
- * adds the Supabase magic-link generation. It is deliberately additive: the
- * publication's NewsletterForm still posts to /api/subscribe until the operator
- * chooses to repoint it here.
+ * adds the Supabase magic-link generation. api/subscribe.ts remains in place for
+ * any caller that still wants newsletter-only signup.
  *
- * OPERATOR CHECKLIST before enabling:
+ * CONSENT SEMANTICS (decided): the subscription is marked confirmed at join
+ * time, because the reader is explicitly creating an account and the email is
+ * verified by the magic-link click. For strict newsletter double opt-in instead,
+ * keep `confirmed_at` null here and confirm it in the /auth/callback handler.
+ *
+ * OPERATOR CHECKLIST before the first deploy:
  *   1. Confirm `SUPABASE_SERVICE_ROLE_KEY` + `RESEND_API_KEY` are set (they are,
  *      for the existing subscribe + auth flows).
- *   2. Decide newsletter consent semantics: this draft marks the subscription
- *      confirmed at join time (the reader is explicitly creating an account, so
- *      the email is verified by the magic-link click). If you prefer strict
- *      double opt-in for the newsletter, keep `confirmed_at` null here and
- *      confirm it in the /auth/callback handler instead.
- *   3. Verify the magic-link `redirectTo` is in Supabase's allowed redirect URLs
+ *   2. Verify the magic-link `redirectTo` is in Supabase's allowed redirect URLs
  *      (Auth → URL Configuration) and that safeNextPath allows the publication.
- *   4. Repoint the publication form: in
- *      src/components/core/NewsletterForm.astro change the POST target from
- *      `/api/subscribe` to `/api/join` (or add a dedicated Join form), and
- *      update the success copy ("Check your inbox to confirm and sign in").
- *   5. Smoke-test end to end against prod Supabase.
+ *   3. Smoke-test end to end against prod Supabase: submit the publication form,
+ *      confirm one email arrives, and confirm the click both subscribes and
+ *      signs in. The form handles a degraded `{ok:true, account:false}` reply
+ *      (newsletter saved, magic link failed) with its own copy.
  */
 
 const SITE_URL = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';

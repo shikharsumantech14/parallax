@@ -4,210 +4,414 @@ import { requireUser } from '../../lib/auth';
 import { isAdmin } from '../../lib/admin';
 
 /**
- * "Your Parallax" dashboard — minimal v1.
+ * "The Shelf" — the reader dashboard (APP-DESIGN-SPEC §4).
  *
- * Shows: display name, email, saved-issues list (empty in Phase A),
- * email-preferences toggles, account deletion. Reading-stats and topic
- * affinity arrive in Phase B.
+ * The reading room of the same building: calm beige/ink, the shared trio, the
+ * `.plate` / `.tile` / `.stat` / `.toggle` / `.chip` primitives from app.css v2.
+ * Module order: greeting → shelf tile grid → reading log → in the margins →
+ * preferences → account → admin → danger. Every module `.reveal`-staggered.
+ *
+ * Data comes only from tables this app already owns and queries elsewhere
+ * (profiles, saved_issues, comments) so the shapes match the working APIs.
+ * Richer modules (per-issue reading-progress hairlines from reading_events,
+ * topic-affinity bars, and real issue titles/deks via an issues manifest) are
+ * a follow-up — they need the reading_events mapping + a cross-project metadata
+ * bridge, verified against the live DB.
  */
-
 const user = requireUser(Astro);
 const { supabase } = Astro.locals;
-
-// Admin surfaces (moderation queue) are gated on the ADMIN_EMAILS allowlist.
 const userIsAdmin = isAdmin(user);
+const SITE = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
 
-// Fetch the matching profiles row. The auth trigger should have created it
-// on signup — but if for any reason it didn't, we fall back to user metadata.
 const { data: profile, error: profileError } = await supabase
   .from('profiles')
   .select('display_name, email, email_prefs, created_at')
   .eq('id', user.id)
   .maybeSingle();
+if (profileError) console.error('[shelf] profile fetch failed:', profileError.message);
 
-if (profileError) {
-  console.error('[dashboard] profile fetch failed:', profileError.message);
-}
+const { data: savedIssues, error: savedError } = await supabase
+  .from('saved_issues')
+  .select('issue_id, saved_at')
+  .order('saved_at', { ascending: false })
+  .limit(24);
+if (savedError) console.error('[shelf] saved_issues fetch failed:', savedError.message);
+
+// The reader's own margin notes across issues, newest first (any status —
+// this is their private view; the same RLS that powers the annotation island
+// already allows select-own at any status).
+const { data: notes, error: notesError } = await supabase
+  .from('comments')
+  .select('id, body_md, status, created_at, issue_id')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
+  .limit(6);
+if (notesError) console.error('[shelf] comments fetch failed:', notesError.message);
+
+const { count: notesTotal } = await supabase
+  .from('comments')
+  .select('id', { count: 'exact', head: true })
+  .eq('user_id', user.id);
 
 const displayName =
   profile?.display_name ||
   (user.user_metadata?.name as string | undefined) ||
   (user.user_metadata?.full_name as string | undefined) ||
   null;
+const firstName = displayName ? displayName.split(' ')[0] : null;
 
-const memberSince = profile?.created_at
-  ? new Date(profile.created_at)
-  : new Date(user.created_at);
-
+const memberSince = profile?.created_at ? new Date(profile.created_at) : new Date(user.created_at);
 const memberSinceLabel = memberSince.toLocaleDateString('en-US', {
-  year: 'numeric',
-  month: 'short',
-  day: '2-digit',
+  year: 'numeric', month: 'short', day: '2-digit',
 });
-
-// Saved issues — empty in Phase A. Reads from saved_issues table.
-const { data: savedIssues, error: savedError } = await supabase
-  .from('saved_issues')
-  .select('issue_id, saved_at')
-  .order('saved_at', { ascending: false })
-  .limit(20);
-
-if (savedError) {
-  console.error('[dashboard] saved_issues fetch failed:', savedError.message);
-}
+const daysReader = Math.max(1, Math.floor((Date.now() - memberSince.getTime()) / 86_400_000));
 
 const savedCount = savedIssues?.length ?? 0;
 
-// Email prefs — default to all-on if no row yet.
 const emailPrefs = (profile?.email_prefs as Record<string, boolean> | null) ?? {
-  weekly_digest: true,
-  issue_publish: true,
-  reengagement: true,
+  weekly_digest: true, issue_publish: true, reengagement: true,
 };
 
 const noticeParam = Astro.url.searchParams.get('notice');
 const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
+
+/** Prettify an issue id ("2026-06-04-asteroid-2024-yr4") into a card title +
+ * date label, with a link back to the published issue. No issue-metadata
+ * bridge yet, so the slug carries the title (title-cased). */
+function prettify(issueId: string) {
+  const m = issueId.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)$/);
+  const slug = m ? m[4] : issueId;
+  const title = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  let dateLabel = '';
+  if (m) {
+    dateLabel = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`)
+      .toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      .toUpperCase();
+  }
+  return { title, dateLabel, href: `${SITE}/issues/${issueId}/` };
+}
+const NOTE_STATUS: Record<string, string> = {
+  approved: 'published', pending: 'in review', rejected: 'not shown',
+};
 ---
 
-<AppLayout title="Your Parallax" description="Your reader dashboard.">
-  <p class="eyebrow">Your Parallax</p>
-  <h1>{displayName ? `Hello, ${displayName.split(' ')[0]}.` : 'Welcome back.'}</h1>
-  <p class="dek">
-    Your shelf and reading preferences. Everything stays on this page —
-    no popups, no nudges.
-  </p>
+<AppLayout title="Your Shelf" description="Your reading, on Parallax." width="shelf">
+  {/* ── Greeting ──────────────────────────────────────────────────────── */}
+  <header class="hero reveal">
+    <p class="eyebrow">Your Shelf</p>
+    <h1>{firstName ? `Hello, ${firstName}.` : 'Welcome back.'}</h1>
+    <p class="dek">Everything you're reading, keeping, and marking up — on one quiet page.</p>
+  </header>
 
   {noticeParam && (
-    <div class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'}`}>
+    <div class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'} reveal`}>
       {noticeParam}
     </div>
   )}
 
+  {/* ── The shelf ─────────────────────────────────────────────────────── */}
+  <section class="mod reveal" style="transition-delay: 40ms">
+    <h2 class="mod__title">The shelf {savedCount > 0 && <span class="mod__count">— {savedCount}</span>}</h2>
+    {savedCount === 0 ? (
+      <div class="plate empty">
+        <p>Your shelf is empty.</p>
+        <p class="empty__sub">Save an issue while you read and it lands here to finish later.</p>
+        <a class="btn" href={`${SITE}/`}>Browse the desks →</a>
+      </div>
+    ) : (
+      <div class="shelf-grid">
+        {savedIssues!.map((s) => {
+          const it = prettify(s.issue_id);
+          return (
+            <article class="tile">
+              <p class="tile__meta">{it.dateLabel || 'SAVED'}</p>
+              <h3 class="tile__title">{it.title}</h3>
+              <a class="tile__link" href={it.href}>Read again <span aria-hidden="true">→</span></a>
+            </article>
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  {/* ── Reading log ───────────────────────────────────────────────────── */}
+  <section class="mod reveal" style="transition-delay: 80ms">
+    <h2 class="mod__title">Reading log</h2>
+    <div class="stat-row plate">
+      <div class="stat">
+        <span class="stat__label">On the shelf</span>
+        <span class="stat__value">{savedCount}</span>
+        <p class="stat__note">{savedCount === 1 ? 'issue kept' : 'issues kept'}</p>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Notes written</span>
+        <span class="stat__value">{notesTotal ?? 0}</span>
+        <p class="stat__note">margins marked up</p>
+      </div>
+      <div class="stat">
+        <span class="stat__label">A reader for</span>
+        <span class="stat__value">{daysReader}</span>
+        <p class="stat__note">since {memberSinceLabel}</p>
+      </div>
+    </div>
+  </section>
+
+  {/* ── In the margins ────────────────────────────────────────────────── */}
+  {notes && notes.length > 0 && (
+    <section class="mod reveal" style="transition-delay: 120ms">
+      <h2 class="mod__title">In the margins</h2>
+      <div class="plate marg-list">
+        {notes.map((n) => {
+          const it = prettify(n.issue_id);
+          return (
+            <div class="marg">
+              <p class="marg__quote">{n.body_md}</p>
+              <div class="marg__foot">
+                <span class="chip marg__status">{NOTE_STATUS[n.status] ?? n.status}</span>
+                <a class="marg__issue" href={it.href}>{it.title} <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {/* ── Preferences ───────────────────────────────────────────────────── */}
+  <section class="mod reveal" style="transition-delay: 160ms">
+    <h2 class="mod__title">Preferences</h2>
+    <form id="prefs-form" class="plate prefs" method="post" action="/api/account/prefs">
+      <label class="toggle prefs__row">
+        <input type="checkbox" name="weekly_digest" checked={emailPrefs.weekly_digest} />
+        <span class="toggle__track" aria-hidden="true"></span>
+        <span class="toggle__label"><b>Weekly digest</b> — one quiet letter when a new issue is worth keeping</span>
+      </label>
+      <label class="toggle prefs__row">
+        <input type="checkbox" name="issue_publish" checked={emailPrefs.issue_publish} />
+        <span class="toggle__track" aria-hidden="true"></span>
+        <span class="toggle__label"><b>New-issue alerts</b> — a note the moment an issue publishes</span>
+      </label>
+      <label class="toggle prefs__row">
+        <input type="checkbox" name="reengagement" checked={emailPrefs.reengagement} />
+        <span class="toggle__track" aria-hidden="true"></span>
+        <span class="toggle__label"><b>Reading-streak reminders</b> — the occasional nudge to pick up where you left off</span>
+      </label>
+      <div class="prefs__actions">
+        <button class="btn" type="submit">Save preferences</button>
+        <span class="prefs__status" role="status" aria-live="polite" data-prefs-status></span>
+      </div>
+    </form>
+  </section>
+
+  {/* ── Account ───────────────────────────────────────────────────────── */}
+  <section class="mod reveal" style="transition-delay: 200ms">
+    <h2 class="mod__title">Account</h2>
+    <div class="plate acct">
+      <div class="acct__row"><span class="acct__k">Name</span><span class="acct__v">{displayName ?? '—'}</span></div>
+      <div class="acct__row"><span class="acct__k">Email</span><span class="acct__v">{user.email}</span></div>
+      <div class="acct__row"><span class="acct__k">Reader since</span><span class="acct__v">{memberSinceLabel}</span></div>
+    </div>
+  </section>
+
+  {/* ── Admin ─────────────────────────────────────────────────────────── */}
   {userIsAdmin && (
-    <p class="dash-admin-links">
-      <a class="dash-admin-link" href="/admin/comments">Admin · Moderation queue →</a>
-      <a class="dash-admin-link" href="/admin/social">Admin · Social queue →</a>
-    </p>
+    <section class="mod reveal" style="transition-delay: 240ms">
+      <h2 class="mod__title">Editor</h2>
+      <div class="admin-grid">
+        <a class="tile admin-tile" href="/admin/comments">
+          <p class="tile__meta">MODERATION</p>
+          <h3 class="tile__title">The comment queue</h3>
+          <span class="tile__link">Open <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="tile admin-tile" href="/admin/social">
+          <p class="tile__meta">SOCIAL</p>
+          <h3 class="tile__title">The social queue</h3>
+          <span class="tile__link">Open <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </section>
   )}
 
-  {/* ── Account ────────────────────────────────────────────────────── */}
-  <h2>Account</h2>
-  <div class="row">
-    <span class="row__label">Name</span>
-    <span class="row__value">{displayName ?? '—'}</span>
-  </div>
-  <div class="row">
-    <span class="row__label">Email</span>
-    <span class="row__value">{user.email}</span>
-  </div>
-  <div class="row">
-    <span class="row__label">Reader since</span>
-    <span class="row__value">{memberSinceLabel}</span>
-  </div>
-
-  {/* ── Saved issues ───────────────────────────────────────────────── */}
-  <h2>Saved issues {savedCount > 0 && <span style="font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.16em;">— {savedCount}</span>}</h2>
-  {savedCount === 0 ? (
-    <p class="empty">The shelf is empty. Pick one to begin →</p>
-  ) : (
-    <div>
-      {savedIssues!.map((s) => (
-        <div class="row">
-          <span class="row__label">{new Date(s.saved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}</span>
-          <a class="row__value" href={`${import.meta.env.PUBLIC_SITE_URL}/issues/${s.issue_id}/`} style="color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule);">{s.issue_id}</a>
-        </div>
-      ))}
-    </div>
-  )}
-
-  {/* ── Email preferences ──────────────────────────────────────────── */}
-  <h2>Email preferences</h2>
-  <form id="prefs-form" method="post" action="/api/account/prefs">
-    <div class="row">
-      <label for="weekly_digest" class="row__label" style="cursor: pointer;">Weekly digest</label>
-      <input
-        type="checkbox"
-        id="weekly_digest"
-        name="weekly_digest"
-        checked={emailPrefs.weekly_digest}
-        style="margin: 0;"
-      />
-    </div>
-    <div class="row">
-      <label for="issue_publish" class="row__label" style="cursor: pointer;">New-issue alerts</label>
-      <input
-        type="checkbox"
-        id="issue_publish"
-        name="issue_publish"
-        checked={emailPrefs.issue_publish}
-        style="margin: 0;"
-      />
-    </div>
-    <div class="row">
-      <label for="reengagement" class="row__label" style="cursor: pointer;">Reading-streak reminders</label>
-      <input
-        type="checkbox"
-        id="reengagement"
-        name="reengagement"
-        checked={emailPrefs.reengagement}
-        style="margin: 0;"
-      />
-    </div>
-    <div style="margin-top: 16px;">
-      <button class="btn btn--ghost" type="submit">Save preferences</button>
-    </div>
-  </form>
-
-  {/* ── Account actions ────────────────────────────────────────────── */}
-  <h2>Account actions</h2>
-
-  <div style="margin-bottom: 24px;">
-    <form method="post" action="/api/auth/signout">
-      <button type="submit" class="btn btn--ghost">Sign out</button>
-    </form>
-  </div>
-
-  <details>
-    <summary style="cursor: pointer; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px;">
-      Delete account permanently
-    </summary>
-    <p style="font-size: 14px;">
-      This removes your profile, all saved issues, all reactions, all reading
-      events, and unsubscribes any newsletter address linked to your account.
-      Hard-deleted within 30 days; some data persists briefly in encrypted
-      backups, which expire automatically. This action cannot be undone.
-    </p>
-    <form
-      method="post"
-      action="/api/account/delete"
-      onsubmit="return confirm('Delete your Parallax account permanently? This cannot be undone.');"
-    >
-      <button type="submit" class="btn btn--danger">I understand — delete my account</button>
-    </form>
-  </details>
+  {/* ── Danger zone ───────────────────────────────────────────────────── */}
+  <section class="mod reveal" style="transition-delay: 280ms">
+    <details class="danger">
+      <summary class="danger__summary">Delete account permanently</summary>
+      <p class="danger__body">
+        This removes your profile, saved issues, reactions, reading events, and
+        unsubscribes any newsletter address linked to your account. Hard-deleted
+        within 30 days; some data persists briefly in encrypted backups, which
+        expire automatically. This cannot be undone.
+      </p>
+      <form method="post" action="/api/account/delete"
+        onsubmit="return confirm('Delete your Parallax account permanently? This cannot be undone.');">
+        <button type="submit" class="btn btn--danger">I understand — delete my account</button>
+      </form>
+    </details>
+  </section>
 </AppLayout>
 
+<script is:inline>
+  // Save preferences without leaving the shelf (progressive enhancement — the
+  // form still POSTs and redirects with a ?notice under no-JS).
+  (function () {
+    var form = document.getElementById('prefs-form');
+    if (!form) return;
+    var status = form.querySelector('[data-prefs-status]');
+    var btn = form.querySelector('button[type="submit"]');
+    form.addEventListener('submit', function (e) {
+      if (!window.fetch) return; // let the native POST handle it
+      e.preventDefault();
+      var label = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Saving…';
+      if (status) status.textContent = '';
+      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.ok; })
+        .then(function (ok) { if (status) status.textContent = ok ? 'Saved.' : 'Could not save — try again.'; })
+        .catch(function () { if (status) status.textContent = 'Could not save — try again.'; })
+        .then(function () { btn.disabled = false; btn.textContent = label; });
+    });
+  })();
+</script>
+
 <style>
-  /* Eyebrow-level entry points to the admin queues (admins only). */
-  .dash-admin-links {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin: 0 0 var(--gap-md);
-  }
-  .dash-admin-link {
-    display: inline-block;
+  .hero { margin-bottom: 8px; }
+  .hero .dek { max-width: 46ch; }
+
+  /* Module rhythm */
+  .mod { margin-top: 40px; }
+  .mod__title {
     font-family: var(--font-mono);
     font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .mod__count { color: var(--accent-deep, var(--accent)); letter-spacing: 0.1em; }
+
+  /* Shelf tile grid */
+  .shelf-grid,
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .tile { display: flex; flex-direction: column; gap: 8px; }
+  .tile__meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--muted);
+    margin: 0;
+  }
+  .tile__title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .tile__link {
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
     text-decoration: none;
+  }
+  a.tile { text-decoration: none; }
+  a.tile:hover .tile__link { color: var(--accent); }
+
+  /* Reading log */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  @media (max-width: 560px) { .stat-row { grid-template-columns: 1fr; gap: 20px; } }
+
+  /* In the margins */
+  .marg-list { display: flex; flex-direction: column; gap: 0; padding: 8px 32px; }
+  .marg { padding: 18px 0; border-bottom: 1px solid var(--rule); }
+  .marg:last-child { border-bottom: 0; }
+  .marg__quote {
+    font-family: var(--font-display);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0 0 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .marg__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .marg__status { padding: 4px 10px; min-height: 0; font-size: 10px; }
+  .marg__issue {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .marg__issue:hover { color: var(--ink); }
+
+  /* Preferences */
+  .prefs { display: flex; flex-direction: column; gap: 4px; }
+  .prefs__row { align-items: flex-start; padding: 12px 0; min-height: 0; }
+  .prefs__row .toggle__track { margin-top: 2px; }
+  .toggle__label { font-size: 14px; line-height: 1.5; color: var(--ink-soft, var(--ink)); }
+  .toggle__label b { color: var(--ink); font-weight: 600; }
+  .prefs__actions { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+  .prefs__status { font-size: 13px; color: var(--muted); }
+
+  /* Account */
+  .acct { display: flex; flex-direction: column; }
+  .acct__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    padding: 12px 0;
     border-bottom: 1px solid var(--rule);
-    padding-bottom: 3px;
   }
-  .dash-admin-link:hover {
-    color: var(--accent-deep);
-    border-bottom-color: var(--accent);
+  .acct__row:last-child { border-bottom: 0; }
+  .acct__k {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
+  .acct__v { font-size: 15px; color: var(--ink); }
+
+  /* Empty shelf */
+  .empty { text-align: left; }
+  .empty p { margin: 0 0 8px; font-size: 16px; color: var(--ink); }
+  .empty__sub { color: var(--muted) !important; font-size: 14px !important; }
+  .empty .btn { margin-top: 12px; }
+
+  /* Danger zone */
+  .danger { margin-top: 8px; }
+  .danger__summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .danger__summary:hover { color: var(--danger, var(--accent)); }
+  .danger__body { font-size: 14px; line-height: 1.6; color: var(--ink-soft, var(--ink)); max-width: 60ch; margin: 14px 0; }
 </style>

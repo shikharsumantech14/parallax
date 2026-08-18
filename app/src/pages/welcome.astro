@@ -1,0 +1,283 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import LensMark from '../components/LensMark.astro';
+import { requireUser, safeNextPath } from '../lib/auth';
+
+/**
+ * App /welcome — the one-time post-signup onboarding (JOURNEY-SPEC §3,
+ * APP-DESIGN-SPEC §4). Reached from /auth/callback when profiles.welcomed_at
+ * is NULL. Asks two OPTIONAL questions — a name and which worlds to shelf
+ * first — then routes the reader on to where they were headed.
+ *
+ * ⚠️ Not to be confused with the publication's /welcome (the cinematic
+ * "Second Angle" story). Different domain, different file.
+ *
+ * Fallback contract: the whole thing is a plain <form> POST to
+ * /api/onboarding. The world picker is native checkboxes (visually-hidden
+ * input + styled face, selected via :checked) so it submits and shows state
+ * with NO JavaScript. There is no client script on this page.
+ */
+
+const user = requireUser(Astro);
+const { supabase } = Astro.locals;
+
+const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
+
+const WORLDS = [
+  { id: 'politics', label: 'Politics' },
+  { id: 'space', label: 'Space' },
+  { id: 'earth', label: 'Earth' },
+  { id: 'tech', label: 'Tech' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'sports', label: 'Sports' },
+] as const;
+const WORLD_IDS = WORLDS.map((w) => w.id) as readonly string[];
+
+const worldRaw = (Astro.url.searchParams.get('world') ?? '').toLowerCase();
+const world = WORLD_IDS.includes(worldRaw) ? worldRaw : null;
+
+// Prefill from the profile (re-visits keep state) then the OAuth metadata.
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('display_name, stated_interests')
+  .eq('id', user.id)
+  .maybeSingle();
+
+const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+const metaName =
+  typeof meta.name === 'string'
+    ? meta.name
+    : typeof meta.full_name === 'string'
+      ? meta.full_name
+      : '';
+const nameValue = (profile?.display_name ?? metaName ?? '').toString().slice(0, 80);
+
+// Preselect: the desk they arrived from + anything already stated.
+const stated: string[] = Array.isArray(profile?.stated_interests)
+  ? profile!.stated_interests.filter((x: unknown): x is string => typeof x === 'string')
+  : [];
+const preselected = new Set<string>(stated);
+if (world) preselected.add(world);
+
+// CTA copy depends on whether we're returning the reader to a specific issue
+// on the publication, or just opening their shelf.
+const nextIsIssue = /\/issues\//.test(next);
+const ctaLabel = nextIsIssue ? 'Back to the issue →' : 'Open my shelf';
+
+const FEATURES = [
+  { k: 'THE SHELF', v: 'save any issue' },
+  { k: 'THE MARGINS', v: 'annotate; editors read every note' },
+  { k: 'THE DISPATCH', v: 'one email per issue, no more' },
+];
+---
+
+<AppLayout title="Welcome" description="Two quick questions to set up your Parallax shelf.">
+  <div class="wel">
+    <div class="wel__mark" aria-hidden="true">
+      <LensMark size={56} animate />
+    </div>
+
+    <div class="plate wel__plate" data-world={world ?? undefined}>
+      <h1 class="wel__h1">You're in.</h1>
+      <p class="dek wel__sub">Your shelf is open. Two quick questions — both optional.</p>
+
+      <form method="post" action="/api/onboarding" class="wel__form">
+        <input type="hidden" name="next" value={next} />
+
+        {/* ── name ─────────────────────────────────────────────────────── */}
+        <div class="field wel__name">
+          <label for="name">What should we call you?</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            value={nameValue}
+            maxlength="80"
+            autocomplete="name"
+            placeholder="Your name"
+          />
+        </div>
+
+        {/* ── worlds ───────────────────────────────────────────────────── */}
+        <fieldset class="wel__worlds">
+          <legend class="wel__worlds-legend">
+            Which worlds pull you in?
+            <span class="wel__worlds-sub">We'll put these first on your shelf.</span>
+          </legend>
+          <div class="wel__chips">
+            {WORLDS.map((w) => (
+              <label class="wchip" data-world={w.id}>
+                <input
+                  type="checkbox"
+                  name="interest"
+                  value={w.id}
+                  checked={preselected.has(w.id)}
+                  class="wchip__input"
+                />
+                <span class="chip wchip__face">
+                  <span class="chip__dot" aria-hidden="true"></span>
+                  {w.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* ── what the account gives you ───────────────────────────────── */}
+        <ul class="wel__features">
+          {FEATURES.map((f) => (
+            <li class="wel__feature">
+              <span class="wel__feature-k">{f.k}</span>
+              <span class="wel__feature-sep" aria-hidden="true">—</span>
+              <span class="wel__feature-v">{f.v}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* ── actions ──────────────────────────────────────────────────── */}
+        <div class="wel__actions">
+          <button class="btn btn--block wel__cta" type="submit" name="intent" value="save">
+            {ctaLabel}
+          </button>
+          <button class="wel__skip" type="submit" name="intent" value="skip" formnovalidate>
+            Skip for now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AppLayout>
+
+<style>
+  .wel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4vh;
+  }
+  @media (min-height: 760px) {
+    .wel { padding-top: 8vh; }
+  }
+  .wel__mark { margin-bottom: 20px; color: var(--ink); }
+
+  .wel__plate {
+    width: 100%;
+    max-width: 460px;
+    border-top: 3px solid var(--w-accent-deep, var(--accent-deep));
+  }
+
+  .wel__h1 {
+    font-family: var(--font-display);
+    font-size: 34px;
+    line-height: 1.1;
+    font-weight: 600;
+    margin: 2px 0 8px;
+  }
+  .wel__sub { margin-bottom: 22px; }
+
+  .wel__name { margin-bottom: 20px; }
+
+  /* ── worlds ── */
+  .wel__worlds {
+    border: none;
+    margin: 0 0 20px;
+    padding: 0;
+  }
+  .wel__worlds-legend {
+    display: block;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .wel__worlds-sub {
+    display: block;
+    font-weight: 400;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .wel__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* The pill anatomy (border/radius/mono type/dot) is the shared `.chip`
+     primitive (app.css §2) so a future .chip restyle propagates here. Only the
+     checkbox-driven states live locally — the native input inside the label is
+     what lets the picker submit AND show its selected state with zero JS. */
+  .wchip { position: relative; display: inline-flex; }
+  .wchip__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .wchip__face { cursor: pointer; }
+  .wchip__face:hover { border-color: var(--w-accent-deep, var(--accent-deep)); }
+  .wchip__input:checked + .chip {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .wchip__input:checked + .chip .chip__dot {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--paper) 40%, transparent);
+  }
+  .wchip__input:focus-visible + .chip {
+    outline: 2px solid var(--w-accent, var(--accent));
+    outline-offset: 2px;
+  }
+
+  /* ── features ── */
+  .wel__features {
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    gap: 8px;
+  }
+  .wel__feature {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .wel__feature-k {
+    color: var(--w-accent-deep, var(--accent-deep));
+    font-weight: 500;
+    text-transform: uppercase;
+    flex: none;
+  }
+  .wel__feature-sep { color: var(--rule); flex: none; }
+  .wel__feature-v { color: var(--muted); }
+
+  /* ── actions ── */
+  .wel__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .wel__cta { margin: 0; }
+  .wel__skip {
+    background: none;
+    border: none;
+    padding: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .wel__skip:hover { color: var(--ink); }
+  .wel__skip:focus-visible { outline: 2px solid var(--w-accent, var(--accent)); outline-offset: 2px; border-radius: 2px; }
+</style>

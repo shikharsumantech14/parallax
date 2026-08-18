@@ -5,6 +5,10 @@
 > This file lists the **steps only you can do** (account creation, DNS,
 > domain verification) before / in parallel with Phase A development.
 > Check items off as you complete them.
+>
+> **Stages 0–4 are the original Phase A setup** (done long ago — kept for
+> reference). Later go-live stages are appended below as work lands.
+> If you are here to ship the current batch, go straight to **Stage 5**.
 
 ---
 
@@ -153,6 +157,117 @@ Tell me, and we proceed to Phase A coding:
 
 You can do Stage 0-3 in parallel with my scaffolding work — neither
 blocks the other.
+
+---
+
+## Stage 5 — Go-live for the journey batch (~20 min + smoke)
+
+> Everything in this stage is code that is **written, build-green and
+> uncommitted** in the repo as of **2026-07-14**. None of it has been
+> runtime-tested: the dev machine has no Supabase env, so the app cannot
+> run there at all (`assertEnv` 500s every request). These are the steps
+> that turn it on — **do them in this order.**
+
+### [ ] 1. Apply the onboarding migration
+
+`app/supabase/migrations/20260705000000_journey_onboarding.sql` — paste
+into the Supabase SQL editor and click Run (or `supabase db push` if the
+CLI is linked).
+
+It adds two columns to `profiles`:
+- `welcomed_at timestamptz` — NULL until the reader finishes *or skips*
+  the one-time onboarding page at `app.parallaxlens.com/welcome`
+  (a different page from the publication's cinematic `/welcome` story —
+  same word, different site)
+- `stated_interests text[] NOT NULL DEFAULT '{}'` — the worlds they picked
+
+It is idempotent (`ADD COLUMN IF NOT EXISTS`), so re-running is harmless,
+and it needs **no new GRANT and no new RLS policy** — the existing
+table-level grant on `profiles` and the `profiles_update_own` policy
+already cover both columns.
+
+**Verify:** the `profiles` table shows both new columns.
+
+**If you skip this step:** sign-in still works (the callback gate is
+written to fail open), but `/welcome` errors on the missing columns and
+no reader is ever welcomed.
+
+### [ ] 2. Check the Supabase redirect allowlist
+
+The unified Join endpoint emails a magic link whose `redirectTo` is
+`https://app.parallaxlens.com/auth/callback?next=<publication URL>`. In
+Supabase → **Auth → URL Configuration**, confirm that
+`https://app.parallaxlens.com/auth/callback` (or a wildcard covering it)
+is in the allowed redirect URLs. If it isn't, the join email's link is
+rejected and the whole funnel dead-ends.
+
+One decision to make once while you're there: `/api/join` marks the
+newsletter subscription **confirmed at join time** — single opt-in, on the
+reasoning that the magic-link click already proves the address. If you
+want strict double opt-in instead, say so; it's a small code change
+(leave `confirmed_at` null in `join.ts` and confirm it in the callback).
+
+### [ ] 3. Deploy the app project FIRST, the publication SECOND
+
+This order is **not cosmetic**. The publication's newsletter form now
+POSTs to `app.parallaxlens.com/api/join` instead of the old
+`/api/subscribe`. Ship the publication first and every newsletter signup
+in that window posts to an endpoint that isn't live yet.
+
+The wrinkle: both Vercel projects auto-deploy from the same repo, so a
+single `git push` starts both builds at once. To keep the order, split
+the push:
+
+1. Commit and push the **`app/`** changes on their own.
+2. Wait for that deploy to go green; confirm
+   `https://app.parallaxlens.com/api/health` responds.
+3. *Then* commit and push the publication changes (root `src/`, `docs/`,
+   `.claude/`, `public/`).
+
+If you'd rather push everything in one go, that's survivable — the
+exposure is just the minutes between the two builds finishing. The split
+push is the tidy version.
+
+### [ ] 4. Smoke list (~10 min, after both deploys)
+
+Nothing below has been exercised against a running server — this list is
+the first real test of the batch.
+
+- [ ] **Join round-trip.** Submit the newsletter form on the publication
+      home. Expect exactly one email. Clicking it should sign you in on
+      the app and return you to the publication. (A degraded
+      `{ok:true, account:false}` response — subscribed but no magic link
+      sent — is handled by the form, so watch the inbox, not just the
+      success copy.)
+- [ ] **Gate → login → welcome → back to the issue.** In a private
+      window, open an issue and scroll past the free sections until the
+      signup wall appears. Its CTA carries `&world=<topic>`, so the login
+      plate should be tinted with that world's accent. Sign in; you
+      should land on the app's `/welcome`; press "Back to the issue →";
+      the issue should reopen with a "Continue where you left off ↓"
+      toast, which
+      auto-dismisses after 8s but pauses while hovered or focused.
+- [ ] **Welcome is once.** Sign out and back in — you should go straight
+      to your destination, never to `/welcome` again. Test this with
+      "Skip for now" too; skipping also counts as welcomed.
+- [ ] **Save + first-save microline.** Signed in, hit Save in the reading
+      toolbar. The label flips, a one-time "On your shelf →" microline
+      flashes and fades after ~4s, and the issue shows up as a tile on
+      the dashboard shelf. (Tiles currently title-case the slug — real
+      issue titles are a known follow-up, not a bug.)
+- [ ] **Newsletter-confirmed ribbon.** Visit
+      `https://parallaxlens.com/?newsletter=confirmed` (where the confirm
+      endpoint sends people). A "You're on the dispatch." ribbon should
+      appear above the masthead, be dismissible, and the query param
+      should disappear from the URL.
+- [ ] **Admin story link.** With your address in `ADMIN_EMAILS`, open
+      `app.parallaxlens.com/admin/social`. Each post card should show a
+      "↗ story" link to `parallaxlens.com/s/<issue_id>/` and a "Copy story
+      link" button, and using either must not affect approve/reject.
+      Note: story pages only exist for issues that aren't `status: draft`.
+
+Anything that fails here is a code fix, not a config one — send me the
+symptom and I'll take it.
 
 ---
 

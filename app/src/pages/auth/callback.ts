@@ -43,5 +43,34 @@ export const GET: APIRoute = async (ctx) => {
   }
 
   // Success — session cookie is set on this response by the SSR client.
+  // `ctx.locals.user` was pre-fetched by the middleware BEFORE this exchange,
+  // so it's still null here; read the freshly-authed user directly.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // First sign-in gate: send readers who haven't been welcomed to /welcome
+  // (JOURNEY-SPEC §1 fix #7). Any read hiccup falls through to `next` — the
+  // gate is a nicety, never a barrier to getting in, so a transient profiles
+  // read error must NOT bounce an already-welcomed reader back to /welcome.
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('welcomed_at')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    // Only gate on a clean read: no error AND (row missing OR not yet welcomed).
+    if (!profileError && (!profile || profile.welcomed_at == null)) {
+      const WORLDS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'];
+      const worldRaw = (ctx.url.searchParams.get('world') ?? '').toLowerCase();
+      const world = WORLDS.includes(worldRaw) ? worldRaw : null;
+      return ctx.redirect(
+        `/welcome?next=${encodeURIComponent(next)}` +
+          (world ? `&world=${world}` : ''),
+      );
+    }
+  }
+
   return ctx.redirect(next);
 };
