@@ -6,6 +6,13 @@
 > add context where the conventions shift. Claude Code reads this file via
 > `CLAUDE.md` (which `@`-imports it).
 >
+> **Read `docs/STATE-OF-PLAY.md` first.** This guide describes the project's
+> *standing conventions* — the rules that hold across sessions. It does not
+> track what is finished versus half-built. `docs/STATE-OF-PLAY.md` is the
+> dated snapshot of the actual current state: what exists, what is
+> uncommitted, what is verified only at compile time, and what is still
+> open. Start there, then come back here for the rules.
+>
 > **Keep this file current.** When you learn a non-obvious project fact
 > while working — a constraint that bit you, a convention nobody told the
 > agent about, a fix that should have been documented — add it to the
@@ -52,7 +59,8 @@ auto-deploys on push to `main`.
 | Hosting      | Vercel (static, auto-deploy on push to `main`)      |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
-| 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the 4 WebGL section kinds, code-split into its own chunk — see `src/scripts/viz3d/`) |
+| 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
+| Section library | **90 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts the pairing (manual — it is *not* wired into `npm run build`). |
 
 **Commands** (from `package.json`):
 
@@ -73,9 +81,11 @@ The pipeline scripts bill to your `ANTHROPIC_API_KEY` (loaded from
 token budget. Same agents are also invoked as `/pipeline-<phase>` slash
 commands inside Claude Code — those routes through Pro.
 
-**Minimal JS, all progressive enhancement.** Astro's near-zero-JS posture
-is intentional. The only client-side JS is a small set of tiny vanilla
-`is:inline` islands (no framework, no bundle): `core/Reveal.astro`
+**All progressive enhancement; the budget is rich on issues, lean everywhere
+else** (the 2026-07-05 policy — see the §7 visual rule, which supersedes the
+old "minimal JS everywhere" line). What has not changed: no framework, no
+client bundle. Everything is tiny vanilla `is:inline` islands plus the lazy,
+per-scene code-split `viz3d` runtime. The island set: `core/Reveal.astro`
 (scroll-reveal — adds `.is-in` to `[data-reveal]`), `core/VizMotion.astro`
 (count-up + cursor-warmth), `core/ReadingToolbar.astro` (reading progress +
 Full/Skim toggle + Save), the two once-per-issue 3D-library islands
@@ -87,14 +97,28 @@ its ⤢ button it portals any viz card into a focused modal "study view" with a
 plain-language explainer; the page never scrolls), plus the Phase-B reader
 islands (Save, Reactions, ReadingTracker, AnnotationLayer, Letters, NewsletterForm),
 plus the metered soft signup gate `core/ReadingGate.astro` (client-side
-cookie-detected auth wall on issues — see §7). The contract:
+cookie-detected auth wall on issues — see §7), plus the three **funnel**
+islands that close the account round-trip: `core/AccountEntry.astro` (the
+masthead slot — a plain "Sign in" link by default, swapped to the "Shelf"
+entry when the shared auth cookie is present, with `/api/me` as a confirmer
+only, never a gatekeeper), `core/WelcomeBack.astro` (issue-page toast on
+`?welcome=1`, offering the `sessionStorage px_resume` scroll position the
+gate saved before the round-trip) and `core/NewsletterNotice.astro` (the home
+ribbon on `?newsletter=confirmed`). AccountEntry degrades to a plain static
+sign-in link; the other two occupy no space and reveal nothing without JS,
+because a post-action confirmation is a nicety, never content.
+
+The contract:
 everything degrades to its final painted state under no-JS (hidden states
 are gated behind an `html.js` class set by an inline `<head>` guard) and
 under `prefers-reduced-motion`. Count-ups tween to the value already in the
 HTML. Any new interactivity must honour this contract and be justified.
 
 **Exception — the onboarding surface (`/welcome` + the home first-visit
-overlay).** "The Second Angle" is a deliberately *cinematic*, distinct-identity
+overlay).** (Two different pages answer to `/welcome`: this one, the
+publication's intro story at `src/pages/welcome.astro`, and the app's
+post-signup plate at `app/src/pages/welcome.astro`. Unrelated — check which
+project you are in.) "The Second Angle" is a deliberately *cinematic*, distinct-identity
 marketing/onboarding surface (its own `intro.css` palette, never touches
 article styles), so it carries **more** JS than the near-zero-JS articles:
 the `intro/IntroStory.astro` 5-scene player (auto/manual modes, keyboard +
@@ -146,28 +170,41 @@ src/
 ├── layouts/
 │   ├── HomeLayout.astro       ← used by / and /topics/* and /about
 │   ├── IssueLayout.astro      ← used by /issues/*
+│   ├── StoryLayout.astro      ← used by /s/* (story mode) — carries the
+│   │                            OG/Twitter head tags for the share cards
 │   └── IntroLayout.astro      ← minimal full-bleed shell for the onboarding
 │                                surface (no .px-wrap/masthead; loads only the
 │                                trio fonts + intro.css). Used by /welcome.
 ├── pages/
 │   ├── index.astro            ← home: chord + strip + category grid + archive
 │   │                            + <IntroExperience/> first-visit overlay
+│   │                            + <NewsletterNotice/> above the masthead
 │   ├── about.astro
 │   ├── welcome.astro          ← standalone full-screen auto-playing intro
 │   │                            story (IntroLayout + IntroStory)
 │   ├── rss.xml.ts
 │   ├── issues/[slug].astro    ← dynamic issue route (one per published+draft);
-│   │                            mounts core/ReadingGate.astro (soft signup wall)
+│   │                            mounts core/ReadingGate.astro (soft signup
+│   │                            wall) + core/WelcomeBack.astro (return toast)
+│   ├── s/[slug].astro         ← story mode; builds only for status !== 'draft'
 │   └── topics/[topic].astro   ← dynamic: 6 routes, dispatches to <Topic>Index
 ├── components/
-│   ├── SectionRenderer.astro  ← single dispatcher: section.kind → component
+│   ├── SectionRenderer.astro  ← ARTICLE CHROME only (core/Section wrapper,
+│   │                            act-break divider, skim-caption block)
+│   ├── SectionBody.astro      ← the actual dispatcher: section.kind →
+│   │                            component. Shared with story mode. THIS is
+│   │                            the file a new section kind is wired into.
 │   ├── core/                  ← topic-agnostic (Masthead, Banner, Hero,
 │   │                            Primer, Section, Quote, Prose, Comparison,
 │   │                            DataReadout, BeatSheet, Sources, Colophon,
-│   │                            ReadingToolbar [replaced SkimToggle], the
-│   │                            Reveal + VizMotion motion islands, the
-│   │                            Viz3DRuntime + Tilt islands for the 3D library,
-│   │                            and ReadingGate [metered soft signup wall])
+│   │                            ReadingToolbar [replaced SkimToggle; mounts
+│   │                            SaveButton], the Reveal + VizMotion motion
+│   │                            islands, the Viz3DRuntime + Tilt islands for
+│   │                            the 3D library, ReadingGate [metered soft
+│   │                            signup wall], and the funnel islands
+│   │                            AccountEntry / WelcomeBack / NewsletterNotice)
+│   ├── story/                 ← story mode: StoryShell, StoryHookCard,
+│   │                            StoryCard, StoryCtaCard, StoryShare
 │   ├── intro/                 ← onboarding ("The Second Angle"): IntroStory
 │   │                            (5-scene player), IntroExperience (home
 │   │                            first-visit overlay + spotlight tour),
@@ -182,6 +219,10 @@ src/
 │   ├── dataviz-v2.css         ← v2 data-viz kit CSS (animations + html.js-gated reveals); imported last in both layouts
 │   ├── components-3d.css      ← shared 3D mechanics (.px3d-* tilt/flip) + the .viz3d WebGL mount for the v2 3D/interactive library
 │   ├── viz-type.css           ← unified data-viz type scale (caption/axis/legend/value label roles)
+│   ├── layout-v2.css          ← the `layout:` section geometries (default / wide
+│   │                            / bleed / split / split-flip / breath)
+│   ├── story.css              ← story mode (.pxs-*), incl. the beat-card
+│   │                            chrome-hide compaction rule — see §7
 │   ├── modal.css              ← ExpandModal lightbox (in-page expand-to-modal study view)
 │   ├── intro.css              ← onboarding design system (px-intro scenes/player
 │   │                            + px-xp home overlay/tour). Own palette tokens;
@@ -190,20 +231,61 @@ src/
 │   │                            only for AccountLine + the About px-abt bits.)
 │   └── themes/<topic>.css     ← Layer B — full theme per topic
 ├── lib/
-│   └── text.ts                ← renderEmphasis, renderInline,
-│                                formatIssueNumber, formatSectionLabel
-└── scripts/viz3d/             ← lazy WebGL for the 4 3D section kinds:
+│   ├── text.ts                ← renderEmphasis, renderInline, stripEmphasis,
+│   │                            formatIssueNumber, formatSectionLabel
+│   ├── explainers.ts          ← EXPLAIN: per-kind default "in plain terms"
+│   │                            line (what / how) — the fallback when a
+│   │                            section has no authored `plain`
+│   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
+│                                ranking) + TRIM (per-kind data caps)
+└── scripts/viz3d/             ← lazy WebGL for the 14 3D section kinds:
                                   runtime.ts (dynamic-imports three on
-                                  scroll-in, code-split chunk) + scenes.ts
-                                  (scene builders). Mounted via
+                                  scroll-in) + scenes/index.ts (the registry —
+                                  ONE line per scene, each its own lazy chunk)
+                                  + scenes/<name>.ts + the shared physics
+                                  helpers at this level (helpers, kepler,
+                                  terrain, hemicycle, neural, terminator,
+                                  ballistics, packet). Mounted via
                                   core/Viz3DRuntime.astro
+public/
+└── geo/                       ← build/runtime geo data: countries-110m.json,
+                                  plates.json (tectonic plate boundaries, used
+                                  by the plate-motion scene), per-issue DEMs
 docs/
-└── PROJECT.md                 ← long-form project state + change log
+├── STATE-OF-PLAY.md           ← dated snapshot of what is actually built /
+│                                uncommitted / open — READ THIS FIRST
+├── PROJECT.md                 ← long-form project state + change log
+└── design/                    ← the design canon (CANON.md, motion.md,
+                                  catalog.md, the *-SPEC.md set, physics/,
+                                  worlds/, blueprints/) — read before any
+                                  visual work
+shared/design/                 ← tokens.css + worlds.css — the CANONICAL token
+                                  source for BOTH projects. Edit here, then
+                                  `npm run design:sync`; `design:check` gates
+                                  the root build.
+app/                           ← separate Astro SSR project (see app/AGENTS.md)
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
 .claude/agents/                ← agent system prompts (discovery, researcher,
                                   drafter, stylist, verifier)
 .claude/commands/              ← slash-command definitions that spawn the agents
 scripts/                       ← pipeline CLI (tsx-driven, bills to API key)
+                                  + check-catalog.mjs, design-sync.mjs,
+                                  story/og.ts (the `prebuild` hook)
+```
+
+The `app/` SSR project's own map lives in `app/AGENTS.md`. The paths added
+most recently, worth knowing before you go looking:
+
+```
+app/src/pages/welcome.astro              ← post-signup "You're in." plate
+                                           (name + six world-interest chips)
+app/src/pages/api/onboarding.ts          ← its POST handler (save / skip)
+app/src/pages/auth/callback.ts           ← routes first-time users to /welcome
+app/src/pages/dashboard/index.astro      ← "The Shelf"
+app/supabase/migrations/20260705000000_journey_onboarding.sql
+                                         ← adds profiles.welcomed_at +
+                                           profiles.stated_interests.
+                                           NOT YET APPLIED — operator applies.
 ```
 
 For deeper rules on each subtree, see the local AGENTS.md:
@@ -278,6 +360,21 @@ service in the pipeline.
 
 Voice quality is the highest-value output of draft and stylist, hence Opus.
 
+**The agents are catalog-driven (2026-07-14).** `docs/design/catalog.md` is
+now the canonical component palette the editorial agents read at runtime —
+the drafter no longer carries an inline kind list (it used to name only 30).
+The wiring: the **researcher** captures each proposed component's catalog
+`DATA:` line (and its `RESEARCHER MUST CAPTURE` note where the block has one),
+so the dossier arrives with real sourced values rather
+than invented coordinates or ratings; the **drafter** picks kinds from the
+catalog and authors `plain` (≤220 chars, explains the *form* not the data),
+`skimCaption` and `layout` per section, under the CANON §3 rhythm rules (one
+hero visual, ≤3 loud sections, act-breaks); the **stylist** runs a structure
++ plain audit (Step 4.6) that flags one-metaphor drift, act-rhythm breaks and
+catalog non-conformance; the **verifier** treats component `data` values as
+traceable claims and flags a `plain` line that asserts data as ⚠️ PLAIN-CLAIM.
+This wiring has not yet been exercised on a real run — see §10 (2026-07-14).
+
 **NotebookLM as upstream layer.** A per-category NotebookLM notebook (one
 per topic, seeded from the same `research/_sources/<category>.md`
 allowlists) sits upstream as the editor's judgment layer. Setup at
@@ -292,7 +389,9 @@ client islands that call the app subdomain. Phase A shipped. Phase B
 mostly shipped (reactions, save, reading-events, annotations capture +
 moderation queue, Letters block); remaining: topic affinity heatmap
 (B-4, data-gated). See `docs/PROJECT.md` §12 (2026-06-01 entries) for
-the full status.
+the full status. As of 2026-07-14 the dashboard is rebuilt as "The Shelf"
+and a post-signup `/welcome` onboarding step exists — both compile-verified
+only, and the onboarding migration is **not yet applied**. See §10.
 
 ---
 
@@ -342,7 +441,17 @@ em-dashes still needs to be fixed.
 
 - **No hardcoded names in `src/`.** `author` is schema-optional with no
   default. If absent, the Hero component omits the "By" line entirely.
-  Grep test: `Shikhar Sharma` should return zero hits in `src/`.
+  Grep test (corrected 2026-07-14 — the old form was wrong twice over: it
+  named the wrong surname, and it self-triggered on the AGENTS docs that
+  describe the rule):
+
+  ```bash
+  grep -rn "Shikhar S" src/ --include="*.astro" --include="*.ts" --include="*.mdx" --include="*.css"
+  ```
+
+  Zero hits = clean. The operator is **Shikhar Suman**; matching on
+  `Shikhar S` catches both that and the long-quoted "Shikhar Sharma" variant,
+  and scoping to code/content extensions skips the guides that mention it.
 - **Numbering format.** Issue and section numbers use em-dash + two-digit
   pattern: `— 01`, `— 02`, … Single source of truth: `formatIssueNumber`
   and `formatSectionLabel` in `src/lib/text.ts`. Exception: the `travel`
@@ -361,6 +470,13 @@ em-dashes still needs to be fixed.
 
 - `primer` is `z.string().min(80).max(420).optional()`. The 420-char limit
   is enforced at build time by Zod — overshooting breaks the build.
+- `plain` is `z.string().max(220).optional()`. Same deal: Zod enforces it at
+  build time, so a 221-char plain line **breaks the build**. It explains the
+  *form* of the viz ("each block is one seat…"); the caption explains the
+  data. Omitted ⇒ falls back to the per-kind default in `src/lib/explainers.ts`.
+- `layout` is one of `default | wide | bleed | split | split-flip | breath`
+  (`SECTION_LAYOUTS` in `config.ts`; geometry in `src/styles/layout-v2.css`).
+  Rhythm limits live in `docs/design/CANON.md` §3, not in the schema.
 - `skimCaption` only applies to `kind: prose` sections. Other section kinds
   ignore it.
 - `sources[].url` must be a valid URL (`z.string().url()`). Mock URLs
@@ -391,7 +507,9 @@ em-dashes still needs to be fixed.
   and missing WebGL. Home, topic indexes, and about stay in the near-zero-JS
   posture: the small vanilla `is:inline` island set (`core/Reveal.astro`,
   `core/VizMotion.astro`, `core/ReadingToolbar.astro`, the Phase-B reader
-  islands, `core/ReadingGate.astro`) and nothing framework-shaped. The
+  islands, `core/ReadingGate.astro`, and the funnel islands
+  `core/AccountEntry.astro` / `core/WelcomeBack.astro` /
+  `core/NewsletterNotice.astro`) and nothing framework-shaped. The
   onboarding surface ("The Second Angle" — `/welcome` + the home first-visit
   overlay) keeps its existing exception. The design canon in
   `docs/design/` governs how the budget is spent.
@@ -411,15 +529,42 @@ em-dashes still needs to be fixed.
   `px-strip` namespace is owned by `TopicStrip`; the climate-strip
   component uses `px-cstrip` to avoid it. Reserved: `px-intro` + `px-xp`
   (intro experience + home overlay/tour, in `intro.css`), `px-gate` (the
-  reading gate); `px-wj` / `px-abt` survive from the onboarding pass
-  (AccountLine + About).
+  reading gate), `px-acct` (AccountEntry), `px-wb` (WelcomeBack), `px-nnote`
+  (NewsletterNotice), `pxs-` (story mode, in `story.css`); `px-wj` / `px-abt`
+  survive from the onboarding pass (AccountLine + About).
+- **Mobile: page overflow is fixed, in-SVG fine print is not.** The 640px
+  tail of `dataviz-v2.css` makes data tables (`.lt`, `[class$="__table"]`)
+  scroll *inside* their card and adds `max-width`/`min-width:0` safety nets,
+  so no route overflows the page at 375px. The honest residual: SVG cards use
+  a fixed `viewBox` + `width:100%`, so their in-chart fine print still renders
+  at roughly 3.4–7px on a 375px screen. There is no clean blanket fix — a
+  `min-width` breaks the tall-narrow columns/discs/gauges. Mobile legibility
+  is carried instead by the HTML layer (the `plain` line, caption, and
+  legend/table at real px) plus the ⤢ expand-modal study view. A
+  per-component mobile-reflow round has **not** been done.
+- **Story cards hide the section's own chrome, never its data.** In story
+  mode `story.css` hides `[class$='__cap']` / `[class$='__src']` immediately
+  inside a beat's viz, because the beat text already supplies the title and
+  the CTA card links to the full issue where sources live. Graphic containers
+  never end in `__cap`/`__src`, so this only ever removes chrome — keep that
+  invariant if you name new sub-elements.
 - **No sitemap integration.** `@astrojs/sitemap` was tried and removed —
   it errored on the collection shape. Verify before re-adding.
 
 ### Git / deploy rules
 
 - Claude commits only — never pushes. The human pushes manually with
-  `git push`.
+  `git push`. Never `git checkout` / `reset` / `stash` / `restore` a file to
+  "undo" something — an agent once wiped hours of uncommitted wiring that way,
+  and most of this repo's work sits uncommitted for long stretches.
+- **Deploy order: `app/` before the publication.** The publication's
+  `NewsletterForm` posts to the app's `/api/join`; ship the publication first
+  and every subscribe attempt hits a 404. Same rule for any future
+  publication island that calls a new app endpoint.
+- **Migrations are the operator's to apply.** Adding a `.sql` file under
+  `app/supabase/migrations/` does not apply it. Write them idempotent
+  (`ADD COLUMN IF NOT EXISTS`), state clearly that they are unapplied, and
+  never assume a column exists because you wrote the migration for it.
 - Commit messages have **no** `Co-Authored-By` trailer.
 - All commits authored with the `shikharsumantech14` GitHub account
   (`git config user.email` must match). Vercel Hobby plan blocks deploys
@@ -434,13 +579,32 @@ em-dashes still needs to be fixed.
 2. Home (`/`) is visually distinct from a published issue.
 3. `/topics/<topic>/` renders correctly (populated *or* themed empty state).
 4. `/rss.xml` is valid XML.
-5. Grep test: `Shikhar Sharma` returns zero hits in `src/`.
+5. Grep test: `grep -rn "Shikhar S" src/ --include="*.astro" --include="*.ts"
+   --include="*.mdx" --include="*.css"` returns zero hits (see §7 — do not use
+   the old `Shikhar Sharma`-only form; it tests the wrong name and self-matches
+   the docs).
 6. Grep test: `No\.\s0` returns zero hits in `src/` except the `travel`
    masthead variant.
-7. Mobile 375px: no horizontal overflow on any route.
-8. If a new section kind was added: it appears in `SECTION_KINDS` in
-   `config.ts`, is dispatched in `SectionRenderer.astro`, has CSS in the
-   correct theme file, and is documented in `src/components/AGENTS.md`.
+7. Mobile 375px: no horizontal overflow on any route. (Measure `scrollWidth`
+   rather than eyeballing — a review once called overflow on the reading
+   toolbar that measurement disproved. In-SVG small type is a known separate
+   residual, see §7.)
+8. If a new section kind was added, six files have to agree. `npm run
+   check:catalog` verifies only the pairing of (1) and (5) — name-for-name,
+   same order — and it is **not** part of `npm run build`, so run it yourself.
+   The other four are on you:
+   1. `SECTION_KINDS` in `src/content/config.ts`
+   2. import + dispatch branch in `src/components/SectionBody.astro`
+      (**not** `SectionRenderer.astro` — that file is article chrome only)
+   3. `src/scripts/viz3d/scenes/index.ts` (WebGL kinds only)
+   4. an `EXPLAIN` entry in `src/lib/explainers.ts`
+   5. a `## <kind>` block in `docs/design/catalog.md` — same order as
+      `SECTION_KINDS`
+   6. a worked example section in that world's showcase issue
+   Plus: CSS in the correct theme file, an entry in
+   `src/components/AGENTS.md`, and — if it should be eligible for story
+   beats — a `KIND_PRIORITY` score (and any `TRIM` cap) in `src/lib/story.ts`,
+   or it silently sinks to the default 30 and never gets picked.
 9. If a new issue was added: status is correct (`draft` for review,
    `published` to go live), all `sourceRefs[]` resolve, primer is 80–420
    chars if present, all unverified claims carry `# EDITOR:` flags.
@@ -449,6 +613,11 @@ em-dashes still needs to be fixed.
 
 ## 9. Cross-references
 
+- **Current state (read first):** `docs/STATE-OF-PLAY.md` — what is built,
+  what is uncommitted, what is compile-verified only, what is still open.
+- **Design canon:** `docs/design/` — `CANON.md` (master rules), `catalog.md`
+  (the 90-kind component palette), `motion.md`, the `*-SPEC.md` set,
+  `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
   the canonical historical reference).
 - **Editorial pipeline detail:** `research/README.md` + `scripts/README.md`.
@@ -459,6 +628,99 @@ em-dashes still needs to be fixed.
 ---
 
 ## 10. Change log for this file
+
+### 2026-07-14 — P6–P8 executed: 90-kind library, funnel closed, app onboarding
+
+The bulk of the elevation plan landed. **All of it is in-repo and
+uncommitted** (~70 files — recount with `git status`; the doc refresh itself
+added to the pile) — the operator applies the migration, then commits, pushes
+and deploys **app before publication** (see `docs/STATE-OF-PLAY.md` §5 for the
+canonical go-live sequence). Root `npm run build` is green (44 pages) and `app/`
+compiles clean, but the app **cannot run on this box** (no `.env.local`), so
+every `app/` claim below is compile-verified only; the publication work was
+browser-verified live. Snapshot: `docs/STATE-OF-PLAY.md`.
+
+**(1) P6 component breadth — 22 new section kinds, library now 90.** earth
+gets plate-motion (WebGL) / atmosphere-column / carbon-loop / storm-track
+(WebGL); space gets constellation-swarm (WebGL) / lagrange-map /
+transfer-window / eclipse-cone; politics gets coalition-calculus /
+gerrymander-lens / ballot-flow; tech gets packet-trace (WebGL) / queue-cliff
+/ chip-die / moore-ladder; travel gets city-grid / altitude-oxygen /
+season-wheel / fare-terrain; sports gets elo-river / court-value /
+pace-ridge. Four new WebGL scenes (WebGL kinds: 10 → 14) plus a new
+`src/scripts/viz3d/packet.ts` helper shared by `PacketTrace.astro` **and**
+its scene, and a new `public/geo/plates.json`. Each kind is hand-wired
+through six files — §8 item 8 now lists them, and `npm run check:catalog`
+asserts `SECTION_KINDS` ↔ `docs/design/catalog.md` 1:1 in the same order.
+Traps worth knowing: `coalition-calculus` dispatches with a **spread**
+(`<CoalitionCalculus {...data} />`, flat props) unlike every other kind;
+`CityGrid.astro` hard-throws outside 1–3 cities; the globe seed-yaw to face
+longitude `cLon` is `drag.s.yaw = -((cLon + 90) * Math.PI) / 180` (a `+180`
+there opens on the limb). §2 gains a Section-library row and a corrected
+WebGL row; §4 gains the real `scenes/` registry shape.
+
+**(2) Systemic responsive pass, with an honest residual.** The reproducible
+375px overflow was data tables, fixed in the `max-width:640px` tail of
+`dataviz-v2.css` by making `.lt` / `[class$="__table"]` scroll inside their
+card (desktop untouched), plus `max-width`/`min-width:0` safety nets. Page
+overflow is gone on every route. What is **not** fixed: in-SVG fine print
+still lands at ~3.4–7px on a 375px screen because SVG cards use a fixed
+viewBox at `width:100%`, and no blanket fix survives the tall-narrow
+columns/discs/gauges. Legibility is carried by the HTML layer + the ⤢ study
+view. A per-component mobile-reflow round was offered and **not** done. New
+§7 visual rule records this plainly.
+
+**(3) P8 editorial-agent wiring.** `docs/design/catalog.md` became the
+canonical palette the agents read — the drafter's stale inline "30 kinds"
+list is gone; it now authors `plain` / `skimCaption` / `layout` per section
+under the CANON §3 rhythm. The stylist gained a Step 4.6 structure+plain
+audit, the researcher captures each component's catalog `DATA:` line, and the
+verifier flags a `plain` line that asserts data. Documented in §5. **Not yet
+exercised on a real pipeline run.**
+
+**(4) App: the Shelf + the onboarding flow.** `dashboard/index.astro` was
+rebuilt as "The Shelf" on the existing app.css v2 primitives, querying only
+confirmed table shapes. New `app/src/pages/welcome.astro` ("You're in." —
+name field + six world-interest chips) with `api/onboarding.ts` behind it;
+`auth/callback.ts` now re-reads the user after `exchangeCodeForSession` and
+routes first-timers there. The chips are native checkboxes wearing the
+`.chip` face so the picker submits and shows state with **zero JS** — the
+fallback contract outranked the spec's literal `aria-pressed` suggestion.
+New migration `20260705000000_journey_onboarding.sql` adds
+`profiles.welcomed_at` + `stated_interests` (no new GRANT/RLS needed;
+idempotent) — **not applied**. Deferred on the Shelf: reading-progress
+hairlines, topic-affinity bars, and real issue titles (tiles title-case the
+slug today).
+
+**(5) P6.3 publication funnel.** Three funnel islands now close the account
+round-trip — the pre-existing `core/AccountEntry.astro` plus new
+`core/WelcomeBack.astro` (issue toast on `?welcome=1`, offering the
+`sessionStorage px_resume` position) and `core/NewsletterNotice.astro` (home
+ribbon on `?newsletter=confirmed`). `SaveButton` gained world-tinted signed-out
+login links, and `NewsletterForm` repointed `/api/subscribe` → `/api/join` and
+is now no-JS-gated (a no-JS submit previously did a native GET that leaked the
+reader's email into the URL and server logs). **Deploy order matters: the app
+must go live before the publication**, or the newsletter form posts to an
+endpoint that does not exist. Added to §2 and the §7 island list.
+
+**(6) P7 story breadth.** All 22 new kinds got `KIND_PRIORITY` scores in
+`src/lib/story.ts` — without one they fell to the default 30 and were
+effectively unrankable — plus a `TRIM['city-grid']` cap of 2 (a first attempt
+at 4 was a dead no-op, since CityGrid throws above 3). Story cards now hide
+the section's own `__cap`/`__src` chrome (§7) and render prose beats as
+pure-text cards, which is what got the cards inside the viewport;
+375×667-verified across space/politics/earth. Residual: text-heavy kinds
+(comparison, paradox, timeline) still rely on the spec-sanctioned 62dvh
+internal scroller — the real fix for viz-poor issues is an authored `story:`
+frontmatter block, an editorial act, not a code gap. Story pages build only
+for `status !== 'draft'`, so the six `*-showcase` issues have none.
+
+Still open: the operator steps above; the P8 tail (retrofit two published
+issues + one fresh `pipeline:draft` to prove catalog-driven selection — it
+touches live content and bills the pipeline, so it is an editorial call); and
+the optional code rounds (per-component mobile reflow, per-kind story
+compaction, richer Shelf modules). A full product **revamp** is the next
+major effort.
 
 ### 2026-07-05 — Product-elevation plan approved: design canon + JS-budget rule change
 

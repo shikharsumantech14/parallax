@@ -44,17 +44,28 @@ comments, engagement metrics, trackers.
 | Styles       | Plain CSS, CSS custom properties swapped via `data-topic` |
 | Fonts        | Google Fonts — **one strict 3-font system**: Fraunces (serif voice — headlines, leads, nameplates, the italic accent word), Schibsted Grotesk (the single sans — body, UI, structural headings), JetBrains Mono (labels, eyebrows, numerals). The old per-world display fonts (Space Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex) are retired; worlds now differ by **accent colour + treatment**, not font. |
 | Feed         | **@astrojs/rss 4.0.x**          |
-| 3D / WebGL   | **three** (lazy-loaded + code-split; only the 4 WebGL globe kinds) |
+| 3D / WebGL   | **three** (self-hosted, lazy-loaded, one code-split chunk per scene; **14** WebGL kinds registered in `src/scripts/viz3d/scenes/index.ts`) |
 | Data viz     | build-time SVG + CSS-3D; `d3-geo` / `topojson-client` / `world-atlas` (maps + the 3D globe) |
 | Node         | `>=20.0.0` (see `.nvmrc`)       |
 | Hosting      | **Vercel** (static, auto-deploy on push to `main`) |
 | Repo         | github.com/shikharsumantech14/parallax |
 
 No client framework, no analytics, no cookies, no trackers, no raster imagery.
-**Near-zero JS** — a small set of tiny vanilla `is:inline` islands (scroll-reveal,
-count-up + cursor-warmth, reading toolbar, expand-to-modal) plus one bundled
-lazy-WebGL runtime for the four 3D globe kinds. Everything degrades to its final
-painted state under no-JS (`html.js`-gated) and `prefers-reduced-motion`.
+
+**JS budget: rich on issues, lean everywhere else** (operator-approved
+2026-07-05 — this *supersedes* the older "near-zero JS everywhere" posture; see
+`AGENTS.md` §7 for the governing rule). Issue pages and story mode carry a
+generous interactive budget — WebGL scenes, scroll-driven states, hover
+inspection — under three absolutes: every interactive byte serves
+**comprehension, not decoration**; everything is **lazy-loaded and code-split**
+(nothing heavy loads until its mount scrolls in, and never on pages that don't
+use it); and the **fallback contract is untouchable**. Home, topic indexes and
+about stay near-zero-JS: small vanilla `is:inline` islands only — scroll-reveal,
+count-up + cursor-warmth, reading toolbar, expand-to-modal, the Phase-B reader
+islands, the reading gate, and the three funnel islands (`AccountEntry`,
+`WelcomeBack`, `NewsletterNotice`). The onboarding surface ("The Second Angle")
+keeps its own documented exception. Everything degrades to its final painted
+state under no-JS (`html.js`-gated), `prefers-reduced-motion`, and missing WebGL.
 
 **Commands**
 
@@ -74,7 +85,7 @@ npm run new-issue  # scaffold a new issue folder (scripts/new-issue.mjs)
 - **Layer A — Constants (base.css + meta.css).** Topic-agnostic layout,
   rhythm, spacing, and the Parallax meta-brand aesthetic used on home and
   `/topics/*` index pages.
-- **Layer B — Topic themes (themes/*.css).** Each of the 5 topics defines a
+- **Layer B — Topic themes (themes/*.css).** Each of the 6 topics defines a
   full token set (`--bg`, `--ink`, `--accent`, `--font-display`, …) scoped
   under `:root[data-topic="<topic>"]`. Flipping `<html data-topic>` swaps the
   entire look.
@@ -869,6 +880,260 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 ---
 
 ## 12. Change log
+
+### 2026-07-14 — P6 breadth (22 kinds → 90) + responsive pass + P8 agent wiring + app Shelf/welcome + funnel + story breadth
+
+Closed the four items the 2026-07-05 entry listed as "remaining", plus the
+publication-side funnel and a story-mode breadth pass. **Everything below is
+shipped in-repo and UNCOMMITTED** — ~70 files against `main` @ `ed04da5`
+(60 at the time the code landed; the same-day documentation refresh took it to
+~72 — recount with `git status`), nothing pushed. Root `npm run build` green
+(44 pages); `cd app && npm run build` green (exit 0). **The app cannot run on
+this box** (no `.env.local` ⇒ the middleware throws `Missing env:
+PUBLIC_SUPABASE_URL`), so every app change here is **compile-verified only** —
+no runtime, no auth round-trip, no DB read. Publication changes were
+browser-verified live on the dev server.
+
+**A — P6 component breadth: 22 new section kinds (`SECTION_KINDS` 68 → 90).**
+Built from the P5 blueprints, five-ish per world, each browser-verified on
+desktop and at 375px:
+
+- **earth (4)** — `plate-motion` (WebGL), `atmosphere-column`, `carbon-loop`,
+  `storm-track` (WebGL)
+- **space (4)** — `constellation-swarm` (WebGL), `lagrange-map`,
+  `transfer-window`, `eclipse-cone`
+- **politics (3)** — `coalition-calculus`, `gerrymander-lens`, `ballot-flow`
+- **tech (4)** — `packet-trace` (WebGL), `queue-cliff`, `chip-die`,
+  `moore-ladder`
+- **travel (4)** — `city-grid`, `altitude-oxygen`, `season-wheel`,
+  `fare-terrain`
+- **sports (3)** — `elo-river`, `court-value`, `pace-ridge`
+
+Components live at `src/components/topic/<world>/<Name>.astro`. Four new
+lazy WebGL scenes landed under `src/scripts/viz3d/scenes/`
+(`plateMotion.ts`, `stormTrack.ts`, `constellationSwarm.ts`, `packetTrace.ts`)
+plus a new shared helper `src/scripts/viz3d/packet.ts` (exports `budget`,
+`layoutBar`, `cities`, `meanHopLon`, `Hop`) that is imported by **both**
+`PacketTrace.astro` and its scene, so the static fallback and the WebGL scene
+cannot drift. One new data file: `public/geo/plates.json`.
+
+**The 6-file wiring pattern.** Every kind touches exactly six shared files,
+hand-wired (this is the checklist for kind 91):
+
+1. `SECTION_KINDS` in `src/content/config.ts`
+2. `src/components/SectionBody.astro` — import + dispatch branch
+3. `src/scripts/viz3d/scenes/index.ts` — WebGL kinds only
+4. `src/lib/explainers.ts` — the `EXPLAIN` entry (what / how)
+5. `docs/design/catalog.md` — the `## <kind>` block; `npm run check:catalog`
+   enforces a 1:1 match with `SECTION_KINDS` **in the same order** (90 ↔ 90)
+6. a worked example section in that world's
+   `src/content/issues/2026-06-03-<world>-showcase/index.mdx`
+
+**Gotchas worth keeping.** `coalition-calculus` is the **one** kind dispatched
+with a spread — `<CoalitionCalculus {...data} />` — because it reads flat
+props; every other kind takes `section.data`. Section `plain` is capped at
+**220 chars** by Zod (`config.ts`) and overshooting **breaks the build**.
+`CityGrid.astro` **hard-throws** unless `cities.length` is 1–3. And the globe
+seed-yaw convention (from `globe.ts`, basis `th = lon + 180`, camera on `+z`):
+to open facing longitude `cLon`, set
+`drag.s.yaw = -((cLon + 90) * Math.PI) / 180` — writing `+180` there is the
+classic bug that opens the scene on the limb.
+
+**B — Systemic responsive pass** (tail of `src/styles/dataviz-v2.css`, one
+`@media (max-width: 640px)` block). The real, reproducible mobile overflow was
+**data tables**, not charts: `table.lt` and `[class$="__table"]` now go
+`display: block; overflow-x: auto` so rows scroll *within* their card (desktop
+untouched — they stay `display: table` above 640px). Safety nets alongside:
+`.px-viz { max-width: 100% }`, `.px-viz > * { min-width: 0 }`,
+`.px-ireel { overflow-x: clip }`. **Honest residual (not fixed):** in-SVG fine
+print still renders at roughly 3.4–7px at a 375px viewport, because SVG cards
+use a fixed `viewBox` with `width: 100%` and scale their type down with the
+drawing. There is **no clean blanket fix** — a `min-width` floor breaks the
+tall-narrow columns / discs / gauges. Mobile chart legibility is currently
+carried by the HTML layer around the graphic (the "In plain terms" line, the
+caption, and legends/tables at real px) plus the ⤢ expand-modal study view. A
+per-component mobile-reflow round was offered to the operator and **not done**.
+
+**C — P8 editorial-agent wiring** (`.claude/agents/*.md`; no build impact).
+`drafter.md` now reads `docs/design/catalog.md` as the canonical ~90-kind
+palette — this **replaced a stale inline "30 kinds" list** — and authors
+`plain` (form, not data; ≤220 chars), `skimCaption`, and `layout` per section
+while following the one-hero-visual / ≤3-loud / act-break rhythm from CANON §3;
+its self-check was extended to match. `stylist.md` gained a new **Step 4.6
+structure + plain audit** (flags one-metaphor violations, act-rhythm problems,
+catalog non-conformance). `researcher.md` now captures each proposed
+component's catalog **`DATA:`** line — plus the `RESEARCHER MUST CAPTURE` note
+on the 14 blocks that carry one — so dossiers carry real sourced
+data instead of invented coordinates or ratings. `verifier.md` treats component
+`data` values as traceable claims and flags a `plain` line that asserts *data*
+with ⚠️ PLAIN-CLAIM.
+
+**D — App: dashboard rebuilt as "The Shelf"**
+(`app/src/pages/dashboard/index.astro`). Fixes the operator's "dashboard =
+2000s design" complaint. Module order: greeting header → shelf tile grid
+(saved issues) → reading log (3 `.stat`s) → "In the margins" (the reader's own
+`comments` with status chips) → preferences (3 `.toggle` rows with a
+progressive-enhancement fetch save) → account plate → admin tiles (admin only)
+→ danger zone. It uses `width="shelf"` and the `app.css` v2 primitives that
+already existed from P3 (`.plate` / `.tile` / `.chip` / `.toggle` / `.stat` /
+`.appbar` + the `.reveal` IO island) — no new design language. Queries are
+restricted to confirmed shapes: `profiles`, `saved_issues`, and
+`comments(id, body_md, status, created_at, issue_id, user_id)`. **Deferred**
+(each needs schema + runtime verification we can't do here): per-issue
+reading-progress hairlines from `reading_events`, topic-affinity bars, and
+**real issue titles** via a cross-project issues manifest — today the tiles
+title-case the slug.
+
+**E — App: welcome / onboarding flow (new; closes JOURNEY-SPEC fix #7).**
+
+- **Migration** `app/supabase/migrations/20260705000000_journey_onboarding.sql`
+  adds `profiles.welcomed_at timestamptz` and
+  `profiles.stated_interests text[] NOT NULL DEFAULT '{}'`. No new GRANT and no
+  new RLS policy are needed: the Phase-A
+  `GRANT SELECT, UPDATE ON public.profiles TO authenticated` is table-level (so
+  it covers new columns) and `profiles_update_own` already permits own-row
+  writes. Idempotent (`ADD COLUMN IF NOT EXISTS`). **NOT YET APPLIED — the
+  operator applies it to prod Supabase.**
+- **`app/src/pages/welcome.astro`** — a "You're in." plate on the narrow shell,
+  mirroring `login.astro` (animated `LensMark` 56, `data-world` tint). The name
+  `.field` prefills from `profiles.display_name`, falling back to the
+  `user_metadata` name / full_name. The six world chips are **native
+  `<input type="checkbox">`** elements (visually hidden) wearing the shared
+  `.chip` face, with selection shown via `.wchip__input:checked + .chip` — so
+  the picker both **submits and shows state with zero JavaScript**. That was a
+  deliberate departure from the spec's literal `aria-pressed` suggestion: the
+  fallback contract outranks the spec. Three-row mono feature strip; two submit
+  buttons share `name="intent"` (`save` / `skip`, with `skip` carrying
+  `formnovalidate`); the CTA reads "Back to the issue →" when `next` is an
+  issue and "Open my shelf" otherwise. **The page ships no client script.**
+- **`app/src/pages/api/onboarding.ts`** — authenticated POST (`requireUser`).
+  It **always** stamps `welcomed_at`, on save *and* on skip, so welcome is
+  genuinely once. A blank name will not wipe a name Google supplied. Interests
+  are allowlist-filtered and deduped. `next` is validated through
+  `safeNextPath`. The `?welcome=1` toast marker is appended **only** for
+  `/issues/` URLs and **before** any `#fragment`. A `.select('id')` row-count
+  check logs a silent 0-row update rather than reporting success.
+- **`app/src/pages/auth/callback.ts`** (modified) — after
+  `exchangeCodeForSession` it re-reads the user via `supabase.auth.getUser()`,
+  because the middleware pre-fetched `locals.user` as **null before the
+  exchange**. It gates on a *clean* read only —
+  `!profileError && (!profile || profile.welcomed_at == null)` →
+  `/welcome?next=&world=` (world allowlist-validated). A transient profiles
+  read error falls through to `next`, so the gate can never become a barrier to
+  getting in.
+- Adversarially reviewed on three lenses (security / runtime / spec): four
+  minor findings, **all fixed**. The security lens found nothing exploitable.
+
+**F — P6.3 publication funnel** (closes the loop; browser-verified live).
+Two pieces **already existed** before this session and were verified rather
+than rebuilt: `src/components/core/AccountEntry.astro` (the masthead
+"Sign in" ↔ "Shelf" swap via the shared auth-cookie heuristic, with `/api/me`
+used as a *confirmer* only, never a gatekeeper) and
+`src/components/core/ReadingGate.astro` (3 benefit rows, `&world=` on the CTA,
+and the `sessionStorage px_resume` scroll-position save). New/changed:
+
+- **`src/components/core/WelcomeBack.astro`** (new, prefix `px-wb`) — a
+  top-centre glass toast mounted in `src/pages/issues/[slug].astro`. Fires on
+  `?welcome=1`, reads `sessionStorage px_resume`, offers "Continue where you
+  left off ↓" which scrolls to the saved y, clears `px_resume`, and strips the
+  param via `history.replaceState`. The 8s auto-dismiss **pauses on
+  hover/focus** so keyboard and AT users don't lose the resume control. At
+  ≤460px it uses a definite `width: calc(100vw - 24px)` plus flex-wrap, giving
+  a ~73px two-row toast (it was 168px when it shrink-wrapped).
+- **`src/components/core/NewsletterNotice.astro`** (new, prefix `px-nnote`) —
+  an in-flow ribbon mounted **above `<Masthead>`** in `src/pages/index.astro`.
+  Fires on `/?newsletter=confirmed` with "You're on the dispatch." + a
+  free-shelf CTA, strips the param, and is dismissible. It occupies no space
+  until revealed, so no-JS readers and crawlers see nothing.
+- **`src/components/core/SaveButton.astro`** (modified) — the signed-out label
+  is now "Save to your shelf"; the signed-out click carries
+  `&world=<data-topic>` into the login URL (world-tinted auth plate); a
+  first-save microline "On your shelf →" (linking to the app dashboard) flashes
+  once and fades after 4s; the loading pulse is now gated by
+  `prefers-reduced-motion`. Note for future edits: SaveButton mounts **inside
+  `core/ReadingToolbar.astro`**, not directly on the issue page.
+- **`src/components/core/NewsletterForm.astro`** (modified) — the POST target
+  was repointed `/api/subscribe` → **`/api/join`**, the copy is now "One email.
+  Two things.", and it handles the degraded `{ ok: true, account: false }`
+  response. The form is also now **no-JS-gated** behind `html:not(.js)` with an
+  "Enable JavaScript to subscribe." line: previously a no-JS submit did a
+  native GET that reloaded the page with the reader's **email in the URL,
+  browser history, and server logs**. NewsletterForm is the single source
+  embedded by SubscribeStrip / Colophon / Footer / BeatJoin, so one repoint
+  covers every mount.
+- Reviewed on three lenses (no-JS + SEO / security / spec + a11y + mobile): six
+  findings. The one rated "major" — a claimed reading-toolbar horizontal
+  overflow at 375px — was **disproven by measurement**: the glass pill measures
+  260px wide at a 375px viewport and page `scrollWidth` is exactly 375. The
+  rest were fixed; security found nothing.
+- **Deploy order matters: the app must deploy BEFORE the publication**, because
+  the NewsletterForm repoint depends on `/api/join` being live.
+
+**G — P7 story mode: breadth + share.** Four pieces were **already built by
+P4** and only verified here, not redone: `src/components/story/StoryShare.astro`
+(`navigator.share` → clipboard fallback → `role=status` confirmation);
+`scripts/story/og.ts` wired as the `prebuild` npm hook, rendering one 1200×630
+PNG per non-draft issue into `public/og/story/<slug>.png` via `ogCard` +
+`toPng(…, 'og')` from `scripts/social/cards.ts` (it regenerates every build —
+10 valid PNGs, 53–109KB); the OG/Twitter head tags in
+`src/layouts/StoryLayout.astro`; and the `?via=story` attribution on
+`StoryCtaCard`. New in this session:
+
+- **All 22 P6 kinds added to `KIND_PRIORITY`** in `src/lib/story.ts`. They had
+  been silently falling to the default 30, which made them effectively
+  unrankable for beat selection. Assigned: `constellation-swarm` 90;
+  `court-value` + `coalition-calculus` 86; `plate-motion` + `storm-track` +
+  `packet-trace` 84; `lagrange-map` + `queue-cliff` 82; `transfer-window` +
+  `gerrymander-lens` + `ballot-flow` 80; `chip-die` 78; `eclipse-cone` +
+  `elo-river` 76; `city-grid` + `season-wheel` 74; `pace-ridge` 72;
+  `carbon-loop` 66; `moore-ladder` + `atmosphere-column` 64; `altitude-oxygen`
+  + `fare-terrain` 62. All 22 names were cross-checked 1:1 against
+  `SECTION_KINDS`.
+- **New trim** `TRIM['city-grid'] = cap(cities, 2)`. An adversarial review
+  caught the gotcha: `CityGrid` hard-throws above 3 cities, so the initially
+  written cap of 4 was a guaranteed **dead no-op**.
+- **Story-teaser chrome compaction** in `src/styles/story.css`:
+  `.pxs-beat__viz > * > [class$='__cap'], .pxs-beat__viz > * > [class$='__src']
+  { display: none }` plus `.pxs-beat__viz > * { margin: 0 }`. Rationale: inside
+  a story card the beat text already supplies the title and the CTA links to
+  the full issue where sources live, so the section's *own* title-caption and
+  source-citation are redundant **chrome**. Reclaims 150–280px per card
+  (trajectory-arc went 2.32× → 1.41× overflow). An adversarial lens confirmed
+  the selector hides only chrome and never data — graphic containers never end
+  in `__cap` / `__src`.
+- **Prose beats are now pure-text cards** (STORY-MODE-SPEC §1):
+  `StoryCard.astro` skips `<SectionBody>` when `kind === 'prose'` and adds
+  `.pxs-card--text` (editorial Fraunces, no 26dvh clamp). Rendering the whole
+  prose section had been a tall duplicate — 2.74× overflow became a 374px card
+  that fits.
+- **`app/src/pages/admin/social.astro`** gained a per-post "↗ story" link to
+  `/s/<issue_id>/` and a "Copy story link" clipboard button, on a separate
+  delegated handler so it never touches approve/reject.
+- **Verified at 375×667** across the space / politics / earth stories: every
+  card fits the viewport, zero horizontal page overflow, graphics survive the
+  compaction.
+- **Honest residual:** text-heavy narrative kinds still render tall and rely on
+  the spec-sanctioned 62dvh internal scroller (comparison ≈3.8×, paradox ≈2.3×,
+  timeline ≈1.5×). The real fix for viz-poor issues is an **authored `story:`
+  frontmatter block** where the editor hand-picks viz beats (as on the asteroid
+  flagship) — an editorial action, not a code gap. A per-kind compaction pass
+  across all 90 kinds was scoped **out**. Note that story pages build only for
+  `status !== 'draft'` issues (10 today); the six `*-showcase` issues are
+  `status: draft`, so they have **no** story page.
+
+**H — What remains.** *Operator only:* apply the `journey_onboarding` migration
+first; then commit + push (~70 files) and **get the app live before the
+publication** — the newsletter form now posts to `/api/join`, so a
+publication-first deploy leaves that form hitting a 404; then run a real-iPhone
+story snap pass via a Vercel branch preview. `docs/STATE-OF-PLAY.md` §5 holds
+the canonical sequence. *P8 tail:* retrofit
+two published issues with the new components and run one fresh
+`pipeline:draft` to prove catalog-driven selection — that touches live content
+and bills the pipeline, so it's an editorial call. *Optional code:*
+per-component mobile chart reflow; per-kind story compaction; the richer Shelf
+modules (reading-progress hairlines, topic affinity, real issue titles via an
+issues manifest). A full product **revamp** (design + functionality) is planned
+as the next major effort in a fresh session.
 
 ### 2026-07-05 → 07-06 — Product-elevation program (design canon + flagships + home + story mode + 2 review rounds)
 
