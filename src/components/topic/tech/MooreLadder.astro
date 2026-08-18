@@ -1,0 +1,517 @@
+---
+/**
+ * MooreLadder (tech) — a dated count series on a base-2 log axis, where an
+ * exponential law straightens into a climb, with the least-squares
+ * doubling-time fit drawn through it (slope printed as "doubling every N yr").
+ * Every rung up the y-ruler is ×2 — the ladder of the title. One chip the
+ * story follows is highlighted on the rungs. Build-time SVG + regression;
+ * zero WebGL, zero runtime JS beyond the shared Reveal island.
+ *
+ * No-JS / reduced-motion / print: the SVG IS its own composed still — all
+ * points placed, fit line fully drawn with its doubling callout, labeled log
+ * rungs, highlight labels. The `settle`/`sweep` reveals are gated behind
+ * `html.js`; nothing is hidden without JS.
+ *
+ * Honesty (CANON §7): the `y: log₂ scale` chip ALWAYS renders. If `fitRange`
+ * is set, a `fit: {start}–{end}` chip states the doubling claim's scope.
+ * The doubling time is COMPUTED from the least-squares slope, never authored.
+ *
+ * data: { points[]{ year, count, label, highlight? }, yLabel?, unit?, fit?,
+ *         fitRange?, caption?, source? }  — see blueprint tech/moore-ladder.md
+ */
+import { renderInline } from '../../../lib/text';
+
+interface LadderPoint {
+  year: number;
+  count: number;
+  label: string;
+  highlight?: true;
+}
+interface Props {
+  points: LadderPoint[];
+  yLabel?: string;
+  unit?: string;
+  fit?: boolean;
+  fitRange?: [number, number];
+  caption?: string;
+  source?: string;
+}
+const {
+  points = [],
+  yLabel = 'transistors per chip',
+  unit = '',
+  fit = true,
+  fitRange,
+  caption,
+  source,
+} = Astro.props;
+
+// ── Build-time guard (blueprint §3: ≥6 points) ──────────────────────────────
+if (points.length < 6) {
+  throw new Error(
+    `MooreLadder needs ≥6 points to earn a log axis (got ${points.length}). ` +
+      `A log scale on a narrow range is a lie — use scaling-plot instead.`,
+  );
+}
+
+// ── Geometry constants (blueprint §4) ───────────────────────────────────────
+const VB_W = 720, VB_H = 440;
+const X0 = 88, X1 = 680, W_plot = X1 - X0;   // 592 — plot x extent
+const Y0 = 36, Y1 = 380, H_plot = Y1 - Y0;   // 344 — plot y extent
+
+const log2 = (v: number) => Math.log(v) / Math.LN2;
+
+const years = points.map((p) => p.year);
+const counts = points.map((p) => p.count);
+const yMin = Math.min(...years);
+const yMax = Math.max(...years);
+
+// log2 domain, snapped to integer powers of two so rungs land on grid lines
+const Yvals = counts.map(log2);
+const Ylo = Math.floor(Math.min(...Yvals));
+const Yhi = Math.ceil(Math.max(...Yvals));
+
+const xOf = (yr: number) => X0 + ((yr - yMin) / (yMax - yMin)) * W_plot;
+const yOfY = (Y: number) => Y1 - ((Y - Ylo) / (Yhi - Ylo)) * H_plot; // Y already log2
+const yOf = (c: number) => yOfY(log2(c));
+
+// ── Least-squares doubling fit (blueprint §4, physics §7) ───────────────────
+// Y = m·x + b over the fitRange points; doubling time = 1/m years.
+const fitPts = fitRange
+  ? points.filter((p) => p.year >= fitRange[0] && p.year <= fitRange[1])
+  : points;
+let m = 0, b = 0, doubling = '';
+let fitLine: { x1: number; y1: number; x2: number; y2: number; len: number } | null = null;
+if (fit && fitPts.length >= 2) {
+  const xs = fitPts.map((p) => p.year);
+  const Ys = fitPts.map((p) => log2(p.count));
+  const n = xs.length;
+  const xbar = xs.reduce((a, v) => a + v, 0) / n;
+  const Ybar = Ys.reduce((a, v) => a + v, 0) / n;
+  let sxy = 0, sxx = 0;
+  for (let i = 0; i < n; i++) {
+    sxy += (xs[i] - xbar) * (Ys[i] - Ybar);
+    sxx += (xs[i] - xbar) * (xs[i] - xbar);
+  }
+  m = sxy / sxx;
+  b = Ybar - m * xbar;
+  doubling = (1 / m).toFixed(1);
+  // draw across the fitRange's x extent, at the line's own predicted Y
+  const fx1 = Math.min(...xs), fx2 = Math.max(...xs);
+  const p1 = { x: xOf(fx1), y: yOfY(m * fx1 + b) };
+  const p2 = { x: xOf(fx2), y: yOfY(m * fx2 + b) };
+  fitLine = {
+    x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+    len: Math.hypot(p2.x - p1.x, p2.y - p1.y),
+  };
+}
+
+// ── Number formatting ───────────────────────────────────────────────────────
+const trim = (v: number) => {
+  const r = Math.round(v * 10) / 10;
+  return (Number.isInteger(r) ? r.toFixed(0) : r.toFixed(1));
+};
+// compact SI suffix for cramped on-plot / rung labels (57B, 3.1M, 275K)
+const compact = (n: number) => {
+  if (n >= 1e9) return `${trim(n / 1e9)}B`;
+  if (n >= 1e6) return `${trim(n / 1e6)}M`;
+  if (n >= 1e3) return `${trim(n / 1e3)}K`;
+  return String(Math.round(n));
+};
+const full = (n: number) => n.toLocaleString('en-US'); // comma-grouped for legend + AT
+const u = unit ? ` ${unit}` : '';
+
+// ── Labeled power-of-ten rungs (§4: --ink @0.16, SI suffix) ─────────────────
+const tenRungs: { y: number; label: string }[] = [];
+for (let e = 0; e <= 15; e++) {
+  const val = Math.pow(10, e);
+  const Y = log2(val);
+  if (Y >= Ylo && Y <= Yhi) tenRungs.push({ y: yOfY(Y), label: compact(val) });
+}
+// ── Faint power-of-two rungs (§4: --ink @0.08, unlabeled, dropped on mobile) ─
+const twoRungs: number[] = [];
+for (let Y = Ylo + 1; Y < Yhi; Y++) twoRungs.push(yOfY(Y));
+
+// ── Year ticks at decade boundaries within range (§4) ───────────────────────
+const yearTicks: { x: number; label: string; keepMobile: boolean }[] = [];
+for (let d = Math.ceil(yMin / 10) * 10; d <= yMax; d += 10) {
+  yearTicks.push({ x: xOf(d), label: String(d), keepMobile: d % 20 === 0 });
+}
+
+// ── Points + on-plot label placement ────────────────────────────────────────
+type Plotted = LadderPoint & {
+  i: number; cx: number; cy: number;
+  lx: number; ly: number; anchor: 'start' | 'end';
+  showLabel: boolean; essential: boolean;
+  aria: string;
+};
+const n1 = points.length - 1;
+const plotted: Plotted[] = points.map((p, i) => {
+  const cx = xOf(p.year);
+  const cy = yOf(p.count);
+  const nearRight = cx > VB_W * 0.82;
+  const anchor: 'start' | 'end' = nearRight ? 'end' : 'start';
+  const lx = nearRight ? cx - 8 : cx + 8;
+  const ly = cy - 8;
+  return {
+    ...p, i, cx, cy, lx, ly, anchor,
+    showLabel: !p.highlight,                       // highlights label in the gutter
+    essential: !!p.highlight || i === 0 || i === n1,
+    aria: `${p.label} · ${p.year} · ${full(p.count)}${u} transistors`,
+  };
+});
+
+// Greedy de-clutter of the small non-highlight labels: keep first/last first,
+// then most-recent year; drop any that collides. Highlights are never here.
+const order = [...plotted]
+  .filter((p) => p.showLabel)
+  .sort((a, b2) => {
+    const pa = a.essential ? 0 : 1;
+    const pb = b2.essential ? 0 : 1;
+    return pa - pb || b2.year - a.year;
+  });
+const placed: { x: number; y: number }[] = [];
+for (const p of order) {
+  const hit = placed.some((q) => Math.abs(q.x - p.lx) < 46 && Math.abs(q.y - p.ly) < 13);
+  if (hit) p.showLabel = false;
+  else placed.push({ x: p.lx, y: p.ly });
+}
+
+// Highlighted chips → fixed right-gutter labels with a leader (never overrun VB)
+const highlights = plotted.filter((p) => p.highlight);
+
+// ── Reveal timing (blueprint §5; motion.md ≤1.6s) ───────────────────────────
+const stagger = Math.min(40, 700 / Math.max(1, n1)); // ms — tech mechanical cadence
+const lastSettleAt = n1 * stagger;                    // last point starts settling
+const sweepMs = 900;                                  // matches power-flow
+
+// ── Legend rows (fallback / AT data source, §7) ─────────────────────────────
+const legendRows = points.map((p) => ({
+  year: p.year, label: p.label, count: full(p.count), highlight: !!p.highlight,
+}));
+const pinned = plotted
+  .filter((p) => p.essential)
+  .sort((a, b2) => a.year - b2.year)
+  .filter((p, i, arr) => arr.findIndex((q) => q.i === p.i) === i);
+const collapses = points.length > 5;
+
+const fitScopeTxt = fitRange ? ` over ${fitRange[0]}–${fitRange[1]}` : '';
+const ariaSummary = doubling
+  ? `Log₂ growth ladder: ${points.length} chips from ${full(points[0].count)} to ` +
+    `${full(points[points.length - 1].count)} ${yLabel}, doubling every ${doubling} years${fitScopeTxt}.`
+  : `Log₂ growth ladder of ${points.length} chips (${yLabel}).`;
+---
+
+<div class="px-viz px-mldr" data-reveal>
+  <div class="px-viz__cap">
+    {caption && <span set:html={renderInline(caption)} />}
+    <span class="px-mldr__chips">
+      <b>y: log₂ scale</b>
+      {fitRange && <b>fit: {fitRange[0]}–{fitRange[1]}</b>}
+    </span>
+  </div>
+
+  <div class="px-mldr__frame">
+    <svg
+      class="px-mldr__svg"
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={ariaSummary}
+      style={`--stagger:${stagger}ms; --last:${lastSettleAt}ms; --sweep:${sweepMs}ms`}
+    >
+      <!-- faint power-of-two rungs (the ladder; dropped on mobile) -->
+      <g class="px-mldr__two">
+        {twoRungs.map((y) => (
+          <line x1={X0} y1={y.toFixed(1)} x2={X1} y2={y.toFixed(1)} />
+        ))}
+      </g>
+
+      <!-- labeled power-of-ten rungs -->
+      <g class="px-mldr__ten">
+        {tenRungs.map((r) => (
+          <g>
+            <line x1={X0} y1={r.y.toFixed(1)} x2={X1} y2={r.y.toFixed(1)} />
+            <text class="px-mldr__rung-lbl" x={X0 - 8} y={(r.y + 3).toFixed(1)} text-anchor="end">{r.label}</text>
+          </g>
+        ))}
+      </g>
+
+      <!-- axes -->
+      <line class="px-mldr__axis" x1={X0} y1={Y0} x2={X0} y2={Y1} />
+      <line class="px-mldr__axis" x1={X0} y1={Y1} x2={X1} y2={Y1} />
+      <g class="px-mldr__xticks">
+        {yearTicks.map((t) => (
+          <g class={t.keepMobile ? '' : 'px-mldr__x--opt'}>
+            <line x1={t.x.toFixed(1)} y1={Y1} x2={t.x.toFixed(1)} y2={Y1 + 5} />
+            <text class="px-mldr__tick" x={t.x.toFixed(1)} y={Y1 + 18} text-anchor="middle">{t.label}</text>
+          </g>
+        ))}
+      </g>
+      <text class="px-mldr__axis-title" x={X0 + W_plot / 2} y={VB_H - 8} text-anchor="middle">YEAR</text>
+      <text
+        class="px-mldr__axis-title"
+        x={20} y={Y0 + H_plot / 2}
+        text-anchor="middle"
+        transform={`rotate(-90 20 ${Y0 + H_plot / 2})`}
+      >TRANSISTORS (log₂)</text>
+
+      <!-- data points (settle in year order) -->
+      <g class="px-mldr__pts">
+        {plotted.map((p) => (
+          <g
+            class:list={['px-mldr__pt', { 'is-hl': p.highlight, 'px-mldr__pt--essential': p.essential }]}
+            style={`--d:${(p.i * stagger).toFixed(0)}ms`}
+            tabindex="0"
+            role="button"
+            aria-label={p.aria}
+          >
+            <title>{p.aria}</title>
+            <circle class="px-mldr__hit" cx={p.cx.toFixed(1)} cy={p.cy.toFixed(1)} r="16" />
+            <circle class="px-mldr__dot" cx={p.cx.toFixed(1)} cy={p.cy.toFixed(1)} r={p.highlight ? 6 : 4} />
+            {p.showLabel && (
+              <text class="px-mldr__plabel" x={p.lx.toFixed(1)} y={p.ly.toFixed(1)} text-anchor={p.anchor}>{p.label}</text>
+            )}
+          </g>
+        ))}
+      </g>
+
+      <!-- highlighted chips → fixed right-gutter labels with a leader -->
+      <g class="px-mldr__hls">
+        {highlights.map((p) => {
+          const gx = X1 + 4;
+          return (
+            <g class="px-mldr__hl">
+              <line class="px-mldr__leader" x1={(p.cx + 7).toFixed(1)} y1={p.cy.toFixed(1)} x2={gx} y2={p.cy.toFixed(1)} />
+              <text class="px-mldr__hl-name" x={gx} y={(p.cy - 3).toFixed(1)} text-anchor="start">{p.label}</text>
+              <text class="px-mldr__hl-num" x={gx} y={(p.cy + 11).toFixed(1)} text-anchor="start">{compact(p.count)}{unit ? ` ${unit}` : ''}</text>
+            </g>
+          );
+        })}
+      </g>
+
+      <!-- the fit line (drawn LAST, sweep-animated) + doubling callout -->
+      {fitLine && (
+        <g class="px-mldr__fitg">
+          <line
+            class="px-mldr__fit"
+            x1={fitLine.x1.toFixed(1)} y1={fitLine.y1.toFixed(1)}
+            x2={fitLine.x2.toFixed(1)} y2={fitLine.y2.toFixed(1)}
+            style={`--len:${fitLine.len.toFixed(0)}`}
+          />
+          <text class="px-mldr__callout" x={fitLine.x2.toFixed(1)} y={(fitLine.y2 + 18).toFixed(1)} text-anchor="end">doubling every {doubling} yr</text>
+        </g>
+      )}
+    </svg>
+  </div>
+
+  <!-- legend — AT-readable data source; collapses past 5 rows (§7) -->
+  <div class="px-mldr__legend">
+    <ul class="px-mldr__leg-list">
+      {pinned.map((p) => (
+        <li class:list={['px-mldr__leg-row', { 'is-hl': p.highlight }]}>
+          <span class="px-mldr__leg-yr">{p.year}</span>
+          <span class="px-mldr__leg-name">{p.label}</span>
+          <span class="px-mldr__leg-num">{full(p.count)}{u}</span>
+        </li>
+      ))}
+    </ul>
+    {collapses && (
+      <details class="px-mldr__disc">
+        <summary>show all {points.length} chips</summary>
+        <ul class="px-mldr__leg-list">
+          {legendRows.map((r) => (
+            <li class:list={['px-mldr__leg-row', { 'is-hl': r.highlight }]}>
+              <span class="px-mldr__leg-yr">{r.year}</span>
+              <span class="px-mldr__leg-name">{r.label}</span>
+              <span class="px-mldr__leg-num">{r.count}{u}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    )}
+    {doubling && (
+      <p class="px-mldr__fitsum">Fit · doubling every {doubling} yr{fitScopeTxt}</p>
+    )}
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-mldr__chips { display: flex; gap: 8px; flex: 0 0 auto; align-self: center; }
+
+  .px-mldr__frame { width: 100%; }
+  .px-mldr__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* rungs ------------------------------------------------------------------ */
+  .px-mldr__two line { stroke: var(--ink); stroke-width: 1; opacity: 0.08; }
+  .px-mldr__ten line { stroke: var(--ink); stroke-width: 1; opacity: 0.16; }
+  .px-mldr__axis { stroke: var(--ink); stroke-width: 1; opacity: 0.42; }
+  .px-mldr__xticks line { stroke: var(--ink); stroke-width: 1; opacity: 0.42; }
+
+  .px-mldr__rung-lbl,
+  .px-mldr__tick {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.08em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-mldr__axis-title {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  /* points ----------------------------------------------------------------- */
+  .px-mldr__hit { fill: transparent; }
+  .px-mldr__dot { fill: var(--accent); opacity: 0.9; }
+  .px-mldr__pt.is-hl .px-mldr__dot {
+    opacity: 1;
+    stroke: var(--paper); stroke-width: 1.5;
+  }
+  .px-mldr__plabel {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.02em;
+    fill: var(--ink);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  .px-mldr__pt { cursor: default; transition: opacity var(--t-quick) var(--ease); }
+  .px-mldr__pt:focus-visible { outline: none; }
+  .px-mldr__pt:focus-visible .px-mldr__dot,
+  .px-mldr__pt:hover .px-mldr__dot { opacity: 1; r: 7; }
+  .px-mldr__pt:focus-visible .px-mldr__dot { stroke: var(--accent-deep, var(--accent)); stroke-width: 2; }
+
+  /* highlight gutter labels ------------------------------------------------ */
+  .px-mldr__leader { stroke: var(--accent-deep, var(--accent)); stroke-width: 1; opacity: 0.6; }
+  .px-mldr__hl-name {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    fill: var(--accent-deep, var(--accent));
+  }
+  .px-mldr__hl-num {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.02em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* fit line + callout ----------------------------------------------------- */
+  .px-mldr__fit {
+    fill: none;
+    stroke: var(--accent-deep, var(--accent));
+    stroke-width: 2;
+    opacity: 0.9;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+  }
+  .px-mldr__callout {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    fill: var(--accent-deep, var(--accent));
+    font-weight: 700;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+
+  /* legend ----------------------------------------------------------------- */
+  .px-mldr__legend { margin-top: 18px; }
+  .px-mldr__leg-list { list-style: none; margin: 0; padding: 0; }
+  .px-mldr__leg-row {
+    display: grid;
+    grid-template-columns: 3.4em 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 3px 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid color-mix(in oklab, var(--ink) 6%, transparent);
+  }
+  .px-mldr__leg-row.is-hl { color: var(--accent-deep, var(--accent)); font-weight: 700; }
+  .px-mldr__leg-name { color: var(--ink-soft); }
+  .px-mldr__leg-row.is-hl .px-mldr__leg-name { color: var(--accent-deep, var(--accent)); }
+  .px-mldr__leg-num { text-align: right; }
+
+  .px-mldr__disc { margin-top: 8px; }
+  .px-mldr__disc summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    padding: 4px 0;
+  }
+  .px-mldr__disc summary:hover { color: var(--ink-soft); }
+  .px-mldr__disc[open] summary { margin-bottom: 4px; }
+
+  .px-mldr__fitsum {
+    margin: 10px 0 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── reveal (settle points in year order → sweep the fit last) ─────────── */
+  .px-mldr__pt {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity var(--t-quick) var(--ease),
+      transform var(--t-soft) var(--ease-snap);
+    transition-delay: var(--d, 0ms);
+  }
+  .px-mldr__fit {
+    transition: stroke-dashoffset var(--sweep, 900ms) var(--ease);
+    transition-delay: var(--last, 0ms);
+  }
+  .px-mldr__hls, .px-mldr__callout {
+    opacity: 1;
+    transition: opacity var(--t-soft) var(--ease);
+    /* revealed after the sweep completes */
+    transition-delay: calc(var(--last, 0ms) + var(--sweep, 900ms));
+  }
+
+  html.js .px-viz:not(.is-in) .px-mldr__pt { opacity: 0; transform: scale(0.1); }
+  html.js .px-viz:not(.is-in) .px-mldr__fit { stroke-dashoffset: var(--len); }
+  html.js .px-viz:not(.is-in) .px-mldr__hls,
+  html.js .px-viz:not(.is-in) .px-mldr__callout { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-mldr__pt { opacity: 1 !important; transform: none !important; }
+    .px-viz:not(.is-in) .px-mldr__fit { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-mldr__hls,
+    .px-viz:not(.is-in) .px-mldr__callout { opacity: 1 !important; }
+  }
+
+  /* ── 375px: thin ticks/rungs, drop faint rungs + optional labels ───────── */
+  @media (max-width: 560px) {
+    .px-mldr__two { display: none; }
+    .px-mldr__x--opt { display: none; }
+    .px-mldr__pt:not(.px-mldr__pt--essential) .px-mldr__plabel { display: none; }
+  }
+</style>

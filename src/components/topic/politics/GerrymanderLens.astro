@@ -1,0 +1,496 @@
+---
+/**
+ * GerrymanderLens (politics · SVG · FLAGSHIP of the same-data-many-maps family)
+ * — the proof that district lines, not votes, decide who wins. ONE shared vote
+ * grid (the exact same voters, the exact same party split) is re-districted under
+ * 2–3 plans side by side; each plan's efficiency gap is named as a signed number
+ * against the fairness flag. "Nothing changed but the lines, and everything
+ * changed."
+ *
+ * Blueprint (the contract): docs/design/blueprints/politics/gerrymander-lens.md.
+ * Physics: docs/design/physics/apportionment.md §4 (efficiency gap).
+ *
+ * Everything is build-time: the efficiency-gap arithmetic and every panel's
+ * geometry are computed here, once. The only JS is the shared core/Reveal.astro
+ * island (entrance) plus a ~4-line inline island that folds the verdict-ledger
+ * <details> once the in-SVG numbers are visible (legend-collapse, CANON §4.5) —
+ * no-JS keeps the ledger permanently open.
+ *
+ * No-JS / reduced-motion: the three maps paint complete — cell fills, district
+ * boundaries, winner pips, seat splits, EG numbers, flag chips (pre-stamped).
+ * Hidden entrance states are gated behind `html.js`; reduced-motion resets them.
+ *
+ * Build FAILS (naming the offender) if a plan's district A-tallies don't re-sum
+ * to the shared statewide total (the "same votes" guarantee), or a plan has
+ * unequal-population districts, or a non-contiguous district.
+ *
+ * data: see GerrymanderLensData below.
+ */
+interface GLParty { name: string; short?: string; color?: string; }
+interface GLPlan { label: string; districts: number[]; note?: string; }
+interface Props {
+  grid: { cols: number; rows: number; a: number[]; perCell: number };
+  parties: { a: GLParty; b: GLParty };
+  plans: GLPlan[];
+  flagPct?: number;
+  caption?: string;
+  source?: string;
+}
+const { grid, parties, plans = [], flagPct = 7, caption, source } = Astro.props;
+
+const { cols, rows, a: gridA, perCell } = grid;
+const nCells = rows * cols;
+
+/* ── §4 invariant assert 1: array lengths ─────────────────────────────────── */
+if (gridA.length !== nCells) {
+  throw new Error(`gerrymander-lens: grid.a has ${gridA.length} cells but rows·cols = ${nCells}`);
+}
+const statewideA = gridA.reduce((s, v) => s + v, 0);
+const totalVotes = nCells * perCell;
+const statewideB = totalVotes - statewideA;
+
+/* cell index → (row, col) and 4-neighbours (shared across all plans) */
+const rc = (i: number) => ({ r: Math.floor(i / cols), c: i % cols });
+function neighbours(i: number): number[] {
+  const { r, c } = rc(i);
+  const out: number[] = [];
+  if (c > 0) out.push(i - 1);
+  if (c < cols - 1) out.push(i + 1);
+  if (r > 0) out.push(i - cols);
+  if (r < rows - 1) out.push(i + cols);
+  return out;
+}
+
+const MINUS = '−'; // proper minus glyph for signed readouts
+
+interface DistrictTally {
+  id: number; cells: number[]; aVotes: number; bVotes: number;
+  total: number; winner: 'a' | 'b'; wastedA: number; wastedB: number;
+  pipX: number; pipY: number;
+}
+interface PlanComputed {
+  label: string; note?: string; flagged: boolean;
+  seatsA: number; seatsB: number; seatWinner: 'a' | 'b' | 'tie';
+  egPct: number; egSign: string; egAbs: string;
+  gloss: string; boundsPath: string; pips: DistrictTally[];
+}
+
+/* ── §4: CELL geometry (square cells, PANEL = 200 map area) ────────────────── */
+const CELL = 200 / Math.max(cols, rows);
+const MAP_W = cols * CELL;
+const MAP_H = rows * CELL;
+const f1 = (v: number) => (Math.round(v * 100) / 100).toString();
+
+/* cell fills — derived from grid.a ONLY, so they are byte-identical across the
+   three panels (the "same votes" fact made structural: only boundaries differ). */
+const cellFills = gridA.map((av, i) => {
+  const { r, c } = rc(i);
+  const bv = perCell - av;
+  const margin = Math.abs(av - bv) / perCell;         // 0 (tie) … 1 (pure cell)
+  const op = 0.28 + 0.42 * margin;                     // §4/§6 margin ramp
+  return {
+    x: c * CELL, y: r * CELL,
+    party: av >= bv ? 'a' : 'b',                        // tie → A (documented §4)
+    op: Math.round(op * 1000) / 1000,
+  };
+});
+
+function computePlan(plan: GLPlan): PlanComputed {
+  const { districts, label, note } = plan;
+  if (districts.length !== nCells) {
+    throw new Error(`gerrymander-lens: plan "${label}" has ${districts.length} cells but rows·cols = ${nCells}`);
+  }
+  const maxId = Math.max(...districts);
+  const D = maxId + 1;
+
+  /* group cells by district; assert domain 0..D−1 fully covered */
+  const byDistrict: number[][] = Array.from({ length: D }, () => []);
+  districts.forEach((d, i) => {
+    if (d < 0 || d >= D || !Number.isInteger(d)) {
+      throw new Error(`gerrymander-lens: plan "${label}" cell ${i} has invalid district id ${d}`);
+    }
+    byDistrict[d].push(i);
+  });
+
+  /* §4 assert 3: equal population (every district owns the same cell count) */
+  const expectSize = nCells / D;
+  if (!Number.isInteger(expectSize)) {
+    throw new Error(`gerrymander-lens: plan "${label}" — ${nCells} cells do not divide evenly into ${D} districts`);
+  }
+  for (let d = 0; d < D; d++) {
+    if (byDistrict[d].length !== expectSize) {
+      throw new Error(
+        `gerrymander-lens: plan "${label}" district ${d} owns ${byDistrict[d].length} cells, ` +
+        `expected ${expectSize} (equal population violated)`,
+      );
+    }
+  }
+
+  /* §4 assert 4: contiguity (flood-fill reaches every member of the district) */
+  for (let d = 0; d < D; d++) {
+    const members = new Set(byDistrict[d]);
+    const seen = new Set<number>();
+    const stack = [byDistrict[d][0]];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (seen.has(cur)) continue;
+      seen.add(cur);
+      for (const nb of neighbours(cur)) if (members.has(nb) && !seen.has(nb)) stack.push(nb);
+    }
+    if (seen.size !== members.size) {
+      throw new Error(
+        `gerrymander-lens: plan "${label}" district ${d} is not contiguous ` +
+        `(${seen.size}/${members.size} cells 4-connected)`,
+      );
+    }
+  }
+
+  /* district tallies + efficiency-gap arithmetic (§4 / apportionment §4) */
+  const tallies: DistrictTally[] = [];
+  let wastedA = 0, wastedB = 0, seatsA = 0, seatsB = 0, resumA = 0;
+  for (let d = 0; d < D; d++) {
+    const cells = byDistrict[d];
+    const aVotes = cells.reduce((s, i) => s + gridA[i], 0);
+    const total = cells.length * perCell;
+    const bVotes = total - aVotes;
+    const threshold = Math.floor(total / 2) + 1;        // wᵈ
+    const winner: 'a' | 'b' = aVotes >= bVotes ? 'a' : 'b'; // tie → A (§4)
+    let wA: number, wB: number;
+    if (winner === 'a') { wA = aVotes - threshold; wB = bVotes; seatsA++; }
+    else { wB = bVotes - threshold; wA = aVotes; seatsB++; }
+    wastedA += wA; wastedB += wB; resumA += aVotes;
+
+    /* winner pip → the district's cell nearest its centroid */
+    const mr = cells.reduce((s, i) => s + rc(i).r, 0) / cells.length;
+    const mc = cells.reduce((s, i) => s + rc(i).c, 0) / cells.length;
+    let best = cells[0], bestD = Infinity;
+    for (const i of cells) {
+      const { r, c } = rc(i);
+      const dist = (r - mr) ** 2 + (c - mc) ** 2;
+      if (dist < bestD) { bestD = dist; best = i; }
+    }
+    const { r: pr, c: pc } = rc(best);
+    tallies.push({
+      id: d, cells, aVotes, bVotes, total, winner, wastedA: wA, wastedB: wB,
+      pipX: (pc + 0.5) * CELL, pipY: (pr + 0.5) * CELL,
+    });
+  }
+
+  /* §4 assert 2: the "same votes" guarantee — this plan's district A-tallies
+     must re-sum to the shared statewide Party-A total, else FAIL naming it. */
+  if (resumA !== statewideA) {
+    throw new Error(
+      `gerrymander-lens: plan "${label}" district A-tallies sum to ${resumA} but the shared ` +
+      `grid statewide total is ${statewideA} — the "same votes" guarantee is broken`,
+    );
+  }
+
+  const eg = (wastedA - wastedB) / totalVotes;          // signed; − favours A
+  const egPct = eg * 100;
+  const flagged = Math.abs(egPct) > flagPct;
+  const favoured = egPct < 0 ? parties.a.name : parties.b.name;
+  const gloss = flagged ? `favours ${favoured}` : 'balanced';
+
+  /* district boundaries — the ONLY thing that differs between panels. One path
+     of every interior cell edge that separates two DIFFERENT districts. */
+  const segs: string[] = [];
+  for (let i = 0; i < nCells; i++) {
+    const { r, c } = rc(i);
+    const x = c * CELL, y = r * CELL;
+    if (c < cols - 1 && districts[i] !== districts[i + 1]) {
+      segs.push(`M ${f1(x + CELL)} ${f1(y)} L ${f1(x + CELL)} ${f1(y + CELL)}`);
+    }
+    if (r < rows - 1 && districts[i] !== districts[i + cols]) {
+      segs.push(`M ${f1(x)} ${f1(y + CELL)} L ${f1(x + CELL)} ${f1(y + CELL)}`);
+    }
+  }
+
+  return {
+    label, note, flagged, seatsA, seatsB,
+    seatWinner: seatsA > seatsB ? 'a' : seatsB > seatsA ? 'b' : 'tie',
+    egPct, egSign: egPct < 0 ? MINUS : '+', egAbs: Math.abs(egPct).toFixed(1),
+    gloss, boundsPath: segs.join(' '), pips: tallies,
+  };
+}
+
+const computed = plans.map(computePlan);
+
+/* shared grid hairlines (identical every panel — same cell matrix) */
+const gridLines: string[] = [];
+for (let c = 1; c < cols; c++) gridLines.push(`M ${f1(c * CELL)} 0 L ${f1(c * CELL)} ${f1(MAP_H)}`);
+for (let r = 1; r < rows; r++) gridLines.push(`M 0 ${f1(r * CELL)} L ${f1(MAP_W)} ${f1(r * CELL)}`);
+const gridPath = gridLines.join(' ');
+
+const colA = parties.a.color || 'var(--accent)';
+const colB = parties.b.color || 'var(--accent-alt)';
+const shortA = parties.a.short || parties.a.name;
+const shortB = parties.b.short || parties.b.name;
+const pipColor = (w: 'a' | 'b') => (w === 'a' ? colA : colB);
+const cellColor = (p: string) => (p === 'a' ? colA : colB);
+const fmt = (n: number) => n.toLocaleString('en-US');
+---
+
+<div
+  class="px-viz px-glens"
+  data-reveal
+  style={`--col-a:${colA}; --col-b:${colB}`}
+>
+  {caption && (
+    <div class="px-viz__cap"><span>{caption}</span><b>EG flag ±{flagPct}%</b></div>
+  )}
+
+  <!-- the shared electorate — always visible, never behind a disclosure (§7) -->
+  <p class="px-glens__head">
+    <span class="px-glens__hparty" style={`color:${colA}`}>{parties.a.name} {fmt(statewideA)}</span>
+    <span class="px-glens__hdash">{MINUS}</span>
+    <span class="px-glens__hparty" style={`color:${colB}`}>{fmt(statewideB)} {parties.b.name}</span>
+    <span class="px-glens__hsub">{fmt(totalVotes)} voters · one grid, three maps</span>
+  </p>
+
+  <div class="px-glens__row">
+    {computed.map((p, pi) => (
+      <figure class="px-glens__panel" style={`--pi:${pi}`} data-flagged={p.flagged ? 'true' : 'false'}>
+        <figcaption class="px-glens__label vz-legend">{p.label}</figcaption>
+
+        <svg
+          class="px-glens__map"
+          viewBox={`0 0 ${f1(MAP_W)} ${f1(MAP_H)}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`${p.label}: ${parties.a.name} ${p.seatsA} seats, ${parties.b.name} ${p.seatsB} seats, efficiency gap ${p.egSign}${p.egAbs}%`}
+        >
+          <!-- cell choropleth (identical across all three panels) -->
+          <g class="px-glens__cells">
+            {cellFills.map((cell) => (
+              <rect
+                x={f1(cell.x)} y={f1(cell.y)} width={f1(CELL)} height={f1(CELL)}
+                fill={cellColor(cell.party)} opacity={cell.op}
+              />
+            ))}
+          </g>
+
+          <!-- hairline cell grid (legibility; same-district seams read faint) -->
+          <path class="px-glens__grid" d={gridPath} />
+
+          <!-- district boundaries — the sweep: the only thing that differs -->
+          <path class="px-glens__bounds" d={p.boundsPath} pathLength="1" />
+
+          <!-- panel frame -->
+          <rect class="px-glens__frame" x="0" y="0" width={f1(MAP_W)} height={f1(MAP_H)} />
+
+          <!-- winner pips: who won each seat, in the winner's colour + paper halo -->
+          <g class="px-glens__pips">
+            {p.pips.map((d) => (
+              <rect
+                class="px-glens__pip"
+                x={f1(d.pipX - 3)} y={f1(d.pipY - 3)} width="6" height="6"
+                fill={pipColor(d.winner)}
+              />
+            ))}
+          </g>
+        </svg>
+
+        <!-- the EG readout bar — the quantified verdict -->
+        <div class="px-glens__readout">
+          <div class="px-glens__seats">
+            <span class:list={['px-glens__seat', { 'is-win': p.seatWinner === 'a' }]}>{shortA} {p.seatsA}</span>
+            <span class="px-glens__seatdot">·</span>
+            <span class:list={['px-glens__seat', { 'is-win': p.seatWinner === 'b' }]}>{p.seatsB} {shortB}</span>
+          </div>
+          <div class="px-glens__egline">
+            <span class:list={['vz-value', 'px-glens__eg', { 'is-flag': p.flagged }]}>
+              EG {p.egSign}{p.egAbs}%
+            </span>
+            {p.flagged && <span class="px-glens__chip">FLAGGED</span>}
+          </div>
+          <div class="px-glens__gloss vz-annot">{p.gloss}</div>
+        </div>
+      </figure>
+    ))}
+  </div>
+
+  <!-- verdict ledger: open in markup (no-JS keeps it), folds on boot (§7) -->
+  <details class="px-glens__ledger" data-glens-ledger open>
+    <summary class="px-glens__summary">Verdict ledger — all three plans</summary>
+    <ul class="pol-ledger px-glens__llist">
+      {computed.map((p) => (
+        <>
+          <li>
+            <span class="pol-ledger__k">{p.label}</span>
+            <span class="pol-ledger__dots" />
+            <span class="pol-ledger__v">
+              {p.seatsA}{MINUS}{p.seatsB} · EG {p.egSign}{p.egAbs}% · {p.flagged ? <b>{p.gloss}</b> : p.gloss}
+            </span>
+          </li>
+          {p.note && (
+            <li class="px-glens__lnote"><span class="pol-annot">{p.note}</span></li>
+          )}
+        </>
+      ))}
+    </ul>
+  </details>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<script is:inline>
+  /* Fold the verdict ledger once JS is present (its figures are already visible
+     in the SVG readout bars). No-JS leaves the <details open> permanently. */
+  (function () {
+    var d = document.querySelectorAll('details[data-glens-ledger]');
+    for (var i = 0; i < d.length; i++) d[i].open = false;
+  })();
+</script>
+
+<style>
+  .px-glens { width: 100%; }
+
+  /* ── shared-electorate headline (always visible) ─────────────────────────── */
+  .px-glens__head {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+    margin: 0 0 16px; padding: 0;
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .px-glens__hparty { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
+  .px-glens__hdash { color: var(--muted); }
+  .px-glens__hsub {
+    flex-basis: 100%;
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── the three-up row → stacks below 640px ───────────────────────────────── */
+  .px-glens__row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .px-glens__panel { margin: 0; min-width: 0; }
+
+  .px-glens__label {
+    display: block; margin-bottom: 8px;
+    color: color-mix(in oklab, var(--ink) 90%, transparent);
+  }
+
+  .px-glens__map {
+    width: 100%; height: auto; display: block; overflow: visible;
+    max-width: 240px;
+  }
+
+  /* ── map ink (§6) ─────────────────────────────────────────────────────────── */
+  .px-glens__grid { fill: none; stroke: var(--ink); stroke-opacity: 0.12; stroke-width: 1; }
+  .px-glens__frame { fill: none; stroke: var(--ink); stroke-opacity: 0.42; stroke-width: 1.5; }
+  .px-glens__bounds {
+    fill: none; stroke: var(--ink); stroke-opacity: 0.85; stroke-width: 2;
+    stroke-linecap: square; stroke-linejoin: miter;
+  }
+  .px-glens__pip {
+    paint-order: stroke;
+    stroke: var(--paper); stroke-opacity: 0.9; stroke-width: 2.5;
+    transform-box: fill-box; transform-origin: center;
+  }
+
+  /* ── readout bar ─────────────────────────────────────────────────────────── */
+  .px-glens__readout { margin-top: 10px; }
+  .px-glens__seats {
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums; color: color-mix(in oklab, var(--ink) 70%, transparent);
+  }
+  .px-glens__seat.is-win { font-weight: 600; }
+  .px-glens__seats .px-glens__seat:first-child.is-win { color: var(--col-a); }
+  .px-glens__seats .px-glens__seat:last-child.is-win { color: var(--col-b); }
+  .px-glens__seatdot { color: var(--muted); margin: 0 4px; }
+
+  .px-glens__egline { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+  .px-glens__eg {
+    font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.02em;
+    color: color-mix(in oklab, var(--ink) 70%, transparent);
+  }
+  .px-glens__eg.is-flag { color: var(--accent-deep); }
+
+  /* FLAGGED chip — the politics stamp signature (fires LAST) */
+  .px-glens__chip {
+    display: inline-block; padding: 2px 7px 1px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; font-weight: 600;
+    color: var(--accent-deep); border: 1.5px solid var(--accent-deep);
+    border-radius: 2px; transform: rotate(-2deg);
+    text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+  }
+  .px-glens__gloss { margin-top: 4px; }
+
+  /* ── verdict ledger ──────────────────────────────────────────────────────── */
+  .px-glens__ledger { margin-top: 26px; max-width: var(--col-prose); }
+  .px-glens__summary {
+    cursor: pointer;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); padding: 6px 0;
+  }
+  .px-glens__llist { margin-top: 6px; }
+  .px-glens__lnote {
+    display: block !important; border-bottom: none !important; padding: 2px 0 10px !important;
+  }
+  .px-glens__lnote .pol-annot { margin: 0; font-size: 13px; }
+
+  /* ══ reveal (§5): fills → boundary sweep → pips → numbers → FLAGGED stamp ══
+     panels animate concurrently with a 60ms left→right stagger; whole sequence
+     lands ≤1.6s. Hidden states gated behind html.js → no-JS paints the plate. */
+  .px-glens__cells,
+  .px-glens__grid,
+  .px-glens__frame {
+    transition: opacity 500ms var(--ease) calc(var(--pi, 0) * 60ms),
+                transform 500ms var(--ease) calc(var(--pi, 0) * 60ms);
+  }
+  .px-glens__bounds {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease) calc(200ms + var(--pi, 0) * 60ms);
+  }
+  .px-glens__pip {
+    transition: transform 300ms var(--ease) calc(900ms + var(--pi, 0) * 60ms);
+  }
+  .px-glens__readout {
+    transition: opacity 450ms var(--ease) calc(400ms + var(--pi, 0) * 60ms),
+                transform 450ms var(--ease) calc(400ms + var(--pi, 0) * 60ms);
+  }
+  .px-glens__chip {
+    transition: opacity 220ms var(--ease-snap, var(--ease)) calc(1360ms + var(--pi, 0) * 60ms),
+                transform 220ms var(--ease-snap, var(--ease)) calc(1360ms + var(--pi, 0) * 60ms);
+  }
+
+  html.js .px-viz:not(.is-in) .px-glens__cells,
+  html.js .px-viz:not(.is-in) .px-glens__grid,
+  html.js .px-viz:not(.is-in) .px-glens__frame {
+    opacity: 0; transform: translateY(14px);
+  }
+  html.js .px-viz:not(.is-in) .px-glens__bounds { stroke-dashoffset: 1; }
+  html.js .px-viz:not(.is-in) .px-glens__pip { transform: scale(0); }
+  html.js .px-viz:not(.is-in) .px-glens__readout { opacity: 0; transform: translateY(10px); }
+  html.js .px-viz:not(.is-in) .px-glens__chip { opacity: 0; transform: rotate(-2deg) scale(0.6); }
+
+  /* ── mobile: stack the three maps; comparison reads top-to-bottom (§4) ────── */
+  @media (max-width: 640px) {
+    .px-glens__row { grid-template-columns: 1fr; gap: 30px; }
+    .px-glens__map { max-width: 300px; margin-inline: auto; }
+    .px-glens__panel { text-align: center; }
+    .px-glens__readout { text-align: left; max-width: 300px; margin-inline: auto; }
+    .px-glens__label { text-align: left; max-width: 300px; margin-inline: auto; }
+  }
+
+  /* ── reduced motion / print: composed still, everything final (§5) ────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .px-glens__cells, .px-glens__grid, .px-glens__frame,
+    .px-glens__bounds, .px-glens__pip, .px-glens__readout, .px-glens__chip {
+      transition: none !important;
+    }
+    .px-viz:not(.is-in) .px-glens__cells,
+    .px-viz:not(.is-in) .px-glens__grid,
+    .px-viz:not(.is-in) .px-glens__frame { opacity: 1 !important; transform: none !important; }
+    .px-viz:not(.is-in) .px-glens__bounds { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-glens__pip { transform: none !important; }
+    .px-viz:not(.is-in) .px-glens__readout { opacity: 1 !important; transform: none !important; }
+    .px-viz:not(.is-in) .px-glens__chip { opacity: 1 !important; transform: rotate(-2deg) !important; }
+  }
+</style>

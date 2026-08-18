@@ -1,0 +1,728 @@
+---
+/**
+ * BallotFlow (politics · the round-structured cousin of `power-flow`) —
+ * ranked-choice / instant-runoff voting made visible as motion. Columns are
+ * counting rounds; within each column the continuing candidates are grouped
+ * bars (stable slot + color, so the eye tracks a candidate across rounds); an
+ * eliminated candidate's votes are drawn as `flowDash` ribbons transferring to
+ * whoever they went to next — with ballots that ran out of ranked choices
+ * flowing to a muted EXHAUSTED sink, never silently dropped. The dashed tick is
+ * the majority line (it descends as ballots exhaust). 100% build-time geometry.
+ *
+ * The component RENDERS a precomputed count — it never runs the election. It
+ * only lays out and runs two conservation asserts at build (blueprint §4):
+ *   1. every eliminated candidate's transfers sum to their tally;
+ *   2. Σ tallies + exhausted is constant across rounds (the ballot pool holds).
+ * Either failure THROWS naming the round, mirroring `power-flow`'s via-node check.
+ *
+ * No-JS / reduced-motion: the diagram paints complete — all bars at final
+ * heights, ribbons as static directional stipple, majority ticks, tallies and
+ * the WINNER stamp pre-drawn (hidden reveal states gated behind `html.js`,
+ * ClimateSpiral/power-flow pattern; keyframes never run under reduced motion).
+ * The round ledger <details> is `open` under no-JS and folds on boot.
+ *
+ * Blueprint (the contract): docs/design/blueprints/politics/ballot-flow.md.
+ *
+ * data: { candidates[]{id,name,short?,color?}, rounds[]{tallies, exhausted?,
+ *         eliminate?{id, transfers[]{to,value}}}, winnerId?, majorityBasis?,
+ *         caption?, source? }
+ */
+interface Candidate { id: string; name: string; short?: string; color?: string; }
+interface Transfer { to: string; value: number; }
+interface Round {
+  tallies: Record<string, number>;
+  exhausted?: number;
+  eliminate?: { id: string; transfers: Transfer[] };
+}
+interface Props {
+  candidates: Candidate[];
+  rounds: Round[];
+  winnerId?: string;
+  majorityBasis?: 'continuing' | 'firstRound';
+  caption?: string;
+  source?: string;
+}
+const {
+  candidates = [],
+  rounds = [],
+  winnerId,
+  majorityBasis = 'continuing',
+  caption,
+  source,
+} = Astro.props;
+
+if (candidates.length < 2 || rounds.length < 2) {
+  throw new Error('ballot-flow: needs ≥2 candidates and ≥2 rounds (one round is just vote-result — see blueprint §2)');
+}
+
+const byId = new Map(candidates.map((c) => [c.id, c]));
+const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+const sumTallies = (r: Round) => Object.values(r.tallies).reduce((s, v) => s + v, 0);
+
+/* ── build-time conservation asserts (blueprint §4) ────────────────────────── */
+// 1. every eliminated candidate's transfers sum to their tally.
+rounds.forEach((r, i) => {
+  if (!r.eliminate) return;
+  const held = r.tallies[r.eliminate.id];
+  if (held === undefined) {
+    throw new Error(`ballot-flow: round ${i + 1} eliminates "${r.eliminate.id}" but that candidate has no tally this round`);
+  }
+  const moved = r.eliminate.transfers.reduce((s, t) => s + t.value, 0);
+  if (moved !== held) {
+    throw new Error(
+      `ballot-flow: round ${i + 1} — ${r.eliminate.id}'s transfers sum to ${fmt(moved)} but their tally is ${fmt(held)}. ` +
+      `Every eliminated vote must go somewhere (a candidate or exhausted).`,
+    );
+  }
+});
+// 2. Σ tallies + exhausted constant across rounds (the ballot pool holds).
+const pool = (r: Round) => sumTallies(r) + (r.exhausted ?? 0);
+const basePool = pool(rounds[0]);
+rounds.forEach((r, i) => {
+  if (pool(r) !== basePool) {
+    throw new Error(
+      `ballot-flow: round ${i + 1} books don't balance — Σ tallies + exhausted = ${fmt(pool(r))}, ` +
+      `but round 1 pool = ${fmt(basePool)}. The total ballot pool must be constant across rounds.`,
+    );
+  }
+});
+
+/* ── stable slot order: candidates by round-1 tally desc, exhausted last ────── */
+const r1 = rounds[0].tallies;
+const ordered = [...candidates].sort((a, b) => (r1[b.id] ?? 0) - (r1[a.id] ?? 0));
+const slotOf = new Map(ordered.map((c, j) => [c.id, j]));
+const EXH_SLOT = ordered.length; // exhausted is always the last slot
+const nSlots = ordered.length + 1;
+
+// candidate color: data-encoding exemption (blueprint §6); fallback cycle.
+const FALLBACK = [
+  'var(--accent)',
+  'var(--accent-alt)',
+  'color-mix(in oklab, var(--ink) 70%, transparent)',
+  'color-mix(in oklab, var(--ink) 50%, transparent)',
+  'color-mix(in oklab, var(--ink) 35%, transparent)',
+];
+const colorOf = new Map(ordered.map((c, j) => [c.id, c.color ?? FALLBACK[j % FALLBACK.length]]));
+const shortOf = (id: string) => byId.get(id)?.short ?? byId.get(id)?.name ?? id;
+// Gutter names live in the 96px left GUTTER (blueprint §4). They render at
+// text-anchor=end from x=GUTTER−10=86, so long content extends LEFTWARD toward x=0.
+// Clamp the length so the longest swatch+name can't spill past the viewBox left edge
+// / collide with the card padding. Elimination is signalled by graying the label
+// (.px-bflow__name--out), NOT a text suffix — dropping the old "· out Rn" suffix,
+// which was unbounded and pushed labels past x=0.
+const gutterLabel = (id: string) => { const s = shortOf(id); return s.length > 12 ? s.slice(0, 11) + '…' : s; };
+
+/* ── which candidate is eliminated at the END of each round, and where votes go ── */
+const eliminatedAtRound = new Map<string, number>(); // id → round index it was eliminated after
+rounds.forEach((r, i) => { if (r.eliminate) eliminatedAtRound.set(r.eliminate.id, i); });
+
+/* ── winner: explicit, else top tally in the final round ────────────────────── */
+const finalRound = rounds[rounds.length - 1];
+const finalTop = Object.entries(finalRound.tallies).sort((a, b) => b[1] - a[1])[0]?.[0];
+const winner = winnerId ?? finalTop;
+const finalContinuing = sumTallies(finalRound);
+const finalPct = finalContinuing > 0 ? (finalRound.tallies[winner] / finalContinuing) * 100 : 0;
+const winnerName = byId.get(winner)?.name ?? winner;
+
+/* ── vertical scale (blueprint §4) ─────────────────────────────────────────── */
+let maxTally = 0;
+rounds.forEach((r) => Object.values(r.tallies).forEach((v) => { if (v > maxTally) maxTally = v; }));
+maxTally = Math.max(1, maxTally);
+const K = 150 / maxTally; // tallest single bar = 150px
+
+const majorityOf = (r: Round) => Math.floor(sumTallies(r) / 2) + 1;
+const fixedMaj = Math.floor(basePool / 2) + 1; // firstRound basis: fixed at 50% of round-1 pool
+const majOf = (r: Round) => (majorityBasis === 'firstRound' ? fixedMaj : majorityOf(r));
+const majTickMax = Math.max(...rounds.map((r) => majOf(r)));
+const ZONE = Math.max(150, majTickMax * K); // bar-zone ceiling so the majority tick never clips
+
+/* ── horizontal layout: columns = rounds, grouped bars = candidates ─────────── */
+const W = 720, PAD = 8, GUTTER = 96, SLOT_GAP = 6;
+const BASELINE_PAD = 40, LABEL_PAD = 30;
+const nR = rounds.length;
+// adapt BAR width so grouped columns never overflow the viewBox nor overlap
+// (keeps ≥14px between adjacent groups when it can; blueprint hard cap ≤6×6).
+const maxGroupW = (W - PAD - GUTTER - 14 * (nR - 1)) / nR;
+let BAR = Math.floor((maxGroupW - (nSlots - 1) * SLOT_GAP) / nSlots);
+BAR = Math.max(9, Math.min(28, BAR));
+const groupW = nSlots * BAR + (nSlots - 1) * SLOT_GAP;
+const firstCenter = GUTTER + groupW / 2;         // group left edge sits at the gutter
+const lastCenter = W - PAD - groupW / 2;         // group right edge sits inside the viewBox
+const colW = nR > 1 ? (lastCenter - firstCenter) / (nR - 1) : 0;
+const colX = (i: number) => firstCenter + i * colW;
+const slotCenterX = (i: number, slot: number) => colX(i) - groupW / 2 + BAR / 2 + slot * (BAR + SLOT_GAP);
+
+const H = Math.ceil(BASELINE_PAD + ZONE + LABEL_PAD);
+const baselineY = H - BASELINE_PAD;
+const f1 = (v: number) => Number(v.toFixed(1));
+
+/* ── bars: one per (round, continuing slot) + the exhausted sink each round ──── */
+interface Bar {
+  x: number; y: number; w: number; h: number;
+  color: string; exhausted: boolean;
+  valLabel: string; labelColor: string;
+  cx: number; topY: number; isWinnerFinal: boolean;
+  nd: number;   // grow stagger (ms)
+  round: number;
+}
+const bars: Bar[] = [];
+rounds.forEach((r, i) => {
+  // candidate bars
+  ordered.forEach((c) => {
+    const v = r.tallies[c.id];
+    if (v === undefined) return; // eliminated → slot goes empty from here on
+    const slot = slotOf.get(c.id)!;
+    const h = v * K;
+    const x = slotCenterX(i, slot) - BAR / 2;
+    const topY = baselineY - h;
+    bars.push({
+      x, y: topY, w: BAR, h, color: colorOf.get(c.id)!, exhausted: false,
+      valLabel: fmt(v), labelColor: colorOf.get(c.id)!,
+      cx: slotCenterX(i, slot), topY,
+      isWinnerFinal: i === nR - 1 && c.id === winner,
+      nd: (i === 0 ? slot * 50 : 650), round: i,
+    });
+  });
+  // exhausted sink (always present — never folded into a candidate)
+  const ex = r.exhausted ?? 0;
+  const exH = ex * K;
+  const exX = slotCenterX(i, EXH_SLOT) - BAR / 2;
+  bars.push({
+    x: exX, y: baselineY - exH, w: BAR, h: exH, color: 'var(--ink)', exhausted: true,
+    valLabel: fmt(ex), labelColor: 'var(--muted)',
+    cx: slotCenterX(i, EXH_SLOT), topY: baselineY - exH,
+    isWinnerFinal: false, nd: (i === 0 ? EXH_SLOT * 50 : 650), round: i,
+  });
+});
+
+/* ── majority ticks: one per column, descending as continuing shrinks ───────── */
+const majTicks = rounds.map((r, i) => {
+  const maj = majOf(r);
+  const y = baselineY - maj * K;
+  const x0 = colX(i) - groupW / 2;
+  const x1 = colX(i) + groupW / 2;
+  return { x0, x1, y, value: maj, i };
+});
+const finalTick = majTicks[nR - 1];
+
+/* ── transfer ribbons (flowDash): eliminated bar (round i) → recipient (i+1) ─── */
+const allTransferValues = rounds.flatMap((r) => (r.eliminate ? r.eliminate.transfers.map((t) => t.value) : []));
+const minTransfer = allTransferValues.length ? Math.min(...allTransferValues) : 1;
+
+interface Ribbon {
+  band: string; dash: string; t: number;
+  midX: number; midY: number; value: number;
+  color: string; toExhausted: boolean;
+  durS: string; sweep: number; rd: number;
+}
+const ribbons: Ribbon[] = [];
+rounds.forEach((r, i) => {
+  if (!r.eliminate) return;
+  const e = r.eliminate;
+  const elimSlot = slotOf.get(e.id)!;
+  const elimColor = colorOf.get(e.id)!;
+  const elimH = r.tallies[e.id] * K;
+  const x0 = slotCenterX(i, elimSlot) + BAR / 2; // right edge of the eliminated bar
+  let outCursor = baselineY - elimH;             // stack transfers from the bar top down
+  const next = rounds[i + 1];
+  e.transfers.forEach((tr) => {
+    const t = tr.value * K;
+    const y0 = outCursor + t / 2;
+    outCursor += t;
+    const toExhausted = tr.to === 'exhausted';
+    const recipSlot = toExhausted ? EXH_SLOT : slotOf.get(tr.to)!;
+    const retained = toExhausted ? (r.exhausted ?? 0) : (r.tallies[tr.to] ?? 0);
+    const x1 = slotCenterX(i + 1, recipSlot) - BAR / 2; // left edge of the recipient bar
+    const y1 = baselineY - retained * K - t / 2;        // lands on the gained slice, above retained
+    const mx = (x0 + x1) / 2;
+    const band =
+      `M ${f1(x0)} ${f1(y0 - t / 2)} C ${f1(mx)} ${f1(y0 - t / 2)} ${f1(mx)} ${f1(y1 - t / 2)} ${f1(x1)} ${f1(y1 - t / 2)} ` +
+      `L ${f1(x1)} ${f1(y1 + t / 2)} C ${f1(mx)} ${f1(y1 + t / 2)} ${f1(mx)} ${f1(y0 + t / 2)} ${f1(x0)} ${f1(y0 + t / 2)} Z`;
+    const dash = `M ${f1(x0)} ${f1(y0)} C ${f1(mx)} ${f1(y0)} ${f1(mx)} ${f1(y1)} ${f1(x1)} ${f1(y1)}`;
+    // flowDash speed ∝ value: smallest transfer at the 8s cap (slowest), largest fastest.
+    const durS = Math.min(8, Math.max(1.2, (8 * minTransfer) / tr.value)).toFixed(2);
+    const est = Math.hypot(x1 - x0, y1 - y0) + 0.25 * Math.abs(y1 - y0);
+    const sweep = Math.ceil(est / 8) * 8 + 8;
+    // per-round sweep stagger, bounded so even 6 rounds finish inside the 900ms window
+    const rd = Math.round(250 + i * Math.min(120, 700 / Math.max(1, nR - 1)));
+    ribbons.push({ band, dash, t, midX: mx, midY: (y0 + y1) / 2, value: tr.value, color: elimColor, toExhausted, durS, sweep, rd });
+  });
+});
+
+/* ── round ledger (blueprint §7) — AT-readable, no-JS-open, folds on boot ────── */
+const ledger = rounds.map((r, i) => {
+  const tallyStr = ordered
+    .filter((c) => r.tallies[c.id] !== undefined)
+    .map((c) => `${shortOf(c.id)} ${fmt(r.tallies[c.id])}`)
+    .join(' · ');
+  const elimStr = r.eliminate
+    ? `${shortOf(r.eliminate.id)} out → ` +
+      r.eliminate.transfers.map((t) => `${t.to === 'exhausted' ? 'exhausted' : shortOf(t.to)} +${fmt(t.value)}`).join(', ')
+    : '';
+  return { n: i + 1, tallyStr, exhausted: r.exhausted ?? 0, elimStr };
+});
+
+/* ── mobile round-stack (blueprint §4, <640px) — candidates as rows ─────────── */
+const mobile = rounds.map((r, i) => {
+  const rowCands = ordered
+    .filter((c) => r.tallies[c.id] !== undefined)
+    .map((c) => ({ id: c.id, name: shortOf(c.id), value: r.tallies[c.id], color: colorOf.get(c.id)!, pct: (r.tallies[c.id] / maxTally) * 100, isWinnerFinal: i === nR - 1 && c.id === winner }));
+  const ex = r.exhausted ?? 0;
+  return {
+    n: i + 1,
+    continuing: sumTallies(r),
+    maj: majOf(r),
+    rows: rowCands,
+    exhausted: ex,
+    exPct: (ex / maxTally) * 100,
+    connectors: r.eliminate
+      ? r.eliminate.transfers.map((t) => ({ from: shortOf(r.eliminate!.id), to: t.to === 'exhausted' ? 'exhausted' : shortOf(t.to), value: t.value, exhausted: t.to === 'exhausted' }))
+      : [],
+    elimName: r.eliminate ? shortOf(r.eliminate.id) : '',
+  };
+});
+
+// 'continuing' basis AUTO-RENDERS the honesty chip (denominator-shrink disclosure —
+// the majority line descends as ballots exhaust, so the reader must be told the base
+// shrank; blueprint §3 / CANON §7). It must NOT depend on `caption` being present.
+// 'firstRound' renders NO chip — the line is fixed at 50% of the round-1 total (§3).
+const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballots' : null;
+---
+
+<div class="px-viz px-bflow" data-reveal>
+  {(caption || basisChip) && (
+    <div class="px-viz__cap">
+      {caption && <span>{caption}</span>}
+      {basisChip && <b>{basisChip}</b>}
+    </div>
+  )}
+
+  <!-- outcome headline — always visible (no-JS first-class, blueprint §7) -->
+  <p class="px-bflow__outcome">
+    <b>{winnerName}</b> elected in {nR} rounds — <span class="px-bflow__pct">{finalPct.toFixed(1)}%</span> of continuing ballots
+  </p>
+
+  <!-- ── DESKTOP: round-by-round SVG (≥640px) ───────────────────────────── -->
+  <div class="px-bflow__svg-wrap">
+    <svg
+      class="px-bflow__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Ranked-choice count, round by round: ${caption}` : 'Ranked-choice count, round by round'}
+    >
+      <!-- transfer ribbon bands (drawn first, under bars) -->
+      <g>
+        {ribbons.map((r) => (
+          <path
+            class={`px-bflow__band${r.toExhausted ? ' px-bflow__band--exh' : ''}`}
+            d={r.band}
+            style={`fill:${r.color}`}
+          />
+        ))}
+      </g>
+
+      <!-- centerline dash carriers (flowDash: speed ∝ value) -->
+      <g>
+        {ribbons.map((r) => (
+          <path
+            class={`px-bflow__dash${r.toExhausted ? ' px-bflow__dash--exh' : ''}`}
+            d={r.dash}
+            style={`stroke:${r.color}; --dur:${r.durS}s; --sweep:${r.sweep}; --rd:${r.rd}ms`}
+          />
+        ))}
+      </g>
+
+      <!-- majority ticks: one per column, descending -->
+      <g>
+        {majTicks.map((m) => (
+          <line class="px-bflow__maj" x1={f1(m.x0)} y1={f1(m.y)} x2={f1(m.x1)} y2={f1(m.y)} />
+        ))}
+        <text
+          class="px-bflow__maj-lbl"
+          x={f1(finalTick.x1)}
+          y={f1(finalTick.y - 6)}
+          text-anchor="end"
+        >MAJORITY {fmt(finalTick.value)}</text>
+      </g>
+
+      <!-- bars (grow reveal; exhausted muted sink) -->
+      <g>
+        {bars.map((b) => (
+          <rect
+            class={`px-bflow__bar${b.exhausted ? ' px-bflow__bar--exh' : ''}`}
+            x={f1(b.x)} y={f1(b.y)} width={f1(b.w)} height={f1(Math.max(0, b.h))} rx="1.5"
+            style={`fill:${b.color}; --nd:${b.nd}ms`}
+          />
+        ))}
+      </g>
+
+      <!-- per-bar tally labels (candidate color; exhausted muted) -->
+      <g>
+        {bars.filter((b) => b.h >= 1 || b.exhausted).map((b) => (
+          <text
+            class={`px-bflow__val${b.exhausted ? ' px-bflow__val--exh' : ''}`}
+            x={f1(b.cx)} y={f1(Math.max(LABEL_PAD - 6, b.topY - 6))}
+            text-anchor="middle"
+            style={`fill:${b.labelColor}`}
+          >{b.valLabel}</text>
+        ))}
+      </g>
+
+      <!-- transfer value labels at mid-stream (mono, paper halo) -->
+      <g>
+        {ribbons.map((r) => (
+          <text class="px-bflow__tval" x={f1(r.midX)} y={f1(r.midY)} text-anchor="middle" dominant-baseline="middle">+{fmt(r.value)}</text>
+        ))}
+      </g>
+
+      <!-- round axis -->
+      <g>
+        {rounds.map((_, i) => (
+          <text class="px-bflow__round" x={f1(colX(i))} y={f1(baselineY + 18)} text-anchor="middle">ROUND {i + 1}</text>
+        ))}
+      </g>
+
+      <!-- candidate name gutter (left) — grays out once eliminated -->
+      <g>
+        {ordered.map((c) => {
+          const slot = slotOf.get(c.id)!;
+          const elimAt = eliminatedAtRound.get(c.id);
+          return (
+            <text
+              class={`px-bflow__name${elimAt !== undefined ? ' px-bflow__name--out' : ''}`}
+              x={f1(GUTTER - 10)}
+              y={f1(14 + slot * 13)}
+              text-anchor="end"
+            >
+              <tspan style={`fill:${colorOf.get(c.id)}`}>■</tspan> {gutterLabel(c.id)}
+            </text>
+          );
+        })}
+        <text class="px-bflow__name px-bflow__name--out" x={f1(GUTTER - 10)} y={f1(14 + ordered.length * 13)} text-anchor="end">
+          <tspan class="px-bflow__exh-swatch">■</tspan> EXHAUSTED
+        </text>
+      </g>
+
+      <!-- WINNER stamp (fires last; pre-stamped under reduced-motion / no-JS) -->
+      {bars.filter((b) => b.isWinnerFinal).map((b) => (
+        <g class="px-bflow__stamp" style={`--sx:${f1(b.cx)}px; --sy:${f1(b.topY - 22)}px`}>
+          <rect
+            class="px-bflow__stamp-box"
+            x={f1(b.cx - 34)} y={f1(b.topY - 34)} width="68" height="18" rx="2"
+          />
+          <text class="px-bflow__stamp-txt" x={f1(b.cx)} y={f1(b.topY - 25)} text-anchor="middle" dominant-baseline="middle">WINNER</text>
+        </g>
+      ))}
+    </svg>
+  </div>
+
+  <!-- ── MOBILE: vertical round stack (<640px) ──────────────────────────── -->
+  <div class="px-bflow__mstack" aria-hidden="false">
+    {mobile.map((r, i) => (
+      <>
+        <div class="px-bflow__mround">
+          <div class="px-bflow__mhead">
+            <span class="px-bflow__mrn">ROUND {r.n}</span>
+            <span class="px-bflow__mmeta">majority {fmt(r.maj)} · continuing {fmt(r.continuing)}</span>
+          </div>
+          {r.rows.map((row) => (
+            <div class={`px-bflow__mrow${row.isWinnerFinal ? ' px-bflow__mrow--win' : ''}`}>
+              <span class="px-bflow__mname"><i style={`background:${row.color}`}></i>{row.name}{row.isWinnerFinal ? ' ★' : ''}</span>
+              <span class="px-bflow__mbar-frame"><span class="px-bflow__mbar" style={`width:${Math.max(2, row.pct)}%; background:${row.color}`}></span></span>
+              <span class="px-bflow__mval" style={`color:${row.color}`}>{fmt(row.value)}</span>
+            </div>
+          ))}
+          <div class="px-bflow__mrow px-bflow__mrow--exh">
+            <span class="px-bflow__mname"><i class="px-bflow__mi-exh"></i>exhausted</span>
+            <span class="px-bflow__mbar-frame"><span class="px-bflow__mbar px-bflow__mbar--exh" style={`width:${Math.max(0, r.exPct)}%`}></span></span>
+            <span class="px-bflow__mval px-bflow__mval--exh">{fmt(r.exhausted)}</span>
+          </div>
+        </div>
+        {r.connectors.length > 0 && (
+          <div class="px-bflow__mconn">
+            <span class="px-bflow__mconn-lbl">{r.elimName} out →</span>
+            {r.connectors.map((c) => (
+              <span class={`px-bflow__mconn-t${c.exhausted ? ' px-bflow__mconn-t--exh' : ''}`}>{c.to} +{fmt(c.value)}</span>
+            ))}
+          </div>
+        )}
+      </>
+    ))}
+  </div>
+
+  <!-- ── round ledger (blueprint §7) — open under no-JS, folds on boot ──── -->
+  <details class="px-bflow__ledger" open>
+    <summary class="px-bflow__ledger-sum">Full count — every round, every transfer</summary>
+    <ul class="pol-ledger px-bflow__ledger-list">
+      {ledger.map((r) => (
+        <li>
+          <span class="pol-ledger__k">Round {r.n}</span>
+          <span class="pol-ledger__dots"></span>
+          <span class="pol-ledger__v">
+            {r.tallyStr} · exhausted {fmt(r.exhausted)}{r.elimStr ? <><br /><b>{r.elimStr}</b></> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  </details>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<script is:inline>
+  /* legend-collapse (blueprint §7): fold the round ledger once JS is on — the
+     in-SVG numbers now carry the data. No-JS keeps <details open>. */
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    var ds = document.querySelectorAll('.px-bflow__ledger[open]');
+    for (var i = 0; i < ds.length; i++) ds[i].removeAttribute('open');
+  })();
+</script>
+
+<style>
+  .px-bflow { width: 100%; }
+
+  /* outcome headline — always visible, gazette register */
+  .px-bflow__outcome {
+    margin: 4px 0 16px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    max-width: var(--col-prose);
+  }
+  .px-bflow__outcome b { color: var(--ink); font-weight: 600; }
+  .px-bflow__pct { color: var(--accent-deep); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* ── desktop SVG ─────────────────────────────────────────────────────── */
+  .px-bflow__svg-wrap { width: 100%; padding: 0 4px; container-type: inline-size; }
+  .px-bflow__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* transfer ribbon bands — the eliminated candidate's color carries the votes */
+  .px-bflow__band {
+    fill-opacity: 0.24;
+    transition: opacity 900ms var(--ease) 250ms;
+  }
+  .px-bflow__band--exh { fill: var(--ink) !important; fill-opacity: 0.30; }
+
+  /* centerline dash carriers (flowDash) */
+  .px-bflow__dash {
+    fill: none;
+    stroke-opacity: 0.9;
+    stroke-width: 1.5;
+    stroke-dasharray: 2 6;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease) var(--rd, 250ms);
+  }
+  .px-bflow__dash--exh { stroke: var(--ink) !important; stroke-opacity: 0.5; }
+
+  /* bars — candidate color @0.85; exhausted muted sink @0.30 */
+  .px-bflow__bar {
+    opacity: 0.85;
+    transform: scaleY(1);
+    transform-box: fill-box;
+    transform-origin: bottom;
+    transition: transform 500ms var(--ease) var(--nd, 0ms); /* grow */
+  }
+  .px-bflow__bar--exh { fill: var(--ink) !important; opacity: 0.30; }
+
+  /* majority line — ink dashed, descends per column */
+  .px-bflow__maj {
+    stroke: var(--ink);
+    stroke-opacity: 0.42;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .px-bflow__maj-lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  /* per-bar tally — mono tabular, candidate color, paper halo */
+  .px-bflow__val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  /* transfer value labels mid-stream — mono, paper halo */
+  .px-bflow__tval {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+    fill: var(--ink-soft);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  /* round axis + candidate gutter names — legend/eyebrow role, muted mono */
+  .px-bflow__round {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    fill: var(--muted);
+  }
+  .px-bflow__name {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-bflow__name--out { fill: var(--ink); opacity: 0.4; }
+  .px-bflow__exh-swatch { fill: var(--ink); opacity: 0.4; }
+
+  /* WINNER stamp — politics signature (inked rubber stamp, accent-deep) */
+  .px-bflow__stamp-box {
+    fill: color-mix(in oklab, var(--accent) 5%, transparent);
+    stroke: var(--accent-deep);
+    stroke-width: 1.5;
+  }
+  .px-bflow__stamp-txt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    fill: var(--accent-deep);
+  }
+  .px-bflow__stamp {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(-2deg);
+  }
+
+  /* ── reveal choreography (blueprint §5); hidden states gated behind html.js.
+        No-JS paints the final frame; reduced-motion resets to it. ────────── */
+  html.js .px-viz:not(.is-in) .px-bflow__bar { transform: scaleY(0); }
+  html.js .px-viz:not(.is-in) .px-bflow__band { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-bflow__dash { stroke-dashoffset: var(--sweep, 0); }
+  html.js .px-viz:not(.is-in) .px-bflow__val,
+  html.js .px-viz:not(.is-in) .px-bflow__tval { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-bflow__stamp { opacity: 0; transform: rotate(-2deg) scale(1.5); }
+
+  .px-bflow__val, .px-bflow__tval {
+    opacity: 1;
+    transition: opacity 500ms var(--ease) 250ms;
+  }
+  /* WINNER stamp fires LAST (~1380ms) — the result seal */
+  .px-bflow__stamp {
+    opacity: 1;
+    transition: opacity 220ms var(--ease-snap, var(--ease)) 1380ms,
+                transform 220ms var(--ease-snap, var(--ease)) 1380ms;
+  }
+
+  /* flowDash — the card's ONE ambient motion; takes over once the sweep lands */
+  html.js .px-viz.is-in .px-bflow__dash {
+    animation: px-bflow-flow var(--dur, 4s) linear 1250ms infinite;
+  }
+  @keyframes px-bflow-flow {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: -8; }
+  }
+
+  /* SVG label floor: the in-SVG text scales with the 720-unit viewBox, so when the
+     CARD is narrower than 720 the labels render *below* their px size. Key the bump
+     off the CONTAINER width (the .px-bflow__svg-wrap query container), not the
+     viewport — otherwise a 640–720px card inside a wide layout on a large viewport
+     scales the 9.5px axis/legend text under the floor while a viewport media query
+     never fires. Bumping the axis/legend/eyebrow roles to 11px holds ≥9.5px rendered
+     down to the ~640px mobile-stack switch (11 × 640/720 ≈ 9.8px). */
+  @container (max-width: 760px) {
+    .px-bflow__val { font-size: 13px; }
+    .px-bflow__tval, .px-bflow__round, .px-bflow__name, .px-bflow__maj-lbl { font-size: 11px; }
+  }
+
+  /* ── mobile round stack (<640px) ─────────────────────────────────────── */
+  .px-bflow__mstack { display: none; }
+  @media (max-width: 640px) {
+    .px-bflow__svg-wrap { display: none; }
+    .px-bflow__mstack { display: block; }
+  }
+  .px-bflow__mround {
+    border-top: 2px solid var(--ink);
+    padding: 8px 0 10px;
+  }
+  .px-bflow__mhead {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .px-bflow__mrn {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  .px-bflow__mmeta {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em;
+    color: var(--muted); font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .px-bflow__mrow {
+    display: grid;
+    grid-template-columns: 5.6em 1fr auto;
+    align-items: center; gap: 8px;
+    padding: 3px 0;
+  }
+  .px-bflow__mname {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--ink-soft);
+    display: inline-flex; align-items: center; gap: 6px; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .px-bflow__mname i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .px-bflow__mi-exh { width: 9px; height: 9px; border-radius: 2px; flex: none; background: var(--ink); opacity: 0.3; }
+  .px-bflow__mbar-frame { height: 12px; background: color-mix(in oklab, var(--ink) 6%, transparent); border-radius: 2px; overflow: hidden; }
+  .px-bflow__mbar { display: block; height: 100%; opacity: 0.85; border-radius: 2px; }
+  .px-bflow__mbar--exh { background: var(--ink) !important; opacity: 0.3; }
+  .px-bflow__mval {
+    font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em; text-align: right; min-width: 4.2em;
+  }
+  .px-bflow__mval--exh { color: var(--muted); }
+  .px-bflow__mrow--win .px-bflow__mname { color: var(--accent-deep); font-weight: 600; }
+  .px-bflow__mconn {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+    padding: 7px 0 9px 8px; margin-left: 2px;
+    border-left: 2px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  .px-bflow__mconn-lbl {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .px-bflow__mconn-t {
+    font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums;
+    color: var(--accent-deep); letter-spacing: 0.02em;
+  }
+  .px-bflow__mconn-t--exh { color: var(--muted); }
+
+  /* ── round ledger ────────────────────────────────────────────────────── */
+  .px-bflow__ledger { margin-top: 18px; }
+  .px-bflow__ledger-sum {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); cursor: pointer;
+    padding: 6px 0; list-style: revert;
+  }
+  .px-bflow__ledger-list { margin-top: 6px; }
+  .px-bflow__ledger-list .pol-ledger__v { line-height: 1.5; }
+
+  /* ── reduced motion: full diagram, dashes as static directional stipple ── */
+  @media (prefers-reduced-motion: reduce) {
+    .px-bflow__bar, .px-bflow__band, .px-bflow__dash,
+    .px-bflow__val, .px-bflow__tval, .px-bflow__stamp { transition: none !important; }
+    html.js .px-viz.is-in .px-bflow__dash { animation: none !important; }
+    .px-viz:not(.is-in) .px-bflow__bar { transform: none !important; }
+    .px-viz:not(.is-in) .px-bflow__band { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-bflow__dash { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-bflow__val,
+    .px-viz:not(.is-in) .px-bflow__tval { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-bflow__stamp { opacity: 1 !important; transform: rotate(-2deg) !important; }
+  }
+</style>

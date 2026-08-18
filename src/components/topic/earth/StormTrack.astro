@@ -1,0 +1,403 @@
+---
+/**
+ * StormTrack (earth · WebGL · extends the shared country globe) — "The whole
+ * storm, from a tropical wave to landfall, in one arc." A tropical cyclone's
+ * best-track polyline drawn on the globe, each segment coloured by its intensity
+ * at that hour on the fixed Saffir-Simpson ramp; drag to follow it across the
+ * basin. Lazy WebGL (scene 'storm-track').
+ *
+ * Blueprint (the contract): docs/design/blueprints/earth/storm-track.md.
+ * The Saffir-Simpson ramp lives once in the scene module
+ * (src/scripts/viz3d/scenes/stormTrack.ts: `saffirSimpson` / `SAFFIR_RAMP`) —
+ * imported here so the no-JS / reduced-motion / no-WebGL fallback plate paints
+ * the IDENTICAL encoding as a composed orthographic basin still (§7): coastlines,
+ * intensity-coloured track, fix markers sized by wind, landfall rings, the peak
+ * halo, the declared ramp legend, and the field-note track table.
+ *
+ * data: { storms:[{ name, fixes:[{ t, lat, lon, wind_kt, landfall? }] }],
+ *         windScale?, smooth?, caption?, source? (REQUIRED) }  — category is
+ *         DERIVED from wind_kt, never authored.
+ */
+import { geoOrthographic, geoPath, geoGraticule } from 'd3-geo';
+import { feature } from 'topojson-client';
+import type { Topology, Objects } from 'topojson-specification';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { saffirSimpson, SAFFIR_RAMP, catLabel } from '../../../scripts/viz3d/scenes/stormTrack';
+
+interface Fix { t: string; lat: number; lon: number; wind_kt: number; landfall?: boolean; }
+interface Storm { name: string; fixes: Fix[]; }
+interface Props {
+  storms?: Storm[];
+  windScale?: string;
+  smooth?: boolean;
+  caption?: string;
+  source?: string;
+}
+const { storms = [], windScale = 'kt', smooth = true, caption, source } = Astro.props;
+
+const validStorms: Storm[] = (storms || []).filter((s) => s && Array.isArray(s.fixes) && s.fixes.length > 0);
+const allFixes: Fix[] = validStorms.flatMap((s) => s.fixes);
+
+/* ── mean lat/lon (unit-vector average) → the basin the plate centres on ── */
+const D2R = Math.PI / 180;
+let mx = 0, my = 0, mz = 0;
+for (const f of allFixes) {
+  const phi = f.lat * D2R, lam = f.lon * D2R;
+  mx += Math.cos(phi) * Math.cos(lam); my += Math.cos(phi) * Math.sin(lam); mz += Math.sin(phi);
+}
+const meanLat = allFixes.length ? Math.atan2(mz, Math.hypot(mx, my)) / D2R : 0;
+const meanLon = allFixes.length ? Math.atan2(my, mx) / D2R : 0;
+
+/* ── build-time orthographic projection (blueprint §7) ── */
+const VW = 720, VH = 720, RAD = 320;
+const projection = geoOrthographic()
+  .rotate([-meanLon, -meanLat])
+  .scale(RAD)
+  .translate([VW / 2, VH / 2])
+  .clipAngle(90);
+const pathGen = geoPath(projection as any);
+const gratGen = geoGraticule().step([15, 15]);
+
+/* near-side test: angular distance from the projection centre < 90° */
+const centreVec = [Math.cos(meanLat * D2R) * Math.cos(meanLon * D2R), Math.cos(meanLat * D2R) * Math.sin(meanLon * D2R), Math.sin(meanLat * D2R)];
+const nearSide = (lat: number, lon: number) => {
+  const v = [Math.cos(lat * D2R) * Math.cos(lon * D2R), Math.cos(lat * D2R) * Math.sin(lon * D2R), Math.sin(lat * D2R)];
+  return centreVec[0] * v[0] + centreVec[1] * v[1] + centreVec[2] * v[2] > -0.02;
+};
+const project = (lat: number, lon: number): [number, number] | null => {
+  const p = (projection as any)([lon, lat]);
+  return p && nearSide(lat, lon) ? [p[0], p[1]] : null;
+};
+
+/* ── land coastlines (Natural Earth 50m; horizon-clipped by geoPath) ── */
+let landPath = '';
+try {
+  const topo = JSON.parse(readFileSync(join(process.cwd(), 'node_modules/world-atlas/land-50m.json'), 'utf-8')) as Topology<Objects<{}>>;
+  const land = feature(topo, topo.objects['land'] as any);
+  landPath = pathGen(land as any) || '';
+} catch { landPath = ''; }
+const graticulePath = pathGen(gratGen() as any) || '';
+const spherePath = pathGen({ type: 'Sphere' } as any) || '';
+
+/* ── per-storm fallback geometry ── */
+const markerR = (w: number) => 2.6 + 4.4 * (w / 160);
+interface Seg { d: string; color: string; }
+interface Mark { x: number; y: number; r: number; color: string; landfall: boolean; }
+interface PlateStorm {
+  name: string; nameAt: [number, number] | null;
+  segs: Seg[]; marks: Mark[];
+  peak: { x: number; y: number; r: number; color: string; label: string } | null;
+  landfalls: { x: number; y: number; label: string }[];
+}
+const plateStorms: PlateStorm[] = validStorms.map((storm) => {
+  const fixes = storm.fixes;
+  let peakIdx = 0;
+  for (let i = 1; i < fixes.length; i++) if (fixes[i].wind_kt > fixes[peakIdx].wind_kt) peakIdx = i;
+
+  const segs: Seg[] = [];
+  for (let i = 0; i < fixes.length - 1; i++) {
+    const a = fixes[i], b = fixes[i + 1];
+    const d = pathGen({ type: 'LineString', coordinates: [[a.lon, a.lat], [b.lon, b.lat]] } as any);
+    if (d) segs.push({ d, color: saffirSimpson(a.wind_kt).color });
+  }
+  const marks: Mark[] = [];
+  fixes.forEach((f) => {
+    const p = project(f.lat, f.lon);
+    if (p) marks.push({ x: p[0], y: p[1], r: markerR(f.wind_kt), color: saffirSimpson(f.wind_kt).color, landfall: !!f.landfall });
+  });
+  const pk = fixes[peakIdx];
+  const pp = project(pk.lat, pk.lon);
+  const peak = pp ? { x: pp[0], y: pp[1], r: markerR(pk.wind_kt) + 2, color: saffirSimpson(pk.wind_kt).color, label: `PEAK ${catLabel(saffirSimpson(pk.wind_kt).cat)} · ${pk.wind_kt} kt` } : null;
+  const landfalls = fixes.filter((f) => f.landfall).map((f) => project(f.lat, f.lon)).filter(Boolean).map((p) => ({ x: (p as [number, number])[0], y: (p as [number, number])[1], label: 'LANDFALL' }));
+  const f0 = fixes[0];
+  return { name: storm.name, nameAt: project(f0.lat, f0.lon), segs, marks, peak, landfalls };
+});
+
+/* ── field-note track table (AT-readable data source, motif 3) ── */
+interface Row { name: string; time: string; coord: string; wind: string; cat: string; landfall: boolean; }
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${hh}:${mm}Z`;
+};
+const latH = (lat: number) => `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}`;
+const lonH = (lon: number) => `${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
+const rows: Row[] = validStorms.flatMap((s) => s.fixes.map((f) => ({
+  name: s.name, time: fmtDate(f.t), coord: `${latH(f.lat)} ${lonH(f.lon)}`,
+  wind: `${f.wind_kt} kt`, cat: catLabel(saffirSimpson(f.wind_kt).cat), landfall: !!f.landfall,
+})));
+const showAll = rows.length <= 5;
+const multi = validStorms.length > 1;
+
+/* centre label (coordinate margin, motif 2) */
+const centreLabel = `${latH(meanLat)} ${lonH(meanLon)}`;
+
+/* live-scene payload (inline JSON — the track is data, not a fetched asset) */
+const payload = JSON.stringify({ storms: validStorms, windScale, smooth });
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const SERIF = "font-family:var(--font-display),Georgia,serif";
+---
+
+{validStorms.length > 0 && (
+  <div class="px-viz px-storm" data-reveal>
+    {caption && (
+      <div class="px-viz__cap">
+        <span>{caption}</span>
+      </div>
+    )}
+
+    <div
+      class="viz3d viz3d--storm"
+      data-viz3d="storm-track"
+      style={`aspect-ratio: 1 / 1`}
+      role="img"
+      aria-label={caption ? `Tropical-cyclone track: ${caption}` : `Tropical-cyclone best-track map`}
+    >
+      <div class="viz3d__fallback">
+        {/* The print plate — an orthographic basin view centred on the storm
+            (blueprint §7). overflow visible so labels bleed outside the disc. */}
+        <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" style="overflow:visible">
+          {/* ocean disc + horizon */}
+          {spherePath && <path d={spherePath} fill="color-mix(in oklab, var(--accent) 6%, var(--paper))" stroke="var(--ink)" stroke-width="1" opacity="0.9" />}
+          {graticulePath && <path d={graticulePath} fill="none" stroke="var(--ink)" stroke-width="0.5" opacity="0.09" />}
+          {landPath && <path d={landPath} fill="color-mix(in oklab, var(--accent) 12%, var(--paper))" stroke="var(--ink)" stroke-width="0.8" opacity="0.35" />}
+
+          {plateStorms.map((s) => (
+            <>
+              {/* intensity-coloured track segments (starting-fix category) */}
+              {s.segs.map((seg) => (
+                <path d={seg.d} fill="none" stroke={seg.color} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              ))}
+
+              {/* peak halo — the ONE soft radial marker (§7) */}
+              {s.peak && (
+                <circle cx={s.peak.x} cy={s.peak.y} r={s.peak.r + 16} fill={`url(#px-storm-halo-${s.name.replace(/[^a-z0-9]/gi, '')})`} />
+              )}
+
+              {/* fix markers — category colour, sized by wind */}
+              {s.marks.map((m) => (
+                <>
+                  <circle cx={m.x} cy={m.y} r={m.r} fill={m.color} stroke="var(--paper)" stroke-width="0.75" />
+                  {m.landfall && <circle cx={m.x} cy={m.y} r={m.r + 3.5} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.7" />}
+                </>
+              ))}
+
+              {/* peak dot on top of the halo */}
+              {s.peak && <circle cx={s.peak.x} cy={s.peak.y} r={s.peak.r} fill={s.peak.color} stroke="var(--paper)" stroke-width="1" />}
+
+              {/* labels — storm name (Fraunces italic), PEAK + LANDFALL (mono) */}
+              {s.nameAt && (
+                <text x={s.nameAt[0] + 9} y={s.nameAt[1] - 8} style={`${SERIF};font-style:italic`} font-size="16"
+                  fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{s.name}</text>
+              )}
+              {s.peak && (
+                <text x={s.peak.x + s.peak.r + 6} y={s.peak.y - s.peak.r - 4} style={MONO} font-size="9.5"
+                  fill="var(--ink)" letter-spacing="0.08em" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{s.peak.label}</text>
+              )}
+              {s.landfalls.map((lf) => (
+                <text x={lf.x + 8} y={lf.y + 14} style={MONO} font-size="9.5" fill="var(--ink)" letter-spacing="0.08em"
+                  paint-order="stroke" stroke="var(--paper)" stroke-width="3">{lf.label}</text>
+              ))}
+            </>
+          ))}
+
+          {/* basin-centre coordinate (motif 2) */}
+          <text x={VW / 2} y={VH - 6} text-anchor="middle" style={MONO} font-size="9.5" fill="var(--muted)" letter-spacing="0.1em">{centreLabel}</text>
+
+          {/* radial-gradient defs for each storm's peak halo (the ONE peak marker) */}
+          <defs>
+            {plateStorms.map((s) => s.peak && (
+              <radialGradient id={`px-storm-halo-${s.name.replace(/[^a-z0-9]/gi, '')}`}>
+                <stop offset="0%" stop-color={s.peak.color} stop-opacity="0.55" />
+                <stop offset="100%" stop-color={s.peak.color} stop-opacity="0" />
+              </radialGradient>
+            ))}
+          </defs>
+        </svg>
+      </div>
+
+      <span class="viz3d__hint" aria-hidden="true">drag to follow the track</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
+    </div>
+
+    {/* Saffir-Simpson legend — the DECLARED fixed encoding (mandatory, §7 / CANON §6) */}
+    <div class="px-storm__legend" aria-label="Saffir-Simpson intensity scale">
+      <span class="px-storm__legend-k">Saffir-Simpson · max sustained wind ({windScale})</span>
+      <ul class="px-storm__ramp">
+        {SAFFIR_RAMP.map((b) => (
+          <li class="px-storm__band">
+            <span class="px-storm__sw" style={`background:${b.color}`} aria-hidden="true"></span>
+            <span class="px-storm__band-cat">{b.cat}</span>
+            <span class="px-storm__band-kt">{b.key === '5' ? `≥${b.minKt}` : `${b.minKt}–${b.maxKt}`}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    {/* field-note track table (AT-readable, motif 3) */}
+    <div class={`px-storm__track${showAll ? '' : ' px-storm__track--collapsed'}`}>
+      <div class="px-storm__track-head">
+        <span>best track · {rows.length} fixes</span>
+        <span>time · position · wind · category</span>
+      </div>
+      <ul class="px-storm__rows">
+        {rows.map((r, i) => (
+          <li class={`px-storm__row${!showAll && i >= 5 ? ' px-storm__row--extra' : ''}`}>
+            {multi && <span class="px-storm__r-name">{r.name}</span>}
+            <span class="px-storm__r-t">{r.time}</span>
+            <span class="px-storm__r-co">{r.coord}</span>
+            <span class="px-storm__r-w">{r.wind}</span>
+            <span class="px-storm__r-cat">{r.cat}{r.landfall ? ' · landfall' : ''}</span>
+          </li>
+        ))}
+      </ul>
+      {!showAll && (
+        <button type="button" class="px-storm__more" aria-expanded="false">show all {rows.length} fixes</button>
+      )}
+    </div>
+
+    {source && <div class="px-viz__src">Source · {source}</div>}
+
+    {/* track show-all bridge (no-JS shows all rows; JS collapses past 5) */}
+    <script is:inline>
+      (function () {
+        var root = document.currentScript && document.currentScript.previousElementSibling;
+        while (root && !(root.classList && root.classList.contains('px-storm'))) {
+          root = root.previousElementSibling;
+        }
+        if (!root) return;
+        var more = root.querySelector('.px-storm__more');
+        var track = root.querySelector('.px-storm__track');
+        if (more && track) {
+          more.addEventListener('click', function () {
+            track.classList.remove('px-storm__track--collapsed');
+            more.setAttribute('aria-expanded', 'true');
+            more.style.display = 'none';
+          });
+        }
+      })();
+    </script>
+  </div>
+)}
+
+{/* the storm-name label (Fraunces italic) + PEAK/LANDFALL (mono) are created at
+    runtime by makeLabels, so their styling must be GLOBAL (scoped styles never
+    reach runtime-injected nodes). --storm = the naturalist's-hand name chip. */}
+<style is:global>
+  .viz3d--storm .viz3d__label--storm {
+    font-family: var(--font-display), Georgia, serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    background: color-mix(in oklab, var(--paper) 82%, transparent);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .viz3d--storm .viz3d__anchor--storm { display: none; }
+</style>
+
+<style>
+  /* ocean-paper mount tint under the line-art (atlas water) */
+  .viz3d--storm {
+    background:
+      radial-gradient(ellipse 70% 68% at 50% 48%,
+        color-mix(in oklab, var(--accent) 7%, transparent), transparent 72%),
+      color-mix(in oklab, var(--paper) 78%, var(--bg));
+  }
+
+  /* ── Saffir-Simpson legend (the declared encoding) ── */
+  .px-storm__legend {
+    margin-top: 16px;
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+  .px-storm__legend-k {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    margin-bottom: 10px;
+  }
+  .px-storm__ramp {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+  }
+  .px-storm__band {
+    display: flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-storm__sw {
+    width: 14px; height: 14px; border-radius: 3px; flex: 0 0 auto;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 22%, transparent);
+  }
+  .px-storm__band-cat {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; color: var(--ink);
+  }
+  .px-storm__band-kt {
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── field-note track table (motif 3) ── */
+  .px-storm__track {
+    margin-top: 16px;
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+  .px-storm__track-head {
+    display: flex; justify-content: space-between; gap: 16px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep, var(--accent));
+    font-variant-numeric: tabular-nums;
+    padding-bottom: 10px;
+  }
+  .px-storm__track-head span:last-child { color: var(--muted); text-align: right; }
+  .px-storm__rows { list-style: none; margin: 0; padding: 0; }
+  .px-storm__row {
+    display: grid;
+    grid-template-columns: minmax(9ch, auto) minmax(11ch, 1fr) auto auto;
+    gap: 12px; align-items: baseline;
+    padding: 7px 0; border-bottom: 1px dashed var(--rule);
+    font-family: var(--font-mono); font-size: 11px;
+    font-variant-numeric: tabular-nums; color: var(--ink-soft);
+  }
+  .px-storm__r-name {
+    grid-column: 1 / -1;
+    font-family: var(--font-display); font-style: italic; font-size: 13px;
+    color: var(--ink); padding-top: 2px;
+  }
+  .px-storm__r-w { text-align: right; color: var(--ink); }
+  .px-storm__r-cat { text-align: right; color: var(--accent-deep, var(--accent)); letter-spacing: 0.04em; }
+  .px-storm__r-co { color: var(--muted); }
+
+  /* collapse behind "show all" past 5 rows (no-JS shows all; JS hides extras) */
+  html.js .px-storm__track--collapsed .px-storm__row--extra { display: none; }
+  .px-storm__more {
+    margin-top: 12px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep, var(--accent));
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  html:not(.js) .px-storm__more { display: none; }
+
+  @media (max-width: 640px) {
+    .px-storm__row {
+      grid-template-columns: 1fr auto auto;
+      row-gap: 2px;
+    }
+    .px-storm__r-co { grid-column: 1 / -1; }
+  }
+</style>

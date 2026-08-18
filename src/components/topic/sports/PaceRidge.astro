@@ -1,0 +1,382 @@
+---
+/*
+  PaceRidge (sports) — the split-distribution ridgeline. One athlete's whole
+  distribution of a measured quantity (top speed, serve, shot distance…) against
+  the field's, drawn as stacked, slightly-overlapping kernel-density ridges. The
+  subject's ridge is volt; the field's are quiet ink. The reader sees not just
+  where the subject sits but how their spread compares — faster on average, or
+  just more consistent, or with a long tail. "The stat, shown as a shape."
+
+  All maths (Silverman-bandwidth Gaussian KDE + ridgeline layout + medians) runs
+  ONCE here at build time. Zero runtime compute. The only motion is the CSS
+  clip-path sweep + opacity reveals, gated behind `html.js` via core/Reveal.astro
+  toggling `.is-in` — so no-JS / reduced-motion paints the final ridge stack.
+
+  Use for: a measurable quantity with a SAMPLE for the subject and >=1 comparison
+  group (>=~15 obs each) where the SHAPE of the difference (shift vs spread vs
+  tail) is the argument. Not one-number-per-entity (-> player-radar / bar).
+
+  data: {
+    metric, unit, source_n?, stat?: 'mean'|'median', domain?: [min,max],
+    groups: [{ label, samples: number[], subject?: true }],  // 2-7, top->bottom
+    caption?, source?
+  }
+*/
+interface Group { label: string; samples: number[]; subject?: true; }
+interface Props {
+  metric?: string;
+  unit?: string;
+  source_n?: string;
+  stat?: 'mean' | 'median';
+  domain?: [number, number];
+  groups?: Group[];
+  caption?: string;
+  source?: string;
+}
+const {
+  metric = 'value',
+  unit = '',
+  source_n,
+  stat = 'median',
+  groups: rawGroups = [],
+  caption,
+  source,
+} = Astro.props;
+
+// ── layout constants (blueprint §4, corrected 2026-07-06) ───────────────────
+const W = 720;
+const RIDGE_STEP = 64;
+const PAD_L = 20, PAD_R = 132, PAD_T = 34;
+const w = W - PAD_L - PAD_R;            // 568 — plot width
+const PEAK = RIDGE_STEP * 1.5;          // 96 — tallest peak height (px)
+const M = 128;                          // KDE grid resolution
+
+// sanitise: keep 2–7 groups that carry >=2 finite samples; at most one subject
+let groups = (rawGroups || [])
+  .filter((g) => g && Array.isArray(g.samples))
+  .map((g) => ({
+    label: String(g.label ?? ''),
+    subject: g.subject === true,
+    samples: g.samples.filter((s) => Number.isFinite(s)) as number[],
+  }))
+  .filter((g) => g.samples.length >= 2)
+  .slice(0, 7);
+// honour at most ONE subject (first wins)
+let seenSubj = false;
+groups = groups.map((g) => {
+  if (g.subject && !seenSubj) { seenSubj = true; return g; }
+  return { ...g, subject: false };
+});
+
+const G = groups.length;
+const H = 100 + G * RIDGE_STEP;         // self-sizing height (bottom rail gap = 26px for any G)
+
+// ── domain: given, or nice-rounded over the full sample range (no truncation) ─
+function niceStep(range: number, target: number): number {
+  if (!(range > 0)) return 1;
+  const raw = range / target;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const s = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  return s * mag;
+}
+const allSamples = groups.flatMap((g) => g.samples);
+let dMin: number, dMax: number;
+if (Astro.props.domain && Number.isFinite(Astro.props.domain[0]) && Number.isFinite(Astro.props.domain[1])) {
+  [dMin, dMax] = Astro.props.domain;
+} else {
+  const lo = Math.min(...allSamples), hi = Math.max(...allSamples);
+  const step = niceStep(hi - lo || 1, 6);
+  dMin = Math.floor(lo / step) * step;
+  dMax = Math.ceil(hi / step) * step;
+  if (dMax === dMin) dMax = dMin + step;
+}
+const span = dMax - dMin;
+const x = (v: number) => PAD_L + ((v - dMin) / span) * w;
+
+// ── statistics ──────────────────────────────────────────────────────────────
+function median(a: number[]): number {
+  const s = [...a].sort((p, q) => p - q);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+function mean(a: number[]): number { return a.reduce((t, v) => t + v, 0) / a.length; }
+function sampleStd(a: number[]): number {
+  if (a.length < 2) return 0;
+  const mu = mean(a);
+  const ss = a.reduce((t, v) => t + (v - mu) * (v - mu), 0);
+  return Math.sqrt(ss / (a.length - 1));       // sample std (n-1), per blueprint anchor
+}
+const centre = (a: number[]) => (stat === 'mean' ? mean(a) : median(a));
+const statKey = stat === 'mean' ? 'μ' : 'med';
+
+// ── Gaussian KDE (Silverman bandwidth), shared grid across all groups ─────────
+const K = (u: number) => Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
+const bwFloor = span / 40;                       // a spike can't be thinner than axis resolution
+function bandwidth(a: number[]): number {
+  const bw = 1.06 * sampleStd(a) * Math.pow(a.length, -1 / 5);
+  return Math.max(bw, bwFloor);
+}
+function density(samples: number[], bw: number, at: number): number {
+  let s = 0;
+  for (const si of samples) s += K((at - si) / bw);
+  return s / (samples.length * bw);
+}
+// evaluate each group's density on the M-point grid; track the GLOBAL max for one shared scale
+const grid = Array.from({ length: M }, (_, i) => dMin + (span * i) / (M - 1));
+let peakDensity = 0;
+const model = groups.map((g) => {
+  const bw = bandwidth(g.samples);
+  const dens = grid.map((gx) => density(g.samples, bw, gx));
+  const gmax = Math.max(...dens);
+  if (gmax > peakDensity) peakDensity = gmax;
+  return { ...g, bw, dens, n: g.samples.length, c: centre(g.samples) };
+});
+const SY = peakDensity > 0 ? PEAK / peakDensity : 0;   // ONE global scale — taller ridge = genuinely peakier
+
+// ── ridge geometry ───────────────────────────────────────────────────────────
+const baseline = (g: number) => PAD_T + g * RIDGE_STEP + RIDGE_STEP;
+const topBase = baseline(0);
+const botBase = baseline(G - 1);
+
+const ridges = model.map((m, g) => {
+  const yb = baseline(g);
+  // KDE curve points (dense grid — the KDE itself is the smoothing)
+  const pts = grid.map((gx, i) => [x(gx), yb - m.dens[i] * SY] as [number, number]);
+  const edge = pts.map((p, i) => `${i ? 'L' : 'M'} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(' ');
+  const area = `${edge} L ${pts[pts.length - 1][0].toFixed(2)} ${yb} L ${pts[0][0].toFixed(2)} ${yb} Z`;
+  // central line: from baseline up to the curve height AT the stat x
+  const cx = x(m.c);
+  const cyTop = yb - density(m.samples, m.bw, m.c) * SY;
+  const val = m.c.toFixed(1);
+  // right-gutter label + ledger line (subject bracketed); right-anchored to the
+  // viewBox edge so a larger mobile glyph grows LEFT, never past the right edge
+  const gx = W - 6;
+  return {
+    g, yb, area, edge, cx, cyTop, val, c: m.c, label: m.label, n: m.n,
+    subject: m.subject, gx,
+    // stagger: bottom (array end) paints first -> delay 0, rising up
+    delay: (G - 1 - g) * 40,
+  };
+});
+// render bottom-first so upper ridges occlude lower (the ridgeline signature)
+const renderOrder = [...ridges].reverse();
+
+const subj = ridges.find((r) => r.subject);
+const subjSweepEnd = subj ? subj.delay + 900 : 0;       // guideline drops when subject's own sweep ends
+const stampDelay = (G - 1) * 40 + 900 + 160;            // subject gutter tag stamps LAST
+
+// ── x-axis ticks (nice round values across the domain) ────────────────────────
+const tStep = niceStep(span, 6);
+const t0 = Math.ceil(dMin / tStep) * tStep;
+const ticks: number[] = [];
+for (let v = t0; v <= dMax + 1e-9; v += tStep) ticks.push(Math.round(v * 1e6) / 1e6);
+const axisY = PAD_T + G * RIDGE_STEP + 18;
+
+// ── accessibility summary (subject vs the largest field group) ────────────────
+const field = model.filter((m) => !m.subject).sort((a, b) => b.n - a.n)[0];
+const aria = subj && field
+  ? `Ridgeline of ${metric}${unit ? ' in ' + unit : ''}: the subject's ${stat} is ${subj.val} ${unit}, ${(subj.c - field.c).toFixed(1)} ${unit} ${subj.c >= field.c ? 'above' : 'below'} the field's ${field.c.toFixed(1)}.`
+  : `Ridgeline distribution of ${metric}${unit ? ' in ' + unit : ''} across ${G} groups.`;
+const chip = `kernel density`;
+---
+
+<div class="px-viz px-prdg" data-reveal>
+  <div class="px-viz__cap">{caption && <span>{caption}</span>}<b>{chip}</b></div>
+
+  <div class="px-prdg__stage">
+    <svg
+      class="px-prdg__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={aria}
+    >
+      <!-- subject guideline: dashed volt vertical across the full stack -->
+      {subj && (
+        <line
+          class="px-prdg__guide"
+          x1={subj.cx.toFixed(2)} y1={topBase} x2={subj.cx.toFixed(2)} y2={botBase}
+          style={`transition-delay:${subjSweepEnd}ms`}
+        />
+      )}
+
+      <!-- ridges: drawn bottom-first so upper ridges occlude lower -->
+      {renderOrder.map((r) => (
+        <g class="px-prdg__ridge" data-subject={r.subject ? '' : undefined}>
+          <g class="px-prdg__sweep" style={`transition-delay:${r.delay}ms`}>
+            <path class="px-prdg__area" d={r.area} />
+            <path class="px-prdg__edge" d={r.edge} />
+          </g>
+          <line
+            class="px-prdg__tick"
+            x1={r.cx.toFixed(2)} y1={r.yb} x2={r.cx.toFixed(2)} y2={r.cyTop.toFixed(2)}
+            style={`transition-delay:${r.delay + 300}ms`}
+          />
+          <text
+            class="px-prdg__stat"
+            x={r.cx.toFixed(2)} y={(r.cyTop - 5).toFixed(2)}
+            text-anchor="middle"
+            style={`transition-delay:${r.delay + 300}ms`}
+          >{statKey} {r.val}</text>
+          <text
+            class="px-prdg__glabel"
+            x={r.gx} y={r.yb - 4} text-anchor="end"
+            style={r.subject ? `transition-delay:${stampDelay}ms` : undefined}
+          >{r.subject ? `[ ${r.label} ]` : r.label}</text>
+          <text class="px-prdg__gmeta" x={r.gx} y={r.yb + 10} text-anchor="end">n={r.n} · {statKey} {r.val}</text>
+        </g>
+      ))}
+
+      <!-- x-axis rail + ticks -->
+      <line class="px-prdg__axis" x1={PAD_L} y1={axisY} x2={PAD_L + w} y2={axisY} />
+      {ticks.map((t) => (
+        <g>
+          <line class="px-prdg__atick" x1={x(t).toFixed(2)} y1={axisY} x2={x(t).toFixed(2)} y2={axisY + 5} />
+          <text class="px-prdg__ax" x={x(t).toFixed(2)} y={axisY + 17} text-anchor="middle">{t}</text>
+        </g>
+      ))}
+      <text class="px-prdg__unit" x={PAD_L + w} y={axisY + 17} text-anchor="end">{unit}</text>
+    </svg>
+  </div>
+
+  <div class="px-prdg__foot">
+    {source_n && <span class="px-prdg__prov">{source_n}</span>}
+    <span class="px-prdg__prov px-prdg__prov--kd">kernel density · {statKey === 'μ' ? 'mean' : 'median'} line</span>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-prdg__stage { width: 100%; }
+  .px-prdg__svg {
+    width: 100%; height: auto; display: block; overflow: visible;
+  }
+
+  /* ── field ridges: quiet ink shapes ── */
+  .px-prdg__area { fill: var(--ink); fill-opacity: 0.14; }
+  .px-prdg__edge { fill: none; stroke: var(--ink); stroke-opacity: 0.4; stroke-width: 1; stroke-linejoin: round; stroke-linecap: round; }
+
+  /* ── subject ridge: the one volt shape ── */
+  .px-prdg__ridge[data-subject] .px-prdg__area { fill: var(--accent); fill-opacity: 0.28; }
+  .px-prdg__ridge[data-subject] .px-prdg__edge { stroke: var(--accent); stroke-opacity: 0.9; stroke-width: 1.5; }
+
+  /* ── central (median/mean) tick ── */
+  .px-prdg__tick { stroke: var(--ink); stroke-opacity: 0.5; stroke-width: 1; }
+  .px-prdg__ridge[data-subject] .px-prdg__tick { stroke: var(--accent); stroke-opacity: 0.9; }
+
+  .px-prdg__stat {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em;
+    fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-prdg__ridge[data-subject] .px-prdg__stat { fill: var(--accent); font-weight: 700; }
+
+  /* ── subject guideline: dashed volt vertical across the stack ── */
+  .px-prdg__guide {
+    stroke: var(--accent); stroke-opacity: 0.25; stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  /* ── right-gutter labels / ledger ── */
+  .px-prdg__glabel {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    fill: var(--ink); fill-opacity: 0.92;
+    letter-spacing: 0.01em;
+  }
+  .px-prdg__ridge[data-subject] .px-prdg__glabel {
+    fill: var(--accent); fill-opacity: 1; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;
+  }
+  .px-prdg__gmeta {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
+    fill: var(--accent-deep); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── x-axis rail ── */
+  .px-prdg__axis { stroke: var(--ink); stroke-opacity: 0.6; stroke-width: 1; }
+  .px-prdg__atick { stroke: var(--ink); stroke-opacity: 0.6; stroke-width: 1; }
+  .px-prdg__ax {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
+    fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-prdg__unit {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    fill: var(--muted); text-transform: uppercase;
+  }
+
+  /* ── provenance chips under the plate ── */
+  .px-prdg__foot {
+    display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px;
+  }
+  .px-prdg__prov {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .px-prdg__prov--kd { color: var(--accent-deep); }
+
+  /* ══ MOTION (all gated behind html.js; resting state = final painted plate) ══ */
+  /* ridge sweep: reveal left->right via clip-path; bottom->top stagger (inline delay) */
+  .px-prdg__sweep {
+    clip-path: inset(-10px -10px -10px -10px);      /* resting = fully visible (no-JS safe) */
+    transition: clip-path 900ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-prdg__sweep { clip-path: inset(-10px 100% -10px -10px); }
+
+  /* central ticks + stat labels + gutter labels fade in */
+  .px-prdg__tick, .px-prdg__stat, .px-prdg__glabel, .px-prdg__gmeta, .px-prdg__guide {
+    opacity: 1; transition: opacity var(--t-soft, 400ms) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-prdg__tick,
+  html.js .px-viz:not(.is-in) .px-prdg__stat,
+  html.js .px-viz:not(.is-in) .px-prdg__glabel,
+  html.js .px-viz:not(.is-in) .px-prdg__gmeta { opacity: 0; }
+
+  /* subject guideline drops (grows down) after the subject ridge's own sweep */
+  .px-prdg__guide {
+    transform: scaleY(1); transform-origin: center top;
+    transition: transform 400ms var(--ease), opacity var(--t-soft, 400ms) var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-prdg__guide { transform: scaleY(0); opacity: 0; }
+
+  /* subject gutter tag stamps LAST */
+  .px-prdg__ridge[data-subject] .px-prdg__glabel {
+    transform: scale(1); transform-box: fill-box; transform-origin: right center;
+    transition: opacity var(--t-soft, 400ms) var(--ease), transform 220ms var(--ease-snap, var(--ease));
+  }
+  html.js .px-viz:not(.is-in) .px-prdg__ridge[data-subject] .px-prdg__glabel {
+    opacity: 0; transform: scale(0.82);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-prdg__sweep { clip-path: inset(-10px -10px -10px -10px) !important; }
+    .px-viz:not(.is-in) .px-prdg__tick,
+    .px-viz:not(.is-in) .px-prdg__stat,
+    .px-viz:not(.is-in) .px-prdg__glabel,
+    .px-viz:not(.is-in) .px-prdg__gmeta,
+    .px-viz:not(.is-in) .px-prdg__guide { opacity: 1 !important; transform: none !important; }
+  }
+
+  /* mobile: the SVG scales down with its viewBox, so in-unit type shrinks with
+     it. Bump the SVG text classes at narrow widths so rendered size holds
+     ≥ 9.5px at 375px (CANON §5 floor; EloRiver/power-flow approach). Gutter
+     labels are right-anchored (text-anchor:end at the viewBox edge), so a
+     larger glyph grows LEFT into the plot — never past the right edge, so the
+     page never scrolls horizontally. The ⤢ modal is the full study view. */
+  @media (max-width: 640px) {
+    .px-prdg__stat,
+    .px-prdg__ax,
+    .px-prdg__unit,
+    .px-prdg__gmeta,
+    .px-prdg__glabel { font-size: 15px; }
+  }
+  @media (max-width: 520px) {
+    .px-prdg__foot { gap: 6px 10px; }
+  }
+  @media (max-width: 440px) {
+    .px-prdg__stat,
+    .px-prdg__ax,
+    .px-prdg__unit,
+    .px-prdg__gmeta { font-size: 20px; }
+    .px-prdg__glabel { font-size: 18px; }
+  }
+</style>

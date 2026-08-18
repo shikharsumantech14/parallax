@@ -1,0 +1,350 @@
+---
+/**
+ * PlateMotion (earth · WebGL · extends the shared country globe) — "the tectonic
+ * engine, made visible." The real country Earth with the plate-boundary network
+ * inked over it and, at a scatter of in-plate points, the surface-velocity arrows
+ * each plate's Euler rotation actually produces — long where the plate races,
+ * vanishing at its rotation pole. Drag to spin; hover an arrow for its exact speed
+ * and bearing. Lazy WebGL (scene 'plate-motion').
+ *
+ * Blueprint (the contract): docs/design/blueprints/earth/plate-motion.md.
+ * Math: the SAME pure `buildField`/`plateVelocity`/`arrowLen` (geodesy.md §4) from
+ * the scene module compute the build-time fallback below, so the no-JS /
+ * reduced-motion / no-WebGL reader gets the identical velocity field as a composed
+ * orthographic-hemisphere still (§7): coastlines, boundaries, per-plate arrows, a
+ * velocity scale key, the coordinate margin, and a field-note legend.
+ *
+ * data: { plates[{name,pole{lat,lon,omega},color?,bbox?,samples?}], boundaries?,
+ *         maxVel_mmyr?, caption?, source? (REQUIRED) }
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { geoOrthographic, geoPath, geoGraticule, geoDistance } from 'd3-geo';
+import { feature, mesh } from 'topojson-client';
+import type { Topology, Objects } from 'topojson-specification';
+import { buildField, type PlateSpec } from '../../../scripts/viz3d/scenes/plateMotion';
+
+interface Props {
+  plates?: PlateSpec[];
+  boundaries?: string;
+  maxVel_mmyr?: number;
+  caption?: string;
+  source?: string;
+}
+const { plates = [], boundaries = '/geo/plates.json', maxVel_mmyr, caption, source } = Astro.props;
+
+/* earth-family fallback tints if a plate omits `color` (blueprint §6 discipline) */
+const EARTH_FAMILY = ['#2d6a4f', '#a04922', '#1a4a36'];
+const plateColor = (p: PlateSpec, i: number) => p.color || EARTH_FAMILY[i % EARTH_FAMILY.length];
+
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
+
+/* ── the velocity field — computed with the SAME code the live scene runs ── */
+const { arrows, maxVel } = buildField({ plates, maxVel_mmyr, _palette: EARTH_FAMILY });
+
+/* peak |v| per plate (for the field-note legend) */
+const peakByPlate = plates.map((_, i) =>
+  arrows.filter((a) => a.plate === i).reduce((m, a) => Math.max(m, a.vMag), 0));
+
+/* ── centre the hemisphere on the field's centroid (weighted to plate 0) ── */
+const centerLon = plates[0]?.bbox ? (plates[0].bbox[0] + plates[0].bbox[2]) / 2 : 60;
+const centerLat = plates[0]?.bbox ? (plates[0].bbox[1] + plates[0].bbox[3]) / 2 : 25;
+
+const VW = 720, RAD = 320, CX = 360, CY = 360;
+const proj = geoOrthographic().rotate([-centerLon, -centerLat]).scale(RAD).translate([CX, CY]).clipAngle(90);
+const pathGen = geoPath(proj as any);
+/* raw proj() never returns null for back-hemisphere points (only geoPath clips),
+   so cull explicitly: a point is visible iff it is within 90° of the centre. */
+const onFront = (lon: number, lat: number) => geoDistance([lon, lat], [centerLon, centerLat]) < Math.PI / 2;
+const gratPath = pathGen(geoGraticule().step([15, 15])() as any) ?? '';
+
+/* ── coastlines (world-atlas 50m, two-pass land render; geodesy §6) ── */
+let landPath = '';
+let coastPath = '';
+try {
+  const topo = JSON.parse(
+    readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-50m.json'), 'utf-8'),
+  ) as Topology<Objects<{}>>;
+  const land = feature(topo, topo.objects['countries'] as any);
+  landPath = pathGen(land as any) ?? '';
+  coastPath = pathGen(mesh(topo, topo.objects['countries'] as any) as any) ?? '';
+} catch { /* no coastlines ⇒ arrows + boundaries still print */ }
+
+/* ── plate boundaries (read the same asset the scene fetches; dash by kind) ── */
+interface Bnd { d: string; kind: 'div' | 'conv' | 'trans'; }
+let bnds: Bnd[] = [];
+try {
+  const bpath = boundaries.startsWith('/') ? join(process.cwd(), 'public', boundaries.replace(/^\//, '')) : '';
+  const bj = JSON.parse(readFileSync(bpath, 'utf-8'));
+  const lines: number[][][] = Array.isArray(bj.lines) ? bj.lines : [];
+  const kinds: string[] = Array.isArray(bj.kinds) ? bj.kinds : [];
+  bnds = lines.map((line, i) => {
+    const k = (kinds[i] === 'conv' || kinds[i] === 'trans') ? kinds[i] : 'div';
+    return { d: pathGen({ type: 'LineString', coordinates: line } as any) ?? '', kind: k as Bnd['kind'] };
+  }).filter((b) => b.d);
+} catch { /* missing asset ⇒ arrows still render (blueprint §11) */ }
+const DASHARRAY: Record<Bnd['kind'], string | undefined> = { div: undefined, conv: '7 4', trans: '1.6 4' };
+
+/* ── arrows projected onto the orthographic plane (front hemisphere only) ──
+   Direction is taken by stepping a small angular distance along the arrow's
+   compass bearing and projecting both ends — this respects the orthographic
+   distortion and drops far-side arrows automatically. */
+function destPoint(lat: number, lon: number, bearingDeg: number, angDeg: number): [number, number] {
+  const φ1 = lat * D2R, λ1 = lon * D2R, θ = bearingDeg * D2R, δ = angDeg * D2R;
+  const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+  const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+  return [λ2 * R2D, φ2 * R2D];
+}
+interface PlateArrow { x: number; y: number; hx: number; hy: number; h1x: number; h1y: number; h2x: number; h2y: number; color: string; }
+const svgArrows: PlateArrow[] = [];
+for (const a of arrows) {
+  if (!onFront(a.lon, a.lat)) continue; // far hemisphere → dropped
+  const p0 = proj([a.lon, a.lat]);
+  const dst = destPoint(a.lat, a.lon, a.bearing, 1.5);
+  const p1 = proj(dst as any);
+  if (!p0 || !p1) continue;
+  let dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  const m = Math.hypot(dx, dy) || 1;
+  dx /= m; dy /= m;
+  const L = 60 * Math.min(1, a.vMag / maxVel); // §7: length ∝ |v|/maxVel · 60px (literal spec, saturates at the key length)
+  const hx = p0[0] + dx * L, hy = p0[1] + dy * L;
+  // open V head: two arms at ±150° from the shaft direction, length 0.32·L
+  const ang = Math.atan2(dy, dx);
+  const hl = 0.32 * L;
+  const a1 = ang + Math.PI * (150 / 180), a2 = ang - Math.PI * (150 / 180);
+  svgArrows.push({
+    x: p0[0], y: p0[1], hx, hy,
+    h1x: hx + Math.cos(a1) * hl, h1y: hy + Math.sin(a1) * hl,
+    h2x: hx + Math.cos(a2) * hl, h2y: hy + Math.sin(a2) * hl,
+    color: plateColor(plates[a.plate], a.plate),
+  });
+}
+
+/* ── plate name labels at bbox centroids (front only) ── */
+interface PLabel { x: number; y: number; name: string; }
+const pLabels: PLabel[] = [];
+plates.forEach((p) => {
+  if (!p.bbox) return;
+  const cLat = (p.bbox[1] + p.bbox[3]) / 2, cLon = (p.bbox[0] + p.bbox[2]) / 2;
+  if (!onFront(cLon, cLat)) return;
+  const pt = proj([cLon, cLat]);
+  if (pt) pLabels.push({ x: pt[0], y: pt[1], name: p.name });
+});
+
+/* ── field-note legend rows (motif 3) ── */
+const fmtLat = (v: number) => `${Math.abs(round(v, 1))}°${v >= 0 ? 'N' : 'S'}`;
+const fmtLon = (v: number) => `${Math.abs(round(v, 1))}°${v >= 0 ? 'E' : 'W'}`;
+const legendRows = plates.map((p, i) => ({
+  name: p.name,
+  color: plateColor(p, i),
+  pole: `${fmtLat(p.pole.lat)} ${fmtLon(p.pole.lon)} · ${round(p.pole.omega, 3)}°/Myr`,
+  peak: peakByPlate[i] > 0 ? `${Math.round(peakByPlate[i])} mm/yr` : '—',
+}));
+const showAll = legendRows.length <= 5;
+
+/* coordinate margin (motif 2) */
+const centerCoord = `${fmtLat(centerLat)}  ${fmtLon(centerLon)}`;
+const maxVelLabel = Math.round(maxVel);
+
+/* honesty chip (§3): if maxVel_mmyr is authored BELOW the true peak |v|, the
+   longest arrows saturate at the length cap rather than reading to-scale — say so. */
+const trueMaxVel = arrows.reduce((m, a) => Math.max(m, a.vMag), 0);
+const clipped = typeof maxVel_mmyr === 'number' && maxVel_mmyr > 0 && maxVel_mmyr < trueMaxVel;
+const scaleChip = clipped ? `arrows clipped at ${maxVelLabel} mm/yr` : `→ = ${maxVelLabel} mm/yr`;
+const scaleKeyText = clipped ? `clipped at ${maxVelLabel} mm/yr` : `= ${maxVelLabel} mm/yr`;
+
+/* payload for the live scene — poles + samples + colours (arrows recomputed
+   client-side by the SAME buildField), NOT the projected geometry (≤4 KB). */
+const payload = JSON.stringify({
+  plates: plates.map((p, i) => ({
+    name: p.name, pole: p.pole, color: plateColor(p, i), bbox: p.bbox, samples: p.samples,
+  })),
+  boundaries,
+  maxVel_mmyr,
+  _palette: EARTH_FAMILY,
+});
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const SERIF = 'font-family:var(--font-display),Georgia,serif';
+---
+
+{plates.length > 0 && (
+  <div class="px-viz px-plmot" data-reveal>
+    {caption && (
+      <div class="px-viz__cap">
+        <span>{caption}</span>
+        <b>{scaleChip}</b>
+      </div>
+    )}
+
+    <div class="px-plmot__stage">
+      <div
+        class="viz3d viz3d--plmot"
+        data-viz3d="plate-motion"
+        style="aspect-ratio: 1 / 1"
+        role="img"
+        aria-label={caption ? `Plate-motion globe: ${caption}` : 'Plate-motion velocity field over a globe'}
+      >
+        <div class="viz3d__fallback">
+          {/* The print plate — an orthographic hemisphere over the collision
+              zone (blueprint §7). overflow visible so the margin coords bleed. */}
+          <svg viewBox={`0 0 ${VW} ${VW}`} preserveAspectRatio="xMidYMid meet" style="overflow:visible">
+            {/* ocean disc */}
+            <circle cx={CX} cy={CY} r={RAD} fill="var(--paper-2)" opacity="0.55" />
+            {/* graticule */}
+            <path d={gratPath} fill="none" stroke="var(--ink)" stroke-width="0.5" opacity="0.10" />
+            {/* land — two-pass: faint fill, then coastline ink @ 0.35 */}
+            {landPath && <path d={landPath} fill="var(--paper)" opacity="0.5" />}
+            {coastPath && <path d={coastPath} fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.35" />}
+            {/* plate boundaries — --ink @ 0.5, heavier than coastlines; dash = kind */}
+            {bnds.map((b) => (
+              <path d={b.d} fill="none" stroke="var(--ink)" stroke-width="1.6" opacity="0.5"
+                stroke-dasharray={DASHARRAY[b.kind]} stroke-linecap="round" stroke-linejoin="round" />
+            ))}
+            {/* velocity arrows — per-plate colour, open V head */}
+            {svgArrows.map((a) => (
+              <>
+                <line x1={a.x} y1={a.y} x2={a.hx} y2={a.hy} stroke={a.color} stroke-width="1.8"
+                  stroke-linecap="round" opacity="0.9" />
+                <path d={`M${a.h1x.toFixed(1)} ${a.h1y.toFixed(1)} L${a.hx.toFixed(1)} ${a.hy.toFixed(1)} L${a.h2x.toFixed(1)} ${a.h2y.toFixed(1)}`}
+                  fill="none" stroke={a.color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+              </>
+            ))}
+            {/* sphere neat-line */}
+            <circle cx={CX} cy={CY} r={RAD} fill="none" stroke="var(--ink)" stroke-width="1.2" opacity="0.4" />
+            {/* plate names (Fraunces italic) */}
+            {pLabels.map((l) => (
+              <text x={l.x} y={l.y} text-anchor="middle" style={`${SERIF};font-style:italic`} font-size="15"
+                fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{l.name}</text>
+            ))}
+            {/* velocity scale key (motif 4) — mono, bottom-left */}
+            <g transform={`translate(${CX - RAD + 4}, ${CY + RAD + 30})`}>
+              <line x1="0" y1="0" x2="56" y2="0" stroke="var(--accent-deep)" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M50 -3.5 L56 0 L50 3.5" fill="none" stroke="var(--accent-deep)" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <text x="64" y="4" style={MONO} font-size="10" fill="var(--muted)" letter-spacing="0.06em">{scaleKeyText}</text>
+            </g>
+            {/* coordinate margin (motif 2) — hemisphere centre */}
+            <text x={CX + RAD - 4} y={CY + RAD + 34} text-anchor="end" style={MONO} font-size="10"
+              fill="var(--muted)" letter-spacing="0.08em">{centerCoord}</text>
+          </svg>
+        </div>
+
+        <span class="viz3d__hint" aria-hidden="true">drag to spin</span>
+        <script type="application/json" class="viz3d__data" set:html={payload}></script>
+      </div>
+    </div>
+
+    {/* field-note legend — one row per plate (AT-readable data source, motif 3) */}
+    {legendRows.length > 0 && (
+      <div class={`px-plmot__legend${showAll ? '' : ' px-plmot__legend--collapsed'}`}>
+        <div class="px-plmot__legend-head">
+          <span>Euler pole · ω</span>
+          <span>peak surface velocity</span>
+        </div>
+        <ul class="px-plmot__rows">
+          {legendRows.map((r, i) => (
+            <li class={`px-plmot__row${!showAll && i >= 5 ? ' px-plmot__row--extra' : ''}`}>
+              <span class="px-plmot__pl">
+                <span class="px-plmot__sw" style={`background:${r.color}`} aria-hidden="true"></span>{r.name}
+              </span>
+              <span class="px-plmot__po">{r.pole}</span>
+              <span class="px-plmot__pk">{r.peak}</span>
+            </li>
+          ))}
+        </ul>
+        {!showAll && (
+          <button type="button" class="px-plmot__more" aria-expanded="false">show all {legendRows.length}</button>
+        )}
+      </div>
+    )}
+
+    {source && <div class="px-viz__src">Source · {source}</div>}
+
+    {/* legend show-all bridge (no-JS shows all; JS hides extras) */}
+    <script is:inline>
+      (function () {
+        // the script sits INSIDE .px-plmot, so climb to the ancestor (a sibling
+        // walk never finds it — that left the show-all button permanently dead).
+        var self = document.currentScript;
+        var root = self && self.closest ? self.closest('.px-plmot')
+          : (self ? self.parentElement : null);
+        if (!root) return;
+        var more = root.querySelector('.px-plmot__more');
+        var legend = root.querySelector('.px-plmot__legend');
+        if (more && legend) {
+          more.addEventListener('click', function () {
+            legend.classList.remove('px-plmot__legend--collapsed');
+            more.setAttribute('aria-expanded', 'true');
+            more.style.display = 'none';
+          });
+        }
+      })();
+    </script>
+  </div>
+)}
+
+<style>
+  .px-plmot__stage { position: relative; }
+
+  /* map-paper mount tint under the line-art globe */
+  .viz3d--plmot {
+    background:
+      radial-gradient(ellipse 70% 66% at 50% 46%,
+        color-mix(in oklab, var(--ink) 5%, transparent), transparent 74%),
+      color-mix(in oklab, var(--paper) 70%, var(--bg));
+  }
+
+  /* field-note legend (earth motif 3) */
+  .px-plmot__legend {
+    margin-top: 18px;
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+  }
+  .px-plmot__legend-head {
+    display: flex; justify-content: space-between; gap: 16px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep);
+    font-variant-numeric: tabular-nums;
+    padding-bottom: 12px;
+  }
+  .px-plmot__rows { list-style: none; margin: 0; padding: 0; }
+  .px-plmot__row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-plmot__pl {
+    font-family: var(--font-display); font-style: italic; font-size: 16px;
+    color: var(--ink); display: inline-flex; align-items: baseline; gap: 8px;
+  }
+  .px-plmot__sw {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    transform: translateY(1px); flex: none;
+  }
+  .px-plmot__po {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-soft);
+    letter-spacing: 0.02em; text-align: right;
+  }
+  .px-plmot__pk {
+    font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep);
+    letter-spacing: 0.02em; min-width: 8ch; text-align: right;
+  }
+
+  /* collapse past 5 rows (no-JS shows all; JS hides extras) */
+  html.js .px-plmot__legend--collapsed .px-plmot__row--extra { display: none; }
+  .px-plmot__more {
+    margin-top: 12px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-deep);
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  html:not(.js) .px-plmot__more { display: none; }
+
+  @media (max-width: 760px) {
+    .px-plmot__row { grid-template-columns: 1fr auto; row-gap: 2px; }
+    .px-plmot__po { grid-column: 1 / -1; text-align: left; }
+  }
+</style>

@@ -323,6 +323,30 @@
 - **PLAIN:** "Money flows left to right — every band is one route, and thicker bands carry more. The moving dashes show direction."
 - **NOTES:** hero-capable for money-trail issues; conservation-checked at build (an imbalanced `via` node FAILS the build naming the node unless flagged — then it renders the accent-alt residual stub); single accent, thickness does the talking; flowDash speed ∝ value and is the card's one ambient motion. BLUEPRINT: `docs/design/blueprints/politics/power-flow.md`.
 
+## coalition-calculus
+- **World/Tier:** politics · HTML-interactive (build-time HTML + one tiny vanilla `is:inline` island; no three.js, SVG only for the lock glyph) · `src/components/topic/politics/CoalitionCalculus.astro`
+- **USE WHEN:** a hung-chamber / coalition-formation story where the dossier has ≥3 parties' seat counts covering the whole chamber (Σseats = N) and the who-can-combine arithmetic IS the argument; locked-out parties carry a sourced ≤12-word reason.
+- **DON'T USE:** the chamber's composition as portrait (→ `chamber`); one decisive vote against a threshold (→ `vote-result`); blocs splitting for/against (→ `vote-flow`); seat totals with a change column (→ `seat-chart`).
+- **DATA:** `{ majority?, parties: [{name, short?, seats, color?, locked?}], preset?, caption?, source? }`
+- **PLAIN:** "Every block is one party's seats on a single bar; press parties in or out and the bar shows whether the group reaches the majority line."
+- **NOTES:** THE reader-agency reference — its §8 pattern (data-at-rest / one chip-set control / `aria-live` verdict / refusals that explain themselves / keyboard-complete) is the precedent later reader-agency kinds cite. No-JS = the print edition (beam painted in the preset state + open party ledger; the bench control ships `hidden`, unhidden by the island). `wide` standalone, hero-capable; **never `layout: split`**. `majority` present and ≠ ⌈(N+1)/2⌉ auto-renders the `threshold {majority} of {N}` honesty chip. Party colors are a data-encoding exemption (same rule as `chamber`). BLUEPRINT: `docs/design/blueprints/politics/coalition-calculus.md`. RESEARCHER MUST CAPTURE: seat counts for every party summing to the full chamber, plus a sourced one-line reason for each party locked out of coalitions.
+
+## gerrymander-lens
+- **World/Tier:** politics · SVG (100% build-time layout + efficiency-gap math; the reveal is the only JS) · `src/components/topic/politics/GerrymanderLens.astro`
+- **USE WHEN:** you have ONE precinct/cell grid of two-party vote counts covering the whole electorate, plus 2–3 district plans (a fair/neutral plan and one or two gerrymanders) that each partition **exactly that same cell set** into equal-population, contiguous districts. The story is "the map is the manipulation — same votes, different seats."
+- **DON'T USE:** a single map's shaded values per region (→ `region-map`, earth); one chamber's party composition (→ `chamber`); a coalition's arithmetic (→ `coalition-calculus`); a straight two-column contrast (→ `comparison`). If you have only district-level totals and no shared underlying grid, you cannot honestly show "same votes."
+- **DATA:** `{ grid: {cols, rows, a: number[], perCell}, parties: {a: {name, short?, color?}, b: {name, short?, color?}}, plans: [{label, districts: number[], note?}], flagPct?: 7 }`
+- **PLAIN:** "The same voters, three ways of drawing the districts; each map shows who wins and how skewed it is — the number is the efficiency gap, and the fills never change."
+- **NOTES:** flagship of the same-data-many-maps family; pairs with `layout: wide`, hero-capable for redistricting issues, **never `layout: split` or `bleed`**. Cell fills encode each cell's vote margin and are pixel-identical across all three panels (only the black district boundaries differ — the boundary `sweep` IS the metaphor). Efficiency gap is signed (− favours A, + favours B); flagged when `|EG| > flagPct` (default 7%, Stephanopoulos & McGhee). Build **FAILS** naming the offender if a plan's district A-tallies don't re-sum to the shared statewide total, or on unequal-population / non-contiguous districts. Hard cap 3 plans, ≤49 cells (7×7). BLUEPRINT: `docs/design/blueprints/politics/gerrymander-lens.md`.
+
+## ballot-flow
+- **World/Tier:** politics · SVG (build-time round layout + `flowDash`) · `src/components/topic/politics/BallotFlow.astro`
+- **USE WHEN:** a **precomputed** ranked-choice / instant-runoff count — for each round every continuing candidate's tally, and for each elimination the breakdown of where those ballots transferred (including how many exhausted). ≥3 candidates, ≥2 rounds; the transfer mechanism IS the story.
+- **DON'T USE:** a single plurality vote against a threshold (→ `vote-result`); blocs splitting for/against/abstain in one shot (→ `vote-flow`); money/authority moving between institutions (→ `power-flow`); a coalition's post-election arithmetic (→ `coalition-calculus`).
+- **DATA:** `{ candidates: [{id, name, short?, color?}], rounds: [{tallies: {id: n}, exhausted?, eliminate?: {id, transfers: [{to|'exhausted', value}]}}], winnerId?, majorityBasis?: 'continuing'|'firstRound', caption?, source? }`
+- **PLAIN:** "Each column is one counting round; when a candidate is knocked out, the moving ribbons show where their votes went next, and the dashed line is the majority needed to win."
+- **NOTES:** the round-structured cousin of `power-flow` (build-time layout + `flowDash` speed ∝ value); two conservation asserts FAIL the build naming the round (an eliminated candidate's transfers must sum to their tally; Σ tallies + exhausted constant across rounds); exhausted ballots are always their own muted `--ink` @ 0.30 sink lane; `majorityBasis: 'continuing'` auto-renders the `majority of continuing ballots` chip and the majority tick descends per round. Pairs with `layout: wide`; never `bleed`/`split`. BLUEPRINT: `docs/design/blueprints/politics/ballot-flow.md`.
+
 ## orbit-globe
 - **World/Tier:** space · WebGL · `src/components/topic/space/OrbitGlobe.astro`
 - **USE WHEN:** orbital shells / satellite populations around Earth — dossier has real altitudes (km) and ideally inclinations per constellation.
@@ -370,6 +394,38 @@
 - **DATA:** `{ epoch, planets?: ['mercury'…], bodies?: [{name, a_AU, e, i_deg, Omega_deg, omega_deg, M0_deg, period_d, role?: 'focus', note?}], scale?: 'log'|'true', trailDays? }`
 - **PLAIN:** "A top-down map of the solar system — each ring is one real orbit, each dot a body at its actual position for the story's date. The amber object is the one this story follows."
 - **NOTES:** hero-capable (pairs with `layout: split`; setState 'log-scale'/'true-scale' reserved for chapters); never adjacent to another WebGL kind; `scale: log` auto-renders the honesty chip. BLUEPRINT: `docs/design/blueprints/space/solar-system.md`. RESEARCHER MUST CAPTURE: the object's elements from JPL SBDB (or equivalent primary), incl. the epoch its M is quoted at.
+
+## constellation-swarm
+- **World/Tier:** space · WebGL **FLAGSHIP** · `src/components/topic/space/ConstellationSwarm.astro`
+- **USE WHEN:** the physical scale + lattice of a satellite mega-constellation IS the story — the dossier has a real shell breakdown (≥1 shell with altitude km, inclination °, and a TRUE satellite count) and the census is large (best ≥ 300 craft). Every shown craft renders as one instanced point on its real orbital shell around a line-art Earth.
+- **DON'T USE:** a single constellation's altitude rings without a census (→ `orbit-globe`); a handful of NAMED orbits where labels matter more than mass (→ `orbit-trace`); band-occupancy as annotated rings (→ `orbital-shells`); interplanetary geometry (→ `solar-system`). If the count fits on ten fingers, it is the wrong form.
+- **DATA:** `{ shells: [{name, altKm, inclDeg, count, color?, planes?, raanSpread?}], epoch?, spin?, caption?, source? }`
+- **PLAIN:** "Each dot is one satellite on its real orbital shell around Earth; the whole cloud is the constellation at true scale, and colour groups the shells."
+- **NOTES:** hero-capable (pairs with `layout: split`, or `wide` standalone); never adjacent to another WebGL kind, never `bleed`. Altitude uses a TRUE-ratio magnified band (no log — LEO shells really are a ~30 km crust). `spin: true` auto-renders the `1 s = 90 min` time chip; `Σcount > 6000` display-samples the instances and auto-renders the `showing … of … craft` chip — the legend + tooltip ALWAYS state the TRUE count. BLUEPRINT: `docs/design/blueprints/space/constellation-swarm.md`. RESEARCHER MUST CAPTURE: per shell the altitude (km), inclination (°) and the census satellite count from a primary filing (FCC/ITU) or the operator's architecture doc.
+
+## lagrange-map
+- **World/Tier:** space · build-time SVG contour field · `src/components/topic/space/LagrangeMap.astro`
+- **USE WHEN:** the story hinges on a Lagrange point — a mission parked at L1/L2 (SOHO, JWST, Gaia) or a Trojan population at L4/L5; the two-body system is named and its mass ratio is derivable.
+- **DON'T USE:** the flight path to get there (→ `trajectory-arc`); interplanetary orbit geometry (→ `solar-system`); a Δv budget of the transfer (→ `delta-v-ladder`); halo orbits around a point (out of scope).
+- **DATA:** `{ primary:{name,mass}, secondary:{name,mass}, separationKm?, markers?:[{at:'L1'..'L5',label}], show?:['L1'..'L5'], caption?, source? }`
+- **PLAIN:** "A contour map of a two-body system's gravity-plus-spin terrain; five rings mark the balance points — the three crossed rings are knife-edge (unstable), the two filled ones are stable."
+- **NOTES:** space; wide/hero-capable; single-accent cyan ramp (no second hue); auto-renders the `potential log-shaded` honesty chip; the collinear-trio magnifier inset auto-renders for real (small-μ*) mass ratios and is omitted once L1/L2 separate natively (Earth–Moon). BLUEPRINT: `docs/design/blueprints/space/lagrange-map.md`.
+
+## transfer-window
+- **World/Tier:** space · SVG interactive · `src/components/topic/space/TransferWindow.astro`
+- **USE WHEN:** the story is a specific Hohmann transfer between two roughly-circular coplanar orbits — an interplanetary launch window (Earth→Mars, Earth→Venus), a Hohmann orbit-raise (LEO→GEO), or the cadence of departure opportunities. The dossier needs the two orbital radii (or altitudes) and the central body's μ.
+- **DON'T USE:** a highly eccentric or plane-change-heavy real trajectory (the Hohmann idealization would lie → `solar-system` with real elements); the full solar-system context of the object (→ `solar-system`); a pure Δv budget with no window idea (→ `delta-v-ladder`); ascent from a surface (→ `trajectory-arc`). NEVER `layout: split` — scroll would fight the scrubber for the one control.
+- **DATA:** `{ central: { name, mu }, from: { name, radiusKm, periodDays? }, to: { name, radiusKm, periodDays? }, distanceUnit? }` — Δv + transfer time from `kepler.ts hohmannDv`; synodic period + required phase are closed-form.
+- **PLAIN:** "Two rings are the orbits, the arc between them is the cheapest transfer path, and the two dots must line up at the right angle for the trip to work — drag to see when they do."
+- **NOTES:** ONE control (the phase scrubber; data-at-rest / aria-live verdict / keyboard-complete); build-time ALIGNED still (no-JS = window-open still + scrubber hidden + collapsible transfer ledger); auto `idealized · circular coplanar` chip always renders, `radii √-compressed` chip when r2/r1 > 6; verdict is aria-live and never red (a missed window is a wait, not a failure); hero-capable, pairs with `wide`. BLUEPRINT: `docs/design/blueprints/space/transfer-window.md`. RESEARCHER MUST CAPTURE: the two orbital radii/altitudes + central-body μ; orbital periods if the orbits are not treated as circular.
+
+## eclipse-cone
+- **World/Tier:** space · CSS-3D / SVG (build-time SVG geometry inside a `core/Tilt.astro` pointer-tilt shell; no WebGL) · `src/components/topic/space/EclipseCone.astro`
+- **USE WHEN:** the story is eclipse or occultation geometry — a solar/lunar eclipse, the totality coincidence, a star occulted by a body, transit vs eclipse; the dossier has the three radii (source, occulter, target) and the two distances (source→occulter, occulter→target).
+- **DON'T USE:** the *path* of an eclipse across a map (→ `region-map` with a track); a timeline of eclipse events (→ `timeline`); the orbit that produces the alignment (→ `solar-system`/`lagrange-map`). If the point is not the cone geometry itself, this is the wrong tool.
+- **DATA:** `{ source: {name, radiusKm}, occulter: {name, radiusKm, distanceFromSourceKm}, target: {name, radiusKm, distanceFromOcculterKm, distanceRangeKm?: [min,max]}, showPenumbra?: true, caption?, sourceCite? }` — NB the citation field is `sourceCite`; the nested `source` object is the light SOURCE (e.g. the Sun), not the citation.
+- **PLAIN:** "A shadow cone drawn from the occulting body to its true tip length, with the target placed at its real fraction of that length — so you can see whether the shadow's point actually reaches it."
+- **NOTES:** space world; cone half-angle exaggerated for visibility (auto-chip `cone angle exaggerated · length-ratio true · baseline compressed`), but the axial length-ratio is exact and the angular-diameter inset is true 1:1; `wide`/hero-capable, standalone (not `split`). BLUEPRINT: `docs/design/blueprints/space/eclipse-cone.md`.
 
 ## data-globe
 - **World/Tier:** earth · WebGL · `src/components/topic/earth/DataGlobe.astro`
@@ -419,6 +475,38 @@
 - **PLAIN:** "The real shape of the ground, drawn as contour rings and ridgelines — the vertical scale is stretched to make the relief legible; the caption says by how much."
 - **NOTES:** hero-capable (pairs with `layout: split`); needs a per-issue DEM JSON asset in `public/geo/`; vertical-exaggeration honesty chip auto-renders. BLUEPRINT: `docs/design/blueprints/earth/terrain-relief.md`. RESEARCHER MUST CAPTURE: the DEM provider + resolution + region bounds.
 
+## plate-motion
+- **World/Tier:** earth · WebGL · `src/components/topic/earth/PlateMotion.astro`
+- **USE WHEN:** the story is tectonic motion of ≥2 plates and the dossier has real Euler poles (lat, lon, ω °/Myr from a NNR-MORVEL / PB2002 reference frame).
+- **DON'T USE:** one region's terrain shape (→ `terrain-relief`); earthquakes by depth (→ `quake-depth`); a geo-located point value (→ `data-globe`); a flat per-country choropleth (→ `region-map`); a single plate with no motion contrast.
+- **DATA:** `{ plates: [{name, pole:{lat,lon,omega}, color?, samples?, bbox?}], boundaries?, maxVel_mmyr?, caption?, source }`
+- **PLAIN:** "Arrows on a globe show which way each tectonic plate moves and how fast — longer is faster, and they vanish where the plate pivots; the heavy lines are the plate boundaries."
+- **NOTES:** hero-capable (pairs with `layout: split` or `wide`); ships the one-time asset `public/geo/plates.json`; an "arrows clipped at N mm/yr" honesty chip auto-renders when `maxVel_mmyr` is authored below the true peak |v|. Draw plate `color`s from the earth token family (green/brown/deep), not invented hues. BLUEPRINT: `docs/design/blueprints/earth/plate-motion.md`. RESEARCHER MUST CAPTURE: the Euler-pole reference frame + per-plate poles + the boundary source.
+
+## atmosphere-column
+- **World/Tier:** earth · CSS-3D/SVG · `src/components/topic/earth/AtmosphereColumn.astro`
+- **USE WHEN:** the reader must feel atmospheric altitude — high-altitude trekking/mountaineering, an aviation-ceiling story, a "where does space begin" explainer; there are ≥2 landmark heights worth pinning.
+- **DON'T USE:** terrain shape (→ `terrain-relief`); ground-level bands by value (→ `elevation-profile`); rising WATER against landmarks (→ `sea-level-tank` — the mirror image); a single gauge/number (→ `carbon-gauge`, `data-readout`).
+- **DATA:** `{ maxAlt_km?, model?: 'lapse'|'isothermal', landmarks?: [{name, alt_km, note?}], showOxygen?, logAlt?, caption?, source }`
+- **PLAIN:** "A slice of the sky stood on end, drawn to true height; each band is one layer of the atmosphere, the curve on the right is how fast the air pressure drops as you climb, and the pinned heights are places you already know."
+- **NOTES:** worked example in `2026-06-03-earth-showcase`. Pressure/O₂ computed at build time (geodesy §7); the printed O₂ uses the SAME model that draws the curve. `logAlt:true` auto-renders the `altitude log-compressed` chip (independent of caption). CSS-3D pointer-tilt only; no WebGL.
+
+## carbon-loop
+- **World/Tier:** earth · SVG (build-time layout + conservation check, usable cross-world) · `src/components/topic/earth/CarbonLoop.astro`
+- **USE WHEN:** the dossier has a stock-and-flow table — named reservoirs with stocks (GtC) and fluxes between them (GtC/yr), ≥3 reservoirs and ≥4 fluxes — and either the flows balance per reservoir OR one named reservoir accumulates and THAT is the point (flag `imbalance: 'the-point'` on the `accent` reservoir, e.g. the atmosphere's airborne fraction).
+- **DON'T USE:** a one-directional money/authority cascade with layers (→ `power-flow`, the pure Sankey); a used/remaining budget arc (→ `carbon-gauge`); a single rise level (→ `sea-level-tank`); part-of-whole tiles (→ `data-readout`); a flow with no reservoir sizes (→ `power-flow`).
+- **DATA:** `{ unit, reservoirs: [{id, label, stock, x, y, role?: 'store'|'source'|'sink', accent?}], fluxes: [{from, to, value, note?}], imbalance?: 'the-point', residualLabel?, cycle?, year? }`
+- **PLAIN:** "Each box is a place carbon is stored, sized by how much it holds; each arrow is a yearly flow between them, thicker and faster where more carbon moves. The brown mark shows the carbon that arrives but never leaves."
+- **NOTES:** the stock-and-flow sibling of `power-flow`; box AREA ∝ stock, flux thickness + flowDash speed ∝ value (largest flux fastest — the card's one ambient motion); conservation-checked at build (a `role: 'store'` reservoir that doesn't balance within 1% FAILS the build naming it, unless it is `accent` + `imbalance: 'the-point'`, which draws the `--accent-alt` residual crescent; `source`/`sink` are exempt open boundaries); single green accent, brown reserved for the ONE residual; hero-capable for a carbon/nitrogen/water-cycle issue; pairs with `wide`. BLUEPRINT: `docs/design/blueprints/earth/carbon-loop.md`.
+
+## storm-track
+- **World/Tier:** earth · WebGL · `src/components/topic/earth/StormTrack.astro`
+- **USE WHEN:** the dossier has a best-track table for ONE (or a few compared) tropical cyclone(s) — timestamped fixes with lat/lon and intensity (max sustained wind, kt). Sources: IBTrACS, NHC/JTWC best-track.
+- **DON'T USE:** a static per-region climatology value (→ `region-map`); geo point values (→ `data-globe`); plate motion (→ `plate-motion`); a single station's time series (→ a charted kind); many storms as a density climatology (a handful of named tracks is the ceiling — beyond ~4 it's a heat map).
+- **DATA:** `{ storms: [{ name, fixes: [{ t, lat, lon, wind_kt, landfall? }] }], windScale?, smooth? }` — category is DERIVED from `wind_kt` on the fixed Saffir-Simpson ramp, never authored.
+- **PLAIN:** "The storm's real path across the ocean, drawn from birth to breakup — the colour of the line is how strong it was at each point, from a weak depression to a top-category hurricane. The glowing point is its peak; the ringed points are where it hit land."
+- **NOTES:** hero-capable (pairs with `wide` standalone or `layout: split`); never adjacent to another WebGL kind; opening yaw seeds the mean longitude facing the camera; only the single highest-wind storm's peak pulses. BLUEPRINT: `docs/design/blueprints/earth/storm-track.md`. RESEARCHER MUST CAPTURE: the best-track archive + storm name/year; landfall fixes flagged.
+
 ## arch-stack
 - **World/Tier:** tech · CSS-3D · `src/components/topic/tech/ArchStack.astro`
 - **USE WHEN:** a layered system / architecture stack — what sits on what.
@@ -466,6 +554,38 @@
 - **DATA:** `{ layers: [{n, label}] (2–8), paramsNote?, wave_ms? }`
 - **PLAIN:** "Each column is one layer of the network and every dot is one unit, at true layer sizes. The lime wave is a single forward pass moving from input to answer."
 - **NOTES:** hero-capable (pairs with `layout: split`); large layers sampled with a "showing 1 in N" chip; param count computed. BLUEPRINT: `docs/design/blueprints/tech/neural-flow.md`. RESEARCHER MUST CAPTURE: the real per-layer unit counts of the network.
+
+## packet-trace
+- **World/Tier:** tech · WebGL globe + synced build-time SVG **FLAGSHIP** · `src/components/topic/tech/PacketTrace.astro`
+- **USE WHEN:** the dossier has a real trace — an ordered hop list, each with a from/to city (lat/lon) and a measured RTT in ms — and the story is "why is this slow / where does the time go" (a CDN post-mortem, an inter-region latency piece, a submarine-cable story). Total measured RTT and the great-circle light floor must both be computable from the data.
+- **DON'T USE:** timed spans of a *local* request with no geography (→ `latency-waterfall`); a multi-stop *travel* journey where the arcs are the point and timing is not (→ `route-globe`); throughput as one live number (→ `throughput-dial`); a static "these cities are far apart" fact (→ `route-globe`/`data-globe`). Never adjacent to another WebGL kind; never `bleed`.
+- **DATA:** `{ hops: [{from, fromLat, fromLon, to, toLat, toLon, rttMs, kind?: 'fiber'|'wireless'|'satellite'|'compute', note?}] (1–8), originLabel?, refractiveIndex?, loopMs?, caption?, source? }`
+- **PLAIN:** "A world globe with the request's route drawn on it as arcs, above a bar that breaks the round-trip time into the unavoidable speed-of-light minimum (green) and the extra delay routing, servers and handshakes added (pink)."
+- **NOTES:** hero-capable (pairs with `layout: split` or `wide`; never `bleed`). NEVER trusts an authored total — floor + measured are summed from `hops` via `packet.ts` at build time, and the SAME pure math feeds the live globe, the static flat-route fallback map, and the budget bar. Honesty chip `floor = {floorMs} ms · measured {measMs} ms` ALWAYS renders; `refractiveIndex: 1.0` adds the `vacuum floor (line-of-sight)` chip; the live scene adds `packets ≈ {loop_s}s / trip`. `compute` hops draw no arc (pulsing ring + all-pink bar segment). BLUEPRINT: `docs/design/blueprints/tech/packet-trace.md`. RESEARCHER MUST CAPTURE: the per-hop from/to cities (lat/lon) + measured RTT + hop kind + the trace source.
+
+## queue-cliff
+- **World/Tier:** tech · HTML-interactive (vanilla `is:inline` island; SVG curve, zero WebGL, zero framework) · `src/components/topic/tech/QueueCliff.astro`
+- **USE WHEN:** the utilization/latency trade-off is the story — one slider drives offered load ρ and the exact M/M/1 wait multiplier `1/(1−ρ)` climbs to a vertical wall near ρ=1 (capacity-planning, "run too hot" incident, "why we keep headroom").
+- **DON'T USE:** a general x/y power or cost curve (→ `scaling-plot`); a single live utilization number without the trade-off (→ `throughput-dial`); a request's timing breakdown (→ `latency-waterfall`); multi-server or priority queues (M/M/1 only — don't fake M/M/c).
+- **DATA:** `{ muPerSec | serviceMs, startRho?, maxRho?, annotations?: [{rho, label, tone?}], caption?, source? }`
+- **PLAIN:** "One slider raises the load; a live curve shows the average wait staying flat until it snaps vertical near full capacity, with a readout of the exact multiplier, latency, and queue length."
+- **NOTES:** tech flagship; hero-capable via `layout: split`; a "loud" interactive — keep a quiet section either side (CANON §3 eye-rest). Always renders the `y capped at {yCap}× · M/M/1` chip and the baked honesty footnote. Companion table (`.px-qc__table`, ≤5 rows) is the no-JS / AT data source. BLUEPRINT: `docs/design/blueprints/tech/queue-cliff.md`.
+
+## chip-die
+- **World/Tier:** tech · CSS-3D · `src/components/topic/tech/ChipDie.astro`
+- **USE WHEN:** a processor die where the story is relative silicon area — "the GPU is bigger than every CPU core combined." Each block's pixel area equals its real mm².
+- **DON'T USE:** a layered architecture stack (→ `arch-stack`); ranked one-metric bars (→ `benchmark-chart`); request timing through a stack (→ `latency-waterfall`).
+- **DATA:** `{ chip, dieAreaMm2?, blocks: [{label, areaMm2?|pct?, group?, primary?, count?, note?}], caption?, source? }`
+- **PLAIN:** "An exploded chip floorplan drawn to scale; every tile is one functional block, and its size on screen is its real share of the silicon."
+- **NOTES:** 4–24 blocks; area given as `areaMm2` OR `pct`+`dieAreaMm2`; coverage <95% shows an explicit Unmapped remainder. On-tile text colour is luminance-picked (dark ink on bright compute/primary fills, light ink elsewhere) to hold WCAG AA. BLUEPRINT: `docs/design/blueprints/tech/chip-die.md`. Worked example in `2026-06-03-tech-showcase`.
+
+## moore-ladder
+- **World/Tier:** tech · SVG · `src/components/topic/tech/MooreLadder.astro`
+- **USE WHEN:** a dated count series that grows exponentially over ≥3 orders of magnitude — transistor counts per chip/year (the canonical case), sequencing cost, model parameters, storage density — where a doubling time is the claim (≥6 points).
+- **DON'T USE:** a general x/y power law or non-doubling scaling relationship (→ `scaling-plot`); an adoption S-curve (→ `adoption-curve`); ranked one-metric bars (→ `benchmark-chart`); die area (→ `chip-die`).
+- **DATA:** `{ points: [{year, count, label, highlight?}] (≥6), yLabel?, unit?, fit?, fitRange? }`
+- **PLAIN:** "Each dot is one chip at its year and transistor count, plotted on a ruler where every step up means twice as many; the straight line is the steady doubling that turns the curve into a climb."
+- **NOTES:** base-2 log y-axis — the `y: log₂ scale` chip ALWAYS renders (CANON §7 log-honesty); the doubling time is COMPUTED from the least-squares slope (`1/m`), never authored; `fitRange` fits a sub-era and prints a `fit: {start}–{end}` chip. Highlight (≤2) draws a chip at accent 1.0 with a right-gutter label + count. BLUEPRINT: `docs/design/blueprints/tech/moore-ladder.md`. Worked example in `2026-06-03-tech-showcase`.
 
 ## route-globe
 - **World/Tier:** travel · WebGL · `src/components/topic/travel/RouteGlobe.astro`
@@ -515,6 +635,38 @@
 - **PLAIN:** "A real globe lit for one moment — the shaded half is night, the line across it is where day meets dark, and the terracotta arc is your flight crossing from one into the other."
 - **NOTES:** hero-capable (pairs with `layout: split`); extends the shared country globe; setState 'arrival' jumps the sun forward. BLUEPRINT: `docs/design/blueprints/travel/terminator-globe.md`. RESEARCHER MUST CAPTURE: the two airports' coords + tz offsets + the real flight duration.
 
+## city-grid
+- **World/Tier:** travel · SVG · `src/components/topic/travel/CityGrid.astro`
+- **USE WHEN:** 1-3 cities compared by the *shape* of their street grid, each drawn as a 36-petal orientation rose; a gridded plan collapses to a cross, an organic one fans to a circle.
+- **DON'T USE:** two cities on numeric travel rows (→ `city-compare`); a single route's geography (→ `route-globe` / `journey-map`); a non-place radial profile (→ `player-radar`).
+- **DATA:** `{ cities: [{name, subtitle?, bins[36], orderScore?}], caption?, source? }`
+- **PLAIN:** "Each city is a compass wheel of 36 spokes; a spoke's length is how much of that city's streets run in that direction, so a grid makes a sharp cross and a tangle makes a full circle."
+- **NOTES:** travel signature; hero-capable; per-city-normalised (auto 'normalised per city' honesty chip whenever >1 city, independent of caption); Boeing (2019) order phi readout; exactly 36 bins per city enforced at build; static SVG, no WebGL. BLUEPRINT: `docs/design/blueprints/travel/city-grid.md`.
+
+## altitude-oxygen
+- **World/Tier:** travel · SVG/CSS-3D · `src/components/topic/travel/AltitudeOxygen.astro`
+- **USE WHEN:** a high-altitude trek where the *physiological cost of altitude* is the argument — effective oxygen thinning with height, with named acclimatization stops (2–8) at known elevations.
+- **DON'T USE:** a route's up-and-down elevation over distance (→ `elevation-trek`); earth-science band structure with no oxygen story (→ `elevation-profile`, earth); a whole atmosphere's layer stack (→ `atmosphere-column`, earth).
+- **DATA:** `{ stops: [{name, elevM, nights?, note?}], maxElevM?, model?, seaLevelO2Pct? }`
+- **PLAIN:** "Height runs up the side; the column's width is the oxygen the air still carries there, and each teal tent is a night spent letting the body catch up."
+- **NOTES:** x-axis is *modelled* effective O₂ (barometric, geodesy §7) — a mono `model:` chip always renders. BLUEPRINT: `docs/design/blueprints/travel/altitude-oxygen.md`. Worked example in `2026-06-03-travel-showcase`.
+
+## season-wheel
+- **World/Tier:** travel · CSS-3D · `src/components/topic/travel/SeasonWheel.astro`
+- **USE WHEN:** a "when to go" story for ONE destination with per-month values on 2–3 of {climate/comfort, crowd, price} — the annual shape and the sweet-spot window (good weather ∧ thin crowds ∧ low price) are the argument.
+- **DON'T USE:** a linear month heat-ribbon for a quick glance (→ `climate-calendar`, travel — if only temp/rain matter); multi-decade climate (→ `climate-strip` / `climate-spiral`, earth); comparing two destinations' months (→ `city-compare`). One destination only.
+- **DATA:** `{ place, months: [12 ×{climate?, crowd?, price?, label?}], rings?, sweetSpot?, caption?, source? }`
+- **PLAIN:** "The year runs clockwise from January; each month's three arcs are how good the weather is, how thick the crowds are, and how high the prices climb. The best time to go is where the inner arc is full and the outer two are empty."
+- **NOTES:** tilted CSS-3D disc + one month scrubber (never `layout: split`); hero-capable. Metrics are normalised 0–1 indices, not raw °C/₹/headcounts (auto `indices 0–1` chip). BLUEPRINT: `docs/design/blueprints/travel/season-wheel.md`. RESEARCHER MUST CAPTURE: all 12 months' climate-comfort / crowd / price indices + the recommended window. Worked example in `2026-06-03-travel-showcase`.
+
+## fare-terrain
+- **World/Tier:** travel · SVG · `src/components/topic/travel/FareTerrain.astro`
+- **USE WHEN:** a fare-timing / "when to book" story — per-route median fare over days-before-departure (≥6 points each, 1–5 routes) stacked as a ridgeline, where the booking sweet-spot IS the argument.
+- **DON'T USE:** a trip's cost split into categories (→ `data-readout` / `comparison`); a route's geography (→ `route-globe` / `journey-map`); the when-to-*go* seasonal dial (→ `climate-calendar` — that's month-of-year, this is days-before-departure).
+- **DATA:** `{ routes: [{label, points:[{daysBefore, fare}], highlight?}], unit, sweetSpotDays? }`
+- **PLAIN:** "Each ridge is one route's fare as departure nears — time runs left to right toward the flight, higher ground means a pricier ticket, and the shaded valley is the window where fares bottom out."
+- **NOTES:** reversed x-axis (far-out left → departure right) auto-declares a `time → departure` chip; absent `sweetSpotDays` computes the contiguous ≤1.05×min valley; single focal route in accent-deep, the rest ink (no per-route rainbow). BLUEPRINT: `docs/design/blueprints/travel/fare-terrain.md`. Worked example in `2026-06-03-travel-showcase`.
+
 ## tactics-pitch
 - **World/Tier:** sports · CSS-3D/SVG · `src/components/topic/sports/TacticsPitch.astro`
 - **USE WHEN:** player positions / a formation on the pitch — the spatial set-up is the argument.
@@ -562,5 +714,29 @@
 - **DATA:** `{ sport, shot: {v0, speedUnit?, elevationDeg, azimuthDeg, spinRevPerS, spinAxis?, from?, label?, note?}, goal?: {x_m, width_m, height_m, z_m}, showGhost?, slowmo? }`
 - **PLAIN:** "The bright line is the ball's real curved flight; the faint dashed line is the straight path it would have taken with no air. The gap between them is how much the spin bent it."
 - **NOTES:** hero-capable (pairs with `layout: split`); drag+Magnus RK4 physics (shared `src/scripts/viz3d/ballistics.ts`); setState 'replay'. BLUEPRINT: `docs/design/blueprints/sports/flight-of-the-ball.md`. RESEARCHER MUST CAPTURE: the shot's launch speed, elevation angle, and spin rate.
+
+## elo-river
+- **World/Tier:** sports · SVG · `src/components/topic/sports/EloRiver.astro`
+- **USE WHEN:** a rating time series — 3–10 teams, each with ≥6 dated Elo / SPI / power values from a NAMED model over one window; the relative rise/fall and the crossovers are the story.
+- **DON'T USE:** current standings as a snapshot (→ `league-table`); one match's momentum (→ `momentum-wave`); two teams' cumulative xG within a match (→ `xg-race`); a single team's multi-axis profile (→ `player-radar`). If there is no *rating* (just points/wins), it is a `league-table`.
+- **DATA:** `{ model, kInfo?, dates: [ISO ascending, 6–40], baseline?, teams: [{name, short?, color?, ratings: [num|null], subject?}], caption?, source? }`
+- **PLAIN:** "Each coloured ribbon is one team, and how thick it is shows its rating; the ribbons stack and weave, so a team climbing past another crosses over it in the braid."
+- **NOTES:** worked example in `2026-06-03-sports-showcase`. Team `color`s are a blueprint-declared data-encoding exemption (the legend lists every one); omit them and the fallback single-accent-plus-ink cycle is used. `null` ratings render a hollow (0.4× fill) span + the `dashed spans interpolated` chip. At most one `subject` is honoured. BLUEPRINT: `docs/design/blueprints/sports/elo-river.md`.
+
+## court-value
+- **World/Tier:** sports · SVG · `src/components/topic/sports/CourtValue.astro`
+- **USE WHEN:** a model-scored value field over pitch/court space (xG, eFG, points-per-shot) — the geography of where a chance is worth taking, drawn as filled contour bands.
+- **DON'T USE:** individual shots as plotted events with outcomes (→ `shot-map`); a formation's player positions (→ `tactics-pitch`); cumulative match xG over time (→ `xg-race`).
+- **DATA:** `{ surface?: 'football-box'|'football-half'|'basketball-half', model, valueLabel, valueRange?, shots?: [{x,y,value}] | grid?: {cols,rows,values[]}, levels?, showShots?, smoothed? }`
+- **PLAIN:** "The pitch is shaded by how much a shot from each spot is worth; the lines are contours, like a map's height lines, joining places of equal value."
+- **NOTES:** worked example in `2026-06-03-sports-showcase`. BLUEPRINT: `docs/design/blueprints/sports/court-value.md`.
+
+## pace-ridge
+- **World/Tier:** sports · SVG (build-time KDE + ridgeline layout; `html.js`-gated reveal, no runtime compute) · `src/components/topic/sports/PaceRidge.astro`
+- **USE WHEN:** a measurable quantity with a SAMPLE for the subject AND ≥1 comparison group (≥ ~15 obs each) where the SHAPE of the difference (shift vs spread vs tail) is the argument — sprint speeds, shot distances, serve speeds, lap times.
+- **DON'T USE:** one number per entity with no spread (→ `player-radar` / `player-card` / a bar); values over time (→ `elo-river`, `xg-race`); spatial value (→ `court-value`).
+- **DATA:** `{ metric, unit, source_n?, stat?: 'mean'|'median', domain?: [min,max], groups: [{label, samples: number[], subject?}], caption?, source? }`
+- **PLAIN:** "Each stacked shape is one group's whole range of the stat; wider where more values cluster, with a line at the middle. The volt shape is the athlete this story follows."
+- **NOTES:** build-time Gaussian KDE (Silverman bandwidth, ONE global height scale so a genuinely peakier ridge reads taller) — authors pass raw `samples`, never pre-bin; at most one `subject` (volt ridge + dashed guideline across the full stack); `kernel density` honesty chip + per-ridge `n=`; `stat` auto-renders the `med`/`μ` tick. BLUEPRINT: `docs/design/blueprints/sports/pace-ridge.md`. RESEARCHER MUST CAPTURE: the subject's per-observation sample of the metric and ≥1 comparison group's sample, from a NAMED dataset.
 
 <!-- check:catalog expects exactly the SECTION_KINDS list above this line -->

@@ -1,0 +1,608 @@
+---
+/**
+ * TransferWindow (space · SVG interactive scrubber) — "why you can only go to
+ * Mars every 26 months." Two circular orbits, the Hohmann ellipse that connects
+ * them, and a phase scrubber the reader drags to sweep the departure planet
+ * around its orbit. The transfer arc + phase wedge redraw live, and an aria-live
+ * verdict says whether THIS phase angle actually arrives. The window is not a
+ * date on a chart; it is a geometry that lines up. One control: the scrubber.
+ *
+ * Blueprint (the contract): docs/design/blueprints/space/transfer-window.md.
+ * Math: src/scripts/viz3d/kepler.ts `hohmannDv` computes Δv + transfer time; the
+ * closed-form phase geometry is computed identically here (build-time aligned
+ * still) and in the inline island (scrub updates) — the §11 anchors force the two
+ * sites to agree, so a shared module for three expressions is overhead not safety.
+ *
+ * FALLBACK CONTRACT: the figure paints its ALIGNED state at build time (scrubber
+ * at Δφ = φ_required, verdict "WINDOW OPEN"). The scrubber is hidden until the
+ * island boots (JS-only control). No-JS / reduced-motion / crawler ⇒ the
+ * window-open still + the full transfer ledger. Nothing needs JS to paint the
+ * answer.
+ *
+ * data: TransferWindowData — see blueprint §3.
+ */
+import { hohmannDv } from '../../../scripts/viz3d/kepler';
+
+interface TransferWindowData {
+  central: { name: string; mu: number };
+  from: { name: string; radiusKm: number; periodDays?: number };
+  to: { name: string; radiusKm: number; periodDays?: number };
+  distanceUnit?: 'AU' | 'km';
+  caption?: string;
+  source?: string;
+}
+type Props = TransferWindowData;
+
+const {
+  central = { name: 'Sun', mu: 1.327e11 },
+  from = { name: 'Earth', radiusKm: 149600000, periodDays: 365.25 },
+  to = { name: 'Mars', radiusKm: 227900000, periodDays: 686.98 },
+  distanceUnit = 'km',
+  caption,
+  source,
+} = Astro.props as Props;
+
+const AU_KM = 1.496e8;
+const round = (n: number, d = 0) => {
+  const p = 10 ** d;
+  return Math.round(n * p) / p;
+};
+
+/* ── physics (kepler.ts hohmannDv + closed-form phase, orbital-mechanics §6) ── */
+const r1 = from.radiusKm;
+const r2 = to.radiusKm;
+const mu = central.mu;
+const { dv1, dv2, tTransferSec } = hohmannDv(r1, r2, mu);
+const dvTotal = dv1 + dv2;                    // km/s
+const tTransferDays = tTransferSec / 86400;   // days
+
+// periods: authored, else circular T = 2π√(r³/μ) (seconds → days)
+const circPeriodDays = (r: number) => (2 * Math.PI * Math.sqrt((r * r * r) / mu)) / 86400;
+const T1 = from.periodDays ?? circPeriodDays(r1);
+const T2 = to.periodDays ?? circPeriodDays(r2);
+
+// synodic period S = 1/|1/T1 − 1/T2| (window cadence)
+const synodic = 1 / Math.abs(1 / T1 - 1 / T2);
+
+// required phase at departure: destination must lead by 180° − θ_arrival, where
+// θ_arrival = 360·(tTransferDays/T2) is how far the destination travels in flight.
+const normDeg = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180; // → (−180,180]
+const phiRequired = normDeg(180 - 360 * (tTransferDays / T2));
+
+/* ── radial map (blueprint §3 honesty flags) ── */
+const ratio = r2 / r1;
+const compressed = ratio > 6;                 // √-compress so the inner ring stays visible
+const R1 = 70;
+const R2 = compressed ? Math.min(70 * Math.sqrt(ratio), 210) : 70 * ratio;
+
+/* ── figure geometry — dynamic square viewBox that always fits the outer ring ── */
+const Rmax = Math.max(R1, R2);
+const PAD = 56;
+const box = Math.ceil((Rmax + PAD) * 2);
+const cx = box / 2;
+const cy = box / 2;
+const BETA = 180;                             // destination FIXED at 9 o'clock
+const alpha0 = 180 - phiRequired;             // aligned departure angle (composed still)
+
+// scene-angle point: α = 0 at 3 o'clock, CCW positive, SVG y down
+const pt = (angDeg: number, R: number) => {
+  const a = (angDeg * Math.PI) / 180;
+  return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
+};
+
+// transfer ellipse sampled from true anomaly ν (focus = central body):
+// r(0)=R1 (departure/periapsis), r(180)=R2 (apoapsis on the destination ring),
+// screen angle = α + ν (prograde, CCW). Works for outward AND inward transfers.
+const at = (R1 + R2) / 2;
+const et = (R2 - R1) / (R1 + R2);
+const transferPath = (alphaDeg: number, nuMax: number, steps = 60) => {
+  let d = '';
+  for (let k = 0; k <= steps; k++) {
+    const nu = (k / steps) * nuMax;
+    const r = (at * (1 - et * et)) / (1 + et * Math.cos((nu * Math.PI) / 180));
+    const p = pt(alphaDeg + nu, r);
+    d += (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+  }
+  return d;
+};
+const wedgePath = (alphaDeg: number, rw = 34) => {
+  const a0 = Math.min(alphaDeg, BETA);
+  const a1 = Math.max(alphaDeg, BETA);
+  let d = '';
+  const steps = 32;
+  for (let k = 0; k <= steps; k++) {
+    const p = pt(a0 + (k / steps) * (a1 - a0), rw);
+    d += (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+  }
+  return d;
+};
+
+const halfPath0 = transferPath(alpha0, 180);
+const ghostPath0 = transferPath(alpha0, 360) + 'Z';
+const wedge0 = wedgePath(alpha0);
+const dep0 = pt(alpha0, R1);
+const dest = pt(BETA, R2);
+const fromLabel = pt(90, R1);   // ring-top labels
+const toLabel = pt(90, R2);
+const wedgeMid = pt((alpha0 + BETA) / 2, 34 + 13);
+
+/* ── display formatting ── */
+const fmtDist = (km: number) =>
+  distanceUnit === 'AU' ? `${(km / AU_KM).toFixed(2)} AU` : `${Math.round(km).toLocaleString()} km`;
+const dvStr = dvTotal.toFixed(2);
+const dv1Str = dv1.toFixed(2);
+const dv2Str = dv2.toFixed(2);
+const tStr = Math.round(tTransferDays).toLocaleString();
+const synStr = Math.round(synodic).toLocaleString();
+const phiStr = round(phiRequired, 1);
+const scrub0 = Math.round(phiRequired);       // scrubber default value
+const verdict0 = `WINDOW OPEN`;
+
+const chips = [
+  'idealized · circular coplanar',
+  ...(compressed ? ['radii √-compressed'] : []),
+];
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+
+const payload = JSON.stringify({
+  R1, R2, cx, cy, at, et, beta: BETA, phiReq: round(phiRequired, 3), synodic: round(synodic, 1),
+});
+---
+
+<div class="px-viz px-xwin" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      {chips.length > 0 && (
+        <b class="px-xwin__chips">{chips.join(' · ')}</b>
+      )}
+    </div>
+  )}
+
+  <div class="px-xwin__stage">
+    {/* ── the orbital figure — build-time ALIGNED still (the print edition) ── */}
+    <div class="px-xwin__fig">
+      <svg
+        class="px-xwin__svg"
+        viewBox={`0 0 ${box} ${box}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`Hohmann transfer geometry, ${from.name} to ${to.name}: departure planet leads the destination by ${phiStr} degrees at the launch window.`}
+      >
+        {/* full ghost transfer orbit */}
+        <path class="px-xwin__ghost" d={ghostPath0} fill="none"
+          stroke="var(--accent)" stroke-width="1" opacity="0.2" />
+
+        {/* orbit rings */}
+        <circle class="px-xwin__ring" cx={cx} cy={cy} r={R1} fill="none"
+          stroke="var(--ink)" stroke-width="1" opacity="0.42" />
+        <circle class="px-xwin__ring" cx={cx} cy={cy} r={R2} fill="none"
+          stroke="var(--ink)" stroke-width="1" opacity="0.42" />
+
+        {/* phase wedge + Δφ readout */}
+        <path class="px-xwin__wedge" d={wedge0} fill="none"
+          stroke="var(--ink)" stroke-width="6" opacity="0.16" stroke-linecap="round" />
+        <text class="px-xwin__dphi" x={wedgeMid.x.toFixed(1)} y={wedgeMid.y.toFixed(1)}
+          text-anchor="middle" style={MONO} font-size="11" fill="var(--ink-soft)"
+          paint-order="stroke" stroke="var(--paper)" stroke-width="3"
+          >Δφ {scrub0}°</text>
+
+        {/* the Hohmann transfer half-ellipse */}
+        <path class="px-xwin__transfer" d={halfPath0} fill="none" pathLength="100"
+          stroke="var(--accent)" stroke-width="1.5" opacity="0.8"
+          stroke-linecap="round" />
+
+        {/* central body */}
+        <circle cx={cx} cy={cy} r="8" fill="var(--ink)" opacity="0.9" />
+
+        {/* destination body — amber, FIXED at β = 180 */}
+        <circle class="px-xwin__dest" cx={dest.x.toFixed(1)} cy={dest.y.toFixed(1)} r="5"
+          fill="var(--accent-alt)" />
+
+        {/* departure body — cyan, on the from-ring at α = 180 − Δφ */}
+        <circle class="px-xwin__dep" cx={dep0.x.toFixed(1)} cy={dep0.y.toFixed(1)} r="5"
+          fill="var(--accent)" />
+
+        {/* ring labels */}
+        <text x={fromLabel.x.toFixed(1)} y={(fromLabel.y - 8).toFixed(1)} text-anchor="middle"
+          style={MONO} font-size="10.5" fill="var(--accent)" letter-spacing="0.04em"
+          paint-order="stroke" stroke="var(--paper)" stroke-width="3">{from.name}</text>
+        <text x={toLabel.x.toFixed(1)} y={(toLabel.y - 8).toFixed(1)} text-anchor="middle"
+          style={MONO} font-size="10.5" fill="var(--accent-alt)" letter-spacing="0.04em"
+          paint-order="stroke" stroke="var(--paper)" stroke-width="3">{to.name}</text>
+      </svg>
+    </div>
+
+    {/* ── telemetry (STATIC — the transfer's fixed costs) ── */}
+    <aside class="px-xwin__tel" aria-label="Transfer telemetry">
+      <div class="px-xwin__tel-head">{from.name} <span aria-hidden="true">→</span> {to.name}</div>
+      <div class="px-xwin__tile">
+        <div class="px-xwin__n">{dvStr}</div>
+        <div class="px-xwin__u">km/s · Δv</div>
+      </div>
+      <div class="px-xwin__tile">
+        <div class="px-xwin__n" data-countup={Math.round(tTransferDays)}>{tStr}</div>
+        <div class="px-xwin__u">days · transfer</div>
+      </div>
+      <div class="px-xwin__tile">
+        <div class="px-xwin__n" data-countup={Math.round(synodic)}>{synStr}</div>
+        <div class="px-xwin__u">days · window cadence</div>
+      </div>
+    </aside>
+  </div>
+
+  {/* ── verdict (aria-live; reserved-height row so the card never resizes) ── */}
+  <div id="px-xwin-verdict" class="px-xwin__verdict px-xwin__verdict--open" data-open="true" aria-live="polite">
+    <span class="px-xwin__seal">{verdict0}</span>
+  </div>
+
+  {/* ── the scrubber — JS-only control, hidden until the island unhides it ── */}
+  <div class="px-xwin__scrub" hidden>
+    <label class="px-xwin__scrub-lab" for="px-xwin-range">
+      relative phase Δφ — drag to sweep the departure planet
+    </label>
+    <input
+      id="px-xwin-range"
+      class="px-xwin__range"
+      type="range"
+      min="-180"
+      max="180"
+      step="1"
+      value={scrub0}
+      aria-describedby="px-xwin-verdict"
+    />
+  </div>
+
+  {/* ── transfer ledger — COLLAPSIBLE (blueprint §9: keeps at-rest text under the
+       CANON §4.5 80-word budget); native <details> so it stays openable + AT-readable
+       under no-JS, honouring §7's "nothing dropped" data-source contract ── */}
+  <details class="px-xwin__ledger">
+    <summary class="px-xwin__lsum">transfer ledger — split Δv, radii, phase</summary>
+    <dl class="px-xwin__ldl">
+      <div class="px-xwin__lrow">
+        <dt>Δv total</dt><dd>{dvStr} km/s <span class="px-xwin__sub">({dv1Str} depart · {dv2Str} arrive)</span></dd>
+      </div>
+      <div class="px-xwin__lrow"><dt>transfer time</dt><dd>{tStr} days</dd></div>
+      <div class="px-xwin__lrow"><dt>synodic period</dt><dd>{synStr} days</dd></div>
+      <div class="px-xwin__lrow"><dt>required phase</dt><dd>{phiStr}° lead</dd></div>
+      <div class="px-xwin__lrow"><dt>{from.name} orbit</dt><dd>{fmtDist(r1)}</dd></div>
+      <div class="px-xwin__lrow"><dt>{to.name} orbit</dt><dd>{fmtDist(r2)}</dd></div>
+    </dl>
+  </details>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+
+  <script type="application/json" class="px-xwin__data" set:html={payload}></script>
+
+  {/* ── the scrubber island (vanilla, is:inline; honours the fallback contract) ── */}
+  <script is:inline>
+    (function () {
+      var self = document.currentScript;
+      var root = self && self.closest ? self.closest('.px-xwin') : null;
+      if (!root) return;
+      var dataEl = root.querySelector('.px-xwin__data');
+      if (!dataEl || !dataEl.textContent) return;
+      var P;
+      try { P = JSON.parse(dataEl.textContent); } catch (e) { return; }
+
+      var svg = root.querySelector('.px-xwin__svg');
+      var dep = root.querySelector('.px-xwin__dep');
+      var transfer = root.querySelector('.px-xwin__transfer');
+      var ghost = root.querySelector('.px-xwin__ghost');
+      var wedge = root.querySelector('.px-xwin__wedge');
+      var dphi = root.querySelector('.px-xwin__dphi');
+      var verdict = root.querySelector('.px-xwin__verdict');
+      var seal = root.querySelector('.px-xwin__seal');
+      var scrubWrap = root.querySelector('.px-xwin__scrub');
+      var range = root.querySelector('.px-xwin__range');
+      if (!svg || !dep || !transfer || !ghost || !wedge || !dphi || !verdict || !seal || !range) return;
+
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var cx = P.cx, cy = P.cy, R1 = P.R1, R2 = P.R2, at = P.at, et = P.et;
+      var beta = P.beta, phiReq = P.phiReq, syn = P.synodic;
+      var D2R = Math.PI / 180;
+
+      function pt(ang, R) { var a = ang * D2R; return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) }; }
+      function transferPath(alpha, nuMax, steps) {
+        var d = '';
+        for (var k = 0; k <= steps; k++) {
+          var nu = (k / steps) * nuMax;
+          var r = (at * (1 - et * et)) / (1 + et * Math.cos(nu * D2R));
+          var p = pt(alpha + nu, r);
+          d += (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+        }
+        return d;
+      }
+      function wedgePath(alpha, rw) {
+        var a0 = Math.min(alpha, beta), a1 = Math.max(alpha, beta), d = '', steps = 32;
+        for (var k = 0; k <= steps; k++) {
+          var p = pt(a0 + (k / steps) * (a1 - a0), rw);
+          d += (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+        }
+        return d;
+      }
+
+      var wasAligned = true; // composed still opens aligned
+      function stampAt() {
+        if (reduce) return;
+        verdict.classList.remove('px-xwin__verdict--stamp');
+        // force reflow so the animation re-fires on every crossing-in
+        void verdict.offsetWidth;
+        verdict.classList.add('px-xwin__verdict--stamp');
+      }
+      verdict.addEventListener('animationend', function () {
+        verdict.classList.remove('px-xwin__verdict--stamp');
+      });
+
+      function render(v) {
+        var alpha = 180 - v;
+        var dp = pt(alpha, R1);
+        dep.setAttribute('cx', dp.x.toFixed(1));
+        dep.setAttribute('cy', dp.y.toFixed(1));
+        transfer.setAttribute('d', transferPath(alpha, 180, 60));
+        ghost.setAttribute('d', transferPath(alpha, 360, 60) + 'Z');
+        wedge.setAttribute('d', wedgePath(alpha, 34));
+        var wm = pt((alpha + beta) / 2, 47);
+        dphi.setAttribute('x', wm.x.toFixed(1));
+        dphi.setAttribute('y', wm.y.toFixed(1));
+        dphi.textContent = 'Δφ ' + Math.round(v) + '°';
+
+        var delta = v - phiReq;
+        var aligned = Math.abs(delta) <= 3;
+        if (aligned) {
+          verdict.classList.add('px-xwin__verdict--open');
+          verdict.setAttribute('data-open', 'true');
+          seal.textContent = 'WINDOW OPEN';
+          if (!wasAligned) stampAt();
+        } else {
+          verdict.classList.remove('px-xwin__verdict--open', 'px-xwin__verdict--stamp');
+          verdict.setAttribute('data-open', 'false');
+          var days = Math.round((syn * Math.abs(delta)) / 360);
+          seal.textContent = 'phase ' + Math.round(delta) + '° off · next window in ' + days.toLocaleString() + ' d';
+        }
+        wasAligned = aligned;
+      }
+
+      // the control needs JS ⇒ reveal it only now (never shows dead under no-JS)
+      if (scrubWrap) scrubWrap.hidden = false;
+      range.addEventListener('input', function () { render(parseInt(range.value, 10)); });
+      // sync to the printed default without ceremony (already aligned in the DOM)
+      render(parseInt(range.value, 10));
+    })();
+  </script>
+</div>
+
+<style>
+  .px-xwin__chips { text-transform: none; letter-spacing: 0.1em; }
+
+  /* stage: figure + telemetry side by side on desktop, stacked on mobile */
+  .px-xwin__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 210px);
+    gap: 22px;
+    align-items: center;
+  }
+  .px-xwin__fig { min-width: 0; }
+  .px-xwin__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 460px;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  /* telemetry — mono readouts, cyan values (the .tel register, scoped) */
+  .px-xwin__tel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-left: 1px solid var(--rule);
+    padding-left: 20px;
+  }
+  .px-xwin__tel-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-bottom: 6px;
+  }
+  .px-xwin__tel-head span { color: var(--muted); }
+  .px-xwin__n {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 1;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .px-xwin__u {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+
+  /* verdict — reserved height so the card never resizes across any scrub */
+  .px-xwin__verdict {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 18px;
+    text-align: center;
+  }
+  .px-xwin__seal {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-xwin__verdict--open .px-xwin__seal {
+    color: var(--accent);
+    border: 1px solid color-mix(in oklab, var(--accent) 60%, transparent);
+    border-radius: var(--r-pill, 999px);
+    padding: 7px 16px;
+    letter-spacing: 0.2em;
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+  }
+  .px-xwin__verdict--stamp .px-xwin__seal { animation: pxXwinStamp 200ms var(--ease, cubic-bezier(.2,.7,.3,1)); }
+  @keyframes pxXwinStamp {
+    0% { transform: scale(1.28); opacity: 0.2; }
+    60% { transform: scale(0.97); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* scrubber — one control, mono track, 44px thumb (CANON §9 target floor) */
+  .px-xwin__scrub { margin-top: 16px; touch-action: manipulation; }
+  html:not(.js) .px-xwin__scrub { display: none; } /* belt-and-braces with [hidden] */
+  .px-xwin__scrub-lab {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .px-xwin__range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    outline: none;
+    margin: 0;
+  }
+  .px-xwin__range:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+  .px-xwin__range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--accent) 0 8px, transparent 9px);
+    cursor: pointer;
+  }
+  .px-xwin__range::-moz-range-thumb {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, var(--accent) 0 8px, transparent 9px);
+    cursor: pointer;
+  }
+
+  /* transfer ledger — collapsible AT-readable data source (native <details>;
+     openable + fully readable under no-JS, so nothing is dropped) */
+  .px-xwin__ledger {
+    margin: 20px 0 0;
+    border-top: 1px solid var(--rule);
+    padding-top: 6px;
+  }
+  .px-xwin__lsum {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 8px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .px-xwin__lsum::-webkit-details-marker { display: none; }
+  .px-xwin__lsum::after {
+    content: '+';
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .px-xwin__ledger[open] .px-xwin__lsum::after { content: '−'; }
+  .px-xwin__ledger:focus-within .px-xwin__lsum { color: var(--ink-soft); }
+  .px-xwin__ldl { margin: 0; }
+  .px-xwin__lrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .px-xwin__lrow dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-xwin__lrow dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .px-xwin__sub { color: var(--muted); font-size: 10.5px; }
+
+  /* entrance reveal (html.js-gated; composed still is the default paint) */
+  html.js .px-xwin__transfer { stroke-dasharray: 100; }
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__transfer { stroke-dashoffset: 100; }
+  html.js .px-viz.px-xwin.is-in .px-xwin__transfer {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease, cubic-bezier(.2,.7,.3,1)) 150ms;
+  }
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__ghost,
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dep,
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dest,
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__wedge,
+  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dphi { opacity: 0; }
+  .px-xwin__ghost, .px-xwin__dep, .px-xwin__dest, .px-xwin__wedge, .px-xwin__dphi {
+    transition: opacity 500ms var(--ease, ease) 700ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-viz.px-xwin .px-xwin__transfer,
+    .px-xwin__ghost, .px-xwin__dep, .px-xwin__dest, .px-xwin__wedge, .px-xwin__dphi {
+      transition: none !important;
+      stroke-dashoffset: 0 !important;
+      opacity: unset;
+    }
+    html.js .px-xwin__transfer { stroke-dasharray: none; }
+  }
+
+  /* ≤640px: telemetry drops below the figure as a 3-tile row; scrubber full-width */
+  @media (max-width: 640px) {
+    .px-xwin__stage { grid-template-columns: 1fr; gap: 18px; }
+    .px-xwin__tel {
+      flex-direction: row;
+      border-left: none;
+      border-top: 1px solid var(--rule);
+      padding-left: 0;
+      padding-top: 14px;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .px-xwin__tel-head {
+      flex: 1 0 100%;
+      padding-bottom: 10px;
+    }
+    .px-xwin__tile {
+      flex: 1 1 0;
+      min-width: 33%;
+      padding-right: 12px;
+    }
+    .px-xwin__n { font-size: 24px; }
+  }
+</style>

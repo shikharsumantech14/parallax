@@ -1,0 +1,511 @@
+---
+/**
+ * CoalitionCalculus (politics) — the reader-agency coalition builder.
+ *
+ * Parties are weight blocks on a single seat-bar against the majority line.
+ * The reader presses parties in and out of a coalition; the component keeps
+ * honest score — CLEARS BY X / SHORT BY X — and locks out the parties nobody
+ * will govern with, each with a sourced one-line reason.
+ *
+ * Tier: HTML-interactive. Build-time HTML paints the preset answer in full
+ * (no-JS = the print edition); one tiny vanilla is:inline island unhides the
+ * chip control, wires toggles, and re-scores. The three formulas (§4) are
+ * implemented identically here and in the island.
+ *
+ * FALLBACK CONTRACT: the beam (blocks + majority line + bracket + verdict) is
+ * static HTML in the preset state; the bench chip set ships `hidden` and the
+ * ledger <details> ships `open` — the island unhides the chips and folds the
+ * ledger on boot. No-JS / reduced-motion / crawlers get the composed still and
+ * the full ledger. See docs/design/blueprints/politics/coalition-calculus.md.
+ *
+ * data: { majority?, parties[]{name, short?, seats, color?, locked?}, preset?, caption?, source? }
+ */
+interface Party { name: string; short?: string; seats: number; color?: string; locked?: string; }
+interface Props {
+  majority?: number;
+  parties?: Party[];
+  preset?: string[];
+  caption?: string;
+  source?: string;
+}
+const { majority: majorityProp, parties = [], preset, caption, source } = Astro.props;
+
+// per-instance id namespace — two coalition-calculus sections on one page must
+// not collide on the aria-describedby reason-node ids (§8 keyboard-complete).
+const uid = Math.random().toString(36).slice(2, 8);
+
+// ── §4 formula 1: chamber size + threshold ──────────────────────────────────
+const N = parties.reduce((s, p) => s + (p.seats || 0), 0);
+const defaultMajority = Math.ceil((N + 1) / 2);
+const majority = majorityProp && majorityProp > 0 ? majorityProp : defaultMajority;
+// honesty chip only when a non-default threshold is declared (§3 · CANON §7)
+const showThresholdChip = majorityProp != null && majorityProp !== defaultMajority;
+
+// party-color fallback cycle (data-encoding exemption, chamber §6 rule)
+const cycle = ['var(--accent)', 'var(--accent-alt)', 'rgba(22,20,18,0.7)', 'rgba(22,20,18,0.5)', 'rgba(22,20,18,0.35)'];
+
+// preset default (§3): the largest unlocked party only
+const unlocked = parties.filter((p) => !p.locked);
+const largest = unlocked.reduce<Party | null>((a, b) => (a && a.seats >= b.seats ? a : b), null);
+const presetNames = preset && preset.length ? preset : largest ? [largest.name] : [];
+const presetSet = new Set(presetNames);
+
+// per-party render rows (data order is stable — toggling never reorders)
+const REF = 720; // static reference track width (blueprint worked example)
+const MREF = 343; // mobile reference track width (§4 · 375px card ≈ 343px track)
+const rows = parties.map((p, i) => {
+  const share = N > 0 ? p.seats / N : 0;
+  const on = presetSet.has(p.name) && !p.locked;
+  return {
+    i,
+    name: p.name,
+    label: p.short ?? p.name,
+    seats: p.seats,
+    locked: p.locked,
+    color: p.color || cycle[i % cycle.length],
+    share,
+    on,
+    wide: share * REF >= 84, // paper tag shows only on blocks ≥ 84px (§4)
+    mwide: share * MREF >= 84, // …and only if it's still ≥ 84px at the mobile track width (§4 · 375px)
+  };
+});
+
+// ── §4 formula 2 + 3: sum, margin, verdict ──────────────────────────────────
+const sum = rows.filter((r) => r.on).reduce((s, r) => s + r.seats, 0);
+const margin = sum - majority; // margin ≥ 0 governs (CLEARS BY 0 is literal)
+const clears = margin >= 0;
+const verdictWord = clears ? 'CLEARS BY' : 'SHORT BY';
+const verdictNum = Math.abs(margin);
+
+// geometry fractions (data-exact — never read from block pixel geometry, §4)
+const majFrac = N > 0 ? majority / N : 0;
+const bracketLeftFrac = N > 0 ? Math.min(sum, majority) / N : 0;
+const bracketWidthFrac = N > 0 ? Math.abs(margin) / N : 0;
+const midFrac = N > 0 ? (sum + majority) / 2 / N : 0.5;
+const tight = bracketWidthFrac * REF < 72; // narrow bracket → chip right-aligns
+const nearEdge = majFrac * REF > REF - 90; // majority label flips left of the line
+
+// island payload (compact — parties + threshold, §10 ≤ 2 KB)
+const payload = JSON.stringify({
+  N,
+  majority,
+  parties: rows.map((r) => ({ i: r.i, name: r.name, seats: r.seats, share: r.share, locked: !!r.locked })),
+});
+---
+
+<div class="px-coalc" class:list={[{ 'is-clears': clears, 'is-tight': tight, 'is-edge': nearEdge }]} data-reveal>
+  {(caption || showThresholdChip) && (
+    <div class="px-coalc__cap">
+      {caption && <span class="px-coalc__cap-text">{caption}</span>}
+      {showThresholdChip && (
+        <b class="px-coalc__thr">threshold {majority.toLocaleString()} of {N.toLocaleString()}</b>
+      )}
+    </div>
+  )}
+
+  <div class="px-coalc__stage">
+    <!-- majority line label (above the line) -->
+    <span class="px-coalc__mlabel" style={`left:${(majFrac * 100).toFixed(3)}%`}>
+      MAJORITY · {majority.toLocaleString()}
+    </span>
+
+    <!-- the beam: track + blocks + majority line -->
+    <div class="px-coalc__beam">
+      {rows.filter((r) => !r.locked).map((r) => (
+        <div
+          class="px-coalc__block"
+          class:list={[{ 'is-on': r.on, 'is-wide': r.wide, 'is-mwide': r.mwide }]}
+          data-i={r.i}
+          style={`--w:${r.share};--c:${r.color}`}
+          aria-hidden="true"
+        >
+          <span class="px-coalc__tag">
+            <span class="px-coalc__tag-n">{r.label}</span>
+            <span class="px-coalc__tag-s vz-num">{r.seats.toLocaleString()}</span>
+          </span>
+        </div>
+      ))}
+      <span class="px-coalc__mline" style={`left:${(majFrac * 100).toFixed(3)}%`} aria-hidden="true"></span>
+    </div>
+
+    <!-- verdict row: reserved 32px strip (bracket + chip); height never changes -->
+    <div class="px-coalc__verdict">
+      <span
+        class="px-coalc__bracket"
+        style={`left:${(bracketLeftFrac * 100).toFixed(3)}%;width:${(bracketWidthFrac * 100).toFixed(3)}%`}
+        aria-hidden="true"></span>
+      <span
+        class="px-coalc__vchip"
+        class:list={[{ 'is-stamp': clears }]}
+        style={`--mid:${(midFrac * 100).toFixed(3)}%`}
+        aria-hidden="true">
+        <span class="px-coalc__vword">{verdictWord}</span>
+        <span class="px-coalc__vnum vz-num" data-countup={verdictNum}>{verdictNum.toLocaleString()}</span>
+      </span>
+      {/* the aria-live verdict (§8 rule 3) — a visually-hidden readout, kept OFF
+          the count-up subtree so the entrance tween can't announce intermediate
+          values; the island writes the settled verdict here on every toggle. */}
+      <span class="px-coalc__sr" data-vlive role="status" aria-live="polite">{verdictWord} {verdictNum.toLocaleString()}</span>
+    </div>
+  </div>
+
+  <!-- the one control: the party chip set (JS-only; unhidden by the island) -->
+  <div class="px-coalc__bench" hidden>
+    {rows.map((r) => (
+      <button
+        type="button"
+        class="px-coalc__chip"
+        class:list={[{ 'is-on': r.on, 'is-locked': !!r.locked }]}
+        data-i={r.i}
+        aria-pressed={r.locked ? undefined : r.on ? 'true' : 'false'}
+        aria-disabled={r.locked ? 'true' : undefined}
+        aria-describedby={r.locked ? `px-coalc-why-${uid}-${r.i}` : undefined}
+        data-why={r.locked}>
+        <span class="px-coalc__swatch" style={`background:${r.color}`} aria-hidden="true"></span>
+        <span class="px-coalc__chip-n">{r.name}</span>
+        <span class="px-coalc__chip-s vz-num">{r.seats.toLocaleString()}</span>
+        {r.locked && (
+          <svg class="px-coalc__lock" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+            <rect x="2.5" y="5.3" width="7" height="5.2" rx="0.8" fill="none" stroke="var(--ink)" stroke-width="1.2" />
+            <path d="M4 5.3V3.7a2 2 0 0 1 4 0v1.6" fill="none" stroke="var(--ink)" stroke-width="1.2" />
+            <circle cx="6" cy="7.7" r="0.8" fill="var(--ink)" />
+          </svg>
+        )}
+      </button>
+    ))}
+  </div>
+
+  <!-- refusal annotation: one reason visible at a time, reserved 24px row (§4) -->
+  <div class="px-coalc__why pol-annot" aria-live="polite"></div>
+
+  <!-- AT-readable data source: full ledger. <details open> in markup; island
+       folds it once the live chips carry the data (CANON §4.5). No-JS = open. -->
+  <details class="px-coalc__ledger" open>
+    <summary class="px-coalc__summary">party ledger</summary>
+    <ul class="pol-ledger">
+      {rows.map((r) => (
+        <li>
+          <span class="pol-ledger__k">{r.name}</span>
+          <span class="pol-ledger__dots" aria-hidden="true"></span>
+          <span class="pol-ledger__v vz-num">
+            {r.seats.toLocaleString()} · {r.locked ? <>LOCKED OUT — {r.locked}</> : r.on ? <b>IN COALITION</b> : '—'}
+          </span>
+        </li>
+      ))}
+    </ul>
+    {/* stable reason nodes for aria-describedby (visually hidden) */}
+    {rows.filter((r) => r.locked).map((r) => (
+      <span id={`px-coalc-why-${uid}-${r.i}`} class="px-coalc__sr">{r.locked}</span>
+    ))}
+  </details>
+
+  {source && <div class="px-coalc__src">Source · {source}</div>}
+
+  <script type="application/json" class="px-coalc__data" set:html={payload}></script>
+</div>
+
+<script is:inline>
+  (function () {
+    document.querySelectorAll('.px-coalc').forEach(function (root) {
+      var cfgEl = root.querySelector('.px-coalc__data');
+      if (!cfgEl) return;
+      var cfg = JSON.parse(cfgEl.textContent);
+      var N = cfg.N, MAJ = cfg.majority;
+      var beam = root.querySelector('.px-coalc__beam');
+      var blocks = root.querySelectorAll('.px-coalc__block');
+      var chips = root.querySelectorAll('.px-coalc__chip');
+      var bench = root.querySelector('.px-coalc__bench');
+      var bracket = root.querySelector('.px-coalc__bracket');
+      var vchip = root.querySelector('.px-coalc__vchip');
+      var vword = root.querySelector('.px-coalc__vword');
+      var vnum = root.querySelector('.px-coalc__vnum');
+      var vlive = root.querySelector('[data-vlive]');
+      var mlabel = root.querySelector('.px-coalc__mlabel');
+      var why = root.querySelector('.px-coalc__why');
+      var details = root.querySelector('.px-coalc__ledger');
+      var on = {}; // index -> in-coalition
+      cfg.parties.forEach(function (p) { on[p.i] = false; });
+      chips.forEach(function (c) { if (c.getAttribute('aria-pressed') === 'true') on[+c.dataset.i] = true; });
+      var prevClears = root.classList.contains('is-clears');
+      var whyTimer = null;
+
+      function score() {
+        var sum = 0;
+        cfg.parties.forEach(function (p) { if (on[p.i] && !p.locked) sum += p.seats; });
+        return sum - MAJ;
+      }
+      function verdict() {
+        var m = score(), clears = m >= 0;
+        vword.textContent = clears ? 'CLEARS BY' : 'SHORT BY';
+        vnum.textContent = Math.abs(m).toLocaleString();
+        // announce the settled verdict through the dedicated live region (§8 rule 3);
+        // this is a per-toggle change, so AT reads "CLEARS BY 12" cleanly, once.
+        if (vlive) vlive.textContent = (clears ? 'CLEARS BY ' : 'SHORT BY ') + Math.abs(m).toLocaleString();
+        root.classList.toggle('is-clears', clears);
+        if (clears && !prevClears) { vchip.classList.remove('is-stamp'); void vchip.offsetWidth; vchip.classList.add('is-stamp'); }
+        else if (!clears) { vchip.classList.remove('is-stamp'); }
+        prevClears = clears;
+        layout();
+      }
+      function layout() {
+        var w = beam.clientWidth || 1;
+        var sum = 0;
+        cfg.parties.forEach(function (p) { if (on[p.i] && !p.locked) sum += p.seats; });
+        var m = sum - MAJ, aw = Math.abs(m);
+        bracket.style.left = (Math.min(sum, MAJ) / N * 100).toFixed(3) + '%';
+        bracket.style.width = (aw / N * 100).toFixed(3) + '%';
+        vchip.style.setProperty('--mid', ((sum + MAJ) / 2 / N * 100).toFixed(3) + '%');
+        root.classList.toggle('is-tight', aw / N * w < 72);
+        root.classList.toggle('is-edge', MAJ / N * w > w - 90);
+        blocks.forEach(function (b) {
+          var i = +b.dataset.i, p = cfg.parties[findByI(i)];
+          b.classList.toggle('is-wide', on[i] && p.share * w >= 84);
+        });
+      }
+      function findByI(i) { for (var k = 0; k < cfg.parties.length; k++) if (cfg.parties[k].i === i) return k; return 0; }
+
+      function showWhy(text) {
+        why.textContent = text;
+        why.classList.add('is-shown');
+        if (whyTimer) clearTimeout(whyTimer);
+        whyTimer = setTimeout(function () { why.classList.remove('is-shown'); }, 8000);
+      }
+      function toggle(i, locked, text) {
+        if (whyTimer) { clearTimeout(whyTimer); why.classList.remove('is-shown'); whyTimer = null; }
+        if (locked) { showWhy(text); return; }
+        on[i] = !on[i];
+        var chip = root.querySelector('.px-coalc__chip[data-i="' + i + '"]');
+        var block = root.querySelector('.px-coalc__block[data-i="' + i + '"]');
+        if (chip) { chip.setAttribute('aria-pressed', on[i] ? 'true' : 'false'); chip.classList.toggle('is-on', on[i]); }
+        if (block) block.classList.toggle('is-on', on[i]);
+        verdict();
+      }
+
+      chips.forEach(function (chip) {
+        var i = +chip.dataset.i, locked = chip.classList.contains('is-locked');
+        var reason = locked ? (chip.getAttribute('data-why') || '') : ''; // root-scoped: no page-global id lookup
+        chip.addEventListener('click', function () { toggle(i, locked, reason); });
+      });
+
+      // boot: unhide the control, fold the ledger, lay out, then switch to
+      // fast toggle-time transitions after the entrance sequence.
+      bench.hidden = false;
+      if (details) { details.open = false; var s = root.querySelector('.px-coalc__summary'); if (s) s.textContent = 'party ledger — show all'; }
+      layout();
+      setTimeout(function () { root.classList.add('is-live'); }, 1700);
+      window.addEventListener('resize', layout, { passive: true });
+    });
+  })();
+</script>
+
+<style>
+  .px-coalc {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
+    padding: 26px 30px 24px;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+
+  /* caption row — editorial serif + the honesty threshold chip */
+  .px-coalc__cap {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    margin-bottom: 26px;
+  }
+  .px-coalc__cap-text {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: var(--viz-fs-caption, 15.5px); line-height: 1.3;
+    letter-spacing: -0.005em; color: var(--ink-soft);
+  }
+  .px-coalc__thr {
+    flex: 0 0 auto; align-self: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep);
+    background: color-mix(in oklab, var(--accent) 11%, transparent);
+    padding: 3px 9px; border-radius: var(--r-pill); white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* stage reserves room for the majority label above the beam.
+     max-width MUST equal the beam's (720px) so every left:% layer — the
+     majority label, the beam's dashed line, the verdict bracket + chip — resolves
+     against ONE reference frame. Without this the label/bracket (children of the
+     uncapped stage/verdict) detach from the line/blocks (capped at 720) whenever
+     the card is wider than 720px (§4 · the desktop/tablet reading context). */
+  .px-coalc__stage { position: relative; padding-top: 20px; max-width: 720px; }
+
+  /* the beam / track */
+  .px-coalc__beam {
+    position: relative;
+    display: flex; align-items: stretch;
+    width: 100%; max-width: 720px; height: 64px;
+    border: 1px solid var(--rule);
+    background: transparent;
+  }
+
+  /* blocks — one per unlocked party, data order, width = seats/N of the track */
+  .px-coalc__block {
+    position: relative;
+    flex: 0 0 auto; width: 0; height: 100%;
+    background: var(--c);
+    margin-right: 0;
+    overflow: hidden;
+    transition: width 600ms var(--ease), margin-right 600ms var(--ease);
+  }
+  .px-coalc__block.is-on {
+    width: max(2px, calc(var(--w) * 100%)); /* 2px floor never changes the answer */
+    margin-right: 1px; /* 1px gap shows the page background between blocks */
+  }
+  .px-coalc.is-live .px-coalc__block { transition: width var(--t-soft, 220ms) var(--ease), margin-right var(--t-soft, 220ms) var(--ease); transition-delay: 0ms !important; }
+  /* entrance grow: staggered left→right, gated behind reveal */
+  html.js .px-coalc:not(.is-in) .px-coalc__block.is-on { width: 0; margin-right: 0; }
+  .px-coalc__block:nth-child(1) { transition-delay: 0ms; }
+  .px-coalc__block:nth-child(2) { transition-delay: 50ms; }
+  .px-coalc__block:nth-child(3) { transition-delay: 100ms; }
+  .px-coalc__block:nth-child(4) { transition-delay: 150ms; }
+  .px-coalc__block:nth-child(5) { transition-delay: 200ms; }
+  .px-coalc__block:nth-child(6) { transition-delay: 250ms; }
+  .px-coalc__block:nth-child(7) { transition-delay: 300ms; }
+
+  /* paper tag — legible on any party color; only on blocks ≥ 84px wide */
+  .px-coalc__tag {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: none; align-items: baseline; gap: 5px;
+    padding: 2px 6px; border-radius: 2px;
+    background: color-mix(in oklab, var(--paper) 85%, transparent);
+    white-space: nowrap; pointer-events: none;
+  }
+  .px-coalc__block.is-on.is-wide .px-coalc__tag { display: flex; }
+  .px-coalc__tag-n { font-family: var(--font-body); font-size: 11px; color: color-mix(in oklab, var(--ink) 92%, transparent); font-weight: 600; }
+  .px-coalc__tag-s { font-family: var(--font-mono); font-size: 11px; color: color-mix(in oklab, var(--ink) 92%, transparent); }
+
+  /* majority line — dashed structural marker, extends above + below the track */
+  .px-coalc__mline {
+    position: absolute; top: -10px; bottom: -6px; width: 0;
+    border-left: 1.5px dashed color-mix(in oklab, var(--ink) 42%, transparent);
+    pointer-events: none;
+  }
+  .px-coalc__mlabel {
+    position: absolute; top: 0;
+    font-family: var(--font-mono); font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: color-mix(in oklab, var(--ink) 42%, transparent); /* §6: matches the majority line's --ink @ 0.42 */
+    white-space: nowrap; transform: translateX(4px); font-variant-numeric: tabular-nums;
+  }
+  .px-coalc.is-edge .px-coalc__mlabel { transform: translateX(-100%) translateX(-4px); }
+
+  /* verdict row — reserved 32px strip; height fixed so toggling never reflows */
+  .px-coalc__verdict { position: relative; height: 32px; margin-top: 0; }
+  .px-coalc__bracket {
+    position: absolute; top: 9px; height: 6px;
+    border-top: 1.5px solid var(--accent-deep);
+    border-left: 1.5px solid var(--accent-deep);
+    border-right: 1.5px solid var(--accent-deep);
+    min-width: 0; box-sizing: border-box;
+  }
+  .px-coalc__vchip {
+    position: absolute; top: 15px;
+    left: clamp(0px, calc(var(--mid) - 60px), calc(100% - 120px));
+    display: inline-flex; align-items: baseline; gap: 6px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-deep);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  /* narrow bracket → chip right-aligns under the track (§4) */
+  .px-coalc.is-tight .px-coalc__vchip { left: auto; right: 0; max-width: 720px; }
+  .px-coalc__vnum { font-weight: 700; }
+  /* the stamp — verdicts as an inked rubber stamp, politics signature */
+  .px-coalc__vchip.is-stamp {
+    padding: 3px 9px; border: 1.5px solid var(--accent-deep); border-radius: 2px;
+    background: color-mix(in oklab, var(--accent) 4%, transparent);
+    text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
+    left: clamp(0px, calc(var(--mid) - 66px), calc(100% - 132px));
+  }
+  /* Stamp motion is gated behind the reveal, like block-grow (§5) — so it never
+     plays/finishes off-screen and lands as the LAST beat of the entrance. The
+     pre-live entrance instance is delayed to fire after block-grow + count-up;
+     post-live toggle crossings stamp instantly. No-JS / pre-reveal / reduced-
+     motion keep the static pre-stamped box above (no animation). */
+  html.js .px-coalc.is-in:not(.is-live) .px-coalc__vchip.is-stamp {
+    animation: px-coalc-stamp 220ms var(--ease-snap, cubic-bezier(0.5,1.6,0.4,1)) 950ms both;
+  }
+  .px-coalc.is-live .px-coalc__vchip.is-stamp {
+    animation: px-coalc-stamp 220ms var(--ease-snap, cubic-bezier(0.5,1.6,0.4,1)) both;
+  }
+  .px-coalc.is-tight .px-coalc__vchip.is-stamp { left: auto; right: 0; }
+  @keyframes px-coalc-stamp {
+    0% { transform: scale(1.5) rotate(-2deg); opacity: 0; }
+    60% { transform: scale(0.94) rotate(-2deg); opacity: 1; }
+    100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+  }
+
+  /* the bench — the one control (party chip set) */
+  .px-coalc__bench { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .px-coalc__chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; padding: 10px 14px;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-pill);
+    cursor: pointer; font: inherit; color: var(--ink);
+    transition: border-color var(--t-quick, 140ms) var(--ease), background var(--t-quick, 140ms) var(--ease), transform 80ms var(--ease);
+  }
+  .px-coalc__chip:hover { border-color: color-mix(in oklab, var(--ink) 30%, var(--rule)); }
+  .px-coalc__chip:active { transform: scale(0.98); }
+  .px-coalc__chip.is-on { border-color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 6%, var(--paper)); }
+  .px-coalc__chip:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+  .px-coalc__chip.is-locked { opacity: 0.55; cursor: not-allowed; }
+  .px-coalc__swatch { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+  .px-coalc__chip-n { font-family: var(--font-body); font-size: 13px; font-weight: 500; }
+  .px-coalc__chip-s { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+  .px-coalc__lock { flex: 0 0 auto; margin-left: 1px; }
+
+  /* the refusal annotation — Fraunces italic red pen, reserved 24px row */
+  .px-coalc__why {
+    min-height: 24px; margin: 12px 0 0; padding-left: 0; border-left: 0;
+    font-size: 13px; opacity: 0; max-width: 60ch;
+    transition: opacity 140ms var(--ease);
+  }
+  .px-coalc__why.is-shown { opacity: 1; padding-left: 12px; border-left: 2px solid var(--accent); }
+
+  /* fallback ledger */
+  .px-coalc__ledger { margin-top: 18px; }
+  .px-coalc__summary {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); cursor: pointer; padding: 6px 0;
+    list-style-position: inside;
+  }
+  .px-coalc__ledger .pol-ledger { margin-top: 8px; }
+  .px-coalc__ledger .pol-ledger__v b { color: var(--accent-deep); font-weight: 600; }
+  .px-coalc__sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  .px-coalc__src {
+    margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--rule);
+    font-family: var(--font-mono); font-size: var(--viz-fs-src, 10px);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-style: italic;
+  }
+
+  /* ── 375px: track 343px × 52px; everything else identical ── */
+  @media (max-width: 640px) {
+    .px-coalc { padding: 22px 18px 20px; }
+    .px-coalc__beam { height: 52px; }
+    .px-coalc__cap { flex-wrap: wrap; gap: 8px; }
+    /* §4 · 375px: the `is-wide` flag is baked at the 720px reference, but the
+       real track is ~343px here — a block wide at 720 can be far under 84px now.
+       Drop its tag unless it's still wide at the mobile reference (`is-mwide`).
+       With JS the island recomputes `is-wide` from the true width (so it removes
+       the class from genuinely-narrow blocks); this rule fixes only the no-JS
+       fallback, where a stale `is-wide` would otherwise show a clipped tag. */
+    .px-coalc__block.is-on.is-wide:not(.is-mwide) .px-coalc__tag { display: none; }
+  }
+
+  /* ── reduced motion: hard swaps; stamp pre-stamped; count-up shows final ── */
+  @media (prefers-reduced-motion: reduce) {
+    .px-coalc__block,
+    .px-coalc.is-live .px-coalc__block,
+    .px-coalc__chip, .px-coalc__why { transition: none !important; }
+    html.js .px-coalc:not(.is-in) .px-coalc__block.is-on { width: max(2px, calc(var(--w) * 100%)); margin-right: 1px; }
+    .px-coalc__vchip.is-stamp { animation: none !important; }
+  }
+</style>

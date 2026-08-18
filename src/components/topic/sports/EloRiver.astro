@@ -1,0 +1,560 @@
+---
+/**
+ * EloRiver (sports · the longitudinal streamgraph) — a season/era of teams'
+ * ratings drawn as a braided river. Each team is a ribbon whose vertical
+ * thickness is its Elo/SPI/power rating; ribbons are stacked per date by
+ * ascending rating (strong teams ride the top of the braid) and centred as a
+ * streamgraph, so every crossover — the moment one team overtakes another —
+ * is a visible weave. "The table, unrolled into time."
+ *
+ * 100% build-time SVG geometry (blueprint §4). The ONLY motion is a CSS
+ * clip-path `sweep` that flows each ribbon in left→right on scroll-in; no
+ * ambient motion (a rating river is a finished record). No-JS / reduced-motion
+ * paints the final braided plate — clipPaths render full-width, tags + rail +
+ * legend placed, subject ribbon volt. This IS the print plate.
+ *
+ * Blueprint (the contract): docs/design/blueprints/sports/elo-river.md.
+ * Honesty (CANON §7): the rating `model` is NAMED in the source row; `kInfo`
+ * (the K-factor / update rule) renders as a mono chip; any interpolated `null`
+ * span is drawn hollow AND flagged with the `interpolated` chip.
+ *
+ * data: { model, kInfo?, dates[], baseline?, teams[]{name, short?, color?,
+ *         ratings[], subject?}, caption?, source? }
+ */
+interface EloTeam {
+  name: string;
+  short?: string;
+  color?: string;
+  ratings: Array<number | null>;
+  subject?: boolean;
+}
+interface Props {
+  model: string;
+  kInfo?: string;
+  dates: string[];
+  baseline?: number;
+  teams: EloTeam[];
+  caption?: string;
+  source?: string;
+}
+const {
+  model,
+  kInfo,
+  dates = [],
+  baseline = 1500,
+  teams = [],
+  caption,
+  source,
+} = Astro.props;
+
+// ── viewBox + plot rect (blueprint §4) ──────────────────────────────────────
+const W = 760, H = 420;
+const PAD_L = 16, PAD_R = 132, PAD_T = 22, PAD_B = 34;
+const w = W - PAD_L - PAD_R;          // 612
+const h = H - PAD_T - PAD_B;          // 364
+const midline = PAD_T + h / 2;        // 204
+const nDates = dates.length;
+const f1 = (v: number) => Number(v.toFixed(1));
+
+// ── x positions: uniform by index (the ticks ARE the sampling) ──────────────
+const xAt = (i: number) => PAD_L + (nDates > 1 ? (i / (nDates - 1)) * w : w / 2);
+const xs = dates.map((_, i) => xAt(i));
+
+// ── null handling: linear interpolation for geometry; leading/trailing clamp;
+//    track which dates are interpolated (→ hollow fill span, §3 flag) ────────
+function fillSeries(ratings: Array<number | null>) {
+  const n = nDates;
+  const vals: number[] = new Array(n).fill(0);
+  const interp: boolean[] = ratings.map((r) => r == null || !Number.isFinite(r));
+  const known: number[] = [];
+  for (let i = 0; i < n; i++) if (!interp[i]) known.push(i);
+  if (known.length === 0) return { vals: vals.map(() => baseline), interp };
+  for (let i = 0; i < known[0]; i++) vals[i] = ratings[known[0]] as number;             // leading clamp
+  const last = known[known.length - 1];
+  for (let i = last + 1; i < n; i++) vals[i] = ratings[last] as number;                  // trailing clamp
+  for (const k of known) vals[k] = ratings[k] as number;
+  for (let j = 0; j < known.length - 1; j++) {                                            // internal linear
+    const a = known[j], b = known[j + 1];
+    const ra = ratings[a] as number, rb = ratings[b] as number;
+    for (let i = a + 1; i < b; i++) vals[i] = ra + ((i - a) / (b - a)) * (rb - ra);
+  }
+  return { vals, interp };
+}
+
+// honour at most ONE subject (first wins; §11)
+let subjectSeen = false;
+const prepared = teams
+  .filter((t) => t && Array.isArray(t.ratings))
+  .map((t) => {
+    const { vals, interp } = fillSeries(t.ratings);
+    const hasReal = t.ratings.some((r) => r != null && Number.isFinite(r));
+    const isSubject = !!t.subject && !subjectSeen && hasReal;
+    if (isSubject) subjectSeen = true;
+    const short = (t.short || t.name.slice(0, 3)).toUpperCase().slice(0, 4);
+    return { name: t.name, short, color: t.color, vals, interp, isSubject, hasReal };
+  })
+  .filter((t) => t.hasReal);
+
+const anyInterp = prepared.some((t) => t.interp.some(Boolean));
+
+// ── degenerate-input guard (§4): with no dates or no real series there is no
+//    braid to draw. Bail before any geometry reads ptsByTeam[ti][nDates-1]
+//    (which would be [-1] → undefined.yc → build-time throw). ────────────────
+const degenerate = nDates < 1 || prepared.length < 1;
+
+// ── floor + vertical scale (blueprint §4) ───────────────────────────────────
+// rFloor = min(all non-null ratings) − 20 ; SY = h / maxStackHeight where
+// maxStackHeight = max over dates of Σ_teams (r − rFloor). The tallest column
+// exactly fills the plot height; no column overflows — deterministic.
+const allReal: number[] = [];
+for (const t of prepared) t.vals.forEach((v, i) => { if (!t.interp[i]) allReal.push(v); });
+const rFloor = (allReal.length ? Math.min(...allReal) : baseline) - 20;
+
+let maxStack = 1e-9;
+for (let i = 0; i < nDates; i++) {
+  let sum = 0;
+  for (const t of prepared) sum += t.vals[i] - rFloor;
+  if (sum > maxStack) maxStack = sum;
+}
+const SY = h / maxStack;
+
+// ── per-column stack: bottom→top by ascending rating (strong rides the top).
+//    Order is recomputed per date, so an overtake visibly crosses. Centre the
+//    stack on the midline (symmetric wiggle). ─────────────────────────────────
+type Pt = { x: number; top: number; bot: number; yc: number; thick: number };
+const ptsByTeam: Pt[][] = prepared.map(() => []);
+for (let i = 0; i < nDates; i++) {
+  const order = prepared
+    .map((t, ti) => ({ ti, r: t.vals[i] }))
+    .sort((a, b) => a.r - b.r); // ascending → weakest first (bottom)
+  const totalStack = order.reduce((s, o) => s + (prepared[o.ti].vals[i] - rFloor) * SY, 0);
+  const stackHalf = totalStack / 2;
+  const bottomEdge = midline + stackHalf; // largest y = bottom of the braid
+  let cumBelow = 0;
+  for (const o of order) {
+    const thick = (prepared[o.ti].vals[i] - rFloor) * SY;
+    const yc = bottomEdge - cumBelow - thick / 2;
+    ptsByTeam[o.ti][i] = { x: xs[i], top: yc - thick / 2, bot: yc + thick / 2, yc, thick };
+    cumBelow += thick;
+  }
+}
+
+// ── smooth ribbon paths: monotone cubic between dates (control-x at midpoint,
+//    control-y at endpoints — no vertical overshoot, no self-crossing) ────────
+function edgeFwd(pts: Pt[], a: number, b: number, key: 'top' | 'bot'): string {
+  let d = `M ${f1(pts[a].x)} ${f1(pts[a][key])}`;
+  for (let i = a + 1; i <= b; i++) {
+    const mx = f1((pts[i - 1].x + pts[i].x) / 2);
+    d += ` C ${mx} ${f1(pts[i - 1][key])} ${mx} ${f1(pts[i][key])} ${f1(pts[i].x)} ${f1(pts[i][key])}`;
+  }
+  return d;
+}
+function edgeBack(pts: Pt[], a: number, b: number, key: 'top' | 'bot'): string {
+  let d = '';
+  for (let i = b; i > a; i--) {
+    const mx = f1((pts[i - 1].x + pts[i].x) / 2);
+    d += ` C ${mx} ${f1(pts[i][key])} ${mx} ${f1(pts[i - 1][key])} ${f1(pts[i - 1].x)} ${f1(pts[i - 1][key])}`;
+  }
+  return d;
+}
+// a closed streamgraph ribbon covering the date range [a..b]
+function closed(pts: Pt[], a: number, b: number): string {
+  return `${edgeFwd(pts, a, b, 'top')} L ${f1(pts[b].x)} ${f1(pts[b].bot)}${edgeBack(pts, a, b, 'bot')} Z`;
+}
+
+// ── colour spec (§6): team data-colour @0.72 (subject 0.85); else fallback
+//    cycle (single-accent-plus-ink; no hex literals here) ─────────────────────
+const FALLBACK = [
+  { fill: 'var(--accent)', op: 0.72 },
+  { fill: 'var(--accent-alt)', op: 0.72 },
+  { fill: 'var(--ink)', op: 0.6 },
+  { fill: 'var(--ink)', op: 0.42 },
+  { fill: 'var(--ink)', op: 0.28 },
+  { fill: 'var(--ink)', op: 0.18 },
+];
+function fillSpec(t: (typeof prepared)[number], idx: number) {
+  if (t.color) {
+    const op = t.isSubject ? 0.85 : 0.72;
+    return { fill: t.color, op, swatch: t.color, swatchOp: 0.72 };
+  }
+  const c = FALLBACK[Math.min(idx, FALLBACK.length - 1)];
+  const op = t.isSubject ? 0.85 : c.op;
+  return { fill: c.fill, op, swatch: c.fill, swatchOp: c.op };
+}
+
+// ── ribbon render models ────────────────────────────────────────────────────
+// stagger rank: ascending by final rating (broadcast pace; capped 320ms) — §5
+const finalRating = (t: (typeof prepared)[number]) => t.vals[nDates - 1];
+const rankOrder = prepared.map((_, i) => i).sort((a, b) => finalRating(prepared[a]) - finalRating(prepared[b]));
+const rankOf = new Map<number, number>();
+rankOrder.forEach((ti, rank) => rankOf.set(ti, rank));
+
+interface Ribbon {
+  ti: number;
+  fill: string; op: number; isSubject: boolean;
+  edge: string;
+  segs: Array<{ d: string; hollow: boolean }>;
+  notches: Array<{ x: number; y: number }>;
+  delayMs: number;
+}
+const ribbons: Ribbon[] = degenerate ? [] : prepared.map((t, ti) => {
+  const pts = ptsByTeam[ti];
+  // partition dates into runs by "hollow" (a segment is hollow if either
+  // endpoint date is interpolated); each run is one closed sub-path so solid
+  // and hollow spans tile seamlessly (§3 / §4 null handling).
+  const segs: Array<{ d: string; hollow: boolean }> = [];
+  let runStart = 0;
+  const segHollow = (i: number) => t.interp[i] || t.interp[i + 1]; // segment i..i+1
+  for (let i = 0; i < nDates - 1; i++) {
+    const cur = segHollow(i);
+    const nextChanges = i === nDates - 2 || segHollow(i + 1) !== cur;
+    if (nextChanges) {
+      segs.push({ d: closed(pts, runStart, i + 1), hollow: cur });
+      runStart = i + 1;
+    }
+  }
+  if (nDates === 1) segs.push({ d: closed(pts, 0, 0), hollow: t.interp[0] });
+
+  // baseline-crossing notches: where the team crosses its own `baseline`
+  const notches: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < nDates - 1; i++) {
+    const v0 = t.vals[i], v1 = t.vals[i + 1];
+    if ((v0 - baseline) * (v1 - baseline) < 0) {
+      const frac = (baseline - v0) / (v1 - v0);
+      notches.push({
+        x: pts[i].x + frac * (pts[i + 1].x - pts[i].x),
+        y: pts[i].yc + frac * (pts[i + 1].yc - pts[i].yc),
+      });
+    }
+  }
+
+  const spec = fillSpec(t, ti);
+  const delayMs = Math.min(rankOf.get(ti)! * 40, 320);
+  return { ti, fill: spec.fill, op: spec.op, isSubject: t.isSubject, edge: closed(pts, 0, nDates - 1), segs, notches, delayMs };
+});
+
+// ── end tags (right gutter): de-collide to ≥15px, greedy top-down (§4) ───────
+const GUT_X = W - PAD_R + 10;         // 638 — tag x
+const RIB_END_X = xs[nDates - 1];     // 628 — ribbon end
+const TAG_GAP = 15;
+const tagMinY = PAD_T + 8, tagMaxY = H - PAD_B - 8;
+const tagOrder = degenerate
+  ? []
+  : prepared.map((_, i) => i).sort((a, b) => ptsByTeam[a][nDates - 1].yc - ptsByTeam[b][nDates - 1].yc);
+const tagY = new Map<number, number>();
+let prevY = -Infinity;
+for (const ti of tagOrder) {
+  let y = Math.max(ptsByTeam[ti][nDates - 1].yc, prevY + TAG_GAP);
+  tagY.set(ti, y);
+  prevY = y;
+}
+// bottom-overflow correction pass (push up from the bottom)
+if (prevY > tagMaxY) {
+  let cap = tagMaxY;
+  for (let k = tagOrder.length - 1; k >= 0; k--) {
+    const ti = tagOrder[k];
+    const y = Math.min(tagY.get(ti)!, cap);
+    tagY.set(ti, y);
+    cap = y - TAG_GAP;
+  }
+}
+// top clamp
+for (const ti of tagOrder) if (tagY.get(ti)! < tagMinY) tagY.set(ti, tagMinY);
+
+// ── date rail (§4): labels every tick if ≤8 dates, else every ⌈n/8⌉th; at
+//    375px thins to every ⌈n/5⌉th (extra labels hidden via a class) ──────────
+const railY = H - PAD_B + 4;          // 390
+const yearsDistinct = new Set(dates.map((d) => d.slice(0, 4))).size;
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtDate(iso: string): string {
+  const [y, m] = iso.split('-');
+  const mon = MON[Math.max(0, Math.min(11, (parseInt(m, 10) || 1) - 1))];
+  return yearsDistinct > 1 ? `${mon} '${(y || '').slice(2)}` : mon;
+}
+const deskStep = nDates <= 8 ? 1 : Math.ceil(nDates / 8);
+const mobStep = nDates <= 5 ? 1 : Math.ceil(nDates / 5);
+const railTicks = dates.map((d, i) => ({
+  x: xs[i],
+  label: fmtDate(d),
+  showDesk: i % deskStep === 0 || i === nDates - 1,
+  showMob: i % mobStep === 0 || i === nDates - 1,
+}));
+
+// ── legend (in-SVG, lower-left broadcast lower-third): subject row first &
+//    bold; ≤5 → one column, 6–10 → two columns (static plate packs, §7) ──────
+const legendRows = [
+  ...prepared.map((t, ti) => ({ t, ti })).filter((r) => r.t.isSubject),
+  ...prepared
+    .map((t, ti) => ({ t, ti }))
+    .filter((r) => !r.t.isSubject)
+    .sort((a, b) => finalRating(b.t) - finalRating(a.t)),
+];
+const twoCol = legendRows.length > 5;
+const legPadX = 9, legPadY = 8, legRowH = 15, legSw = 11;
+const legCols = twoCol ? 2 : 1;
+const legRowsPerCol = Math.ceil(legendRows.length / legCols);
+const legColW = twoCol ? 150 : 168;
+const legW = legColW * legCols + legPadX * 2;
+const legH = legRowsPerCol * legRowH + legPadY * 2;
+const legX = PAD_L + 4;
+const legTop = H - PAD_B - 6 - legH;
+const legendPlaced = legendRows.map((r, k) => {
+  const col = twoCol ? Math.floor(k / legRowsPerCol) : 0;
+  const row = twoCol ? k % legRowsPerCol : k;
+  const spec = fillSpec(r.t, r.ti);
+  return {
+    ...r,
+    spec,
+    sx: legX + legPadX + col * legColW,
+    sy: legTop + legPadY + row * legRowH,
+  };
+});
+
+// ── source + aria + chips ───────────────────────────────────────────────────
+const subject = prepared.find((t) => t.isSubject);
+const firstIso = dates[0] || '';
+const lastIso = dates[nDates - 1] || '';
+const ariaLabel = degenerate
+  ? `Rating river (${model}): no rating data.`
+  : subject
+  ? `Rating river (${model}): ${subject.name} ${Math.round(subject.vals[0])} → ${Math.round(subject.vals[nDates - 1])} from ${fmtDate(firstIso)} to ${fmtDate(lastIso)}, across ${prepared.length} teams.`
+  : `Rating river (${model}): ${prepared.length} teams' ratings over ${nDates} dates.`;
+const sourceLine = [source, model].filter(Boolean).join(' · ');
+---
+
+<div class="px-viz" data-reveal>
+  {(caption || kInfo || anyInterp) && (
+    <div class="px-viz__cap">
+      {caption && <span>{caption}</span>}
+      {kInfo && <b>K = {kInfo}</b>}
+      {anyInterp && <b>dashed spans interpolated</b>}
+    </div>
+  )}
+
+  {degenerate ? (
+    <div class="px-eriv px-eriv--empty" role="img" aria-label={ariaLabel}>
+      <p class="px-eriv__empty">No rating data.</p>
+    </div>
+  ) : (
+  <div class="px-eriv">
+    <svg
+      class="px-eriv__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={ariaLabel}
+    >
+      <!-- the braided river: one clipped <g> per team; the sweep grows the
+           clip left→right on scroll-in (no-JS = full width) -->
+      {ribbons.map((r) => (
+        <g
+          class={`px-eriv__ribbon${r.isSubject ? ' px-eriv__ribbon--subject' : ''}`}
+          style={`--rd:${r.delayMs}ms`}
+        >
+          {r.segs.map((s) => (
+            <path
+              class={`px-eriv__fill${s.hollow ? ' px-eriv__fill--hollow' : ''}`}
+              d={s.d}
+              fill={r.fill}
+              style={`--op:${r.op}`}
+            />
+          ))}
+          <path
+            class={`px-eriv__edge${r.isSubject ? ' px-eriv__edge--subject' : ''}`}
+            d={r.edge}
+          />
+          {r.notches.map((n) => (
+            <line
+              class="px-eriv__notch"
+              x1={f1(n.x)} y1={f1(n.y - 4.5)} x2={f1(n.x)} y2={f1(n.y + 4.5)}
+            />
+          ))}
+        </g>
+      ))}
+
+      <!-- date rail (minute-rail motif) -->
+      <g class="px-eriv__rail">
+        <line x1={f1(PAD_L)} y1={f1(railY)} x2={f1(RIB_END_X)} y2={f1(railY)} />
+        {railTicks.map((tk) => (
+          <>
+            <line class="px-eriv__tick" x1={f1(tk.x)} y1={f1(railY - 3)} x2={f1(tk.x)} y2={f1(railY + 2)} />
+            {tk.showDesk && (
+              <text
+                class={`px-eriv__rail-lbl${!tk.showMob ? ' px-eriv__rail-lbl--dk' : ''}`}
+                x={f1(tk.x)} y={f1(railY + 13)} text-anchor="middle"
+              >{tk.label}</text>
+            )}
+          </>
+        ))}
+      </g>
+
+      <!-- end tags (bracket motif) — connector + [SHORT] rating -->
+      {ribbons.map((r) => {
+        const ti = r.ti;
+        const t = prepared[ti];
+        const yEnd = ptsByTeam[ti][nDates - 1].yc;
+        const yTag = tagY.get(ti)!;
+        return (
+          <g class={`px-eriv__tag${r.isSubject ? ' px-eriv__tag--subject' : ''}`}>
+            <line class="px-eriv__connector" x1={f1(RIB_END_X)} y1={f1(yEnd)} x2={f1(GUT_X - 2)} y2={f1(yTag)} />
+            <text class="px-eriv__tag-full" x={f1(GUT_X)} y={f1(yTag)} dominant-baseline="middle">
+              <tspan class="px-eriv__tag-tag">[{t.short}]</tspan>
+              <tspan class="px-eriv__tag-num" dx="4">{Math.round(t.vals[nDates - 1])}</tspan>
+            </text>
+            <text class="px-eriv__tag-min" x={f1(GUT_X)} y={f1(yTag)} dominant-baseline="middle">[{t.short}]</text>
+          </g>
+        );
+      })}
+
+      <!-- in-SVG legend (broadcast lower-third) -->
+      <g class="px-eriv__legend">
+        <rect class="px-eriv__legend-bg" x={f1(legX)} y={f1(legTop)} width={f1(legW)} height={f1(legH)} rx="4" />
+        {legendPlaced.map((r) => (
+          <g class={`px-eriv__legrow${r.t.isSubject ? ' px-eriv__legrow--subject' : ''}`}>
+            <rect
+              class="px-eriv__swatch"
+              x={f1(r.sx)} y={f1(r.sy - legSw + 2)} width={legSw} height={legSw} rx="2"
+              fill={r.spec.swatch} style={`--sop:${r.spec.swatchOp ?? r.spec.op}`}
+            />
+            <text class="px-eriv__legtxt" x={f1(r.sx + legSw + 6)} y={f1(r.sy)} dominant-baseline="middle">
+              <tspan class="px-eriv__legtag">[{r.t.short}]</tspan>
+              <tspan dx="5">{r.t.name}</tspan>
+            </text>
+          </g>
+        ))}
+        <text class="px-eriv__legavg" x={f1(legX + legPadX)} y={f1(legTop - 6)}>avg {baseline}</text>
+      </g>
+    </svg>
+  </div>
+  )}
+
+  {sourceLine && <div class="px-viz__src">Source · {sourceLine}</div>}
+</div>
+
+<style>
+  .px-eriv { width: 100%; }
+  .px-eriv__svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .px-eriv--empty {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 120px; border: 1px dashed var(--rule);
+  }
+  .px-eriv__empty {
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin: 0;
+  }
+
+  /* ── ribbons: fill = team colour @ --op (§6); solid resting state = no-JS
+        final plate. The clip-path sweep grows on scroll-in only. ── */
+  .px-eriv__ribbon {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 900ms var(--ease) var(--rd, 0ms);
+  }
+  .px-eriv__fill { fill-opacity: var(--op, 0.72); stroke: none; }
+  .px-eriv__fill--hollow { fill-opacity: calc(var(--op, 0.72) * 0.4); }
+
+  .px-eriv__edge {
+    fill: none;
+    stroke: var(--ink);
+    stroke-opacity: 0.28;
+    stroke-width: 1;
+    stroke-linejoin: round;
+  }
+  .px-eriv__edge--subject { stroke: var(--accent); stroke-opacity: 1; stroke-width: 1.5; }
+
+  .px-eriv__notch { stroke: var(--ink); stroke-opacity: 0.22; stroke-width: 3; }
+
+  /* ── date rail (minute-rail motif) ── */
+  .px-eriv__rail line { stroke: var(--ink); stroke-opacity: 0.3; stroke-width: 1; }
+  .px-eriv__tick { stroke: var(--ink); stroke-opacity: 0.4; }
+  .px-eriv__rail-lbl {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.06em; fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── end tags (bracket motif) ── */
+  .px-eriv__connector { stroke: var(--ink); stroke-opacity: 0.3; stroke-width: 1; }
+  .px-eriv__tag-tag {
+    font-family: var(--font-body); font-weight: 700; font-size: 12px;
+    letter-spacing: 0.02em; fill: var(--ink); fill-opacity: 0.92;
+  }
+  .px-eriv__tag-num {
+    font-family: var(--font-mono); font-size: 11px;
+    font-variant-numeric: tabular-nums; fill: var(--accent-deep);
+  }
+  .px-eriv__tag--subject .px-eriv__tag-tag { fill: var(--accent-deep); }
+  .px-eriv__tag-min { display: none; }
+  .px-eriv__tag-min, .px-eriv__tag-min tspan {
+    font-family: var(--font-body); font-weight: 700; font-size: 12px;
+    letter-spacing: 0.02em; fill: var(--ink); fill-opacity: 0.92;
+  }
+
+  /* ── in-SVG legend (broadcast lower-third) ── */
+  .px-eriv__legend-bg { fill: var(--paper); fill-opacity: 0.82; stroke: var(--rule); stroke-width: 1; }
+  .px-eriv__swatch { fill-opacity: var(--sop, 0.72); }
+  .px-eriv__legtxt {
+    font-family: var(--font-body); font-size: 11px; fill: var(--ink-soft);
+  }
+  .px-eriv__legrow--subject .px-eriv__legtxt { font-weight: 700; fill: var(--ink); }
+  .px-eriv__legtag {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
+    fill: var(--accent-deep); font-variant-numeric: tabular-nums;
+  }
+  .px-eriv__legavg {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── reveal (§5): each ribbon `sweep`s in left→right; tags + rail + legend
+        reveal overlapping the sweep tail; subject tag `stamp`s. Hidden states
+        gated behind html.js → no-JS paints the final braided river. ── */
+  .px-eriv__tag, .px-eriv__rail, .px-eriv__legend {
+    opacity: 1;
+    transition: opacity 300ms var(--ease) 900ms;
+  }
+  .px-eriv__tag--subject {
+    transform: scale(1);
+    transform-box: fill-box;
+    transform-origin: left center;
+    transition: opacity 220ms var(--ease) 1150ms, transform 220ms var(--ease-snap, var(--ease)) 1150ms;
+  }
+  html.js .px-viz:not(.is-in) .px-eriv__ribbon { clip-path: inset(0 100% 0 0); }
+  html.js .px-viz:not(.is-in) .px-eriv__tag,
+  html.js .px-viz:not(.is-in) .px-eriv__rail,
+  html.js .px-viz:not(.is-in) .px-eriv__legend { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-eriv__tag--subject { transform: scale(0.6); }
+
+  /* ── 375px: shorten tags to [SHORT] only, thin rail labels, bump SVG-unit
+        type so rendered mono holds ≥ 9.5px (the power-flow approach) ── */
+  /* 441–640px band: worst case ≈441px container (scale ≈0.58); floor 18px so
+     18×0.58 ≈ 10.4px rendered — clears the 9.5px floor across the band. */
+  @media (max-width: 640px) {
+    .px-eriv__rail-lbl { font-size: 18px; }
+    .px-eriv__tag-tag, .px-eriv__tag-min, .px-eriv__tag-min tspan { font-size: 18px; }
+    .px-eriv__tag-num { font-size: 18px; }
+    .px-eriv__legtxt { font-size: 18px; }
+    .px-eriv__legtag { font-size: 18px; }
+    .px-eriv__legavg { font-size: 18px; }
+  }
+  /* ≤440px band: worst case 375px viewport (scale ≈0.49); floor 21px (the
+     PowerFlow bump) so 21×0.49 ≈ 10.4px rendered — never below 9.5px even
+     after card padding. */
+  @media (max-width: 440px) {
+    .px-eriv__rail-lbl { font-size: 21px; }
+    .px-eriv__rail-lbl--dk { display: none; }
+    .px-eriv__tag-full { display: none; }
+    .px-eriv__tag-min { display: inline; font-size: 21px; }
+    .px-eriv__legtxt { font-size: 21px; }
+    .px-eriv__legtag { font-size: 21px; }
+    .px-eriv__legavg { font-size: 21px; }
+  }
+
+  /* reduced motion / no-JS: full braided plate, no sweep, subject pre-stamped */
+  @media (prefers-reduced-motion: reduce) {
+    .px-eriv__ribbon, .px-eriv__tag, .px-eriv__rail, .px-eriv__legend, .px-eriv__tag--subject {
+      transition: none !important;
+    }
+    .px-eriv__ribbon { clip-path: inset(0 0 0 0) !important; }
+    .px-eriv__tag, .px-eriv__rail, .px-eriv__legend { opacity: 1 !important; }
+    .px-eriv__tag--subject { transform: scale(1) !important; }
+  }
+</style>

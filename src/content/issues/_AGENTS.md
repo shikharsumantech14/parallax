@@ -26,6 +26,7 @@ shape:
   ogImage?: string;                      // deprecated/unused — kept optional so
                                          //   legacy MDX validates; do NOT set it.
                                          //   The site renders no raster cover art.
+  story?: StoryBlock;                    // optional authored story-mode beats; see §13
   sections: Section[];                   // see §2
   sources: Source[];                     // see §3
 }
@@ -52,28 +53,33 @@ Every section conforms to:
                               // (2026-07-05; prose hides behind it in skim
                               // mode, viz kinds show it alongside — author one
                               // per viz so the skim rail reads complete)
-  plain?: string;             // ≤220 chars — the "In plain terms" line: one
-                              // sentence explaining the FORM of the viz ("each
-                              // block is one seat…"), NEVER the data (that's
-                              // the caption's job). Omit to fall back to the
-                              // per-kind default in src/lib/explainers.ts.
+  plain?: string;             // ≤220 chars, ZOD-ENFORCED — overshooting breaks
+                              // the build (see §7). The "In plain terms" line:
+                              // one sentence explaining the FORM of the viz
+                              // ("each block is one seat…"), NEVER the data
+                              // (that's the caption's job). Omit to fall back to
+                              // the per-kind default in src/lib/explainers.ts.
   layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
                               // geometry variant — rhythm rules in
                               // docs/design/CANON.md §3: ≤1 bleed per act,
                               // split ONLY for the issue's hero metaphor,
                               // never two loud sections adjacent
-  data?: unknown;             // section-kind-specific shape; see src/components/AGENTS.md
+  data?: unknown;             // section-kind-specific shape; §11–§12 below,
+                              // then src/components/AGENTS.md
   sourceRefs: string[];       // ids that must exist in this issue's sources[]
 }
 ```
 
 `SECTION_KINDS` is the source of truth for valid `kind` values. Current
-list (**61 kinds** — the older "63" figure was wrong) is exported from
-`src/content/config.ts`. Each maps to a component dispatched by
+count (2026-07-14): **90 kinds** — 31 originals plus the 59-kind v2
+interactive library. Earlier figures in this file ("63", then "61") were
+wrong and are superseded. Each maps to a component dispatched by
 `src/components/SectionBody.astro` (the switch; `SectionRenderer.astro` is
 the article chrome around it) — see `src/components/AGENTS.md` for the full
-table and `docs/design/catalog.md` for per-kind usage rules. The 30 v2 3D /
-interactive kinds and their `data` shapes are in §11 below.
+table and `docs/design/catalog.md` for per-kind usage rules. `docs/design/catalog.md`
+is kept 1:1 with `SECTION_KINDS`, in the same order, and `npm run check:catalog`
+verifies that — run it yourself, it is **not** part of `npm run build`. The v2 kinds and their `data` shapes are in §11 (the 2026-06-03
+set) and §12 (the 22 added 2026-07-14).
 
 **`act-break` (2026-07-05)** — the chapter divider giving issues their act
 structure (CANON.md §3: 2–4 acts per issue). `data: { act: 'II', title?,
@@ -176,6 +182,12 @@ markdown markers.
 | `Expected ")" but found "{"` in build | Sibling JSX returned from `.map()` without a Fragment wrapper | Wrap siblings in `<>...</>`. |
 | Climate strip renders as 3-column flex | Used `.px-strip` instead of `.px-cstrip` | `px-strip` is owned by TopicStrip; ClimateStrip must use `px-cstrip`. |
 | Author "By Shikhar Sharma" appears | Hardcoded name | Remove. Set `author:` in frontmatter only if you want the byline. |
+| `String must contain at most 220 character(s) at "sections.N.plain"` | `plain` line over 220 chars | Tighten it. **This broke the build twice on 2026-07-14** — the cap is easy to blow because a `plain` line that runs long is usually a caption in disguise. `plain` names the FORM in one sentence; move anything about the DATA into `caption`. |
+| `city-grid: expected 1–3 cities, got N` | More than three orientation roses on one plate | Split into two `city-grid` sections. |
+| `city-grid: city "X" has N bins; the 36-bin rule requires EXACTLY 36` | Street-orientation histogram not binned to 10° sectors | Rebin to exactly 36 values, one per 10° compass sector. |
+| `season-wheel: expected EXACTLY 12 months (Jan→Dec), got N` | Partial year | The wheel is a calendar year; supply all twelve `months[]` entries. |
+| Component arity throws (`chip-die` 4–24 blocks · `moore-ladder` ≥6 points · `packet-trace` 1–8 hops · `altitude-oxygen` 2–8 stops · `fare-terrain` 1–5 routes, ≥6 points each · `ballot-flow` ≥2 candidates + ≥2 rounds) | Data outside the kind's legible range | These are deliberate legibility contracts, not bugs. Split the data across sections, or pick the kind the blueprint points you to (e.g. `moore-ladder` → `scaling-plot` for a narrow range). |
+| Conservation throws (`carbon-loop` reservoir "does not conserve" · `ballot-flow` "books don't balance" / transfers ≠ tally · `gerrymander-lens` "same votes guarantee is broken" / unequal population / non-contiguous district · `power-flow` via-node imbalance) | The authored numbers don't add up | Fix the data. `carbon-loop` alone has an escape hatch — `imbalance: 'the-point'` licenses a residual on the single `accent: true` reservoir when the imbalance *is* the story. It is not a blanket amnesty. |
 
 ---
 
@@ -227,23 +239,35 @@ both before starting. Voice consistency matters more than feature parity.
 
 ## 11. v2 3D / interactive section kinds (2026-06-03)
 
-Thirty new section kinds, five per world, in the v2 design language. Four are
-lazy WebGL scenes (marked **WebGL** — they load Three.js only when scrolled
-into view; everything else is CSS-3D or animated SVG/canvas). The rendering
-architecture is in `src/components/AGENTS.md` §10; here is only what an issue
-author needs — the `kind` and the `data` shape.
+The first wave of the v2 interactive library — thirty kinds shipped
+2026-06-03, plus the three politics/space additions from the 2026-07-05 canon
+pass (`chamber`, `power-flow`, `solar-system`), so 33 entries below. Some
+are lazy WebGL scenes (marked **WebGL** — they load Three.js only when
+scrolled into view; everything else is CSS-3D or animated SVG/canvas). The
+rendering architecture is in `src/components/AGENTS.md` §10; here is only
+what an issue author needs — the `kind` and the `data` shape. **The 22 kinds
+added 2026-07-14 are in §12.**
 
-**Two universals for all 30:**
+**Two universals for every kind in §11 and §12:**
 - Every one also accepts `caption?` and `source?` (same as the other viz).
+  Sole exception: `eclipse-cone`, whose citation field is `sourceCite` (§12).
 - Every one renders a static SVG/HTML fallback with no JS / under
   `prefers-reduced-motion`, so the section is always meaningful.
 
 **Canonical examples.** The six
 `src/content/issues/2026-06-03-<world>-showcase/index.mdx` issues exercise
-each world's five kinds with real `data`. They are `status: draft` —
+each world's v2 kinds with real `data`. They are `status: draft` —
 URL-viewable at `/issues/2026-06-03-<world>-showcase/` but unlisted (excluded
 from the archive + RSS). Copy a section out of the matching showcase as a
 starting point.
+
+**Gap, stated honestly.** Four of the six per-world FLAGSHIP kinds have no
+shape entry below: `terrain-relief` (earth), `neural-flow` (tech),
+`terminator-globe` (travel), `flight-of-the-ball` (sports). Their contracts
+live in `docs/design/blueprints/<world>/<kind>.md`, their prop names are
+readable off the dispatch in `src/components/SectionBody.astro`, and each has
+a worked section in its world's showcase issue. The other two flagships,
+`chamber` and `solar-system`, are documented below.
 
 ### politics
 - **`coalition-orbit`** (WebGL) — `{ parties[]{ name, seats, color?, bloc? }, totalSeats? }`
@@ -292,7 +316,125 @@ starting point.
 
 ---
 
+## 12. Breadth kinds — the 22 added 2026-07-14
+
+The P6 component-breadth pass added twenty-two more kinds, taking
+`SECTION_KINDS` to **90**. Four are lazy WebGL scenes (marked **WebGL**);
+the rest are build-time SVG or CSS-3D. The two universals from §11 apply to
+all of them, bar the `eclipse-cone` citation-field exception noted below.
+
+Each kind's full contract — the honesty rules, the geometry, and the exact
+data a researcher must source (the catalog's `DATA:` line, plus a
+`RESEARCHER MUST CAPTURE` note on some blocks) — is in
+`docs/design/blueprints/<world>/<kind>.md`. When to reach for it (and when
+not to) is in `docs/design/catalog.md`.
+
+**Worked examples.** Every one of the 22 has a real-data section in the
+matching `src/content/issues/2026-06-03-<world>-showcase/index.mdx`. Copy
+from there rather than writing `data` from scratch — the shapes below are
+sketches, the showcase sections are the reference implementation.
+
+**One dispatch exception.** `coalition-calculus` is dispatched with a spread
+— `<CoalitionCalculus {...data} />` in `SectionBody.astro` — so it reads its
+props FLAT off `data`. Every other kind has its props named explicitly.
+Authoring is unaffected (the `data:` block looks identical); it matters only
+if you rename the component's props.
+
+### earth
+- **`plate-motion`** (WebGL) — `{ plates[]{ name, pole{ lat, lon, omega }, color?, samples?[]{ lat, lon }, bbox?[lonW,latS,lonE,latN] }, boundaries?, maxVel_mmyr? }` — `boundaries` defaults to `/geo/plates.json` (checked in at `public/geo/plates.json`). `omega` is the Euler rotation rate; the velocity field is derived, never authored.
+- **`atmosphere-column`** — `{ maxAlt_km?, model?: 'lapse'|'isothermal', landmarks?[]{ name, alt_km, note? }, showOxygen?, logAlt? }` — the printed O₂ value uses whichever `model` draws the curve.
+- **`carbon-loop`** — `{ unit?, reservoirs[]{ id, label, stock, x, y, role?: 'store'|'source'|'sink', accent? }, fluxes[]{ from, to, value, note? }, imbalance?: 'the-point', residualLabel?, cycle?, year? }` — `unit` defaults to `GtC`; `x,y` place the box on the diagram. Every `role: 'store'` must balance within 1% or the build throws naming it (§7).
+- **`storm-track`** (WebGL) — `{ storms[]{ name, fixes[]{ t, lat, lon, wind_kt, landfall? } }, windScale?, smooth? }` — Saffir–Simpson category is DERIVED from `wind_kt`; never author it.
+
+### space
+- **`constellation-swarm`** (WebGL) — `{ shells[]{ name, altKm, inclDeg, count, color?, planes?, raanSpread? }, epoch?, spin? }`
+- **`lagrange-map`** — `{ primary{ name, mass }, secondary{ name, mass }, separationKm?, markers?[]{ at: 'L1'…'L5', label }, show?: ['L1'…'L5'] }` — `mass` is relative (any consistent unit); only the ratio is used.
+- **`transfer-window`** — `{ central{ name, mu }, from{ name, radiusKm, periodDays? }, to{ name, radiusKm, periodDays? }, distanceUnit?: 'AU'|'km' }` — Δv and transfer time are computed from `src/scripts/viz3d/kepler.ts`; don't author them.
+- **`eclipse-cone`** — `{ source{ name, radiusKm }, occulter{ name, radiusKm, distanceFromSourceKm }, target{ name, radiusKm, distanceFromOcculterKm, distanceRangeKm?[min,max] }, showPenumbra? }` — **the citation field here is `sourceCite`, not `source`**: `source` is the light SOURCE (the Sun). The one kind that breaks the §11 universal.
+
+### politics
+- **`coalition-calculus`** — `{ majority?, parties[]{ name, short?, seats, color?, locked? }, preset?: string[] }` — `locked` carries the sourced one-line reason nobody will govern with them. `preset` lists the parties in the opening coalition and matches on `name` (not `short`); it defaults to the largest unlocked party. `majority` defaults to ⌈(Σ seats + 1) / 2⌉; declaring a different one prints an honesty chip. Dispatched with a spread (above).
+- **`gerrymander-lens`** — `{ grid{ cols, rows, perCell, a[cols·rows] }, parties{ a{ name, short?, color? }, b{ … } }, plans[]{ label, districts[cols·rows], note? }, flagPct? }` — `a[]` is party-A votes per cell, `districts[]` a district id per cell, `flagPct` defaults to 7. Build throws on length mismatch, unequal district population, a non-contiguous district, or a plan whose A-tallies don't re-sum to the shared statewide total.
+- **`ballot-flow`** — `{ candidates[]{ id, name, short?, color? }, rounds[]{ tallies{ <candidateId>: n }, exhausted?, eliminate?{ id, transfers[]{ to, value } } }, winnerId?, majorityBasis?: 'continuing'|'firstRound' }` — the component RENDERS a precomputed count, it never runs the election. Needs ≥2 candidates and ≥2 rounds; transfers must sum to the eliminated candidate's tally and Σ tallies + exhausted must hold constant across rounds.
+
+### tech
+- **`packet-trace`** (WebGL) — `{ hops[]{ from, fromLat, fromLon, to, toLat, toLon, rttMs, kind?: 'fiber'|'wireless'|'satellite'|'compute', note? }, originLabel?, refractiveIndex?, loopMs? }` — 1–8 hops. Shared geometry lives in `src/scripts/viz3d/packet.ts`, imported by both the component and its scene, so the fallback and the globe agree.
+- **`queue-cliff`** — `{ muPerSec | serviceMs, startRho?, maxRho?, annotations?[]{ rho, label, tone?: 'ok'|'hot' } }` — supply one of `muPerSec` / `serviceMs`.
+- **`chip-die`** — `{ chip, dieAreaMm2?, blocks[]{ label, areaMm2? | pct?, group?: 'compute'|'memory'|'io'|'media'|'other', primary?, note?, count? } }` — 4–24 blocks; each needs a resolvable area (`areaMm2`, or `pct` plus `dieAreaMm2`). Tile pixel area is real mm², so bad areas are a visible lie.
+- **`moore-ladder`** — `{ points[]{ year, count, label, highlight? }, yLabel?, unit?, fit?, fitRange?[from,to] }` — ≥6 points; `yLabel` defaults to "transistors per chip".
+
+### travel
+- **`city-grid`** — `{ cities[]{ name, subtitle?, bins[36], orderScore? } }` — **1–3 cities, EXACTLY 36 bins each** (one per 10° compass sector). Both are hard build throws (§7). `orderScore` (Boeing φ, 0–1) is computed if absent.
+- **`altitude-oxygen`** — `{ stops[]{ name, elevM, nights?, note? }, maxElevM?, model?: 'lapse'|'isothermal', seaLevelO2Pct? }` — 2–8 stops.
+- **`season-wheel`** — `{ place, months[12]{ climate?, crowd?, price?, label? }, rings?: ['climate'|'crowd'|'price'], sweetSpot?: number[] }` — EXACTLY 12 months, Jan→Dec. `sweetSpot` is 0-based month indices (0–11); computed if omitted.
+- **`fare-terrain`** — `{ routes[]{ label, points[]{ daysBefore, fare }, highlight? }, unit?, sweetSpotDays?[from,to] }` — 1–5 routes, ≥6 fare samples each.
+
+### sports
+- **`elo-river`** — `{ model, kInfo?, dates[], baseline?, teams[]{ name, short?, color?, ratings[], subject? } }` — `model` NAMES the rating system (honesty rule, required). `ratings[]` is index-aligned to `dates[]`; `null` = not yet rated. `baseline` defaults to 1500.
+- **`court-value`** — `{ surface?: 'football-box'|'football-half'|'basketball-half', model, valueLabel, valueRange?[min,max], grid?{ cols, rows, values[cols·rows] }, shots?[]{ x, y, value }, levels?, showShots?, smoothed? }` — `model` and `valueLabel` (≤3 words) are the only required fields: the surface must say what it measures. Supply **exactly one** of `grid` (pre-binned, preferred) or `shots` — if both are given, `grid` wins. `x,y` are the ShotMap 0–100 pitch coords.
+- **`pace-ridge`** — `{ metric?, unit?, source_n?, stat?: 'mean'|'median', domain?[min,max], groups?[]{ label, samples[], subject? } }` — every field is technically optional (the component defaults `metric` to `'value'` and renders nothing useful without `groups`), so treat `metric`, `unit` and `groups` as required *in practice*. `samples[]` is the raw observation array (the KDE is computed at build). The blueprint asks for 2–7 groups, top→bottom, ~15+ observations each, one carrying `subject: true`; unlike the arity rules in §7 this one is **not** enforced by a throw.
+
+---
+
+## 13. Story-mode frontmatter (`story`) — optional
+
+Story mode (`/s/<slug>/`) builds for every issue with `status !== 'draft'`
+— ten issues today. By default `src/lib/story.ts` DERIVES the beats from the
+issue itself: it ranks sections by a per-kind visual-priority table and pulls
+text from `skimCaption` / `intro` / `title`. An optional `story` block
+overrides that with hand-authored beats in the social voice
+(`research/_voice/_voice-social.md`):
+
+```yaml
+story:
+  hook: "…"            # ≤220 chars — replaces frontmatter `hook` on the cover card
+  beats:               # 3–6 beats; omit the block to keep the derived selection
+    - section: 4       # 0-based index into sections[]
+      text: "…"        # 40–320 chars — the ~60-word beat
+      kicker: "…"      # ≤80 chars, optional
+  cta: "…"             # ≤160 chars, optional
+```
+
+Every length above is Zod-enforced in `config.ts`. Spec:
+`docs/design/STORY-MODE-SPEC.md`.
+
+**When to author beats instead of deriving them.** Derivation ranks by
+visual strength, so a viz-rich issue usually reads fine untouched. A
+prose-heavy one does not: text-heavy narrative kinds (comparison, paradox,
+timeline) still render taller than a card and fall back to the
+spec-sanctioned 62dvh internal scroller. Hand-picking three to six viz beats
+is the real fix, and it is an editorial act, not a code change — the
+asteroid flagship does it this way.
+
+**The six `2026-06-03-<world>-showcase` issues are `status: draft`, so they
+have no story page.** They are viz reference, not story reference.
+
+---
+
 ## Change log
+
+### 2026-07-14 — Breadth kinds (+22), story frontmatter, arity/conservation throws
+Added §12: the 22 kinds from the P6 component-breadth pass and their `data`
+shapes, read off the components' own `Astro.props` (four WebGL —
+`plate-motion`, `storm-track`, `constellation-swarm`, `packet-trace`; the rest
+build-time SVG/CSS-3D). `SECTION_KINDS` went 68 → **90**; the "61 kinds" figure
+in §2 was already wrong and is corrected, with a pointer to `npm run
+check:catalog`, which holds `docs/design/catalog.md` 1:1 with `SECTION_KINDS`.
+Added §13 for the optional `story` frontmatter block (story mode derives beats
+unless you author them), and listed `story?` in the §1 shape. Two authoring
+traps now documented explicitly: `coalition-calculus` is the one kind
+dispatched with a spread (flat props off `data`), and `eclipse-cone` cites via
+`sourceCite` because its `source` is the light source. §7 gained six rows — the
+Zod-enforced 220-char `plain` cap (it broke the build twice this session), the
+two `city-grid` throws (1–3 cities, exactly 36 bins), `season-wheel`'s
+12-month throw, the grouped component-arity family, and the conservation family
+(`carbon-loop` / `ballot-flow` / `gerrymander-lens` / `power-flow`). Also
+recorded honestly: §11 still has no shape entry for four flagship kinds
+(`terrain-relief`, `neural-flow`, `terminator-globe`, `flight-of-the-ball`) —
+their contracts are in `docs/design/blueprints/`. All 22 new kinds have worked
+sections in the six `2026-06-03-<world>-showcase` issues. Everything described
+here landed in-repo on 2026-07-14 and was **uncommitted** at the time of
+writing — the operator commits; check `git status` before assuming it shipped.
 
 ### 2026-06-03 — v2 3D / interactive section kinds
 Added §11: the 30 new v2 3D / interactive section kinds (5 per world) and

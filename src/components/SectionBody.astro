@@ -43,6 +43,10 @@ import PlayerRadar from './topic/sports/PlayerRadar.astro';
 // v2 3D / interactive component library
 import OrbitGlobe from './topic/space/OrbitGlobe.astro';
 import SolarSystem from './topic/space/SolarSystem.astro';
+import ConstellationSwarm from './topic/space/ConstellationSwarm.astro';
+import LagrangeMap from './topic/space/LagrangeMap.astro';
+import TransferWindow from './topic/space/TransferWindow.astro';
+import EclipseCone from './topic/space/EclipseCone.astro';
 import PlayerCard from './topic/sports/PlayerCard.astro';
 import CoalitionOrbit from './topic/politics/CoalitionOrbit.astro';
 import SwingDial from './topic/politics/SwingDial.astro';
@@ -51,10 +55,28 @@ import VoteFlow from './topic/politics/VoteFlow.astro';
 import MarginLadder from './topic/politics/MarginLadder.astro';
 import Chamber from './topic/politics/Chamber.astro';
 import PowerFlow from './topic/politics/PowerFlow.astro';
+import CoalitionCalculus from './topic/politics/CoalitionCalculus.astro';
+import GerrymanderLens from './topic/politics/GerrymanderLens.astro';
+import BallotFlow from './topic/politics/BallotFlow.astro';
 import TerrainRelief from './topic/earth/TerrainRelief.astro';
+import PlateMotion from './topic/earth/PlateMotion.astro';
+import AtmosphereColumn from './topic/earth/AtmosphereColumn.astro';
+import CarbonLoop from './topic/earth/CarbonLoop.astro';
+import StormTrack from './topic/earth/StormTrack.astro';
 import NeuralFlow from './topic/tech/NeuralFlow.astro';
+import PacketTrace from './topic/tech/PacketTrace.astro';
+import QueueCliff from './topic/tech/QueueCliff.astro';
+import ChipDie from './topic/tech/ChipDie.astro';
+import MooreLadder from './topic/tech/MooreLadder.astro';
 import TerminatorGlobe from './topic/travel/TerminatorGlobe.astro';
+import CityGrid from './topic/travel/CityGrid.astro';
+import AltitudeOxygen from './topic/travel/AltitudeOxygen.astro';
+import SeasonWheel from './topic/travel/SeasonWheel.astro';
+import FareTerrain from './topic/travel/FareTerrain.astro';
 import FlightOfTheBall from './topic/sports/FlightOfTheBall.astro';
+import EloRiver from './topic/sports/EloRiver.astro';
+import CourtValue from './topic/sports/CourtValue.astro';
+import PaceRidge from './topic/sports/PaceRidge.astro';
 import TrajectoryArc from './topic/space/TrajectoryArc.astro';
 import DeltaVLadder from './topic/space/DeltaVLadder.astro';
 import SignalReadout from './topic/space/SignalReadout.astro';
@@ -389,6 +411,13 @@ const data: any = section.data ?? {};
         source={data.source}
       />
     )}
+    {section.kind === 'coalition-calculus' && <CoalitionCalculus {...data} />}
+    {section.kind === 'gerrymander-lens' && (
+      <GerrymanderLens grid={data.grid} parties={data.parties} plans={data.plans ?? []} flagPct={data.flagPct} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'ballot-flow' && (
+      <BallotFlow candidates={data.candidates ?? []} rounds={data.rounds ?? []} winnerId={data.winnerId} majorityBasis={data.majorityBasis} caption={data.caption} source={data.source} />
+    )}
 
     {/* space */}
     {section.kind === 'trajectory-arc' && (
@@ -406,17 +435,74 @@ const data: any = section.data ?? {};
     {section.kind === 'solar-system' && (
       <SolarSystem epoch={data.epoch} planets={data.planets} bodies={data.bodies ?? []} scale={data.scale} trailDays={data.trailDays} caption={data.caption} source={data.source} />
     )}
+    {section.kind === 'constellation-swarm' && (
+      <ConstellationSwarm shells={data.shells ?? []} epoch={data.epoch} spin={data.spin} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'lagrange-map' && (
+      <LagrangeMap primary={data.primary} secondary={data.secondary} separationKm={data.separationKm} markers={data.markers} show={data.show} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'transfer-window' && (
+      <TransferWindow central={data.central} from={data.from} to={data.to} distanceUnit={data.distanceUnit} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'eclipse-cone' && (
+      <EclipseCone source={data.source} occulter={data.occulter} target={data.target} showPenumbra={data.showPenumbra} caption={data.caption} sourceCite={data.sourceCite} />
+    )}
     {section.kind === 'terrain-relief' && (
       <TerrainRelief dem={data.dem} place={data.place} exaggeration={data.exaggeration} exaggerateTo={data.exaggerateTo} contourInterval_m={data.contourInterval_m} peaks={data.peaks ?? []} seaLevel={data.seaLevel} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'plate-motion' && (
+      <PlateMotion plates={data.plates} boundaries={data.boundaries} maxVel_mmyr={data.maxVel_mmyr} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'atmosphere-column' && (
+      <AtmosphereColumn maxAlt_km={data.maxAlt_km} model={data.model} landmarks={data.landmarks ?? []} showOxygen={data.showOxygen} logAlt={data.logAlt} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'carbon-loop' && (
+      <CarbonLoop unit={data.unit} reservoirs={data.reservoirs ?? []} fluxes={data.fluxes ?? []} imbalance={data.imbalance} residualLabel={data.residualLabel} cycle={data.cycle} year={data.year} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'storm-track' && (
+      <StormTrack storms={data.storms ?? []} windScale={data.windScale} smooth={data.smooth} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'neural-flow' && (
       <NeuralFlow layers={data.layers ?? []} paramsNote={data.paramsNote} wave_ms={data.wave_ms} caption={data.caption} source={data.source} />
     )}
+    {section.kind === 'packet-trace' && (
+      <PacketTrace hops={data.hops ?? []} originLabel={data.originLabel} refractiveIndex={data.refractiveIndex} loopMs={data.loopMs} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'queue-cliff' && (
+      <QueueCliff muPerSec={data.muPerSec} serviceMs={data.serviceMs} startRho={data.startRho} maxRho={data.maxRho} annotations={data.annotations ?? []} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'chip-die' && (
+      <ChipDie chip={data.chip} dieAreaMm2={data.dieAreaMm2} blocks={data.blocks ?? []} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'moore-ladder' && (
+      <MooreLadder points={data.points ?? []} yLabel={data.yLabel} unit={data.unit} fit={data.fit} fitRange={data.fitRange} caption={data.caption} source={data.source} />
+    )}
     {section.kind === 'terminator-globe' && (
       <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} showEoT={data.showEoT} caption={data.caption} source={data.source} />
     )}
+    {section.kind === 'city-grid' && (
+      <CityGrid cities={data.cities ?? []} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'altitude-oxygen' && (
+      <AltitudeOxygen stops={data.stops ?? []} maxElevM={data.maxElevM} model={data.model} seaLevelO2Pct={data.seaLevelO2Pct} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'season-wheel' && (
+      <SeasonWheel place={data.place} months={data.months ?? []} rings={data.rings} sweetSpot={data.sweetSpot} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'fare-terrain' && (
+      <FareTerrain routes={data.routes ?? []} unit={data.unit} sweetSpotDays={data.sweetSpotDays} caption={data.caption} source={data.source} />
+    )}
     {section.kind === 'flight-of-the-ball' && (
       <FlightOfTheBall sport={data.sport} shot={data.shot} goal={data.goal} showGhost={data.showGhost} slowmo={data.slowmo} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'elo-river' && (
+      <EloRiver model={data.model} kInfo={data.kInfo} dates={data.dates ?? []} baseline={data.baseline} teams={data.teams ?? []} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'court-value' && (
+      <CourtValue surface={data.surface} model={data.model} valueLabel={data.valueLabel} valueRange={data.valueRange} grid={data.grid} shots={data.shots} levels={data.levels} showShots={data.showShots} smoothed={data.smoothed} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'pace-ridge' && (
+      <PaceRidge metric={data.metric} unit={data.unit} source_n={data.source_n} stat={data.stat} domain={data.domain} groups={data.groups ?? []} caption={data.caption} source={data.source} />
     )}
 
     {/* earth */}

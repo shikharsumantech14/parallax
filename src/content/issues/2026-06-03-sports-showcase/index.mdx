@@ -356,6 +356,83 @@ sections:
       caption: "Ten revs a second of sidespin bent the ball more than six metres — the wall, and Barthez, were watching a straight line aimed wide that curled back inside the post."
       source: "Dupeux et al., New J. Phys. 12 (2010), trajectory reconstruction"
 
+  - kind: elo-river
+    eyebrow: "THE BRAIDED SEASON"
+    title: "How Leicester *climbed* the braid"
+    intro: "A season of ratings drawn as a woven river: each team is a ribbon whose thickness is its Elo, stacked so the strongest ride the top — every overtake reads as a visible crossover."
+    layout: wide
+    data:
+      model: "World Football Elo"
+      kInfo: "K = 20, margin-adjusted"
+      baseline: 1500
+      caption: "Leicester's ribbon climbs from the bottom of the braid to the top — a 190-point rating swing no model had them making."
+      source: "World Football Elo Ratings, 2015–16 season"
+      dates: ["2015-08-01", "2015-10-01", "2015-12-01", "2016-02-01", "2016-04-01", "2016-05-15"]
+      teams:
+        - { name: "Leicester City", short: "LEI", subject: true, ratings: [1622, 1651, 1702, 1748, 1791, 1812] }
+        - { name: "Arsenal", short: "ARS", ratings: [1802, 1808, 1799, 1781, 1770, 1762] }
+        - { name: "Tottenham", short: "TOT", ratings: [1738, 1760, 1781, 1799, 1803, 1795] }
+        - { name: "Man City", short: "MCI", ratings: [1824, 1818, 1802, 1788, 1779, 1771] }
+
+  - kind: court-value
+    eyebrow: "THE VALUE SURFACE"
+    title: "Where a chance is *worth* taking"
+    intro: "A penalty box washed with filled contour bands of expected goals, so the geography of a good chance reads at a glance — the raw shots plotted on top."
+    plain: "The pitch is shaded by how much a shot from each spot is worth — brighter volt means a better chance — and the lines are contours, like a map's height lines, joining places of equal value."
+    data:
+      caption: "Value collapses with every metre off the goal: the identical strike is worth several times as much from the six-yard heart as from the edge of the box."
+      source: "StatsBomb open-data xG (open-play), representative penalty-box sample"
+      surface: football-box
+      model: "StatsBomb xG (open-play)"
+      valueLabel: "xG"
+      valueRange: [0, 0.4]
+      levels: [0.05, 0.10, 0.20, 0.30, 0.40]
+      smoothed: true
+      showShots: true
+      shots:
+        - { x: 92, y: 50, value: 0.62 }
+        - { x: 90, y: 47, value: 0.45 }
+        - { x: 90, y: 53, value: 0.44 }
+        - { x: 88, y: 50, value: 0.76 }
+        - { x: 88, y: 44, value: 0.30 }
+        - { x: 88, y: 56, value: 0.28 }
+        - { x: 86, y: 50, value: 0.33 }
+        - { x: 84, y: 46, value: 0.22 }
+        - { x: 84, y: 54, value: 0.20 }
+        - { x: 82, y: 55, value: 0.18 }
+        - { x: 82, y: 45, value: 0.16 }
+        - { x: 82, y: 50, value: 0.19 }
+        - { x: 80, y: 62, value: 0.05 }
+        - { x: 80, y: 38, value: 0.06 }
+        - { x: 78, y: 50, value: 0.11 }
+        - { x: 78, y: 58, value: 0.07 }
+        - { x: 78, y: 42, value: 0.07 }
+        - { x: 76, y: 50, value: 0.06 }
+        - { x: 76, y: 60, value: 0.04 }
+        - { x: 76, y: 40, value: 0.04 }
+        - { x: 75, y: 40, value: 0.06 }
+        - { x: 75, y: 55, value: 0.05 }
+        - { x: 74, y: 50, value: 0.03 }
+        - { x: 73, y: 48, value: 0.03 }
+
+  - kind: pace-ridge
+    eyebrow: "THE DISTRIBUTION"
+    title: "The stat, shown as a *shape*"
+    intro: "Three stacked density ridges: the subject striker's top-speed distribution in volt, against the Premier League field and his own younger season. The whole curve, not one average."
+    plain: "Each stacked shape is one group's whole range of top speed — wider where more sprints cluster, with a line marking the middle. The volt shape is the striker this story follows; see where it sits against the field's."
+    data:
+      metric: "top speed"
+      unit: "km/h"
+      source_n: "2023-24 tracking, per sprint"
+      stat: median
+      domain: [24, 36]
+      groups:
+        - { label: "Subject striker", subject: true, samples: [31.2, 32.0, 33.1, 30.8, 34.2, 32.7, 33.5, 31.9, 35.1, 32.4, 33.8, 34.6, 32.1, 33.0, 34.9] }
+        - { label: "PL strikers (field)", samples: [28.1, 29.4, 30.2, 27.8, 31.0, 29.9, 28.6, 30.7, 29.1, 28.9, 30.4, 27.5, 29.8, 31.3, 28.3, 30.0, 29.2, 28.7] }
+        - { label: "His 2021-22", samples: [29.6, 30.1, 31.2, 28.9, 30.8, 31.5, 29.4, 30.6, 31.9, 30.0, 29.1, 30.9] }
+      caption: "The subject's whole curve sits nearly 4 km/h right of the field — not one fast sprint, but a distribution that starts where everyone else's ends."
+      source: "Second Spectrum tracking data, 2023-24"
+
 sources:
   - id: "src-01"
     title: "Champions League final 2025: PSG 5-0 Inter — match centre"

@@ -1,0 +1,601 @@
+---
+/**
+ * SeasonWheel (travel) — the when-to-go instrument.
+ *
+ * A destination's whole year as a gently tilted dial laid on the desk: twelve
+ * 30° month-sectors, three concentric ring-bands (climate comfort · crowd ·
+ * price). Each month's metric fills its band from the inner radius outward, so
+ * the best travel window shows itself as the arc where the inner ring is full
+ * and the outer two are empty. One control: a month scrubber that lights the
+ * selected sector and swaps a pinned readout.
+ *
+ * Tier: CSS-3D (tilted disc via components-3d.css perspective + core/Tilt.astro
+ * pointer-parallax) + build-time static SVG rings + one tiny vanilla is:inline
+ * island (scrub → highlight class + readout swap; NO geometry recompute).
+ *
+ * FALLBACK CONTRACT: the whole wheel — guides, wedges, spokes, month labels,
+ * sweet-spot scallop + BEST tag — is static SVG painted at build time; the
+ * readout paints the sweet-spot's first month; the 12-month ledger ships
+ * <details open>. The scrubber ships `hidden`. The island unhides the scrubber,
+ * folds the ledger, and (only on interaction) dims non-selected sectors. No-JS /
+ * reduced-motion / crawlers get the composed still + the full ledger. Under
+ * prefers-reduced-motion the disc flattens to rotateX(0) (fully legible flat).
+ * See docs/design/blueprints/travel/season-wheel.md.
+ *
+ * data: { place, months[12]{climate?,crowd?,price?,label?}, rings?, sweetSpot?, caption?, source? }
+ */
+import { renderInline } from '../../../lib/text';
+
+type Metric = 'climate' | 'crowd' | 'price';
+interface MonthDatum { climate?: number; crowd?: number; price?: number; label?: string; }
+interface Props {
+  place: string;
+  months: MonthDatum[];
+  rings?: Metric[];
+  sweetSpot?: number[];
+  caption?: string;
+  source?: string;
+}
+const { place, months = [], rings, sweetSpot, caption, source } = Astro.props;
+
+// ── §3 schema rule: EXACTLY 12 months, Jan→Dec — a build error otherwise ──────
+if (!Array.isArray(months) || months.length !== 12) {
+  throw new Error(
+    `season-wheel (${place ?? 'unknown'}): expected EXACTLY 12 months (Jan→Dec), got ${months?.length ?? 0}. The wheel is a calendar year — supply all twelve.`
+  );
+}
+
+// ── ring config → band radii (§4) ────────────────────────────────────────────
+const ringNames: Metric[] =
+  rings && (rings.length === 2 || rings.length === 3) ? rings : ['climate', 'crowd', 'price'];
+const bands: Array<[number, number]> =
+  ringNames.length === 2 ? [[46, 106], [112, 182]] : [[40, 90], [95, 145], [150, 200]];
+
+// ── polar helpers (screen angle: 0°=3 o'clock, −90°=12 o'clock, clockwise) ────
+const D2R = Math.PI / 180;
+const CX = 230, CY = 230;
+const pt = (angle: number, r: number): [number, number] => [
+  CX + r * Math.cos(angle * D2R),
+  CY + r * Math.sin(angle * D2R),
+];
+const n = (v: number) => v.toFixed(2);
+// month m centre angle (Jan at top, clockwise); wedge spans ±14° (2° gap)
+const centreAngle = (m: number) => -90 + m * 30;
+
+// annular wedge (donut slice) from a0→a1 across [ri, ro]
+function wedgePath(a0: number, a1: number, ri: number, ro: number): string {
+  const [x1, y1] = pt(a0, ro), [x2, y2] = pt(a1, ro);
+  const [x3, y3] = pt(a1, ri), [x4, y4] = pt(a0, ri);
+  return `M${n(x1)} ${n(y1)} A${ro} ${ro} 0 0 1 ${n(x2)} ${n(y2)} L${n(x3)} ${n(y3)} A${ri} ${ri} 0 0 0 ${n(x4)} ${n(y4)} Z`;
+}
+
+// ── per-month geometry (build-time; the island never recomputes) ──────────────
+const MON3 = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+const sectors = months.map((mo, m) => {
+  const a = centreAngle(m);
+  const a0 = a - 14, a1 = a + 14;
+  const wedges = ringNames.flatMap((metric, ri) => {
+    const raw = mo?.[metric];
+    if (raw == null || !Number.isFinite(raw)) return [];
+    const v = clamp01(raw as number);
+    const [rin, rout] = bands[ri];
+    const rfill = rin + v * (rout - rin);
+    return [{ metric, path: wedgePath(a0, a1, rin, rfill) }];
+  });
+  // full-sector transparent hit region (pointer parity with the scrubber, §8)
+  const hit = wedgePath(a0, a1, bands[0][0] - 2, bands[bands.length - 1][1] + 6);
+  // month label anchor (radius 214), as % of the 460 box for the billboard overlay
+  const [lx, ly] = pt(a, 214);
+  return {
+    m,
+    wedges,
+    hit,
+    label: MON3[m],
+    labLeft: ((lx / 460) * 100).toFixed(3),
+    labTop: ((ly / 460) * 100).toFixed(3),
+  };
+});
+
+// band guide circles (r_in + r_out of each band) + spokes at the sector gaps
+const guides = bands.flatMap(([ri, ro]) => [ri, ro]);
+const spokeInner = bands[0][0] - 2;
+const spokeOuter = bands[bands.length - 1][1] + 2;
+const spokes = Array.from({ length: 12 }, (_, m) => {
+  const g = -75 + m * 30; // gap angle between sector m and m+1
+  const [x1, y1] = pt(g, spokeInner), [x2, y2] = pt(g, spokeOuter);
+  return { x1: n(x1), y1: n(y1), x2: n(x2), y2: n(y2) };
+});
+
+// ── sweet-spot window (§3 · §4): authored wins; else compute from thresholds ──
+function passes(mo: MonthDatum): boolean {
+  const okC = mo.climate == null || mo.climate >= 0.6;
+  const okR = mo.crowd == null || mo.crowd <= 0.4;
+  const okP = mo.price == null || mo.price <= 0.5;
+  // at least one metric must be present (a bare month never counts as "best")
+  const any = mo.climate != null || mo.crowd != null || mo.price != null;
+  return any && okC && okR && okP;
+}
+const computed = months.map((mo, i) => (passes(mo) ? i : -1)).filter((i) => i >= 0);
+const chosen =
+  sweetSpot && sweetSpot.length ? [...sweetSpot].filter((i) => i >= 0 && i <= 11).sort((a, b) => a - b) : computed;
+
+// group the chosen months into contiguous runs → one scalloped arc per run (§4)
+function toRuns(idxs: number[]): number[][] {
+  const runs: number[][] = [];
+  let cur: number[] = [];
+  for (const i of idxs) {
+    if (cur.length === 0 || i === cur[cur.length - 1] + 1) cur.push(i);
+    else { runs.push(cur); cur = [i]; }
+  }
+  if (cur.length) runs.push(cur);
+  return runs;
+}
+const runs = toRuns(chosen);
+
+// scalloped arc path for one run: a chain of shallow outward quadratic bulges,
+// one per month, riding just outside the price band (endpoints r=200, peak ~209)
+function scallopPath(run: number[]): string {
+  let d = '';
+  run.forEach((m, idx) => {
+    const a = centreAngle(m);
+    const [sx, sy] = pt(a - 15, 200);
+    const [cx2, cy2] = pt(a, 224);
+    const [ex, ey] = pt(a + 15, 200);
+    if (idx === 0) d += `M${n(sx)} ${n(sy)} `;
+    d += `Q${n(cx2)} ${n(cy2)} ${n(ex)} ${n(ey)} `;
+  });
+  return d.trim();
+}
+// BEST tag anchor: mid-angle of each run, radius 226 (as % of the 460 box)
+const bestTags = runs.map((run) => {
+  const mid = (run[0] + run[run.length - 1]) / 2;
+  const [bx, by] = pt(centreAngle(mid), 226);
+  return { left: ((bx / 460) * 100).toFixed(3), top: ((by / 460) * 100).toFixed(3) };
+});
+
+// ── the answer at rest: the sweet-spot's first month (§7) ─────────────────────
+const restIdx = chosen.length ? chosen[0] : 0;
+const fmtV = (v?: number) => (v == null || !Number.isFinite(v) ? '—' : (v as number).toFixed(2));
+const rest = months[restIdx];
+
+// per-instance uid so two wheels on a page don't collide on scrubber ids
+const uid = Math.random().toString(36).slice(2, 8);
+
+// island payload (§10 ≤ 2.5 KB): month values + labels + place + rest index
+const payload = JSON.stringify({
+  place,
+  rest: restIdx,
+  m3: MON3,
+  months: months.map((mo) => ({
+    c: mo.climate ?? null,
+    r: mo.crowd ?? null,
+    p: mo.price ?? null,
+    label: mo.label ?? null,
+  })),
+});
+
+const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', price: 'PRICE' };
+---
+
+<div class="px-swheel" data-reveal>
+  {caption && (
+    <div class="px-swheel__cap">
+      <span class="px-swheel__cap-text" set:html={renderInline(caption)} />
+      <b class="px-swheel__chip">indices 0–1</b>
+    </div>
+  )}
+
+  <div class="px-swheel__main">
+    {/* ring key — three rows, one swatch + word per ring (top-left margin) */}
+    <ul class="px-swheel__key">
+      {ringNames.map((metric) => (
+        <li class="px-swheel__key-row">
+          <i class:list={['px-swheel__key-sw', `px-swheel__key-sw--${metric}`]} aria-hidden="true"></i>
+          <span>{ringMeta[metric]}</span>
+        </li>
+      ))}
+    </ul>
+
+    <div class="px-swheel__stage">
+      <div class="px-swheel__disc" data-tilt="6">
+        <svg
+          class="px-swheel__svg"
+          viewBox="0 0 460 460"
+          role="img"
+          aria-label={`${place} — the travel year as a wheel of climate, crowd and price`}
+        >
+          {/* band guides — faint full circles at each band edge */}
+          {guides.map((r) => (
+            <circle class="px-swheel__guide" cx={CX} cy={CY} r={r} />
+          ))}
+          {/* radial spokes at the sector gaps */}
+          {spokes.map((s) => (
+            <line class="px-swheel__spoke" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
+          ))}
+          {/* twelve month-sectors — each carries its metric wedges + a hit region */}
+          {sectors.map((s) => (
+            <g class="px-swheel__sector" data-m={s.m} style={`--m:${s.m}`}>
+              {s.wedges.map((w) => (
+                <path class:list={['px-swheel__wedge', `px-swheel__wedge--${w.metric}`]} d={w.path} />
+              ))}
+              <path class="px-swheel__hit" d={s.hit} data-m={s.m} aria-hidden="true"></path>
+            </g>
+          ))}
+          {/* sweet-spot scallop — one arc per contiguous run of recommended months */}
+          {runs.map((run) => (
+            <path class="px-swheel__scallop" d={scallopPath(run)} aria-hidden="true"></path>
+          ))}
+        </svg>
+
+        {/* billboarded overlays (counter-rotated to stay upright on the tilted disc) */}
+        {sectors.map((s) => (
+          <span class="px-swheel__lab" style={`left:${s.labLeft}%;top:${s.labTop}%`}>{s.label}</span>
+        ))}
+        {bestTags.map((b) => (
+          <span class="px-swheel__best" style={`left:${b.left}%;top:${b.top}%`}>BEST</span>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* the pinned readout — the panel IS the tooltip (§8). Reserved height so a
+      scrub never reflows the card. aria-live announces the three values. */}
+  <div class="px-swheel__readout" role="status" aria-live="polite">
+    <b class="px-swheel__ro-place">{place}</b>
+    <span class="px-swheel__ro-month">{MON3[restIdx]}</span>
+    <span class="px-swheel__ro-vals">
+      climate {fmtV(rest?.climate)} · crowd {fmtV(rest?.crowd)} · price {fmtV(rest?.price)}
+    </span>
+    {/* always in the DOM (empty when the month has no label) so a scrub to a
+        label-less month never shrinks the reserved panel (§11 height rule) */}
+    <span class="px-swheel__ro-note">{rest?.label ?? ''}</span>
+  </div>
+
+  {/* the one control: a 12-stop month scrubber (JS-only; unhidden on boot) */}
+  <div class="px-swheel__scrub" hidden>
+    <label class="px-swheel__sr" for={`px-swheel-r-${uid}`}>Scrub through the months</label>
+    <input
+      class="px-swheel__range"
+      id={`px-swheel-r-${uid}`}
+      type="range"
+      min="0"
+      max="11"
+      step="1"
+      value={restIdx}
+    />
+    <div class="px-swheel__ticks" aria-hidden="true">
+      {MON3.map((m) => <span>{m.charAt(0)}</span>)}
+    </div>
+  </div>
+
+  {/* AT-readable data source: the full ledger. <details open> in markup; the
+      island folds it on boot (no-JS / crawlers keep it open). */}
+  <details class="px-swheel__ledger" open>
+    <summary class="px-swheel__summary">all twelve months</summary>
+    <ul class="px-swheel__rows">
+      {months.map((mo, m) => (
+        <li>
+          <span class="px-swheel__row-k">{MON3[m]}</span>
+          <span class="px-swheel__row-v">
+            climate {fmtV(mo.climate)} · crowd {fmtV(mo.crowd)} · price {fmtV(mo.price)}
+            {mo.label ? <> · {mo.label}</> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  </details>
+
+  {source && <div class="px-swheel__src">Source · {source}</div>}
+
+  <script type="application/json" class="px-swheel__data" set:html={payload}></script>
+</div>
+
+<script is:inline>
+  (function () {
+    document.querySelectorAll('.px-swheel').forEach(function (root) {
+      var cfgEl = root.querySelector('.px-swheel__data');
+      if (!cfgEl) return;
+      var cfg = JSON.parse(cfgEl.textContent);
+      var disc = root.querySelector('.px-swheel__disc');
+      var sectors = root.querySelectorAll('.px-swheel__sector');
+      var scrub = root.querySelector('.px-swheel__scrub');
+      var range = root.querySelector('.px-swheel__range');
+      var roMonth = root.querySelector('.px-swheel__ro-month');
+      var roVals = root.querySelector('.px-swheel__ro-vals');
+      var roNote = root.querySelector('.px-swheel__ro-note');
+      var details = root.querySelector('.px-swheel__ledger');
+      var fmt = function (v) { return v == null ? '—' : v.toFixed(2); };
+
+      function paint(i) {
+        var d = cfg.months[i];
+        roMonth.textContent = cfg.m3[i];
+        roVals.textContent = 'climate ' + fmt(d.c) + ' · crowd ' + fmt(d.r) + ' · price ' + fmt(d.p);
+        // the note row is always in the DOM (reserved height) — just swap its text
+        if (roNote) roNote.textContent = d.label || '';
+      }
+      function select(i) {
+        disc.classList.add('is-active');
+        sectors.forEach(function (g, j) { g.classList.toggle('is-lit', j === i); });
+        paint(i);
+      }
+
+      // boot: unhide the scrubber, fold the ledger. Do NOT dim at rest — the
+      // composed still shows every wedge; the first interaction dims (§5).
+      if (scrub) scrub.hidden = false;
+      if (range) {
+        range.value = String(cfg.rest);
+        range.addEventListener('input', function () { select(+range.value); });
+      }
+      sectors.forEach(function (g) {
+        var hit = g.querySelector('.px-swheel__hit');
+        if (!hit) return;
+        hit.addEventListener('click', function () {
+          var i = +g.getAttribute('data-m');
+          if (range) range.value = String(i);
+          select(i);
+        });
+      });
+      if (details) {
+        details.open = false;
+        var s = root.querySelector('.px-swheel__summary');
+        if (s) s.textContent = 'all twelve months — show';
+      }
+    });
+  })();
+</script>
+
+<style>
+  .px-swheel {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-tile);
+    padding: 26px 30px 24px;
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
+      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+
+  /* caption row — editorial serif + the honesty index chip (always present) */
+  .px-swheel__cap {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    margin-bottom: 20px;
+  }
+  .px-swheel__cap-text {
+    font-family: var(--font-display); font-weight: 500;
+    font-size: var(--viz-fs-caption, 15.5px); line-height: 1.3;
+    letter-spacing: -0.005em; color: var(--ink-soft);
+  }
+  .px-swheel__chip {
+    flex: 0 0 auto; align-self: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 9.5px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep);
+    background: color-mix(in oklab, var(--accent) 11%, transparent);
+    padding: 3px 9px; border-radius: var(--r-pill); white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* main = ring key (margin) + the tilted wheel stage */
+  .px-swheel__main { display: flex; align-items: flex-start; gap: 8px; }
+
+  .px-swheel__key {
+    list-style: none; margin: 6px 0 0; padding: 0;
+    display: flex; flex-direction: column; gap: 9px;
+    flex: 0 0 auto;
+  }
+  .px-swheel__key-row {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: color-mix(in oklab, var(--ink) 60%, transparent);
+  }
+  .px-swheel__key-sw { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+  .px-swheel__key-sw--climate { background: color-mix(in oklab, var(--accent) 70%, transparent); }
+  .px-swheel__key-sw--crowd { background: color-mix(in oklab, var(--ink) 55%, transparent); }
+  .px-swheel__key-sw--price { background: color-mix(in oklab, var(--accent-alt) 60%, transparent); }
+
+  /* stage — the perspective frame; horizontal padding lets month labels bleed */
+  .px-swheel__stage {
+    flex: 1 1 auto; min-width: 0;
+    perspective: var(--persp, 1100px); perspective-origin: 50% 42%;
+    padding: 8px 48px 4px; overflow: visible;
+  }
+
+  /* the disc — the dial laid on the desk. A 460-unit square that scales; the
+     tilt is a static CSS transform (not an animation), so it holds under no-JS.
+     core/Tilt.astro writes --rx/--ry for ±6° pointer parallax. */
+  .px-swheel__disc {
+    --tilt: 52deg; --twist: -8deg; --rx: 0deg; --ry: 0deg;
+    position: relative;
+    width: 100%; max-width: 460px; margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    transform: rotateX(calc(var(--tilt) + var(--rx))) rotateY(var(--ry)) rotateZ(var(--twist));
+    transform-style: preserve-3d;
+    transition: transform var(--t-soft, 220ms) var(--ease);
+    will-change: transform;
+  }
+  .px-swheel__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+
+  /* guides + spokes */
+  .px-swheel__guide { fill: none; stroke: color-mix(in oklab, var(--ink) 16%, transparent); stroke-width: 0.75; }
+  .px-swheel__spoke { stroke: color-mix(in oklab, var(--ink) 12%, transparent); stroke-width: 0.75; }
+
+  /* metric wedges — three declared data roles (accent / ink / accent-alt) */
+  .px-swheel__wedge { stroke: none; transform-box: view-box; transform-origin: 230px 230px; }
+  .px-swheel__wedge--climate { fill: color-mix(in oklab, var(--accent) 70%, transparent); }
+  .px-swheel__wedge--crowd { fill: color-mix(in oklab, var(--ink) 55%, transparent); }
+  .px-swheel__wedge--price { fill: color-mix(in oklab, var(--accent-alt) 60%, transparent); }
+  .px-swheel__hit { fill: transparent; pointer-events: all; cursor: pointer; }
+
+  /* sweet-spot scallop — the recommended window, the finding colour */
+  .px-swheel__scallop {
+    fill: none;
+    stroke: color-mix(in oklab, var(--accent-deep) 90%, transparent);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* selected-month highlight (JS, after first interaction): others dim to 0.55 */
+  .px-swheel__sector { transition: opacity 150ms var(--ease); }
+  .px-swheel__disc.is-active .px-swheel__sector:not(.is-lit) { opacity: 0.55; }
+
+  /* billboarded month labels — counter-rotate to stay upright on the tilt.
+     Custom props inherit from the disc, so the counter tracks the live tilt. */
+  .px-swheel__lab {
+    position: absolute; z-index: 2;
+    transform: translate(-50%, -50%)
+      rotateZ(calc(-1 * var(--twist))) rotateX(calc(-1 * var(--tilt)));
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    color: color-mix(in oklab, var(--ink) 60%, transparent);
+    white-space: nowrap; pointer-events: none;
+  }
+  .px-swheel__best {
+    position: absolute; z-index: 3;
+    transform: translate(-50%, -50%)
+      rotateZ(calc(-1 * var(--twist))) rotateX(calc(-1 * var(--tilt)));
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.16em; color: var(--accent-deep);
+    white-space: nowrap; pointer-events: none;
+  }
+
+  /* the pinned readout — reserved height (card never reflows on scrub) */
+  .px-swheel__readout {
+    min-height: 58px; margin-top: 14px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+    padding-top: 14px; border-top: 1px dashed var(--rule);
+  }
+  .px-swheel__ro-place {
+    font-family: var(--font-display); font-style: italic; font-weight: 600;
+    font-size: 17px; color: var(--ink); letter-spacing: -0.01em;
+  }
+  .px-swheel__ro-month {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.14em; color: var(--accent-deep); font-variant-numeric: tabular-nums;
+  }
+  .px-swheel__ro-vals {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em;
+    color: var(--ink-soft); font-variant-numeric: tabular-nums;
+  }
+  /* always occupies its own row (min-height reserves it even when empty) and is
+     clamped to one line, so the panel height is constant across every scrub */
+  .px-swheel__ro-note {
+    flex-basis: 100%; min-width: 0; min-height: 18px;
+    font-family: var(--font-display); font-style: italic; font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* the scrubber — one control; 44px-tall touch target (CANON §9 slider) */
+  .px-swheel__scrub { margin-top: 16px; }
+  .px-swheel__range {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 44px; margin: 0; padding: 0;
+    background: transparent; cursor: pointer; touch-action: pan-y;
+  }
+  .px-swheel__range::-webkit-slider-runnable-track {
+    height: 4px; border-radius: var(--r-pill);
+    background: color-mix(in oklab, var(--ink) 16%, transparent);
+  }
+  .px-swheel__range::-moz-range-track {
+    height: 4px; border-radius: var(--r-pill);
+    background: color-mix(in oklab, var(--ink) 16%, transparent);
+  }
+  .px-swheel__range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; margin-top: -9px; border-radius: 50%;
+    background: var(--accent-deep); border: 2px solid var(--paper);
+    box-shadow: 0 1px 4px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-swheel__range::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-deep); border: 2px solid var(--paper);
+    box-shadow: 0 1px 4px color-mix(in oklab, var(--ink) 40%, transparent);
+  }
+  .px-swheel__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 4px; border-radius: var(--r-pill); }
+  .px-swheel__ticks {
+    display: grid; grid-template-columns: repeat(12, 1fr);
+    margin-top: 2px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.02em;
+    color: var(--muted); text-align: center; font-variant-numeric: tabular-nums;
+  }
+
+  /* fallback ledger */
+  .px-swheel__ledger { margin-top: 16px; }
+  .px-swheel__summary {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); cursor: pointer; padding: 6px 0;
+    list-style-position: inside;
+  }
+  .px-swheel__rows { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+  .px-swheel__rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .px-swheel__row-k {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--ink-soft); min-width: 34px;
+  }
+  .px-swheel__row-v {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.02em;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  .px-swheel__src {
+    margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--rule);
+    font-family: var(--font-mono); font-size: var(--viz-fs-src, 10px);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-style: italic;
+  }
+
+  .px-swheel__sr {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ── entrance (html.js-gated): guides hold, wedges grow, arc sweeps ──────────
+     wedges scale up from the wheel centre, staggered Jan→Dec (travel's slow
+     sweep); labels + BEST fade; the scallop draws. No-JS = final state. */
+  html.js .px-swheel:not(.is-in) .px-swheel__wedge { transform: scale(0.28); opacity: 0; }
+  html.js .px-swheel:not(.is-in) .px-swheel__lab,
+  html.js .px-swheel:not(.is-in) .px-swheel__best { opacity: 0; }
+  html.js .px-swheel:not(.is-in) .px-swheel__scallop { stroke-dashoffset: 900; }
+
+  .px-swheel__wedge {
+    opacity: 1;
+    transition: transform 600ms var(--ease), opacity 400ms var(--ease);
+  }
+  .px-swheel .px-swheel__sector { }
+  .px-swheel.is-in .px-swheel__sector .px-swheel__wedge { transition-delay: calc(var(--m) * 70ms); }
+  .px-swheel__lab, .px-swheel__best {
+    transition: opacity 400ms var(--ease);
+  }
+  .px-swheel.is-in .px-swheel__lab { transition-delay: 900ms; }
+  .px-swheel.is-in .px-swheel__best { transition-delay: 1300ms; }
+  .px-swheel__scallop {
+    stroke-dasharray: 900; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 700ms var(--ease);
+  }
+  .px-swheel.is-in .px-swheel__scallop { transition-delay: 1050ms; }
+
+  /* ── 375px: smaller tilt (less foreshortening), key above the wheel ──────── */
+  @media (max-width: 640px) {
+    .px-swheel { padding: 22px 14px 20px; }
+    .px-swheel__main { flex-direction: column; gap: 12px; }
+    .px-swheel__key { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; margin-top: 0; }
+    .px-swheel__stage { padding: 6px 40px 2px; width: 100%; }
+    .px-swheel__disc { --tilt: 44deg; }
+    .px-swheel__lab { font-size: 9.5px; }
+    .px-swheel__ro-place { font-size: 15px; }
+  }
+
+  /* ── reduced motion: flatten the disc, no parallax, no entrance ───────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .px-swheel__disc {
+      --tilt: 0deg; --twist: 0deg;
+      transform: none !important; transition: none !important;
+    }
+    .px-swheel__lab, .px-swheel__best { transform: translate(-50%, -50%) !important; }
+    .px-swheel__wedge, .px-swheel__scallop, .px-swheel__lab, .px-swheel__best,
+    .px-swheel__sector { transition: none !important; }
+    html.js .px-swheel:not(.is-in) .px-swheel__wedge { transform: scale(1) !important; opacity: 1 !important; }
+    html.js .px-swheel:not(.is-in) .px-swheel__lab,
+    html.js .px-swheel:not(.is-in) .px-swheel__best { opacity: 1 !important; }
+    html.js .px-swheel:not(.is-in) .px-swheel__scallop { stroke-dashoffset: 0 !important; }
+  }
+</style>

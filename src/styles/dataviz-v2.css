@@ -538,3 +538,32 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   .vb:not(.is-in) .vb__mp { opacity: 1 !important; transform: scale(1) !important; }
   .tl:not(.is-in) .tl__row { opacity: 1 !important; transform: none !important; }
 }
+
+/* ============================================================================
+   RESPONSIVE PASS (2026-07) — no viz content pushes the PAGE sideways.
+   SVG charts already scale (width:100%); the page-overflow offenders are
+   FIXED-WIDTH: data tables (min-content wider than a phone column) and any
+   stray wide box. These scroll INSIDE their own card instead of the page.
+   ============================================================================ */
+@media (max-width: 640px) {
+  /* Data tables become their own horizontal scroller (rows stay intact). */
+  .px-viz table,
+  table.lt,
+  [class$="__table"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Belt-and-braces: a viz card never exceeds the reading column, and its
+     flex/grid children may shrink below their content width (min-width:0)
+     so nothing forces the page wide. */
+  .px-viz { max-width: 100%; }
+  .px-viz > * { min-width: 0; }
+
+  /* itinerary-reel: its day-card rail scrolls internally (overflow-x:auto);
+     clip the few-px scroll bleed at the reel root so it can't nudge the page
+     sideways. overflow-x:clip leaves overflow-y visible (reveal transforms). */
+  .px-ireel { overflow-x: clip; }
+}

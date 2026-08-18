@@ -254,6 +254,92 @@ sections:
         - { from: trust, to: inc, value: 380 }
         - { from: trust, to: oth, value: 270 }
 
+  - kind: coalition-calculus
+    eyebrow: "COALITION CALCULUS"
+    title: "The coalition you can *build*."
+    intro: "Every party is a weight block on one seat-bar against the majority line. Press parties in and out — the readout keeps honest score, CLEARS BY or SHORT BY, and the parties nobody will govern with are locked out, each with a stated reason."
+    plain: "Every block is one party's seats on a single bar; press parties in or out and the bar shows whether the group reaches the majority line."
+    skimCaption: "Germany's 630-seat Bundestag after February 2025: with the second-largest party (AfD, 152) locked out, exactly one two-party majority exists — CDU/CSU + SPD, 328 seats, clearing the 316-seat line by 12."
+    data:
+      caption: "With the second-largest party locked out, exactly one two-party majority exists — and it clears by 12 seats."
+      source: "Bundeswahlleiterin, final result, Feb 2025"
+      parties:
+        - { name: "CDU/CSU", short: "Union", seats: 208, color: "#2f2f38" }
+        - { name: "AfD", seats: 152, color: "#3d9fd6", locked: "every other party rules out governing with it" }
+        - { name: "SPD", seats: 120, color: "#e3001b" }
+        - { name: "Grüne", seats: 85, color: "#46962b" }
+        - { name: "Linke", seats: 64, color: "#be3075" }
+        - { name: "SSW", seats: 1, color: "#003c8f" }
+      preset: ["CDU/CSU", "SPD"]
+
+  - kind: gerrymander-lens
+    eyebrow: "SAME BALLOTS, THREE MAPS"
+    title: "The lines, *not* the votes."
+    intro: "One 500-voter electorate, re-districted three ways — a fair plan and two gerrymanders — with each map's efficiency gap named against the 7% fairness flag."
+    plain: "The same voters, three ways of drawing the districts; each map shows who wins and how skewed it is — the number is the efficiency gap, and the fills never change."
+    skimCaption: "Redraw the districts and the same 272–228 vote split swings from a fair 3–2 to a rigged 5–0 — the efficiency gap flags it."
+    layout: wide
+    data:
+      caption: "Same 272–228 electorate, three maps: a fair plan, a Union gerrymander, a Front gerrymander — the lines decide, not the votes."
+      source: "Illustrative 5×5 electorate; efficiency-gap method + 7% flag: Stephanopoulos & McGhee (2015). Benchmark: Wisconsin Act 43 map, EG ≈ 13% (Gill v. Whitford, 2016)."
+      flagPct: 7
+      grid:
+        cols: 5
+        rows: 5
+        perCell: 20
+        a: [18, 17, 10, 6, 4,  17, 16, 10, 6, 4,  16, 15, 11, 7, 5,  15, 14, 12, 8, 6,  14, 13, 12, 9, 7]
+      parties:
+        a: { name: "Union", short: "UNI", color: "#b8341f" }
+        b: { name: "Front", short: "FRO", color: "#1e5a3f" }
+      plans:
+        - label: "Neutral"
+          note: "Compact columns — seats track the vote share."
+          districts: [0, 1, 2, 3, 4,  0, 1, 2, 3, 4,  0, 1, 2, 3, 4,  0, 1, 2, 3, 4,  0, 1, 2, 3, 4]
+        - label: "Pro-Union crack"
+          note: "Row strips spread Union voters to win every seat."
+          districts: [0, 0, 0, 0, 0,  1, 1, 1, 1, 1,  2, 2, 2, 2, 2,  3, 3, 3, 3, 3,  4, 4, 4, 4, 4]
+        - label: "Pro-Front pack"
+          note: "Union voters packed into two landslide seats."
+          districts: [0, 0, 1, 1, 1,  0, 0, 1, 3, 3,  0, 2, 1, 3, 3,  2, 2, 2, 4, 3,  2, 4, 4, 4, 4]
+
+  - kind: ballot-flow
+    eyebrow: "WATCH THE COUNT RESOLVE"
+    title: "The first-round leader who *almost* lost."
+    intro: "Ranked-choice made visible as motion: columns are counting rounds, each eliminated candidate's ballots flow as ribbons to whoever they went to next, and the dashed line is the majority — descending as spent ballots leave the count."
+    plain: "Each column is one counting round; when a candidate is knocked out, the moving ribbons show where their votes went next, and the dashed line is the majority needed to win."
+    skimCaption: "An illustrative 100,000-ballot mayoral RCV: Reed led round one with 34% but only cleared a majority on the third count, when Chen's transfers — not Blake's — put Reed over the top."
+    layout: wide
+    data:
+      caption: "The first-round leader with 34% only won on the third count — Chen's transfers, not Blake's, put Reed over the top."
+      source: "Illustrative RCV tabulation; method: instant-runoff, majority of continuing ballots"
+      majorityBasis: continuing
+      winnerId: reed
+      candidates:
+        - { id: reed,  name: "Dana Reed",  short: "REED",  color: "#b8341f" }
+        - { id: ortiz, name: "Sam Ortiz",  short: "ORTIZ", color: "#1e5a3f" }
+        - { id: chen,  name: "Mei Chen",   short: "CHEN",  color: "#3a5f8f" }
+        - { id: blake, name: "Ada Blake",  short: "BLAKE", color: "#8a6d3b" }
+      rounds:
+        - tallies: { reed: 34000, ortiz: 31000, chen: 22000, blake: 13000 }
+          exhausted: 0
+          eliminate:
+            id: blake
+            transfers:
+              - { to: reed,  value: 4000 }
+              - { to: ortiz, value: 3000 }
+              - { to: chen,  value: 5000 }
+              - { to: exhausted, value: 1000 }
+        - tallies: { reed: 38000, ortiz: 34000, chen: 27000 }
+          exhausted: 1000
+          eliminate:
+            id: chen
+            transfers:
+              - { to: reed,  value: 11000 }
+              - { to: ortiz, value: 13000 }
+              - { to: exhausted, value: 3000 }
+        - tallies: { reed: 49000, ortiz: 47000 }
+          exhausted: 4000
+
 sources:
   - id: "src-01"
     title: "2025 German federal election — official result"

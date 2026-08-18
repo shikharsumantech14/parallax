@@ -1,0 +1,459 @@
+---
+/**
+ * CarbonLoop (earth · SVG · the stock-and-flow sibling of `power-flow`) — the
+ * carbon cycle as it actually balances, and doesn't. Reservoirs are boxes sized
+ * by AREA ∝ how much carbon they hold; fluxes are curved arrows sized by
+ * GtC/yr, thicker + faster where more carbon moves (`flowDash`); the one flux
+ * that never cancels — the airborne fraction the atmosphere keeps — is drawn as
+ * an `--accent-alt` residual crescent that grows in last.
+ *
+ * Blueprint (the contract): docs/design/blueprints/earth/carbon-loop.md.
+ * Conservation is checked at BUILD (mirrors power-flow / mechanics-and-flow §4):
+ * every `role: 'store'` reservoir must balance within 1% or the build FAILS
+ * naming it — UNLESS the data declares `imbalance: 'the-point'`, in which case
+ * the residual renders (as an accent-alt crescent + mono label) ONLY on the
+ * `accent: true` reservoir. `role: 'source'`/`'sink'` are open boundaries and
+ * are exempt (a one-way tap can never balance). The flag is a story-residual
+ * licence, NOT a blanket amnesty: an unbalanced non-accent store still throws.
+ *
+ * No-JS / reduced-motion: the SVG paints its complete composed still — boxes
+ * sized, fluxes drawn with static directional stipple, values labelled, the
+ * residual crescent + label present (hidden reveal states gated behind
+ * `html.js`; keyframes never run under reduced motion). 100% build-time
+ * geometry; the only client JS is the shared Reveal island.
+ *
+ * data: { unit, reservoirs[]{id,label,stock,x,y,role?,accent?},
+ *         fluxes[]{from,to,value,note?}, imbalance?, residualLabel?,
+ *         cycle?, year?, caption?, source? }
+ */
+interface Reservoir {
+  id: string; label: string; stock: number;
+  x: number; y: number;
+  role?: 'store' | 'source' | 'sink';
+  accent?: boolean;
+}
+interface Flux { from: string; to: string; value: number; note?: string; }
+interface Props {
+  unit?: string;
+  reservoirs?: Reservoir[];
+  fluxes?: Flux[];
+  imbalance?: 'the-point';
+  residualLabel?: string;
+  cycle?: string;   // header (motif 2 — the cycle is dated, grounds it in a time)
+  year?: string;    // budget year, mono
+  caption?: string;
+  source?: string;
+}
+const {
+  unit = 'GtC',
+  reservoirs = [],
+  fluxes = [],
+  imbalance,
+  residualLabel,
+  cycle,
+  year,
+  caption,
+  source,
+} = Astro.props;
+
+const byId = new Map(reservoirs.map((r) => [r.id, r]));
+for (const fl of fluxes) {
+  if (!byId.has(fl.from) || !byId.has(fl.to)) {
+    throw new Error(`carbon-loop: flux ${fl.from} → ${fl.to} references an unknown reservoir id`);
+  }
+}
+
+/* ── conservation check (build-time, blueprint §4 — mechanics-and-flow §4 1:1) ──
+   net_R = Σin − Σout; balanced iff |net| ≤ 1% · max(Σin, Σout). Only role:'store'
+   reservoirs are checked (closed pools); 'source'/'sink' are open boundaries and
+   exempt. imbalance:'the-point' suppresses the throw and draws a residual — but
+   ONLY on accent reservoirs; an unbalanced non-accent store STILL throws. */
+const sumIn = (id: string) => fluxes.filter((f) => f.to === id).reduce((s, f) => s + f.value, 0);
+const sumOut = (id: string) => fluxes.filter((f) => f.from === id).reduce((s, f) => s + f.value, 0);
+const residualOf = new Map<string, number>(); // reservoir id → drawn net
+for (const r of reservoirs) {
+  const role = r.role ?? 'store';
+  if (role !== 'store') continue; // open boundary — exempt (power-flow parity)
+  const si = sumIn(r.id);
+  const so = sumOut(r.id);
+  const net = si - so;
+  const denom = Math.max(si, so);
+  const balanced = denom === 0 || Math.abs(net) <= 0.01 * denom;
+  if (balanced) continue;
+  if (imbalance === 'the-point' && r.accent) {
+    residualOf.set(r.id, net); // the story's accumulation — drawn, not thrown
+  } else {
+    throw new Error(
+      `carbon-loop: reservoir "${r.label}" (${r.id}) does not conserve — ` +
+      `in ${si} vs out ${so}, net ${net > 0 ? '+' : ''}${net} ${unit}/yr exceeds 1%. ` +
+      `Fix the fluxes, mark it role:'source'/'sink' if it is a one-way boundary, or — only if the ` +
+      `accumulation IS the story — mark it accent:true and set imbalance:'the-point'.`,
+    );
+  }
+}
+
+/* ── layout (blueprint §4): viewBox 720×560, PAD 60 gutter for outward labels ── */
+const W = 720, H = 560, PAD = 60;
+const cxOf = (x: number) => PAD + x * (W - 2 * PAD);
+const cyOf = (y: number) => PAD + y * (H - 2 * PAD);
+
+/* box AREA ∝ stock: area = stock · K_area, K_area = 9000/maxStock; side =
+   sqrt(area) clamped [44,140] (44 = AT/touch floor, 140 caps the largest) */
+const maxStock = Math.max(1e-9, ...reservoirs.map((r) => r.stock));
+const K_area = 9000 / maxStock;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+interface Placed { r: Reservoir; cx: number; cy: number; side: number; hs: number; }
+const placed = new Map<string, Placed>();
+for (const r of reservoirs) {
+  const side = clamp(Math.sqrt(r.stock * K_area), 44, 140);
+  placed.set(r.id, { r, cx: cxOf(r.x), cy: cyOf(r.y), side, hs: side / 2 });
+}
+
+/* flux thickness ∝ value: w = max(2, value·K_flux), K_flux = 22/maxFlux */
+const maxFlux = Math.max(1e-9, ...fluxes.map((f) => f.value));
+const K_flux = 22 / maxFlux;
+
+const f1 = (n: number) => Number(n.toFixed(1));
+
+/* box-edge exit point of the ray from a square's centre toward (dx,dy) */
+function boxExit(cx: number, cy: number, hs: number, dx: number, dy: number) {
+  const L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L;
+  const s = hs / Math.max(Math.abs(ux), Math.abs(uy));
+  return { x: cx + ux * s, y: cy + uy * s };
+}
+
+/* ── build each flux: quadratic Bézier bowed OUTWARD by 0.18·chordLen so
+      opposite-direction fluxes between a pair separate; band = the curve
+      offset ±w/2 along the chord-perpendicular; a centerline carries flowDash;
+      an open-V arrowhead lands at the `to` end (line-art, CANON §4) ── */
+interface Ribbon {
+  band: string; center: string; head: string;
+  w: number; midX: number; midY: number;
+  value: number; note?: string;
+  durS: number; sweep: number;
+}
+const ribbons: Ribbon[] = [];
+for (const fl of fluxes) {
+  const A = placed.get(fl.from)!;
+  const B = placed.get(fl.to)!;
+  const dcx = B.cx - A.cx, dcy = B.cy - A.cy;
+  const clen = Math.hypot(dcx, dcy) || 1;
+  const px = -dcy / clen, py = dcx / clen;        // unit perpendicular (rotate +90°)
+  const bow = 0.18 * clen;
+  const Cx = (A.cx + B.cx) / 2 + px * bow;
+  const Cy = (A.cy + B.cy) / 2 + py * bow;
+  const s = boxExit(A.cx, A.cy, A.hs, Cx - A.cx, Cy - A.cy);
+  const e = boxExit(B.cx, B.cy, B.hs, Cx - B.cx, Cy - B.cy);
+  const w = Math.max(2, fl.value * K_flux);
+  const hw = w / 2;
+  const band =
+    `M ${f1(s.x + px * hw)} ${f1(s.y + py * hw)} ` +
+    `Q ${f1(Cx + px * hw)} ${f1(Cy + py * hw)} ${f1(e.x + px * hw)} ${f1(e.y + py * hw)} ` +
+    `L ${f1(e.x - px * hw)} ${f1(e.y - py * hw)} ` +
+    `Q ${f1(Cx - px * hw)} ${f1(Cy - py * hw)} ${f1(s.x - px * hw)} ${f1(s.y - py * hw)} Z`;
+  const center = `M ${f1(s.x)} ${f1(s.y)} Q ${f1(Cx)} ${f1(Cy)} ${f1(e.x)} ${f1(e.y)}`;
+  // arrowhead: open V pointing along the end tangent (from control → end)
+  const ang = Math.atan2(e.y - Cy, e.x - Cx);
+  const ah = 10;
+  const w1x = e.x - ah * Math.cos(ang - 0.42), w1y = e.y - ah * Math.sin(ang - 0.42);
+  const w2x = e.x - ah * Math.cos(ang + 0.42), w2y = e.y - ah * Math.sin(ang + 0.42);
+  const head = `M ${f1(w1x)} ${f1(w1y)} L ${f1(e.x)} ${f1(e.y)} L ${f1(w2x)} ${f1(w2y)}`;
+  // value label at the curve midpoint (quadratic at t=0.5)
+  const midX = 0.25 * s.x + 0.5 * Cx + 0.25 * e.x;
+  const midY = 0.25 * s.y + 0.5 * Cy + 0.25 * e.y;
+  // flowDash: speed ∝ value, largest flux = 60 px/s, floor 8 px/s (blueprint §5 —
+  // NOT the inverse). dashCycleLen = 2+6 = 8px → dur = 8/speed (0.13s…1.0s).
+  const speed = Math.max(8, (60 * fl.value) / maxFlux);
+  const durS = 8 / speed;
+  // sweep: a multiple of the 8px dash period ≥ the path length, so the reveal
+  // streams the dashes in from `from` and lands seamlessly at offset 0.
+  const est = clen + bow;
+  const sweep = Math.ceil(est / 8) * 8 + 8;
+  ribbons.push({ band, center, head, w, midX, midY, value: fl.value, note: fl.note, durS, sweep });
+}
+
+/* ── the residual crescent (imbalance:'the-point'): an --accent-alt arc OUTSIDE
+      the accent box's top edge, arc-LENGTH ∝ the computed net; grows in last ── */
+interface Residual { arc: string; lblX: number; lblY: number; }
+const residuals: Residual[] = [];
+for (const [id, net] of residualOf) {
+  const p = placed.get(id)!;
+  const Rc = p.hs + 16;                 // sits just outside the top edge
+  const theta = Math.min(2.2, (Math.abs(net) * 6) / Rc); // arcLen = |net|·6 ⇒ length ∝ net
+  const a0 = -Math.PI / 2 - theta / 2;
+  const a1 = -Math.PI / 2 + theta / 2;
+  const p0x = p.cx + Rc * Math.cos(a0), p0y = p.cy + Rc * Math.sin(a0);
+  const p1x = p.cx + Rc * Math.cos(a1), p1y = p.cy + Rc * Math.sin(a1);
+  const large = theta > Math.PI ? 1 : 0;
+  const arc = `M ${f1(p0x)} ${f1(p0y)} A ${f1(Rc)} ${f1(Rc)} 0 ${large} 1 ${f1(p1x)} ${f1(p1y)}`;
+  residuals.push({ arc, lblX: p.cx, lblY: p.cy - Rc - 12 });
+}
+
+const placedList = Array.from(placed.values());
+const fmt = (v: number) => (Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 1 }));
+const denseLegend = reservoirs.length + fluxes.length > 5;
+---
+
+<div class="px-viz px-cloop" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}/yr</b></div>}
+
+  {(cycle || year) && (
+    <div class="px-cloop__head">
+      {cycle && <span class="px-cloop__cycle">{cycle}</span>}
+      {year && <span class="px-cloop__year">{year}</span>}
+    </div>
+  )}
+
+  <div class="px-cloop__frame">
+    <svg
+      class="px-cloop__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={caption ? `Carbon cycle diagram: ${caption}` : 'Carbon cycle: reservoirs and fluxes'}
+    >
+      <title>{caption ?? 'Carbon cycle — reservoirs and fluxes'}</title>
+      <desc>
+        {`Reservoirs sized by stock in ${unit}; arrows sized by flux in ${unit} per year. `}
+        {placedList.map((p) => `${p.r.label}: ${fmt(p.r.stock)} ${unit}. `).join('')}
+        {ribbons.map((r) => `${r.value} ${unit}/yr flux. `).join('')}
+      </desc>
+
+      <!-- axis key (motif 4 — the two scales are declared) -->
+      <text class="px-cloop__key" x="8" y="16">{`FLUX = ${unit}/yr · STOCK = ${unit}`}</text>
+
+      <!-- flux bands: one accent, thickness does the talking (§6) -->
+      <g>
+        {ribbons.map((r) => <path class="px-cloop__band" d={r.band} />)}
+      </g>
+
+      <!-- centerline dash carriers (flowDash: speed ∝ value) + arrowheads -->
+      <g>
+        {ribbons.map((r) => (
+          <path class="px-cloop__dash" d={r.center} style={`--dur:${r.durS.toFixed(3)}s; --sweep:${r.sweep}`} />
+        ))}
+        {ribbons.map((r) => <path class="px-cloop__ahead" d={r.head} />)}
+      </g>
+
+      <!-- reservoir boxes: AREA ∝ stock; accent box edge = --accent (§4/§6) -->
+      {placedList.map((p, i) => {
+        const drawsResidual = residualOf.has(p.r.id);
+        const labelAbove = !drawsResidual; // keep the accent box's top clear for the crescent
+        const top = p.cy - p.hs, bottom = p.cy + p.hs;
+        return (
+          <g class="px-cloop__res" style={`--gi:${i * 60}ms`}>
+            <rect
+              class={`px-cloop__box${p.r.accent ? ' px-cloop__box--accent' : ''}`}
+              x={f1(p.cx - p.hs)} y={f1(top)} width={f1(p.side)} height={f1(p.side)} rx="6"
+            />
+            <text
+              class="px-cloop__lbl"
+              x={f1(p.cx)} y={f1(labelAbove ? top - 8 : bottom + 17)}
+              text-anchor="middle"
+            >{p.r.label}</text>
+            <text
+              class="px-cloop__stock"
+              x={f1(p.cx)} y={f1(p.cy + 5)} text-anchor="middle"
+            >{fmt(p.r.stock)} {unit}</text>
+          </g>
+        );
+      })}
+
+      <!-- the residual (accumulation): brown crescent + mono label, grows in LAST -->
+      {residuals.map((rs) => (
+        <g class="px-cloop__resid">
+          <path class="px-cloop__crescent" d={rs.arc} />
+          {residualLabel && (
+            <text class="px-cloop__residlbl" x={f1(rs.lblX)} y={f1(rs.lblY)} text-anchor="middle">{residualLabel}</text>
+          )}
+        </g>
+      ))}
+
+      <!-- mid-stream flux values (mono, paper halo) + notes -->
+      <g>
+        {ribbons.map((r) => (
+          <>
+            <text class="px-cloop__val" x={f1(r.midX)} y={f1(r.midY)}
+              text-anchor="middle" dominant-baseline="middle">{fmt(r.value)}</text>
+            {r.note && (
+              <text class="px-cloop__note" x={f1(r.midX)} y={f1(r.midY + 14)}
+                text-anchor="middle" dominant-baseline="middle">{r.note}</text>
+            )}
+          </>
+        ))}
+      </g>
+    </svg>
+  </div>
+
+  {denseLegend && (
+    <details class="px-cloop__legend">
+      <summary>Reservoirs &amp; fluxes</summary>
+      <div class="px-cloop__legrid">
+        <ul>
+          {placedList.map((p) => (
+            <li><span>{p.r.label}</span><b>{fmt(p.r.stock)} {unit}</b></li>
+          ))}
+        </ul>
+        <ul>
+          {ribbons.map((r) => (
+            <li><span>{r.note ?? 'flux'}</span><b>{fmt(r.value)} {unit}/yr</b></li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  )}
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-cloop { width: 100%; }
+  .px-cloop__frame { width: 100%; padding: 0 6px; }
+  .px-cloop__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* coordinate margin (motif 2): cycle name + budget year, mono */
+  .px-cloop__head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin: 0 0 6px; padding: 0 6px;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .px-cloop__cycle { color: var(--accent-deep); }
+  .px-cloop__year { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* axis key — the measured rule (motif 4) */
+  .px-cloop__key {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+    fill: var(--ink); opacity: 0.55; text-transform: uppercase;
+  }
+
+  /* ── color spec (§6): one green system; thickness + dash-speed do the talking ── */
+  .px-cloop__band {
+    fill: var(--accent); opacity: 0.28;
+    transition: opacity 900ms var(--ease) 250ms;
+  }
+  .px-cloop__dash {
+    fill: none; stroke: var(--accent-deep); stroke-opacity: 0.9; stroke-width: 1.5;
+    stroke-dasharray: 2 6; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* the sweep draw */
+  }
+  .px-cloop__ahead {
+    fill: none; stroke: var(--accent-deep); stroke-opacity: 0.9;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+    transition: opacity 450ms var(--ease) 1000ms;
+  }
+
+  .px-cloop__box {
+    fill: var(--paper-2); stroke: var(--ink); stroke-opacity: 0.6; stroke-width: 1.5;
+    transform-box: fill-box; transform-origin: center;
+    transition: transform 400ms var(--ease) var(--gi, 0ms);
+  }
+  .px-cloop__box--accent { stroke: var(--accent); stroke-opacity: 0.9; stroke-width: 2; }
+  .px-cloop__res { transition: opacity 400ms var(--ease) var(--gi, 0ms); }
+
+  .px-cloop__lbl {
+    font-family: var(--font-body); font-size: 13px; fill: var(--ink);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+  .px-cloop__stock {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums; fill: var(--accent-deep);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  .px-cloop__val {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums; fill: var(--accent-deep);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+  .px-cloop__note {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
+    fill: var(--muted);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
+  }
+  .px-cloop__val, .px-cloop__note {
+    transition: opacity 450ms var(--ease) 1150ms, transform 450ms var(--ease) 1150ms;
+  }
+
+  /* the residual — brown = the warmed/piled-up carbon (earth §Materials) */
+  .px-cloop__crescent {
+    fill: none; stroke: var(--accent-alt); stroke-opacity: 0.85;
+    stroke-width: 7; stroke-linecap: round;
+    transform-box: fill-box; transform-origin: center bottom;
+    transition: transform 500ms var(--ease) 1250ms, opacity 500ms var(--ease) 1250ms;
+  }
+  .px-cloop__residlbl {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums; fill: var(--accent-deep);
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+    transition: opacity 500ms var(--ease) 1250ms;
+  }
+
+  /* ── reveal (§5): boxes grow → bands sweep → values + residual reveal LAST.
+        Hidden states gated behind html.js — no-JS paints the final frame. ── */
+  html.js .px-viz:not(.is-in) .px-cloop__box { transform: scale(0.55); }
+  html.js .px-viz:not(.is-in) .px-cloop__res { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-cloop__band { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-cloop__dash { stroke-dashoffset: var(--sweep, 0); }
+  html.js .px-viz:not(.is-in) .px-cloop__ahead { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-cloop__val,
+  html.js .px-viz:not(.is-in) .px-cloop__note { opacity: 0; transform: translateY(12px); }
+  html.js .px-viz:not(.is-in) .px-cloop__crescent { transform: scaleX(0.05); opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-cloop__residlbl { opacity: 0; }
+
+  /* flowDash — the card's ONE ambient motion; takes over once the sweep lands */
+  html.js .px-viz.is-in .px-cloop__dash {
+    animation: px-cloop-flow var(--dur, 0.6s) linear 1150ms infinite;
+  }
+  @keyframes px-cloop-flow {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: -8; }
+  }
+
+  /* field-note legend (motif 3) — collapsed at rest, keeps at-rest text minimal */
+  .px-cloop__legend { margin: 12px 6px 0; }
+  .px-cloop__legend summary {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); cursor: pointer;
+  }
+  .px-cloop__legrid { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 10px; }
+  .px-cloop__legrid ul { list-style: none; margin: 0; padding: 0; min-width: 200px; }
+  .px-cloop__legrid li {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 3px 0; border-bottom: 1px solid var(--rule, var(--paper-2));
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft, var(--ink));
+  }
+  .px-cloop__legrid li span { color: var(--muted); }
+  .px-cloop__legrid li b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--accent-deep); }
+
+  /* mobile: bump SVG-unit type so rendered labels hold the 9.5px floor at 375px */
+  @media (max-width: 680px) {
+    .px-cloop__lbl { font-size: 17px; }
+    .px-cloop__stock, .px-cloop__val, .px-cloop__residlbl { font-size: 15px; }
+    .px-cloop__note { font-size: 13px; }
+    .px-cloop__key { font-size: 14px; }
+  }
+  @media (max-width: 440px) {
+    .px-cloop__lbl { font-size: 22px; }
+    .px-cloop__stock, .px-cloop__val, .px-cloop__residlbl { font-size: 21px; }
+    .px-cloop__note { font-size: 20px; }
+    .px-cloop__key { font-size: 18px; }
+  }
+
+  /* reduced motion: full loop, dashes as static directional stipple, residual full */
+  @media (prefers-reduced-motion: reduce) {
+    .px-cloop__box, .px-cloop__res, .px-cloop__band, .px-cloop__dash, .px-cloop__ahead,
+    .px-cloop__val, .px-cloop__note, .px-cloop__crescent, .px-cloop__residlbl { transition: none !important; }
+    html.js .px-viz.is-in .px-cloop__dash { animation: none !important; }
+    .px-viz:not(.is-in) .px-cloop__box { transform: none !important; }
+    .px-viz:not(.is-in) .px-cloop__res { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-cloop__band { opacity: 0.28 !important; }
+    .px-viz:not(.is-in) .px-cloop__dash { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-cloop__ahead { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-cloop__val,
+    .px-viz:not(.is-in) .px-cloop__note { opacity: 1 !important; transform: none !important; }
+    .px-viz:not(.is-in) .px-cloop__crescent { transform: none !important; opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-cloop__residlbl { opacity: 1 !important; }
+  }
+</style>

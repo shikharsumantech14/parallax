@@ -235,6 +235,84 @@ sections:
       caption: "Two hidden layers and 669,706 weights — everything this machine will ever know about handwriting."
       source: "LeCun et al., MNIST benchmark architecture"
 
+  - kind: packet-trace
+    eyebrow: "WHERE THE TIME GOES"
+    title: "Why a *Mumbai* request to Frankfurt takes 176 ms."
+    intro: "One real request's path drawn on the globe, locked above a budget bar that splits the round-trip into the speed-of-light floor (green) and everything routing, servers and handshakes add (pink)."
+    plain: "A globe with the request's route drawn as arcs, above a bar that splits the round-trip time into the speed-of-light minimum (green) and the delay that routing, servers and handshakes add (pink)."
+    skimCaption: "The physical minimum is ~75 ms; the round trip takes 176 ms — more than half the delay is overhead, not distance."
+    layout: wide
+    data:
+      caption: "The light floor is ~75 ms, but the round trip takes 176 ms — the distance is unavoidable; the rest is routing and handshakes."
+      source: "Illustrative traceroute; great-circle light floor computed from hop coordinates"
+      originLabel: "Mumbai user"
+      refractiveIndex: 1.468
+      loopMs: 4000
+      hops:
+        - { from: "Mumbai", fromLat: 19.08, fromLon: 72.88, to: "Marseille", toLat: 43.30, toLon: 5.37, rttMs: 96, kind: fiber, note: "SEA-ME-WE submarine cable" }
+        - { from: "Marseille", fromLat: 43.30, fromLon: 5.37, to: "Frankfurt", toLat: 50.11, toLon: 8.68, rttMs: 18, kind: fiber, note: "European backbone" }
+        - { from: "Frankfurt", fromLat: 50.11, fromLon: 8.68, to: "Frankfurt", toLat: 50.11, toLon: 8.68, rttMs: 62, kind: compute, note: "TLS handshake + DB query" }
+
+  - kind: queue-cliff
+    eyebrow: "THE CLIFF"
+    title: "Why you can't run the servers at *100%*."
+    intro: "Drag the offered load from calm to busy and watch the average wait stay flat, flat, flat — then go vertical as utilization nears full. The curve is the exact M/M/1 law, not a hand-drawn swoop."
+    plain: "One slider raises the load; the live curve shows the average wait staying flat until it snaps vertical near full capacity, with a readout of the exact multiplier, latency, and queue length."
+    skimCaption: "The utilization cliff made draggable — the tech desk's flagship interactive."
+    data:
+      muPerSec: 1000
+      startRho: 0.5
+      maxRho: 0.98
+      caption: "At 95% utilization the average request waits 20× longer than at 50% — same servers, five points more load."
+      source: "M/M/1 model · capacity from a representative 2025 load test"
+      annotations:
+        - { rho: 0.50, label: "normal day", tone: ok }
+        - { rho: 0.85, label: "peak hour", tone: hot }
+        - { rho: 0.95, label: "Black Friday", tone: hot }
+
+  - kind: chip-die
+    eyebrow: "THE FLOORPLAN"
+    title: "Where an *M1* actually spends its silicon."
+    intro: "Every tile is one functional block of the Apple M1 die, sized to its true share of the silicon — hover a tile to lift it and read its area. The 8-core GPU alone outweighs all eight CPU cores combined."
+    plain: "An exploded chip floorplan drawn to scale; each tile is one block of the chip, and its size on screen is its real share of the silicon."
+    skimCaption: "The 8-core GPU is the single largest block — bigger than the performance and efficiency CPU cores put together."
+    data:
+      chip: "Apple M1"
+      caption: "Apple M1 die floorplan · block areas from die-shot analysis"
+      source: "Estimated from published M1 die-shot annotations (Locuza / AnandTech), 2021"
+      blocks:
+        - { label: "GPU", count: 8, areaMm2: 30.5, group: compute, primary: true, note: "larger than every CPU core combined" }
+        - { label: "Performance cores", count: 4, areaMm2: 16.5, group: compute }
+        - { label: "System Level Cache", areaMm2: 13.0, group: memory, note: "8 MB shared" }
+        - { label: "Memory PHY", count: 2, areaMm2: 9.5, group: memory }
+        - { label: "I/O + fabric", areaMm2: 8.9, group: io }
+        - { label: "Display + ISP", areaMm2: 6.6, group: media }
+        - { label: "Neural Engine", count: 16, areaMm2: 6.0, group: compute }
+        - { label: "Efficiency cores", count: 4, areaMm2: 5.2, group: compute }
+        - { label: "SoC control + security", areaMm2: 5.0, group: other }
+        - { label: "Media engine", areaMm2: 4.0, group: media }
+
+  - kind: moore-ladder
+    eyebrow: "THE LAW"
+    title: "Moore's Law, drawn *straight*."
+    intro: "Fifty years of transistor counts on a base-2 log ruler, where the exponential becomes a straight climb and the fitted line states the doubling time."
+    plain: "Each dot is one chip at its year and transistor count, on a ruler where every step up means twice as many; the straight line is the steady doubling that turns the curve into a climb."
+    skimCaption: "From 2,300 to 57 billion transistors in fifty years — a straight line on a log ruler, doubling every ~2 years."
+    data:
+      yLabel: "transistors per chip"
+      fit: true
+      caption: "From 2,300 to 57 billion transistors in fifty years — a straight line on a log ruler."
+      source: "Manufacturer die specifications; Wikipedia transistor-count table, 2025"
+      points:
+        - { year: 1971, count: 2300, label: "4004" }
+        - { year: 1978, count: 29000, label: "8086" }
+        - { year: 1985, count: 275000, label: "386" }
+        - { year: 1993, count: 3100000, label: "Pentium" }
+        - { year: 2000, count: 42000000, label: "Pentium 4" }
+        - { year: 2008, count: 731000000, label: "Core i7" }
+        - { year: 2012, count: 1400000000, label: "Xeon" }
+        - { year: 2021, count: 57000000000, label: "M1 Max", highlight: true }
+
 sources:
   - id: "src-01"
     title: "GPQA: A Graduate-Level Google-Proof Q&A Benchmark"

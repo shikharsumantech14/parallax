@@ -102,6 +102,69 @@ sections:
         - { t: 360, label: "Backshell separation" }
         - { t: 417, label: "Wheels down · Jezero Crater" }
 
+  - kind: constellation-swarm
+    eyebrow: "THE MEGA-CONSTELLATION · CENSUS"
+    title: "Four shells, *4,408* craft, one operator."
+    intro: "Every dot is one Starlink Gen1 satellite on its real orbital shell — drag to orbit the swarm, scroll to zoom, hover any craft for its shell's altitude, tilt, and true count."
+    plain: "Each dot is one satellite at its real orbital shell around Earth; colour groups the four shells and the whole cloud is the constellation's true population, not a diagram of it."
+    skimCaption: "Starlink's first-generation architecture rendered as the census it is — 4,408 craft across four shells between 540 and 570 km, the space desk's mega-constellation hero component."
+    data:
+      caption: "4,408 craft in four shells between 540 and 570 km — a single operator's slice of low orbit."
+      source: "FCC filing SAT-MOD-20200417 · Starlink Gen1 architecture, April 2020"
+      epoch: "2026-06-04"
+      spin: true
+      shells:
+        - { name: "Starlink Gen1 · 53.0°", altKm: 550, inclDeg: 53.0, count: 1584, color: "#00d4ff" }
+        - { name: "Starlink Gen1 · 53.2°", altKm: 540, inclDeg: 53.2, count: 1584 }
+        - { name: "Starlink Gen1 · 70.0°", altKm: 570, inclDeg: 70.0, count: 720, color: "#ffb347" }
+        - { name: "Starlink Gen1 · 97.6°", altKm: 560, inclDeg: 97.6, count: 520, color: "#ffb347" }
+
+  - kind: lagrange-map
+    eyebrow: "THE LAGRANGE LANDSCAPE"
+    title: "Why a telescope can *park* in empty space."
+    intro: "The rotating-frame gravity-plus-spin terrain of the Sun–Earth system, with the five Lagrange points marked at their true geometry: three unstable saddles on the axis, two stable equilateral corners 60° off it."
+    data:
+      caption: "L2 sits 1.5 million km beyond Earth, a saddle in the rotating landscape where a telescope stays put."
+      source: "NASA/JPL Sun–Earth Lagrange geometry"
+      primary: { name: "Sun", mass: 332946 }
+      secondary: { name: "Earth", mass: 1 }
+      separationKm: 149600000
+      show: [L1, L2, L3, L4, L5]
+      markers:
+        - { at: L2, label: "JWST · Gaia" }
+        - { at: L1, label: "SOHO" }
+        - { at: L4, label: "Trojan asteroids" }
+
+  - kind: transfer-window
+    eyebrow: "THE LAUNCH WINDOW"
+    title: "Why Mars is only *reachable* every 26 months."
+    intro: "The Hohmann ellipse between Earth's and Mars's orbits, and the phase angle Mars must lead Earth by for the transfer to actually arrive — drag the scrubber to sweep Earth around its orbit and watch the window open and close."
+    data:
+      caption: "5.6 km/s and 259 days to Mars — but only if Mars leads Earth by 44°, which recurs every 780 days."
+      source: "Hohmann transfer, JPL heliocentric parameters"
+      distanceUnit: AU
+      central: { name: "Sun", mu: 1.327e11 }
+      from: { name: "Earth", radiusKm: 149600000, periodDays: 365.25 }
+      to: { name: "Mars", radiusKm: 227900000, periodDays: 686.98 }
+
+  - kind: eclipse-cone
+    eyebrow: "THE SHADOW GEOMETRY"
+    title: "Why totality is a *coincidence* and a near-miss."
+    intro: "The Sun–Moon–Earth shadow geometry drawn to true axial scale: the Moon's umbra cone tapers to a point 374,000 km away, and the Earth sits 384,000 km off — so totality is a knife-edge of orbital distance."
+    plain: "A shadow cone drawn from the Moon to its true tip length, with the Earth placed at its real fraction of that length — so you can see whether the shadow's point actually reaches us."
+    skimCaption: "An eclipse drawn to true axial scale: the Moon's umbra tapers to a point 374,000 km away while the Earth sits 384,000 km off, so the shadow's tip barely reaches — annular at mean distance, total only near perigee. The top-right inset shows the Sun and Moon at nearly the same apparent size, the coincidence that makes a total eclipse possible at all."
+    data:
+      source: { name: "Sun", radiusKm: 696000 }
+      occulter: { name: "Moon", radiusKm: 1737, distanceFromSourceKm: 149600000 }
+      target:
+        name: "Earth"
+        radiusKm: 6371
+        distanceFromOcculterKm: 384400
+        distanceRangeKm: [363300, 405500]
+      showPenumbra: true
+      caption: "The Moon's shadow tapers to a point 374,000 km away — and the Earth sits 384,000 km off. Totality only when the Moon rides closer than average."
+      sourceCite: "NASA eclipse geometry; lunar distance IMCCE"
+
   - kind: solar-system
     eyebrow: "THE FLAGSHIP · KEPLERIAN MAP"
     title: "The machine itself, running on *real* orbits."

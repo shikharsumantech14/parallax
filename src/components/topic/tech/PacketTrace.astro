@@ -1,0 +1,400 @@
+---
+/**
+ * PacketTrace (tech · FLAGSHIP) — "You can't beat physics; here is exactly how
+ * much slower than physics your request is." A single request told twice at
+ * once: a country-outline globe with the route drawn as great-circle arcs and
+ * packets running them as flowDash dots, locked above an SVG latency-budget bar
+ * that decomposes the round trip hop-by-hop against the speed-of-light floor
+ * (2·d / v_fiber). Lime = the physics you can't avoid; pink = the milliseconds
+ * humans added. Rendered lazily by the WebGL runtime (scene 'packet-trace');
+ * drag to spin the globe, hover a bar segment to light up that leg.
+ *
+ * Blueprint (the contract): docs/design/blueprints/tech/packet-trace.md.
+ * Math: src/scripts/viz3d/packet.ts (greatCircleKm / hopFloorMs / budget /
+ * layoutBar) + kepler.ts greatCircle() — the SAME pure functions compute the
+ * static flat-route fallback + the budget bar at build time, so the no-JS /
+ * reduced-motion / no-WebGL reader gets the identical decomposition. The
+ * component NEVER trusts an authored total: floor + measured are summed from
+ * `hops` here.
+ *
+ * data: { hops[]{from,fromLat,fromLon,to,toLat,toLon,rttMs,kind?,note?} (1–8),
+ *         originLabel?, refractiveIndex?, loopMs?, caption?, source? }
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { mesh as topomesh } from 'topojson-client';
+import { greatCircle } from '../../../scripts/viz3d/kepler';
+import { budget, layoutBar, cities, type Hop } from '../../../scripts/viz3d/packet';
+
+interface Props {
+  hops?: Hop[];
+  originLabel?: string;
+  refractiveIndex?: number;
+  loopMs?: number;
+  caption?: string;
+  source?: string;
+}
+const { hops = [], originLabel, refractiveIndex, loopMs, caption, source } = Astro.props;
+
+/* ── build-time guard: 1–8 hops (blueprint §3 / acceptance) ── */
+if (hops.length < 1 || hops.length > 8) {
+  throw new Error(`packet-trace: hops.length must be 1–8 (got ${hops.length}). See docs/design/blueprints/tech/packet-trace.md §3.`);
+}
+
+const n = typeof refractiveIndex === 'number' && refractiveIndex > 0 ? refractiveIndex : 1.468;
+const vacuum = n === 1.0;
+const b = budget(hops, n);
+const r0 = (x: number) => Math.round(x);
+const loopS = Math.round((typeof loopMs === 'number' ? Math.max(2000, Math.min(8000, loopMs)) : 4000) / 1000);
+
+/* ── the latency-budget bar (build-time SVG; IS its own no-JS fallback) ── */
+const BW = 720, BH = 132, BX0 = 96, WBAR = 600, BARY = 44, BARH = 34;
+const bar = layoutBar(b, BX0, WBAR);
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+
+/* ── flat-route fallback map (equirectangular; globe's print edition, §7) ── */
+const MW = 720, MH = 300;
+const px = (lon: number) => ((lon + 180) / 360) * MW;
+const py = (lat: number) => ((90 - lat) / 180) * MH;
+
+/* country outlines — world-atlas 110m mesh (same resolution the live globe
+   loads), one path, dateline-split, coords rounded (SVG-node budget §10). */
+const topo = JSON.parse(
+  readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-110m.json'), 'utf-8'),
+) as any;
+const bordersGeo = topomesh(topo, topo.objects.countries);
+function equirectLines(geo: any): string {
+  const lines: number[][][] = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
+  let d = '';
+  for (const line of lines) {
+    let started = false, plon = 0;
+    for (const c of line) {
+      const lon = c[0], lat = c[1];
+      if (started && Math.abs(lon - plon) > 180) started = false; // dateline break
+      const x = px(lon).toFixed(1), y = py(lat).toFixed(1);
+      d += (started ? 'L' : 'M') + x + ' ' + y;
+      started = true; plon = lon;
+    }
+  }
+  return d;
+}
+const countryPath = equirectLines(bordersGeo);
+
+/* great-circle arc paths (flat), split at the dateline */
+function arcPath(h: Hop): string {
+  const pts = greatCircle({ lat: h.fromLat, lon: h.fromLon }, { lat: h.toLat, lon: h.toLon }, 64);
+  let d = '', started = false, plon = 0;
+  for (const p of pts) {
+    if (started && Math.abs(p.lon - plon) > 180) started = false;
+    d += (started ? 'L' : 'M') + px(p.lon).toFixed(1) + ' ' + py(p.lat).toFixed(1);
+    started = true; plon = p.lon;
+  }
+  return d;
+}
+const mapArcs = hops.filter((h) => h.kind !== 'compute').map((h) => arcPath(h));
+const computeHops = hops.filter((h) => h.kind === 'compute');
+const cs = cities(hops, originLabel);
+
+/* ── legend rows (AT-readable data source; collapse past 5 hops, §7) ── */
+const legend = bar.segments.map((s) => ({
+  label: s.label,
+  measured: r0(s.measured),
+  floor: r0(s.floor),
+  overhead: r0(s.overhead),
+  kind: s.kind,
+  note: s.note,
+}));
+const showAll = legend.length <= 5;
+
+const payload = JSON.stringify({
+  hops, originLabel, refractiveIndex: n, loopMs,
+});
+const arrow = '→';
+---
+
+<div class="px-viz px-pkt" data-reveal>
+  {/* honesty core (blueprint §3): the floor/measured chip is ALWAYS present —
+     it does not depend on an authored caption; the vacuum chip rides with it. */}
+  <div class="px-viz__cap">
+    {caption && <span>{caption}</span>}
+    <b>floor = {r0(b.floorMs)} ms · measured {r0(b.measMs)} ms</b>
+    {vacuum && <b class="px-pkt__vac">vacuum floor (line-of-sight)</b>}
+  </div>
+
+  {/* ── the globe (WebGL, lazy) — fallback = flat equirectangular route map ── */}
+  <div
+    class="viz3d viz3d--pkt"
+    data-viz3d="packet-trace"
+    role="img"
+    aria-label={caption ? `Packet-trace globe: ${caption}` : 'Packet-trace globe with route arcs'}
+  >
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${MW} ${MH}`} preserveAspectRatio="xMidYMid meet">
+        {/* frame */}
+        <rect x="0.5" y="0.5" width={MW - 1} height={MH - 1} fill="none"
+          stroke="var(--ink)" stroke-width="1" opacity="0.14" />
+        {/* country coastlines — ink @ 0.42 */}
+        <path d={countryPath} fill="none" stroke="var(--ink)" stroke-width="0.7" opacity="0.42"
+          stroke-linejoin="round" stroke-linecap="round" />
+        {/* route arcs — accent @ 0.85 */}
+        {mapArcs.map((d) => (
+          <path d={d} fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.85"
+            stroke-linecap="round" stroke-linejoin="round" />
+        ))}
+        {/* compute-hop rings — accent-alt, static */}
+        {computeHops.map((h) => (
+          <circle cx={px(h.fromLon)} cy={py(h.fromLat)} r="6" fill="none"
+            stroke="var(--accent-alt)" stroke-width="1.6" opacity="0.9" />
+        ))}
+        {/* city nodes + labels — endpoints accent-alt, others ink */}
+        {cs.map((c) => (
+          <>
+            <circle cx={px(c.lon)} cy={py(c.lat)} r={c.origin || c.dest ? 4 : 3}
+              fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink)'}
+              opacity={c.origin || c.dest ? 1 : 0.9} />
+            <text x={px(c.lon) + 7} y={py(c.lat) - 5} style={MONO} font-size="9.5"
+              fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink-soft)'}
+              paint-order="stroke" stroke="var(--paper)" stroke-width="3"
+              letter-spacing="0.04em">{c.label}</text>
+          </>
+        ))}
+      </svg>
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to spin the globe</span>
+    {/* live-only time-compression honesty chip (real packets cross in ms) */}
+    <span class="px-pkt__loop" aria-hidden="true">packets ≈ {loopS}s / trip</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+  </div>
+
+  {/* ── the latency-budget bar (static build-time SVG; the honesty core) ── */}
+  <div class="px-pkt__barwrap">
+    <svg class="px-pkt__bar" viewBox={`0 0 ${BW} ${BH}`} preserveAspectRatio="xMidYMid meet"
+      role="img" aria-label={`Round-trip latency budget: ${r0(b.measMs)} ms measured, ${r0(b.floorMs)} ms physics floor, ${r0(b.overheadMs)} ms overhead`}>
+      {/* row label */}
+      <text x="8" y={BARY + BARH / 2 + 3} style={MONO} font-size="9.5" fill="var(--muted)"
+        letter-spacing="0.12em">ROUND TRIP</text>
+
+      {/* segments: lime floor portion + pink overhead portion */}
+      {bar.segments.map((s, i) => {
+        const wide = s.w >= 56;
+        const midx = s.x0 + s.w / 2;
+        const labelY = BARY + BARH + 16;
+        const cityLabel = wide ? s.label : '';
+        return (
+          <g class="px-pkt__seg" tabindex="0" role="img" data-hop={i}
+            aria-label={`${s.label}: ${r0(s.measured)} ms measured, floor ${r0(s.floor)} ms, ${r0(s.overhead)} ms overhead${s.note ? ', ' + s.note : ''}`}>
+            <title>{s.label} · {r0(s.measured)} ms · floor {r0(s.floor)} ms · +{r0(s.overhead)} ms{s.note ? ` · ${s.note}` : ''}</title>
+            {/* floor portion (physics you can't avoid) */}
+            {s.floorW > 0.3 && (
+              <rect class="px-pkt__floor" x={s.x0} y={BARY} width={s.floorW} height={BARH}
+                fill="var(--accent)" fill-opacity="0.30" style={`--d:${i * 60}ms`} />
+            )}
+            {/* overhead portion (the human tax) */}
+            {s.overheadW > 0.3 && (
+              <rect class="px-pkt__over" x={s.x0 + s.floorW} y={BARY} width={s.overheadW} height={BARH}
+                fill="var(--accent-alt)" fill-opacity="0.30" style={`--d:${400 + i * 60}ms`} />
+            )}
+            {/* divider between hop segments */}
+            {i < bar.segments.length - 1 && (
+              <line x1={s.x0 + s.w} y1={BARY} x2={s.x0 + s.w} y2={BARY + BARH}
+                stroke="var(--ink)" stroke-width="1" opacity="0.42" />
+            )}
+            {/* transparent hit target (full height, taller for touch) */}
+            <rect class="px-pkt__hit" x={s.x0} y={BARY - 18} width={s.w} height={BARH + 40} fill="transparent" />
+            {/* per-segment value + (wide) city label */}
+            <text class="px-pkt__val" x={midx} y={BARY + BARH / 2 + 3.5} text-anchor="middle"
+              style={MONO} font-size="10" fill="var(--accent-deep)" font-weight="600"
+              paint-order="stroke" stroke="var(--paper)" stroke-width="3">{r0(s.measured)} ms</text>
+            {cityLabel && (
+              <text x={midx} y={labelY} text-anchor="middle" style={MONO} font-size="9.5"
+                fill="var(--ink-soft)" letter-spacing="0.02em">{cityLabel}</text>
+            )}
+          </g>
+        );
+      })}
+
+      {/* the money mark — the physics floor line + label */}
+      <line class="px-pkt__floorline" x1={bar.floorLineX} y1={BARY - 8} x2={bar.floorLineX} y2={BARY + BARH + 6}
+        stroke="var(--ink)" stroke-width="1.4" opacity="0.7" />
+      <text class="px-pkt__floorlbl" x={bar.floorLineX} y={BARY - 12} text-anchor="middle"
+        style={MONO} font-size="9.5" fill="var(--ink)" letter-spacing="0.06em"
+        paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">PHYSICS FLOOR · {r0(b.floorMs)} ms</text>
+
+      {/* scale key: lime vs pink */}
+      <g style={MONO} font-size="9" fill="var(--muted)" letter-spacing="0.08em">
+        <rect x={BX0} y={BH - 12} width="10" height="8" fill="var(--accent)" fill-opacity="0.30" />
+        <text x={BX0 + 15} y={BH - 5}>physics floor</text>
+        <rect x={BX0 + 108} y={BH - 12} width="10" height="8" fill="var(--accent-alt)" fill-opacity="0.30" />
+        <text x={BX0 + 123} y={BH - 5}>overhead humans added</text>
+      </g>
+    </svg>
+  </div>
+
+  {/* legend / hop ledger — the AT-readable data source (collapse past 5, §7) */}
+  <div class={`px-pkt__legend${showAll ? '' : ' px-pkt__legend--collapsed'}`}>
+    <ul class="px-pkt__rows">
+      {legend.map((r, i) => (
+        <li class={`px-pkt__row${!showAll && i >= 5 ? ' px-pkt__row--extra' : ''}`}>
+          <span class="px-pkt__leg-name">{r.label}</span>
+          <span class="px-pkt__leg-meta">
+            {r.measured} ms · floor {r.floor} ms · {r.kind}{r.note ? ` · ${r.note}` : ''}
+          </span>
+        </li>
+      ))}
+    </ul>
+    {!showAll && (
+      <button type="button" class="px-pkt__more" aria-expanded="false">show all {legend.length} hops</button>
+    )}
+    <div class="px-pkt__sum">
+      Round trip · {r0(b.measMs)} ms measured · {r0(b.floorMs)} ms floor · {r0(b.overheadMs)} ms overhead
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+{/* bar⇄globe sync + legend disclosure. Hover/focus a bar segment → set
+    data-viz3d-state hop-<i> (runtime mirrors it into the scene's setState,
+    brightening that arc); leave/blur → clear. Zero new runtime code.
+    NOTE: this <script> lives AFTER the root </div> as a following sibling
+    (the SaveButton/StoryShare island pattern), so previousElementSibling
+    resolves to the .px-pkt root. Inside the root it would only see the
+    caption/globe/bar/legend children — none carry .px-pkt — and bail. */}
+<script is:inline>
+    (function () {
+      var root = document.currentScript && document.currentScript.previousElementSibling;
+      while (root && !(root.classList && root.classList.contains('px-pkt'))) {
+        root = root.previousElementSibling;
+      }
+      if (!root) { root = document.currentScript && document.currentScript.parentElement && document.currentScript.parentElement.querySelector('.px-pkt'); }
+      if (!root) return;
+      var mount = root.querySelector('[data-viz3d="packet-trace"]');
+      var segs = root.querySelectorAll('.px-pkt__seg');
+      function activate(el) {
+        var i = el.getAttribute('data-hop');
+        for (var k = 0; k < segs.length; k++) segs[k].classList.toggle('is-active', segs[k] === el);
+        for (var j = 0; j < segs.length; j++) segs[j].classList.toggle('is-dim', segs[j] !== el);
+        if (mount) mount.setAttribute('data-viz3d-state', 'hop-' + i);
+      }
+      function clear() {
+        for (var k = 0; k < segs.length; k++) segs[k].classList.remove('is-active', 'is-dim');
+        if (mount) mount.setAttribute('data-viz3d-state', 'clear');
+      }
+      for (var s = 0; s < segs.length; s++) {
+        var el = segs[s];
+        el.addEventListener('pointerenter', function () { activate(this); });
+        el.addEventListener('pointerleave', clear);
+        el.addEventListener('focus', function () { activate(this); });
+        el.addEventListener('blur', clear);
+      }
+      var more = root.querySelector('.px-pkt__more');
+      var legend = root.querySelector('.px-pkt__legend');
+      if (more && legend) {
+        more.addEventListener('click', function () {
+          legend.classList.remove('px-pkt__legend--collapsed');
+          more.setAttribute('aria-expanded', 'true');
+          more.style.display = 'none';
+        });
+      }
+    })();
+</script>
+
+<style>
+  .viz3d--pkt {
+    aspect-ratio: 720 / 400;
+    /* terminal background — the phosphor route reads as line-art over it */
+    background:
+      radial-gradient(ellipse 74% 66% at 50% 44%,
+        color-mix(in oklab, var(--accent) 6%, transparent), transparent 72%),
+      color-mix(in oklab, var(--paper) 82%, var(--bg));
+  }
+
+  /* live-only time-compression chip (top-right; the fallback never shows it) */
+  .px-pkt__loop {
+    position: absolute; top: 10px; right: 12px; z-index: 3; display: none;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    border: 1px solid var(--rule); border-radius: 999px; padding: 5px 10px;
+  }
+  .viz3d--live .px-pkt__loop { display: inline-block; }
+
+  /* ── the latency-budget bar ── */
+  .px-pkt__barwrap {
+    margin-top: 16px;
+    overflow-x: auto;          /* wide content scrolls inside its box, not the page */
+    -webkit-overflow-scrolling: touch;
+  }
+  .px-pkt__bar { width: 100%; min-width: 420px; height: auto; display: block; overflow: visible; }
+
+  .px-pkt__seg { cursor: pointer; }
+  .px-pkt__hit { cursor: pointer; }
+  .px-pkt__floor, .px-pkt__over {
+    transform-box: fill-box; transform-origin: left center;
+    transition: fill-opacity 140ms var(--ease), transform 400ms var(--ease);
+  }
+  /* hover/focus sync — active segment brightens, others dim (matches the globe) */
+  .px-pkt__seg.is-active .px-pkt__floor { fill-opacity: 0.5; }
+  .px-pkt__seg.is-active .px-pkt__over { fill-opacity: 0.5; }
+  .px-pkt__seg.is-active .px-pkt__val { fill: var(--accent); }
+  .px-pkt__seg.is-dim .px-pkt__floor,
+  .px-pkt__seg.is-dim .px-pkt__over { fill-opacity: 0.14; }
+  .px-pkt__seg:focus { outline: none; }
+  .px-pkt__seg:focus-visible .px-pkt__hit {
+    stroke: var(--accent-deep); stroke-width: 1.5; stroke-dasharray: 3 3;
+  }
+
+  /* html.js-gated reveal: floor portions grow first (scaleX 0→1), then the
+     overhead portions stack on (delayed), then the floor line + labels fade. */
+  html.js .px-viz:not(.is-in) .px-pkt__floor,
+  html.js .px-viz:not(.is-in) .px-pkt__over { transform: scaleX(0); }
+  html.js .px-viz:not(.is-in) .px-pkt__floorline,
+  html.js .px-viz:not(.is-in) .px-pkt__floorlbl { opacity: 0; }
+  .px-pkt__floor { transition-delay: var(--d, 0ms); }
+  .px-pkt__over { transition-delay: var(--d, 0ms); }
+  .px-pkt__floorline, .px-pkt__floorlbl { transition: opacity 300ms var(--ease) 720ms; }
+
+  /* ── hop ledger / legend ── */
+  .px-pkt__legend { margin-top: 16px; border-top: 1px solid var(--rule); padding-top: 12px; }
+  .px-pkt__rows { list-style: none; margin: 0; padding: 0; }
+  .px-pkt__row {
+    display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px dashed var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-pkt__leg-name { font-family: var(--font-mono); font-size: 11px; color: var(--ink); letter-spacing: 0.02em; }
+  .px-pkt__leg-meta {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.04em; color: var(--muted); text-align: right;
+  }
+  .px-pkt__sum {
+    margin-top: 12px; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.06em; color: var(--accent-deep); text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-pkt__more {
+    margin-top: 12px; font-family: var(--font-mono); font-size: 9.5px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep);
+    background: none; border: none; padding: 4px 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  html:not(.js) .px-pkt__more { display: none; }
+  html.js .px-pkt__legend--collapsed .px-pkt__row--extra { display: none; }
+
+  .px-pkt__vac { color: var(--accent-alt) !important; }
+
+  @media (max-width: 560px) {
+    .px-pkt__row { grid-template-columns: 1fr; gap: 2px; }
+    .px-pkt__leg-meta { text-align: left; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* composed still: bar fully painted, no grow/reveal transitions */
+    .px-viz:not(.is-in) .px-pkt__floor,
+    .px-viz:not(.is-in) .px-pkt__over { transform: scaleX(1) !important; }
+    .px-viz:not(.is-in) .px-pkt__floorline,
+    .px-viz:not(.is-in) .px-pkt__floorlbl { opacity: 1 !important; }
+    .px-pkt__floor, .px-pkt__over, .px-pkt__floorline, .px-pkt__floorlbl { transition: none !important; }
+  }
+</style>

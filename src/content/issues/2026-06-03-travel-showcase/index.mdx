@@ -276,6 +276,93 @@ sections:
       caption: "Leave Delhi at 08:00, land in San Francisco at 11:00 the same morning — 16½ hours aloft for a clock that barely moved, which is why the body lands ~13.5 hours out of phase."
       source: "Great-circle distance from airport coordinates; UTC offsets IST/PST."
 
+  - kind: city-grid
+    eyebrow: "COMPONENT · CITY-GRID"
+    title: "*Chicago* vs Boston — the shape of a street plan"
+    intro: "Two cities as street-orientation roses: each of 36 petals points along a compass bearing and its length is how much of that city's road length runs that way, normalised per city so shape is compared, not size. The Boeing order phi sums it up."
+    plain: "Each city is a compass wheel of 36 spokes; a longer spoke means more roads run that way. Chicago's surveyor grid collapses to a sharp cross; Boston's older tangle fans out to a near-circle."
+    skimCaption: "Grid vs tangle, read from the silhouette alone."
+    layout: wide
+    data:
+      caption: "Street-orientation roses, all mapped OSM road segments, 2019"
+      source: "Boeing (2019), Applied Network Science · OpenStreetMap"
+      cities:
+        - name: "Chicago"
+          subtitle: "surveyor grid · order phi high"
+          bins: [100, 9, 6, 4, 4, 5, 6, 7, 10, 96, 11, 6, 4, 4, 4, 5, 6, 9, 98, 10, 6, 4, 4, 4, 5, 6, 9, 92, 10, 6, 4, 4, 4, 5, 6, 8]
+        - name: "Boston"
+          subtitle: "organic footpath · order phi low"
+          bins: [34, 30, 41, 38, 29, 33, 45, 39, 31, 36, 42, 35, 28, 33, 40, 37, 30, 35, 38, 32, 44, 39, 30, 34, 41, 36, 29, 33, 43, 38, 31, 35, 40, 34, 28, 37]
+
+  - kind: altitude-oxygen
+    eyebrow: "COMPONENT · ALTITUDE-OXYGEN"
+    title: "The *thinning* air to Everest Base Camp"
+    intro: "Effective oxygen against altitude, with the nights the body pauses to acclimatize."
+    plain: "Height runs up the side; the column's width is the oxygen the air still carries there, and each teal tent is a night spent letting the body catch up."
+    data:
+      model: lapse
+      caption: "By Base Camp the air carries 10.7% effective oxygen — barely half of sea level — which is why the body needs those nights at Namche and Dingboche."
+      source: "Barometric model (geodesy §7); elevations from standard trek profiles."
+      stops:
+        - { name: "Lukla", elevM: 2860, nights: 1, note: "trailhead" }
+        - { name: "Namche Bazaar", elevM: 3440, nights: 2, note: "first acclimatization halt" }
+        - { name: "Dingboche", elevM: 4410, nights: 2, note: "second acclimatization halt" }
+        - { name: "Gorak Shep", elevM: 5160, nights: 1 }
+        - { name: "Everest Base Camp", elevM: 5360, nights: 0, note: "half the oxygen of the coast" }
+
+  - kind: season-wheel
+    eyebrow: "COMPONENT · SEASON-WHEEL"
+    title: "*Santorini's* year, and when to actually go"
+    intro: "A tilted dial of the whole year: twelve month-sectors, three rings — climate comfort, crowd level, price — with a scrubber to read any month."
+    plain: "The year runs clockwise from January; each month's three arcs are the weather, the crowds, and the prices — the best time to go is where the inner arc is full and the outer two are empty."
+    data:
+      place: "Santorini"
+      rings: [climate, crowd, price]
+      sweetSpot: [3, 4]
+      caption: "Santorini's sweet spot is April–May — warm, dry days before the July–August crush, with crowds and rates far below peak. August blazes on all three rings; winter empties out."
+      source: "Climate comfort derived from Hellenic National Meteorological Service normals for Thíra; crowd and price are normalised seasonal-demand indices from published Cyclades tourism-arrival and accommodation-rate patterns."
+      months:
+        - { climate: 0.45, crowd: 0.10, price: 0.20, label: "low season — many tavernas shut" }
+        - { climate: 0.45, crowd: 0.10, price: 0.20 }
+        - { climate: 0.55, crowd: 0.20, price: 0.30 }
+        - { climate: 0.70, crowd: 0.40, price: 0.45, label: "spring shoulder — the sweet spot" }
+        - { climate: 0.85, crowd: 0.60, price: 0.60 }
+        - { climate: 0.85, crowd: 0.80, price: 0.80 }
+        - { climate: 0.75, crowd: 0.95, price: 0.95, label: "peak — hot, full, priciest" }
+        - { climate: 0.72, crowd: 1.00, price: 1.00 }
+        - { climate: 0.85, crowd: 0.75, price: 0.70, label: "warm sea, easing crowds" }
+        - { climate: 0.75, crowd: 0.50, price: 0.45, label: "autumn shoulder" }
+        - { climate: 0.55, crowd: 0.20, price: 0.25 }
+        - { climate: 0.45, crowd: 0.15, price: 0.20 }
+
+  - kind: fare-terrain
+    eyebrow: "COMPONENT · FARE-TERRAIN"
+    title: "*When* to book, drawn as terrain"
+    intro: "Median fare against days-before-departure as a ridgeline — time runs left to right toward the flight, and the shaded gorge is the booking sweet-spot."
+    plain: "Each ridge is one route's fare as departure nears; higher ground means a pricier ticket, and the shaded valley is the window where fares bottom out."
+    layout: wide
+    data:
+      unit: "index"
+      caption: "Fares bottom out about four weeks before departure, then climb steeply — the last-minute seat costs more than double the sweet-spot fare."
+      source: "Illustrative median-fare index by advance-purchase window (100 = sweet-spot low); curve shape follows the documented advance-purchase pattern (CheapAir 'When to Book' airfare study)."
+      routes:
+        - label: "DEL → LHR"
+          highlight: true
+          points:
+            - { daysBefore: 120, fare: 128 }
+            - { daysBefore: 90,  fare: 120 }
+            - { daysBefore: 75,  fare: 115 }
+            - { daysBefore: 60,  fare: 110 }
+            - { daysBefore: 45,  fare: 104 }
+            - { daysBefore: 35,  fare: 100 }
+            - { daysBefore: 28,  fare: 98  }
+            - { daysBefore: 21,  fare: 101 }
+            - { daysBefore: 14,  fare: 112 }
+            - { daysBefore: 10,  fare: 126 }
+            - { daysBefore: 7,   fare: 148 }
+            - { daysBefore: 3,   fare: 182 }
+            - { daysBefore: 1,   fare: 210 }
+
 sources:
   - id: "src-geonames"
     title: "GeoNames Geographical Database — populated places"

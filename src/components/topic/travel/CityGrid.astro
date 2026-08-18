@@ -1,0 +1,301 @@
+---
+/**
+ * CityGrid (travel) — the street-orientation rose ("urban fingerprint").
+ *
+ * A city's road network drawn as a 36-petal polar histogram: each petal points
+ * along a compass bearing, its length = how much of the city's street length
+ * runs at that bearing (normalised per city so shape, not size, is compared).
+ * A gridded city (Chicago) collapses onto a sharp four-spoke cross; an organic
+ * one (Boston) fans into a near-circle. The reader reads the city's *plan* —
+ * surveyor or footpath — from the silhouette alone. The Boeing (2019)
+ * orientation-order score φ sums that up as one mono readout under each rose.
+ *
+ * Build-time static SVG (a printed plate) — zero runtime JS beyond the shared
+ * Reveal island. No-JS / reduced-motion: the final plate paints in full (every
+ * petal at length, rings, ticks, name, φ). Up to three cities side by side.
+ *
+ * data: { cities[]{ name, subtitle?, bins[36], orderScore? }, caption?, source? }
+ */
+interface City {
+  name: string;
+  subtitle?: string;
+  bins: number[];        // EXACTLY 36 non-negative values, one per 10° sector
+  orderScore?: number;   // optional 0–1 Boeing φ; computed if absent
+}
+interface Props {
+  cities: City[];
+  caption?: string;
+  source?: string;
+}
+const { cities = [], caption, source } = Astro.props;
+
+/* ── validation (build errors, per §3 + §11) ─────────────────────────────── */
+if (cities.length < 1 || cities.length > 3) {
+  throw new Error(
+    `city-grid: expected 1–3 cities, got ${cities.length}. The orientation-rose plate renders one to three cities side by side.`,
+  );
+}
+cities.forEach((c, i) => {
+  if (!Array.isArray(c.bins) || c.bins.length !== 36) {
+    throw new Error(
+      `city-grid: city "${c?.name ?? i}" has ${c?.bins?.length ?? 0} bins; the 36-bin rule requires EXACTLY 36 (one per 10° compass sector).`,
+    );
+  }
+});
+
+/* ── geometry (build-time, §4) ───────────────────────────────────────────── */
+const BOX = 412;          // single-rose viewBox width  (300 plot box + 56 margin ×2)
+const H = 380;            // viewBox height
+const CX = 206;           // rose centre x
+const CY = 190;           // rose centre y
+const R = 130;            // outer radius
+const RINGS = [0.33, 0.66, 1];               // guide rings (× R)
+const CARD_R = R + 18;                        // cardinal-tick radius
+
+// screen angle for bearing bin b (deg): bearing measured clockwise from north,
+// north = up → SVG angle = −90 + b·10  (0° = +x/east).
+const screenAngle = (b: number) => (-90 + b * 10) * (Math.PI / 180);
+const P = (cx: number, cy: number, ang: number, r: number): [number, number] => [
+  +(cx + r * Math.cos(ang)).toFixed(2),
+  +(cy + r * Math.sin(ang)).toFixed(2),
+];
+
+// Boeing (2019) orientation-order φ = 1 − ((H − ln4)/(ln36 − ln4))²  (§4).
+// High φ = low entropy = a grid; φ → 0 as bearings spread uniformly.
+function orderPhi(bins: number[]): number {
+  const total = bins.reduce((a, b) => a + b, 0);
+  if (total <= 0) return 0;
+  let H = 0;
+  for (const v of bins) {
+    const p = v / total;
+    if (p > 0) H -= p * Math.log(p);
+  }
+  const Hmax = Math.log(36);
+  const Hmin = Math.log(4);
+  const phi = 1 - Math.pow((H - Hmin) / (Hmax - Hmin), 2);
+  return Math.max(0, Math.min(1, phi));
+}
+
+const roses = cities.map((c) => {
+  const maxBin = Math.max(...c.bins, 0);
+  const petals = c.bins.map((v, b) => {
+    const len = maxBin > 0 ? (R * v) / maxBin : 0;    // §4 per-city normalisation
+    if (len <= 0.01) return null;                      // a zero bin draws nothing
+    const a1 = screenAngle(b) - (4 * Math.PI) / 180;   // 4° inset → 1px gap
+    const a2 = screenAngle(b) + (4 * Math.PI) / 180;
+    const [x1, y1] = P(CX, CY, a1, len);
+    const [x2, y2] = P(CX, CY, a2, len);
+    return { b, d: `M ${CX} ${CY} L ${x1} ${y1} A ${len.toFixed(2)} ${len.toFixed(2)} 0 0 1 ${x2} ${y2} Z` };
+  }).filter(Boolean) as { b: number; d: string }[];
+
+  const phi = Number.isFinite(c.orderScore as number)
+    ? Math.max(0, Math.min(1, c.orderScore as number))
+    : orderPhi(c.bins);
+
+  return { name: c.name, subtitle: c.subtitle, petals, pct: Math.round(phi * 100) };
+});
+
+// minor ticks: 30° multiples that are NOT cardinal (30,60,120,150,210,240,300,330)
+const MINOR = [30, 60, 120, 150, 210, 240, 300, 330];
+const CARDINALS = [
+  { label: 'N', bearing: 0 },
+  { label: 'E', bearing: 90 },
+  { label: 'S', bearing: 180 },
+  { label: 'W', bearing: 270 },
+];
+
+const multi = cities.length > 1;
+---
+
+<div class="px-viz px-cgrid" data-reveal>
+  {(caption || multi) && (
+    <div class="px-viz__cap">
+      {caption && <span>{caption}</span>}
+      {multi && <b>normalised per city</b>}
+    </div>
+  )}
+
+  <div class="px-cgrid__wrap">
+    <div class="px-cgrid__roses" data-n={cities.length}>
+      {roses.map((rose, ri) => (
+        <div class="px-cgrid__rose">
+          <svg
+            class="px-cgrid__svg"
+            viewBox={`0 0 ${BOX} ${H}`}
+            role="img"
+            aria-label={`${rose.name}: street-orientation rose, order ${rose.pct}%`}
+          >
+            {/* city name + subtitle */}
+            <text class="px-cgrid__name" x={CX} y={22} text-anchor="middle">{rose.name}</text>
+            {rose.subtitle && (
+              <text class="px-cgrid__sub" x={CX} y={38} text-anchor="middle">{rose.subtitle}</text>
+            )}
+
+            {/* guide rings */}
+            <g class="px-cgrid__rings">
+              {RINGS.map((k) => <circle class="px-cgrid__ring" cx={CX} cy={CY} r={(R * k).toFixed(2)} />)}
+            </g>
+
+            {/* minor 30° ticks on the outer ring */}
+            <g class="px-cgrid__minor">
+              {MINOR.map((deg) => {
+                const a = (-90 + deg) * (Math.PI / 180);
+                const [ix, iy] = P(CX, CY, a, R - 6);
+                const [ox, oy] = P(CX, CY, a, R);
+                return <line class="px-cgrid__mtick" x1={ix} y1={iy} x2={ox} y2={oy} />;
+              })}
+            </g>
+
+            {/* petals */}
+            <g class="px-cgrid__petals">
+              {rose.petals.map((p) => (
+                <path
+                  class="px-cgrid__petal"
+                  d={p.d}
+                  style={`transform-origin:${CX}px ${CY}px;transition-delay:${ri * 100 + p.b * 14}ms`}
+                />
+              ))}
+            </g>
+
+            {/* cardinal N/E/S/W ticks */}
+            <g class="px-cgrid__cards">
+              {CARDINALS.map((c) => {
+                const a = (-90 + c.bearing) * (Math.PI / 180);
+                const [tx, ty] = P(CX, CY, a, CARD_R);
+                return (
+                  <text class="px-cgrid__card" x={tx} y={ty} text-anchor="middle" dominant-baseline="central">{c.label}</text>
+                );
+              })}
+            </g>
+
+            {/* order φ readout */}
+            <text class="px-cgrid__phi" x={CX} y={358} text-anchor="middle">
+              <tspan class="px-cgrid__phi-l">ORDER φ </tspan><tspan class="px-cgrid__phi-v">{rose.pct}%</tspan>
+            </text>
+          </svg>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-cgrid { width: 100%; }
+
+  .px-cgrid__wrap { width: 100%; }
+
+  .px-cgrid__roses {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+  }
+
+  .px-cgrid__rose {
+    flex: 1 1 260px;
+    min-width: 0;
+    max-width: 412px;
+  }
+
+  .px-cgrid__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;          /* N/E/S/W ticks bleed into the label margin (§4) */
+  }
+
+  /* ── guide rings + minor ticks: support ink (CANON §6) ─────────────────── */
+  .px-cgrid__ring {
+    fill: none;
+    stroke: var(--ink);
+    stroke-opacity: 0.16;
+    stroke-width: 0.75;
+  }
+  .px-cgrid__mtick {
+    stroke: var(--ink);
+    stroke-opacity: 0.16;
+    stroke-width: 2;
+  }
+
+  /* ── petals: terracotta fill + accent-deep edge ────────────────────────── */
+  .px-cgrid__petal {
+    fill: var(--accent);
+    fill-opacity: 0.42;
+    stroke: var(--accent-deep, var(--accent));
+    stroke-opacity: 0.9;
+    stroke-width: 1;
+    stroke-linejoin: round;
+    /* resting = final painted state (no-JS safe) */
+    transform: none;
+    transform-box: view-box;
+    transition: transform 480ms var(--ease);
+  }
+
+  /* ── cardinal ticks: mono, ink @0.55 ───────────────────────────────────── */
+  .px-cgrid__card {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--ink);
+    fill-opacity: 0.55;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ── city name: Fraunces serif place-name voice ────────────────────────── */
+  .px-cgrid__name {
+    font-family: var(--issue-face, var(--font-display));
+    font-size: 16px;
+    font-weight: 600;
+    fill: var(--ink);
+    fill-opacity: 0.92;
+  }
+  .px-cgrid__sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    fill: var(--ink);
+    fill-opacity: 0.6;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── order φ readout: mono; value in accent-deep ───────────────────────── */
+  .px-cgrid__phi { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; }
+  .px-cgrid__phi-l { fill: var(--ink); fill-opacity: 0.6; text-transform: uppercase; }
+  .px-cgrid__phi-v { fill: var(--accent-deep, var(--accent)); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ── reveal (html.js-gated): rings fade, petals grow from centre, then
+        ticks / name / φ. Reduced-motion / no-JS = final plate. ───────────── */
+  html.js .px-viz:not(.is-in) .px-cgrid__petal { transform: scale(0); }
+  html.js .px-viz:not(.is-in) .px-cgrid__rings,
+  html.js .px-viz:not(.is-in) .px-cgrid__minor { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-cgrid__cards,
+  html.js .px-viz:not(.is-in) .px-cgrid__name,
+  html.js .px-viz:not(.is-in) .px-cgrid__sub,
+  html.js .px-viz:not(.is-in) .px-cgrid__phi { opacity: 0; }
+
+  .px-cgrid__rings, .px-cgrid__minor { transition: opacity 400ms var(--ease); }
+  .px-cgrid__cards, .px-cgrid__name, .px-cgrid__sub, .px-cgrid__phi {
+    /* fire after the last petal lands (≤1.32s worst case), full seq ≤1.6s */
+    transition: opacity 340ms var(--ease) 1200ms;
+  }
+
+  @media (max-width: 640px) {
+    /* roses stack one per row; label margin shrinks but ticks stay legible */
+    .px-cgrid__roses { flex-direction: column; align-items: center; gap: 34px; }
+    .px-cgrid__rose { flex: 1 1 auto; width: 100%; max-width: 340px; }
+    .px-cgrid__card { font-size: 9.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-cgrid__petal { transform: none !important; }
+    .px-viz:not(.is-in) .px-cgrid__rings,
+    .px-viz:not(.is-in) .px-cgrid__minor,
+    .px-viz:not(.is-in) .px-cgrid__cards,
+    .px-viz:not(.is-in) .px-cgrid__name,
+    .px-viz:not(.is-in) .px-cgrid__sub,
+    .px-viz:not(.is-in) .px-cgrid__phi { opacity: 1 !important; }
+  }
+</style>

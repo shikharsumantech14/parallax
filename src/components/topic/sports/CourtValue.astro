@@ -1,0 +1,624 @@
+---
+/**
+ * CourtValue (sports) — the spatial value SURFACE over a pitch/court.
+ *
+ * A penalty-box / half-court washed with filled contour bands of expected
+ * value (xG per shot location, eFG / points-per-shot across the floor), so the
+ * reader sees the GEOGRAPHY of a good chance — the heat map drawn as a contour
+ * map, "the elevation of danger" — with the raw shots optionally plotted on top.
+ *
+ * Tier: SVG, build-time only. The value field, the marching-squares contour
+ * extraction and the filled bands are all computed here in the frontmatter;
+ * the only client JS is the shared core/Reveal.astro island, and the only
+ * motion is CSS fill-opacity growth. Zero runtime compute, no three.js,
+ * no d3-contour (an inlined marching-squares routine is used — see §4 of the
+ * blueprint / the CONTOUR block below).
+ *
+ * No-JS / reduced-motion: the complete surface — bands, iso-lines, chalk court,
+ * peak marker + value label, in-SVG ramp legend, and (if enabled) the shot
+ * cloud — is painted in its FINAL state. The reveal only animates the growth of
+ * the band fill-opacity, and every hidden state is gated behind `html.js`.
+ * This IS the print plate.
+ *
+ * Coordinate convention (the ShotMap convention): shot x,y are 0–100 pitch
+ * coords — x toward goal (depth), y across — mapped into the selected surface's
+ * true metre bbox by (x·1.05, y·0.68) [a 105 m × 68 m pitch], then to px. The
+ * grid path and the shots path therefore place identically.
+ *
+ * data: CourtValueData (see the interface below).
+ */
+import { renderInline } from '../../../lib/text';
+
+interface CourtValueData {
+  surface?: 'football-box' | 'football-half' | 'basketball-half';
+  model: string;               // the value model NAMED (honesty)
+  valueLabel: string;          // what the contour value MEANS, ≤ 3 words
+  valueRange?: [number, number];
+  grid?: { cols: number; rows: number; values: number[] };
+  shots?: Array<{ x: number; y: number; value: number }>;
+  levels?: number[];
+  showShots?: boolean;
+  smoothed?: boolean;
+  caption?: string;
+  source?: string;
+}
+type Props = CourtValueData;
+
+const {
+  surface = 'football-box',
+  model,
+  valueLabel,
+  valueRange,
+  grid,
+  shots,
+  levels: levelsIn,
+  showShots = false,
+  smoothed: smoothedIn,
+  caption,
+  source,
+} = Astro.props;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const fmt = (v: number) => (Math.abs(v) < 1 && v !== 0 ? v.toFixed(2) : v.toFixed(v % 1 === 0 ? 0 : 2));
+
+// ── SURFACES ────────────────────────────────────────────────────────────────
+// Each surface declares its viewBox and the true metre bbox of the region, in
+// pitch metres (105 × 68 full pitch). `xm` = depth toward goal, `ym` = across.
+type Surface = {
+  W: number; H: number;
+  ymMin: number; ymMax: number;   // across metres (pitch y range shown)
+  xmMin: number; xmMax: number;   // depth metres (pitch x range shown), xmMax = goal line
+};
+const SURFACES: Record<string, Surface> = {
+  // 40 m wide × 30 m deep penalty-box third in front of one goal (goal @ 105 m).
+  'football-box':    { W: 620, H: 465, ymMin: 14, ymMax: 54, xmMin: 75,  xmMax: 105 },
+  // 68 m wide × 52.5 m deep attacking half (halfway line @ 52.5 m → goal @ 105 m).
+  'football-half':   { W: 560, H: 725, ymMin: 0,  ymMax: 68, xmMin: 52.5, xmMax: 105 },
+  // ~15.24 m wide × 14.33 m deep NBA half-court, expressed in the same metre frame.
+  'basketball-half': { W: 600, H: 564, ymMin: 26.4, ymMax: 41.6, xmMin: 90.7, xmMax: 105 },
+};
+const surf = SURFACES[surface] ?? SURFACES['football-box'];
+const { W, H } = surf;
+const across = surf.ymMax - surf.ymMin;   // metres across
+const depth  = surf.xmMax - surf.xmMin;   // metres deep
+
+// Plot area inside the viewBox (top margin holds the goal frame + peak label).
+const MT = 44, MSIDE = 18, MB = 18;
+const availW = W - 2 * MSIDE, availH = H - MT - MB;
+const s = Math.min(availW / across, availH / depth);   // isotropic px/metre
+const plotW = across * s, plotH = depth * s;
+const OX = MSIDE + (availW - plotW) / 2;                // plot origin x (centred)
+const OY = MT;                                          // plot origin y (goal line)
+
+// metre → px (goal line xmMax sits at the top, OY)
+const px = (ym: number) => OX + (ym - surf.ymMin) * s;
+const py = (xm: number) => OY + (surf.xmMax - xm) * s;
+// shot 0–100 pitch coords → metre
+const shotXm = (x: number) => x * 1.05;   // depth toward goal
+const shotYm = (y: number) => y * 0.68;   // across
+
+// ── DOMAIN ──────────────────────────────────────────────────────────────────
+// Build the raw sample list either from `shots` or from the `grid` cell values.
+const hasShots = Array.isArray(shots) && shots.length > 0;
+const hasGrid = !!grid && Array.isArray(grid.values) && grid.values.length > 0;
+// EXACTLY ONE of grid / shots — if both given, `grid` wins (pre-binned, honest).
+const useGrid = hasGrid;
+const smoothed = smoothedIn ?? (useGrid ? false : hasShots);   // sparse shots ⇒ smoothed
+
+// Grid resolution: GX across, GY ≈ square cells over the bbox.
+const GX = 40;
+const GY = Math.max(6, Math.round(GX * (plotH / plotW)));
+
+// Value domain.
+let rawMax = 0;
+if (useGrid) rawMax = Math.max(...grid!.values);
+else if (hasShots) rawMax = Math.max(...shots!.map((sh) => sh.value));
+const vMin = valueRange ? valueRange[0] : 0;
+const vMax = valueRange ? valueRange[1] : (rawMax > 0 ? rawMax : 1);
+
+// ── FIELD (clamped to [vMin, vMax] BEFORE contouring) ────────────────────────
+// Nadaraya–Watson kernel-weighted mean of nearby shots' value, Gaussian kernel,
+// bandwidth 6 m in surface metres. Cells with Σw < 0.01 held at the domain min
+// (no data ⇒ no phantom value). A directly-supplied grid is contoured as-is.
+const BW = 6;                       // kernel bandwidth, metres
+const TWO_BW2 = 2 * BW * BW;
+const field = new Float64Array(GX * GY);
+const weight = new Float64Array(GX * GY);   // Σw per cell (data density → peak tie-break)
+
+for (let j = 0; j < GY; j++) {
+  for (let i = 0; i < GX; i++) {
+    const idx = j * GX + i;
+    if (useGrid) {
+      // map our grid node onto the supplied grid (row 0 = goal line / top)
+      const c = Math.round((i / (GX - 1)) * (grid!.cols - 1));
+      const r = Math.round((1 - j / (GY - 1)) * (grid!.rows - 1));
+      const v = grid!.values[r * grid!.cols + c] ?? vMin;
+      field[idx] = clamp(v, vMin, vMax);
+      weight[idx] = 1;
+      continue;
+    }
+    // node metre position
+    const ym = surf.ymMin + (i / (GX - 1)) * across;
+    const xm = surf.xmMin + (j / (GY - 1)) * depth;
+    let sw = 0, swv = 0;
+    for (const sh of shots!) {
+      const dx = xm - shotXm(sh.x);
+      const dy = ym - shotYm(sh.y);
+      const w = Math.exp(-(dx * dx + dy * dy) / TWO_BW2);
+      sw += w; swv += w * sh.value;
+    }
+    weight[idx] = sw;
+    const v = sw < 0.01 ? vMin : swv / sw;
+    field[idx] = clamp(v, vMin, vMax);
+  }
+}
+
+// getV with a vMin border ring so every contour closes just inside/at the plot
+// edge (no open-boundary special-casing); anything drawn in the border ring is
+// removed by the plot clip.
+const getV = (i: number, j: number) =>
+  i < 0 || i >= GX || j < 0 || j >= GY ? vMin : field[j * GX + i];
+
+// px of a (possibly fractional) node index
+const nodeX = (fi: number) => OX + (fi / (GX - 1)) * plotW;
+const nodeY = (fj: number) => OY + plotH * (1 - fj / (GY - 1));
+
+// ── CONTOUR EXTRACTION — inlined marching squares (closed rings) ─────────────
+// corners c0=BL(i,j) c1=BR(i+1,j) c2=TR(i+1,j+1) c3=TL(i,j+1); above = v ≥ L.
+// index = c0 + 2·c1 + 4·c2 + 8·c3. Each case connects cell edges (0 bottom,
+// 1 right, 2 top, 3 left). Crossings are keyed by canonical grid-edge id so
+// adjacent cells stitch exactly (no float matching), then walked into loops.
+const CASES: number[][][] = [
+  [], [[3, 0]], [[0, 1]], [[3, 1]], [[1, 2]], [[3, 0], [1, 2]], [[0, 2]], [[3, 2]],
+  [[2, 3]], [[2, 0]], [[0, 1], [2, 3]], [[2, 1]], [[1, 3]], [[1, 0]], [[0, 3]], [],
+];
+
+function contourRings(L: number): [number, number][][] {
+  const pointOf = new Map<string, [number, number]>();
+  const segs: [string, string][] = [];
+
+  const edgeInfo = (edge: number, ci: number, cj: number): [string, [number, number]] => {
+    // returns [canonical key, px point] for a crossing on `edge` of cell (ci,cj)
+    let key = '', a = 0, b = 0, x = 0, y = 0;
+    if (edge === 0) {            // bottom c0-c1
+      a = getV(ci, cj); b = getV(ci + 1, cj);
+      const t = (L - a) / (b - a); key = `h${ci}_${cj}`;
+      x = nodeX(ci + t); y = nodeY(cj);
+    } else if (edge === 2) {     // top c3-c2
+      a = getV(ci, cj + 1); b = getV(ci + 1, cj + 1);
+      const t = (L - a) / (b - a); key = `h${ci}_${cj + 1}`;
+      x = nodeX(ci + t); y = nodeY(cj + 1);
+    } else if (edge === 3) {     // left c0-c3
+      a = getV(ci, cj); b = getV(ci, cj + 1);
+      const t = (L - a) / (b - a); key = `v${ci}_${cj}`;
+      x = nodeX(ci); y = nodeY(cj + t);
+    } else {                     // right c1-c2
+      a = getV(ci + 1, cj); b = getV(ci + 1, cj + 1);
+      const t = (L - a) / (b - a); key = `v${ci + 1}_${cj}`;
+      x = nodeX(ci + 1); y = nodeY(cj + t);
+    }
+    if (!pointOf.has(key)) pointOf.set(key, [x, y]);
+    return [key, [x, y]];
+  };
+
+  for (let cj = -1; cj < GY; cj++) {
+    for (let ci = -1; ci < GX; ci++) {
+      const v0 = getV(ci, cj), v1 = getV(ci + 1, cj);
+      const v2 = getV(ci + 1, cj + 1), v3 = getV(ci, cj + 1);
+      const idx = (v0 >= L ? 1 : 0) + (v1 >= L ? 2 : 0) + (v2 >= L ? 4 : 0) + (v3 >= L ? 8 : 0);
+      for (const [e1, e2] of CASES[idx]) {
+        const [k1] = edgeInfo(e1, ci, cj);
+        const [k2] = edgeInfo(e2, ci, cj);
+        if (k1 !== k2) segs.push([k1, k2]);
+      }
+    }
+  }
+
+  // stitch segments into closed rings by shared edge-keys
+  const byKey = new Map<string, number[]>();
+  segs.forEach(([k1, k2], si) => {
+    (byKey.get(k1) ?? byKey.set(k1, []).get(k1)!).push(si);
+    (byKey.get(k2) ?? byKey.set(k2, []).get(k2)!).push(si);
+  });
+  const used = new Set<number>();
+  const rings: [number, number][][] = [];
+  for (let si = 0; si < segs.length; si++) {
+    if (used.has(si)) continue;
+    used.add(si);
+    const [start, second] = segs[si];
+    const ring: [number, number][] = [pointOf.get(start)!, pointOf.get(second)!];
+    let node = second;
+    let guard = 0;
+    while (node !== start && guard++ < segs.length + 4) {
+      const cand = (byKey.get(node) ?? []).find((k) => !used.has(k));
+      if (cand === undefined) break;
+      used.add(cand);
+      const [a, b] = segs[cand];
+      const other = a === node ? b : a;
+      ring.push(pointOf.get(other)!);
+      node = other;
+    }
+    if (ring.length >= 3) rings.push(ring);
+  }
+  return rings;
+}
+
+const ringsToPath = (rings: [number, number][][]) =>
+  rings
+    .map((r) => 'M' + r.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L') + 'Z')
+    .join(' ');
+
+// ── LEVELS + BANDS ───────────────────────────────────────────────────────────
+// default = 5 evenly-spaced thresholds across the value domain.
+const levels = (levelsIn && levelsIn.length > 0
+  ? [...levelsIn].sort((a, b) => a - b)
+  : Array.from({ length: 5 }, (_, k) => vMin + ((k + 1) / 5) * (vMax - vMin))
+).filter((L) => L > vMin && L <= vMax);
+const nBands = levels.length;
+
+// Fixed single-hue volt ramp (NON-themeable data encoding, CANON §6): from
+// --paper-2 (turf) through --accent-deep to --accent (hot volt). Only intensity
+// carries value — never a rainbow. Colour interpolated across the three token
+// stops; opacities follow the declared reference ramp.
+const RAMP = ['var(--paper-2)', 'var(--accent-deep)', 'var(--accent)'];
+const OP_REF = [0.14, 0.30, 0.48, 0.68, 0.90];
+function bandColor(k: number) {
+  const t = nBands > 1 ? k / (nBands - 1) : 1;
+  const p = t * (RAMP.length - 1);
+  const seg = Math.min(RAMP.length - 2, Math.floor(p));
+  const f = p - seg;
+  return `color-mix(in oklab, ${RAMP[seg + 1]} ${Math.round(f * 100)}%, ${RAMP[seg]})`;
+}
+function bandOpacity(k: number) {
+  const t = nBands > 1 ? k / (nBands - 1) : 1;
+  const p = t * (OP_REF.length - 1);
+  const seg = Math.min(OP_REF.length - 2, Math.floor(p));
+  const f = p - seg;
+  return OP_REF[seg] + (OP_REF[seg + 1] - OP_REF[seg]) * f;
+}
+
+// Each band k = { v ≥ levels[k] } minus { v ≥ levels[k+1] }, drawn once as an
+// even-odd annulus (outer ring + inner ring hole) so band opacities never
+// compound. The last band has no hole. Rings clipped to the plot outline.
+const levelRings = levels.map((L) => contourRings(L));
+const bands = levels.map((L, k) => {
+  const outer = levelRings[k];
+  const inner = k < nBands - 1 ? levelRings[k + 1] : [];
+  return {
+    d: ringsToPath(outer) + (inner.length ? ' ' + ringsToPath(inner) : ''),
+    color: bandColor(k),
+    opacity: bandOpacity(k),
+    level: L,
+  };
+});
+
+// ── PEAK ──────────────────────────────────────────────────────────────────────
+// The hottest cell: max clamped value, ties → max data density (Σw). On a
+// weighted-mean surface this lands at the goalward HEART of the shot cloud —
+// where value is highest — not at a symmetric interior spot. Label = clamped
+// value, so it never reads above vMax.
+let peakIdx = 0, peakV = -Infinity, peakW = -Infinity;
+for (let idx = 0; idx < field.length; idx++) {
+  const v = field[idx], w = weight[idx];
+  if (v > peakV + 1e-9 || (Math.abs(v - peakV) < 1e-9 && w > peakW)) {
+    peakV = v; peakW = w; peakIdx = idx;
+  }
+}
+const pi = peakIdx % GX, pj = Math.floor(peakIdx / GX);
+const peakX = nodeX(pi), peakY = nodeY(pj);
+const peakLabel = `${valueLabel} ${fmt(peakV)}`;
+
+// ── SHOT OVERPLOT (≤ 400; the surface already encodes the rest) ──────────────
+const dots = (!useGrid && showShots && hasShots)
+  ? shots!.slice(0, 400).map((sh) => ({
+      x: clamp(px(shotYm(sh.y)), OX, OX + plotW),
+      y: clamp(py(shotXm(sh.x)), OY, OY + plotH),
+    }))
+  : [];
+
+// ── CHALK MARKINGS (per surface, drawn in metres → px) ───────────────────────
+// primitives: line | dot | arc (arcs sampled so anisotropy/roundness is exact).
+type Mark =
+  | { t: 'line'; x1: number; y1: number; x2: number; y2: number }
+  | { t: 'dot'; cx: number; cy: number; r: number }
+  | { t: 'arc'; d: string };
+
+function arcMetres(cym: number, cxm: number, rM: number, a0: number, a1: number, n = 28): string {
+  // centre in metres (across cym, depth cxm), radius metres, angles deg.
+  // point: across = cym + r·cosθ, depth = cxm + r·sinθ
+  const pts: string[] = [];
+  for (let k = 0; k <= n; k++) {
+    const th = ((a0 + (a1 - a0) * (k / n)) * Math.PI) / 180;
+    const ym = cym + rM * Math.cos(th);
+    const xm = cxm + rM * Math.sin(th);
+    pts.push(`${px(ym).toFixed(1)} ${py(xm).toFixed(1)}`);
+  }
+  return 'M' + pts.join(' L');
+}
+const cy0 = (surf.ymMin + surf.ymMax) / 2;   // pitch centre-line across metre (≈34)
+
+let marks: Mark[] = [];
+let goalPx: { l: number; r: number; y: number; top: number } | null = null;
+if (surface === 'basketball-half') {
+  // NBA half-court to real dims (feet→m): rim @ ~1.575 m from baseline,
+  // restricted-area r 1.22 m, key 4.9 m long × 4.88 m wide, FT circle r 1.83 m,
+  // 3-pt arc r 7.24 m (corners cut). Baseline = goal line (xmMax).
+  const base = surf.xmMax;
+  const rimXm = base - 1.575;
+  const keyBackXm = base - 5.8;      // key length ~5.8 m to FT line
+  const keyHalf = 2.44;              // key half-width
+  const arcR = 7.24;
+  marks = [
+    { t: 'line', x1: px(surf.ymMin), y1: py(base), x2: px(surf.ymMax), y2: py(base) },              // baseline
+    { t: 'line', x1: px(cy0 - keyHalf), y1: py(base), x2: px(cy0 - keyHalf), y2: py(keyBackXm) },   // key L
+    { t: 'line', x1: px(cy0 + keyHalf), y1: py(base), x2: px(cy0 + keyHalf), y2: py(keyBackXm) },   // key R
+    { t: 'line', x1: px(cy0 - keyHalf), y1: py(keyBackXm), x2: px(cy0 + keyHalf), y2: py(keyBackXm) }, // FT line
+    { t: 'arc', d: arcMetres(cy0, keyBackXm, 1.83, -180, 0) },                                      // FT circle top
+    { t: 'dot', cx: px(cy0), cy: py(rimXm), r: 3 },                                                 // rim
+    { t: 'arc', d: arcMetres(cy0, rimXm, arcR, -158, -22) },                                        // 3-pt arc
+  ];
+} else {
+  // football-box / football-half — FIFA-scale goal, 6-yard box, 18-yard box,
+  // penalty spot + arc, all centred on the pitch centre line.
+  const goalLine = surf.xmMax;
+  const goalHalf = 3.66;             // 7.32 m goal / 2
+  const sixHalf = 9.16, sixDeep = 5.5;
+  const boxHalf = 20.16, boxDeep = 16.5;
+  const spotXm = goalLine - 11;
+  const cy = clamp(cy0, surf.ymMin, surf.ymMax);
+  const cl = (ym: number) => clamp(ym, surf.ymMin, surf.ymMax);
+  marks = [
+    { t: 'line', x1: px(surf.ymMin), y1: py(goalLine), x2: px(surf.ymMax), y2: py(goalLine) },      // goal line
+    // 18-yard box
+    { t: 'line', x1: px(cl(cy - boxHalf)), y1: py(goalLine), x2: px(cl(cy - boxHalf)), y2: py(goalLine - boxDeep) },
+    { t: 'line', x1: px(cl(cy + boxHalf)), y1: py(goalLine), x2: px(cl(cy + boxHalf)), y2: py(goalLine - boxDeep) },
+    { t: 'line', x1: px(cl(cy - boxHalf)), y1: py(goalLine - boxDeep), x2: px(cl(cy + boxHalf)), y2: py(goalLine - boxDeep) },
+    // 6-yard box
+    { t: 'line', x1: px(cl(cy - sixHalf)), y1: py(goalLine), x2: px(cl(cy - sixHalf)), y2: py(goalLine - sixDeep) },
+    { t: 'line', x1: px(cl(cy + sixHalf)), y1: py(goalLine), x2: px(cl(cy + sixHalf)), y2: py(goalLine - sixDeep) },
+    { t: 'line', x1: px(cl(cy - sixHalf)), y1: py(goalLine - sixDeep), x2: px(cl(cy + sixHalf)), y2: py(goalLine - sixDeep) },
+    // penalty spot + arc (portion outside the box, i.e. depth < goalLine - boxDeep)
+    { t: 'dot', cx: px(cy), cy: py(spotXm), r: 2.6 },
+    { t: 'arc', d: arcMetres(cy, spotXm, 9.15, 216.9, 323.1) },
+  ];
+  // goal frame (posts extend up into the top margin — the net)
+  goalPx = { l: px(cl(cy - goalHalf)), r: px(cl(cy + goalHalf)), y: py(goalLine), top: py(goalLine) - 22 };
+}
+
+// ── LEGEND (in-SVG, lower-left ramp) ─────────────────────────────────────────
+const SW = 18, SH = 12, SG = 4, ROW = SH + SG;
+const LEG_TOP = 42;                       // title + domain line above the swatches
+const LEG_H = nBands * ROW + LEG_TOP + 6;
+const LEG_W = 158;
+const LX = OX + 6;
+const LY = OY + plotH - LEG_H - 6;
+const domLabel = `${fmt(vMin)}–${fmt(vMax)} ${valueLabel}`;
+// rows: highest band on top → lowest at bottom
+const legendRows = levels.map((L, k) => ({
+  color: bandColor(k),
+  opacity: bandOpacity(k),
+  label: fmt(L),
+  y: LY + LEG_TOP + (nBands - 1 - k) * ROW,
+}));
+
+// ── A11Y + META ───────────────────────────────────────────────────────────────
+const ariaLabel =
+  `${valueLabel} value surface from ${model}: brightest at ${fmt(peakV)} ${valueLabel} ` +
+  `at the goalward heart of the shot cloud, fading to ${fmt(vMin)} ${valueLabel} at the edges. ` +
+  `${nBands} contour value bands.`;
+const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
+const srcLine = source ? `${model} · ${source}` : model;
+---
+
+<div class="px-viz" data-reveal>
+  {caption && (
+    <div class="px-viz__cap"><span set:html={renderInline(caption)} /><b>court value</b></div>
+  )}
+
+  <div class="px-cval__chips">
+    <span class="px-cval__chip">{nBands} value bands</span>
+    {smoothed && <span class="px-cval__chip">kernel-smoothed</span>}
+    <span class="px-cval__chip px-cval__chip--dom">{fmt(vMin)}–{fmt(vMax)} {valueLabel}</span>
+  </div>
+
+  <div class="px-cval">
+    <svg
+      class="px-cval__svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={ariaLabel}
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={OX} y={OY} width={plotW} height={plotH} />
+        </clipPath>
+      </defs>
+
+      <!-- turf backing (lowest band = bare turf) -->
+      <rect class="px-cval__turf" x={OX} y={OY} width={plotW} height={plotH} rx="2" />
+
+      <!-- filled contour bands (clipped to the playing area) -->
+      <g clip-path={`url(#${clipId})`}>
+        {bands.map((b, k) => (
+          <path
+            class="px-cval__band"
+            d={b.d}
+            style={`fill:${b.color};--k:${k}`}
+            fill-opacity={b.opacity.toFixed(3)}
+            fill-rule="evenodd"
+          />
+        ))}
+
+        <!-- iso-lines: the contour line on each band boundary -->
+        {levelRings.map((rings) => (
+          <path class="px-cval__iso" d={ringsToPath(rings)} fill="none" />
+        ))}
+
+        <!-- shot overplot (the sample cloud under the surface) -->
+        {dots.map((d, i) => (
+          <circle class="px-cval__dot" cx={d.x.toFixed(1)} cy={d.y.toFixed(1)} r="2" style={`--i:${i}`} />
+        ))}
+      </g>
+
+      <!-- chalk pitch/court markings -->
+      <g class="px-cval__chalkset">
+        {marks.map((m, i) => (
+          m.t === 'line' ? (
+            <line class="px-cval__chalk" x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} pathLength="1" style={`--i:${i}`} />
+          ) : m.t === 'dot' ? (
+            <circle class="px-cval__spot" cx={m.cx.toFixed(1)} cy={m.cy.toFixed(1)} r={m.r} />
+          ) : (
+            <path class="px-cval__chalk" d={m.d} fill="none" pathLength="1" style={`--i:${i}`} />
+          )
+        ))}
+      </g>
+
+      <!-- goal frame (football surfaces) -->
+      {goalPx && (
+        <g class="px-cval__goal">
+          <line class="px-cval__post" x1={goalPx.l.toFixed(1)} y1={goalPx.y.toFixed(1)} x2={goalPx.l.toFixed(1)} y2={goalPx.top.toFixed(1)} />
+          <line class="px-cval__post" x1={goalPx.r.toFixed(1)} y1={goalPx.y.toFixed(1)} x2={goalPx.r.toFixed(1)} y2={goalPx.top.toFixed(1)} />
+          <line class="px-cval__post" x1={goalPx.l.toFixed(1)} y1={goalPx.top.toFixed(1)} x2={goalPx.r.toFixed(1)} y2={goalPx.top.toFixed(1)} />
+        </g>
+      )}
+
+      <!-- peak marker (the hottest spot, named — stamps last) -->
+      <g class="px-cval__peak" style={`transform-origin:${peakX.toFixed(1)}px ${peakY.toFixed(1)}px`}>
+        <line class="px-cval__cross" x1={(peakX - 6).toFixed(1)} y1={peakY.toFixed(1)} x2={(peakX + 6).toFixed(1)} y2={peakY.toFixed(1)} />
+        <line class="px-cval__cross" x1={peakX.toFixed(1)} y1={(peakY - 6).toFixed(1)} x2={peakX.toFixed(1)} y2={(peakY + 6).toFixed(1)} />
+        <text
+          class="px-cval__peaklbl"
+          x={clamp(peakX, OX + 30, OX + plotW - 30).toFixed(1)}
+          y={(peakY - 12 < OY + 8 ? peakY + 22 : peakY - 12).toFixed(1)}
+          text-anchor="middle"
+        >{peakLabel}</text>
+      </g>
+
+      <!-- in-SVG ramp legend (lower-left) -->
+      <g class="px-cval__legend">
+        <rect class="px-cval__legbg" x={LX - 6} y={LY - 4} width={LEG_W} height={LEG_H} rx="3" />
+        <text class="px-cval__legttl" x={LX} y={LY + 12}>{valueLabel} · {model}</text>
+        <text class="px-cval__legdom" x={LX} y={LY + 28}>{domLabel}</text>
+        {legendRows.map((r) => (
+          <>
+            <rect class="px-cval__legsw-bg" x={LX} y={r.y} width={SW} height={SH} rx="1.5" />
+            <rect x={LX} y={r.y} width={SW} height={SH} rx="1.5" style={`fill:${r.color}`} fill-opacity={r.opacity.toFixed(3)} />
+            <text class="px-cval__legval" x={LX + SW + 8} y={r.y + SH - 2}>{r.label}</text>
+          </>
+        ))}
+      </g>
+    </svg>
+  </div>
+
+  {(caption || source) && (
+    <div class="px-viz__src">{srcLine}</div>
+  )}
+</div>
+
+<style>
+  .px-cval { width: 100%; max-width: 640px; margin: 4px auto 0; }
+  .px-cval__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* ── data-flag chips (CANON §7 honesty) ─────────────────────────────── */
+  .px-cval__chips {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px;
+  }
+  .px-cval__chip {
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    background: color-mix(in oklab, var(--accent) 11%, transparent);
+    padding: 3px 9px; border-radius: var(--r-pill, 999px); white-space: nowrap;
+  }
+  .px-cval__chip--dom {
+    color: var(--muted);
+    background: color-mix(in oklab, var(--ink) 7%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── surface ────────────────────────────────────────────────────────── */
+  .px-cval__turf { fill: color-mix(in oklab, var(--ink) 4%, transparent); }
+
+  /* value bands — the fixed volt elevation ramp. Fill colour + fill-opacity
+     are presentation values (the FINAL plate); the reveal grows element
+     `opacity` 0→1 so the no-JS / reduced-motion state is the composed surface. */
+  .px-cval__band { opacity: 1; transition: opacity 480ms var(--ease, ease); }
+
+  /* iso-lines — the contour lines that make it read as a map, not a blur */
+  .px-cval__iso {
+    stroke: color-mix(in oklab, var(--ink) 22%, transparent);
+    stroke-width: 0.75; stroke-linejoin: round; opacity: 1;
+    transition: opacity 250ms var(--ease, ease);
+  }
+
+  /* shot cloud under the surface */
+  .px-cval__dot { fill: color-mix(in oklab, var(--ink) 50%, transparent); opacity: 1; }
+
+  /* chalk markings */
+  .px-cval__chalk, .px-cval__spot { stroke: color-mix(in oklab, var(--ink) 35%, transparent); }
+  .px-cval__chalk {
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none;
+  }
+  .px-cval__spot { fill: color-mix(in oklab, var(--ink) 35%, transparent); stroke: none; }
+  .px-cval__post { stroke: color-mix(in oklab, var(--ink) 90%, transparent); stroke-width: 2.4; stroke-linecap: round; }
+
+  /* peak marker — the verdict beat */
+  .px-cval__cross { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+  .px-cval__peaklbl {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; fill: var(--ink);
+    paint-order: stroke; stroke: var(--bg); stroke-width: 3.4px; stroke-linejoin: round;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* in-SVG legend */
+  .px-cval__legbg {
+    fill: color-mix(in oklab, var(--bg) 82%, transparent);
+    stroke: color-mix(in oklab, var(--ink) 14%, transparent); stroke-width: 0.75;
+  }
+  .px-cval__legttl {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; fill: var(--ink-soft);
+  }
+  .px-cval__legdom {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
+    fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-cval__legsw-bg { fill: color-mix(in oklab, var(--ink) 6%, transparent); }
+  .px-cval__legval {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
+    fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── REVEAL (gated behind html.js — no-JS paints the final plate) ──────── */
+  /* chalk sweep-draws (staggered), bands grow inner-last, iso + dots reveal,
+     peak stamps last. All initial/hidden states live behind html.js. */
+  html.js .px-viz:not(.is-in) .px-cval__chalk { stroke-dashoffset: 1; }
+  .px-cval__chalk { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 700ms var(--ease, ease); }
+  .px-viz.is-in .px-cval__chalk { transition-delay: calc(var(--i) * 40ms); }
+
+  html.js .px-viz:not(.is-in) .px-cval__band { opacity: 0; }
+  .px-viz.is-in .px-cval__band { transition-delay: calc(var(--k) * 60ms); }
+
+  html.js .px-viz:not(.is-in) .px-cval__iso { opacity: 0; }
+  .px-viz.is-in .px-cval__iso { transition-delay: 320ms; }
+
+  html.js .px-viz:not(.is-in) .px-cval__dot { opacity: 0; }
+  .px-cval__dot { transition: opacity 220ms var(--ease, ease); }
+  .px-viz.is-in .px-cval__dot { transition-delay: calc(360ms + var(--i) * 6ms); }
+
+  .px-cval__peak { transform: scale(1); transition: transform 220ms var(--ease-snap, ease-out), opacity 220ms var(--ease, ease); }
+  html.js .px-viz:not(.is-in) .px-cval__peak { transform: scale(0.4); opacity: 0; }
+  .px-viz.is-in .px-cval__peak { transition-delay: 900ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-cval__chalk { stroke-dashoffset: 0 !important; }
+    .px-cval__band, .px-cval__iso, .px-cval__dot { opacity: 1 !important; }
+    .px-cval__peak { transform: none !important; opacity: 1 !important; }
+  }
+
+  @media (max-width: 420px) {
+    .px-cval__dot { r: 1.5; }
+  }
+</style>

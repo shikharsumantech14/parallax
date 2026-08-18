@@ -24,9 +24,14 @@ Components split into:
 - **`topic/<topic>/`** — topic-signature components. One folder per topic.
   Each topic also has its own `<Topic>Index.astro` that drives
   `/topics/<topic>/`.
-- **`SectionRenderer.astro`** — the single dispatcher. Reads
-  `section.kind` from the issue MDX, renders the matching component, and
-  passes through the section's `data` payload.
+- **`SectionRenderer.astro`** — the article-chrome shell. Wraps a section in
+  `core/Section.astro` (numbering, eyebrow, `plain` line, skim caption) and
+  delegates the actual kind dispatch to `SectionBody.astro`.
+- **`SectionBody.astro`** — **the dispatcher** (since 2026-07-05). Reads
+  `section.kind`, renders the matching component, and passes through the
+  section's `data` payload. Shared with story mode, which renders bodies
+  without the article chrome — this is why the switch lives here.
+  **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
 **One 3-font type system (2026-06-21, supersedes per-topic display fonts).**
 The product now uses a single trio everywhere — **Fraunces** (serif: headlines,
@@ -44,12 +49,19 @@ this overrides the old §5 "Display labels: Cormorant Garamond" guidance).
 
 ## 2. Section-kind → component map
 
-**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**64 kinds**
-as of 2026-07-05 — 30 narrative/classic-viz kinds below + `act-break` + the
-33-kind v2 3D / interactive library in the block after the table; the "63"
-figure in older docs was wrong, verified against the array. The v2 block grew
-past 30 with `solar-system`, then `chamber` + `power-flow`). The catalog with
-per-kind usage rules is `docs/design/catalog.md`.
+**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**90 kinds**
+as of 2026-07-14 — 30 narrative/classic-viz kinds below + `act-break` + the
+**59-kind** v2 3D / interactive library in the block after the table; counted
+against the array, not from memory). The catalog with per-kind usage rules is
+`docs/design/catalog.md`, and `npm run check:catalog` now exists as a real
+gate: it enforces a 1:1 match between `SECTION_KINDS` and the catalog's `##`
+blocks, **in the same order**. A new kind that is missing from the catalog (or
+sitting in the wrong slot) fails that check.
+
+The v2 block grew in four waves: the original 30 (5 per world, 2026-06-03) →
++`solar-system` → +`chamber` / `power-flow` → the six WebGL world flagships
+(`terrain-relief`, `neural-flow`, `terminator-globe`, `flight-of-the-ball`
+joined `chamber` + `solar-system`) → the 2026-07-14 **breadth pass** (+22).
 
 **Dispatcher split (2026-07-05):** the kind → component switch lives in
 `src/components/SectionBody.astro` (no wrapper — shared with story mode);
@@ -106,16 +118,18 @@ a deliberate, documented break from the `px-` prefix convention — see the
 `html.js`-gated reveal contract, and which components were left on their
 `px-` classes.
 
-### v2 3D / interactive library (2026-06-03, extended 2026-07-05) — 33 kinds
+### v2 3D / interactive library (2026-06-03, extended 2026-07-05, breadth pass 2026-07-14) — 59 kinds
 
-These are the new interactive + 3D section kinds, all in the v2 design
-language (originally 5 per world; the flagship pass added `solar-system`,
-`chamber` and `power-flow`). **Six are lazy WebGL scenes** (Three.js —
-marked **WebGL** below); the rest are CSS-3D (perspective / `transform-3d`)
-or animated SVG/canvas. The full architecture — the `Viz3DRuntime` lazy-WebGL pattern,
-the shared `.px3d-*` CSS-3D mechanics, and the no-JS / reduced-motion
-contract — is documented in the new "3D / interactive component library"
-section (§10). Each component's per-component cosmetic CSS is a **scoped
+These are the interactive + 3D section kinds, all in the v2 design language
+(originally 5 per world; then the flagships; then the 22-kind breadth pass).
+**Fourteen are lazy WebGL scenes** (Three.js — marked **WebGL** below, and the
+only entries in `src/scripts/viz3d/scenes/index.ts`); the rest are CSS-3D
+(perspective / `transform-3d`), animated SVG/canvas, or — new with the breadth
+pass — **HTML-interactive** (build-time HTML paints the answer, a tiny island
+adds the control). The full architecture — the `Viz3DRuntime` lazy-WebGL
+pattern, the shared `.px3d-*` CSS-3D mechanics, and the no-JS / reduced-motion
+contract — is documented in the "3D / interactive component library" section
+(§10). Each component's per-component cosmetic CSS is a **scoped
 `<style>` in its own `.astro`** (unique `px-*` prefix — see §4); only the
 shared 3D mechanics + `.viz3d` mount live in `components-3d.css`. All take
 `caption?` + `source?` like the other viz, and all render a static
@@ -130,47 +144,101 @@ SVG/HTML fallback by default.
 | `margin-ladder` | `topic/politics/MarginLadder.astro` | politics | SVG/CSS-3D |
 | `chamber` | `topic/politics/Chamber.astro` | politics | **WebGL** (FLAGSHIP — instanced hemicycle + division walk; shared math `scripts/viz3d/hemicycle.ts`) |
 | `power-flow` | `topic/politics/PowerFlow.astro` | politics | SVG (build-time Sankey + flowDash) |
+| `coalition-calculus` | `topic/politics/CoalitionCalculus.astro` | politics | HTML-interactive (coalition builder vs the majority line) — **spread dispatch, see below** |
+| `gerrymander-lens` | `topic/politics/GerrymanderLens.astro` | politics | SVG (same votes, three maps, efficiency-gap counters) |
+| `ballot-flow` | `topic/politics/BallotFlow.astro` | politics | SVG (ranked-choice round transfers, flowDash) |
 | `orbit-globe` | `topic/space/OrbitGlobe.astro` | space | **WebGL** |
 | `solar-system` | `topic/space/SolarSystem.astro` | space | **WebGL** (FLAGSHIP — Keplerian; shared math `scripts/viz3d/kepler.ts`) |
 | `trajectory-arc` | `topic/space/TrajectoryArc.astro` | space | SVG/CSS-3D |
 | `delta-v-ladder` | `topic/space/DeltaVLadder.astro` | space | SVG/CSS-3D |
 | `signal-readout` | `topic/space/SignalReadout.astro` | space | SVG/canvas |
 | `descent-profile` | `topic/space/DescentProfile.astro` | space | SVG |
+| `constellation-swarm` | `topic/space/ConstellationSwarm.astro` | space | **WebGL** (instanced mega-constellation shells) |
+| `lagrange-map` | `topic/space/LagrangeMap.astro` | space | SVG (three-body effective-potential contour field) |
+| `transfer-window` | `topic/space/TransferWindow.astro` | space | SVG interactive (Hohmann Δv + phase scrubber) |
+| `eclipse-cone` | `topic/space/EclipseCone.astro` | space | SVG/CSS-3D (umbra/penumbra to scale) |
 | `data-globe` | `topic/earth/DataGlobe.astro` | earth | **WebGL** |
 | `core-sample` | `topic/earth/CoreSample.astro` | earth | CSS-3D |
 | `sea-level-tank` | `topic/earth/SeaLevelTank.astro` | earth | CSS-3D/SVG |
 | `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG/canvas |
 | `quake-depth` | `topic/earth/QuakeDepth.astro` | earth | SVG |
+| `terrain-relief` | `topic/earth/TerrainRelief.astro` | earth | **WebGL** (FLAGSHIP — real DEM ridgeline/contour; shared math `scripts/viz3d/terrain.ts`) |
+| `plate-motion` | `topic/earth/PlateMotion.astro` | earth | **WebGL** (plate velocity field from Euler poles; data `public/geo/plates.json`) |
+| `atmosphere-column` | `topic/earth/AtmosphereColumn.astro` | earth | SVG (barometric column to true altitude) |
+| `carbon-loop` | `topic/earth/CarbonLoop.astro` | earth | SVG (stock-and-flow cycle, conservation-checked at build time) |
+| `storm-track` | `topic/earth/StormTrack.astro` | earth | **WebGL** (cyclone best-track on the globe, Saffir–Simpson) |
 | `arch-stack` | `topic/tech/ArchStack.astro` | tech | CSS-3D |
 | `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | SVG |
 | `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG |
 | `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG |
 | `throughput-dial` | `topic/tech/ThroughputDial.astro` | tech | SVG/CSS-3D |
+| `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`) |
+| `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + SVG latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`) |
+| `queue-cliff` | `topic/tech/QueueCliff.astro` | tech | SVG interactive (M/M/1 utilization cliff, 1/(1−ρ)) |
+| `chip-die` | `topic/tech/ChipDie.astro` | tech | CSS-3D (exploded die floorplan, area ∝ real mm²) |
+| `moore-ladder` | `topic/tech/MooreLadder.astro` | tech | SVG (base-2 log doubling fit) |
 | `route-globe` | `topic/travel/RouteGlobe.astro` | travel | **WebGL** |
 | `elevation-trek` | `topic/travel/ElevationTrek.astro` | travel | SVG/CSS-3D |
 | `itinerary-reel` | `topic/travel/ItineraryReel.astro` | travel | CSS-3D |
 | `climate-calendar` | `topic/travel/ClimateCalendar.astro` | travel | SVG |
 | `timezone-arc` | `topic/travel/TimezoneArc.astro` | travel | SVG/CSS-3D |
+| `terminator-globe` | `topic/travel/TerminatorGlobe.astro` | travel | **WebGL** (FLAGSHIP — day/night line + flight arc; shared math `scripts/viz3d/terminator.ts`) |
+| `city-grid` | `topic/travel/CityGrid.astro` | travel | SVG (street-orientation polar histograms) — **hard-throws outside 1–3 cities, see below** |
+| `altitude-oxygen` | `topic/travel/AltitudeOxygen.astro` | travel | SVG (altitude vs breathable oxygen + landmarks) |
+| `season-wheel` | `topic/travel/SeasonWheel.astro` | travel | SVG (radial climate year) |
+| `fare-terrain` | `topic/travel/FareTerrain.astro` | travel | SVG (fare/price ridgeline across dates or routes) |
 | `tactics-pitch` | `topic/sports/TacticsPitch.astro` | sports | CSS-3D/SVG |
 | `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG |
 | `xg-race` | `topic/sports/XgRace.astro` | sports | SVG |
 | `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG |
 | `player-card` | `topic/sports/PlayerCard.astro` | sports | CSS-3D flip |
+| `flight-of-the-ball` | `topic/sports/FlightOfTheBall.astro` | sports | **WebGL** (FLAGSHIP — drag + Magnus trajectory; shared math `scripts/viz3d/ballistics.ts`) |
+| `elo-river` | `topic/sports/EloRiver.astro` | sports | SVG (rating streamgraph, braided season) |
+| `court-value` | `topic/sports/CourtValue.astro` | sports | SVG (value surface shaded over a pitch/court) |
+| `pace-ridge` | `topic/sports/PaceRidge.astro` | sports | SVG (ridgeline of a stat's distribution per group) |
 
-The six WebGL kinds (`coalition-orbit`, `orbit-globe`, `data-globe`,
-`route-globe`, `solar-system`, `chamber`) are the only section kinds that
-load Three.js, and only when scrolled into view — see §10. Per-kind `data`
-shapes are documented for issue authors in `src/content/issues/_AGENTS.md`;
-the six `2026-06-03-<world>-showcase` draft issues are the canonical worked
-examples.
+The **fourteen** WebGL kinds (`coalition-orbit`, `chamber`, `orbit-globe`,
+`solar-system`, `constellation-swarm`, `data-globe`, `terrain-relief`,
+`plate-motion`, `storm-track`, `neural-flow`, `packet-trace`, `route-globe`,
+`terminator-globe`, `flight-of-the-ball`) are the only section kinds that load
+Three.js, and only when scrolled into view — see §10. They are exactly the keys
+of the registry in `src/scripts/viz3d/scenes/index.ts`; that file is the
+check. Per-kind `data` shapes are documented for issue authors in
+`src/content/issues/_AGENTS.md`; the six `2026-06-03-<world>-showcase` draft
+issues are the canonical worked examples and now carry a worked section for
+every breadth kind in their world.
+
+#### Dispatch / authoring exceptions worth memorising
+
+- **`coalition-calculus` dispatches with a SPREAD.** Every other kind receives
+  named props read off `section.data`; this one reads **flat props** and is
+  wired as `<CoalitionCalculus {...data} />` in `SectionBody.astro`. Copying a
+  neighbouring dispatch line for it will silently render an empty component.
+- **Several breadth components hard-throw at build time on malformed data** —
+  a deliberate loud-failure choice, not a bug. Verified guards: `city-grid`
+  requires **1–3 cities** and **exactly 36 bins** per city; `season-wheel`
+  requires **exactly 12 months**; `altitude-oxygen` requires **2–8 stops**;
+  `fare-terrain` requires **1–5 routes** with **≥6 points each**;
+  `carbon-loop`, `chip-die`, `moore-ladder`, `gerrymander-lens`, `ballot-flow`
+  and `packet-trace` also validate and throw. `power-flow`'s conservation check
+  is the same pattern (§ change log 2026-07-05).
+- **`section.plain` is capped at 220 chars by Zod.** Overshooting breaks the
+  build. It explains the *form* of the viz, never the data.
 
 ---
 
 ## 3. Adding a new section kind — checklist
 
-A new component touches seven places (2026-07-05: +explainer, +catalog).
+A new component touches **nine** places (2026-07-05: +explainer, +catalog;
+2026-07-14: +scene registry for WebGL, +worked showcase example — the two the
+breadth pass kept catching).
 Miss one and the build either fails, silently renders nothing, or fails
-`npm run check:catalog` once that gate exists.
+`npm run check:catalog` — which enforces a 1:1, same-order match between
+`SECTION_KINDS` and the catalog blocks (90 ↔ 90 today). Note that
+`check:catalog` is a **manual** gate: `npm run build` runs only
+`design-sync.mjs --check`, so run the catalog check yourself after adding a
+kind. Item 8 (the scene registry) applies to WebGL kinds only; the other
+eight apply to every kind.
 
 1. **Add the kind name** to `SECTION_KINDS` in `src/content/config.ts`.
 2. **Create the component** at `src/components/<scope>/<Name>.astro` (scope
@@ -185,9 +253,14 @@ Miss one and the build either fails, silently renders nothing, or fails
 5. **Add the EXPLAIN entry** in `src/lib/explainers.ts` (what/how — feeds the
    in-flow "In plain terms" line AND the expand modal; blueprint §9 wording).
 6. **Add the catalog block** in `docs/design/catalog.md` (same order as
-   SECTION_KINDS).
+   SECTION_KINDS — `npm run check:catalog` fails otherwise).
 7. **Document it here** — add a row to §2 and any non-obvious rule. New v2
    kinds also need a blueprint (`docs/design/blueprints/<world>/<kind>.md`).
+8. **WebGL kinds only** — register the scene in
+   `src/scripts/viz3d/scenes/index.ts` (`'<kind>': { load: () => import('./<scene>') }`).
+   Omit this and the mount renders its static fallback forever, silently.
+9. **Add a worked section** to that world's `2026-06-03-<world>-showcase`
+   issue, so the kind has a live example to look at.
 
 For data viz components that emit SVG, follow the SVG conventions in §5.
 
@@ -229,7 +302,9 @@ Known reservations (still-live `px-` prefixes):
 | `px-hlens` | home hero (scoped in `home/HeroLens.astro`) — carries the ONE sanctioned cursor-parallax (HOME-SPEC §2) | |
 | `px-wire` | home wire strip (scoped in `home/WireStrip.astro`) | |
 | `px-fplate` | home featured plate (scoped in `home/FeaturedPlate.astro`) | |
-| `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | |
+| `px-wb` | WelcomeBack post-auth toast (scoped in `core/WelcomeBack.astro`) | mounted in `[slug].astro`; fires on `?welcome=1` |
+| `px-nnote` | NewsletterNotice home ribbon (scoped in `core/NewsletterNotice.astro`) | mounted above `<Masthead>` in `index.astro`; fires on `/?newsletter=confirmed` |
+| `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | `story/StoryCard.astro` composes `SectionBody` **except** for `kind: 'prose'`, which it skips entirely and renders as a pure-text card (`.pxs-card--text`) |
 | `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
 
 Retired prefixes (the v2 data-viz port replaced these with the kit's generic
@@ -251,11 +326,12 @@ code** — no element emits it — pending a future safe cleanup pass):
 | `px-pwm` | PowerMatrix | `.pm` |
 | `px-skim` | SkimToggle (component **deleted**) | — (skim toggle now lives in `core/ReadingToolbar.astro`) |
 
-**v2 3D / interactive library prefixes (2026-06-03).** Each of the 30 new
-components (§2 block + §10) owns a **component-scoped** `px-*` prefix — its
-cosmetic CSS lives in a scoped `<style>` inside that component's own `.astro`,
-not in the theme files. (The shared 3D mechanics + the WebGL mount keep the
-`.px3d-*` / `.viz3d*` namespaces in `components-3d.css`.)
+**v2 3D / interactive library prefixes (2026-06-03, extended through
+2026-07-14).** Each of the 59 library components (§2 block + §10) owns a
+**component-scoped** `px-*` prefix — its cosmetic CSS lives in a scoped
+`<style>` inside that component's own `.astro`, not in the theme files. (The
+shared 3D mechanics + the WebGL mount keep the `.px3d-*` / `.viz3d*`
+namespaces in `components-3d.css`.)
 
 | Prefix | Component | Prefix | Component |
 |---|---|---|---|
@@ -276,6 +352,29 @@ not in the theme files. (The shared 3D mechanics + the WebGL mount keep the
 | `px-tzarc` | TimezoneArc | `px-pcard` | PlayerCard |
 | `px-solsys` | SolarSystem | `px-chmbr` | Chamber |
 | `px-pflow` | PowerFlow | | |
+
+**WebGL world flagships** (four more beyond `chamber` / `solar-system`):
+
+| Prefix | Component | Prefix | Component |
+|---|---|---|---|
+| `px-trrlf` | TerrainRelief (earth) | `px-nflow` | NeuralFlow (tech) |
+| `px-tglobe` | TerminatorGlobe (travel) | `px-fball` | FlightOfTheBall (sports) |
+
+**Breadth pass (2026-07-14) — 22 kinds:**
+
+| Prefix | Component | Prefix | Component |
+|---|---|---|---|
+| `px-coalc` | CoalitionCalculus (politics) | `px-pkt` | PacketTrace (tech) |
+| `px-glens` | GerrymanderLens (politics) | `px-qc` | QueueCliff (tech) |
+| `px-bflow` | BallotFlow (politics) | `px-die` | ChipDie (tech) |
+| `px-cswrm` | ConstellationSwarm (space) | `px-mldr` | MooreLadder (tech) |
+| `px-lagr` | LagrangeMap (space) | `px-cgrid` | CityGrid (travel) |
+| `px-xwin` | TransferWindow (space) | `px-altox` | AltitudeOxygen (travel) |
+| `px-eclp` | EclipseCone (space) | `px-swheel` | SeasonWheel (travel) |
+| `px-plmot` | PlateMotion (earth) | `px-fterr` | FareTerrain (travel) |
+| `px-atmc` | AtmosphereColumn (earth) | `px-eriv` | EloRiver (sports) |
+| `px-cloop` | CarbonLoop (earth) | `px-cval` | CourtValue (sports) |
+| `px-storm` | StormTrack (earth) | `px-prdg` | PaceRidge (sports) |
 
 Because these are scoped to their `.astro`, they cannot collide with the
 global theme/`base.css`/`meta.css` namespaces — but the prefixes are still
@@ -384,15 +483,17 @@ These render directly in templates, not via the dispatcher:
 | `core/Hero.astro` | inline in `src/pages/issues/[slug].astro` |
 | `core/Primer.astro` | inline in `src/pages/issues/[slug].astro` |
 | `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` (floating glass pill: reading-progress bar + Full/Skim toggle + live % + read time + Save). Replaced the old `.px-reader-controls` row. |
-| `core/SaveButton.astro` | inside `core/ReadingToolbar.astro` |
+| `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`** — not mounted on the issue page directly. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
 | `core/AnnotationLayer.astro` | inline in `[slug].astro`, between article and ReactionsBar |
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
 | `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
-| `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) |
+| `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) — the **single** source every mount embeds (SubscribeStrip / Colophon / Footer / BeatJoin), so a change here covers all of them. POSTs to the app's `/api/join` (repointed from `/api/subscribe` on 2026-07-14) and handles the degraded `{ok:true, account:false}` response. **No-JS-gated:** the form is hidden behind `html:not(.js)` with an "Enable JavaScript to subscribe." line, because a no-JS submit used to do a native GET that put the reader's email in the URL, history and server logs. |
 | `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
 | `core/Banner.astro` | inline in `[slug].astro` (per-issue standing plate; carries the per-world register readout — telemetry orbit / atlas coords / build hash / vol-no / matchday — that the unified masthead no longer shows) |
 | `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
+| `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre glass toast fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
+| `core/NewsletterNotice.astro` | inline in `index.astro`, **above `<Masthead>`** — in-flow ribbon fired by `/?newsletter=confirmed`. Occupies no space until revealed, so no-JS / crawlers see nothing. Dismissible; cleans the URL. `px-nnote`. |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
 | `core/Colophon.astro` | in both layouts (editorial footer; replaced `core/Footer.astro`) |
 | `core/Reveal.astro` | both layouts, after content — scroll-reveal island (adds `.is-in` to `[data-reveal]`) |
@@ -431,7 +532,34 @@ experience.
 | `px-intro` | "The Second Angle" onboarding (scenes/player/controls, in `intro.css`) |
 | `px-xp` | home first-visit overlay + spotlight tour (`IntroExperience`, in `intro.css`) |
 | `px-gate` | ReadingGate (metered signup wall, scoped in `ReadingGate.astro`) |
+| `px-wb` | WelcomeBack (post-auth return toast on issues, scoped in `WelcomeBack.astro`) |
+| `px-nnote` | NewsletterNotice (home `?newsletter=confirmed` ribbon, scoped in `NewsletterNotice.astro`) |
 | `px-wj` / `px-abt` | now mainly serve AccountLine + About (the rest of the earlier welcome pass is retired) |
+
+### The funnel islands (2026-07-14)
+
+`WelcomeBack` and `NewsletterNotice` are the two loop-closing islands added by
+the P6.3 funnel pass. They follow the same `is:inline` +
+`previousElementSibling` pattern as the Phase-B islands, with three additions
+worth copying when you write the next one:
+
+- **Post-action, never content.** Both ship `hidden` and only reveal on a
+  query param. No JS / crawlers ⇒ nothing renders and nothing shifts —
+  `NewsletterNotice` sits above the masthead but occupies no space until shown.
+- **They clean up after themselves.** Each strips its own query param with
+  `history.replaceState` so a refresh or a shared link doesn't re-fire it.
+- **Auto-dismiss must not eat a control.** `WelcomeBack`'s 8s timer **pauses
+  on hover and focus**, because the toast carries the "Continue where you left
+  off ↓" resume link — a keyboard or screen-reader user would otherwise lose it
+  mid-reach. At ≤460px the toast uses a **definite** `width: calc(100vw - 24px)`
+  plus flex-wrap (shrink-wrapping made it 168px tall; the definite width gives
+  a ~73px two-row toast).
+
+The rest of the funnel — `core/AccountEntry.astro` (masthead "Sign in" ↔
+"Shelf" swap; `/api/me` is a **confirmer only, never a gatekeeper**) and
+`core/ReadingGate.astro` (benefit rows, `&world=` on the CTA, the
+sessionStorage `px_resume` scroll save) — already existed and was verified,
+not rebuilt.
 
 ### Client island pattern
 
@@ -489,8 +617,10 @@ just before the closing `</article>` tag. `AnnotationLayer.astro` and
 `ReactionsBar.astro` render **outside** the article, after it.
 
 **Orphaned/retired (2026-06-21).** An earlier "issue-like" onboarding pass is
-superseded by `intro/`: `intro/RegistrationMark.astro`, the
-`welcome/Beat*.astro` set, and most of `welcome/` are now unused. `welcome.css`
+superseded by `intro/`: the `welcome/Beat*.astro` set and most of `welcome/`
+are now unused. (`intro/` itself holds only `IntroExperience`, `IntroStory` and
+`WorldViz` — an earlier `RegistrationMark.astro` was deleted, not merely
+orphaned.) `welcome.css`
 survives only for `AccountLine` (`px-wj-join`, used on home + welcome) and the
 About `px-abt` / `px-wj-reg` bits.
 
@@ -576,19 +706,23 @@ future safe cleanup pass.
 
 ---
 
-## 10. 3D / interactive component library (2026-06-03)
+## 10. 3D / interactive component library (2026-06-03, current at 2026-07-14)
 
-The 30 v2 interactive kinds (§2 block) split into three implementation
-families. All three honour one shared no-JS / `prefers-reduced-motion`
-contract: **every component renders a static SVG/HTML fallback by default,
-and interactivity is layered on top only when JS runs and motion is
-allowed.** This is the same contract as `core/Reveal.astro` /
-`core/VizMotion.astro` and the v2 data-viz (§9).
+The 59 v2 interactive kinds (§2 block) split into implementation families.
+All honour one shared no-JS / `prefers-reduced-motion` contract: **every
+component renders a static SVG/HTML fallback by default, and interactivity is
+layered on top only when JS runs and motion is allowed.** This is the same
+contract as `core/Reveal.astro` / `core/VizMotion.astro` and the v2 data-viz
+(§9).
 
-### Family A — lazy WebGL scenes (Three.js): 4 kinds
+### Family A — lazy WebGL scenes (Three.js): 14 kinds
 
-`coalition-orbit`, `orbit-globe`, `data-globe`, `route-globe`. These are the
-**only** parts of the whole site that touch Three.js.
+`coalition-orbit`, `chamber`, `orbit-globe`, `solar-system`,
+`constellation-swarm`, `data-globe`, `terrain-relief`, `plate-motion`,
+`storm-track`, `neural-flow`, `packet-trace`, `route-globe`,
+`terminator-globe`, `flight-of-the-ball`. These are the **only** parts of the
+whole site that touch Three.js, and they are exactly the keys of the registry
+in `src/scripts/viz3d/scenes/index.ts`.
 
 - **Self-hosted Three.js.** `three` is an npm dependency (`npm i three`), not
   a CDN script. It is **dynamic-imported** (`import('three')`) inside
@@ -597,16 +731,34 @@ allowed.** This is the same contract as `core/Reveal.astro` /
   `[data-viz3d]` mount first scrolls into view** — never on the home page or
   any issue without a 3D section. The per-page hoisted runtime script is
   ~5 KB.
-- **Two source files.** `runtime.ts` owns the lifecycle (IntersectionObserver
-  to lazy-boot, DPR capped at ≤2, a render loop that **pauses when the mount
-  leaves the viewport** and **disposes on `pagehide`**, plus the no-WebGL /
-  reduced-motion bail). `scenes.ts` exports the `builders` registry, keyed by
-  the kind's `data-viz3d` type; each builder is
+- **Runtime + a per-scene lazy registry.** `runtime.ts` owns the lifecycle
+  (IntersectionObserver to lazy-boot, DPR capped at ≤2, a render loop that
+  **pauses when the mount leaves the viewport** and **disposes on `pagehide`**,
+  plus the no-WebGL / reduced-motion bail, plus the `setState` chip bridge).
+  `scenes/index.ts` exports the `builders` registry keyed by the kind's
+  `data-viz3d` type, one `{ load: () => import('./<scene>') }` line per scene
+  so **each scene is its own chunk**. Each builder is
   `(THREE, canvas, data, colors) => SceneHandle` and **takes `THREE` as a
   parameter** (it must never `import 'three'` itself, or three would leak into
   the eager bundle). Scene aesthetic is dot-matrix / wireframe / low-poly in
   the world's theme colours (read from CSS custom properties), to match the
   type-led, no-photo v2 look.
+- **Pure-math sidecars.** Heavier scenes keep their physics in a
+  three-free module beside the runtime, so the **same numbers** drive the
+  WebGL scene *and* the component's build-time fallback SVG:
+  `kepler.ts` (solar-system), `hemicycle.ts` (chamber), `terrain.ts`
+  (terrain-relief), `neural.ts` (neural-flow), `terminator.ts`
+  (terminator-globe), `ballistics.ts` (flight-of-the-ball), and `packet.ts`
+  (packet-trace — exports `budget` / `layoutBar` / `cities` / `meanHopLon` /
+  `Hop`, consumed by both `PacketTrace.astro` and `scenes/packetTrace.ts`).
+  Shared globe drawing lives in `scenes/globe.ts` (`dragController`, `latLon`,
+  `loadGeo`, `buildCountryGlobe`, `makeLabels`). `plate-motion` also reads a
+  checked-in data file, `public/geo/plates.json`.
+- **Globe seed-yaw convention — get this backwards and the scene opens on the
+  limb.** `globe.ts`'s basis is `th = (lon + 180)` with the camera on `+z`, so
+  to face longitude `cLon` set
+  `drag.s.yaw = -((cLon + 90) * Math.PI) / 180`. A stray `+180` there is the
+  classic bug: the globe boots showing the edge, not the subject.
 - **Mounted once per issue** via `core/Viz3DRuntime.astro` — a **bundled
   module `<script>`** (not `is:inline`, so Vite can process the dynamic
   import). `IssueLayout.astro` renders it once; if a page has no `[data-viz3d]`
@@ -618,7 +770,7 @@ allowed.** This is the same contract as `core/Reveal.astro` /
   `.viz3d--live` to the mount (CSS then hides the fallback), and runs the loop.
   No JS / no WebGL / reduced-motion ⇒ no canvas, no loop, the fallback stays.
 
-### Family B — CSS-3D: most of the remaining 26
+### Family B — CSS-3D
 
 Perspective + `transform-3d` via the shared mechanics in
 `src/styles/components-3d.css`:
@@ -636,12 +788,51 @@ Perspective + `transform-3d` via the shared mechanics in
   `0`). Reduced-motion resets `.px3d-tilt` / `.px3d-flip` to no transform in
   `components-3d.css`.
 
-### Family C — animated SVG / canvas: the rest
+Kinds: `swing-dial`, `bill-passage`, `margin-ladder`, `core-sample`,
+`arch-stack`, `chip-die`, `throughput-dial`, `itinerary-reel`, `player-card`,
+plus the SVG/CSS-3D hybrids (`trajectory-arc`, `delta-v-ladder`,
+`eclipse-cone`, `sea-level-tank`, `elevation-trek`, `timezone-arc`,
+`tactics-pitch`, `shot-map`).
 
-Reveal-on-scroll line draws, bars, dials, and area fills (e.g.
-`latency-waterfall`, `climate-spiral`, `shot-map`, `momentum-wave`). These
+### Family C — animated SVG / canvas: the largest family
+
+Reveal-on-scroll line draws, bars, dials, contour fields and area fills — the
+default for the breadth pass, which was SVG-first (`lagrange-map`,
+`atmosphere-column`, `carbon-loop`, `moore-ladder`, `city-grid`,
+`altitude-oxygen`, `season-wheel`, `fare-terrain`, `elo-river`, `court-value`,
+`pace-ridge`, `gerrymander-lens`, `ballot-flow`, alongside the older
+`latency-waterfall`, `climate-spiral`, `momentum-wave`, `xg-race`). These
 follow the §9 reveal contract: hidden states are **`html.js`-gated** (no JS ⇒
 final painted state) and reduced-motion resets to the final frame.
+
+### Family D — HTML-interactive (new 2026-07-14)
+
+Build-time HTML paints the *answer* in full; one tiny vanilla `is:inline`
+island unhides a control and re-scores. `coalition-calculus` is the reference
+implementation: the beam, majority line and verdict are static HTML in the
+preset state, the chip set ships `hidden`, and the ledger `<details>` ships
+`open` — the island unhides the chips and folds the ledger on boot. No-JS /
+crawlers therefore get the composed still **and** the full ledger. The
+scrubber-style SVG interactives (`transfer-window`, `queue-cliff`) work the
+same way. When you add one: **the no-JS state must be the finished answer,
+not an empty shell waiting for a click.**
+
+### Mobile chart legibility — an honest open residual
+
+The 2026-07-14 responsive pass fixed the one reproducible 375px overflow —
+data tables. In `dataviz-v2.css` (tail, `@media (max-width: 640px)`), `.lt`
+and `[class$="__table"]` become `display: block; overflow-x: auto` so rows
+scroll **within** their card; desktop is untouched (still `display: table`
+above 640px). Safety nets: `.px-viz { max-width: 100% }`,
+`.px-viz > * { min-width: 0 }`, `.px-ireel { overflow-x: clip }`.
+
+**Not fixed:** in-SVG fine print still renders at roughly 3.4–7px at a 375px
+viewport, because the SVG cards use a fixed `viewBox` with `width: 100%`.
+There is no clean blanket fix — a blanket `min-width` breaks the tall-narrow
+columns, discs and gauges. Today mobile legibility is carried by the **HTML**
+layer (the plain line, caption, and legends/tables at real px) plus the ⤢
+expand-modal study view. A per-component mobile-reflow round was scoped and
+**not** done; it is the obvious next move if small-screen charts matter.
 
 ### CSS ownership
 
@@ -655,14 +846,84 @@ final painted state) and reduced-motion resets to the final frame.
 ### Worked examples
 
 The six `src/content/issues/2026-06-03-<world>-showcase/index.mdx` draft
-issues each exercise that world's five new kinds end-to-end. They are
-`status: draft` — URL-viewable at `/issues/2026-06-03-<world>-showcase/` but
-unlisted (excluded from the archive + RSS). Data shapes for every kind are in
+issues each exercise that world's library kinds end-to-end — every breadth
+kind added on 2026-07-14 has a worked section appended to its world's
+showcase. They are `status: draft` — URL-viewable at
+`/issues/2026-06-03-<world>-showcase/` but unlisted (excluded from the archive
++ RSS), and therefore **they have no `/s/` story page** (story mode builds only
+for `status !== 'draft'`). Data shapes for every kind are in
 `src/content/issues/_AGENTS.md`.
 
 ---
 
 ## Change log
+
+### 2026-07-14 — P6 component breadth (+22 kinds), funnel islands, responsive pass
+
+**Everything below is in-repo and build-green, and all of it is UNCOMMITTED.**
+Nothing here has been committed, pushed or deployed; the operator does that.
+
+- **22 new section kinds** (`SECTION_KINDS` → **90**; `npm run check:catalog`
+  now passes 90 ↔ 90). Per world: earth `plate-motion` (WebGL),
+  `atmosphere-column`, `carbon-loop`, `storm-track` (WebGL); space
+  `constellation-swarm` (WebGL), `lagrange-map`, `transfer-window`,
+  `eclipse-cone`; politics `coalition-calculus`, `gerrymander-lens`,
+  `ballot-flow`; tech `packet-trace` (WebGL), `queue-cliff`, `chip-die`,
+  `moore-ladder`; travel `city-grid`, `altitude-oxygen`, `season-wheel`,
+  `fare-terrain`; sports `elo-river`, `court-value`, `pace-ridge`. Four new
+  scenes (`scenes/{plateMotion,stormTrack,constellationSwarm,packetTrace}.ts`),
+  one new pure-math sidecar (`viz3d/packet.ts`, shared by the component and
+  its scene), one new data file (`public/geo/plates.json`). Every component
+  browser-verified on desktop and at 375px.
+- **The file was also 4 kinds stale before this pass** — the WebGL world
+  flagships `terrain-relief`, `neural-flow`, `terminator-globe` and
+  `flight-of-the-ball` had shipped without ever reaching §2/§10. They are
+  documented now; the library block is **59 kinds**, of which **14 are WebGL**
+  (was documented as 33 / 6).
+- **Two dispatch traps recorded (§2).** `coalition-calculus` is the one kind
+  dispatched with a **spread** — `<CoalitionCalculus {...data} />`, flat props,
+  not `section.data` fields. And several breadth components **hard-throw at
+  build time** on malformed data by design (`city-grid` 1–3 cities × exactly
+  36 bins; `season-wheel` exactly 12 months; `altitude-oxygen` 2–8 stops;
+  `fare-terrain` 1–5 routes × ≥6 points).
+- **§3 checklist is now nine steps** — the scene registry
+  (`scripts/viz3d/scenes/index.ts`, WebGL only) and a worked showcase example
+  are explicit, because those were the two the breadth pass kept catching.
+  Also: `section.plain` is Zod-capped at **220 chars**; overshooting breaks the
+  build.
+- **New Family D — HTML-interactive (§10).** Build-time HTML paints the
+  finished answer; a tiny island unhides the control.
+  `coalition-calculus` is the reference (chips ship `hidden`, ledger ships
+  `open`, island inverts both on boot), with `transfer-window` and
+  `queue-cliff` as SVG-scrubber siblings.
+- **Funnel islands (§7, §8).** New `core/WelcomeBack.astro` (`px-wb`, mounted
+  in `[slug].astro`) — post-auth `?welcome=1` toast with a `px_resume` scroll
+  resume and an 8s auto-dismiss that **pauses on hover/focus**. New
+  `core/NewsletterNotice.astro` (`px-nnote`, mounted **above `<Masthead>`** in
+  `index.astro`) — the `?newsletter=confirmed` ribbon. Both stay `hidden`
+  under no-JS and strip their own query param.
+  `core/SaveButton.astro` (which mounts **inside `ReadingToolbar`**, not on the
+  page) gained the "Save to your shelf" signed-out label, `&world=` on the
+  login URL, and a fading first-save microline.
+  `core/NewsletterForm.astro` repointed `/api/subscribe` → **`/api/join`** and
+  is now **no-JS-gated** behind `html:not(.js)` — a no-JS submit previously did
+  a native GET that leaked the reader's email into the URL, history and server
+  logs. It is the single embedded source for every newsletter mount.
+  `core/AccountEntry.astro` + `core/ReadingGate.astro` already existed and were
+  verified, not rebuilt.
+- **Responsive pass + an honest residual (§10).** The real 375px overflow was
+  data tables: `.lt` / `[class$="__table"]` now scroll inside their card below
+  640px. **Still unfixed:** in-SVG fine print renders ~3.4–7px at 375px
+  (fixed `viewBox` + `width: 100%`, and a blanket `min-width` breaks the
+  tall-narrow forms). Mobile legibility rests on the HTML layer + the ⤢ modal.
+  A per-component reflow round was offered and **not** done.
+- **Story mode (§4).** `story/StoryCard.astro` now skips `SectionBody`
+  entirely for `kind: 'prose'` and renders a pure-text card
+  (`.pxs-card--text`); `story.css` hides each beat's own `__cap` / `__src`
+  chrome inside a story card (the beat text is the title, the CTA carries the
+  sources). Residual: text-heavy narrative kinds still rely on the
+  spec-sanctioned 62dvh internal scroller — the real fix is an authored
+  `story:` block, an editorial act rather than a code gap.
 
 ### 2026-07-05 — politics flagships: `chamber` + `power-flow`
 
@@ -727,9 +988,8 @@ unlisted (excluded from the archive + RSS). Data shapes for every kind are in
   localStorage `px_intro_seen_v1`, `?intro=1` replays), `WorldViz` (per-category
   mini data-viz). `welcome.astro` rebuilt as a standalone story; `index.astro`
   mounts the overlay. No-JS / reduced-motion safe.
-- **Retired/orphaned (§7).** `intro/RegistrationMark.astro` + the earlier
-  `welcome/Beat*.astro` issue-like pass are now unused; `welcome.css` survives
-  only for AccountLine + About.
+- **Retired/orphaned (§7).** The earlier `welcome/Beat*.astro` issue-like pass
+  is now unused; `welcome.css` survives only for AccountLine + About.
 - **Metered signup gate (§7).** New `core/ReadingGate.astro` (`px-gate`),
   mounted in `[slug].astro` — soft wall after primer + first 2 sections;
   client-side cookie auth heuristic; no-JS / crawlers render the full article

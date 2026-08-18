@@ -1,0 +1,347 @@
+---
+/**
+ * AtmosphereColumn (earth · CSS-3D) — the air overhead drawn to scale as a
+ * standing column. Atmospheric layers stacked by true altitude, the barometric
+ * pressure curve falling away up the right side, and the heights the reader
+ * knows (Everest, an airliner, the Kármán line) pinned at their real altitudes.
+ * A field-notebook plate that stands up: "how thin the breathable part is."
+ *
+ * Blueprint (the contract): docs/design/blueprints/earth/atmosphere-column.md.
+ * Everything is build-time SVG — no canvas, no fetch, no per-frame compute. The
+ * only 3-D is a ≤6° pointer-tilt via core/Tilt.astro (data-tilt); no-JS +
+ * reduced-motion leave the plate flat and fully painted (the composed still IS
+ * the print frame — every slab / curve / pin / label is real text in the DOM).
+ *
+ * Physics mirrors geodesy §7 1:1:
+ *   isothermal   P(h) = P0·exp(−h/H),  H = 8.4 km
+ *   lapse (≤11)  T = T0 − Γ·h (Γ=6.5, T0=288);  P = P0·(T/T0)^5.256
+ *   O₂_eff(h)    = 21% · P(h)/P0
+ * The printed O₂ value uses the SAME model that draws the curve (never mixed).
+ *
+ * data: { maxAlt_km?, model?, landmarks?[{name, alt_km, note?}], showOxygen?,
+ *         logAlt?, caption?, source? (REQUIRED) }
+ */
+interface Landmark { name: string; alt_km: number; note?: string; }
+interface Props {
+  maxAlt_km?: number;
+  model?: 'lapse' | 'isothermal';
+  landmarks?: Landmark[];
+  showOxygen?: boolean;
+  logAlt?: boolean;
+  caption?: string;
+  source?: string;
+}
+const {
+  maxAlt_km, model: modelProp, landmarks = [], showOxygen = true,
+  logAlt = false, caption, source,
+} = Astro.props;
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/* ── canvas geometry (blueprint §4) ─────────────────────────────────────── */
+const W = 560, H = 640;
+const MARGIN_TOP = 28, PLOT_H = 584;
+const COL_X0 = 140, COL_W = 180;
+const CURVE_X0 = COL_X0 + COL_W + 8;     // 328 — pressure grows rightward from here
+const CURVE_W = 150;
+const GROUND_Y = MARGIN_TOP + PLOT_H;    // 612
+
+const maxAlt = clamp(maxAlt_km ?? 100, 12, 600);
+
+/* model: explicit prop wins; else lapse for troposphere-only stories (≤12 km),
+   isothermal for whole-column framing (geodesy §7). */
+const model: 'lapse' | 'isothermal' = modelProp ?? (maxAlt <= 12 ? 'lapse' : 'isothermal');
+
+/* ── altitude axis: true-linear by default; log only when asked (§4/§7) ──── */
+const yAlt = (alt: number) => {
+  const a = clamp(alt, 0, maxAlt);
+  const f = logAlt
+    ? Math.log10(1 + a) / Math.log10(1 + maxAlt)
+    : a / maxAlt;
+  return MARGIN_TOP + (1 - f) * PLOT_H;
+};
+
+/* ── barometric pressure / effective oxygen (geodesy §7) ────────────────── */
+const P0 = 1013.25, H_SCALE = 8.4, T0 = 288, LAPSE = 6.5;
+const pressure = (h: number): number => {
+  if (model === 'lapse') {
+    /* lapse is only physical in the troposphere (T>0 ⇒ h<44.3 km); above that
+       T0−Γh goes ≤0 and a fractional power of a negative base is NaN, which
+       would poison the curve `d` and the O₂ readouts. An explicit
+       model:'lapse' on a tall column (which the blueprint warns against) must
+       degrade gracefully, so floor T to a tiny positive value — the curve then
+       hugs P≈0 at those heights instead of emitting NaN coordinates. */
+    const T = Math.max(T0 - LAPSE * h, 1e-3);
+    return P0 * Math.pow(T / T0, 5.256);
+  }
+  return P0 * Math.exp(-h / H_SCALE);
+};
+const o2eff = (h: number) => 21 * (pressure(h) / P0);
+const xPress = (p: number) => CURVE_X0 + (p / P0) * CURVE_W;
+
+/* ── layer slabs — only those the column actually reaches (§4) ───────────── */
+const LAYER_DEFS: Array<[string, number, number]> = [
+  ['TROPOSPHERE', 0, 12],
+  ['STRATOSPHERE', 12, 50],
+  ['MESOSPHERE', 50, 85],
+  ['THERMOSPHERE', 85, 600],
+];
+const layers = LAYER_DEFS
+  .filter(([, base]) => base < maxAlt)
+  .map(([name, base, top], i) => {
+    const dtop = Math.min(top, maxAlt);
+    const yTop = yAlt(dtop);
+    const yBase = yAlt(base);
+    const range = top <= maxAlt ? `${base}–${top} km` : `${base} km+`;
+    // label sits just inside the slab's top edge, clamped above its own base
+    const labelY = Math.min(yTop + 14, yBase - 6);
+    return { name, base, dtop, yTop, h: yBase - yTop, range, labelY, i };
+  });
+const nLay = layers.length;
+const slabFill = (i: number) => {
+  const t = nLay > 1 ? i / (nLay - 1) : 0;   // 0 ground → 1 top
+  return `color-mix(in oklab, var(--bg) ${Math.round(t * 100)}%, var(--paper-2))`;
+};
+
+/* ── pressure curve as ONE polyline; sampled every 1 km (2 km above 200) ─── */
+const step = maxAlt > 200 ? 2 : 1;
+const pts: Array<[number, number]> = [];
+for (let h = 0; h <= maxAlt + 1e-9; h += step) {
+  const hh = Math.min(h, maxAlt);
+  pts.push([xPress(pressure(hh)), yAlt(hh)]);
+}
+let curveD = '';
+let curveLen = 0;
+for (let i = 0; i < pts.length; i++) {
+  const [x, y] = pts[i];
+  curveD += (i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+  if (i) {
+    const [px, py] = pts[i - 1];
+    curveLen += Math.hypot(x - px, y - py);
+  }
+}
+curveLen = Math.ceil(curveLen);
+
+/* pressure axis key + ticks (§4) — the "measured rule" turned horizontal */
+const pTicks = [1000, 500, 250, 0];
+
+/* ── landmark pins (≤7, sorted by altitude, within the drawn column) ─────── */
+const fmtAlt = (a: number) => a.toLocaleString('en-US', { maximumFractionDigits: 3 });
+const pins = landmarks
+  .filter((l) => typeof l.alt_km === 'number' && l.alt_km >= 0 && l.alt_km <= maxAlt)
+  .sort((a, b) => a.alt_km - b.alt_km)
+  .slice(0, 7)
+  .map((l) => ({
+    name: l.name,
+    note: l.note,
+    alt_km: l.alt_km,
+    pinY: yAlt(l.alt_km),
+    o2: o2eff(l.alt_km),
+  }));
+
+/* build-time greedy declutter: labels closer than one block are nudged DOWN so
+   two-line marks never overlap (blueprint §4). Ticks/dots stay at true pinY. */
+const LABEL_GAP = 26;                 // two-line marks (name + stat) need >1 line-block
+const LABEL_MAX_Y = GROUND_Y - 14;    // stat sits at ly+12 — keep it above the datum
+const orderY = pins
+  .map((p, idx) => ({ idx, pinY: p.pinY }))
+  .sort((a, b) => a.pinY - b.pinY);
+const labelY: number[] = new Array(pins.length);
+let lastY = -Infinity;
+for (const { idx, pinY } of orderY) {
+  const ly = pinY < lastY + LABEL_GAP ? lastY + LABEL_GAP : pinY;
+  // a dense low-altitude cluster can nudge past the ground datum; clamp so
+  // name+stat never bleed below the frame (overflow:visible would otherwise
+  // let them spill off the plate).
+  labelY[idx] = Math.min(ly, LABEL_MAX_Y);
+  lastY = ly;
+}
+
+/* AT description (§7) — the plate's full reading, notes folded in */
+const desc = pins.length
+  ? 'Landmarks pinned by altitude: ' + pins.map((p) =>
+      `${p.name} at ${fmtAlt(p.alt_km)} km${showOxygen ? `, effective oxygen ${p.o2.toFixed(1)} percent` : ''}${p.note ? ` (${p.note})` : ''}`
+    ).join('; ') + '.'
+  : 'The vertical structure of the atmosphere to true altitude scale with the barometric pressure curve.';
+/* unique ids so multiple columns on one page don't collide, and so the SVG's
+   <title>+<desc> (the real landmark altitude/O₂ text) are actually announced to
+   AT via aria-labelledby — an aria-label would otherwise win and mute <desc>. */
+const uid = 'atmc-' + Math.random().toString(36).slice(2, 8);
+---
+
+<div class="px-viz px-atmc" data-reveal>
+  {(caption || logAlt) && (
+    <div class="px-viz__cap">
+      {caption && <span>{caption}</span>}
+      {/* honesty chip: AUTO-renders whenever the axis is compressed, independent
+          of whether the author supplied a caption (CANON §7 — never author-memory) */}
+      {logAlt && <b>altitude log-compressed</b>}
+    </div>
+  )}
+
+  {/* coordinate margin (motif 2) — location-agnostic vertical section of the
+      standard atmosphere, so no lat/lon; matches blueprint §4 exactly */}
+  <div class="px-atmc__margin">U.S. STANDARD ATMOSPHERE · SEA LEVEL 1013 hPa</div>
+
+  <div class="px-atmc__stage px3d-stage">
+    <div class="px-atmc__plate px3d-tilt" data-tilt="6">
+      <svg class="px-atmc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
+        role="img" aria-labelledby={`${uid}-t ${uid}-d`}>
+        <title id={`${uid}-t`}>{caption ? `Atmospheric column: ${caption}` : 'The atmosphere to true altitude scale'}</title>
+        <desc id={`${uid}-d`}>{desc}</desc>
+
+        {/* faint pressure guides — read the curve's x at any height (§4) */}
+        {pTicks.filter((p) => p > 0).map((p) => (
+          <line x1={xPress(p)} y1={MARGIN_TOP} x2={xPress(p)} y2={GROUND_Y}
+            stroke="var(--ink)" stroke-width="1" opacity="0.10" stroke-dasharray="2 5" />
+        ))}
+
+        {/* layer slabs — stepped flat tints, denser (warmer paper) at the ground */}
+        {layers.map((L) => (
+          <rect class="px-atmc__slab" style={`--i:${L.i}`}
+            x={COL_X0} y={L.yTop} width={COL_W} height={Math.max(0, L.h)}
+            fill={slabFill(L.i)} />
+        ))}
+
+        {/* column left rule (the standing edge) */}
+        <line x1={COL_X0} y1={MARGIN_TOP} x2={COL_X0} y2={GROUND_Y}
+          stroke="var(--ink)" stroke-width="1" opacity="0.30" />
+        {/* column right rule — the pressure baseline sits just past it */}
+        <line x1={COL_X0 + COL_W} y1={MARGIN_TOP} x2={COL_X0 + COL_W} y2={GROUND_Y}
+          stroke="var(--ink)" stroke-width="1" opacity="0.16" />
+
+        {/* per-layer name + true altitude band (mono, inside each slab) */}
+        {layers.map((L) => (
+          <text class="px-atmc__llabel" x={COL_X0 + 9} y={L.labelY}
+            fill="var(--ink)" opacity="0.66">{L.name} {L.range}</text>
+        ))}
+
+        {/* ground / sea-level datum */}
+        <line x1={COL_X0 - 20} y1={GROUND_Y} x2={CURVE_X0 + CURVE_W} y2={GROUND_Y}
+          stroke="var(--ink)" stroke-width="1.2" opacity="0.5" />
+        <text class="px-atmc__axis" x={CURVE_X0} y={GROUND_Y + 15}
+          fill="var(--ink)" opacity="0.55">SEA LEVEL · 0 km</text>
+
+        {/* ── pressure axis key + ticks (top) ── */}
+        <text class="px-atmc__axis" x={CURVE_X0} y={9}
+          fill="var(--ink)" opacity="0.55" letter-spacing="0.1em">PRESSURE (hPa) →</text>
+        <line x1={CURVE_X0} y1={23} x2={CURVE_X0 + CURVE_W} y2={23}
+          stroke="var(--ink)" stroke-width="1" opacity="0.30" />
+        {pTicks.map((p) => (
+          <>
+            <line x1={xPress(p)} y1={20} x2={xPress(p)} y2={26}
+              stroke="var(--ink)" stroke-width="1" opacity="0.4" />
+            <text class="px-atmc__axis" x={xPress(p)} y={17} text-anchor="middle"
+              fill="var(--ink)" opacity="0.55">{p}</text>
+          </>
+        ))}
+
+        {/* ── the pressure fall-off curve (the measured rule, vertical) ── */}
+        <path class="px-atmc__curve" style={`--len:${curveLen}`} d={curveD}
+          fill="none" stroke="var(--accent-alt)" stroke-width="1.6" opacity="0.85"
+          stroke-linejoin="round" stroke-linecap="round" />
+
+        {/* ── landmark pins ── */}
+        {pins.map((p, j) => {
+          const ly = labelY[j];
+          const nameFs = p.name.length > 15 ? 11.5 : 13;
+          const stat = `${fmtAlt(p.alt_km)} km${showOxygen ? ` · O₂ ${p.o2.toFixed(1)}%` : ''}`;
+          return (
+            <g class="px-atmc__pin" style={`--j:${j}`}>
+              <title>{p.name} — {fmtAlt(p.alt_km)} km{showOxygen ? ` · O₂ ${p.o2.toFixed(1)}%` : ''}{p.note ? ` · ${p.note}` : ''}</title>
+              {/* tick from the column's left edge into the gutter */}
+              <line x1={COL_X0} y1={p.pinY} x2={COL_X0 - 16} y2={p.pinY}
+                stroke="var(--ink)" stroke-width="1" opacity="0.45" />
+              {/* nudge leader (only visible when the label was decluttered) */}
+              {Math.abs(ly - p.pinY) > 1 && (
+                <line x1={COL_X0 - 16} y1={p.pinY} x2={120} y2={ly - 4}
+                  stroke="var(--ink)" stroke-width="1" opacity="0.22" />
+              )}
+              <circle cx={COL_X0} cy={p.pinY} r="3" fill="var(--accent-deep)" />
+              <text class="px-atmc__lm-name" x={120} y={ly - 2} text-anchor="end"
+                font-size={nameFs} fill="var(--ink)"
+                paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{p.name}</text>
+              <text class="px-atmc__lm-stat" x={120} y={ly + 12} text-anchor="end"
+                font-size="9.5" fill="var(--accent-deep)"
+                paint-order="stroke" stroke="var(--paper)" stroke-width="3">{stat}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  </div>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  /* ── coordinate margin (motif 2) ─────────────────────────────────────── */
+  .px-atmc__margin {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.55;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── the standing plate (CSS-3D stage) ───────────────────────────────── */
+  .px-atmc__stage { perspective: var(--persp); perspective-origin: 50% 34%; }
+  .px-atmc__plate {
+    transform-origin: 50% 50%;
+    border-radius: var(--r-tile);
+    padding: 10px 12px;
+    background:
+      radial-gradient(ellipse 78% 60% at 50% 32%,
+        color-mix(in oklab, var(--ink) 4%, transparent), transparent 72%),
+      color-mix(in oklab, var(--paper) 72%, var(--bg));
+    border: 1px solid var(--rule);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
+      0 24px 52px -30px color-mix(in oklab, var(--ink) 55%, transparent);
+  }
+  .px-atmc__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* ── in-SVG type roles ───────────────────────────────────────────────── */
+  .px-atmc__llabel { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+  .px-atmc__axis   { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+  .px-atmc__lm-name { font-family: var(--font-display); font-style: italic; }
+  .px-atmc__lm-stat { font-family: var(--font-mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+
+  /* ── reveal: slabs GROW from the ground up, staggered bottom→top ─────── */
+  .px-atmc__slab {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transform: scaleY(1);
+    transition: transform 600ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-atmc__slab { transform: scaleY(0); }
+  .px-viz.is-in .px-atmc__slab { transition-delay: calc(var(--i) * 50ms); }
+
+  /* the pressure curve SWEEPS in (dashoffset draw), starting after the slabs */
+  .px-atmc__curve {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 900ms var(--ease) 200ms;
+  }
+  html.js .px-viz:not(.is-in) .px-atmc__curve { stroke-dashoffset: var(--len); }
+
+  /* landmark pins REVEAL last, overlapping the curve tail (40ms stagger) */
+  .px-atmc__pin {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+  }
+  html.js .px-viz:not(.is-in) .px-atmc__pin { opacity: 0; transform: translateY(14px); }
+  .px-viz.is-in .px-atmc__pin { transition-delay: calc(700ms + var(--j) * 40ms); }
+
+  /* ── reduced-motion: the composed still, flat (no tilt, all final) ───── */
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-atmc__slab { transform: scaleY(1) !important; }
+    .px-viz:not(.is-in) .px-atmc__curve { stroke-dashoffset: 0 !important; }
+    .px-viz:not(.is-in) .px-atmc__pin { opacity: 1 !important; transform: none !important; }
+  }
+</style>

@@ -46,6 +46,9 @@ export const SECTION_KINDS = [
   'margin-ladder',         // CSS-3D — seats by win-margin on a tilted plane
   'chamber',               // WebGL FLAGSHIP — instanced 3D hemicycle parliament + division walk
   'power-flow',            // SVG — directional money/authority Sankey with animated flow dashes
+  'coalition-calculus',    // HTML-interactive — coalition builder vs the majority line
+  'gerrymander-lens',      // SVG — same votes, three maps, efficiency-gap counters
+  'ballot-flow',           // SVG — ranked-choice round transfers (flowDash)
   // space
   'orbit-globe',           // WebGL — dot-matrix Earth + inclined orbit rings
   'trajectory-arc',        // CSS-3D/SVG — launch→orbit parabola in a starfield
@@ -53,6 +56,10 @@ export const SECTION_KINDS = [
   'signal-readout',        // SVG — telemetry / EM-band sweep readout
   'descent-profile',       // SVG — altitude-vs-time descent with craft glyph
   'solar-system',          // WebGL FLAGSHIP — navigable Keplerian solar system
+  'constellation-swarm',   // WebGL — instanced satellite mega-constellation shells
+  'lagrange-map',          // SVG — three-body effective-potential contour field
+  'transfer-window',       // SVG interactive — Hohmann transfer Δv + phase scrubber
+  'eclipse-cone',          // SVG/CSS-3D — umbra/penumbra shadow-cone geometry to scale
   // earth
   'data-globe',            // WebGL — 3D choropleth globe (graticule style)
   'core-sample',           // CSS-3D — ice/sediment core column, scrub strata
@@ -60,6 +67,10 @@ export const SECTION_KINDS = [
   'climate-spiral',        // SVG — warming spiral (radial months)
   'quake-depth',           // SVG — seismic events on depth×time axis
   'terrain-relief',        // WebGL FLAGSHIP — real DEM ridgeline/contour landscape
+  'plate-motion',          // WebGL — plate velocity field from Euler poles on the globe
+  'atmosphere-column',     // SVG — barometric atmosphere column to true altitude
+  'carbon-loop',           // SVG — stock-and-flow carbon cycle (conservation-checked)
+  'storm-track',           // WebGL — cyclone best-track on the globe, Saffir–Simpson
   // tech
   'arch-stack',            // CSS-3D — exploded layer stack
   'latency-waterfall',     // SVG — request/span waterfall timeline
@@ -67,6 +78,10 @@ export const SECTION_KINDS = [
   'scaling-plot',          // SVG — log-log scaling scatter + fit
   'throughput-dial',       // CSS-3D — perspective req/s gauge
   'neural-flow',           // WebGL FLAGSHIP — instanced forward-pass activation wave
+  'packet-trace',          // WebGL globe + SVG latency budget — light floor vs measured RTT
+  'queue-cliff',           // SVG interactive — M/M/1 utilization cliff 1/(1−ρ)
+  'chip-die',              // CSS-3D — exploded die floorplan, area ∝ real mm²
+  'moore-ladder',          // SVG — base-2 log doubling fit (Moore's law)
   // travel
   'route-globe',           // WebGL — 3D globe + great-circle arc
   'elevation-trek',        // CSS-3D/SVG — route elevation profile, moving marker
@@ -74,13 +89,20 @@ export const SECTION_KINDS = [
   'climate-calendar',      // SVG — month×metric weather heat ribbon
   'timezone-arc',          // SVG — sun/day arc across time zones
   'terminator-globe',      // WebGL FLAGSHIP — day/night line + flight arc (jet lag)
+  'city-grid',             // SVG — street-orientation polar histograms (grid vs tangle)
+  'altitude-oxygen',       // SVG — altitude vs breathable oxygen curve + landmarks
+  'season-wheel',          // SVG — radial year of a destination's climate
+  'fare-terrain',          // SVG — fare/price surface across dates or routes
   // sports
   'tactics-pitch',         // CSS-3D — tilted pitch with player markers + heat
   'shot-map',              // SVG/CSS-3D — goal frame + shot-placement scatter
   'xg-race',               // SVG — cumulative xG step-line race
   'momentum-wave',         // SVG — match-momentum area
   'player-card',           // CSS-3D — flip rating card
-  'flight-of-the-ball'     // WebGL FLAGSHIP — drag+Magnus shot trajectory over a pitch
+  'flight-of-the-ball',    // WebGL FLAGSHIP — drag+Magnus shot trajectory over a pitch
+  'elo-river',             // SVG — Elo/rating streamgraph, braided season (crossovers)
+  'court-value',           // SVG — xG/eFG value surface shaded over a pitch/court
+  'pace-ridge'             // SVG — ridgeline of a stat's distribution per group
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;

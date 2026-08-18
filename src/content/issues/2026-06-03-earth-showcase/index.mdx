@@ -335,6 +335,95 @@ sections:
       caption: "REMAINING CARBON BUDGET FOR A 50% CHANCE OF 1.5 °C"
       source: "Global Carbon Budget 2024 · IPCC AR6 WG1, 2024"
 
+  - kind: plate-motion
+    eyebrow: "THE ENGINE · PLATE MOTION"
+    title: "The collision that is still *raising* the Himalaya."
+    intro: "Velocity arrows computed from real Euler poles, drawn over the plate-boundary network — drag to spin the globe, hover an arrow for its exact speed and bearing."
+    plain: "Arrows on a globe show which way each plate moves and how fast — longer is faster, and they vanish where the plate pivots; the heavy lines are the plate boundaries."
+    skimCaption: "The Indian plate drives north-northeast at ~50 mm/yr into Eurasia — the velocity field of a live continental collision."
+    data:
+      plates:
+        - name: "Indian Plate"
+          pole: { lat: 50.4, lon: -3.3, omega: 0.544 }
+          color: "#a04922"
+          bbox: [68, 6, 90, 30]
+        - name: "Eurasian Plate"
+          pole: { lat: 48.9, lon: -106.5, omega: 0.223 }
+          color: "#2d6a4f"
+          bbox: [40, 30, 100, 60]
+        - name: "Arabian Plate"
+          pole: { lat: 48.8, lon: -8.5, omega: 0.559 }
+          color: "#1a4a36"
+          bbox: [35, 12, 60, 33]
+      boundaries: "/geo/plates.json"
+      caption: "The Indian plate drives north-northeast at ~50 mm/yr — the collision that is still raising the Himalaya."
+      source: "NNR-MORVEL56 Euler poles (Argus, Gordon & DeMets 2011); PB2002 boundaries"
+
+  - kind: atmosphere-column
+    eyebrow: "THE COLUMN"
+    title: "How thin the *breathable part* is."
+    intro: "The atmosphere stood on end to true altitude scale — troposphere to thermosphere — with the barometric pressure curve falling away up its side and the heights you know pinned where they really sit."
+    plain: "A slice of the sky stood on end, drawn to true height; each band is one layer of the atmosphere, the curve on the right is how fast the air pressure drops as you climb, and the pinned heights are places you already know."
+    skimCaption: "The standard atmosphere to true altitude scale — everything humans breathe unaided sits in the bottom tenth of the column."
+    data:
+      maxAlt_km: 100
+      model: isothermal
+      showOxygen: true
+      caption: "Everything humans breathe unaided sits in the bottom tenth of this column — Everest's summit already thins the air by two-thirds."
+      source: "U.S. Standard Atmosphere 1976; barometric formula, geodesy §7"
+      landmarks:
+        - { name: "Everest summit", alt_km: 8.849, note: "~34% sea-level pressure" }
+        - { name: "Cruising airliner", alt_km: 11.5, note: "FL380 · cabin ~2,400 m" }
+        - { name: "Armstrong limit", alt_km: 19, note: "water boils at body heat" }
+        - { name: "Kármán line", alt_km: 100, note: "the edge of space" }
+
+  - kind: carbon-loop
+    eyebrow: "THE LOOP"
+    title: "What balances, and what *piles up*."
+    intro: "The fast carbon cycle drawn as reservoirs and yearly flows — the ocean and land loops nearly cancel, but the fossil input has nowhere to return."
+    plain: "Each box is a place carbon is stored, sized by how much it holds; each arrow is a yearly flow between them, thicker and faster where more carbon moves. The brown mark shows the carbon that arrives but never leaves."
+    skimCaption: "The natural exchanges balance (80/80, 123/123). The ~10 GtC/yr released from fossil reserves does not, so the atmosphere keeps it — the airborne fraction."
+    data:
+      unit: "GtC"
+      cycle: "The fast carbon cycle"
+      year: "2023 budget"
+      reservoirs:
+        - { id: atmosphere, label: "Atmosphere",        stock: 875,  x: 0.50, y: 0.16, role: store,  accent: true }
+        - { id: ocean,      label: "Surface ocean",     stock: 900,  x: 0.16, y: 0.66, role: store }
+        - { id: land,       label: "Land + vegetation", stock: 2200, x: 0.84, y: 0.66, role: store }
+        - { id: fossil,     label: "Fossil reserves",   stock: 1200, x: 0.50, y: 0.90, role: source }
+      fluxes:
+        - { from: atmosphere, to: ocean,      value: 80,  note: "dissolution" }
+        - { from: ocean,      to: atmosphere, value: 80,  note: "outgassing" }
+        - { from: atmosphere, to: land,       value: 123, note: "photosynthesis" }
+        - { from: land,       to: atmosphere, value: 123, note: "respiration + fire" }
+        - { from: fossil,     to: atmosphere, value: 10,  note: "combustion + land use" }
+      imbalance: the-point
+      residualLabel: "+10 GtC/yr — the airborne fraction"
+      caption: "THE FAST CARBON CYCLE · GROSS EXCHANGES vs THE FOSSIL RESIDUAL"
+      source: "Global Carbon Budget 2023 (Friedlingstein et al.) · IPCC AR6 WG1 Ch.5"
+
+  - kind: storm-track
+    eyebrow: "BEST TRACK · ATLANTIC 2005"
+    title: "One storm, *birth to landfall*."
+    intro: "Katrina crossed Florida a modest Category 1, exploded to Category 5 over the warm Loop Current, then struck Louisiana at Category 3 — the whole arc, coloured by intensity at each hour."
+    plain: "One cyclone's path across the ocean — the line's colour is its strength at each point, from a weak depression to a top-category hurricane. The glowing point is its peak; the ringed points are where it made landfall."
+    skimCaption: "Katrina's track, coloured by Saffir-Simpson category at each fix — Cat 1 over Florida, Cat 5 peak over the Loop Current, Cat 3 at Louisiana landfall."
+    data:
+      windScale: "kt"
+      smooth: true
+      storms:
+        - name: "Hurricane Katrina (2005)"
+          fixes:
+            - { t: "2005-08-23T18:00Z", lat: 23.1, lon: -75.1, wind_kt: 30 }
+            - { t: "2005-08-25T00:00Z", lat: 26.0, lon: -79.0, wind_kt: 70, landfall: true }
+            - { t: "2005-08-27T00:00Z", lat: 24.4, lon: -84.0, wind_kt: 100 }
+            - { t: "2005-08-28T18:00Z", lat: 26.9, lon: -89.6, wind_kt: 150 }
+            - { t: "2005-08-29T12:00Z", lat: 30.2, lon: -89.6, wind_kt: 110, landfall: true }
+            - { t: "2005-08-30T18:00Z", lat: 37.0, lon: -87.0, wind_kt: 25 }
+      caption: "Katrina crossed Florida a modest Category 1, exploded to Category 5 over the warm Loop Current, then struck Louisiana at Category 3."
+      source: "NOAA/NHC HURDAT2 best-track archive"
+
   - kind: terrain-relief
     eyebrow: "THE FLAGSHIP · REAL RELIEF"
     title: "The Khumbu massif, at *true* scale."

@@ -1,0 +1,444 @@
+---
+/**
+ * EclipseCone (space) — the shadow-geometry explainer. Draws an eclipse to
+ * TRUE axial scale: a light source off-frame left, the occulting body, its
+ * umbra cone tapering to its real tip length, and the target body at its real
+ * fraction of that length — so the reader SEES why totality is a knife-edge of
+ * orbital distance instead of reading it as a fact. The angular-diameter inset
+ * shows the two apparent sizes (source vs occulter) on ONE true 1:1 scale —
+ * drawn almost equal, which is the whole argument.
+ *
+ * Blueprint (the contract): docs/design/blueprints/space/eclipse-cone.md.
+ * Physics mirrors physics/orbital-mechanics.md §8:
+ *   umbraLength = dSun·rBody / (rSun − rBody)
+ *   angularDiameter = 2·atan(r / distance)
+ *   r_umbra(d)  = rBody·(1 − d/umbraLength)   (>0 total · ≤0 annular)
+ *
+ * Honesty (CANON §7): the cone HALF-ANGLE is exaggerated for visibility
+ * (displayed ≈3.6° vs true ≈0.27°) — declared by the caption chip — but the
+ * one quantity the story rides on, the axial LENGTH RATIO, is exact: the
+ * target sits at its true fraction of the umbra length. Body radii share one
+ * size-scale (occulter anchors it); the target clamps at 64px with a
+ * "~true size" tick. The angular inset is never compressed.
+ *
+ * Build-time SVG only. The tilt (core/Tilt.astro), reveal (core/Reveal.astro)
+ * and scan are the only motion, all gated → no-JS / reduced-motion = the flat,
+ * complete print plate + geometry ledger. This is the composed still.
+ *
+ * data: EclipseConeData. NB the citation field is `sourceCite` (the nested
+ * `source` object is the light SOURCE, e.g. the Sun, not the citation).
+ */
+interface Body { name: string; radiusKm: number; }
+interface Occulter extends Body { distanceFromSourceKm: number; }
+interface Target extends Body {
+  distanceFromOcculterKm: number;
+  distanceRangeKm?: [number, number];
+}
+interface Props {
+  source: Body;
+  occulter: Occulter;
+  target: Target;
+  showPenumbra?: boolean;
+  caption?: string;
+  sourceCite?: string;
+}
+const {
+  source, occulter, target,
+  showPenumbra = true, caption, sourceCite,
+} = Astro.props;
+
+// ── physics (kepler.ts §8 mirror; computed here at build time) ──────────────
+const rSun = source.radiusKm;
+const rBody = occulter.radiusKm;
+const dSun = occulter.distanceFromSourceKm;
+const d = target.distanceFromOcculterKm;
+const range = target.distanceRangeKm;
+
+const umbraLength = (dSun * rBody) / (rSun - rBody);
+const angularDiameterDeg = (r: number, dist: number) => (2 * Math.atan(r / dist) * 180) / Math.PI;
+const rUmbraAt = (dist: number) => rBody * (1 - dist / umbraLength);
+
+const thetaOcc = angularDiameterDeg(rBody, d);           // occulter seen from target
+const thetaSrc = angularDiameterDeg(rSun, dSun);         // source seen from occulter (≈ from target)
+const rUmbraMean = rUmbraAt(d);
+const verdict = (v: number) => (v > 0 ? 'TOTAL' : 'ANNULAR');
+
+// ── display construction (two fixed anchors; blueprint §4) ──────────────────
+const W = 720, H = 420;
+const OCX = 150, OCY = 210;      // occulter centre
+const OCC_PX = 26;               // occulter display radius (anchors the scale)
+const TIP_PX = 410;              // umbra tip axial distance in px
+const tipX = OCX + TIP_PX;       // = 560
+const k = TIP_PX / umbraLength;  // axial px/km — every distance uses this
+const b = OCC_PX / rBody;        // body-size px/km — radii share this
+const TARGET_CAP = 64;
+
+const axialX = (dist: number) => OCX + k * dist;
+const targetX = axialX(d);
+const targetRraw = b * target.radiusKm;
+const targetR = Math.min(targetRraw, TARGET_CAP);
+const targetClamped = targetRraw > TARGET_CAP;
+
+const slope = OCC_PX / TIP_PX;   // = tan(displayed half-angle)
+const gammaDisplayDeg = (Math.atan(OCC_PX / TIP_PX) * 180) / Math.PI;
+const gammaTrueDeg = (Math.atan((rSun - rBody) / dSun) * 180) / Math.PI;
+const gammaPenDeg = (Math.atan((rSun + rBody) / dSun) * 180) / Math.PI;
+
+// occulter edge points + umbra tip
+const occTop = OCY - OCC_PX, occBot = OCY + OCC_PX;
+// Sun rays: the cone edges extended to the left frame edge (x = 0)
+const rayTopY0 = occTop + slope * (0 - OCX);
+const rayBotY0 = occBot - slope * (0 - OCX);
+// penumbra: diverging cone from the occulter edges to the right margin
+const PEN_END = 660;
+const penTopY = occTop - slope * (PEN_END - OCX);
+const penBotY = occBot + slope * (PEN_END - OCX);
+
+// distance-range ghost positions (target could sit anywhere across the band)
+const periX = range ? axialX(range[0]) : null;
+const apoX = range ? axialX(range[1]) : null;
+
+// ── angular inset (own viewBox; true 1:1 angular scale) ─────────────────────
+const IW = 180, IH = 124, ICX = 90, ICY = 60, I_SCALE = 135; // px per degree
+const insetROcc = (thetaOcc * I_SCALE) / 2;
+const insetRSrc = (thetaSrc * I_SCALE) / 2;
+
+// ── formatting ──────────────────────────────────────────────────────────────
+const km = (n: number) => Math.round(n).toLocaleString('en-US');
+const deg = (n: number) => n.toFixed(3);
+const f1 = (n: number) => n.toFixed(1);
+
+// ── geometry ledger (fallback — every number the figure encodes) ────────────
+interface Row { label: string; value: string; tag?: string; }
+const rows: Row[] = [
+  { label: `umbra length`, value: `${km(umbraLength)} km` },
+  { label: `${occulter.name} angular Ø`, value: `${deg(thetaOcc)}°` },
+  { label: `${source.name} angular Ø`, value: `${deg(thetaSrc)}°` },
+  {
+    label: `${target.name} distance`,
+    value: range ? `${km(d)} km · range ${km(range[0])}–${km(range[1])}` : `${km(d)} km`,
+  },
+  { label: `umbra radius at ${target.name}`, value: `${km(rUmbraMean)} km`, tag: verdict(rUmbraMean) },
+];
+const extraRows: Row[] = [];
+if (range) {
+  extraRows.push({ label: `umbra radius at perigee`, value: `${km(rUmbraAt(range[0]))} km`, tag: verdict(rUmbraAt(range[0])) });
+  extraRows.push({ label: `umbra radius at apogee`, value: `${km(rUmbraAt(range[1]))} km`, tag: verdict(rUmbraAt(range[1])) });
+}
+if (showPenumbra) extraRows.push({ label: `penumbra half-angle`, value: `${deg(gammaPenDeg)}°` });
+extraRows.push({ label: `displayed cone angle`, value: `${deg(gammaDisplayDeg)}° · true ${deg(gammaTrueDeg)}°` });
+
+const RAY_LEN = 900; // dash-draw over-estimate
+const ariaLabel =
+  `Eclipse shadow geometry: the ${occulter.name}'s umbra cone reaching ${km(umbraLength)} km, ` +
+  `${target.name} at ${km(d)} km — ${verdict(rUmbraMean)} at mean distance` +
+  (range ? `, flipping to ${verdict(rUmbraAt(range[0]))} near perigee` : '') + '.';
+---
+
+<div class="px-viz px-eclp" data-reveal>
+  {caption && (
+    <div class="px-viz__cap">
+      <span>{caption}</span>
+      <b>cone angle exaggerated · length-ratio true · baseline compressed</b>
+    </div>
+  )}
+
+  <div class="px-eclp__figwrap">
+    <div class="px-eclp__stage px3d-stage">
+      <div class="px-eclp__tilt px3d-tilt" data-tilt="6">
+        <svg
+          class="px-eclp__svg"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={ariaLabel}
+        >
+          <!-- penumbra (diverging, behind everything) -->
+          {showPenumbra && (
+            <polygon
+              class="px-eclp__pen"
+              points={`${OCX},${occTop} ${PEN_END},${f1(penTopY)} ${PEN_END},${f1(penBotY)} ${OCX},${occBot}`}
+            />
+          )}
+
+          <!-- umbra cone fill -->
+          <polygon
+            class="px-eclp__cone"
+            points={`${OCX},${occTop} ${tipX},${OCY} ${OCX},${occBot}`}
+          />
+
+          <!-- ambient scan sweeping the umbra axis (≤0.12, JS-gated) -->
+          <line class="px-eclp__scan" x1={OCX} y1={OCY - 10} x2={OCX} y2={OCY + 10} style={`--scan-dx:${TIP_PX}px`}>
+            <title>shadow projecting</title>
+          </line>
+
+          <!-- distance-range ghost positions (target across perigee..apogee) -->
+          {range && periX != null && apoX != null && (
+            <g class="px-eclp__band">
+              <circle class="px-eclp__ring" cx={f1(periX)} cy={OCY} r={f1(targetR)} />
+              <circle class="px-eclp__ring" cx={f1(apoX)} cy={OCY} r={f1(targetR)} />
+            </g>
+          )}
+
+          <!-- the target body at its true fractional distance -->
+          <g class="px-eclp__target">
+            <circle class="px-eclp__body" cx={f1(targetX)} cy={OCY} r={f1(targetR)} />
+            <text class="px-eclp__lbl px-eclp__lbl--body" x={f1(targetX + 14)} y={OCY - 4}>{target.name}</text>
+            {targetClamped && (
+              <text class="px-eclp__lbl px-eclp__tick" x={f1(targetX + 14)} y={OCY + 11}>~true size</text>
+            )}
+          </g>
+
+          <!-- umbra edges (on top of the target so the cone reads through) -->
+          <g class="px-eclp__edges">
+            <line x1={OCX} y1={occTop} x2={tipX} y2={OCY} />
+            <line x1={OCX} y1={occBot} x2={tipX} y2={OCY} />
+          </g>
+
+          <!-- Sun rays entering from off-frame left -->
+          <g class="px-eclp__rays" style={`--len:${RAY_LEN}`}>
+            <line x1="0" y1={f1(rayTopY0)} x2={OCX} y2={occTop} />
+            <line x1="0" y1={f1(rayBotY0)} x2={OCX} y2={occBot} />
+          </g>
+          <text class="px-eclp__lbl px-eclp__lbl--sun" x="6" y="150">{source.name} →</text>
+
+          <!-- occulter -->
+          <circle class="px-eclp__occ" cx={OCX} cy={OCY} r={OCC_PX} />
+          <text class="px-eclp__lbl px-eclp__lbl--occ" x={OCX} y={OCY - OCC_PX - 12} text-anchor="middle">{occulter.name}</text>
+
+          <!-- umbra tip marker -->
+          <circle class="px-eclp__tip" cx={tipX} cy={OCY} r="2.6" />
+
+          <!-- perigee–apogee bracket -->
+          {range && periX != null && apoX != null && (
+            <g class="px-eclp__bracket">
+              <path d={`M ${f1(periX)} 296 L ${f1(periX)} 302 L ${f1(apoX)} 302 L ${f1(apoX)} 296`} />
+              <text class="px-eclp__lbl px-eclp__lbl--brk" x={f1((periX + apoX) / 2)} y="316" text-anchor="middle">perigee — apogee</text>
+            </g>
+          )}
+
+          <!-- tip / verdict callout -->
+          <g class="px-eclp__callout">
+            <line class="px-eclp__lead" x1="452" y1="352" x2={f1(tipX + 2)} y2={OCY + 6} />
+            <text class="px-eclp__tiplbl" x="150" y="350">umbra tip · {km(umbraLength)} km</text>
+            <text class="px-eclp__verdict" x="150" y="372">
+              {rUmbraMean > 0
+                ? `tip reaches ${target.name} — total`
+                : `tip falls ${km(Math.abs(d - umbraLength))} km short — ${verdict(rUmbraMean).toLowerCase()}`}
+            </text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- angular-diameter inset · own SVG · TRUE 1:1 angular scale (reflows
+         below the main figure at ≤640px per blueprint §4) -->
+    <figure class="px-eclp__inset">
+      <svg viewBox={`0 0 ${IW} ${IH}`} preserveAspectRatio="xMidYMid meet" role="img"
+        aria-label={`Apparent size from ${target.name}: ${source.name} ${deg(thetaSrc)}°, ${occulter.name} ${deg(thetaOcc)}° — nearly equal`}>
+        <rect class="px-eclp__inset-frame" x="1" y="1" width={IW - 2} height={IH - 2} rx="8" />
+        <text class="px-eclp__inset-hd" x={ICX} y="20" text-anchor="middle">APPARENT SIZE FROM {target.name.toUpperCase()}</text>
+        <circle class="px-eclp__inset-occ" cx={ICX} cy={ICY} r={f1(insetROcc)} />
+        <circle class="px-eclp__inset-src" cx={ICX} cy={ICY} r={f1(insetRSrc)} />
+        <text class="px-eclp__lbl px-eclp__inset-lbl px-eclp__inset-lbl--occ" x={ICX} y="104" text-anchor="middle">{occulter.name} {deg(thetaOcc)}°</text>
+        <text class="px-eclp__lbl px-eclp__inset-lbl px-eclp__inset-lbl--src" x={ICX} y="116" text-anchor="middle">{source.name} {deg(thetaSrc)}°</text>
+      </svg>
+    </figure>
+  </div>
+
+  <!-- geometry ledger — the AT-readable data source (no-JS complete) -->
+  <dl class="px-eclp__ledger">
+    {rows.map((r) => (
+      <div class="px-eclp__row">
+        <dt>{r.label}</dt>
+        <dd>{r.value}{r.tag && <span class="px-eclp__flag" data-v={r.tag}>{r.tag}</span>}</dd>
+      </div>
+    ))}
+    {extraRows.length > 0 && (
+      <details class="px-eclp__more">
+        <summary>show all geometry</summary>
+        {extraRows.map((r) => (
+          <div class="px-eclp__row">
+            <dt>{r.label}</dt>
+            <dd>{r.value}{r.tag && <span class="px-eclp__flag" data-v={r.tag}>{r.tag}</span>}</dd>
+          </div>
+        ))}
+      </details>
+    )}
+  </dl>
+
+  {sourceCite && <div class="px-viz__src">Source · {sourceCite}</div>}
+</div>
+
+<style>
+  .px-eclp { width: 100%; }
+  .px-eclp__figwrap { position: relative; }
+  .px-eclp__stage { perspective-origin: 50% 46%; }
+  .px-eclp__tilt { border-radius: var(--r-tile); transform-origin: 30% 50%; }
+  .px-eclp__svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+  /* ── static geometry (base = final; no-JS safe) ─────────────────────────── */
+  .px-eclp__pen { fill: var(--ink); opacity: 0.07; }
+  .px-eclp__cone { fill: var(--ink); opacity: 0.14; }
+  .px-eclp__edges line { stroke: var(--ink); stroke-width: 1.5; opacity: 0.42; }
+  .px-eclp__rays line { stroke: var(--accent); stroke-width: 1.5; opacity: 0.5; stroke-linecap: round; }
+  .px-eclp__occ { fill: var(--ink); opacity: 0.9; }
+  .px-eclp__tip { fill: var(--accent); }
+  .px-eclp__body { fill: var(--accent-alt); opacity: 0.82; stroke: var(--accent-alt); stroke-width: 1.5; }
+  .px-eclp__ring { fill: none; stroke: var(--ink); stroke-width: 1; opacity: 0.22; stroke-dasharray: 3 4; }
+  .px-eclp__bracket path { fill: none; stroke: var(--accent); stroke-width: 1.2; opacity: 0.8; }
+  .px-eclp__lead { stroke: var(--accent-deep, var(--accent)); stroke-width: 1; opacity: 0.55; stroke-dasharray: 2 3; }
+
+  /* labels — mono, paper halo */
+  .px-eclp__lbl {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.06em;
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+  .px-eclp__lbl--occ { fill: var(--ink); text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; }
+  .px-eclp__lbl--body { fill: var(--accent-alt); text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; }
+  .px-eclp__lbl--sun { fill: var(--accent); letter-spacing: 0.16em; text-transform: uppercase; }
+  .px-eclp__tick { fill: var(--muted); font-size: 9.5px; }
+  .px-eclp__lbl--brk { fill: var(--muted); letter-spacing: 0.1em; }
+
+  .px-eclp__tiplbl {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.06em; fill: var(--ink-soft); font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+  .px-eclp__verdict {
+    font-family: var(--font-display); font-style: italic;
+    font-size: var(--viz-fs-annot, 13px); fill: var(--accent-deep, var(--accent));
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  /* ── angular inset (own SVG) ─────────────────────────────────────────────── */
+  .px-eclp__inset {
+    /* max-width capped so the opaque overlay's bottom edge (≈ 4 + w·124/180)
+       clears the clamped 64px target's top edge (146 viewBox → 146·Cw/720 px)
+       across the 640–760px container band; at 172px the clearance stays ≥7px
+       down to the 640px reflow breakpoint (blueprint §4 inset-clearance rule). */
+    position: absolute; top: 4px; right: 4px;
+    width: 30%; max-width: 172px; margin: 0;
+  }
+  .px-eclp__inset svg { width: 100%; height: auto; display: block; }
+  .px-eclp__inset-frame { fill: var(--paper); stroke: var(--rule); stroke-width: 1; }
+  .px-eclp__inset-occ { fill: var(--accent-alt); opacity: 1; }
+  .px-eclp__inset-src { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.4; }
+  .px-eclp__inset-hd {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; fill: var(--muted);
+  }
+  .px-eclp__inset-lbl { font-size: 9.5px; }
+  .px-eclp__inset-lbl--occ { fill: var(--accent-alt); font-weight: 700; }
+  .px-eclp__inset-lbl--src { fill: var(--accent); }
+
+  /* ── ambient scan (JS-gated → no-JS omits it) ───────────────────────────── */
+  .px-eclp__scan { stroke: var(--accent); stroke-width: 1; opacity: 0; transform-box: view-box; }
+  html.js .px-eclp__scan { animation: px-eclp-scan 6s linear infinite; }
+  @keyframes px-eclp-scan {
+    0% { opacity: 0; transform: translateX(0); }
+    12% { opacity: 0.12; }
+    88% { opacity: 0.12; }
+    100% { opacity: 0; transform: translateX(var(--scan-dx)); }
+  }
+
+  /* ── entrance (base = final; html.js hides until .is-in) ─────────────────── */
+  .px-eclp__occ, .px-eclp__pen, .px-eclp__target, .px-eclp__callout,
+  .px-eclp__band, .px-eclp__bracket, .px-eclp__inset {
+    opacity: 1; transition: opacity var(--t-soft) var(--ease);
+  }
+  .px-eclp__cone {
+    transform: scaleX(1); transform-box: view-box; transform-origin: 150px 210px;
+    transition: transform var(--t-slow) var(--ease);
+  }
+  .px-eclp__rays line {
+    stroke-dasharray: var(--len); stroke-dashoffset: 0;
+    transition: stroke-dashoffset var(--t-slow) var(--ease);
+  }
+
+  html.js .px-viz:not(.is-in) .px-eclp__occ { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-eclp__rays line { stroke-dashoffset: var(--len); }
+  html.js .px-viz:not(.is-in) .px-eclp__cone { transform: scaleX(0); }
+  html.js .px-viz:not(.is-in) .px-eclp__pen { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-eclp__target,
+  html.js .px-viz:not(.is-in) .px-eclp__band { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-eclp__inset { opacity: 0; }
+  html.js .px-viz:not(.is-in) .px-eclp__callout,
+  html.js .px-viz:not(.is-in) .px-eclp__bracket { opacity: 0; }
+
+  .px-viz.is-in .px-eclp__rays line { transition-delay: 150ms; }
+  .px-viz.is-in .px-eclp__cone { transition-delay: 450ms; }
+  .px-viz.is-in .px-eclp__pen { transition-delay: 700ms; }
+  .px-viz.is-in .px-eclp__target,
+  .px-viz.is-in .px-eclp__band { transition-delay: 800ms; }
+  .px-viz.is-in .px-eclp__inset { transition-delay: 900ms; }
+  .px-viz.is-in .px-eclp__bracket { transition-delay: 1100ms; }
+  .px-viz.is-in .px-eclp__callout { transition-delay: 1240ms; }
+
+  /* ── geometry ledger ────────────────────────────────────────────────────── */
+  .px-eclp__ledger { margin: 18px 0 0; padding: 0; }
+  .px-eclp__row {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px dashed var(--rule);
+  }
+  .px-eclp__row dt {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  }
+  .px-eclp__row dd {
+    margin: 0; font-family: var(--font-mono); font-size: 12px;
+    color: var(--ink); font-variant-numeric: tabular-nums; text-align: right;
+    display: flex; gap: 8px; align-items: baseline; justify-content: flex-end;
+  }
+  .px-eclp__flag {
+    font-size: 9px; letter-spacing: 0.12em; padding: 1px 6px; border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .px-eclp__flag[data-v="TOTAL"] { color: var(--accent); border: 1px solid var(--accent); }
+  .px-eclp__flag[data-v="ANNULAR"] { color: var(--accent-alt); border: 1px solid var(--accent-alt); }
+  .px-eclp__more { margin-top: 2px; }
+  .px-eclp__more summary {
+    cursor: pointer; padding: 9px 0; list-style: none;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent-deep, var(--accent));
+  }
+  .px-eclp__more summary::-webkit-details-marker { display: none; }
+  .px-eclp__more summary::before { content: '+ '; }
+  .px-eclp__more[open] summary::before { content: '– '; }
+
+  /* ── 375px: inset drops BELOW the main figure, tilt off ─────────────────── */
+  @media (max-width: 640px) {
+    .px-eclp__inset {
+      position: static; width: 100%; max-width: 320px; margin: 12px auto 0;
+    }
+    .px-eclp__tilt { transform: none !important; }
+    /* the 720-wide main viewBox scales to ~0.48 on a 375px column, shrinking
+       9.5px user-unit labels toward ~4.5px. Bump the in-figure type on narrow
+       screens so rendered labels recover legibility (≈6px at 375px, ≥9.5px by
+       ~600px effective width). Kept modest: the target label/tick sit 15 user
+       units apart, so a full 20px bump would collide — this is the safe ceiling
+       that avoids re-flowing every label. The reflowed inset already renders
+       large (320/180 scale), so it is left untouched. */
+    .px-eclp__lbl, .px-eclp__tiplbl, .px-eclp__tick { font-size: 12.5px; }
+    .px-eclp__verdict { font-size: 15px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js .px-eclp__scan { animation: none !important; opacity: 0 !important; }
+    .px-viz:not(.is-in) .px-eclp__occ,
+    .px-viz:not(.is-in) .px-eclp__pen,
+    .px-viz:not(.is-in) .px-eclp__target,
+    .px-viz:not(.is-in) .px-eclp__band,
+    .px-viz:not(.is-in) .px-eclp__inset,
+    .px-viz:not(.is-in) .px-eclp__callout,
+    .px-viz:not(.is-in) .px-eclp__bracket { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-eclp__cone { transform: scaleX(1) !important; }
+    .px-viz:not(.is-in) .px-eclp__rays line { stroke-dashoffset: 0 !important; }
+  }
+</style>

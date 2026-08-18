@@ -1,0 +1,576 @@
+---
+/**
+ * LagrangeMap (space) — the CR3BP effective-potential landscape. The rotating-
+ * frame gravity-plus-centrifugal terrain of a two-body system, drawn as a
+ * log-shaded contour field with the five Lagrange points marked at their true
+ * geometry: L1/L2/L3 as unstable saddles (× glyph), L4/L5 as the stable
+ * equilateral corners (filled dot). A magnified inset resolves the collinear
+ * trio (L1 · secondary · L2) that collapses to ~5 px on the main map for real
+ * mass ratios (Sun–Earth). Build-time SVG, one ambient pulse on the occupied
+ * point, fallback-complete.
+ *
+ * Blueprint (the contract): docs/design/blueprints/space/lagrange-map.md.
+ * Physics: docs/design/physics/orbital-mechanics.md §7 — Ω(x,y) and the five
+ * equilibria are computed here at build time (the same closed forms live in
+ * kepler.ts for unit tests). No-JS / reduced-motion: the complete map paints as
+ * the composed still; the reveal + pulse are the only motion and are html.js-gated.
+ *
+ * data: { primary:{name,mass}, secondary:{name,mass}, separationKm?,
+ *         markers?:[{at:'L1'..'L5', label}], show?:['L1'..'L5'], caption?, source? }
+ */
+interface Body { name: string; mass: number; }
+interface Marker { at: 'L1' | 'L2' | 'L3' | 'L4' | 'L5'; label: string; }
+type PName = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+interface Props {
+  primary: Body;
+  secondary: Body;
+  separationKm?: number;
+  markers?: Marker[];
+  show?: PName[];
+  caption?: string;
+  source?: string;
+}
+const {
+  primary = { name: 'Sun', mass: 332946 },
+  secondary = { name: 'Earth', mass: 1 },
+  separationKm,
+  markers = [],
+  show,
+  caption,
+  source,
+} = Astro.props;
+
+// ── CR3BP math (mirrors orbital-mechanics.md §7 1:1) ────────────────────────
+const muStar = secondary.mass / (primary.mass + secondary.mass);
+function effectivePotential(x: number, y: number): number | null {
+  const r1 = Math.hypot(x + muStar, y);          // → primary at x = −muStar
+  const r2 = Math.hypot(x - 1 + muStar, y);       // → secondary at x = 1 − muStar
+  if (r1 < 0.02 || r2 < 0.02) return null;         // mask the singular wells
+  return 0.5 * (x * x + y * y) + (1 - muStar) / r1 + muStar / r2;
+}
+// collinear roots: Newton on dΩ/dx = 0 (y = 0), Hill-seeded
+function dOmdx(x: number): number {
+  const s1 = Math.sign(x + muStar), s2 = Math.sign(x - 1 + muStar);
+  return x - (1 - muStar) * s1 / ((x + muStar) ** 2) - muStar * s2 / ((x - 1 + muStar) ** 2);
+}
+function collinearRoot(seed: number): number {
+  let x = seed;
+  for (let k = 0; k < 60; k++) {
+    const f = dOmdx(x);
+    const h = 1e-7;
+    const fp = (dOmdx(x + h) - dOmdx(x - h)) / (2 * h);
+    const dx = f / fp;
+    x -= dx;
+    if (Math.abs(dx) < 1e-12) break;
+  }
+  return x;
+}
+const rH = Math.cbrt(muStar / 3);                              // Hill distance
+const L1x = collinearRoot(1 - muStar - rH);
+const L2x = collinearRoot(1 - muStar + rH);
+const L3x = collinearRoot(-(1 + 5 * muStar / 12));
+const S3 = Math.sqrt(3) / 2;
+const LP: Record<PName, [number, number]> = {
+  L1: [L1x, 0], L2: [L2x, 0], L3: [L3x, 0],
+  L4: [0.5 - muStar, S3], L5: [0.5 - muStar, -S3],
+};
+const isSaddle = (p: PName) => p === 'L1' || p === 'L2' || p === 'L3';
+const ALL: PName[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
+const shown: PName[] = (show && show.length ? show : ALL).filter((p) => ALL.includes(p));
+
+// ── screen mapping (viewBox 0 0 720 470, PAD 12) ────────────────────────────
+const VB_W = 720, VB_H = 470;
+const DX0 = -1.35, DX1 = 1.35, DY0 = -0.95, DY1 = 0.95;
+const sx = (x: number) => 12 + (x + 1.35) / 2.7 * 696;
+const sy = (y: number) => 235 - (y / 0.95) * 223;
+
+// ── potential field: clamp band + 11 log-spaced levels ──────────────────────
+const omL1 = effectivePotential(L1x, 0) ?? 1.5;
+const OCAP = omL1 + 0.6;                                        // §4 interesting band
+const NX = 108, NY = 72;                                        // build-time grid
+// node grid (clamped, masked → OCAP) drives the marching-squares contour lines
+const grid: number[][] = [];
+let OMIN = Infinity;
+for (let j = 0; j <= NY; j++) {
+  const row: number[] = [];
+  for (let i = 0; i <= NX; i++) {
+    const x = DX0 + (DX1 - DX0) * i / NX, y = DY0 + (DY1 - DY0) * j / NY;
+    const raw = effectivePotential(x, y);
+    if (raw != null && raw < OMIN) OMIN = raw;
+    row.push(Math.max(1.5, Math.min(OCAP, raw ?? OCAP)));
+  }
+  grid.push(row);
+}
+if (!isFinite(OMIN)) OMIN = 1.5;
+const EPS = 0.004;
+const Lmin = Math.log(EPS), Lmax = Math.log(OCAP - OMIN + EPS);
+const levels: number[] = [];
+for (let k = 1; k <= 11; k++) {
+  levels.push(OMIN + Math.exp(Lmin + (Lmax - Lmin) * k / 12) - EPS);
+}
+const bandOf = (w: number): number => {
+  let b = 0;
+  for (const lv of levels) if (w >= lv) b++;
+  return b; // 0..11
+};
+
+// ── filled iso-bands (run-length rows → one <path> per band; NOT 17k rects) ──
+const cellW = (696 / 2.7) * (DX1 - DX0) / NX;
+const cellH = (223 / 0.95) * (DY1 - DY0) / NY;
+const bandPath: string[] = Array.from({ length: 12 }, () => '');
+for (let j = 0; j < NY; j++) {
+  const y = DY0 + (DY1 - DY0) * (j + 0.5) / NY;
+  const yy = sy(y) - cellH / 2;
+  let i = 0;
+  while (i < NX) {
+    const centre = (ii: number) => {
+      const xx = DX0 + (DX1 - DX0) * (ii + 0.5) / NX;
+      return bandOf(Math.max(1.5, Math.min(OCAP, effectivePotential(xx, y) ?? OCAP)));
+    };
+    const b = centre(i);
+    let i2 = i + 1;
+    while (i2 < NX && centre(i2) === b) i2++;
+    if (b > 0) {
+      const x0 = sx(DX0 + (DX1 - DX0) * (i + 0.5) / NX) - cellW / 2;
+      const x1 = sx(DX0 + (DX1 - DX0) * (i2 - 1 + 0.5) / NX) + cellW / 2;
+      bandPath[b] += `M${x0.toFixed(1)} ${yy.toFixed(1)}H${x1.toFixed(1)}V${(yy + cellH).toFixed(1)}H${x0.toFixed(1)}Z`;
+    }
+    i = i2;
+  }
+}
+// band 1..11 → deep→vivid single-hue ramp (accent-deep low Ω → accent high Ω)
+const bands = [];
+for (let b = 1; b <= 11; b++) {
+  if (!bandPath[b]) continue;
+  const t = (b - 1) / 10;
+  bands.push({
+    d: bandPath[b],
+    fill: b <= 4 ? 'var(--accent-deep, var(--accent))' : 'var(--accent)',
+    opacity: (0.10 + 0.18 * t).toFixed(3),
+  });
+}
+
+// ── contour lines: marching squares isolines, one <path> per level ──────────
+function isoPath(level: number): string {
+  const segs: [[number, number], [number, number]][] = [];
+  const ip = (xa: number, ya: number, va: number, xb: number, yb: number, vb: number): [number, number] => {
+    const t = (level - va) / (vb - va);
+    return [xa + (xb - xa) * t, ya + (yb - ya) * t];
+  };
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+    const tl = grid[j][i], tr = grid[j][i + 1], br = grid[j + 1][i + 1], bl = grid[j + 1][i];
+    const c = (tl > level ? 8 : 0) | (tr > level ? 4 : 0) | (br > level ? 2 : 0) | (bl > level ? 1 : 0);
+    if (c === 0 || c === 15) continue;
+    const x0 = sx(DX0 + (DX1 - DX0) * i / NX), x1 = sx(DX0 + (DX1 - DX0) * (i + 1) / NX);
+    const y0 = sy(DY0 + (DY1 - DY0) * j / NY), y1 = sy(DY0 + (DY1 - DY0) * (j + 1) / NY);
+    const T = () => ip(x0, y0, tl, x1, y0, tr), R = () => ip(x1, y0, tr, x1, y1, br);
+    const B = () => ip(x0, y1, bl, x1, y1, br), Lf = () => ip(x0, y0, tl, x0, y1, bl);
+    const P = (a: [number, number], b: [number, number]) => segs.push([a, b]);
+    switch (c) {
+      case 1: P(Lf(), B()); break; case 2: P(B(), R()); break; case 3: P(Lf(), R()); break;
+      case 4: P(T(), R()); break;
+      case 5: { const ct = (tl + tr + br + bl) / 4; if (ct > level) { P(Lf(), T()); P(B(), R()); } else { P(Lf(), B()); P(T(), R()); } break; }
+      case 6: P(T(), B()); break; case 7: P(Lf(), T()); break; case 8: P(Lf(), T()); break;
+      case 9: P(T(), B()); break;
+      case 10: { const ct = (tl + tr + br + bl) / 4; if (ct > level) { P(Lf(), B()); P(T(), R()); } else { P(Lf(), T()); P(B(), R()); } break; }
+      case 11: P(T(), R()); break; case 12: P(Lf(), R()); break; case 13: P(B(), R()); break; case 14: P(Lf(), B()); break;
+    }
+  }
+  // chain segments into polylines (shared-endpoint walk)
+  const key = (p: [number, number]) => `${Math.round(p[0] * 4)},${Math.round(p[1] * 4)}`;
+  const adj = new Map<string, number[]>();
+  const used = new Array(segs.length).fill(false);
+  segs.forEach((s, idx) => {
+    for (const e of [key(s[0]), key(s[1])]) {
+      if (!adj.has(e)) adj.set(e, []);
+      adj.get(e)!.push(idx);
+    }
+  });
+  let d = '';
+  for (let s = 0; s < segs.length; s++) {
+    if (used[s]) continue;
+    used[s] = true;
+    const poly: [number, number][] = [segs[s][0], segs[s][1]];
+    let grow = true;
+    while (grow) {
+      grow = false;
+      const tail = poly[poly.length - 1];
+      for (const ci of adj.get(key(tail)) ?? []) {
+        if (used[ci]) continue;
+        const seg = segs[ci];
+        if (key(seg[0]) === key(tail)) { poly.push(seg[1]); used[ci] = true; grow = true; break; }
+        if (key(seg[1]) === key(tail)) { poly.push(seg[0]); used[ci] = true; grow = true; break; }
+      }
+    }
+    d += 'M' + poly.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L');
+  }
+  return d;
+}
+const contours = levels.map((lv, idx) => ({ d: isoPath(lv), lv: idx }));
+
+// ── masses ──────────────────────────────────────────────────────────────────
+const priS = { x: sx(-muStar), y: sy(0), r: 9, name: primary.name };
+const secS = { x: sx(1 - muStar), y: sy(0), r: 5, name: secondary.name };
+
+// ── collinear-trio magnifier: does L1 · secondary · L2 collapse? ────────────
+const trioSpan = Math.abs(sx(L2x) - sx(L1x));
+const collapse = trioSpan < 24 && shown.includes('L1') && shown.includes('L2');
+// inset frame (bottom-left, clear of L4/L5/L3). Magnification is ADAPTIVE: it
+// targets a magnified L1–L2 span that reads clearly AND is clamped so the r≈5.5
+// rings + labels never overflow the box — for EVERY collapsing mass ratio
+// (Sun–Earth through Sun–Saturn). A fixed 40× only fit the extreme Sun–Earth
+// ratio; wider ratios (Uranus/Neptune/Saturn) drove L1/L2 off the viewBox.
+const insetW = 276, insetH = 132, insetX = 16, insetY = 320;
+const insetCx = insetX + insetW / 2;
+const insetCy = insetY + 70;
+const targetSpan = insetW - 96;                          // 180 — desired magnified L1–L2 span
+const rawMag = Math.max(40, targetSpan / (trioSpan || 1));
+const D = Math.min(rawMag * (trioSpan / 2), insetW / 2 - 22);  // half-span, clamped inside the frame
+const MAG = Math.max(1, Math.round((2 * D) / (trioSpan || 1))); // ACTUAL factor shown on the kick (honesty)
+
+// ── points drawn on the MAIN map (collinear pair moves to the inset) ────────
+type Drawn = { id: PName; x: number; y: number; saddle: boolean; lx: number; ly: number; anchor: 'start' | 'middle' | 'end' };
+const drawn: Drawn[] = [];
+for (const p of shown) {
+  if (collapse && (p === 'L1' || p === 'L2')) continue; // → inset
+  const [nx, ny] = LP[p];
+  const px = sx(nx), py = sy(ny);
+  // label offset 8px along the radial away from the secondary
+  const dx = px - secS.x, dy = py - secS.y;
+  const m = Math.hypot(dx, dy) || 1;
+  const off = 12;
+  let lx = px + (dx / m) * off, ly = py + (dy / m) * off + 3;
+  const anchor: 'start' | 'middle' | 'end' = dx > 6 ? 'start' : dx < -6 ? 'end' : 'middle';
+  lx = Math.max(20, Math.min(700, lx));
+  ly = Math.max(16, Math.min(458, ly));
+  drawn.push({ id: p, x: px, y: py, saddle: isSaddle(p), lx, ly, anchor });
+}
+
+// ── markers → callouts. primary marker (markers[0]) pulses; ≤3 rendered ─────
+const shownMarkers = markers.filter((mk) => shown.includes(mk.at)).slice(0, 3);
+const primaryMarkerAt: PName | null = shownMarkers.length ? shownMarkers[0].at : null;
+// main-map callouts (points NOT in the inset)
+type Callout = { label: string; x: number; y: number; lx: number; ly: number; anchor: 'start' | 'end' };
+const mainCallouts: Callout[] = [];
+// inset callouts (collinear pair occupants)
+type InsetMark = { at: 'L1' | 'L2'; label: string };
+const insetMarks: InsetMark[] = [];
+for (const mk of shownMarkers) {
+  if (collapse && (mk.at === 'L1' || mk.at === 'L2')) {
+    insetMarks.push({ at: mk.at, label: mk.label });
+    continue;
+  }
+  const [nx, ny] = LP[mk.at];
+  const px = sx(nx), py = sy(ny);
+  const toRight = px < 470;
+  const lx = Math.max(70, Math.min(650, px + (toRight ? 66 : -66)));
+  const ly = Math.max(28, Math.min(444, py + (py < 235 ? -20 : 26)));
+  mainCallouts.push({ label: mk.label, x: px, y: py, lx, ly, anchor: toRight ? 'start' : 'end' });
+}
+
+// ── legend data (per-point type + normalized coords + distance) ─────────────
+const fmtKm = (km: number) =>
+  km >= 1e6 ? `${(km / 1e6).toFixed(1)} M km` : km >= 1e3 ? `${Math.round(km / 1e3)}k km` : `${Math.round(km)} km`;
+const distDesc = (p: PName): string => {
+  if (!separationKm) return '';
+  if (p === 'L1') return `${fmtKm(rH * separationKm)} sunward of ${secondary.name}`;
+  if (p === 'L2') return `${fmtKm(rH * separationKm)} beyond ${secondary.name}`;
+  if (p === 'L3') return `far side of ${primary.name}`;
+  return `60° ${p === 'L4' ? 'ahead of' : 'behind'} ${secondary.name}`;
+};
+const legend = shown.map((p) => {
+  const [nx, ny] = LP[p];
+  return {
+    id: p,
+    type: isSaddle(p) ? 'unstable saddle' : 'stable equilateral',
+    coord: `${nx.toFixed(4)}, ${ny.toFixed(4)}`,
+    dist: distDesc(p),
+  };
+});
+const muLabel = muStar < 1e-3 ? muStar.toExponential(3) : muStar.toFixed(5);
+const hillReadout = separationKm
+  ? `${rH.toFixed(3)} · ${fmtKm(rH * separationKm)}`
+  : `${rH.toFixed(3)} · separation units`;
+
+const ariaLabel = `Effective-potential map of the ${primary.name}–${secondary.name} system, ${shown.length} Lagrange points marked`;
+const axisEndX = 690;
+---
+
+<div class="px-viz px-lagr" data-reveal>
+  <!-- honesty chip renders whenever the shading does (the ramp is log in Ω);
+       the caption text is the only conditional part -->
+  <div class="px-viz__cap">
+    {caption && <span>{caption}</span>}
+    <b>potential log-shaded</b>
+  </div>
+
+  <svg class="px-lagr__svg" viewBox={`0 0 ${VB_W} ${VB_H}`} role="img" aria-label={ariaLabel}
+    preserveAspectRatio="xMidYMid meet">
+
+    <!-- filled iso-bands (potential shading — deep→vivid single-hue ramp) -->
+    <g class="px-lagr__bands">
+      {bands.map((b) => (
+        <path d={b.d} fill={b.fill} fill-opacity={b.opacity} stroke="none" />
+      ))}
+    </g>
+
+    <!-- contour lines (the ruled paper of the terrain) -->
+    <g class="px-lagr__lines">
+      {contours.map((c) => (
+        <path class="px-lagr__line" d={c.d} style={`--lv:${c.lv}`} />
+      ))}
+    </g>
+
+    <!-- co-rotating frame axis -->
+    <line class="px-lagr__axis" x1={sx(-1.28)} y1={sy(0)} x2={axisEndX} y2={sy(0)} />
+    <text class="px-lagr__axislbl" x={axisEndX} y={sy(0) - 6} text-anchor="end">co-rotating frame</text>
+
+    <!-- the two masses (paper occluder ring + ink disc) -->
+    <g class="px-lagr__mass">
+      <circle cx={priS.x} cy={priS.y} r={priS.r + 4} fill="var(--paper)" />
+      <circle cx={priS.x} cy={priS.y} r={priS.r} class="px-lagr__disc" />
+      <text class="px-lagr__masslbl" x={priS.x} y={priS.y + priS.r + 14} text-anchor="middle">{priS.name}</text>
+      <circle cx={secS.x} cy={secS.y} r={secS.r + 3.5} fill="var(--paper)" />
+      <circle cx={secS.x} cy={secS.y} r={secS.r} class="px-lagr__disc" />
+      {!collapse && (
+        <text class="px-lagr__masslbl" x={secS.x} y={secS.y + secS.r + 14} text-anchor="middle">{secS.name}</text>
+      )}
+    </g>
+
+    <!-- Lagrange points on the main map -->
+    <g class="px-lagr__pts">
+      {drawn.map((p) => {
+        const pulse = p.id === primaryMarkerAt;
+        return (
+          <g class={`px-lagr__pt${pulse ? ' px-lagr__pt--pulse' : ''}`} style={`--i:${ALL.indexOf(p.id)}`}>
+            <circle class="px-lagr__ring" cx={p.x} cy={p.y} r="4" />
+            {p.saddle ? (
+              <>
+                <line class="px-lagr__x" x1={p.x - 2.4} y1={p.y - 2.4} x2={p.x + 2.4} y2={p.y + 2.4} />
+                <line class="px-lagr__x" x1={p.x - 2.4} y1={p.y + 2.4} x2={p.x + 2.4} y2={p.y - 2.4} />
+              </>
+            ) : (
+              <circle class="px-lagr__core" cx={p.x} cy={p.y} r="1.6" />
+            )}
+            <text class="px-lagr__ptlbl" x={p.lx} y={p.ly} text-anchor={p.anchor}>{p.id}</text>
+          </g>
+        );
+      })}
+    </g>
+
+    <!-- marker callouts on the main map (Fraunces-italic annotations + leaders) -->
+    <g class="px-lagr__callouts">
+      {mainCallouts.map((m) => (
+        <g>
+          <line class="px-lagr__leader" x1={m.x} y1={m.y} x2={m.lx} y2={m.ly - 3} />
+          <text class="px-lagr__annot" x={m.lx + (m.anchor === 'start' ? 4 : -4)} y={m.ly} text-anchor={m.anchor}>{m.label}</text>
+        </g>
+      ))}
+    </g>
+
+    <!-- collinear-trio magnifier inset (renders only when L1·secondary·L2 collapse) -->
+    {collapse && (
+      <g class="px-lagr__inset">
+        <line class="px-lagr__connector" x1={insetCx} y1={insetY} x2={secS.x} y2={secS.y + 8} />
+        <rect x={insetX} y={insetY} width={insetW} height={insetH} rx="8"
+          fill="var(--paper)" class="px-lagr__insetframe" />
+        <text class="px-lagr__insetkick" x={insetX + 12} y={insetY + 18} text-anchor="start">×{MAG} · {secondary.name} NEIGHBOURHOOD</text>
+        <!-- secondary disc at inset centre -->
+        <circle cx={insetCx} cy={insetCy} r="4.5" class="px-lagr__disc" />
+        <text class="px-lagr__masslbl" x={insetCx} y={insetCy + 20} text-anchor="middle">{secondary.name}</text>
+        <!-- L1 (sunward) and L2 (anti-sunward) at true relative offsets -->
+        {(['L1', 'L2'] as const).map((pid) => {
+          const ix = pid === 'L1' ? insetCx - D : insetCx + D;
+          const pulse = pid === primaryMarkerAt;
+          const mk = insetMarks.find((m) => m.at === pid);
+          return (
+            <g class={`px-lagr__pt${pulse ? ' px-lagr__pt--pulse' : ''}`}>
+              <circle class="px-lagr__ring" cx={ix} cy={insetCy} r="5.5" />
+              <line class="px-lagr__x" x1={ix - 3} y1={insetCy - 3} x2={ix + 3} y2={insetCy + 3} />
+              <line class="px-lagr__x" x1={ix - 3} y1={insetCy + 3} x2={ix + 3} y2={insetCy - 3} />
+              <text class="px-lagr__ptlbl" x={ix} y={insetCy - 12} text-anchor="middle">{pid}</text>
+              {mk && <text class="px-lagr__annot" x={ix} y={insetCy + 38} text-anchor="middle">{mk.label}</text>}
+            </g>
+          );
+        })}
+      </g>
+    )}
+
+    <!-- main-map tick standing in for the collapsed L1·L2 blob -->
+    {collapse && (
+      <g class="px-lagr__collapse">
+        <line class="px-lagr__ring" x1={secS.x} y1={secS.y - 9} x2={secS.x} y2={secS.y - 3} />
+        <text class="px-lagr__ptlbl" x={secS.x + 8} y={secS.y - 8} text-anchor="start">L1·L2</text>
+      </g>
+    )}
+  </svg>
+
+  <!-- marker list (a11y + shown in place of in-SVG callouts at ≤640px) -->
+  {shownMarkers.length > 0 && (
+    <ul class="px-lagr__mlist">
+      {shownMarkers.map((mk) => (
+        <li class="px-lagr__mrow">
+          <span class="px-lagr__mpt">{mk.at}</span>
+          <span class="px-lagr__mlbl">{mk.label}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <!-- legend: per-point type + coordinates (+ distance) — readable with zero JS -->
+  <details class="px-lagr__legend vz-legend-wrap">
+    <summary class="px-lagr__summary">
+      {primary.name}–{secondary.name} · mass ratio μ* = {muLabel} · Hill dist {hillReadout}
+    </summary>
+    <ul class="px-lagr__rows">
+      {legend.map((r) => (
+        <li class="px-lagr__lrow">
+          <span class="px-lagr__lid">{r.id}</span>
+          <span class="px-lagr__ltype">{r.type}</span>
+          <span class="px-lagr__lmeta">{r.coord}{r.dist ? ` · ${r.dist}` : ''}</span>
+        </li>
+      ))}
+    </ul>
+  </details>
+
+  {source && <div class="px-viz__src">Source · {source}</div>}
+</div>
+
+<style>
+  .px-lagr__svg { width: 100%; height: auto; display: block; overflow: hidden; border-radius: var(--r-tile, 10px); }
+
+  /* filled iso-bands — resting = visible (no-JS safe); reveal = fade */
+  .px-lagr__bands {
+    opacity: 1;
+    transition: opacity 400ms var(--ease, ease);
+  }
+  html.js .px-viz:not(.is-in) .px-lagr__bands { opacity: 0; }
+
+  /* contour lines — resting = visible; reveal = staggered fade "develop" */
+  .px-lagr__line {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 0.75;
+    stroke-opacity: 0.22;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    opacity: 1;
+    transition: opacity 300ms var(--ease, ease);
+  }
+  html.js .px-viz:not(.is-in) .px-lagr__line { opacity: 0; }
+  .px-viz.is-in .px-lagr__line { transition-delay: calc(250ms + var(--lv) * 40ms); }
+
+  .px-lagr__axis { stroke: var(--ink); stroke-opacity: 0.16; stroke-width: 1; stroke-dasharray: 4 5; }
+  .px-lagr__axislbl {
+    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
+  }
+
+  /* structural groups join the reveal cascade (§5 stage order) so nothing
+     paints ahead of the bands/lines/points under html.js before scroll-in */
+  .px-lagr__mass, .px-lagr__inset, .px-lagr__collapse {
+    opacity: 1; transition: opacity 220ms var(--ease, ease);
+  }
+  .px-lagr__axis, .px-lagr__axislbl {
+    opacity: 1; transition: opacity 300ms var(--ease, ease);
+  }
+  html.js .px-viz:not(.is-in) .px-lagr__mass,
+  html.js .px-viz:not(.is-in) .px-lagr__inset,
+  html.js .px-viz:not(.is-in) .px-lagr__collapse,
+  html.js .px-viz:not(.is-in) .px-lagr__axis,
+  html.js .px-viz:not(.is-in) .px-lagr__axislbl { opacity: 0; }
+  .px-viz.is-in .px-lagr__axis,
+  .px-viz.is-in .px-lagr__axislbl { transition-delay: 250ms; }   /* with the terrain */
+  .px-viz.is-in .px-lagr__mass { transition-delay: 850ms; }       /* §5: masses reveal */
+  .px-viz.is-in .px-lagr__inset,
+  .px-viz.is-in .px-lagr__collapse { transition-delay: 1200ms; }  /* after the L-points settle */
+
+  .px-lagr__disc { fill: var(--ink); fill-opacity: 0.9; }
+  .px-lagr__masslbl {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+
+  /* Lagrange points — resting = visible; reveal = settle (scale) */
+  .px-lagr__ring { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+  .px-lagr__core { fill: var(--accent); }
+  .px-lagr__x { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
+  .px-lagr__ptlbl {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; font-weight: 700;
+    fill: var(--accent-deep, var(--accent)); font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
+  }
+  .px-lagr__pt {
+    opacity: 1; transform: none; transform-box: view-box; transform-origin: center;
+    transition: opacity 220ms var(--ease-snap, ease), transform 220ms var(--ease-snap, ease);
+  }
+  html.js .px-viz:not(.is-in) .px-lagr__pt { opacity: 0; transform: scale(1.3); }
+  .px-viz.is-in .px-lagr__pt { transition-delay: calc(1000ms + var(--i, 0) * 40ms); }
+
+  /* the ONE ambient motion — the occupied point breathes */
+  .px-lagr__pt--pulse .px-lagr__ring { animation: px-lagr-pulse 2.4s ease-in-out infinite; }
+  @keyframes px-lagr-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.55; } }
+
+  /* marker callouts — Fraunces-italic annotation + faint leader */
+  .px-lagr__leader { stroke: var(--accent); stroke-opacity: 0.6; stroke-width: 1; }
+  .px-lagr__annot {
+    font-family: var(--font-display); font-style: italic; font-size: var(--viz-fs-annot, 13px);
+    fill: var(--accent-deep, var(--accent));
+    paint-order: stroke; stroke: var(--paper); stroke-width: 3.5px; stroke-linejoin: round;
+  }
+  .px-lagr__callouts {
+    opacity: 1; transition: opacity 140ms var(--ease, ease);
+  }
+  html.js .px-viz:not(.is-in) .px-lagr__callouts { opacity: 0; }
+  .px-viz.is-in .px-lagr__callouts { transition-delay: 1420ms; }
+
+  /* collinear-trio magnifier inset */
+  .px-lagr__insetframe { stroke: var(--rule); stroke-width: 1; fill-opacity: 0.94; }
+  .px-lagr__insetkick {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    fill: var(--muted);
+  }
+  .px-lagr__connector { stroke: var(--accent); stroke-opacity: 0.55; stroke-width: 1; stroke-dasharray: 3 3; }
+  .px-lagr__collapse .px-lagr__ring { stroke-width: 2; }
+
+  /* marker list — a11y + the ≤640px replacement for the in-SVG callouts */
+  .px-lagr__mlist { list-style: none; margin: 16px 0 0; padding: 0; display: none; flex-direction: column; gap: 2px; }
+  .px-lagr__mrow { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed var(--rule); }
+  .px-lagr__mpt { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent-deep, var(--accent)); }
+  .px-lagr__mlbl { font-family: var(--font-display); font-style: italic; font-size: 13.5px; color: var(--ink-soft); }
+
+  /* legend */
+  .px-lagr__legend { margin-top: 18px; border-top: 1px dashed var(--rule); padding-top: 12px; }
+  .px-lagr__summary {
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums;
+  }
+  .px-lagr__rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .px-lagr__lrow {
+    display: grid; grid-template-columns: 34px 130px 1fr; gap: 12px; align-items: baseline;
+    padding: 7px 0; border-bottom: 1px dashed var(--rule); font-variant-numeric: tabular-nums;
+  }
+  .px-lagr__lid { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent-deep, var(--accent)); }
+  .px-lagr__ltype { font-family: var(--font-body); font-size: 12.5px; color: var(--ink); }
+  .px-lagr__lmeta { font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.04em; color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .px-lagr__callouts { display: none; }
+    .px-lagr__mlist { display: flex; }
+    .px-lagr__lrow { grid-template-columns: 30px 1fr; }
+    .px-lagr__lmeta { grid-column: 1 / -1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-lagr__bands,
+    .px-viz:not(.is-in) .px-lagr__line,
+    .px-viz:not(.is-in) .px-lagr__callouts,
+    .px-viz:not(.is-in) .px-lagr__mass,
+    .px-viz:not(.is-in) .px-lagr__axis,
+    .px-viz:not(.is-in) .px-lagr__axislbl,
+    .px-viz:not(.is-in) .px-lagr__inset,
+    .px-viz:not(.is-in) .px-lagr__collapse { opacity: 1 !important; }
+    .px-viz:not(.is-in) .px-lagr__pt { opacity: 1 !important; transform: none !important; }
+    .px-lagr__pt--pulse .px-lagr__ring { animation: none !important; stroke-opacity: 1 !important; }
+  }
+</style>

@@ -9,9 +9,13 @@ export const builders: SceneRegistry = {
   'data-globe':      { load: () => import('./dataGlobe') },
   'route-globe':     { load: () => import('./routeGlobe') },
   'solar-system':    { load: () => import('./solarSystem') },
+  'constellation-swarm': { load: () => import('./constellationSwarm') },
   'chamber':         { load: () => import('./chamber') },
   'terrain-relief':  { load: () => import('./terrainRelief') },
+  'plate-motion':    { load: () => import('./plateMotion') },
+  'storm-track':     { load: () => import('./stormTrack') },
   'neural-flow':     { load: () => import('./neuralFlow') },
+  'packet-trace':    { load: () => import('./packetTrace') },
   'terminator-globe':{ load: () => import('./terminatorGlobe') },
   'flight-of-the-ball': { load: () => import('./flightOfTheBall') },
 };
