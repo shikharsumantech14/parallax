@@ -47,12 +47,22 @@ research/
 9. YOU AUDIT + PUBLISH          ← read report, fix, flip status, commit
 ```
 
-> **Component palette.** The publication ships ~60 section kinds, including a v2
-> 3D / interactive library (5 per world: WebGL globes, CSS-3D cards, animated
-> SVG). The drafter chooses kinds that fit the data; discovery should suggest
-> them. The six `2026-06-03-<world>-showcase` **draft** issues exercise every
-> kind with real data — the canonical worked examples. Full catalog + `data`
-> shapes live in `src/content/issues/_AGENTS.md` §11.
+> **Component palette.** The publication ships **~90 section kinds** — the
+> editorial kinds plus a deep physics / data / geography-grounded interactive +
+> 3D library (each world's flagships and its breadth: WebGL globes, CSS-3D
+> cards, animated SVG). The canonical catalog is **`docs/design/catalog.md`**:
+> one `## <kind>` block per kind giving **USE WHEN**, **DON'T USE** (with the
+> right alternative), the exact **DATA** shape, the **PLAIN** one-liner, and —
+> on the data-hungry kinds — a **RESEARCHER MUST CAPTURE** note.
+> `npm run check:catalog` verifies that the catalog and `SECTION_KINDS` in
+> `src/content/config.ts` stay 1:1 and in the same order (90 ↔ 90 today).
+> It is a manual check — `npm run build` does not run it.
+> The drafter chooses kinds that fit the data; discovery should suggest them.
+> The six `2026-06-03-<world>-showcase` **draft** issues exercise the library
+> with real data — the canonical worked examples.
+> `src/content/issues/_AGENTS.md` §11 still documents the 2026-06-03
+> 3D/interactive set and its authoring shapes, but the catalog is what the
+> agents read. See §12 for how each agent uses it.
 
 Two paths run the same agents:
 
@@ -126,6 +136,24 @@ Dossier sections (researchers must produce all):
 `Status: ready-for-draft` is the gate. The drafter won't run on a dossier
 without it.
 
+**A dossier must now carry the data its components need.** For every
+interactive / 3D / data component the structure proposes, the researcher opens
+that kind's `## <kind>` block in `docs/design/catalog.md`, reads its **DATA**
+shape and its **RESEARCHER MUST CAPTURE** note, and captures that data for
+real, from a named source — best-track fixes (lat/lon + wind per timestamp) for
+`storm-track`, Euler poles for `plate-motion`, the dated count series for
+`moore-ladder`, the two orbital radii plus the central-body μ for
+`transfer-window`. Coordinates, ratings and physical values are facts like any
+other; the drafter is forbidden from inventing them, and the verifier traces
+them. A component whose primary data cannot be sourced is not a component this
+issue can use: say so in the dossier and propose a simpler kind the evidence
+does support.
+
+The template at `_templates/dossier.md` has **not** been given a dedicated slot
+for this yet — its §7 table is still `kind / eyebrow / what it covers`. Until it
+grows one, put the captured component data under §4 (Key facts & data) with its
+citation and point at it from the §7 row.
+
 ---
 
 ## 6. Verification report shape (Phase 4 output)
@@ -140,7 +168,15 @@ For each claim in the draft, the report lists:
 
 The verifier also checks for AI-tell violations per the mode library's
 voice rules (em-dash overload, binary reframes, triple-fragment closers,
-etc.).
+etc.), plus two component checks added by the P8 wiring (§12):
+
+- **Component `data` values are claims.** The numbers a viz renders — satellite
+  counts, orbital elements, Euler poles, ratings, xG values, transistor counts,
+  lat/lon, measured physical quantities — trace to the dossier exactly like body
+  text does.
+- **⚠️ PLAIN-CLAIM.** A section's `plain` line must describe the FORM of the
+  graphic, never assert the data. A `plain` that states a finding ("Leicester
+  won") is flagged; the data belongs in the caption.
 
 **`NEEDS REVISION` is the most common verdict.** Apply the fixes directly
 to the draft (or re-run a phase), then re-verify or proceed at your
@@ -239,7 +275,68 @@ something, kill the agent first, then edit, then re-run.
 
 ---
 
+## 12. Component-aware agents (P8 wiring)
+
+The four agent prompts in `.claude/agents/` were rewired so the component
+catalog — not the model's memory of an older, smaller library — drives which
+visual a section gets. These are prompts, not code, so there is no build impact.
+Uncommitted at the time of writing, like the rest of the 2026-07-14 work.
+
+- **`researcher.md`** — Step 5 (propose the issue structure) now ends with
+  "Capture the DATA each component needs": open the proposed kind's catalog
+  block, read its **DATA** shape and **RESEARCHER MUST CAPTURE** note, capture
+  that real sourced data, and where it can't be sourced, say so and suggest a
+  simpler kind the evidence supports. Never leave the drafter to guess a
+  coordinate, rating or physical value. See §5.
+- **`drafter.md`** — Step 2.4 is now "The component catalog (pick the right
+  form)", pointing at `docs/design/catalog.md` as the single source of truth for
+  choosing *and* shaping a component: pick by what the data genuinely is, never
+  by what looks impressive. This replaced a stale inline list of 30 kinds. The
+  drafter also authors three per-section fields it previously didn't:
+  `plain` (the FORM of the graphic, ≤ 220 chars — the Zod cap; omit it when the
+  per-kind default in `src/lib/explainers.ts` already fits, and narrative kinds
+  take none), `skimCaption` (the one thing the section proves), and `layout`
+  (`default` unless there's a reason — `wide`, `split` for the issue's single
+  hero metaphor, `bleed` at most once per act, `breath`). It works to the
+  `docs/design/CANON.md` §3 rhythm — one hero visual, no more than ~3 loud
+  sections, acts separated by `act-break`, every act carrying a quiet section —
+  and its end-of-run self-check covers all of it.
+- **`stylist.md`** — new **Step 4.6, structure + plain-layer audit**. As the last
+  editorial pass before the verifier it checks the issue against the CANON §3
+  structure rules and the plain-layer contract, reporting under a "Structure
+  flags" heading. It *flags* rather than fixes (it does not restructure the issue
+  or change section kinds); the one thing it may rewrite is a `plain` line, since
+  that wording is prose within its remit.
+- **`verifier.md`** — Step 2 now extracts component `data` values as claims to
+  trace, and audits `plain` lines, flagging **⚠️ PLAIN-CLAIM** where one asserts
+  data instead of describing form. See §6.
+
+**Not yet demonstrated.** The P8 retrofit — pulling the new components into two
+already-published issues, plus one fresh `pipeline:draft` run to prove
+catalog-driven selection works end to end — has **not been run**. It touches live
+content and bills a full draft phase, so it's an editorial call. Until it
+happens, the wiring above is verified by reading the prompts, not by output.
+
+---
+
 ## Change log
+
+### 2026-07-14 — P8: the agents read the component catalog
+
+Rewired all four agent prompts in `.claude/agents/` around
+`docs/design/catalog.md`, now ~90 kinds after the P6 breadth build (22 new
+components across the six worlds). The drafter's stale inline "30 kinds" list is
+gone — it reads the catalog and authors `plain` / `skimCaption` / `layout` per
+section to the CANON §3 rhythm. The stylist gained Step 4.6 (structure +
+plain-layer audit, flag-only except `plain` wording). The researcher captures
+each proposed component's **DATA** shape and **RESEARCHER MUST CAPTURE** note as
+real sourced data, so dossiers now carry the numbers a component renders. The
+verifier treats those `data` values as traceable claims and flags ⚠️ PLAIN-CLAIM
+when a `plain` line asserts data. Updated §2 (palette count + canonical
+pointer), §5 (dossier data requirement, and the note that
+`_templates/dossier.md` has no slot for it yet), §6 (the two new verifier
+checks); added §12. The retrofit demonstration — two published issues plus a
+fresh draft run — has not been run.
 
 ### 2026-05-20 — File created
 Initial version. Captures pipeline phases, file shapes (candidate /

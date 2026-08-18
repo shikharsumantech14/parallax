@@ -184,6 +184,32 @@ Keep a mental count across the whole issue:
 
 ---
 
+### Step 4.6 — Structure + plain-layer audit (flag; fix `plain` wording only)
+
+You are the last editorial pass before the verifier, so also check the issue
+against the CANON §3 structure rules and the plain-layer contract. FLAG
+violations in your report (you do NOT restructure the issue or change section
+kinds), but you MAY rewrite a `plain` line since its wording is prose within
+your remit.
+
+- **`plain` = FORM, not DATA.** Every viz / interactive section's `plain` line
+  must explain how to READ the graphic ("each ribbon is one team; its thickness
+  is its rating"), never state the finding ("Leicester won"). If a `plain`
+  narrates the data, rewrite it to describe the form (keep ≤ 220 chars). Captions
+  carry the data; `plain` carries the form.
+- **One hero visual.** Flag if two WebGL/3D or heavy-interactive sections sit
+  adjacent, or if more than ~3 "loud" sections appear in the whole issue.
+- **Act rhythm.** Flag if the acts aren't separated by an `act-break`, or if any
+  act has no quiet (prose / quote / data-readout) section.
+- **Catalog conformance.** Flag any component whose `data` doesn't match the DATA
+  shape in `docs/design/catalog.md` for its kind (missing or wrong required
+  fields). Note it — the drafter or human fixes the data.
+
+Report these under a **"Structure flags"** heading; the human resolves the
+structural ones before publish.
+
+---
+
 ### Step 5 — Do NOT touch these fields
 
 Preserve the following exactly as written:

@@ -87,46 +87,51 @@ kids), `punchline`.
 **`match-stat-line`**, **`elevation-profile`** — topic-specific. Use
 only if the dossier's category matches the component's topic.
 
-### Step 2.4 — The v2 3D / interactive kinds (when to reach for each)
+### Step 2.4 — The component catalog (pick the right form)
 
-Thirty newer section kinds (five per world) render as interactive / 3D
-pieces. They are first-class `SECTION_KINDS` — use one when the dossier
-material genuinely fits its shape, the same way you'd choose `timeline` or
-`vote-result`. Don't force them; one or two per issue is plenty, and never at
-the cost of the structural argument. Each is topic-styled — prefer your
-issue's own world. Full `data` shapes live in
-`src/content/issues/_AGENTS.md` §11; the `2026-06-03-<world>-showcase` draft
-issues show every one in use. All of them also take `caption?` + `source?`.
+Every registered section kind — the editorial kinds above AND the full library
+of physics / data / geography-grounded **interactive + 3D** kinds (now ~90
+total, including each world's flagships and their breadth) — is documented in
+**`docs/design/catalog.md`**. **READ IT.** That file is the single source of
+truth for choosing and shaping a component: each `## <kind>` block gives **USE
+WHEN**, **DON'T USE** (with the correct alternative), the exact **DATA** shape,
+and the **PLAIN** one-liner. Choose a kind the way the catalog tells you to — by
+what the data genuinely IS, never by what looks impressive. All of these kinds
+also take `caption?` + `source?`; the `2026-06-03-<world>-showcase` issues show
+every one in a live worked example.
 
-- **politics** — `coalition-orbit`: parties orbiting a government core (seat
-  shares / bloc make-up). `swing-dial`: a single value on a two-bloc scale
-  (a swing, a margin). `bill-passage`: a bill advancing stage by stage.
-  `vote-flow`: blocs flowing into for/against/abstain. `margin-ladder`:
-  ranked win/loss margins across seats or races.
-- **space** — `orbit-globe`: orbital shells / satellite populations around
-  Earth. `trajectory-arc`: a flight path by altitude and downrange.
-  `delta-v-ladder`: a delta-v / energy budget broken into segments.
-  `signal-readout`: signal bands or a spectrum. `descent-profile`: an
-  altitude-vs-time descent or landing with event markers.
-- **earth** — `data-globe`: geo-located values on a globe (by lat/lon).
-  `core-sample`: a vertical core / stratigraphy by depth. `sea-level-tank`:
-  rising-water levels against landmark heights. `climate-spiral`: a monthly
-  climate series spiralling by year. `quake-depth`: earthquakes by depth and
-  magnitude.
-- **tech** — `arch-stack`: a layered system / architecture stack.
-  `latency-waterfall`: timed spans in a request waterfall. `version-graph`:
-  a commit / release DAG. `scaling-plot`: an x/y scaling curve (optional log
-  axes / fit line). `throughput-dial`: a single throughput / utilisation
-  gauge with zones.
-- **travel** — `route-globe`: a multi-stop journey arced across a globe.
-  `elevation-trek`: an elevation profile along a route. `itinerary-reel`: a
-  day-by-day itinerary. `climate-calendar`: monthly temperature / rainfall
-  for "when to go". `timezone-arc`: city time-zone offsets against a
-  reference.
-- **sports** — `tactics-pitch`: player positions / a formation on the pitch.
-  `shot-map`: shots plotted by location and xG. `xg-race`: a cumulative xG
-  race between two teams. `momentum-wave`: match momentum swinging between
-  sides. `player-card`: a flip rating card with stat bars.
+The library is deep. A few standouts you now have (read the catalog for the rest
++ every DATA shape):
+- **politics** — `chamber` (3-D hemicycle + division walk), `coalition-calculus`
+  (build a coalition against the majority line), `gerrymander-lens` (same votes,
+  three maps), `ballot-flow` (ranked-choice round transfers), `power-flow`.
+- **space** — `solar-system` (navigable Keplerian orbits), `constellation-swarm`
+  (a real satellite census), `transfer-window` (Hohmann Δv + launch-window
+  scrubber), `lagrange-map`, `eclipse-cone`.
+- **earth** — `terrain-relief` (a real DEM landscape), `plate-motion` (Euler-pole
+  velocity field), `carbon-loop` (stock-and-flow), `atmosphere-column`,
+  `storm-track`.
+- **tech** — `neural-flow` (a forward pass), `packet-trace` (light floor vs
+  measured latency), `queue-cliff` (the M/M/1 utilisation cliff), `chip-die`,
+  `moore-ladder`.
+- **travel** — `terminator-globe` (jet-lag geometry), `city-grid`, `season-wheel`
+  (when to go), `fare-terrain`, `altitude-oxygen`.
+- **sports** — `flight-of-the-ball` (drag+Magnus trajectory), `elo-river` (a
+  braided rating season), `court-value` (an xG surface), `pace-ridge`.
+
+Prefer your issue's own world. Don't force a heavy component in — one or two that
+genuinely fit the material beats five that don't. A component's DATA must be REAL
+and traceable to the dossier (the catalog's "RESEARCHER MUST CAPTURE" note says
+what each needs); never invent coordinates, ratings, or physical values.
+
+### Step 2.4b — The one-metaphor rule + density rhythm (CANON §3)
+
+- **ONE hero visual per issue**, explored deeply — never two WebGL/3D sections
+  adjacent, and at most ~3 "loud" (heavy interactive) sections in the whole
+  issue. Everything else is quiet: prose, quote, `data-readout`, a single chart.
+- Shape the issue as **2–4 acts**; each act is 2–4 sections with at least one
+  quiet section, and you place an **`act-break`** — a typographic chapter divider
+  (`data: { label?, title?, kicker? }`) — between acts to mark the turn.
 
 ### Step 2.5 — Write the Primer
 
@@ -217,9 +222,29 @@ Names the structural revelation this section delivers.
 data. Reads like the editor's framing before the reader looks at the
 chart/quote/timeline. No "As we can see" or "The following shows."
 
-**Data:** Follow the component's exact field names from Step 2. All
-strings from the dossier — do not paraphrase quotes, do not round
-numbers, do not merge separate facts.
+**Data:** Follow the component's exact field names — from the catalog's DATA
+line for that kind (`docs/design/catalog.md`). All strings from the dossier —
+do not paraphrase quotes, do not round numbers, do not merge separate facts,
+do not invent coordinates / ratings / physical values a component needs.
+
+**Plain line (`plain`):** every VIZ / interactive / 3D section gets one quiet
+sentence explaining the FORM of the graphic — how to read it, not what the data
+says ("each ribbon is one team; its thickness is that team's rating" — NOT
+"Leicester won"). ≤ 220 characters (the schema enforces this). It renders as the
+in-flow "In plain terms" line; omit it only when the per-kind default in
+`src/lib/explainers.ts` already fits this issue's framing. Narrative kinds
+(prose, quote, act-break, beat-sheet, comparison, analogy) take no `plain`.
+
+**Skim caption (`skimCaption`):** a one-line takeaway — the single thing this
+section proves — for the reader in Skim mode. Author it for every substantive
+section.
+
+**Layout (`layout`):** most sections are `default` (omit the field). Reach for a
+variant only with purpose (CANON §3): `wide` for a chart that needs breathing
+room; `split` ONLY for the issue's one hero metaphor (a sticky viz beside
+scrolling prose — never for a section that already carries its own scrubber /
+control); `bleed` at most once per act; `breath` for a deliberate whitespace
+beat. Never place two loud or `bleed` sections adjacent.
 
 **Voice rules (non-negotiable):**
 - Structural, not journalistic. Show the mechanism; don't narrate the event.
@@ -285,8 +310,14 @@ Leave the MDX body empty. All content is in frontmatter sections.
 After writing, re-read the file and check:
 - [ ] YAML parses without errors (no unescaped colons/quotes in strings)
 - [ ] Every section kind is in `SECTION_KINDS` from config.ts
+- [ ] Every component's `data` matches the catalog's DATA shape for that kind
+- [ ] Every viz/interactive section carries a `plain` line (form, not data,
+      ≤220 chars) and a `skimCaption`
+- [ ] ONE hero visual; ≤3 loud sections; acts separated by an `act-break`;
+      no two loud/`bleed` sections adjacent (CANON §3)
 - [ ] `status: draft`
-- [ ] No invented facts — every number, name, date traces to dossier
+- [ ] No invented facts — every number, name, date, coordinate, or physical
+      value traces to the dossier
 - [ ] No [UNVERIFIED] claims used as stated facts (either drop them
       or flag them with a comment in the section's intro/note)
 - [ ] At least 6 sources

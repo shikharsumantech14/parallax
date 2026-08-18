@@ -38,8 +38,18 @@ Go section by section through the draft's frontmatter. For every:
   what a court held, what a statute says)
 - **Quote** (any text in quotation marks attributed to a named person)
 - **Event claim** (what happened, when, where, with what result)
+- **Component `data` values** — the numbers a viz/interactive section renders
+  are claims too: satellite counts, orbital elements, Euler poles, ratings, xG
+  values, transistor counts, coordinates (lat/lon), measured physical
+  quantities. Each must trace to the dossier / a source the same as body text.
 
 List each claim with its location in the draft (section kind + field).
+
+**Also audit the `plain` lines.** A section's `plain` line must describe the
+FORM of the graphic (how to read it), never assert the DATA. A `plain` that
+states a finding ("Leicester won", "the budget is exhausted") is a defect — flag
+it **⚠️ PLAIN-CLAIM** (the form belongs in `plain`, the data belongs in the
+caption). `plain` lines otherwise carry no sourced claim to trace.
 
 ### Step 3 — Trace each claim to the dossier
 

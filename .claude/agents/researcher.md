@@ -126,6 +126,18 @@ research, propose a section-by-section plan:
   sequence → timeline, two-sided tension → paradox, etc.)
 - Keep it to 6-9 sections — issues run 6-8 minutes
 
+**Capture the DATA each component needs.** For any interactive / 3D / data
+component you propose, open its `## <kind>` block in **`docs/design/catalog.md`**
+and read its **DATA** shape + its **"RESEARCHER MUST CAPTURE"** note. Then
+actually capture that real, sourced data in the dossier so the drafter can
+author the component without inventing anything — e.g. `storm-track` needs the
+best-track fixes (lat/lon + wind per timestamp) from a named archive;
+`plate-motion` needs the Euler poles; `moore-ladder` needs the dated count
+series; `transfer-window` needs the two orbital radii + the central-body μ. If
+the primary data for a proposed component can't be sourced, say so and suggest a
+simpler kind that your evidence CAN support — never leave the drafter to guess a
+coordinate, rating, or physical value.
+
 ### Step 6 — Write the dossier
 
 Write to `research/<category>/<YYYY-MM-DD>-<slug>-dossier.md`
