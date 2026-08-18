@@ -1,0 +1,194 @@
+---
+/**
+ * WelcomeBack — the post-auth-return toast on issue pages (JOURNEY-SPEC fix #9).
+ *
+ * The reader completed the app /welcome (or signed in from the gate) and landed
+ * back on the issue with `?welcome=1`. This quiet toast confirms the full issue
+ * is now open and — if the gate stored a scroll position before the round-trip
+ * (`sessionStorage px_resume`, written by ReadingGate) — offers to jump them
+ * back to where they left off.
+ *
+ * Celebration doctrine (JOURNEY-SPEC §4): quiet + useful, one line,
+ * auto-dismissing, never blocking content, reduced-motion safe. No-JS: the
+ * toast stays `hidden` and nothing shows — it's a nicety, never content.
+ * Prefix: px-wb.
+ */
+---
+
+<div class="px-wb" data-welcomeback role="status" aria-live="polite" hidden>
+  <div class="px-wb__inner">
+    <span class="px-wb__dot" aria-hidden="true"></span>
+    <span class="px-wb__msg">You're in — the full issue is open.</span>
+    <a class="px-wb__resume" data-wb-resume href="#" hidden>Continue where you left off ↓</a>
+    <button class="px-wb__close" type="button" aria-label="Dismiss">
+      <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true">
+        <path d="M2 2l10 10M12 2L2 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.currentScript ? document.currentScript.previousElementSibling : null;
+    while (root && !(root.classList && root.classList.contains('px-wb'))) {
+      root = root.previousElementSibling;
+    }
+    if (!root) return;
+
+    var params;
+    try { params = new URLSearchParams(location.search); } catch (e) { return; }
+    if (params.get('welcome') !== '1') return; // only after an auth round-trip
+
+    var reduce = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Strip ?welcome=1 so a refresh (or a shared link) doesn't replay the toast.
+    try {
+      params.delete('welcome');
+      var qs = params.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    } catch (e) { /* replaceState may be blocked — the toast still works */ }
+
+    // Resume position, if the gate saved one for THIS article before login.
+    var resume = null;
+    try {
+      var raw = sessionStorage.getItem('px_resume');
+      if (raw) resume = JSON.parse(raw);
+    } catch (e) { /* storage unavailable */ }
+
+    var link = root.querySelector('[data-wb-resume]');
+    if (link && resume && resume.path === location.pathname &&
+        typeof resume.y === 'number' && resume.y > 200) {
+      link.hidden = false;
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        // Instant jump — this is scroll RESTORATION ("your spot"), so an
+        // immediate landing is the expected behavior (native restoration is
+        // instant too). Smooth-scrolling a freshly-loaded long article is
+        // fragile: it competes with late layout and is a no-op in some
+        // headless / embedded renderers.
+        window.scrollTo(0, resume.y);
+        try { sessionStorage.removeItem('px_resume'); } catch (e2) {}
+        dismiss();
+      });
+    } else {
+      try { sessionStorage.removeItem('px_resume'); } catch (e) {}
+    }
+
+    var hideTimer = 0;
+    function dismiss() {
+      window.clearTimeout(hideTimer);
+      root.classList.remove('is-in');
+      window.setTimeout(function () { root.hidden = true; }, reduce ? 0 : 380);
+    }
+
+    root.hidden = false;
+    void root.offsetWidth; // commit the pre-transition state so the entrance animates
+    root.classList.add('is-in');
+    hideTimer = window.setTimeout(dismiss, 8000);
+
+    var close = root.querySelector('.px-wb__close');
+    if (close) close.addEventListener('click', dismiss);
+
+    // Keep the toast (and its resume affordance) available while a user is
+    // actually engaging it — pause the auto-dismiss on hover/focus, restart a
+    // shorter countdown when they leave. Matters most for keyboard / AT users
+    // who need time to tab to "Continue where you left off".
+    var hold = function () { window.clearTimeout(hideTimer); };
+    var restart = function () { window.clearTimeout(hideTimer); hideTimer = window.setTimeout(dismiss, 4000); };
+    root.addEventListener('mouseenter', hold);
+    root.addEventListener('focusin', hold);
+    root.addEventListener('mouseleave', restart);
+    root.addEventListener('focusout', restart);
+  })();
+</script>
+
+<style>
+  .px-wb {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    z-index: 95;
+    transform: translate(-50%, -12px);
+    opacity: 0;
+    max-width: min(92vw, 460px);
+    transition: opacity var(--t-soft, 260ms) var(--ease, ease), transform var(--t-soft, 260ms) var(--ease, ease);
+    pointer-events: none;
+  }
+  .px-wb.is-in { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .px-wb[hidden] { display: none; }
+
+  .px-wb__inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
+    background: var(--glass-bg, var(--paper));
+    backdrop-filter: var(--glass-blur, none);
+    -webkit-backdrop-filter: var(--glass-blur, none);
+    border: 1px solid var(--glass-border, var(--rule));
+    border-radius: var(--r-pill, 999px);
+    box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+  }
+  .px-wb__dot {
+    width: 8px; height: 8px; flex: none;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+  .px-wb__msg {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .px-wb__resume {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-deep, var(--accent));
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+    padding-bottom: 1px;
+    white-space: nowrap;
+  }
+  .px-wb__resume:hover { border-bottom-color: var(--accent-deep, var(--accent)); }
+  .px-wb__close {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; flex: none;
+    margin-left: 2px;
+    background: none; border: 0; padding: 0;
+    color: var(--muted); cursor: pointer;
+    border-radius: 50%;
+    transition: color var(--t-quick, 150ms) var(--ease, ease), background var(--t-quick, 150ms) var(--ease, ease);
+  }
+  .px-wb__close:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 8%, transparent); }
+
+  /* Dark worlds: match the toolbar's dark glass. */
+  :root[data-topic="space"] .px-wb__inner,
+  :root[data-topic="tech"] .px-wb__inner,
+  :root[data-topic="sports"] .px-wb__inner {
+    background: var(--glass-bg-dark, var(--paper));
+    border-color: rgba(232, 238, 247, 0.14);
+    box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(232, 238, 247, 0.08) inset;
+  }
+
+  @media (max-width: 460px) {
+    /* Definite width (not just max-width) so the fixed toast fills the row
+       instead of shrink-wrapping the wrapped flex content into a tall column. */
+    .px-wb { width: calc(100vw - 24px); max-width: none; }
+    /* Wrap onto two tidy rows instead of cramming one no-wrap row (which
+       forced ~168px of internal wrapping): row 1 = message + close, row 2 =
+       the resume link full-width. */
+    .px-wb__inner { flex-wrap: wrap; row-gap: 8px; border-radius: var(--r-tile, 14px); }
+    .px-wb__dot { order: 0; }
+    .px-wb__msg { order: 1; white-space: normal; flex: 1 1 auto; }
+    .px-wb__close { order: 2; }
+    .px-wb__resume { order: 3; flex: 1 1 100%; white-space: normal; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-wb { transition: opacity 120ms linear; transform: translate(-50%, 0); }
+  }
+</style>

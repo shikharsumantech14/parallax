@@ -1,29 +1,32 @@
 ---
 /**
- * Anonymous newsletter signup form.
+ * The unified "Join" form (JOURNEY-SPEC fix #12).
  *
- * Lives in the publication's footer. Sends an email address (no name, no
- * topic preferences in v1) to the app subdomain at /api/subscribe. The
- * app endpoint stores the row in newsletter_subscriptions and sends a
- * Resend confirmation email (double opt-in).
+ * One email field that does two things in a single submit: subscribes the
+ * reader to the dispatch AND sends a magic link that opens their free shelf on
+ * click. Posts to the app subdomain at /api/join, which upserts the
+ * newsletter row and sends one Resend email (confirm + sign-in in one tap).
+ *
+ * Handles the degraded response `{ ok: true, account: false }` — the
+ * subscription saved but the sign-in link couldn't be sent — with its own copy.
  *
  * No third-party JS. Vanilla fetch from a small <script>.
  */
 
-// Where to POST the subscription. In production this is the app subdomain;
-// in dev (running both servers locally) it's localhost:4322.
+// Where to POST. In production this is the app subdomain; in dev (running both
+// servers locally) it's localhost:4322.
 const apiUrl =
-  (import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com') + '/api/subscribe';
+  (import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com') + '/api/join';
 ---
 
 <section class="px-newsletter" data-api-url={apiUrl} aria-labelledby="px-newsletter-title">
   <div class="px-newsletter__inner">
     <h2 class="px-newsletter__title" id="px-newsletter-title">
-      Stories, in your inbox.
+      One email. Two things.
     </h2>
     <p class="px-newsletter__dek">
-      One email when each new issue ships. No tracking pixels, no
-      retargeting, no third-party trackers. Unsubscribe in one click.
+      The dispatch when each issue ships — and a free shelf that saves your
+      place. One click in your inbox does both.
     </p>
 
     <form class="px-newsletter__form" id="px-newsletter-form" novalidate>
@@ -42,6 +45,7 @@ const apiUrl =
       </div>
       <p class="px-newsletter__status" id="px-newsletter-status" aria-live="polite"></p>
     </form>
+    <p class="px-newsletter__nojs">Enable JavaScript to subscribe.</p>
   </div>
 </section>
 
@@ -53,7 +57,7 @@ const apiUrl =
     }
     const apiUrl =
       (root && root.dataset && root.dataset.apiUrl) ||
-      'https://app.parallaxlens.com/api/subscribe';
+      'https://app.parallaxlens.com/api/join';
     const form = document.getElementById('px-newsletter-form');
     const input = document.getElementById('px-newsletter-email');
     const button = form?.querySelector('button[type="submit"]');
@@ -94,7 +98,9 @@ const apiUrl =
 
         if (res.ok && data.ok) {
           setStatus(
-            'Check your inbox for a confirmation link.',
+            data.account === false
+              ? "You're subscribed. The sign-in link couldn't be sent — you can open your shelf any time from the masthead."
+              : 'Check your inbox — one tap subscribes you and opens your shelf.',
             'ok',
           );
           button.textContent = 'Sent';
@@ -217,6 +223,21 @@ const apiUrl =
   }
   .px-newsletter__status--ok { color: var(--accent-deep, #8b2416); }
   .px-newsletter__status--err { color: #c0392b; }
+
+  /* The form does a fetch(), so it's useless — and misleading (a native GET
+     would reload with the email in the URL) — without JS. Under no-JS, hide
+     the form and show a plain line instead. `html.js` is set by the inline
+     head guard before this renders, so there's no flash for JS users. */
+  .px-newsletter__nojs {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 12px 0 0;
+  }
+  :global(html:not(.js)) .px-newsletter__form { display: none; }
+  :global(html:not(.js)) .px-newsletter__nojs { display: block; }
 
   @media (max-width: 480px) {
     .px-newsletter { margin: 56px 0 32px; padding: 28px 0; }

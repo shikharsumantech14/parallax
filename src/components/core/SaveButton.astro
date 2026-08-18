@@ -8,9 +8,10 @@
  *
  * States:
  *   loading    → small spinner, no text yet
- *   signedout  → "Sign in to save" (clicking redirects to /login?next=<here>)
+ *   signedout  → "Save to your shelf" (clicking redirects to /login?next=<here>&world=<topic>)
  *   unsaved    → "Save for later"   (clicking POSTs to toggle → saved)
- *   saved      → "✓ Saved"          (clicking POSTs to toggle → unsaved)
+ *   saved      → "✓ Saved"          (clicking POSTs to toggle → unsaved; first
+ *                save flashes an "On your shelf →" microline that fades after 4s)
  *   error      → "Try again" (transient; click retries)
  *
  * Brand: matches the SkimToggle — small, monospace eyebrow, restrained.
@@ -37,6 +38,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     <span class="px-save__icon" aria-hidden="true"></span>
     <span class="px-save__label">…</span>
   </button>
+  <a class="px-save__micro" data-save-micro href="#" hidden>On your shelf →</a>
 </div>
 
 <script is:inline>
@@ -57,6 +59,26 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
 
     var apiUrl = appUrl + '/api/save/' + encodeURIComponent(issueId);
 
+    // First-save microline ("On your shelf →") — a quiet, once-per-page
+    // confirmation that fades after 4s (JOURNEY-SPEC §2 Save · §4 celebration).
+    var micro = root.querySelector('[data-save-micro]');
+    var microShown = false;
+    var microTimer = 0;
+    if (micro) micro.setAttribute('href', appUrl + '/dashboard');
+    var reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function flashMicro() {
+      if (!micro || microShown) return;
+      microShown = true;
+      micro.hidden = false;
+      void micro.offsetWidth; // commit the pre-transition state so it animates in
+      micro.classList.add('is-in');
+      microTimer = window.setTimeout(function () {
+        micro.classList.remove('is-in');
+        window.setTimeout(function () { micro.hidden = true; }, reduceMotion ? 0 : 300);
+      }, 4000);
+    }
+
     function setState(state, text) {
       btn.dataset.state = state;
       label.textContent = text;
@@ -76,7 +98,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     fetch(apiUrl, { method: 'GET', credentials: 'include' })
       .then(function (res) {
         if (res.status === 401) {
-          setState('signedout', 'Sign in to save');
+          setState('signedout', 'Save to your shelf');
           return null;
         }
         return res.json();
@@ -100,10 +122,13 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
       if (state === 'signedout') {
         // Send the reader to login with the FULL URL of this page (different
         // origin than the app subdomain). safeNextPath on the app side
-        // allow-lists parallaxlens.com so the round-trip works.
+        // allow-lists parallaxlens.com so the round-trip works. Carry the desk
+        // so login shows the world-tinted plate (JOURNEY-SPEC §2 Save).
         var nextUrl = window.location.href;
+        var topic = document.documentElement.getAttribute('data-topic') || '';
         window.location.href =
-          appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+          appUrl + '/login?next=' + encodeURIComponent(nextUrl) +
+          (topic ? '&world=' + encodeURIComponent(topic) : '');
         return;
       }
 
@@ -116,7 +141,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
       fetch(apiUrl, { method: 'POST', credentials: 'include' })
         .then(function (res) {
           if (res.status === 401) {
-            setState('signedout', 'Sign in to save');
+            setState('signedout', 'Save to your shelf');
             return null;
           }
           return res.json();
@@ -125,6 +150,8 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
           if (!data) return;
           if (data.ok) {
             setState(data.saved ? 'saved' : 'unsaved', data.saved ? 'Saved' : 'Save for later');
+            // Only on a genuine new save (not an unsave), and only once.
+            if (optimisticSaved && data.saved) flashMicro();
           } else {
             // Server rejected — revert
             setState(optimisticSaved ? 'unsaved' : 'saved', 'Try again');
@@ -142,6 +169,35 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
   .px-save {
     display: inline-flex;
     align-items: center;
+    position: relative;
+  }
+  /* First-save microline — floats just above the button, doesn't reflow the
+     glass toolbar pill it lives in. */
+  .px-save__micro {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, 4px);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--accent-deep, var(--accent));
+    padding: 5px 10px;
+    border-radius: var(--r-pill, 999px);
+    text-decoration: none;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--ink) 60%, transparent);
+    transition: opacity 0.28s var(--ease, ease), transform 0.28s var(--ease, ease);
+  }
+  .px-save__micro[hidden] { display: none; }
+  .px-save__micro.is-in { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    .px-save__micro { transition: opacity 0.12s linear; transform: translate(-50%, 0); }
+    .px-save__btn[data-state="loading"] .px-save__icon { animation: none; opacity: 0.6; }
   }
   .px-save__btn {
     display: inline-flex;

@@ -215,7 +215,6 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
     var glL = svg.querySelector('.px-hlens__glint--l');
     var glR = svg.querySelector('.px-hlens__glint--r');
     if (!pupL || !pupR || !glL || !glR) return;
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // eye centres + default object centre (SVG viewBox coords)
     var EY = 165, LX = 168, RX = 364, OX0 = 266, OY0 = 262, REACH = 12;
@@ -233,13 +232,14 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
       look(pupL, glL, LX, ox, oy);
       look(pupR, glR, RX, ox, oy);
     }
-    aim(OX0, OY0); // static converged default (also the no-JS / reduced-motion / touch state)
-    if (reduce) return;
+    aim(OX0, OY0); // static converged default (no-JS / touch / initial paint)
 
     // The eyes follow the pointer ANYWHERE on the page. We key off the viewport,
     // not the hero element, so nothing stacked above it (e.g. the first-visit
-    // intro overlay) can intercept the move — two eyes holding one object from a
-    // shifting angle: parallax, made literal.
+    // intro overlay) can intercept the move. This is a pointer-DRIVEN response,
+    // NOT auto-playing motion, so it runs under prefers-reduced-motion too —
+    // there CSS drops the glide to an instant snap (see the reduced-motion block).
+    // Two eyes holding one object from a shifting angle: parallax, made literal.
     var raf = 0, tx = OX0, ty = OY0;
     function apply() { raf = 0; aim(tx, ty); }
     function onMove(e) {
@@ -361,7 +361,9 @@ const RING_C = (2 * Math.PI * 170).toFixed(0); // stroke sweep length
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .px-hlens__ring--a, .px-hlens__ring--b { animation: none !important; transform: none !important; transition: none; }
+    /* pointer-tracking still runs (it's user-driven, not auto-motion), but the
+       eyes snap instantly instead of gliding — no animated tween. */
+    .px-hlens__sphere, .px-hlens__pupil, .px-hlens__glint { transition: none !important; }
     html.js .px-hlens__stroke, html.js .px-hlens__stroke--late { animation: none; stroke-dashoffset: 0; }
     html.js [data-hl-reveal] { animation: none; }
   }

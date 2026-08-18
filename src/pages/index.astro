@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
+import NewsletterNotice from '../components/core/NewsletterNotice.astro';
 import HeroLens from '../components/home/HeroLens.astro';
 import WireStrip from '../components/home/WireStrip.astro';
 import FeaturedPlate from '../components/home/FeaturedPlate.astro';
@@ -66,6 +67,8 @@ for (const issue of allIssues) {
   description="Parallax Lens — a visual explainer publication. Six worlds — politics, space, earth, tech, travel, sports — one topic per issue, every claim cited."
   footerNewsletter={false}
 >
+  <NewsletterNotice />
+
   <Masthead variant="meta" issueNumber={featured ? String(issueNumberFor(featured.slug)).padStart(2, '0') : '01'} />
 
   <HeroLens latestSlug={featured?.slug} />

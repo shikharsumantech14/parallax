@@ -13,6 +13,7 @@ import LettersBlock from '../../components/core/LettersBlock.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
 import ReadingGate from '../../components/core/ReadingGate.astro';
+import WelcomeBack from '../../components/core/WelcomeBack.astro';
 import TopicStrip from '../../components/home/TopicStrip.astro';
 
 export async function getStaticPaths() {
@@ -113,6 +114,8 @@ const numberIndex = data.sections.map((s) => (s.kind === 'act-break' ? -1 : numb
   <Sources sources={data.sources} />
 
   <ReadingToolbar readTime={data.readTimeMinutes} issueId={issue.slug} theme={toolbarTheme} />
+
+  <WelcomeBack />
 </IssueLayout>
 
 <style>
