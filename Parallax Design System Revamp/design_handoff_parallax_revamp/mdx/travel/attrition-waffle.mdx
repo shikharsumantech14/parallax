@@ -1,0 +1,45 @@
+<!--
+  Example payload for `attrition-waffle` — paste into
+  src/content/issues/2026-06-03-travel-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: attrition-waffle
+    eyebrow: "A HUNDRED TREKKERS"
+    title: "A hundred people set out. Where did they *stop*?"
+    intro: "One square per trekker who started, grouped by where they turned back. Nothing is scaled — you can count the squares."
+    data:
+      caption: "Fifty-nine of a hundred did not finish, and 43 of those stopped for the same reason."
+      source: "Checkpoint registers, autumn season 2025 · n = 100"
+      n: 100
+      subject: trekkers
+      groups:
+        - id: full
+          label: "Completed the full circuit"
+          count: 41
+          note: "Forty-one of a hundred. Every published completion rate for this route is quoted from the permit count, not this one."
+        - id: pass
+          label: "Turned back at the high pass"
+          count: 27
+          note: "The pass is the single point of failure — more people stop here than everywhere else combined."
+        - id: alt
+          label: "Stopped by altitude sickness"
+          count: 16
+          note: "Almost all of these turned back below the pass, on the two days of fastest ascent."
+        - id: weather
+          label: "Stopped by weather"
+          count: 11
+          note: "Eleven, and nine of those in a single week when the pass was closed by snow."
+        - id: other
+          label: "Injury, illness, other"
+          count: 5
+          note: "Five, of which two were evacuated by helicopter."
+
+# Sum check: 41 + 27 + 16 + 11 + 5 = 100 exactly ✓
+# Did not finish = 59. Altitude-related (pass + sickness) = 43, which
+# is the caption's "same reason" — weather takes 11, a quarter of that.

@@ -1,0 +1,32 @@
+<!--
+  Example payload for `daylight-band` — paste into
+  src/content/issues/2026-06-03-travel-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: daylight-band
+    eyebrow: "A YEAR OF LIGHT"
+    title: "How much daylight you *actually get*."
+    intro: "The shaded band is sunrise to sunset across the year. Its thickness is walkable hours; its position is when they happen."
+    data:
+      caption: "At 28° the band barely changes thickness — what moves is when the light arrives."
+      source: "Solar position model · local clock time, no daylight saving"
+      year: 2026
+      showCivilTwilight: false
+      latitudes:
+        - { id: n28, label: "28° N · Kathmandu", lat: 27.7 }
+        - { id: n47, label: "47° N · Alpine",    lat: 47.4 }
+
+# Sunrise and sunset are DERIVED from `lat` by the solar-position
+# model in docs/design/physics/ — never authored here. That is the
+# whole payload.
+#
+# At 27.7° N: ~10h 20m in December against ~13h 55m in June — 3h 35m
+# of swing, but the band's whole position shifts by more than an hour.
+# At 47.4° N: ~8h 30m against ~15h 50m — the band swells and collapses.
+# The fixed 03:00–21:00 y-axis is what makes those two comparable.

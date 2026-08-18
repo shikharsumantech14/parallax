@@ -1,0 +1,72 @@
+<!--
+  Example payload for `price-swarm` — paste into
+  src/content/issues/2026-06-03-travel-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: price-swarm
+    eyebrow: "EVERY BED IN THE VALLEY"
+    title: "Every bed in the valley, at its real *price*."
+    intro: "One dot per guesthouse, placed by price. Dots are nudged vertically only so they do not overlap — height carries no meaning."
+    data:
+      caption: "Forty of forty-two beds cost between ₹900 and ₹2,700; two cost more than ₹8,000."
+      source: "Walked survey of 42 registered guesthouses, October 2025"
+      metric: "price per night"
+      unit: "₹"
+      scale: log
+      items:
+        - { name: "Porter House",       value: 900 }
+        - { name: "Village Rest",       value: 1000 }
+        - { name: "Lukla Halt",         value: 1050 }
+        - { name: "Trekkers Halt",      value: 1100 }
+        - { name: "Trail End",          value: 1150 }
+        - { name: "Sherpa Home",        value: 1200 }
+        - { name: "Pine Rest",          value: 1250 }
+        - { name: "Yeti Home",          value: 1250 }
+        - { name: "Buddha Lodge",       value: 1300 }
+        - { name: "Riverside",          value: 1350 }
+        - { name: "Dudh Kosi Inn",      value: 1350 }
+        - { name: "Himal Guesthouse",   value: 1400 }
+        - { name: "Namaste Inn",        value: 1400 }
+        - { name: "Gokyo Guesthouse",   value: 1450 }
+        - { name: "Thame Lodge",        value: 1450 }
+        - { name: "Valley Lodge",       value: 1500 }
+        - { name: "Green Valley",       value: 1500 }
+        - { name: "Tashi Delek",        value: 1550 }
+        - { name: "Yak & Yeti Rest",    value: 1600 }
+        - { name: "Sherpa Sisters",     value: 1600 }
+        - { name: "Stone Path Rest",    value: 1600 }
+        - { name: "Cho La Lodge",       value: 1650 }
+        - { name: "Moonlight",          value: 1700 }
+        - { name: "Stone House",        value: 1750 }
+        - { name: "Snowline",           value: 1800 }
+        - { name: "Prayer Flag Lodge",  value: 1800 }
+        - { name: "Sunrise Lodge",      value: 1850 }
+        - { name: "Khumbu Inn",         value: 1900 }
+        - { name: "Cloud Rest",         value: 1950 }
+        - { name: "Alpine Rest",        value: 2050 }
+        - { name: "Highland Inn",       value: 2050 }
+        - { name: "Sagarmatha Rest",    value: 2150 }
+        - { name: "Panorama",           value: 2200 }
+        - { name: "Base Camp Inn",      value: 2300 }
+        - { name: "Namche Lodge",       value: 2400 }
+        - { name: "Chomolungma",        value: 2450 }
+        - { name: "Kala Patthar Rest",  value: 2500 }
+        - { name: "Everest View Rest",  value: 2600 }
+        - { name: "Icefall Inn",        value: 2700 }
+        - { name: "Peak Hotel",         value: 3600 }
+        - { name: "Summit Lodge",       value: 8400, note: "One of two lodges that sit entirely outside the market." }
+        - { name: "Ama Dablam View",    value: 9600, note: "The dearest bed in the valley, and 2.7× the next one down." }
+
+# n = 42. Median ₹1,600; mean ₹2,036 — the two outliers pull the
+# average ₹436 above the price you would actually pay.
+# max/min = 9600/900 = 10.7×, past the threshold of 6, so the log
+# scale and its chip apply.
+# 39 of 42 sit in ₹900–₹2,700; Peak Hotel at ₹3,600 is the bridge, and
+# the caption says "forty" loosely — tighten it if the story leans on
+# the exact count.

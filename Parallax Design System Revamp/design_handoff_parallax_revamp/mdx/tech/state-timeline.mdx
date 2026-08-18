@@ -1,0 +1,63 @@
+<!--
+  Example payload for `state-timeline` — paste into
+  src/content/issues/2026-06-03-tech-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: state-timeline
+    eyebrow: "ONE DAY OF AN OUTAGE"
+    title: "The outage, and the four hours before anyone *noticed*."
+    intro: "One lane per service, coloured by state rather than volume. The numbered markers are the incident timeline."
+    data:
+      caption: "Entitlements was degraded for four hours and six minutes before the first alert fired."
+      source: "Health-check archive and incident review INC-2291"
+      window: { fromHour: 0, toHour: 24 }
+      states:
+        - { id: ok,   label: "Healthy",  ok: true }
+        - { id: deg,  label: "Degraded" }
+        - { id: down, label: "Down" }
+      lanes:
+        - label: entitlements
+          segments:
+            - { from: 0,    to: 9.5,  state: ok }
+            - { from: 9.5,  to: 13.6, state: deg }
+            - { from: 13.6, to: 16.2, state: down }
+            - { from: 16.2, to: 17.1, state: deg }
+            - { from: 17.1, to: 24,   state: ok }
+        - label: graphql
+          segments:
+            - { from: 0,    to: 13.4, state: ok }
+            - { from: 13.4, to: 16.2, state: deg }
+            - { from: 16.2, to: 16.9, state: down }
+            - { from: 16.9, to: 24,   state: ok }
+        - label: auth
+          segments:
+            - { from: 0,    to: 13.8, state: ok }
+            - { from: 13.8, to: 16.4, state: deg }
+            - { from: 16.4, to: 24,   state: ok }
+        - label: accounts
+          segments:
+            - { from: 0,    to: 14.1, state: ok }
+            - { from: 14.1, to: 16.2, state: deg }
+            - { from: 16.2, to: 24,   state: ok }
+        - label: edge
+          segments:
+            - { from: 0,    to: 13.6, state: ok }
+            - { from: 13.6, to: 16.3, state: deg }
+            - { from: 16.3, to: 24,   state: ok }
+      marks:
+        - { n: 1, atHour: 9.5,  label: "Deploy 4.19.0",     note: "The release that introduced the slow query. Nothing alerts, because the median barely moves." }
+        - { n: 2, atHour: 13.6, label: "First alert",       note: "Four hours and six minutes after the deploy. The alert fires on the edge, four services away from the cause." }
+        - { n: 3, atHour: 16.2, label: "Page raised",       note: "Entitlements goes fully down and the lock queue takes graphql with it." }
+        - { n: 4, atHour: 17.1, label: "Rollback complete", note: "Seven hours thirty-six from cause to recovery, of which four hours were undetected." }
+
+# Tiling check: every lane runs 0 → 24 with each `from` equal to the
+# previous `to`. No gaps, no overlaps.
+# Deploy 9.5 → first alert 13.6 = 4h 06m undetected, and the alert
+# fires on `edge` while the cause is in `entitlements`.
+# Uptime: entitlements 68.3%, graphql 84.6%, edge 88.8%.

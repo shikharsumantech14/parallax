@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,300..700&display=swap" rel="stylesheet">
+<script src="image-slot.js"></script>
+<style>
+  body { margin: 0; background: #33302c; }
+  a { color: #e07a5f; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: #f0a08a; }
+</style>
+</helmet>
+
+<div style="font-family: 'Literata', Georgia, serif; background: #33302c; padding: 44px; display: flex; flex-direction: column; gap: 40px; font-variant-numeric: tabular-nums;">
+
+  <div style="color: #fff; max-width: 106ch;">
+    <p style="margin: 0 0 10px; font-weight: 600; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; color: rgba(255,255,255,.55);">Parallax · content branding kit · v1</p>
+    <h1 style="margin: 0 0 16px; font-size: 44px; font-weight: 700; letter-spacing: -.034em; line-height: 1.0;">Overlays that <em style="font-style: italic; font-weight: 400; color: #e07a5f;">sign</em> the frame, whatever is in it.</h1>
+    <p style="margin: 0 0 10px; font-size: 16.5px; font-weight: 300; line-height: 1.58; color: rgba(255,255,255,.78);">These are empty layers, not layouts. Any video, any photograph, any infographic goes underneath; the overlay never changes. Everything is positioned against real platform chrome, so nothing lands under a caption, an action rail or a scrub bar.</p>
+    <p style="margin: 0; font-size: 14.5px; line-height: 1.62; color: rgba(255,255,255,.55);">Every frame is the true export size shown at reduced scale, with exact coordinates beside it so an editor can rebuild it in any tool. Drop an image on any slot to try your own content under the layer.</p>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 14px 18px; background: #26241f; color: rgba(255,255,255,.8); width: fit-content;">
+    <span onClick="{{ toggleSafe }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 9px 15px; background: {{ safeBg }}; color: {{ safeFg }}; border: 1px solid #e07a5f;">Safe zones {{ safeState }}</span>
+    <span onClick="{{ toggleGround }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 9px 15px; background: transparent; color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.28);">Ground · {{ groundLabel }}</span>
+    <span style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.42);">Presence</span>
+      <span style="display: flex;">
+        <sc-for list="{{ veils }}" as="v" hint-placeholder-count="3">
+          <span onClick="{{ v.go }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; padding: 8px 13px; background: {{ v.bg }}; color: {{ v.fg }}; border: 1px solid {{ v.bd }};">{{ v.n }}</span>
+        </sc-for>
+      </span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.42);">Accent</span>
+      <span style="display: flex; gap: 6px;">
+        <sc-for list="{{ accents }}" as="a" hint-placeholder-count="6">
+          <span onClick="{{ a.go }}" style="cursor: pointer; user-select: none; width: 26px; height: 26px; background: {{ a.c }}; border: 2px solid {{ a.bd }};"></span>
+        </sc-for>
+      </span>
+    </span>
+  </div>
+
+  <!-- ══════════ 01 · SAFE ZONES ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 01 · the frame budget</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">What the platforms take.</h2>
+    <p style="margin: 0 0 26px; font-size: 15.5px; line-height: 1.62; max-width: 82ch; color: rgba(22,20,18,.78);">The union of Instagram Reels, YouTube Shorts and TikTok. Build to the union and one master export serves all three.</p>
+    <div style="display: grid; grid-template-columns: 300px 1fr; gap: 36px; align-items: start;">
+      <div>
+        <div style="position: relative; width: 270px; height: 480px; background: #e8e2d6; box-sizing: border-box;">
+          <div style="position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(184,52,31,.1) 0 6px, transparent 6px 12px);"></div>
+          <div style="position: absolute; left: 15px; right: 50px; top: 60px; bottom: 105px; background: #faf7f0; border: 1px dashed #b8341f; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+            <span style="font-weight: 600; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: rgba(22,20,18,.55); text-align: center;">Brand-safe<br>960 × 1260</span>
+          </div>
+          <span style="position: absolute; top: 8px; left: 15px; font-weight: 600; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #b8341f;">Header 240</span>
+          <span style="position: absolute; bottom: 8px; left: 15px; font-weight: 600; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #b8341f;">Caption + CTA 420</span>
+          <span style="position: absolute; top: 200px; right: 4px; font-weight: 600; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #b8341f; writing-mode: vertical-rl;">Action rail 200</span>
+        </div>
+        <p style="margin: 10px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Vertical · 1080 × 1920</p>
+      </div>
+      <div>
+        <div style="position: relative; width: 480px; height: 270px; background: #e8e2d6; box-sizing: border-box; margin-bottom: 26px;">
+          <div style="position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgba(184,52,31,.1) 0 6px, transparent 6px 12px);"></div>
+          <div style="position: absolute; left: 24px; right: 24px; top: 14px; bottom: 34px; background: #faf7f0; border: 1px dashed #b8341f; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+            <span style="font-weight: 600; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: rgba(22,20,18,.55);">Brand-safe · 1824 × 880</span>
+          </div>
+          <span style="position: absolute; bottom: 8px; left: 24px; font-weight: 600; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #b8341f;">Player controls 136</span>
+          <span style="position: absolute; top: 2px; left: 24px; font-weight: 600; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #b8341f;">Cards 56</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 18px; font-size: 14.5px; line-height: 1.58;">
+          <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Vertical</span><span>Top <b>240</b> · bottom <b>420</b> · right <b>200</b> · left <b>60</b>. Brand-safe box: <b>x 60–880, y 240–1500</b>.</span>
+          <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Horizontal</span><span>Bottom <b>136</b> · top-right <b>56 × 400</b> · <b>96</b> title-safe inset all round. Brand-safe box: <b>x 96–1824, y 56–944</b>.</span>
+          <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">End screens</span><span>YouTube overlays elements in the <b>final 20 seconds</b>, inset 96. The outro keeps its centre column clear.</span>
+          <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Cropping</span><span>Never master horizontal and centre-crop to vertical — the overlay ends up outside the frame. Export both.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 02 · VERTICAL ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 02 · vertical overlays</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">1080 × 1920 · Reels, Shorts, TikTok.</h2>
+    <p style="margin: 0 0 30px; font-size: 15.5px; line-height: 1.62; max-width: 82ch; color: rgba(22,20,18,.78);">Four layers, quietest first. Pick one per video and keep it for the whole runtime.</p>
+
+    <div style="display: flex; gap: 26px; flex-wrap: wrap;">
+      <sc-for list="{{ vertical }}" as="v" hint-placeholder-count="4">
+        <div style="width: 324px;">
+          <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 4px;">
+            <span style="background: #161412; color: #faf7f0; font-weight: 600; font-size: 10.5px; letter-spacing: .1em; padding: 4px 8px;">{{ v.id }}</span>
+            <b style="font-size: 16px; font-weight: 700; letter-spacing: -.02em;">{{ v.n }}</b>
+          </div>
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.55);">{{ v.use }}</p>
+          <div style="width: 324px; height: 576px; overflow: hidden; position: relative; background: #e8e2d6;">{{ v.art }}</div>
+          <p style="margin: 12px 0 10px; font-size: 14px; line-height: 1.6; color: rgba(22,20,18,.78);">{{ v.b }}</p>
+          <div style="border-top: 1px solid #ddd4c4; padding-top: 10px; display: flex; flex-direction: column; gap: 5px;">
+            <sc-for list="{{ v.specs }}" as="sp" hint-placeholder-count="4">
+              <span style="display: flex; justify-content: space-between; gap: 14px; font-size: 11.5px; line-height: 1.5;">
+                <span style="font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: 9px; color: rgba(22,20,18,.55); padding-top: 2px;">{{ sp.k }}</span>
+                <span style="text-align: right; color: rgba(22,20,18,.8);">{{ sp.v }}</span>
+              </span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══════════ 03 · HORIZONTAL ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 03 · horizontal overlays</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">1920 × 1080 · YouTube long-form.</h2>
+    <p style="margin: 0 0 30px; font-size: 15.5px; line-height: 1.62; max-width: 82ch; color: rgba(22,20,18,.78);">Three layers that stack: the bug runs the whole video, the title card opens it, the lower third comes and goes.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+      <sc-for list="{{ horizontal }}" as="h" hint-placeholder-count="3">
+        <div style="display: grid; grid-template-columns: 576px 1fr; gap: 32px; align-items: start;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 4px;">
+              <span style="background: #161412; color: #faf7f0; font-weight: 600; font-size: 10.5px; letter-spacing: .1em; padding: 4px 8px;">{{ h.id }}</span>
+              <b style="font-size: 16px; font-weight: 700; letter-spacing: -.02em;">{{ h.n }}</b>
+            </div>
+            <p style="margin: 0 0 12px; font-weight: 600; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.55);">{{ h.use }}</p>
+            <div style="width: 576px; height: 324px; overflow: hidden; position: relative; background: #e8e2d6;">{{ h.art }}</div>
+          </div>
+          <div style="padding-top: 46px;">
+            <p style="margin: 0 0 14px; font-size: 14.5px; line-height: 1.62; color: rgba(22,20,18,.78);">{{ h.b }}</p>
+            <div style="border-top: 1px solid #ddd4c4; padding-top: 11px; display: flex; flex-direction: column; gap: 6px; max-width: 400px;">
+              <sc-for list="{{ h.specs }}" as="sp" hint-placeholder-count="4">
+                <span style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 1.5;">
+                  <span style="font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: 9px; color: rgba(22,20,18,.55); padding-top: 2px;">{{ sp.k }}</span>
+                  <span style="text-align: right; color: rgba(22,20,18,.8);">{{ sp.v }}</span>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══════════ 04 · THUMBNAIL ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 04 · thumbnail frame</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">1280 × 720, read at 210 wide.</h2>
+    <p style="margin: 0 0 28px; font-size: 15.5px; line-height: 1.62; max-width: 82ch; color: rgba(22,20,18,.78);">Seen at a sixth of its size beside a duration chip. Four to six words maximum, the medallion doing the identifying, the bottom-right corner kept empty.</p>
+    <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
+      <div>
+        <div style="width: 480px; height: 270px; overflow: hidden; position: relative;">
+          <div style="box-sizing: border-box; width: 1280px; height: 720px; background: {{ bg }}; color: {{ ink }}; transform: scale(.375); transform-origin: top left; position: relative; overflow: hidden;">
+            <div style="position: absolute; inset: 0;"><image-slot id="ck-thumb" shape="rect" placeholder="Your still · keep the left third readable"></image-slot></div>
+            <div style="position: absolute; inset: 0; background: linear-gradient(90deg, {{ scrim }} 0%, transparent 70%);"></div>
+            <div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: {{ acc }};"></div>
+            <div style="position: absolute; left: 64px; top: 56px; display: flex; align-items: center; gap: 16px;">
+              <svg viewBox="0 0 300 300" style="width: 72px; height: 72px; display: block;">
+                <circle cx="150" cy="150" r="118" fill="{{ ink }}"></circle>
+                <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="{{ bg }}">P</text>
+              </svg>
+              <span style="font-weight: 600; font-size: 20px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">Parallax</span>
+            </div>
+            <p style="position: absolute; left: 64px; bottom: 72px; margin: 0; max-width: 800px; font-size: 96px; font-weight: 700; line-height: .98; letter-spacing: -.034em;">Four words, <em style="font-style: italic; font-weight: 400; color: {{ acc }};">maximum</em></p>
+            <sc-if value="{{ safe }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; right: 24px; bottom: 24px; width: 190px; height: 56px; border: 3px dashed rgba(224,122,95,.9);"></div>
+            </sc-if>
+          </div>
+        </div>
+        <p style="margin: 11px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">1280 × 720 · shown at 37.5%</p>
+      </div>
+      <div style="flex: 1; min-width: 300px; padding-top: 6px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; max-width: 420px;">
+          <sc-for list="{{ thumbSpecs }}" as="sp" hint-placeholder-count="6">
+            <span style="display: flex; justify-content: space-between; gap: 16px; font-size: 12.5px; line-height: 1.5; padding-bottom: 6px; border-bottom: 1px dashed #ddd4c4;">
+              <span style="font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: 9px; color: rgba(22,20,18,.55); padding-top: 2px;">{{ sp.k }}</span>
+              <span style="text-align: right; color: rgba(22,20,18,.8);">{{ sp.v }}</span>
+            </span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 05 · CUT TABLE ══════════ -->
+  <div style="background: #161412; color: #faf7f0; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #e07a5f;">— 05 · which mark, where</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Every placement, in delivered pixels.</h2>
+    <p style="margin: 0 0 22px; font-size: 15.5px; line-height: 1.62; max-width: 86ch; color: rgba(250,247,240,.72);">The cut is decided by <b>delivered size</b> — how many pixels the mark occupies on the viewer's screen, not in the export. Frame fraction is the wrong variable: a horizontal frame is watched at ~1280 and a vertical one at ~400, so the same fraction delivers three times the size.</p>
+    <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.62; color: rgba(250,247,240,.85);"><b>delivered = mark px × (delivery width ÷ export frame width)</b> · at <b>32px or more</b> the outline cut, below it the reversed cut.</p>
+    <table style="border-collapse: collapse; font-size: 13px; color: rgba(250,247,240,.85);">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Placement</th>
+          <th style="text-align: right; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Mark px</th>
+          <th style="text-align: right; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Frame</th>
+          <th style="text-align: right; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Delivered</th>
+          <th style="text-align: left; padding: 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Cut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ cutTable }}" as="c" hint-placeholder-count="8">
+          <tr>
+            <td style="padding: 7px 28px 7px 0; border-bottom: 1px dashed rgba(250,247,240,.18);">{{ c.n }}</td>
+            <td style="text-align: right; padding: 7px 28px 7px 0; border-bottom: 1px dashed rgba(250,247,240,.18);">{{ c.px }}</td>
+            <td style="text-align: right; padding: 7px 28px 7px 0; border-bottom: 1px dashed rgba(250,247,240,.18); color: rgba(250,247,240,.55);">{{ c.frame }}</td>
+            <td style="text-align: right; padding: 7px 28px 7px 0; border-bottom: 1px dashed rgba(250,247,240,.18);"><b>{{ c.del }}</b></td>
+            <td style="padding: 7px 0; border-bottom: 1px dashed rgba(250,247,240,.18); font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ c.cutFg }};">{{ c.cut }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+    <p style="margin: 20px 0 0; font-size: 14px; line-height: 1.6; color: rgba(250,247,240,.6); max-width: 86ch;">Delivery widths: vertical <b>400</b> (a phone, full bleed) · horizontal <b>1280</b> (a laptop player) · thumbnail <b>210</b> (a browse row). Outline marks widen the dial to 24 units and cap the ring stroke at 9 so the crescent never fuses with the ring.</p>
+  </div>
+
+  <!-- ══════════ 06 · PRESENCE ══════════ -->
+  <div style="background: #161412; color: #faf7f0; padding: 36px 40px 40px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #e07a5f;">— 06 · presence</p>
+    <h2 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Four tiers of transparency.</h2>
+    <p style="margin: 0 0 24px; font-size: 15.5px; line-height: 1.62; max-width: 86ch; color: rgba(250,247,240,.72);">Opacity is set by <b>what the mark is sitting on</b>, not by taste. A mark on brand ground can stay near-solid; a mark laid directly over someone's footage has to give the frame back. The Presence control at the top scales all four tiers by ±20% at once, so a single video can be dialled without breaking their relationship.</p>
+    <table style="border-collapse: collapse; font-size: 13px; color: rgba(250,247,240,.85); margin-bottom: 34px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Tier</th>
+          <th style="text-align: right; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Opacity</th>
+          <th style="text-align: left; padding: 8px 28px 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Where</th>
+          <th style="text-align: left; padding: 8px 0; border-bottom: 2px solid rgba(250,247,240,.4); font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+          <tr>
+            <td style="padding: 8px 28px 8px 0; border-bottom: 1px dashed rgba(250,247,240,.18); font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #e07a5f;">{{ t.n }}</td>
+            <td style="text-align: right; padding: 8px 28px 8px 0; border-bottom: 1px dashed rgba(250,247,240,.18);"><b>{{ t.o }}</b></td>
+            <td style="padding: 8px 28px 8px 0; border-bottom: 1px dashed rgba(250,247,240,.18); color: rgba(250,247,240,.62);">{{ t.w }}</td>
+            <td style="padding: 8px 0; border-bottom: 1px dashed rgba(250,247,240,.18); max-width: 44ch;">{{ t.d }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #e07a5f;">— 07 · the rules</p>
+    <h2 style="margin: 0 0 26px; font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">How to keep it subtle.</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 46px;">
+      <div style="display: grid; grid-template-columns: 128px 1fr; gap: 9px 18px; font-size: 14.5px; line-height: 1.6; color: rgba(250,247,240,.82);">
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Budget</span><span>Branding never exceeds <b>4% of frame area</b> outside the title card and the outro. The bug is <b>0.6%</b> — 190 × 64 in a 1920 × 1080 frame.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">One corner</span><span>The mark takes one corner and one rule per frame. Two brand elements in two corners reads as a template, not a publication.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Opacity</span><span>Set by the tier table above, never by eye. Fade the <b>whole element together</b> — slab and mark as one group. A solid mark on a faded slab reads as a sticker; a faded mark on a solid slab reads as a print error.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Motion</span><span>Opacity only, 300ms, once. No slides, no wipes, no logo animation. The mark does not spin, the crescent does not orbit.</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 128px 1fr; gap: 9px 18px; font-size: 14.5px; line-height: 1.6; color: rgba(250,247,240,.82);">
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Colour</span><span>One accent per video. Use the topic accent when the video belongs to a desk, oxide red when it does not. Never two.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Type</span><span>Literata 700 for titles, 600 tracked caps for meta. Minimum <b>34px on vertical</b>, <b>19px on horizontal</b>, at export size.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Legibility</span><span>Over footage, always a scrim gradient behind type — never a drop shadow, never an outline stroke. An ambient-tier mark <b>must</b> have a scrim: at 56% it disappears on a bright frame.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(250,247,240,.5); padding-top: 3px;">Never</span><span>No logo at the head of a video — a cold open holds the viewer, a logo does not. No bug on the outro. No mark over a face.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1480}}">
+class Component extends DCLogic {
+  state = { accent: 'politics', safe: false, dark: false, veil: 'standard' };
+
+  palette() {
+    return [
+      { k: 'politics', c: '#b8341f' }, { k: 'space', c: '#00d4ff' }, { k: 'earth', c: '#2d6a4f' },
+      { k: 'tech', c: '#c6f432' }, { k: 'travel', c: '#c85a3c' }, { k: 'sports', c: '#e8f048' }
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const el = React.createElement;
+    const mix = (hex, a) => {
+      const v = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + a + ')';
+    };
+    const acc = (this.palette().find((p) => p.k === s.accent) || this.palette()[0]).c;
+    const bg = s.dark ? '#161412' : '#faf7f0';
+    const ink = s.dark ? '#faf7f0' : '#161412';
+    const muted = mix(ink, s.dark ? 0.62 : 0.7);
+    const scrim = mix(bg, s.dark ? 0.92 : 0.9);
+
+    // the mark, both cuts — dial at 24 units for the content tier
+    const t = 325 * Math.PI / 180;
+    const ox = (150 - 24 * Math.cos(t)).toFixed(1);
+    const oy = (150 - 24 * Math.sin(t)).toFixed(1);
+    // four tiers of presence — how much of the frame the brand is allowed to own
+    const SCALE = { subtle: 0.8, standard: 1, bold: 1.2 };
+    const kv = SCALE[s.veil] || 1;
+    const veil = (base) => Math.min(1, Math.round(base * kv * 100) / 100);
+    const TIER = { signature: 1, structural: veil(0.9), persistent: veil(0.72), ambient: veil(0.56) };
+    const pct = (v) => Math.round(v * 100) + '%';
+
+    const glyph = (fill) => el('text', { x: 150, y: 207, textAnchor: 'middle', fontFamily: "'Literata', Georgia, serif", fontSize: 160, fontWeight: 700, fill: fill }, 'P');
+    const outline = (size, ring, ringCol, groundCol, letterCol) => el('svg', { viewBox: '0 0 300 300', style: { width: size, height: size, display: 'block', flex: '0 0 auto' } }, [
+      el('circle', { key: 'l', cx: 150, cy: 150, r: 110, fill: acc }),
+      el('circle', { key: 'o', cx: ox, cy: oy, r: 113, fill: groundCol }),
+      el('circle', { key: 'r', cx: 150, cy: 150, r: 118, fill: 'none', stroke: ringCol, strokeWidth: ring }),
+      glyph(letterCol || ringCol)
+    ]);
+    const reversed = (size, discCol, letterCol) => el('svg', { viewBox: '0 0 300 300', style: { width: size, height: size, display: 'block', flex: '0 0 auto' } }, [
+      el('circle', { key: 'd', cx: 150, cy: 150, r: 118, fill: discCol }),
+      glyph(letterCol)
+    ]);
+
+    const slot = (id, hint) => el('div', { style: { position: 'absolute', inset: 0 } },
+      el('image-slot', { id: id, shape: 'rect', placeholder: hint }));
+    const safeBox = (l, r, tp, b) => s.safe
+      ? el('div', { style: { position: 'absolute', left: l, right: r, top: tp, bottom: b, border: '3px dashed rgba(224,122,95,.9)', pointerEvents: 'none' } })
+      : null;
+    const frame = (w, h, scale, kids) => el('div', {
+      style: { boxSizing: 'border-box', width: w, height: h, background: bg, color: ink, transform: 'scale(' + scale + ')', transformOrigin: 'top left', position: 'relative', overflow: 'hidden' }
+    }, kids);
+    const meta = (extra) => Object.assign({ fontWeight: 600, letterSpacing: '.2em', textTransform: 'uppercase', color: muted }, extra || {});
+
+    // ── the bug: one component, used on every horizontal layer
+    const bug = () => el('div', { key: 'bug', style: { position: 'absolute', right: 96, top: 56, display: 'flex', alignItems: 'center', gap: 14, background: ink, opacity: TIER.persistent, padding: '14px 20px 14px 16px' } }, [
+      reversed(44, bg, ink),
+      el('span', { key: 'w', style: { fontWeight: 600, fontSize: 17, letterSpacing: '.2em', textTransform: 'uppercase', color: bg } }, 'Parallax')
+    ]);
+
+    const vertical = [
+      { id: 'V-A', n: 'The corner mark', use: 'Default · talking head, b-roll, any footage',
+        b: 'Lockup pinned to the top-left of the safe box under a soft top scrim, and a 120px accent tick above the caption band with room for a title. Nothing else touches the frame.',
+        specs: [
+          { k: 'Lockup', v: 'x 60, y 240 · mark 148 + wordmark 54px' },
+          { k: 'Scrim', v: 'top 560px, linear to transparent' },
+          { k: 'Opacity', v: 'ambient · ' + pct(TIER.ambient) + ' on the whole lockup' },
+          { k: 'Tick', v: 'x 60, y 1500 · 120 × 3, accent' },
+          { k: 'Title box', v: 'x 60–880, above y 1500' }
+        ],
+        art: frame(1080, 1920, 0.3, [
+          slot('ck-va', 'Your footage or still · full bleed'),
+          el('div', { key: 'sc', style: { position: 'absolute', left: 0, right: 0, top: 0, height: 560, background: 'linear-gradient(180deg, ' + scrim + ' 0%, transparent 100%)' } }),
+          el('div', { key: 'lk', style: { position: 'absolute', left: 60, top: 240, display: 'flex', alignItems: 'center', gap: 22, opacity: TIER.ambient } }, [
+            outline(148, 9, ink, bg),
+            el('span', { key: 'w', style: { fontSize: 54, fontWeight: 700, letterSpacing: '-.032em' } }, 'Parallax')
+          ]),
+          el('div', { key: 'ttl', style: { position: 'absolute', left: 60, right: 200, bottom: 420 } }, [
+            el('div', { key: 'tk', style: { height: 3, width: 120, background: acc, marginBottom: 26 } }),
+            el('p', { key: 'p', style: { margin: 0, fontSize: 62, fontWeight: 700, lineHeight: 1.04, letterSpacing: '-.032em', color: mix(ink, 0.35) } }, 'Your title sits here')
+          ]),
+          el('span', { key: 'm', style: Object.assign({ position: 'absolute', left: 60, bottom: 356, fontSize: 19 }, meta()) }, 'Optional meta line'),
+          safeBox(60, 200, 240, 420)
+        ]) },
+
+      { id: 'V-B', n: 'The spine', use: 'Busy or dark footage · infographics',
+        b: 'A 10px accent rule runs the full height of the safe box on the left edge — unmissable at a thumb-flick, worth almost nothing in area. The reversed mark sits at its head; any copy lands in a paper card.',
+        specs: [
+          { k: 'Spine', v: 'x 0, y 240–1500 · 10 wide, accent' },
+          { k: 'Mark', v: 'x 44, y 240 · reversed, 70' },
+          { k: 'Opacity', v: 'persistent · ' + pct(TIER.persistent) + ' on spine + mark' },
+          { k: 'Card', v: 'x 44–880, bottom 420 · paper' },
+          { k: 'Card pad', v: '34 / 36 / 32' }
+        ],
+        art: frame(1080, 1920, 0.3, [
+          slot('ck-vb', 'Your footage, still or infographic'),
+          el('div', { key: 'sp', style: { position: 'absolute', left: 0, top: 240, bottom: 420, width: 10, background: acc, opacity: TIER.persistent } }),
+          el('div', { key: 'hd', style: { position: 'absolute', left: 44, top: 240, display: 'flex', alignItems: 'center', gap: 18, opacity: TIER.persistent } }, [
+            reversed(70, ink, bg),
+            el('span', { key: 'w', style: { fontWeight: 600, fontSize: 20, letterSpacing: '.22em', textTransform: 'uppercase', color: ink } }, 'Parallax')
+          ]),
+          el('div', { key: 'cd', style: { position: 'absolute', left: 44, right: 200, bottom: 420, background: bg, padding: '34px 36px 32px', boxSizing: 'border-box' } }, [
+            el('p', { key: 'e', style: { margin: '0 0 18px', fontWeight: 600, fontSize: 19, letterSpacing: '.2em', textTransform: 'uppercase', color: acc } }, 'Optional eyebrow'),
+            el('p', { key: 'h', style: { margin: 0, fontSize: 56, fontWeight: 700, lineHeight: 1.04, letterSpacing: '-.032em', color: mix(ink, 0.35) } }, 'Your title sits here')
+          ]),
+          safeBox(60, 200, 240, 420)
+        ]) },
+
+      { id: 'V-C', n: 'The plate', use: 'Photographs, charts, screen recordings',
+        b: "The publication's own page grammar: masthead, 4px ink rule, then the content in a framed plate rather than bled to the edges. The branding is the layout, so no overlay sits on the content at all.",
+        specs: [
+          { k: 'Masthead', v: 'x 60, y 96 · mark 92 + wordmark 38px' },
+          { k: 'Rule', v: 'y 240 · 4px ink, full inset width' },
+          { k: 'Opacity', v: 'structural · ' + pct(TIER.structural) + ' on the masthead' },
+          { k: 'Plate', v: 'x 60–1020, y 300 · h 900, border 4, pad 12' },
+          { k: 'Caption', v: 'y 1246 · below the plate' }
+        ],
+        art: frame(1080, 1920, 0.3, [
+          el('div', { key: 'hd', style: { position: 'absolute', left: 60, top: 96, right: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, opacity: TIER.structural } }, [
+            el('span', { key: 'l', style: { display: 'flex', alignItems: 'center', gap: 16 } }, [
+              outline(92, 8, ink, bg),
+              el('span', { key: 'w', style: { fontSize: 38, fontWeight: 700, letterSpacing: '-.032em' } }, 'Parallax')
+            ]),
+            el('span', { key: 'r', style: Object.assign({ fontSize: 17 }, meta()) }, 'Optional register')
+          ]),
+          el('div', { key: 'rl', style: { position: 'absolute', left: 60, right: 60, top: 240, height: 4, background: ink } }),
+          el('div', { key: 'pl', style: { position: 'absolute', left: 60, right: 60, top: 300, height: 900, border: '4px solid ' + ink, boxSizing: 'border-box', padding: 12 } },
+            el('div', { style: { width: '100%', height: '100%', position: 'relative' } }, slot('ck-vc', 'Your photograph, chart or capture'))),
+          el('div', { key: 'cp', style: { position: 'absolute', left: 60, right: 200, top: 1246 } }, [
+            el('p', { key: 'c', style: Object.assign({ margin: '0 0 20px', fontSize: 18 }, meta()) }, 'Caption · source'),
+            el('p', { key: 'h', style: { margin: 0, fontSize: 58, fontWeight: 700, lineHeight: 1.04, letterSpacing: '-.032em', color: mix(ink, 0.35) } }, 'Your title sits here')
+          ]),
+          safeBox(60, 200, 240, 420)
+        ]) },
+
+      { id: 'V-D', n: 'The outro', use: 'Last 2–3 seconds of every vertical',
+        b: 'The only frame where the branding is the content. Ink ground, the mark at 260, the six desk phases as the sole ornament. Never at the head of a video — a cold open holds the viewer, a logo does not.',
+        specs: [
+          { k: 'Ground', v: 'ink, full bleed' },
+          { k: 'Mark', v: 'centred, 260 · outline on ink' },
+          { k: 'Wordmark', v: '84px / 700 / −.034em' },
+          { k: 'Opacity', v: 'signature · 100%, the only frame at full' },
+          { k: 'Hold', v: '2–3s, opacity fade in 300ms' }
+        ],
+        art: el('div', { style: { boxSizing: 'border-box', width: 1080, height: 1920, background: '#161412', color: '#faf7f0', transform: 'scale(.3)', transformOrigin: 'top left', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '240px 60px 420px' } }, [
+          el('svg', { key: 'm', viewBox: '0 0 300 300', style: { width: 260, height: 260, display: 'block', marginBottom: 60 } }, [
+            el('circle', { key: 'l', cx: 150, cy: 150, r: 110, fill: acc }),
+            el('circle', { key: 'o', cx: ox, cy: oy, r: 113, fill: '#161412' }),
+            el('circle', { key: 'r', cx: 150, cy: 150, r: 118, fill: 'none', stroke: '#faf7f0', strokeWidth: 7 }),
+            glyph('#faf7f0')
+          ]),
+          el('p', { key: 'w', style: { margin: '0 0 22px', fontSize: 84, fontWeight: 700, letterSpacing: '-.034em', lineHeight: .92 } }, 'Parallax'),
+          el('p', { key: 's', style: { margin: '0 0 44px', fontSize: 30, fontWeight: 300, fontStyle: 'italic', textAlign: 'center', color: 'rgba(255,255,255,.72)' } }, 'Stories you think you already understand.'),
+          el('span', { key: 'd', style: { display: 'flex', gap: 20, marginBottom: 48 } }, this.palette().map((p, i) => {
+            const a = (325 + i * 60) * Math.PI / 180;
+            return el('svg', { key: p.k, viewBox: '0 0 300 300', style: { width: 92, height: 92, display: 'block' } }, [
+              el('circle', { key: 'l', cx: 150, cy: 150, r: 110, fill: p.c }),
+              el('circle', { key: 'o', cx: (150 - 24 * Math.cos(a)).toFixed(1), cy: (150 - 24 * Math.sin(a)).toFixed(1), r: 113, fill: '#161412' }),
+              el('circle', { key: 'r', cx: 150, cy: 150, r: 118, fill: 'none', stroke: '#faf7f0', strokeWidth: 7 })
+            ]);
+          })),
+          el('p', { key: 'u', style: { margin: 0, paddingTop: 34, borderTop: '3px solid rgba(255,255,255,.35)', fontWeight: 600, fontSize: 22, letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', textAlign: 'center' } }, 'parallaxlens.com')
+        ]) }
+    ];
+
+    const horizontal = [
+      { id: 'H-A', n: 'Title card', use: 'First 4–6 seconds, then fades to the bug alone',
+        b: 'Lockup in the top-left card-safe strip, title bottom-left above the control band, a 140px accent tick as the only ornament. The left-to-right scrim keeps the right two-fifths of the footage clean, which is where a subject usually is.',
+        specs: [
+          { k: 'Lockup', v: 'x 96, y 56 · mark 104 + wordmark 44px' },
+          { k: 'Scrim', v: '90° · opaque to transparent at 62%' },
+          { k: 'Tick', v: 'x 96 · 140 × 4, accent' },
+          { k: 'Opacity', v: 'ambient · ' + pct(TIER.ambient) + ' on the whole lockup' },
+          { k: 'Title', v: 'x 96, bottom 200 · 92px / 700' }
+        ],
+        art: frame(1920, 1080, 0.3, [
+          slot('ck-ha', 'Your opening footage · full bleed'),
+          el('div', { key: 'sc', style: { position: 'absolute', inset: 0, background: 'linear-gradient(90deg, ' + scrim + ' 0%, transparent 62%)' } }),
+          el('div', { key: 'lk', style: { position: 'absolute', left: 96, top: 56, right: 96, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 30, opacity: TIER.ambient } }, [
+            el('span', { key: 'l', style: { display: 'flex', alignItems: 'center', gap: 18 } }, [
+              outline(104, 9, ink, bg),
+              el('span', { key: 'w', style: { fontSize: 44, fontWeight: 700, letterSpacing: '-.032em' } }, 'Parallax')
+            ]),
+            el('span', { key: 'r', style: Object.assign({ fontSize: 18 }, meta()) }, 'Optional register')
+          ]),
+          el('div', { key: 'ttl', style: { position: 'absolute', left: 96, bottom: 200, maxWidth: 1180 } }, [
+            el('div', { key: 'tk', style: { height: 4, width: 140, background: acc, marginBottom: 28 } }),
+            el('p', { key: 'e', style: { margin: '0 0 20px', fontWeight: 600, fontSize: 20, letterSpacing: '.2em', textTransform: 'uppercase', color: acc } }, 'Optional eyebrow'),
+            el('p', { key: 'h', style: { margin: 0, fontSize: 92, fontWeight: 700, lineHeight: 1, letterSpacing: '-.034em', color: mix(ink, 0.35) } }, 'Your title sits here')
+          ]),
+          el('span', { key: 'm', style: Object.assign({ position: 'absolute', left: 96, bottom: 152, fontSize: 19 }, meta()) }, 'Optional meta line'),
+          safeBox(96, 96, 56, 136)
+        ]) },
+
+      { id: 'H-B', n: 'The bug', use: 'Persists for the entire runtime',
+        b: 'Top-right, inside the card strip, so a YouTube info card pushes it nothing. An ink slab carrying the reversed mark and the wordmark — 190 × 64 at export, about 0.6% of the frame. It never moves and never animates after its 300ms fade-in. Bottom-right would sit under the scrub bar; bottom-left under the caption toggle.',
+        specs: [
+          { k: 'Slab', v: 'x 1730, y 56 · 190 × 64, solid ink' },
+          { k: 'Mark', v: 'reversed, 44 · paper disc, ink letter' },
+          { k: 'Wordmark', v: '17px / 600 / .2em caps, paper' },
+          { k: 'Opacity', v: 'persistent · ' + pct(TIER.persistent) + ' on the whole slab' },
+          { k: 'Motion', v: 'fade in 300ms at 0:00, then static' }
+        ],
+        art: frame(1920, 1080, 0.3, [
+          slot('ck-hb', 'Your body footage · full bleed'),
+          bug(),
+          safeBox(96, 96, 56, 136)
+        ]) },
+
+      { id: 'H-C', n: 'Lower third', use: 'Names, roles, sources, locations',
+        b: 'The primer block from the publication, rotated into motion: an 8px accent edge on a paper slab. The second line sits outside the slab so a citation stays readable after the slab is out. Six seconds in, six seconds out, opacity only — no slide.',
+        specs: [
+          { k: 'Slab', v: 'x 96, bottom 196 · pad 26/40/24/30' },
+          { k: 'Edge', v: '8 wide, accent, left of the slab' },
+          { k: 'Line 1', v: '46px / 700 / −.028em' },
+          { k: 'Line 2', v: '19px / 600 / .18em caps, muted' },
+          { k: 'Sub-line', v: 'x 96, bottom 152 · outside the slab' }
+        ],
+        art: frame(1920, 1080, 0.3, [
+          slot('ck-hc', 'Your interview or b-roll · full bleed'),
+          bug(),
+          el('div', { key: 'l3', style: { position: 'absolute', left: 96, bottom: 196, display: 'flex' } }, [
+            el('div', { key: 'e', style: { width: 8, background: acc } }),
+            el('div', { key: 'c', style: { background: bg, padding: '26px 40px 24px 30px' } }, [
+              el('p', { key: 'n', style: { margin: '0 0 10px', fontSize: 46, fontWeight: 700, letterSpacing: '-.028em', lineHeight: 1.05, color: mix(ink, 0.35) } }, 'Name or label'),
+              el('p', { key: 'r', style: Object.assign({ margin: 0, fontSize: 19, letterSpacing: '.18em' }, meta()) }, 'Role or context')
+            ])
+          ]),
+          el('span', { key: 'sb', style: Object.assign({ position: 'absolute', left: 96, bottom: 152, fontSize: 17, letterSpacing: '.18em' }, meta()) }, 'Optional source line'),
+          safeBox(96, 96, 56, 136)
+        ]) }
+    ];
+
+    const DELIVERY = { 1080: 400, 1920: 1280, 1280: 210 };
+    const cutTable = [
+      { n: 'V-D · outro mark', px: 260, frame: 1080 },
+      { n: 'H-A · title lockup', px: 104, frame: 1920 },
+      { n: 'V-A · corner lockup', px: 148, frame: 1080 },
+      { n: 'V-C · plate masthead', px: 92, frame: 1080 },
+      { n: 'V-D · outro dials ×6', px: 92, frame: 1080 },
+      { n: 'H-B / H-C · the bug', px: 44, frame: 1920 },
+      { n: 'V-B · spine mark', px: 70, frame: 1080 },
+      { n: 'Thumbnail mark', px: 72, frame: 1280 }
+    ].map((c) => {
+      const del = Math.round(c.px * (DELIVERY[c.frame] / c.frame));
+      const isOutline = del >= 32;
+      return { n: c.n, px: c.px, frame: c.frame === 1280 ? '1280 thumb' : c.frame + ' w', del: del + 'px', delN: del,
+        cut: isOutline ? 'Outline' : 'Reversed', cutFg: isOutline ? '#e07a5f' : 'rgba(250,247,240,.55)' };
+    }).sort((a, b) => b.delN - a.delN);
+
+    return {
+      vertical, horizontal, cutTable,
+      bg, ink, acc, muted, scrim,
+      safe: s.safe,
+      veils: [{ k: 'subtle', n: 'Subtle' }, { k: 'standard', n: 'Standard' }, { k: 'bold', n: 'Bold' }].map((v) => ({
+        n: v.n,
+        bg: s.veil === v.k ? '#e07a5f' : 'transparent',
+        fg: s.veil === v.k ? '#161412' : 'rgba(255,255,255,.62)',
+        bd: s.veil === v.k ? '#e07a5f' : 'rgba(255,255,255,.22)',
+        go: () => this.setState({ veil: v.k })
+      })),
+      tiers: [
+        { n: 'Signature', o: pct(TIER.signature), w: 'Outro · thumbnail', d: 'The brand is the content. Never over live footage.' },
+        { n: 'Structural', o: pct(TIER.structural), w: 'Plate masthead', d: 'Sits on brand ground, not on content — so it can stay near-solid.' },
+        { n: 'Persistent', o: pct(TIER.persistent), w: 'The bug · the spine', d: 'Runs the whole video. Low enough to stop reading as a claim on the footage.' },
+        { n: 'Ambient', o: pct(TIER.ambient), w: 'Corner lockup', d: 'Directly over live footage. Always on a scrim — a faded mark on a bright frame vanishes.' }
+      ],
+      toggleSafe: () => this.setState({ safe: !s.safe }),
+      safeState: s.safe ? 'on' : 'off',
+      safeBg: s.safe ? '#e07a5f' : 'transparent',
+      safeFg: s.safe ? '#161412' : '#e07a5f',
+      toggleGround: () => this.setState({ dark: !s.dark }),
+      groundLabel: s.dark ? 'ink' : 'paper',
+      accents: this.palette().map((p) => ({
+        c: p.c,
+        bd: p.k === s.accent ? '#fff' : 'transparent',
+        go: () => this.setState({ accent: p.k })
+      })),
+      thumbSpecs: [
+        { k: 'Top rule', v: '12px accent, full width' },
+        { k: 'Mark', v: 'x 64, y 56 · reversed, 72' },
+        { k: 'Wordmark', v: '20px / 600 / .2em caps, muted' },
+        { k: 'Headline', v: 'x 64, bottom 72 · 96px / 700 / .98' },
+        { k: 'Scrim', v: '90° · opaque to transparent at 70%' },
+        { k: 'Keep clear', v: 'bottom-right 190 × 56 (duration chip)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

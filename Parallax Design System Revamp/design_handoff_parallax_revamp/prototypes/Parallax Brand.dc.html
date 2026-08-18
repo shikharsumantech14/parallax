@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,300..700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #33302c; }
+  a { color: #b8341f; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: #8b2416; }
+</style>
+</helmet>
+
+<div style="font-family: 'Literata', Georgia, serif; background: #33302c; padding: 40px; display: flex; flex-direction: column; gap: 22px; font-variant-numeric: tabular-nums;">
+
+  <!-- ══════════ COVER ══════════ -->
+  <div style="background: #faf7f0; color: #161412; border-top: 4px solid #161412; padding: 46px 48px 40px;">
+    <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 28px;">
+      <svg viewBox="0 0 300 300" style="width: 96px; height: 96px; display: block; flex: 0 0 auto;">
+        <circle cx="150" cy="150" r="110" fill="#b8341f"></circle>
+        <circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle>
+        <circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="7"></circle>
+        <text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text>
+      </svg>
+      <span style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 62px; font-weight: 700; letter-spacing: -.034em; line-height: .88;">Parallax</span>
+        <span style="font-size: 16px; font-weight: 300; font-style: italic; color: rgba(22,20,18,.66);">Stories you think you already understand.</span>
+      </span>
+    </div>
+    <p style="margin: 0 0 8px; padding-top: 22px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">Brand system · v2 · August 2026</p>
+    <p style="margin: 0; font-size: 17px; font-weight: 300; line-height: 1.5; max-width: 78ch; color: rgba(22,20,18,.8);">One mark, six phases, two cuts. Everything in this book derives from a single dial position per desk — nothing here is drawn twice, and nothing is improvised.</p>
+  </div>
+
+  <!-- ══════════ THE IDEA ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 01 · the idea</p>
+    <h2 style="margin: 0 0 14px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04; max-width: 24ch;">You cannot know how far away something is until you have <em style="font-style: italic; font-weight: 400; color: #b8341f;">moved</em>.</h2>
+    <p style="margin: 0 0 12px; font-size: 16px; font-weight: 300; line-height: 1.58; max-width: 82ch; color: rgba(22,20,18,.8);">A star's distance is measured by looking at it twice, six months apart, from opposite ends of Earth's orbit. Depth is what patience and displacement buy you — which is why this publication runs structural issues instead of reactions.</p>
+    <p style="margin: 0; font-size: 16px; font-weight: 300; line-height: 1.58; max-width: 82ch; color: rgba(22,20,18,.8);">The mark is that in one shape: a disc lit from one side, with the crescent showing the part that was hidden until something moved. The letter sits in the calm middle so a stranger can read it without being told any of the above.</p>
+  </div>
+
+  <!-- ══════════ CONSTRUCTION ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 02 · construction</p>
+    <h2 style="margin: 0 0 26px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Four circles and a letter.</h2>
+    <div style="display: grid; grid-template-columns: 320px 1fr; gap: 40px; align-items: start;">
+      <div>
+        <svg viewBox="0 0 300 300" style="width: 320px; height: 320px; display: block; border: 1px solid #ddd4c4;">
+          <g stroke="#ddd4c4" stroke-width=".7">
+            <line x1="150" y1="0" x2="150" y2="300"></line>
+            <line x1="0" y1="150" x2="300" y2="150"></line>
+          </g>
+          <circle cx="150" cy="150" r="110" fill="#b8341f"></circle>
+          <circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle>
+          <circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="7"></circle>
+          <text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text>
+          <circle cx="150" cy="150" r="118" fill="none" stroke="#b8341f" stroke-width=".8" stroke-dasharray="3 3" opacity=".7"></circle>
+          <circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="none" stroke="#b8341f" stroke-width=".8" stroke-dasharray="3 3" opacity=".7"></circle>
+          <line x1="150" y1="150" x2="{{ houseOx }}" y2="{{ houseOy }}" stroke="#b8341f" stroke-width="1.2"></line>
+          <circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="3" fill="#b8341f"></circle>
+        </svg>
+        <p style="margin: 9px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">300-unit box · centre 150,150</p>
+      </div>
+      <div style="display: grid; grid-template-columns: 132px 1fr; gap: 9px 18px; font-size: 14.5px; line-height: 1.6;">
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Ring</span><span>r = 118, stroke 7, ink. The outer boundary of the mark; the artboard is centred on it.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Light</span><span>r = 110, accent, concentric with the ring.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Occluder</span><span>r = 113 — three units larger than the light, which is what makes the crescent swell at the belly and taper to points. Ground-coloured.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Dial</span><span>The occluder sits 15 units from centre, pushed <em style="font-style: italic;">away</em> from the desk's angle θ, so the crescent appears at θ. This is the only number that changes between desks.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Letter</span><span>Literata 700, 160 units, anchored middle at x = 150, baseline y = 207. Cap centre lands on 150 — optically centred, not box-centred.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Clear space</span><span>15 units — one dial radius — outside the ring on all four sides.</span>
+        <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6); padding-top: 3px;">Alignment</span><span>The mark is symmetric about its own centre at every size. Any circular crop of radius ≥ 125 contains it with even margin.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ THE SIX DESKS ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 03 · the dial</p>
+    <h2 style="margin: 0 0 12px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Six desks, six hours, <em style="font-style: italic; font-weight: 400; color: #b8341f;">60°</em> apart.</h2>
+    <p style="margin: 0 0 26px; font-size: 16px; font-weight: 300; line-height: 1.55; max-width: 80ch; color: rgba(22,20,18,.78);">Politics anchors the dial at 325° and the rest follow at even intervals. Fixed once; never improvised, never reassigned.</p>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px;">
+      <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+        <div style="border: 1px solid {{ d.cardRule }}; background: {{ d.bg }}; color: {{ d.ink }}; padding: 20px 14px 14px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+          <svg viewBox="0 0 300 300" style="width: 82px; height: 82px; display: block;">
+            <circle cx="150" cy="150" r="110" fill="{{ d.c }}"></circle>
+            <circle cx="{{ d.ox }}" cy="{{ d.oy }}" r="113" fill="{{ d.bg }}"></circle>
+            <circle cx="150" cy="150" r="118" fill="none" stroke="{{ d.ink }}" stroke-width="7"></circle>
+            <text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="{{ d.ink }}">P</text>
+          </svg>
+          <span style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;">
+            <b style="font-size: 15px; font-weight: 700; letter-spacing: -.02em;">{{ d.n }}</b>
+            <span style="font-weight: 600; font-size: 8.5px; letter-spacing: .15em; text-transform: uppercase; color: {{ d.muted }};">{{ d.deg }}° · {{ d.c }}</span>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 26px 0 12px; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">The seal — reversed cut, same dial</p>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px;">
+      <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+        <div style="border: 1px solid #ddd4c4; background: #faf7f0; padding: 18px 14px; display: flex; justify-content: center;">
+          <svg viewBox="0 0 300 300" style="width: 76px; height: 76px; display: block;">
+            <circle cx="150" cy="150" r="118" fill="#161412"></circle>
+            <circle cx="150" cy="150" r="110" fill="{{ d.c }}"></circle>
+            <circle cx="{{ d.ox }}" cy="{{ d.oy }}" r="113" fill="#161412"></circle>
+            <text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#faf7f0">P</text>
+          </svg>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══════════ COVER CUT ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 04 · the cover cut</p>
+    <h2 style="margin: 0 0 12px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Two crescents, for print and covers only.</h2>
+    <p style="margin: 0 0 26px; font-size: 16px; font-weight: 300; line-height: 1.55; max-width: 80ch; color: rgba(22,20,18,.78);">The same dial produces a second crescent outside the ring, on the opposite flank. It carries a shadow and a phase at once. Two accent elements is one more than the system normally permits, so this cut is reserved: covers, posters, the colophon, printed matter. Never a favicon, never an avatar, never in a masthead.</p>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px;">
+      <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+        <div style="border: 1px solid {{ d.cardRule }}; background: {{ d.bg }}; padding: 20px 14px; display: flex; justify-content: center;">
+          <svg viewBox="0 0 300 300" style="width: 78px; height: 78px; display: block;">
+            <circle cx="{{ d.outX }}" cy="{{ d.outY }}" r="112" fill="{{ d.c }}"></circle>
+            <circle cx="150" cy="150" r="118" fill="{{ d.bg }}"></circle>
+            <circle cx="150" cy="150" r="110" fill="{{ d.c }}"></circle>
+            <circle cx="{{ d.ox }}" cy="{{ d.oy }}" r="113" fill="{{ d.bg }}"></circle>
+            <circle cx="150" cy="150" r="118" fill="none" stroke="{{ d.ink }}" stroke-width="7"></circle>
+            <text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="{{ d.ink }}">P</text>
+          </svg>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══════════ SCALE ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 05 · scale and cuts</p>
+    <h2 style="margin: 0 0 26px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Where the mark simplifies.</h2>
+    <div style="display: flex; align-items: flex-end; gap: 34px; padding-bottom: 22px; border-bottom: 1px solid #ddd4c4;">
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 11px;">
+        <svg viewBox="0 0 300 300" style="width: 96px; height: 96px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="7"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">96px · outline</span>
+      </span>
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 11px;">
+        <svg viewBox="0 0 300 300" style="width: 40px; height: 40px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="10"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">40px · outline</span>
+      </span>
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 11px;">
+        <svg viewBox="0 0 300 300" style="width: 24px; height: 24px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="14"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">24px · outline</span>
+      </span>
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 11px;">
+        <svg viewBox="0 0 300 300" style="width: 18px; height: 18px; display: block;"><circle cx="150" cy="150" r="118" fill="#161412"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#faf7f0">P</text></svg>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">18px · reversed</span>
+      </span>
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 11px;">
+        <svg viewBox="0 0 300 300" style="width: 16px; height: 16px; display: block;"><circle cx="150" cy="150" r="118" fill="#161412"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#faf7f0">P</text></svg>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">16px · reversed</span>
+      </span>
+      <p style="margin: 0 0 4px; max-width: 40ch; font-size: 14.5px; line-height: 1.6; color: rgba(22,20,18,.75);">The ring's stroke thickens as the mark shrinks — 7 → 10 → 14 units — so it holds its weight. Below 24px the outline and the crescent both fail, so the mark switches to the reversed cut: a solid ink disc with the letter knocked out. That is a declared tier, not a degradation.</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 40px; padding-top: 24px; flex-wrap: wrap;">
+      <span style="display: flex; align-items: center; gap: 14px;">
+        <svg viewBox="0 0 300 300" style="width: 46px; height: 46px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="9"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        <b style="font-size: 34px; font-weight: 700; letter-spacing: -.034em;">Parallax</b>
+      </span>
+      <span style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 26px; border: 1px solid #ddd4c4;">
+        <svg viewBox="0 0 300 300" style="width: 52px; height: 52px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="8"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        <b style="font-size: 25px; font-weight: 700; letter-spacing: -.032em; line-height: .9;">Parallax</b>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; color: rgba(22,20,18,.6);">Lens</span>
+      </span>
+      <span style="display: flex; align-items: center; gap: 12px;">
+        <span style="display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: #161412;">
+          <svg viewBox="0 0 300 300" style="width: 40px; height: 40px; display: block;"><circle cx="150" cy="150" r="118" fill="#faf7f0"></circle><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        </span>
+        <span style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: #161412;">
+          <svg viewBox="0 0 300 300" style="width: 26px; height: 26px; display: block;"><circle cx="150" cy="150" r="118" fill="#faf7f0"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+        </span>
+        <span style="font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(22,20,18,.6);">App icon<br>Favicon</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ══════════ WATERMARKS ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 06 · watermarks and ornaments</p>
+    <h2 style="margin: 0 0 26px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">The mark, quieter.</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+      <div style="border: 1px solid #ddd4c4; display: flex; flex-direction: column;">
+        <div style="position: relative; height: 212px; overflow: hidden; padding: 22px 20px;">
+          <svg viewBox="0 0 300 300" style="position: absolute; right: -60px; bottom: -60px; width: 250px; height: 250px; display: block;"><circle cx="150" cy="150" r="110" fill="#161412" opacity=".05"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="7" opacity=".1"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412" opacity=".07">P</text></svg>
+          <p style="position: relative; margin: 0 0 8px; font-weight: 600; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: rgba(22,20,18,.6);">The primer</p>
+          <p style="position: relative; margin: 0; font-size: 14px; line-height: 1.6; color: rgba(22,20,18,.8);">India's Parliament has had the same 543 seats since 1976. The freeze was meant to last 25 years.</p>
+        </div>
+        <p style="margin: 0; padding: 13px 18px 15px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Page · ink at 5–10%, bled off one corner</p>
+      </div>
+      <div style="border: 1px solid #ddd4c4; display: flex; flex-direction: column;">
+        <div style="position: relative; height: 212px; background: #e3ddd0; display: flex; align-items: flex-end; justify-content: flex-end; padding: 12px;">
+          <span style="display: flex; align-items: center; gap: 7px; background: #161412; padding: 6px 10px 6px 7px;">
+            <svg viewBox="0 0 300 300" style="width: 15px; height: 15px; display: block;"><circle cx="150" cy="150" r="118" fill="#faf7f0"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+            <span style="font-weight: 600; font-size: 8.5px; letter-spacing: .2em; text-transform: uppercase; color: #faf7f0;">Parallax</span>
+          </span>
+        </div>
+        <p style="margin: 0; padding: 13px 18px 15px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Plate · ink slab, bottom-right, 12px inset</p>
+      </div>
+      <div style="border: 1px solid #ddd4c4; display: flex; flex-direction: column;">
+        <div style="height: 212px; padding: 22px 20px; display: flex; flex-direction: column; justify-content: center;">
+          <p style="margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: rgba(22,20,18,.8);">The bill failed by 54 votes. The clock it started is still running, and the next census decides who reads the result. <svg viewBox="0 0 300 300" style="width: 12px; height: 12px; display: inline-block; vertical-align: baseline; margin-left: 4px;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="18"></circle></svg></p>
+          <p style="margin: 0; padding-top: 12px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: rgba(22,20,18,.6);">Sources 01–10 · Parallax Lens ™</p>
+        </div>
+        <p style="margin: 0; padding: 13px 18px 15px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">End mark · 12px, letterless, replaces the ¶</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ BANNERS ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 44px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 07 · banners and share cards</p>
+    <h2 style="margin: 0 0 10px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Type does the work.</h2>
+    <p style="margin: 0 0 26px; font-size: 16px; font-weight: 300; line-height: 1.55; max-width: 80ch; color: rgba(22,20,18,.78);">No stock photography, no gradient wash. A masthead rule, the lockup, a line of copy, and the six phases as the only ornament there is.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <div>
+        <div style="box-sizing: border-box; width: 1500px; height: 500px; background: #faf7f0; border-top: 8px solid #161412; padding: 60px 70px; display: flex; flex-direction: column; justify-content: space-between; transform: scale(.5); transform-origin: top left; margin-bottom: -250px;">
+          <div style="display: flex; align-items: center; gap: 32px;">
+            <svg viewBox="0 0 300 300" style="width: 132px; height: 132px; display: block; flex: 0 0 auto;"><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="7"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+            <span style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="font-size: 86px; font-weight: 700; letter-spacing: -.034em; line-height: .88;">Parallax</span>
+              <span style="font-size: 24px; font-weight: 300; font-style: italic; color: rgba(22,20,18,.68);">Stories you think you already understand.</span>
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-top: 26px; border-top: 2px solid #161412;">
+            <span style="font-weight: 600; font-size: 17px; letter-spacing: .2em; text-transform: uppercase; color: rgba(22,20,18,.62);">Politics · Space · Earth · Tech · Travel · Sports</span>
+            <span style="display: flex; gap: 14px;">
+              <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+                <svg viewBox="0 0 300 300" style="width: 46px; height: 46px; display: block;"><circle cx="150" cy="150" r="110" fill="{{ d.c }}"></circle><circle cx="{{ d.ox }}" cy="{{ d.oy }}" r="113" fill="#faf7f0"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="9"></circle></svg>
+              </sc-for>
+            </span>
+          </div>
+        </div>
+        <p style="margin: 10px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Social banner · 1500 × 500 · paper · shown at 50%</p>
+      </div>
+
+      <div>
+        <div style="box-sizing: border-box; width: 1500px; height: 500px; background: #161412; color: #faf7f0; border-top: 8px solid #b8341f; padding: 60px 70px; display: flex; flex-direction: column; justify-content: space-between; transform: scale(.5); transform-origin: top left; margin-bottom: -250px;">
+          <div style="display: flex; align-items: center; gap: 32px;">
+            <svg viewBox="0 0 300 300" style="width: 132px; height: 132px; display: block; flex: 0 0 auto;"><circle cx="150" cy="150" r="118" fill="#faf7f0"></circle><circle cx="150" cy="150" r="110" fill="#b8341f"></circle><circle cx="{{ houseOx }}" cy="{{ houseOy }}" r="113" fill="#faf7f0"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg>
+            <span style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="font-size: 86px; font-weight: 700; letter-spacing: -.034em; line-height: .88;">Parallax</span>
+              <span style="font-size: 24px; font-weight: 300; font-style: italic; color: rgba(250,247,240,.7);">Stories you think you already understand.</span>
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-top: 26px; border-top: 2px solid rgba(250,247,240,.4);">
+            <span style="font-weight: 600; font-size: 17px; letter-spacing: .2em; text-transform: uppercase; color: rgba(250,247,240,.62);">One issue a week · fully sourced · no ads, no trackers</span>
+            <span style="display: flex; gap: 14px;">
+              <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+                <svg viewBox="0 0 300 300" style="width: 46px; height: 46px; display: block;"><circle cx="150" cy="150" r="110" fill="{{ d.c }}"></circle><circle cx="{{ d.ox }}" cy="{{ d.oy }}" r="113" fill="#161412"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="#faf7f0" stroke-width="9"></circle></svg>
+              </sc-for>
+            </span>
+          </div>
+        </div>
+        <p style="margin: 10px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Social banner · 1500 × 500 · ink · shown at 50%</p>
+      </div>
+
+      <div>
+        <p style="margin: 0 0 12px; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: rgba(22,20,18,.6);">Share cards · 1200 × 630 · one per issue · shown at 50%</p>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <sc-for list="{{ cards }}" as="k" hint-placeholder-count="3">
+            <div style="width: 600px; height: 315px; flex: 0 0 auto; overflow: hidden;">
+              <div style="box-sizing: border-box; width: 1200px; height: 630px; background: {{ k.bg }}; color: {{ k.ink }}; border-top: 10px solid {{ k.c }}; padding: 54px 60px; display: flex; flex-direction: column; justify-content: space-between; transform: scale(.5); transform-origin: top left;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 30px;">
+                  <span style="display: flex; align-items: center; gap: 18px;">
+                    <svg viewBox="0 0 300 300" style="width: 62px; height: 62px; display: block; flex: 0 0 auto;"><circle cx="150" cy="150" r="110" fill="{{ k.c }}"></circle><circle cx="{{ k.ox }}" cy="{{ k.oy }}" r="113" fill="{{ k.bg }}"></circle><circle cx="150" cy="150" r="118" fill="none" stroke="{{ k.ink }}" stroke-width="8"></circle><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="{{ k.ink }}">P</text></svg>
+                    <b style="font-size: 38px; font-weight: 700; letter-spacing: -.032em;">Parallax</b>
+                  </span>
+                  <span style="font-weight: 600; font-size: 20px; letter-spacing: .2em; text-transform: uppercase; color: {{ k.muted }};">{{ k.reg }}</span>
+                </div>
+                <div>
+                  <p style="margin: 0 0 20px; font-weight: 600; font-size: 20px; letter-spacing: .2em; text-transform: uppercase; color: {{ k.c }};">{{ k.eyebrow }}</p>
+                  <h3 style="margin: 0; font-size: 80px; font-weight: 700; line-height: 1.0; letter-spacing: -.034em;">{{ k.pre }}<em style="font-style: italic; font-weight: 400; color: {{ k.c }};">{{ k.em }}</em>{{ k.post }}</h3>
+                </div>
+                <div style="display: flex; align-items: center; gap: 26px; padding-top: 24px; border-top: 2px solid {{ k.rule }}; font-weight: 600; font-size: 19px; letter-spacing: .18em; text-transform: uppercase; color: {{ k.muted }};">
+                  <span>{{ k.no }}</span><span>{{ k.date }}</span><span>{{ k.read }}</span><span>{{ k.sources }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MISUSE ══════════ -->
+  <div style="background: #faf7f0; color: #161412; padding: 40px 48px 46px;">
+    <p style="margin: 0 0 6px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #b8341f;">— 08 · misuse</p>
+    <h2 style="margin: 0 0 26px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.04;">Six ways to break it.</h2>
+    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
+      <sc-for list="{{ misuse }}" as="m" hint-placeholder-count="6">
+        <div style="border: 1px solid #ddd4c4;">
+          <div style="height: 124px; display: flex; align-items: center; justify-content: center; background: #f2eee4;">{{ m.art }}</div>
+          <p style="margin: 0; padding: 11px 13px 13px; border-top: 1px solid #ddd4c4; font-weight: 600; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; color: rgba(22,20,18,.62);">× {{ m.label }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 24px 0 0; padding-top: 18px; border-top: 1px solid #ddd4c4; font-size: 15px; line-height: 1.62; max-width: 84ch; color: rgba(22,20,18,.78);">The mark is four concentric circles, one dial position and one letter. If a rendering adds depth, light, a second accent, or moves the dial off its 60° station, it is no longer this mark.</p>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1680}}">
+class Component extends DCLogic {
+  renderVals() {
+    const mix = (hex, a) => {
+      const v = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + a + ')';
+    };
+    const dark = ['space', 'tech', 'sports'];
+    const desks = [
+      { k: 'politics', n: 'Politics', c: '#b8341f', bg: '#faf7f0', ink: '#161412', rule: '#ddd4c4', deg: 325, reg: 'Politics desk' },
+      { k: 'space', n: 'Space', c: '#00d4ff', bg: '#0a1628', ink: '#e8eef7', rule: '#1e3352', deg: 25, reg: 'Mission control' },
+      { k: 'earth', n: 'Earth', c: '#2d6a4f', bg: '#f4ecd4', ink: '#1f2a1c', rule: '#d4c8a8', deg: 85, reg: 'Field atlas' },
+      { k: 'tech', n: 'Tech', c: '#c6f432', bg: '#0a0a0a', ink: '#fafafa', rule: '#262626', deg: 145, reg: 'Changelog' },
+      { k: 'travel', n: 'Travel', c: '#c85a3c', bg: '#fffdf6', ink: '#2a1f15', rule: '#e5d9c4', deg: 205, reg: 'Field journal' },
+      { k: 'sports', n: 'Sports', c: '#e8f048', bg: '#0f2820', ink: '#f5f5f0', rule: '#1f4434', deg: 265, reg: 'Match programme' }
+    ].map((d) => {
+      const r = d.deg * Math.PI / 180;
+      return Object.assign({}, d, {
+        ox: (150 - 15 * Math.cos(r)).toFixed(1),
+        oy: (150 - 15 * Math.sin(r)).toFixed(1),
+        outX: (150 - 31.6 * Math.cos(r)).toFixed(1),
+        outY: (150 - 31.6 * Math.sin(r)).toFixed(1),
+        muted: mix(d.ink, dark.includes(d.k) ? 0.58 : 0.7),
+        cardRule: dark.includes(d.k) ? d.rule : '#ddd4c4'
+      });
+    });
+    const house = desks[0];
+
+    const cardSrc = [
+      { k: 'politics', eyebrow: 'A 30-year story in six dates', pre: 'The ', em: 'Trojan', post: ' horse in Parliament', no: '№ 03', date: 'April 24, 2026', read: '6 min', sources: '10 cited' },
+      { k: 'space', eyebrow: 'T+ 12:12:49_ · orbit 02A', pre: 'The asteroid we ', em: 'talked', post: ' down', no: '№ 22', date: 'June 04, 2026', read: '7 min', sources: '11 cited' },
+      { k: 'earth', eyebrow: '14.6°N · 121.0°E · sheet 05', pre: 'The Pacific that no longer ', em: 'resets', post: '', no: '№ 18', date: 'May 03, 2026', read: '7 min', sources: '12 cited' }
+    ].map((c) => Object.assign({}, desks.find((d) => d.k === c.k), c));
+
+    const el = React.createElement;
+    const ring = (extra) => el('circle', Object.assign({ cx: 150, cy: 150, r: 118, fill: 'none', stroke: '#161412', strokeWidth: 7 }, extra || {}));
+    const light = (extra) => el('circle', Object.assign({ cx: 150, cy: 150, r: 110, fill: '#b8341f' }, extra || {}));
+    const occ = (extra) => el('circle', Object.assign({ cx: house.ox, cy: house.oy, r: 113, fill: '#f2eee4' }, extra || {}));
+    const letter = (extra) => el('text', Object.assign({ x: 150, y: 207, textAnchor: 'middle', fontFamily: 'Literata, Georgia, serif', fontSize: 160, fontWeight: 700, fill: '#161412' }, extra || {}), 'P');
+    const svg = (children, extra) => el('svg', Object.assign({ viewBox: '0 0 300 300', style: { width: 68, height: 68, display: 'block' } }, extra || {}), children);
+    const good = [light({ key: 'l' }), occ({ key: 'o' }), ring({ key: 'r' }), letter({ key: 't' })];
+
+    const misuse = [
+      { label: 'No gradient or sphere', art: svg([
+        el('defs', { key: 'd' }, el('radialGradient', { id: 'b1', cx: '34%', cy: '30%', r: '76%' }, el('stop', { offset: '0%', stopColor: '#ff9d72' }), el('stop', { offset: '100%', stopColor: '#871f0f' }))),
+        el('circle', { key: 'c', cx: 150, cy: 150, r: 110, fill: 'url(#b1)' }), ring({ key: 'r' }), letter({ key: 't' })
+      ]) },
+      { label: 'No off-station dial', art: svg([light({ key: 'l' }), occ({ key: 'o', cx: 138, cy: 168 }), ring({ key: 'r' }), letter({ key: 't' })]) },
+      { label: 'No rotation', art: svg(good, { style: { width: 68, height: 68, display: 'block', transform: 'rotate(16deg)' } }) },
+      { label: 'No second accent', art: svg([light({ key: 'l' }), occ({ key: 'o' }), ring({ key: 'r', stroke: '#2d6a4f' }), letter({ key: 't', fill: '#2d6a4f' })]) },
+      { label: 'No substitute letter', art: svg([light({ key: 'l' }), occ({ key: 'o' }), ring({ key: 'r' }), letter({ key: 't', fontFamily: 'Impact, Haettenschweiler, sans-serif', fontSize: 172 })]) },
+      { label: 'No shadow', art: svg([
+        el('defs', { key: 'd' }, el('filter', { id: 'b6', x: '-40%', y: '-40%', width: '190%', height: '190%' }, el('feDropShadow', { dx: 5, dy: 8, stdDeviation: 6, floodOpacity: 0.45 }))),
+        el('g', { key: 'g', filter: 'url(#b6)' }, good)
+      ]) }
+    ];
+
+    return { desks, cards: cardSrc, misuse, houseOx: house.ox, houseOy: house.oy };
+  }
+}
+</script>
+</body>
+</html>

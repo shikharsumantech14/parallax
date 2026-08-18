@@ -1,0 +1,60 @@
+<!--
+  Example payload for `revenue-mosaic` — paste into
+  src/content/issues/2026-06-03-tech-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: revenue-mosaic
+    eyebrow: "THE SHAPE OF THE REVENUE"
+    title: "Four segments, three plans, one *rectangle*."
+    intro: "Column width is what a segment contributes; blocks inside are how it splits. Block area is real money — block height is a share within its column only."
+    data:
+      caption: "Enterprise is 84 accounts and half the money; self-serve is 31,400 accounts and eight per cent of it."
+      source: "Billing ledger, financial year 2026"
+      unit: "$M"
+      segments:
+        - id: ent
+          label: "Enterprise"
+          value: 41.2
+          accounts: 84
+          note: "84 accounts, half the revenue, and 62% of them on the top plan."
+          parts:
+            - { label: Platform, share: 0.62 }
+            - { label: Team,     share: 0.28 }
+            - { label: Starter,  share: 0.10 }
+        - id: mid
+          label: "Mid-market"
+          value: 22.6
+          accounts: 610
+          parts:
+            - { label: Platform, share: 0.31 }
+            - { label: Team,     share: 0.52 }
+            - { label: Starter,  share: 0.17 }
+        - id: smb
+          label: "Small business"
+          value: 12.1
+          accounts: 4820
+          parts:
+            - { label: Platform, share: 0.08 }
+            - { label: Team,     share: 0.44 }
+            - { label: Starter,  share: 0.48 }
+        - id: self
+          label: "Self-serve"
+          value: 6.4
+          accounts: 31400
+          note: "31,400 accounts producing eight per cent of revenue — the widest support load and the narrowest column."
+          parts:
+            - { label: Platform, share: 0.02 }
+            - { label: Team,     share: 0.19 }
+            - { label: Starter,  share: 0.79 }
+
+# Share check: every segment's parts sum to 1.00 ✓
+# Total = 82.3; Enterprise = 50.1%, Self-serve = 7.8% — the caption's
+# "half" and "eight per cent".
+# The plan mix inverts completely between the first and last column:
+# 62% Platform → 2%, and 10% Starter → 79%.

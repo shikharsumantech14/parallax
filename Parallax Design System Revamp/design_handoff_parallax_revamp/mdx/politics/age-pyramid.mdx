@@ -1,0 +1,34 @@
+<!--
+  Example payload for `age-pyramid` — paste into
+  src/content/issues/2026-06-03-politics-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: age-pyramid
+    eyebrow: "THE COMPOSITION OF THE HOUSE"
+    title: "Who is actually *in the room*."
+    intro: "One row per age band, bars running outward from the centre. Read it as counts for the size of each band, or as shares to compare bands of very different sizes."
+    data:
+      caption: "334 of 543 members are between 45 and 64."
+      source: "Members' declared dates of birth, house register 2026"
+      mode: count
+      sides:
+        left:  { label: "Men" }
+        right: { label: "Women" }
+      bands:
+        - { label: "75+",   left: 8,   right: 2 }
+        - { label: "65–74", left: 74,  right: 17 }
+        - { label: "55–64", left: 141, right: 38 }
+        - { label: "45–54", left: 121, right: 34 }
+        - { label: "35–44", left: 62,  right: 21 }
+        - { label: "25–34", left: 18,  right: 7 }
+
+# Totals: men 424, women 119, sum 543 — matches the chamber.
+# Bands 55–64 and 45–54 together = 334.
+# In share mode, women are 19–28% of every band: the imbalance is close
+# to constant, not a generational effect working through.

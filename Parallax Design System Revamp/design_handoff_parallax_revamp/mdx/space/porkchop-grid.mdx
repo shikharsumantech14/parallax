@@ -1,0 +1,44 @@
+<!--
+  Example payload for `porkchop-grid` — paste into
+  src/content/issues/2026-06-03-space-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: porkchop-grid
+    eyebrow: "THE LAUNCH OPPORTUNITY"
+    title: "Every day you could leave, and what it *would cost*."
+    intro: "Departure dates across, arrival dates up. Colour is the velocity change the trip needs — the bright island is the window, everything else is a mission the rocket cannot perform."
+    data:
+      caption: "The cheapest departure costs 3.58 km/s; the dearest more than twice that."
+      source: "Parallax trajectory model · patched-conic, no gravity assist"
+      unit: "km/s"
+      vehicleLimit: 6.0
+      departures: ["Oct 2", "Oct 15", "Oct 28", "Nov 10", "Nov 23"]
+      arrivals:   ["Sep 20", "Aug 27", "Aug 3", "Jul 10", "Jun 16"]
+      bands:
+        - { max: 3.8,  label: "under 3.8" }
+        - { max: 4.3,  label: "3.8 – 4.3" }
+        - { max: 5.0,  label: "4.3 – 5.0" }
+        - { max: 6.0,  label: "5.0 – 6.0" }
+        - { max: 99,   label: "over 6.0 · not flyable" }
+      cells:
+        - [7.02, 6.14, 5.42, 4.86, 4.46, 4.22, 4.14, 4.22, 4.46, 4.86, 5.42, 6.14, 7.02, 8.06]
+        - [6.31, 5.48, 4.81, 4.30, 3.95, 3.76, 3.73, 3.86, 4.15, 4.60, 5.21, 5.98, 6.91, 8.00]
+        - [5.86, 5.06, 4.42, 3.94, 3.62, 3.46, 3.46, 3.62, 3.94, 4.42, 5.06, 5.86, 6.82, 7.94]
+        - [6.31, 5.48, 4.81, 4.30, 3.95, 3.76, 3.73, 3.86, 4.15, 4.60, 5.21, 5.98, 6.91, 8.00]
+        - [7.02, 6.14, 5.42, 4.86, 4.46, 4.22, 4.14, 4.22, 4.46, 4.86, 5.42, 6.14, 7.02, 8.06]
+      flightDays:
+        - [228, 224, 220, 216, 212, 208, 204, 200, 196, 192, 188, 184, 180, 176]
+        - [216, 212, 208, 204, 200, 196, 192, 188, 184, 180, 176, 172, 168, 164]
+        - [204, 200, 196, 192, 188, 184, 180, 176, 172, 168, 164, 160, 156, 152]
+        - [192, 188, 184, 180, 176, 172, 168, 164, 160, 156, 152, 148, 144, 140]
+        - [180, 176, 172, 168, 164, 160, 156, 152, 148, 144, 140, 136, 132, 128]
+
+# 14 columns × 5 rows. Departure labels are every 3rd column, so the
+# axis title MUST state the step: "Departure date, 2028 · 4-day steps".
+# Grid minimum is 3.46 km/s; the dearest flyable cell is 5.98.

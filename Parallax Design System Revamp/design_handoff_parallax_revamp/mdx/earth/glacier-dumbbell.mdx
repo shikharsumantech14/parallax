@@ -1,0 +1,37 @@
+<!--
+  Example payload for `glacier-dumbbell` — paste into
+  src/content/issues/2026-06-03-earth-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: glacier-dumbbell
+    eyebrow: "THIRTY-FIVE YEARS OF RETREAT"
+    title: "Eight glaciers, 1990 against *2025*."
+    intro: "Hollow dot for 1990, filled for 2025, and the bar between them is the loss. Sort by share or by area — the two orders disagree."
+    data:
+      caption: "Ranked by share, the small glaciers are worst hit; ranked by area, Siachen dominates."
+      source: "World Glacier Inventory, repeat surveys 1990 and 2025"
+      times: ["1990", "2025"]
+      unit: "km²"
+      sort: relative
+      rows:
+        - { name: "Gangotri",      earlier: 143.6,  later: 121.4 }
+        - { name: "Siachen",       earlier: 1180.0, later: 1064.0, note: "Has lost more area than every other glacier here put together, and the smallest share of itself." }
+        - { name: "Zemu",          earlier: 96.2,   later: 78.9 }
+        - { name: "Pindari",       earlier: 39.4,   later: 27.6,   note: "Has lost roughly a third of itself." }
+        - { name: "Chhota Shigri", earlier: 15.7,   later: 12.9 }
+        - { name: "Bara Shigri",   earlier: 131.0,  later: 105.8 }
+        - { name: "Milam",         earlier: 61.3,   later: 48.1 }
+        - { name: "Dokriani",      earlier: 7.9,    later: 5.4,    note: "The smallest glacier here and the hardest hit in relative terms." }
+
+# max/min on the earlier survey = 1180 / 7.9 = 149× — well past the
+# threshold of 20, so √-compression applies and the chip renders.
+# By share: Dokriani −31.6%, Pindari −29.9% lead.
+# By area:  Siachen −116.0 km², more than the other seven combined
+#           (22.2+17.3+11.8+2.8+25.2+13.2+2.5 = 95.0). Both claims in
+#           the caption check out.

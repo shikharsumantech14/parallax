@@ -1,0 +1,38 @@
+<!--
+  Example payload for `latency-ridge` — paste into
+  src/content/issues/2026-06-03-tech-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: latency-ridge
+    eyebrow: "SIX RELEASES OF LATENCY"
+    title: "Six releases, and the tail nobody *averaged*."
+    intro: "One ridge per release, newest at the top. The tick is the median, the shaded foot is everything past 500 ms."
+    data:
+      caption: "The median fell from 91 ms to 82 while the share over half a second more than doubled."
+      source: "Edge access logs, one full day per release"
+      metric: "response time"
+      unit: ms
+      scale: log
+      threshold: { at: 500, label: "over 500 ms" }
+      releases:
+        - { label: "4.19.2", median: 82, tailPct: 6.1, secondPeakAt: 760 }
+        - { label: "4.19.0", median: 79, tailPct: 4.8, secondPeakAt: 760 }
+        - { label: "4.18.4", median: 74, tailPct: 1.9 }
+        - { label: "4.18.1", median: 76, tailPct: 2.1 }
+        - { label: "4.17.6", median: 88, tailPct: 2.6 }
+        - { label: "4.17.0", median: 91, tailPct: 2.8 }
+
+# Releases are NEWEST FIRST and are not sorted by the component —
+# version strings do not sort reliably.
+# Median 91 → 82 (better); tail 2.8% → 6.1% (worse). The divergence is
+# the argument, and any report quoting only the median called this an
+# improvement.
+# This payload uses the SUMMARY form, so the component renders the
+# "distribution modelled from percentiles" chip. Prefer raw `samples`
+# when the observations survive.

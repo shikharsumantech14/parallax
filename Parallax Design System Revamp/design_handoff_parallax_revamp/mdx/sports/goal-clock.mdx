@@ -1,0 +1,49 @@
+<!--
+  Example payload for `goal-clock` — paste into
+  src/content/issues/2026-06-03-sports-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: goal-clock
+    eyebrow: "NINETY MINUTES OF GOALS"
+    title: "When goals are *actually* scored."
+    intro: "Bars count goals per five-minute block on the left scale; the line is the running share of all goals on the right. The line is just the bars, added up."
+    data:
+      caption: "Half of all goals arrive after the 52nd minute, and the last five minutes carry 10.5% on their own."
+      source: "Goal timestamps, 380 league matches, 2025–26"
+      period: { label: match, blocks: 18, unit: minute }
+      intervalAt: 9
+      cumulativeLabel: "Scored by now"
+      bars:
+        - { label: "0–5",           share: 3.0 }
+        - { label: "5–10",          share: 3.7 }
+        - { label: "10–15",         share: 4.2 }
+        - { label: "15–20",         share: 4.7 }
+        - { label: "20–25",         share: 5.0 }
+        - { label: "25–30",         share: 5.2 }
+        - { label: "30–35",         share: 5.4 }
+        - { label: "35–40",         share: 5.6 }
+        - { label: "40–45 + added", share: 7.6 }
+        - { label: "45–50",         share: 3.5 }
+        - { label: "50–55",         share: 4.9 }
+        - { label: "55–60",         share: 5.4 }
+        - { label: "60–65",         share: 5.7 }
+        - { label: "65–70",         share: 6.0 }
+        - { label: "70–75",         share: 6.2 }
+        - { label: "75–80",         share: 6.5 }
+        - { label: "80–85",         share: 6.9 }
+        - { label: "85–90 + added", share: 10.5 }
+
+# Sum check: 100.0 exactly ✓
+# Cumulative reaches 50% inside the 50–55 block, at ~52.1 minutes —
+# which is the caption's figure, and the component derives it. If the
+# shares change, the caption changes with them.
+# Largest block 10.5% (85–90 + added) beats the first ten minutes
+# combined (3.0 + 3.7 = 6.7%).
+# The dual axis is legitimate ONLY because the line is the cumulative
+# sum of these bars.

@@ -1,0 +1,46 @@
+<!--
+  Example payload for `route-criteria` — paste into
+  src/content/issues/2026-06-03-travel-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: route-criteria
+    eyebrow: "SIX ROUTES, FIVE CRITERIA"
+    title: "Six routes, and no route that *wins*."
+    intro: "Five axes, each scaled so its own best is at the top. Every route is a line crossing all five — and every pair crosses somewhere."
+    data:
+      caption: "Every line crosses every other line at least once."
+      source: "Parallax route survey · cost and permit data 2025, crowding from checkpoint counts"
+      axes:
+        - { id: cost,  label: "Affordability", bestLabel: "cheap",   worstLabel: "dear" }
+        - { id: quiet, label: "Quiet",         bestLabel: "empty",   worstLabel: "crowded" }
+        - { id: safe,  label: "Safety margin", bestLabel: "high",    worstLabel: "thin" }
+        - { id: view,  label: "Views",         bestLabel: "famous",  worstLabel: "modest" }
+        - { id: short, label: "Shortness",     bestLabel: "11 days", worstLabel: "38 days" }
+      options:
+        - name: "Everest base camp"
+          values: { cost: 0.30, quiet: 0.08, safe: 0.62, view: 0.98, short: 0.52 }
+        - name: "Annapurna circuit"
+          values: { cost: 0.58, quiet: 0.34, safe: 0.71, view: 0.82, short: 0.24 }
+        - name: "Manaslu circuit"
+          values: { cost: 0.44, quiet: 0.78, safe: 0.48, view: 0.74, short: 0.38 }
+        - name: "Gokyo lakes"
+          values: { cost: 0.40, quiet: 0.56, safe: 0.66, view: 0.88, short: 0.62 }
+        - name: "Langtang valley"
+          values: { cost: 0.82, quiet: 0.62, safe: 0.86, view: 0.44, short: 0.94 }
+          note: "The safest, cheapest and shortest — and the plainest views."
+        - name: "Upper Dolpo"
+          values: { cost: 0.12, quiet: 0.96, safe: 0.28, view: 0.66, short: 0.08 }
+          note: "The emptiest trail and the least safe."
+
+# Values are 0–1 indices, 1 = best, so the "indices 0–1 · best at top"
+# chip always renders and the axis end labels carry the real units.
+# No option dominates: Langtang leads on cost, safe and short but is
+# last on views; Everest leads views and is last on quiet; Dolpo leads
+# quiet and is last on cost and short. That guarantees the crossings
+# the kind requires.

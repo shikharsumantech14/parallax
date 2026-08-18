@@ -1,0 +1,42 @@
+<!--
+  Example payload for `finish-interval` — paste into
+  src/content/issues/2026-06-03-sports-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: finish-interval
+    eyebrow: "NINE MATCHDAYS LEFT"
+    title: "Six of these teams have the same season *left*."
+    intro: "The dot is the most likely finish, the bar is the range the model gives nine times out of ten. Overlapping bars mean the order is not yet decided."
+    data:
+      caption: "Six teams have overlapping intervals between third and ninth."
+      source: "10,000 simulations of the remaining 9 matchdays"
+      model: "10,000 simulations of the remaining 9 matchdays"
+      runs: 10000
+      positions: 18
+      zones:
+        - { fromPos: 1,  toPos: 4,  label: "European place", tone: good }
+        - { fromPos: 16, toPos: 18, label: "Relegation",     tone: bad }
+      rows:
+        - { name: "Rivermouth United", median: 1,  low: 1,  high: 2 }
+        - { name: "Harborough",        median: 2,  low: 1,  high: 4 }
+        - { name: "Kestrel Park",      median: 4,  low: 2,  high: 7 }
+        - { name: "Fenwick City",      median: 5,  low: 3,  high: 8 }
+        - { name: "Southgate Mills",   median: 5,  low: 3,  high: 9, note: "Shares a median with Fenwick and a wider range." }
+        - { name: "Ashford Rangers",   median: 7,  low: 4,  high: 11 }
+        - { name: "Thornbury",         median: 8,  low: 5,  high: 12 }
+        - { name: "Oldcastle",         median: 9,  low: 6,  high: 13 }
+        - { name: "Marsh End",         median: 12, low: 9,  high: 16 }
+        - { name: "Coalbrook",         median: 17, low: 14, high: 18 }
+
+# Validation: low ≤ median ≤ high on every row, and no row has
+# low === high (that would be a league-table, not a projection).
+# The overlapping cluster between 3rd and 9th: Kestrel (2–7),
+# Fenwick (3–8), Southgate (3–9), Ashford (4–11), Thornbury (5–12),
+# Oldcastle (6–13) — six teams, the caption's count.
+# `model` is mandatory and prints in the source line.

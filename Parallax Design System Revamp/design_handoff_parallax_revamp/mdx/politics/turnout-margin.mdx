@@ -1,0 +1,30 @@
+<!--
+  Example payload for `turnout-margin` — paste into
+  src/content/issues/2026-06-03-politics-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: turnout-margin
+    eyebrow: "TWO NUMBERS, ONE PATH"
+    title: "More people voted, and the result got *closer*."
+    intro: "Each dot is one election, joined in time order. This is a path, not a trend — where it doubles back, the two numbers stopped moving together."
+    data:
+      caption: "Turnout rose eleven points while the winning margin ended lower than it started."
+      source: "Election Commission turnout and margin tables, 2004–2026"
+      x: { label: "Turnout", unit: "% of registered voters" }
+      y: { label: "Winning margin", unit: "pts" }
+      points:
+        - { period: "2004", x: 58.1, y: 3.6,  note: "A coalition assembled after the count rather than before it." }
+        - { period: "2009", x: 58.2, y: 4.8,  note: "Turnout flat, margin up. At this point the two numbers are unrelated." }
+        - { period: "2014", x: 66.4, y: 12.1, note: "Eight points more turnout, and the widest margin in the series." }
+        - { period: "2019", x: 67.4, y: 14.9, note: "The peak of both numbers. Every election after this moves down and to the right." }
+        - { period: "2024", x: 65.8, y: 9.2,  note: "Turnout slips a point and a half; the margin falls by almost six." }
+        - { period: "2026", x: 68.9, y: 6.4,  note: "Record turnout, and the closest result since 2009." }
+
+# The reversal is after 2019: turnout +1.5 net while margin −8.5.
+# Do not draw a trend line through these points.

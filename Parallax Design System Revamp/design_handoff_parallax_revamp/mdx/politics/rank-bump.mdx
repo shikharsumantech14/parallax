@@ -1,0 +1,29 @@
+<!--
+  Example payload for `rank-bump` — paste into
+  src/content/issues/2026-06-03-politics-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: rank-bump
+    eyebrow: "TWENTY-TWO YEARS OF FINISHES"
+    title: "Rank, election *by election*."
+    intro: "Only finishing position is plotted — first at the top. Vertical distance is places, not votes, so a steep climb can rest on very few extra ballots."
+    data:
+      caption: "First and second have swapped once in twenty-two years."
+      source: "Election Commission results, 2004–2026"
+      contests: ["2004", "2009", "2014", "2019", "2024", "2026"]
+      entities:
+        - { name: "Government",       short: "Gov",  ranks: [3, 2, 1, 1, 1, 1] }
+        - { name: "Main opposition",  short: "Opp",  ranks: [1, 1, 2, 2, 2, 2] }
+        - { name: "Regional · south", short: "R-S",  ranks: [4, 4, 3, 4, 3, 3] }
+        - { name: "Regional · east",  short: "R-E",  ranks: [2, 3, 4, 3, 4, 5] }
+        - { name: "Left front",       short: "Left", ranks: [5, 5, 6, 6, 6, 6] }
+        - { name: "New entrant",      short: "New",  ranks: [6, 6, 5, 5, 5, 4] }
+
+# Permutation check: each contest's six ranks are exactly 1–6, no gaps
+# or duplicates. Verify column-wise, not row-wise.

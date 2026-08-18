@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,300..700&family=Anek+Devanagari:wdth,wght@75..125,400..700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #2a2724; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  * { box-sizing: border-box; }
+  a { color: inherit; text-decoration: none; }
+  input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: currentColor; opacity: .3; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%; background: currentColor; margin-top: -14px; }
+  @keyframes pxIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes pxUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+  @keyframes pxPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+</style>
+</helmet>
+
+<div style="width: 393px; height: 852px; border-radius: 30px; padding: 7px; background: #0d0c0a; box-shadow: 0 30px 90px rgba(0,0,0,.5);">
+  <div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 24px; background: {{ bg }}; color: {{ ink }}; font-family: 'Literata', Georgia, serif; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; transition: background 340ms ease, color 340ms ease;">
+
+    <!-- status bar -->
+    <div style="flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 11px 20px 6px; font-weight: 600; font-size: 11px; letter-spacing: .04em;">
+      <span>9:41</span>
+      <span style="display: flex; align-items: center; gap: 5px; opacity: .8;">
+        <span style="width: 15px; height: 8px; border: 1px solid currentColor; border-radius: 2px; display: inline-block; padding: 1px;"><span style="display: block; width: 70%; height: 100%; background: currentColor;"></span></span>
+      </span>
+    </div>
+
+    <!-- ══════════ WELCOME ══════════ -->
+    <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 0 24px 26px; animation: pxIn 320ms ease-out both;">
+        <div style="margin: auto 0;">
+          <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 30px;">
+            <svg viewBox="0 0 300 300" style="width: 34px; height: 34px; display: block; flex: 0 0 auto;">
+              <circle cx="150" cy="150" r="110" fill="{{ acc }}"></circle>
+              <circle cx="{{ markOx }}" cy="{{ markOy }}" r="113" fill="{{ bg }}"></circle>
+              <circle cx="150" cy="150" r="118" fill="none" stroke="{{ ink }}" stroke-width="10"></circle>
+              <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="{{ ink }}">P</text>
+            </svg>
+            <span style="font-weight: 700; font-size: 25px; letter-spacing: -.03em;">Parallax</span>
+            <span style="display: {{ devShow }}; font-family: 'Anek Devanagari', sans-serif; font-weight: 600; font-size: 20px; color: {{ acc }};">पैरलैक्स</span>
+          </div>
+          <h1 style="margin: 0 0 18px; font-weight: 700; font-size: 52px; line-height: 1.0; letter-spacing: -.035em;">Stories you think you <em style="font-style: italic; font-weight: 400; color: {{ acc }};">already</em> understand.</h1>
+          <p style="margin: 0 0 26px; font-size: 17px; font-weight: 300; line-height: 1.55; opacity: .78;">Six worlds. One issue at a time. Every number sourced, every chart yours to drag.</p>
+          <div style="display: flex; gap: 22px; padding-top: 20px; border-top: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column;"><b style="font-size: 26px; font-weight: 700; letter-spacing: -.02em;">24</b><span style="font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Issues</span></span>
+            <span style="display: flex; flex-direction: column;"><b style="font-size: 26px; font-weight: 700; letter-spacing: -.02em;">1,412</b><span style="font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Sources</span></span>
+            <span style="display: flex; flex-direction: column;"><b style="font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: {{ acc }};">318</b><span style="font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Reading now</span></span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div onClick="{{ goWorlds }}" style="cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 17px;">Choose your worlds →</div>
+          <div onClick="{{ goSignin }}" style="cursor: pointer; user-select: none; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; color: {{ muted }};">I already read here · sign in</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ SIGN IN ══════════ -->
+    <sc-if value="{{ isSignin }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 24px 26px; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goWelcome }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Back</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">Reader access</p>
+          <h1 style="margin: 0 0 14px; font-weight: 700; font-size: 42px; line-height: 1.02; letter-spacing: -.034em;">Pick up where you <em style="font-style: italic; font-weight: 400; color: {{ acc }};">left off</em>.</h1>
+          <p style="margin: 0 0 26px; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .78;">Fourteen issues, three part-read, and every chart exactly where you dragged it.</p>
+          <p style="margin: 0 0 7px; font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ muted }};">Email</p>
+          <input type="email" value="{{ email }}" onInput="{{ setEmail }}" placeholder="you@college.edu" style="width: 100%; background: transparent; border: 1px solid {{ rule2 }}; color: {{ ink }}; font-family: 'Literata', Georgia, serif; font-size: 16px; padding: 14px 13px; outline: none;">
+          <div onClick="{{ goSent }}" style="cursor: pointer; user-select: none; margin-top: 12px; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Email me a sign-in link →</div>
+          <p style="margin: 14px 0 0; padding-top: 14px; border-top: 1px solid {{ rule }}; font-size: 14px; line-height: 1.6; opacity: .72;">No password to forget. The link lasts twenty minutes and works once.</p>
+        </div>
+        <div onClick="{{ goSignup }}" style="cursor: pointer; user-select: none; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; color: {{ muted }};">New here · create an account →</div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ SIGN UP ══════════ -->
+    <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 24px 26px; overflow-y: auto; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goSignin }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Sign in</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">Free · one issue a week</p>
+          <h1 style="margin: 0 0 14px; font-weight: 700; font-size: 42px; line-height: 1.02; letter-spacing: -.034em;">Start reading <em style="font-style: italic; font-weight: 400; color: {{ acc }};">Parallax</em>.</h1>
+          <p style="margin: 0 0 22px; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .78;">One issue a week, six worlds to choose from, and the whole archive open from day one.</p>
+          <p style="margin: 0 0 7px; font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ muted }};">Name</p>
+          <input type="text" value="{{ name }}" onInput="{{ setName }}" placeholder="Ananya S." style="width: 100%; background: transparent; border: 1px solid {{ rule2 }}; color: {{ ink }}; font-family: 'Literata', Georgia, serif; font-size: 16px; padding: 14px 13px; outline: none; margin-bottom: 14px;">
+          <p style="margin: 0 0 7px; font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ muted }};">Email</p>
+          <input type="email" value="{{ email }}" onInput="{{ setEmail }}" placeholder="you@college.edu" style="width: 100%; background: transparent; border: 1px solid {{ rule2 }}; color: {{ ink }}; font-family: 'Literata', Georgia, serif; font-size: 16px; padding: 14px 13px; outline: none;">
+          <div onClick="{{ goSent }}" style="cursor: pointer; user-select: none; margin-top: 12px; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Create my account →</div>
+          <p style="margin: 14px 0 0; padding-top: 14px; border-top: 1px solid {{ rule }}; font-size: 14px; line-height: 1.6; opacity: .72;">No investors, no advertisers, no trackers. Unsubscribe in one click, and the list is never sold.</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ LINK SENT ══════════ -->
+    <sc-if value="{{ isSent }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 24px 26px; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goSignin }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Use a different address</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{ acc }}; animation: pxPulse 2s ease-in-out infinite;"></span>Check your inbox</p>
+          <h1 style="margin: 0 0 14px; font-weight: 700; font-size: 42px; line-height: 1.02; letter-spacing: -.034em;">The link is <em style="font-style: italic; font-weight: 400; color: {{ acc }};">on its way</em>.</h1>
+          <p style="margin: 0 0 20px; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .78;">Sent to {{ emailShown }}. It lasts twenty minutes and works once.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column; gap: 4px; padding: 13px 0; border-right: 1px solid {{ rule }};">
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Expires</span>
+              <b style="font-size: 15px; font-weight: 500;">20:00</b>
+            </span>
+            <span style="display: flex; flex-direction: column; gap: 4px; padding: 13px 0 13px 14px;">
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Uses left</span>
+              <b style="font-size: 15px; font-weight: 500;">1</b>
+            </span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div onClick="{{ goFeed }}" style="cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Open the link →</div>
+          <div onClick="{{ resend }}" style="cursor: pointer; user-select: none; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; color: {{ resendFg }};">{{ resendLabel }}</div>
+          <div onClick="{{ goExpired }}" style="cursor: pointer; user-select: none; text-align: center; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; padding: 4px; color: {{ muted }};">Link already expired?</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ LINK EXPIRED ══════════ -->
+    <sc-if value="{{ isExpired }}" hint-placeholder-val="{{ false }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 24px 26px; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goSignin }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Use a different address</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">That link is closed</p>
+          <h1 style="margin: 0 0 14px; font-weight: 700; font-size: 42px; line-height: 1.02; letter-spacing: -.034em;">Twenty minutes, <em style="font-style: italic; font-weight: 400; color: {{ acc }};">once</em>.</h1>
+          <p style="margin: 0 0 20px; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .78;">Sign-in links expire on a timer and stop working after a single use, which is the whole reason there is no password to steal. Nothing is lost; the next one arrives in seconds.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column; gap: 4px; padding: 13px 0; border-right: 1px solid {{ rule }};">
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Sent to</span>
+              <b style="font-size: 15px; font-weight: 500;">{{ emailShown }}</b>
+            </span>
+            <span style="display: flex; flex-direction: column; gap: 4px; padding: 13px 0 13px 14px;">
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Reading kept</span>
+              <b style="font-size: 15px; font-weight: 500;">14 issues</b>
+            </span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div onClick="{{ goSent }}" style="cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Send a new link →</div>
+          <div onClick="{{ goWelcome }}" style="cursor: pointer; user-select: none; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; color: {{ muted }};">Keep reading without an account</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ SIGN OUT ══════════ -->
+    <sc-if value="{{ isSignout }}" hint-placeholder-val="{{ false }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 24px 26px; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goYou }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Back</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">Sign out of this device</p>
+          <h1 style="margin: 0 0 14px; font-weight: 700; font-size: 42px; line-height: 1.02; letter-spacing: -.034em;">Nothing is <em style="font-style: italic; font-weight: 400; color: {{ acc }};">deleted</em>.</h1>
+          <p style="margin: 0 0 20px; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .78;">Signing out clears this device only. The account keeps everything, and one link brings it all back.</p>
+          <div style="border-top: 1px solid {{ rule }};">
+            <sc-for list="{{ signoutRows }}" as="r" hint-placeholder-count="4">
+              <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 12px 0; border-bottom: 1px solid {{ rule }};">
+                <span style="font-size: 15px;">{{ r.k }}</span>
+                <b style="font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ r.fg }};">{{ r.v }}</b>
+              </span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div onClick="{{ doSignout }}" style="cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Sign out →</div>
+          <div onClick="{{ goYou }}" style="cursor: pointer; user-select: none; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; color: {{ muted }};">Stay signed in</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ WORLDS ══════════ -->
+    <sc-if value="{{ isWorlds }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: pxIn 320ms ease-out both;">
+        <div style="padding: 10px 20px 14px;">
+          <p style="margin: 0 0 8px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">{{ followCount }} of 6 chosen · tap to change</p>
+          <h1 style="margin: 0; font-weight: 700; font-size: 33px; line-height: 1.05; letter-spacing: -.03em;">Which worlds are yours?</h1>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column;">
+          <sc-for list="{{ worldRows }}" as="w" hint-placeholder-count="6">
+            <div onClick="{{ w.toggle }}" style="cursor: pointer; user-select: none; flex: 1; display: flex; align-items: center; gap: 13px; padding: 0 20px; background: {{ w.tint }}; border-left: 4px solid {{ w.edge }}; border-bottom: 1px solid {{ rule }}; transition: background 220ms, border-color 220ms;">
+              <span style="width: 11px; height: 11px; border-radius: 50%; background: {{ w.c }}; flex: 0 0 auto;"></span>
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                <span style="display: flex; align-items: baseline; gap: 9px;">
+                  <span style="font-weight: 700; font-size: 25px; letter-spacing: -.02em;">{{ w.n }}</span>
+                  <span style="display: {{ devShow }}; font-family: 'Anek Devanagari', sans-serif; font-weight: 600; font-size: 15px; opacity: .5;">{{ w.dev }}</span>
+                </span>
+                <span style="font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">{{ w.reg }}</span>
+              </span>
+              <span style="font-weight: 600; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: {{ w.fg }};">{{ w.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div onClick="{{ goFeed }}" style="flex: 0 0 auto; cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 17px;">Build my feed →</div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ FEED ══════════ -->
+    <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; animation: pxIn 320ms ease-out both;">
+        <div style="flex: 0 0 auto; display: flex; justify-content: space-between; align-items: baseline; padding: 6px 20px 12px;">
+          <span style="display: flex; align-items: center; gap: 10px;">
+            <svg viewBox="0 0 300 300" style="width: 28px; height: 28px; display: block; flex: 0 0 auto;">
+              <circle cx="150" cy="150" r="110" fill="{{ acc }}"></circle>
+              <circle cx="{{ markOx }}" cy="{{ markOy }}" r="113" fill="{{ bg }}"></circle>
+              <circle cx="150" cy="150" r="118" fill="none" stroke="{{ ink }}" stroke-width="12"></circle>
+              <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="{{ ink }}">P</text>
+            </svg>
+            <span style="font-weight: 700; font-size: 22px; letter-spacing: -.03em;">Parallax</span>
+            <span style="display: {{ devShow }}; font-family: 'Anek Devanagari', sans-serif; font-weight: 600; font-size: 17px; color: {{ acc }};">पैरलैक्स</span>
+          </span>
+          <span style="display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ acc }}; animation: pxPulse 2s ease-in-out infinite;"></span>{{ feedCount }}</span>
+        </div>
+        <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
+          <div onClick="{{ f.open }}" style="cursor: pointer; flex: 0 0 auto; position: relative; margin: 0 0 2px; padding: 20px; min-height: 194px; background: {{ f.field }}; color: {{ f.fg }}; display: flex; flex-direction: column; overflow: hidden;">
+            <span style="position: absolute; right: 12px; bottom: -18px; font-weight: 700; font-size: 96px; line-height: 1; letter-spacing: -.05em; color: {{ f.ghost }};">{{ f.n2 }}</span>
+            <span style="position: relative; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ f.meta }};">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ f.c }};"></span>{{ f.desk }} · {{ f.read }}
+            </span>
+            <h2 style="position: relative; margin: 12px 0 8px; font-weight: 700; font-size: 30px; line-height: 1.06; letter-spacing: -.026em;">{{ f.pre }}<em style="font-style: italic; font-weight: 400; color: {{ f.c }};">{{ f.em }}</em>{{ f.post }}</h2>
+            <p style="position: relative; margin: 0; font-size: 14px; font-weight: 300; line-height: 1.45; color: {{ f.body }}; max-width: 32ch;">{{ f.sub }}</p>
+            <span style="position: relative; margin-top: auto; display: flex; gap: 8px; padding-top: 14px;">
+              <span style="font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; border: 1px solid {{ f.c }}; color: {{ f.c }}; padding: 6px 11px;">Read →</span>
+              <span onClick="{{ f.cards }}" style="font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; border: 1px solid {{ f.meta }}; color: {{ f.meta }}; padding: 6px 11px;">60-sec cards</span>
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ ARCHIVE ══════════ -->
+    <sc-if value="{{ isArchive }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: pxIn 320ms ease-out both;">
+        <div style="padding: 6px 20px 12px;">
+          <p style="margin: 0 0 8px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">{{ archCount }} · every one still readable</p>
+          <h1 style="margin: 0; font-weight: 700; font-size: 33px; line-height: 1.05; letter-spacing: -.03em;">The archive</h1>
+        </div>
+        <div style="padding: 0 20px 12px;">
+          <input type="search" placeholder="Search titles and desks" value="{{ q }}" onInput="{{ setQ }}" style="width: 100%; background: transparent; border: 1px solid {{ rule2 }}; color: {{ ink }}; font-family: 'Literata', Georgia, serif; font-size: 15px; padding: 12px 13px; outline: none;">
+        </div>
+        <div style="display: flex; gap: 7px; flex-wrap: wrap; padding: 0 20px 14px; border-bottom: 1px solid {{ rule }};">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="7">
+            <span onClick="{{ f.go }}" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; border: 1px solid {{ f.bd }}; background: {{ f.bg }}; color: {{ f.fg }}; font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; padding: 7px 10px; transition: border-color 160ms, background 160ms;">
+              <span style="display: {{ f.dotShow }}; width: 6px; height: 6px; border-radius: 50%; background: {{ f.c }};"></span>{{ f.label }}
+            </span>
+          </sc-for>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+          <sc-for list="{{ archive }}" as="a" hint-placeholder-count="8">
+            <div onClick="{{ a.go }}" style="cursor: pointer; display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: baseline; padding: 14px 20px; border-bottom: 1px solid {{ rule }};">
+              <span style="font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: {{ muted }};">{{ a.n2 }}</span>
+              <span style="display: flex; flex-direction: column; gap: 6px;">
+                <span style="font-size: 19px; font-weight: 700; letter-spacing: -.018em; line-height: 1.15;">{{ a.t }}</span>
+                <span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ a.c }};"></span>{{ a.desk }} · {{ a.date }} · {{ a.read }}</span>
+              </span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; padding: 26px 20px; font-size: 15px; line-height: 1.6; color: {{ muted }};">Nothing in the archive matches that yet. Try a desk name — politics, space, earth, tech, travel, sports.</p>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ ISSUE ══════════ -->
+    <sc-if value="{{ isIssue }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: pxIn 320ms ease-out both;">
+        <div style="flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 6px 18px 10px; border-bottom: 1px solid {{ rule }};">
+          <span onClick="{{ goFeed }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; opacity: .65;">← {{ deskReg }}</span>
+          <span style="font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">{{ issueMeta }}</span>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+
+          <div style="padding: 18px 20px 16px;">
+            <p style="margin: 0 0 10px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">{{ issueEyebrow }}</p>
+            <h1 style="margin: 0 0 12px; font-weight: 700; font-size: 38px; line-height: 1.02; letter-spacing: -.03em; text-wrap: pretty;">{{ titlePre }}<em style="font-style: italic; font-weight: 400; color: {{ acc }};">{{ titleEm }}</em>{{ titlePost }}</h1>
+            <p style="margin: 0; font-size: 15px; font-weight: 300; line-height: 1.5; opacity: .78;">{{ issueHook }}</p>
+          </div>
+
+          <div style="margin: 0 20px 16px; border-left: 4px solid {{ acc }}; padding: 2px 0 2px 14px;">
+            <p style="margin: 0 0 7px; font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ muted }};">The primer</p>
+            <p style="margin: 0; font-size: 15px; line-height: 1.65;">{{ issuePrimer }}</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+            <sc-for list="{{ issueFacts }}" as="m" hint-placeholder-count="4">
+              <span style="display: flex; flex-direction: column; gap: 4px; padding: 11px 14px; border-right: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+                <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">{{ m.l }}</span>
+                <b style="font-size: 14px; font-weight: 500; color: {{ m.fg }};">{{ m.v }}</b>
+              </span>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ isSkim }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 16px 20px; padding: 14px 15px; border-left: 3px solid {{ acc }}; background: {{ tintSoft }}; font-weight: 500; font-size: 14px; line-height: 1.65;">{{ issueSkim }}</p>
+          </sc-if>
+          <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 16px 20px 4px;">
+              <p style="margin: 0 0 14px; font-size: {{ proseSize }}; line-height: 1.68;"><span style="float: left; font-weight: 700; font-size: 62px; line-height: .76; padding: 5px 9px 0 0; color: {{ acc }};">{{ dropCap }}</span>{{ issueP1 }}</p>
+              <p style="margin: 0 0 14px; font-size: {{ proseSize }}; line-height: 1.68;">{{ issueP2 }}</p>
+            </div>
+          </sc-if>
+
+          <!-- the plate -->
+          <figure ref="{{ bindFx }}" data-fx="reveal" style="margin: 4px 20px 16px; opacity: 0; transition: opacity 320ms ease-out, transform 320ms ease-out;">
+            <div style="border: 1px solid {{ rule }}; padding: 6px;">
+              <sc-if value="{{ hasPlateImg }}" hint-placeholder-val="{{ false }}">
+                    <div style="height: 186px; overflow: hidden;"><img ref="{{ bindPlate }}" alt="{{ plateCaption }}" style="display: block; width: 100%; height: 100%; object-fit: cover;"></div>
+                  </sc-if>
+                  <sc-if value="{{ noPlateImg }}" hint-placeholder-val="{{ true }}">
+                    <div style="height: 186px;"><image-slot id="{{ plateId }}" shape="rect" placeholder="{{ plateHint }}"></image-slot></div>
+                  </sc-if>
+            </div>
+            <figcaption style="display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};"><span>{{ plateCaption }}</span><span>{{ plateSource }}</span></figcaption>
+          </figure>
+
+          <!-- the lens · only where two viewpoints of one subject exist -->
+          <sc-if value="{{ hasLens }}" hint-placeholder-val="{{ false }}">
+            <figure style="position: relative; margin: 0 20px 16px; border: 1px solid {{ rule }}; overflow: hidden;">
+              <div style="height: 210px;"><image-slot id="{{ lensIdA }}" shape="rect" placeholder="{{ lensHintA }}"></image-slot></div>
+              <div ref="{{ bindFx }}" data-fx="wipe" style="position: absolute; inset: 0; clip-path: inset(0 0 0 0%);"><image-slot id="{{ lensIdB }}" shape="rect" placeholder="{{ lensHintB }}"></image-slot></div>
+              <span ref="{{ bindFx }}" data-fx="wipeline" style="position: absolute; top: 0; bottom: 0; left: 0%; width: 2px; background: {{ acc }};"></span>
+              <span style="position: absolute; left: 10px; bottom: 9px; background: {{ ink }}; color: {{ bg }}; font-weight: 600; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; padding: 5px 8px;">{{ lensLabel }}</span>
+            </figure>
+          </sc-if>
+
+          <!-- — 02 · the graphic, per world -->
+          <div style="margin: 4px 20px 16px; border: 1px solid {{ rule }};">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid {{ rule }}; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">
+              <span>— 02 · {{ vizLabel }}</span>
+              <span onClick="{{ toggleAlt }}" style="cursor: pointer; user-select: none; border: 1px solid {{ acc }}; color: {{ acc }}; padding: 5px 9px;">{{ altLabel }}</span>
+            </div>
+            <sc-if value="{{ hasTiles }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+                  <span style="display: flex; flex-direction: column; gap: 3px; padding: 12px 12px 13px; border-right: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+                    <b style="font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: {{ t.fg }};">{{ t.v }}<span style="font-size: 12px; font-weight: 600; letter-spacing: .04em;">{{ t.u }}</span></b>
+                    <span style="font-weight: 600; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; line-height: 1.5; color: {{ muted }};">{{ t.l }}</span>
+                  </span>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasSvg }}" hint-placeholder-val="{{ true }}">
+              <div style="padding: 10px 8px 2px;">{{ viz }}</div>
+            </sc-if>
+            <p style="margin: 0; padding: 10px 12px; border-top: 1px solid {{ rule }}; font-size: 13.5px; line-height: 1.55; opacity: .78;">In plain terms — {{ vizPlain }}</p>
+            <p style="margin: 0; padding: 0 12px 11px; font-weight: 600; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; line-height: 1.6; color: {{ muted }};">{{ vizSource }}</p>
+          </div>
+
+          <!-- — 03 · the number -->
+          <div style="margin: 0 20px 16px; border: 1px solid {{ rule }};">
+            <div style="padding: 9px 12px; border-bottom: 1px solid {{ rule }}; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">— 03 · the number</div>
+            <div style="padding: 14px 14px 16px;">
+              <b style="display: block; font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -.038em; color: {{ acc }};">{{ statBig }}</b>
+              <span style="display: block; margin-top: 6px; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">{{ statLabel }}</span>
+              <p style="margin: 14px 0 0; padding-top: 13px; border-top: 1px solid {{ rule }}; font-size: 15px; font-style: italic; line-height: 1.55; opacity: .8;">{{ issueDek }}</p>
+            </div>
+          </div>
+
+          <!-- — 04 · politics-only instrument -->
+          <sc-if value="{{ isPolitics }}" hint-placeholder-val="{{ true }}">
+            <div style="margin: 0 20px 16px; border: 1px solid {{ rule }};">
+              <div style="padding: 9px 12px; border-bottom: 1px solid {{ rule }}; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">— 04 · drag the year</div>
+              <div style="padding: 14px 14px 16px;">
+                <p style="margin: 0 0 16px; font-size: 22px; font-weight: 700; line-height: 1.16; letter-spacing: -.02em;">{{ claim }}</p>
+                <div style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px;">
+                  <span>
+                    <span style="display: flex; justify-content: space-between; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }}; margin-bottom: 5px;"><span>North</span><b style="font-size: 13px; color: {{ ink }};">{{ north }}</b></span>
+                    <span style="display: block; height: 12px; background: {{ rule }};"><span style="display: block; height: 100%; background: {{ acc }}; width: {{ nPct }}; transition: width 140ms cubic-bezier(.22,1,.36,1);"></span></span>
+                  </span>
+                  <span>
+                    <span style="display: flex; justify-content: space-between; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }}; margin-bottom: 5px;"><span>South</span><b style="font-size: 13px; color: {{ ink }};">{{ south }}</b></span>
+                    <span style="display: block; height: 12px; background: {{ rule }};"><span style="display: block; height: 100%; background: {{ acc2 }}; width: {{ sPct }}; transition: width 140ms cubic-bezier(.22,1,.36,1);"></span></span>
+                  </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 14px; color: {{ acc }};">
+                  <input type="range" min="0" max="100" value="{{ yr }}" onInput="{{ setYr }}" aria-label="Year" style="flex: 1; height: 30px;">
+                  <span style="font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: {{ ink }}; min-width: 74px; text-align: right;">{{ year }}</span>
+                </div>
+                <p style="margin: 12px 0 0; font-weight: 600; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; color: {{ muted }};">Source · 2011 Census projections, ECI</p>
+              </div>
+            </div>
+          </sc-if>
+
+          <div onClick="{{ goQuiz }}" style="cursor: pointer; margin: 0 20px 18px; padding: 18px; border: 1px solid {{ acc }}; background: {{ tintSoft }}; text-align: center;">
+            <p style="margin: 0 0 6px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">End of issue</p>
+            <p style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em;">Check what you kept →</p>
+          </div>
+        </div>
+
+        <!-- reading toolbar -->
+        <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 11px; padding: 10px 16px; border-top: 2px solid {{ ink }};">
+          <span style="flex: 1; height: 2px; background: {{ rule }};"><span style="display: block; height: 100%; width: 42%; background: {{ acc }};"></span></span>
+          <span style="font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: {{ muted }};">{{ leftLabel }}</span>
+          <span style="display: flex; border: 1px solid {{ ink }};">
+            <span onClick="{{ setFull }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; background: {{ fullBg }}; color: {{ fullFg }};">Full</span>
+            <span onClick="{{ setSkim }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; background: {{ skimBg }}; color: {{ skimFg }};">Skim</span>
+          </span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ STORY ══════════ -->
+    <sc-if value="{{ isStory }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 6px 20px 20px; animation: pxIn 320ms ease-out both;">
+        <div style="display: flex; gap: 3px; margin-bottom: 14px;">
+          <sc-for list="{{ ticks }}" as="t" hint-placeholder-count="5">
+            <span style="flex: 1; height: 2.5px; background: {{ t.bg }}; transition: background 260ms;"></span>
+          </sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: {{ acc }};">{{ deskReg }} · card {{ scNo }} / 05</span>
+          <span onClick="{{ goFeed }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">Close ×</span>
+        </div>
+        <div onClick="{{ storyNext }}" style="cursor: pointer; flex: 1; display: flex; flex-direction: column; justify-content: center; animation: pxUp 340ms cubic-bezier(.22,1,.36,1) both;">
+          <p style="margin: 0 0 14px; font-weight: 700; font-size: 40px; line-height: 1.06; letter-spacing: -.032em; text-wrap: pretty;">{{ scT }}</p>
+          <p style="margin: 0; font-size: 16px; font-weight: 300; line-height: 1.55; opacity: .75;">{{ scS }}</p>
+        </div>
+        <div style="display: flex; gap: 7px;">
+          <span onClick="{{ storyPrev }}" style="flex: 1; text-align: center; cursor: pointer; user-select: none; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; padding: 13px; opacity: .8;">↑ Prev</span>
+          <span onClick="{{ storyNext }}" style="flex: 1; text-align: center; cursor: pointer; user-select: none; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; padding: 13px;">Next ↓</span>
+        </div>
+        <div style="display: flex; gap: 7px; margin-top: 7px;">
+          <span style="flex: 1; text-align: center; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 10px; opacity: .6;">Share ↗</span>
+          <span onClick="{{ goIssue }}" style="flex: 1; text-align: center; cursor: pointer; user-select: none; border: 1px solid {{ rule2 }}; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 10px; opacity: .6;">Read full →</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ QUIZ ══════════ -->
+    <sc-if value="{{ isQuiz }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 8px 20px 20px; overflow-y: auto; animation: pxIn 320ms ease-out both;">
+        <span onClick="{{ goIssue }}" style="cursor: pointer; user-select: none; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: {{ muted }};">← Issue</span>
+        <div style="margin: auto 0;">
+          <p style="margin: 0 0 12px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">Knowledge check · 1 of 3</p>
+          <h1 style="margin: 0 0 22px; font-weight: 700; font-size: 32px; line-height: 1.08; letter-spacing: -.028em; text-wrap: pretty;">{{ quizQ }}</h1>
+          <div style="display: flex; flex-direction: column; gap: 9px;">
+            <sc-for list="{{ quizOpts }}" as="o" hint-placeholder-count="3">
+              <div onClick="{{ o.pick }}" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid {{ o.bd }}; background: {{ o.bg }}; color: {{ ink }}; padding: 15px 16px; font-size: 16px; transition: border-color 180ms, background 180ms;">
+                <span>{{ o.label }}</span>
+                <span style="font-weight: 600; font-size: 13px; color: {{ o.mfg }};">{{ o.mark }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ answered }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid {{ rule }};">
+              <p style="margin: 0 0 8px; font-weight: 600; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: {{ acc }};">{{ verdict }}</p>
+              <p style="margin: 0; font-size: 15px; line-height: 1.55; opacity: .8;">{{ quizExpl }}</p>
+              <p style="margin: 12px 0 0; font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">{{ quizTally }}</p>
+            </div>
+          </sc-if>
+        </div>
+        <div onClick="{{ goYou }}" style="cursor: pointer; user-select: none; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; padding: 16px;">Save to my shelf →</div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ YOU ══════════ -->
+    <sc-if value="{{ isYou }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; animation: pxIn 320ms ease-out both;">
+        <div style="padding: 6px 20px 16px;">
+          <p style="margin: 0 0 8px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">Your shelf</p>
+          <h1 style="margin: 0; font-weight: 700; font-size: 33px; line-height: 1.05; letter-spacing: -.03em;">Ananya S.</h1>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid {{ rule }}; border-bottom: 1px solid {{ rule }};">
+          <div style="padding: 16px 14px; border-right: 1px solid {{ rule }};"><b style="font-size: 32px; font-weight: 700; letter-spacing: -.03em; color: {{ acc }};">14</b><p style="margin: 4px 0 0; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">Issues read</p></div>
+          <div style="padding: 16px 14px; border-right: 1px solid {{ rule }};"><b style="font-size: 32px; font-weight: 700; letter-spacing: -.03em;">6</b><p style="margin: 4px 0 0; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">Week streak</p></div>
+          <div style="padding: 16px 14px;"><b style="font-size: 32px; font-weight: 700; letter-spacing: -.03em;">{{ followCount }}</b><p style="margin: 4px 0 0; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">Worlds</p></div>
+        </div>
+        <p style="margin: 16px 20px 10px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">Continue reading</p>
+        <sc-for list="{{ saved }}" as="s" hint-placeholder-count="3">
+          <div onClick="{{ s.open }}" style="cursor: pointer; display: grid; grid-template-columns: 1fr 76px; gap: 14px; align-items: center; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column; gap: 5px;">
+              <span style="font-size: 19px; font-weight: 700; letter-spacing: -.018em; line-height: 1.15;">{{ s.t }}</span>
+              <span style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ s.c }};"></span>{{ s.desk }} · {{ s.left }}</span>
+            </span>
+            <span style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
+              <span style="width: 100%; height: 2.5px; background: {{ rule }};"><span style="display: block; height: 100%; width: {{ s.pct }}; background: {{ acc }};"></span></span>
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .12em; opacity: .55;">{{ s.pct }}</span>
+            </span>
+          </div>
+        </sc-for>
+        <p style="margin: 18px 20px 10px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">Preferences</p>
+        <div style="border-top: 1px solid {{ rule }};">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="font-size: 15px;">Text size</span>
+            <span style="display: flex; border: 1px solid {{ rule2 }};">
+              <sc-for list="{{ sizeOpts }}" as="o" hint-placeholder-count="3">
+                <span onClick="{{ o.go }}" style="cursor: pointer; user-select: none; min-width: 38px; text-align: center; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 8px 0; background: {{ o.bg }}; color: {{ o.fg }};">{{ o.l }}</span>
+              </sc-for>
+            </span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="font-size: 15px;">Open issues in</span>
+            <span style="display: flex; border: 1px solid {{ rule2 }};">
+              <span onClick="{{ setFull }}" style="cursor: pointer; user-select: none; min-width: 54px; text-align: center; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 8px 0; background: {{ fullBg }}; color: {{ fullFg }};">Full</span>
+              <span onClick="{{ setSkim }}" style="cursor: pointer; user-select: none; min-width: 54px; text-align: center; font-weight: 600; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 8px 0; background: {{ skimBg }}; color: {{ skimFg }};">Skim</span>
+            </span>
+          </div>
+          <div onClick="{{ toggleWeekly }}" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 15px;">Weekly issue email</span>
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">Thursday, 07:00 IST</span>
+            </span>
+            <span style="flex: 0 0 auto; width: 46px; height: 24px; border: 1px solid {{ weeklyBd }}; background: {{ weeklyTrack }}; display: flex; align-items: center; padding: 2px; justify-content: {{ weeklyPos }}; transition: background 180ms, border-color 180ms;">
+              <span style="width: 18px; height: 18px; background: {{ weeklyKnob }};"></span>
+            </span>
+          </div>
+          <div onClick="{{ toggleBili }}" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="font-size: 15px;">Devanagari wordmark</span>
+            <span style="flex: 0 0 auto; width: 46px; height: 24px; border: 1px solid {{ biliBd }}; background: {{ biliTrack }}; display: flex; align-items: center; padding: 2px; justify-content: {{ biliPos }}; transition: background 180ms, border-color 180ms;">
+              <span style="width: 18px; height: 18px; background: {{ biliKnob }};"></span>
+            </span>
+          </div>
+        </div>
+
+        <p style="margin: 18px 20px 10px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ muted }};">Account</p>
+        <div style="border-top: 1px solid {{ rule }};">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="display: flex; flex-direction: column; gap: 3px;">
+              <span style="font-size: 15px;">Signed in</span>
+              <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">{{ accountEmail }}</span>
+            </span>
+            <span style="font-weight: 600; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: {{ acc }};">Magic link</span>
+          </div>
+          <div onClick="{{ goSignout }}" style="cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 20px; border-bottom: 1px solid {{ rule }};">
+            <span style="font-size: 15px;">Sign out</span>
+            <span style="font-weight: 600; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: {{ muted }};">This device →</span>
+          </div>
+        </div>
+
+        <div style="margin: 18px 20px 20px; padding: 20px 18px; border: 1px solid {{ acc }}; background: {{ tintSoft }};">
+          <p style="margin: 0 0 6px; font-weight: 600; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: {{ acc }};">Membership · student rate</p>
+          <p style="margin: 0 0 4px; font-size: 38px; font-weight: 700; letter-spacing: -.035em;">₹149<span style="font-size: 15px; font-weight: 400; opacity: .6;">/mo</span></p>
+          <p style="margin: 0 0 16px; font-size: 14.5px; font-weight: 300; line-height: 1.5; opacity: .78;">Every issue, every interactive, the archive and the annotation layer.</p>
+          <span style="display: block; text-align: center; background: {{ acc }}; color: {{ onAcc }}; font-weight: 600; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; padding: 14px; cursor: pointer;">Become a member</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ══════════ TAB BAR ══════════ -->
+    <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+      <div style="flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid {{ rule }};">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <div onClick="{{ t.go }}" style="cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 0 14px; color: {{ t.fg }}; border-top: 2px solid {{ t.mark }}; margin-top: -1px; transition: color 200ms, border-color 200ms;">
+            <span style="font-size: 17px; font-weight: 700; letter-spacing: -.02em;">{{ t.g }}</span>
+            <span style="font-weight: 600; font-size: 9px; letter-spacing: .16em; text-transform: uppercase;">{{ t.n }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:900},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;welcome&quot;,&quot;signin&quot;,&quot;signup&quot;,&quot;sent&quot;,&quot;expired&quot;,&quot;signout&quot;,&quot;worlds&quot;,&quot;feed&quot;,&quot;archive&quot;,&quot;issue&quot;,&quot;story&quot;,&quot;quiz&quot;,&quot;you&quot;],&quot;default&quot;:&quot;welcome&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;readingMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;skim&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;bilingual&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: null,
+    world: 'politics',
+    follows: { politics: true, space: false, earth: true, tech: false, travel: false, sports: true },
+    mode: null,
+    alt: false,
+    yr: 34,
+    storyIdx: 0,
+    quiz: null,
+    q: '',
+    filter: 'all',
+    tsize: 'm',
+    weekly: true,
+    bili: null,
+    email: '',
+    name: '',
+    resent: false
+  };
+
+  // back catalogue beyond the six current issues
+  backlist() {
+    return [
+      { k: 'sports', no: '№ 20', t: 'The bench that won it', date: 'March 26, 2026', read: '6 min' },
+      { k: 'space', no: '№ 21', t: 'The orbit that remembers', date: 'March 19, 2026', read: '6 min' },
+      { k: 'tech', no: '№ 19', t: 'The standard nobody voted for', date: 'March 12, 2026', read: '7 min' },
+      { k: 'travel', no: '№ 17', t: 'The border that moved instead', date: 'February 26, 2026', read: '6 min' },
+      { k: 'politics', no: '№ 16', t: 'The clause added at 2 a.m.', date: 'February 19, 2026', read: '8 min' },
+      { k: 'earth', no: '№ 15', t: 'The river that was granted a lawyer', date: 'February 12, 2026', read: '7 min' },
+      { k: 'space', no: '№ 14', t: 'The signal that took 40 years', date: 'February 05, 2026', read: '6 min' },
+      { k: 'sports', no: '№ 13', t: 'The record that needed an asterisk', date: 'January 29, 2026', read: '5 min' },
+      { k: 'tech', no: '№ 11', t: 'The outage that had no cause', date: 'January 15, 2026', read: '7 min' },
+      { k: 'travel', no: '№ 10', t: 'The season that arrived early', date: 'January 08, 2026', read: '6 min' },
+      { k: 'politics', no: '№ 08', t: 'The audit nobody ordered', date: 'December 18, 2025', read: '8 min' },
+      { k: 'earth', no: '№ 07', t: 'The aquifer under the capital', date: 'December 11, 2025', read: '7 min' },
+      { k: 'space', no: '№ 06', t: 'The launch window that closed', date: 'December 04, 2025', read: '6 min' },
+      { k: 'tech', no: '№ 05', t: 'The chip that shipped anyway', date: 'November 27, 2025', read: '7 min' },
+      { k: 'sports', no: '№ 04', t: 'The transfer fee that was a loan', date: 'November 20, 2025', read: '5 min' },
+      { k: 'travel', no: '№ 02', t: 'The visa that expired mid-air', date: 'November 06, 2025', read: '6 min' },
+      { k: 'politics', no: '№ 01', t: 'The first count', date: 'October 30, 2025', read: '9 min' },
+      { k: 'earth', no: '№ 12', t: 'The protection that erases', date: 'February 07, 2026', read: '8 min' }
+    ];
+  }
+
+  worlds() {
+    return [
+      { k: 'politics', n: 'Politics', dev: 'राजनीति', reg: 'Broadsheet', c: '#b8341f', bg: '#faf7f0', ink: '#161412', rule: '#ddd4c4', deep: '#8b2416', onAcc: '#fff' },
+      { k: 'space', n: 'Space', dev: 'अंतरिक्ष', reg: 'Mission control', c: '#00d4ff', bg: '#0a1628', ink: '#e8eef7', rule: '#1e3352', deep: '#5ce1ff', onAcc: '#050d1a' },
+      { k: 'earth', n: 'Earth', dev: 'पृथ्वी', reg: 'Field atlas', c: '#2d6a4f', bg: '#f4ecd4', ink: '#1f2a1c', rule: '#d4c8a8', deep: '#1f4d38', onAcc: '#fff' },
+      { k: 'tech', n: 'Tech', dev: 'तकनीक', reg: 'Changelog', c: '#c6f432', bg: '#0a0a0a', ink: '#fafafa', rule: '#262626', deep: '#a8d61c', onAcc: '#0a0a0a' },
+      { k: 'travel', n: 'Travel', dev: 'यात्रा', reg: 'Field journal', c: '#c85a3c', bg: '#fffdf6', ink: '#2a1f15', rule: '#e5d9c4', deep: '#a03f24', onAcc: '#fff' },
+      { k: 'sports', n: 'Sports', dev: 'खेल', reg: 'Match programme', c: '#e8f048', bg: '#0f2820', ink: '#f5f5f0', rule: '#1f4434', deep: '#c3cc2c', onAcc: '#0f2820' }
+    ];
+  }
+
+  // front-matter and prose carried over from the six published issues
+  issues() {
+    return [
+      { k: 'politics', no: '№ 03', pre: 'The ', em: 'Trojan', post: ' horse in Parliament', t: 'The Trojan horse in Parliament',
+        sub: 'How a bill about empowerment redrew fifty years of power.',
+        hook: 'How a bill about women\u2019s empowerment became the vehicle for the biggest redrawing of Indian political power in 50 years.',
+        dek: 'And why it failed by exactly 54 votes.', date: 'April 24, 2026', read: '6 min', sources: '10 cited', mode: 'Calm-structural',
+        eyebrow: 'A 30-year story in six dates', left: '4 min left',
+        primer: 'India\u2019s Parliament has had the same 543 seats since 1976, frozen so states that reduced birth rates wouldn\u2019t lose political power. The north grew much faster than the south. A bill to redraw those seats, packaged with women\u2019s reservation, just failed by 54 votes.',
+        skim: 'SKIM — 543 seats, frozen since 1976. Unfreezing them moves power decisively north, and a bill about women\u2019s quotas set the clock running.',
+        cap: 'I',
+        p1: 'ndia\u2019s Parliament has had the same 543 seats since 1976. The freeze was meant to last 25 years. It has lasted 50, and the population it represents has grown by more than 600 million people, distributed very unevenly across the map.',
+        p2: 'The states that slowed their growth fastest now hold the fewest people per seat. Unfreezing the count rewards the states that grew — an arithmetic no party has been willing to say aloud, because saying it aloud makes the loser obvious.',
+        statBig: '54', statLabel: 'Votes short of two-thirds' },
+      { k: 'tech', no: '№ 24', pre: 'The bill came due in ', em: 'April', post: '', t: 'The bill came due in April',
+        sub: 'Cheaper per token, and the invoice still went up.',
+        hook: 'AI keeps getting cheaper per token, and that is exactly why the bill goes up. The price per unit fell, the units per task exploded, and Uber burned its whole 2026 AI budget in four months.',
+        dek: 'Cheaper is a per-unit word. The invoice is a per-task number.', date: 'June 04, 2026', read: '7 min', sources: '9 cited', mode: 'Dry wit',
+        eyebrow: '$ parallax/tech v0.4.0 · main', left: '5 min left',
+        primer: 'Every headline says inference is collapsing in price. Every finance team says the AI line item is exploding. Both are true, and the gap between them is where the 2026 budget went.',
+        skim: 'SKIM — Price per token fell hard. Tokens consumed per task rose harder. The product of the two is the invoice, and it went up.',
+        cap: 'I',
+        p1: 'nference has never been cheaper per token, and the bill has never been higher. That is not a contradiction; it is a multiplication. The unit price is one term, and the number of units a coding agent burns to close a single ticket is the other.',
+        p2: 'Uber exhausted its entire 2026 AI budget in four months and capped spending at $1,500 per engineer per agentic tool. Two such tools run to roughly $36,000 a year against a median engineer comp near $330,000 — about 11% of the salary, spent on the tools.',
+        statBig: '$1,500', statLabel: 'Monthly cap, per engineer per tool' },
+      { k: 'space', no: '№ 22', pre: 'The asteroid we ', em: 'talked', post: ' down', t: 'The asteroid we talked down',
+        sub: 'A rock found in 2024, and the arithmetic of a near miss.',
+        hook: 'The impact odds for asteroid 2024 YR4 climbed to a record, then collapsed to zero — not because the rock moved, but because the uncertainty around it did.',
+        dek: 'The number went up before it went down. That was the system working.', date: 'June 04, 2026', read: '7 min', sources: '11 cited', mode: 'Awe',
+        eyebrow: 'T+ 12:12:49_ · orbit 02A', left: '5 min left',
+        primer: 'In December 2024 a telescope in Chile found a 50-to-70-metre asteroid, 2024 YR4, on a path that brought it close to Earth and the Moon in December 2032. For a few weeks its chance of hitting Earth was the highest astronomers had ever logged for a rock that size. Then the odds vanished.',
+        skim: 'SKIM — The asteroid never changed course. Only how well we knew its course did, and a shrinking error ellipse must sweep across Earth before it sweeps past it.',
+        cap: 'I',
+        p1: 'n December 2024 a telescope in Chile logged a moving point of light. By 18 February 2025, 2024 YR4 held a 3.1% chance of hitting Earth in December 2032 — the highest impact probability NASA had ever recorded for an object of its size or larger.',
+        p2: 'Six days later it was 0.004%. Not because anything moved, but because more observation shrank the uncertainty region, and a shrinking region must sweep across Earth before it clears it. The scariest number arrived while the asteroid was doing nothing at all.',
+        statBig: '3.1%', statLabel: 'Peak Earth-impact odds' },
+      { k: 'earth', no: '№ 18', pre: 'The Pacific that no longer ', em: 'resets', post: '', t: 'The Pacific that no longer resets',
+        sub: 'Every January the ocean used to start over. It has stopped.',
+        hook: 'Each La Ni\u00f1a now lands warmer than the El Ni\u00f1os of a decade earlier — and the 2026 El Ni\u00f1o the WMO just confirmed will lift the floor again.',
+        dek: 'What looks like an oscillation is a staircase.', date: 'May 03, 2026', read: '7 min', sources: '12 cited', mode: 'Calm-structural',
+        eyebrow: '14.6°N · 121.0°E · sheet 05', left: '5 min left',
+        primer: 'El Ni\u00f1o and La Ni\u00f1a are supposed to be a swing: warm phase, cool phase, back to baseline. The record now shows the cool phases landing warmer than the warm phases of a decade before. The oscillation still swings; the floor it swings above keeps rising.',
+        skim: 'SKIM — The Pacific still oscillates. It no longer returns to where it started, so each cool phase now sits above the warm phase of ten years earlier.',
+        cap: 'E',
+        p1: 'ach La Ni\u00f1a is supposed to be the reset — the cool half of a swing that returns the Pacific to baseline. The record no longer shows a return. It shows a staircase.',
+        p2: 'A La Ni\u00f1a year in the 2020s now lands warmer than an El Ni\u00f1o year of the 2010s. The swing is intact and the baseline underneath it is not, which is why each new warm phase sets a record rather than matching one.',
+        statBig: '1.55°C', statLabel: '2024 anomaly · first year above 1.5' },
+      { k: 'sports', no: '№ 23', pre: 'The title nobody could ', em: 'watch', post: '', t: 'The title nobody could watch',
+        sub: 'Twenty-two years of waiting, ended by the least watchable team in memory.',
+        hook: 'Arsenal ended a 22-year wait by becoming the least watchable elite team in memory — and the data says that was the plan, not the price.',
+        dek: 'The most-criticised Arsenal was the winning machine.', date: 'June 04, 2026', read: '7 min', sources: '8 cited', mode: 'Forensic',
+        eyebrow: 'Matchday 38 · FT', left: '5 min left',
+        primer: 'Arsenal had not won England\u2019s top league since the unbeaten 2003-04 side. For three years running they finished second chasing a flowing, attacking ideal. In May 2026 they finally won it with the most criticised version of the team: deep, defensive, and scoring a quarter of its goals from rehearsed corners.',
+        skim: 'SKIM — Three seasons of beautiful football finished second. One season of deep blocks and set-piece routines won the league with a game to spare.',
+        cap: 'I',
+        p1: 'n 2023/24 Arsenal reached 89 points and still lost the title by two. The diagnosis everyone reached for was more attacking quality. The side that finally ended the wait was the opposite of that.',
+        p2: 'They allowed opponents 18.05 passes per defensive action, the highest in the division; the next three teams sat at 13.93, 13.87 and 13.67. They dropped into a compact 4-4-2, conceded territory by design, and won.',
+        statBig: '18.05', statLabel: 'Passes allowed per defensive action' },
+      { k: 'travel', no: '№ 09', pre: 'The queue is the ', em: 'product', post: '', t: 'The queue is the product',
+        sub: 'Two mountains, two ways to put a price on the line.',
+        hook: 'At Everest and Fuji, managing the crowd and selling the crowd have become the same administrative act — the scarce good being priced is the bottleneck itself.',
+        dek: 'Two mountains, two ways to put a price on the line.', date: 'June 04, 2026', read: '7 min', sources: '10 cited', mode: 'Investigation',
+        eyebrow: 'Vol. I, No. 02 · route 02', left: '5 min left',
+        primer: 'Two of the world\u2019s most crowded mountains just changed what it costs to go up. Nepal raised the base fee for Everest and added screening rules. Japan now caps Mount Fuji at four thousand climbers a day, each holding a timed, paid, reserved slot.',
+        skim: 'SKIM — On Everest the lethal resource was never the rock but the time spent waiting in the death zone. Both Nepal and Japan now meter exactly that, which turns the queue into the thing being sold.',
+        cap: 'I',
+        p1: 'n May 2019 the climber Nirmal Purja photographed a near-continuous line of hundreds stacked along Everest\u2019s summit ridge. Eleven climbers died that season, and as many as five of those deaths may have been crowd-related.',
+        p2: 'Above roughly 7,950 metres — the band mountaineers call the death zone — a climber has about three days before the body begins to fail. The danger was less the altitude than the time spent waiting in it, and time is exactly what a permit system can price.',
+        statBig: '4,000', statLabel: 'Daily cap on Mount Fuji' }
+    ];
+  }
+
+  vizMeta(k) {
+    return {
+      politics: { label: 'the division', alt: 'Composition', altOn: 'Division',
+        plain: 'each dot is one seat, and the dashed arc is the two-thirds line an amendment must clear. Switch to Division and the house recolours by how it actually voted.',
+        source: 'Source · Lok Sabha division records' },
+      space: { label: 'key figures', alt: 'Earth', altOn: 'Moon',
+        plain: 'the Earth odds peaked at 3.1% on 18 February 2025 and resolved to 0.004% six days later. Nothing about the rock changed — only how precisely its path was known.',
+        source: 'Source · NASA Planetary Defense · ESA Planetary Defence' },
+      earth: { label: 'the floor', alt: 'Annual', altOn: 'Decadal',
+        plain: 'one bar per year, 1970 to 2026, coloured by anomaly above the 1850–1900 baseline. The 2025 La Niña year still lands above every El Niño year before 2023.',
+        source: 'Source · Berkeley Earth · Copernicus C3S ERA5 · WMO (2026 projected)' },
+      tech: { label: 'uber · ai spend, 2026', alt: 'Per seat', altOn: 'Annual',
+        plain: 'a $1,500 monthly cap per engineer per agentic tool — drawn around a line item that ate a full year of budget by April.',
+        source: 'Source · Bloomberg via Simon Willison, 2–3 Jun 2026' },
+      sports: { label: 'passes allowed', alt: 'Top 4', altOn: 'League',
+        plain: 'passes an opponent completes before Arsenal engage. The gap to the next three sides is larger than the gap between those three and mid-table.',
+        source: 'Source · Premier League 2025/26 match data' },
+      travel: { label: 'the death zone', alt: 'Profile', altOn: 'Grade',
+        plain: 'camp altitudes are verified; trail distances are illustrative. The shaded band above 7,950 m is where waiting becomes the hazard.',
+        source: 'Source · Alan Arnette / South Col route maps' }
+    }[k];
+  }
+
+  // readout tiles (tech + space) — rendered as real text, not SVG, so they hold up at 393px
+  tiles(k, alt) {
+    if (k === 'tech') {
+      return alt ? [
+        { v: '$36k', u: '/yr', l: 'Two agentic tools, one engineer', e: 'key' },
+        { v: '~11', u: '%', l: 'Of median engineer comp', e: 'warn' },
+        { v: '$330k', u: '', l: 'Median engineer comp', e: '' },
+        { v: '4', u: ' months', l: 'To burn the 2026 budget', e: 'warn' }
+      ] : [
+        { v: '$1,500', u: '/mo', l: 'Per engineer, per tool', e: 'key' },
+        { v: '$2,180', u: '', l: 'One heavy user, 30 days', e: 'key' },
+        { v: '2×', u: '', l: 'GPT-5.5 price vs 5.4', e: '' },
+        { v: '~1.4×', u: '', l: 'Opus 4.7 vs 4.6', e: '' }
+      ];
+    }
+    return alt ? [
+      { v: '4.3', u: '%', l: 'Peak lunar-impact odds · 3 Jun 2025', e: 'key' },
+      { v: '>20,000', u: ' km', l: 'Miss distance from the Moon', e: 'warn' },
+      { v: '53–67', u: ' m', l: 'Diameter (JWST thermal)', e: '' },
+      { v: 'Dec 22', u: ' 2032', l: 'Close approach', e: '' }
+    ] : [
+      { v: '3.1', u: '%', l: 'Peak Earth odds · 18 Feb 2025', e: 'key' },
+      { v: '0.004', u: '%', l: 'Earth odds · 24 Feb 2025', e: '' },
+      { v: '53–67', u: ' m', l: 'Diameter (JWST thermal)', e: '' },
+      { v: 'Dec 22', u: ' 2032', l: 'Close approach', e: '' }
+    ];
+  }
+
+  // per-world SVG, drawn at ~340 units wide so label sizes read true on a phone
+  graphic(w, alt) {
+    const R = React.createElement;
+    const txt = (x, y, s, o) => R('text', { x: x, y: y, fill: o.fill || w.ink, textAnchor: o.a || 'middle',
+      style: { fontFamily: "'Literata',Georgia,serif", fontSize: (o.fs || 9) + 'px', fontWeight: 600, letterSpacing: o.ls || '.13em', textTransform: 'uppercase' } }, s);
+
+    if (w.k === 'politics') {
+      const cx = 170, cy = 152, rIn = 44, rOut = 132, rows = 8, total = 543;
+      const radii = [];
+      for (let i = 0; i < rows; i++) radii.push(rIn + ((rOut - rIn) * i) / (rows - 1));
+      const sum = radii.reduce((a, r) => a + r, 0);
+      const counts = radii.map((r) => Math.round((total * r) / sum));
+      counts[rows - 1] += total - counts.reduce((a, c) => a + c, 0);
+      const seats = [];
+      radii.forEach((r, ri) => {
+        for (let j = 0; j < counts[ri]; j++) {
+          const a = Math.PI + ((j + 0.5) / counts[ri]) * Math.PI;
+          seats.push({ a: a, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+        }
+      });
+      seats.sort((p, q) => p.a - q.a);
+      const marks = seats.map((s, i) => {
+        const vote = i % 271 === 0 && i > 0 ? 'no' : i % 6 === 5 ? 'absent' : 'aye';
+        const fill = alt ? (vote === 'no' ? '#e0483a' : vote === 'absent' ? w.rule : w.c) : (i < 234 ? w.c : i < 250 ? w.rule : w.deep);
+        return R('circle', { key: i, cx: s.x, cy: s.y, r: 2.15, fill: fill,
+          style: { transition: 'fill 420ms cubic-bezier(.22,1,.36,1)', transitionDelay: (i % 90) * 5 + 'ms' } });
+      });
+      const mA = Math.PI + (272 / 543) * Math.PI, rM = rOut + 9;
+      return R('svg', { viewBox: '0 0 340 172', style: { width: '100%', height: 'auto', display: 'block' } }, [
+        R('path', { key: 'arc', d: 'M ' + (cx - rM) + ' ' + cy + ' A ' + rM + ' ' + rM + ' 0 0 1 ' + (cx + Math.cos(mA) * rM) + ' ' + (cy + Math.sin(mA) * rM),
+          fill: 'none', stroke: w.deep, strokeWidth: 1, strokeDasharray: '3 4' }),
+        txt(cx + Math.cos(mA) * (rM + 12), cy + Math.sin(mA) * (rM + 12), 'Majority · 272', { fill: w.deep, a: 'end', fs: 8 }),
+        R('g', { key: 'g' }, marks)
+      ]);
+    }
+
+    if (w.k === 'earth') {
+      const V = [0.16,0.01,0.20,0.21,0.01,0.08,0.05,0.25,0.16,0.27,0.36,0.40,0.23,0.41,0.24,0.20,0.27,0.43,0.49,0.37,
+                 0.55,0.50,0.32,0.34,0.42,0.54,0.44,0.55,0.74,0.48,0.51,0.63,0.72,0.72,0.65,0.77,0.71,0.76,0.64,0.74,
+                 0.81,0.65,0.69,0.78,0.84,1.01,1.29,1.13,1.03,1.13,1.25,1.10,1.15,1.47,1.55,1.44,1.47];
+      const dec = [];
+      for (let i = 0; i < V.length; i += 10) { const g = V.slice(i, i + 10); dec.push(g.reduce((a, b) => a + b, 0) / g.length); }
+      const S = alt ? dec : V;
+      const W = 340, H = 158, mB = 28, mT = 14, mL = 12;
+      const bw = (W - mL - 12) / S.length;
+      const max = 1.6;
+      const ramp = [[33,102,172],[103,169,207],[209,229,240],[253,219,199],[239,138,98],[192,57,43]];
+      const col = (t) => { const s = Math.max(0, Math.min(1, t)) * 5, i = Math.floor(s), j = Math.min(i + 1, 5), fr = s - i;
+        return 'rgb(' + ramp[i].map((c, n) => Math.round(c + (ramp[j][n] - c) * fr)).join(',') + ')'; };
+      const y15 = H - mB - (1.5 / max) * (H - mB - mT);
+      return R('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } }, [
+        R('g', { key: 'b' }, S.map((v, i) => {
+          const h = (v / max) * (H - mB - mT);
+          return R('rect', { key: i, x: mL + i * bw, y: H - mB - h, width: Math.max(1, bw - (alt ? 3 : 0.8)), height: h, fill: col(v / max),
+            style: { transition: 'height 300ms ease, y 300ms ease' } });
+        })),
+        R('line', { key: 'l15', x1: mL, x2: W - 10, y1: y15, y2: y15, stroke: w.ink, strokeWidth: .8, strokeDasharray: '3 4' }),
+        txt(W - 12, y15 - 5, '1.5°C', { fill: w.ink, a: 'end', fs: 8 }),
+        R('line', { key: 'base', x1: mL, x2: W - 10, y1: H - mB, y2: H - mB, stroke: w.ink, strokeWidth: 1 }),
+        txt(mL, H - 15, alt ? '1970s' : '1970', { fill: '#6b7158', a: 'start', fs: 8 }),
+        txt(W - 10, H - 15, alt ? '2020s' : '2026', { fill: '#6b7158', a: 'end', fs: 8 }),
+        txt(mL, H - 4, 'anomaly vs 1850–1900 · °C', { fill: '#6b7158', a: 'start', fs: 7.5 })
+      ]);
+    }
+
+    if (w.k === 'sports') {
+      const rows = alt
+        ? [{ n: 'Arsenal', v: 18.05, hi: true }, { n: 'League avg', v: 12.4 }, { n: 'Lowest', v: 9.8 }]
+        : [{ n: 'Arsenal', v: 18.05, hi: true }, { n: 'Team 2', v: 13.93 }, { n: 'Team 3', v: 13.87 }, { n: 'Team 4', v: 13.67 }];
+      const W = 340, rowH = 32;
+      return R('svg', { viewBox: '0 0 ' + W + ' ' + (rows.length * rowH + 8), style: { width: '100%', height: 'auto', display: 'block' } },
+        rows.map((r, i) => {
+          const bw = (r.v / 20) * (W - 130);
+          return R('g', { key: i }, [
+            txt(74, i * rowH + 22, r.n, { fill: r.hi ? w.ink : '#9aa89a', a: 'end', fs: 9, ls: '.08em' }),
+            R('rect', { x: 82, y: i * rowH + 10, width: bw, height: 16, fill: r.hi ? w.c : w.rule, style: { transition: 'width 300ms ease' } }),
+            txt(82 + bw + 7, i * rowH + 22, r.v.toFixed(2), { fill: r.hi ? w.c : '#9aa89a', a: 'start', fs: 9.5, ls: '.02em' })
+          ]);
+        })
+      );
+    }
+
+    // travel — Everest elevation profile, real camp altitudes
+    const pts = [[0,5364,'Base'],[6,6065,'C1'],[9,6400,'C2'],[12,7162,'C3'],[14,7950,'C4'],[17,8849,'Summit']];
+    const W = 340, H = 168, mL = 26, mB = 26, mT = 18;
+    const sx = (km) => mL + (km / 17) * (W - mL - 16);
+    const sy = (m) => H - mB - ((m - 5000) / 4000) * (H - mB - mT);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + sx(p[0]) + ' ' + sy(p[1])).join(' ');
+    const area = line + ' L ' + sx(17) + ' ' + (H - mB) + ' L ' + sx(0) + ' ' + (H - mB) + ' Z';
+    return R('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } }, [
+      R('rect', { key: 'dz', x: mL, y: mT, width: W - mL - 16, height: sy(7950) - mT, fill: w.c, opacity: alt ? .16 : .09 }),
+      txt(W - 18, sy(7950) - 5, 'death zone · 7,950 m', { fill: w.deep, a: 'end', fs: 8 }),
+      R('path', { key: 'a', d: area, fill: w.c, opacity: .16 }),
+      R('path', { key: 'l', d: line, fill: 'none', stroke: w.deep, strokeWidth: 1.6 }),
+      R('g', { key: 'p' }, pts.map((p, i) => R('g', { key: i }, [
+        R('circle', { cx: sx(p[0]), cy: sy(p[1]), r: i === 4 ? 3.6 : 2.4, fill: i === 4 ? w.deep : w.c }),
+        R('text', { x: sx(p[0]), y: sy(p[1]) - 8, fill: w.ink, textAnchor: i === 0 ? 'start' : i === 5 ? 'end' : 'middle',
+          style: { fontFamily: "'Literata',Georgia,serif", fontSize: '8px', fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' } }, p[2])
+      ]))),
+      R('line', { key: 'base', x1: mL, x2: W - 16, y1: H - mB, y2: H - mB, stroke: w.ink, strokeWidth: 1 }),
+      txt(mL, H - 11, '0 km', { fill: '#8a7864', a: 'start', fs: 8 }),
+      txt(W - 16, H - 11, '~17 km', { fill: '#8a7864', a: 'end', fs: 8 })
+    ]);
+  }
+
+  stories(k) {
+    return {
+      politics: [
+        { t: 'India froze its Parliament in 1976.', s: 'It was meant to last twenty-five years.' },
+        { t: 'A bill about empowerment redrew fifty years of power.', s: 'The quota was real. So was the timetable underneath it.' },
+        { t: 'One seat in Kerala speaks for far fewer people than one in Uttar Pradesh.', s: 'Unfreezing corrects that — and moves power north.' },
+        { t: 'The north gains a bloc the size of Tamil Nadu.', s: '+254 seats on the 2031 projection.' },
+        { t: 'Is fair representation the same as equal representation?', s: 'Six minutes to read. Sixty days to argue.' }
+      ],
+      tech: [
+        { t: 'Inference has never been cheaper per token.', s: 'The bill has never been higher.' },
+        { t: 'That is not a contradiction. It is a multiplication.', s: 'Unit price is one term. Units per task is the other.' },
+        { t: 'Uber burned its whole 2026 AI budget in four months.', s: 'Then capped spend at $1,500 per engineer, per tool.' },
+        { t: 'Two tools, one engineer: about $36,000 a year.', s: 'Roughly 11% of a median engineer\u2019s total comp.' },
+        { t: 'Cheaper is a per-unit word.', s: 'The invoice is a per-task number.' }
+      ],
+      space: [
+        { t: 'In December 2024 a telescope in Chile logged a moving point of light.', s: '2024 YR4, somewhere between 53 and 67 metres across.' },
+        { t: 'By 18 February its odds of hitting Earth were 3.1%.', s: 'The highest ever recorded for a rock that size.' },
+        { t: 'Six days later: 0.004%.', s: 'The asteroid had not moved at all.' },
+        { t: 'A shrinking error ellipse must cross Earth before it clears it.', s: 'The scariest number arrives while nothing is happening.' },
+        { t: 'The odds went up because we were learning.', s: 'That was the system working.' }
+      ],
+      earth: [
+        { t: 'La Ni\u00f1a is supposed to be the reset.', s: 'The cool half of a swing back to baseline.' },
+        { t: 'The record no longer shows a return.', s: 'It shows a staircase.' },
+        { t: 'A La Ni\u00f1a of the 2020s runs warmer than an El Ni\u00f1o of the 2010s.', s: 'Same swing. Higher floor.' },
+        { t: '2024 landed 1.55°C above the 1850–1900 baseline.', s: 'The first full year past 1.5.' },
+        { t: 'The oscillation is intact.', s: 'The thing it oscillates above is not.' }
+      ],
+      sports: [
+        { t: 'Arsenal had not won the league since 2004.', s: 'Three straight seasons finished second.' },
+        { t: 'The diagnosis was always: more attacking quality.', s: 'The team that finally won was the opposite of that.' },
+        { t: '18.05 passes allowed per defensive action.', s: 'The next three sides: 13.93, 13.87, 13.67.' },
+        { t: 'A quarter of the goals came from rehearsed corners.', s: 'Territory conceded by design.' },
+        { t: 'The most criticised Arsenal was the winning machine.', s: 'Beautiful finished second.' }
+      ],
+      travel: [
+        { t: 'In May 2019 hundreds stood in line on Everest\u2019s summit ridge.', s: 'Eleven climbers died that season.' },
+        { t: 'Above 7,950 metres the body has about three days.', s: 'The hazard was the waiting, not the rock.' },
+        { t: 'Nepal raised the Everest fee and added screening.', s: 'Japan caps Fuji at 4,000 climbers a day.' },
+        { t: 'Every slot is timed, paid and reserved.', s: 'The bottleneck is now the product.' },
+        { t: 'Managing the crowd and selling the crowd.', s: 'The same administrative act.' }
+      ]
+    }[k];
+  }
+
+  quizzes(k) {
+    return {
+      politics: { q: 'Which bloc gains most seats after 2031?',
+        o: ['The northern states', 'The southern states', 'Neither — it evens out'], ok: 0,
+        e: 'On current projections the northern states gain roughly 254 seats — close to the entire southern bloc\u2019s present representation.',
+        tally: '2,104 readers answered · 61% correct' },
+      tech: { q: 'Why did the AI bill rise while prices fell?',
+        o: ['Tokens per task rose faster', 'Vendors raised list prices', 'Teams hired more engineers'], ok: 0,
+        e: 'Uber exhausted its 2026 AI budget in four months and capped agentic tools at $1,500 per engineer per month. The unit price fell; the units did not.',
+        tally: '1,904 readers answered · 58% correct' },
+      space: { q: 'Why did 2024 YR4\u2019s impact odds rise before they fell?',
+        o: ['The uncertainty region shrank across Earth', 'The asteroid changed course', 'A second telescope disagreed'], ok: 0,
+        e: 'Odds peaked at 3.1% on 18 February 2025 and resolved to 0.004% six days later. Nothing about the rock changed — only the precision of its known path.',
+        tally: '2,338 readers answered · 47% correct' },
+      earth: { q: 'What has changed about the El Ni\u00f1o–La Ni\u00f1a swing?',
+        o: ['The baseline it swings above', 'Its direction', 'Its frequency'], ok: 0,
+        e: '2024 landed 1.55°C above the 1850–1900 baseline — the first full year past 1.5 — and the 2025 La Ni\u00f1a still ran warmer than every El Ni\u00f1o before 2023.',
+        tally: '1,760 readers answered · 66% correct' },
+      sports: { q: 'How did Arsenal finally win the league?',
+        o: ['By conceding territory and drilling set pieces', 'By signing a record striker', 'By pressing higher than anyone'], ok: 0,
+        e: 'They allowed 18.05 passes per defensive action, the highest in the division, and took roughly a quarter of their goals from rehearsed corners.',
+        tally: '1,415 readers answered · 72% correct' },
+      travel: { q: 'What are Nepal and Japan actually pricing?',
+        o: ['The queue itself', 'The summit', 'The cost of rescue'], ok: 0,
+        e: 'Fuji is capped at 4,000 climbers a day on timed, paid slots. Above 7,950 metres the scarce resource is time spent waiting, and that is what a permit meters.',
+        tally: '1,208 readers answered · 54% correct' }
+    }[k];
+  }
+
+  // one plate per issue; the lens pair only where two viewpoints of one subject exist
+  plates() {
+    return {
+      politics: { cap: 'Plate 02 · the chamber, empty', src: 'PIB', hint: 'Lok Sabha chamber · warm sepia' },
+      tech: { cap: 'Plate 01 · the invoice', src: 'Parallax', hint: 'Server hall · near-black, lime cast' },
+      space: { cap: 'Plate 03 · 2024 YR4, first light', src: 'ATLAS Chile', hint: 'Night sky · moonlit blue' },
+      earth: { cap: 'Plate 02 · a hill stream, after rain', src: 'Parallax field journal', hint: 'Ocean surface · sun-bleached', img: 'uploads/IMG-20180826-WA0029.jpg', fit: 'contain', frameH: '300px' },
+      travel: { cap: 'Plate 01 · the crossing, from the bank', src: 'Parallax field journal', hint: 'Everest ridge · cold cream', img: 'uploads/IMG-20180812-WA0028.jpg' },
+      sports: { cap: 'Plate 04 · the block, matchday 38', src: 'Parallax', hint: 'Pitch from the stand · pitch green' }
+    };
+  }
+
+  lenses() {
+    return {
+      travel: { a: '1996 · the empty ridge', b: '2019 · the queue', label: '1996 ⇄ 2019 · same ridge' },
+      politics: { a: '1976 · the frozen map', b: '2031 · the redrawn map', label: '1976 ⇄ 2031 · same house' }
+    };
+  }
+
+  // scroll-linked figure treatments: reveal-once plates, wiping lens pairs
+  bindFx(el) {
+    if (!el || el.__fx) return;
+    el.__fx = true;
+    let sc = el.parentElement;
+    while (sc && sc !== document.body) {
+      const o = getComputedStyle(sc).overflowY;
+      if (o === 'auto' || o === 'scroll') break;
+      sc = sc.parentElement;
+    }
+    const target = sc && sc !== document.body ? sc : window;
+    const upd = () => {
+      if (!el.isConnected) return;
+      const pr = target === window ? { top: 0, height: window.innerHeight } : target.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, (pr.top + pr.height * 0.72 - r.top) / (pr.height * 0.42)));
+      const k = el.getAttribute('data-fx');
+      if (k === 'reveal') {
+        const q = Math.min(1, p * 1.8);
+        el.style.opacity = String(q);
+        el.style.transform = 'translateY(' + ((1 - q) * 20).toFixed(1) + 'px)';
+      } else if (k === 'wipe') {
+        el.style.clipPath = 'inset(0 0 0 ' + (Math.min(1, Math.max(0, (p - 0.05) / 0.5)) * 100).toFixed(1) + '%)';
+      } else if (k === 'wipeline') {
+        el.style.left = (Math.min(1, Math.max(0, (p - 0.05) / 0.5)) * 100).toFixed(1) + '%';
+      }
+    };
+    target.addEventListener('scroll', upd, { passive: true });
+    requestAnimationFrame(upd);
+    requestAnimationFrame(() => requestAnimationFrame(upd));
+  }
+
+  cur() { return this.worlds().find((w) => w.k === this.state.world) || this.worlds()[0]; }
+  curIssue() { return this.issues().find((i) => i.k === this.state.world) || this.issues()[0]; }
+  go(screen) { this.setState({ screen: screen }); }
+
+  renderVals() {
+    const s = this.state;
+    const w = this.cur();
+    const iss = this.curIssue();
+    const vm = this.vizMeta(w.k);
+    const DIAL = { politics: 325, space: 25, earth: 85, tech: 145, travel: 205, sports: 265 };
+    const dr = (DIAL[w.k] || 325) * Math.PI / 180;
+    const markOx = (150 - 15 * Math.cos(dr)).toFixed(1);
+    const markOy = (150 - 15 * Math.sin(dr)).toFixed(1);
+    const plate = this.plates()[w.k];
+    const lens = this.lenses()[w.k];
+    const dark = ['space', 'tech', 'sports'].includes(w.k);
+    const screen = s.screen || this.props.startScreen || 'welcome';
+    const mode = s.mode || this.props.readingMode || 'full';
+    const bilingual = s.bili === null ? this.props.bilingual !== false : s.bili;
+    const mix = (hex, a) => {
+      const n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    };
+    const muted = mix(w.ink, dark ? 0.6 : 0.72);
+
+    const year = 2026 + Math.round((s.yr / 100) * 30);
+    const north = Math.round(178 + (s.yr / 100) * 76);
+    const south = Math.round(129 - (s.yr / 100) * 34);
+    const tot = north + south;
+
+    const all = this.worlds();
+    const allIss = this.issues();
+    const followed = allIss.filter((i) => s.follows[i.k]);
+    const feedSrc = followed.length ? followed : allIss;
+    const cards = this.stories(w.k);
+    const sc = cards[s.storyIdx % cards.length];
+    const qz = this.quizzes(w.k);
+
+    const savedSrc = [
+      { k: 'travel', t: 'The queue is the product', left: '4 min left', pct: '34%' },
+      { k: 'space', t: 'The asteroid we talked down', left: '2 min left', pct: '71%' },
+      { k: 'sports', t: 'The title nobody could watch', left: '6 min left', pct: '12%' }
+    ];
+    const tabDefs = [
+      { k: 'feed', n: 'Feed', g: '≡' },
+      { k: 'archive', n: 'Archive', g: '▤' },
+      { k: 'worlds', n: 'Worlds', g: '◉' },
+      { k: 'you', n: 'You', g: '◆' }
+    ];
+
+    // reverse-chronological, so backlist() edits are insertion-order-independent
+    const catalogue = allIss.map((i) => ({ k: i.k, no: i.no, t: i.t, date: i.date, read: i.read }))
+      .concat(this.backlist())
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    const q = s.q.trim().toLowerCase();
+    const archive = catalogue
+      .filter((a) => s.filter === 'all' || a.k === s.filter)
+      .filter((a) => !q || (a.t + ' ' + a.k).toLowerCase().indexOf(q) > -1)
+      .map((a) => {
+        const wd = all.find((x) => x.k === a.k);
+        return Object.assign({}, a, { n2: a.no.replace('№ ', ''), c: wd.c, desk: wd.n,
+          go: () => this.setState({ world: a.k, screen: 'issue', alt: false, quiz: null }) });
+      });
+    const filters = [{ k: 'all', label: 'All ' + catalogue.length }].concat(all.map((x) => ({ k: x.k, label: x.n, c: x.c })))
+      .map((f) => {
+        const on = s.filter === f.k;
+        return { label: f.label, c: f.c || w.c, dotShow: f.c ? 'block' : 'none',
+          bd: on ? w.c : mix(w.ink, 0.2), bg: on ? mix(w.c, 0.12) : 'transparent', fg: on ? w.c : mix(w.ink, 0.62),
+          go: () => this.setState({ filter: f.k }) };
+      });
+    const sizes = { s: '15px', m: '16px', l: '18.5px' };
+
+    return {
+      bg: w.bg, ink: w.ink, acc: w.c, acc2: w.deep, onAcc: w.onAcc,
+      rule: w.rule, rule2: mix(w.ink, 0.24), tintSoft: mix(w.c, dark ? 0.12 : 0.08), muted: muted,
+      devShow: bilingual ? 'inline' : 'none',
+      deskReg: w.reg,
+
+      isWelcome: screen === 'welcome', isWorlds: screen === 'worlds', isFeed: screen === 'feed',
+      isIssue: screen === 'issue', isStory: screen === 'story', isQuiz: screen === 'quiz', isYou: screen === 'you',
+      isArchive: screen === 'archive',
+      showTabs: ['feed', 'archive', 'worlds', 'you'].includes(screen),
+
+      q: s.q,
+      setQ: (e) => this.setState({ q: e.target.value }),
+      archive: archive, filters: filters,
+      archCount: catalogue.length + ' issues',
+      noResults: archive.length === 0,
+      proseSize: sizes[s.tsize] || sizes.m,
+      sizeOpts: [{ k: 's', l: 'S' }, { k: 'm', l: 'M' }, { k: 'l', l: 'L' }].map((o) => ({
+        l: o.l,
+        bg: s.tsize === o.k ? w.ink : 'transparent',
+        fg: s.tsize === o.k ? w.bg : mix(w.ink, 0.6),
+        go: () => this.setState({ tsize: o.k })
+      })),
+      toggleWeekly: () => this.setState({ weekly: !s.weekly }),
+      weeklyTrack: s.weekly ? w.c : 'transparent',
+      weeklyBd: s.weekly ? w.c : mix(w.ink, 0.28),
+      weeklyKnob: s.weekly ? w.onAcc : mix(w.ink, 0.45),
+      weeklyPos: s.weekly ? 'flex-end' : 'flex-start',
+      toggleBili: () => this.setState({ bili: !bilingual }),
+      biliTrack: bilingual ? w.c : 'transparent',
+      biliBd: bilingual ? w.c : mix(w.ink, 0.28),
+      biliKnob: bilingual ? w.onAcc : mix(w.ink, 0.45),
+      biliPos: bilingual ? 'flex-end' : 'flex-start',
+
+      isSignin: screen === 'signin', isSignup: screen === 'signup', isSent: screen === 'sent',
+      isExpired: screen === 'expired', isSignout: screen === 'signout',
+      goExpired: () => this.go('expired'),
+      goSignout: () => this.go('signout'),
+      goYou: () => this.go('you'),
+      doSignout: () => this.setState({ screen: 'welcome', email: '', name: '', resent: false }),
+      signoutRows: [
+        { k: 'Followed worlds', v: 'Kept', fg: w.c },
+        { k: 'Reading progress', v: 'Kept', fg: w.c },
+        { k: 'Preferences', v: 'Kept', fg: w.c },
+        { k: 'This device\u2019s session', v: 'Cleared', fg: muted }
+      ],
+      goWelcome: () => this.go('welcome'),
+      goSignin: () => this.go('signin'),
+      goSignup: () => this.go('signup'),
+      goSent: () => this.setState({ screen: 'sent', resent: false }),
+      email: s.email,
+      name: s.name,
+      emailShown: s.email.trim() ? s.email.trim() : 'your inbox',
+      accountEmail: s.email.trim() || 'ananya@iitb.ac.in',
+      setEmail: (e) => this.setState({ email: e.target.value }),
+      setName: (e) => this.setState({ name: e.target.value }),
+      resend: () => this.setState({ resent: true }),
+      resendLabel: s.resent ? 'Sent again' : 'Resend the link',
+      resendFg: s.resent ? w.c : muted,
+
+      goWorlds: () => this.go('worlds'),
+      goFeed: () => this.go('feed'),
+      goIssue: () => this.go('issue'),
+      goStory: () => this.go('story'),
+      goQuiz: () => this.go('quiz'),
+      goYou: () => this.go('you'),
+
+      worldRows: all.map((x) => {
+        const on = !!s.follows[x.k];
+        return Object.assign({}, x, {
+          tint: on ? mix(x.c, 0.13) : 'transparent',
+          edge: on ? x.c : mix(w.ink, 0.12),
+          fg: on ? x.c : mix(w.ink, 0.42),
+          label: on ? '✓ Following' : '+ Follow',
+          toggle: () => this.setState({ follows: Object.assign({}, s.follows, { [x.k]: !s.follows[x.k] }), world: x.k })
+        });
+      }),
+      followCount: Object.values(s.follows).filter(Boolean).length,
+
+      feedCount: feedSrc.length + ' today',
+      feed: feedSrc.map((f) => {
+        const wd = all.find((x) => x.k === f.k);
+        const d = ['space', 'tech', 'sports'].includes(f.k);
+        return {
+          pre: f.pre, em: f.em, post: f.post, sub: f.sub, read: f.read, n2: f.no.replace('№ ', ''),
+          c: wd.c, desk: wd.n, fg: wd.ink,
+          field: d ? wd.bg : mix(wd.c, 0.09),
+          body: mix(wd.ink, d ? 0.7 : 0.72),
+          meta: mix(wd.ink, d ? 0.5 : 0.55),
+          ghost: mix(wd.c, d ? 0.14 : 0.16),
+          open: () => this.setState({ world: f.k, screen: 'issue', alt: false, quiz: null }),
+          cards: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ world: f.k, screen: 'story', storyIdx: 0 }); }
+        };
+      }),
+
+      issueMeta: iss.no + ' · ' + iss.date,
+      issueEyebrow: iss.eyebrow,
+      titlePre: iss.pre, titleEm: iss.em, titlePost: iss.post,
+      issueHook: iss.hook, issuePrimer: iss.primer, issueSkim: iss.skim,
+      issueP1: iss.p1, issueP2: iss.p2, dropCap: iss.cap,
+      issueDek: iss.dek, statBig: iss.statBig, statLabel: iss.statLabel,
+      leftLabel: iss.left,
+      issueFacts: [
+        { l: 'Published', v: iss.date, fg: w.ink },
+        { l: 'Reading time', v: iss.read, fg: w.ink },
+        { l: 'Sources', v: iss.sources, fg: w.ink },
+        { l: 'Voice', v: iss.mode, fg: w.c }
+      ],
+
+      bindFx: (el) => this.bindFx(el),
+      markOx: markOx, markOy: markOy,
+      plateId: 'plate-' + w.k, plateHint: plate.hint, plateCaption: plate.cap, plateSource: plate.src,
+      hasPlateImg: !!plate.img, noPlateImg: !plate.img,
+      bindPlate: (el) => {
+        if (!el || !plate.img) return;
+        if (el.getAttribute('src') !== plate.img) el.src = plate.img;
+        el.style.objectFit = plate.fit || 'cover';
+        const box = el.parentElement;
+        if (!box) return;
+        if (plate.frameH) box.style.height = plate.frameH;
+        box.style.background = plate.fit === 'contain' ? 'rgba(0,0,0,.05)' : 'transparent';
+      },
+      hasLens: !!lens,
+      lensIdA: 'lens-a-' + w.k, lensIdB: 'lens-b-' + w.k,
+      lensHintA: lens ? lens.a : '', lensHintB: lens ? lens.b : '', lensLabel: lens ? lens.label : '',
+
+      isPolitics: w.k === 'politics',
+      hasTiles: w.k === 'tech' || w.k === 'space',
+      hasSvg: !(w.k === 'tech' || w.k === 'space'),
+      tiles: this.tiles(w.k, s.alt).map((t) => Object.assign({}, t, { fg: t.e === 'key' ? w.c : t.e === 'warn' ? w.deep : w.ink })),
+      viz: this.graphic(w, s.alt),
+      vizLabel: vm.label, vizPlain: vm.plain, vizSource: vm.source,
+      altLabel: (s.alt ? vm.altOn : vm.alt) + ' ⇄',
+      toggleAlt: () => this.setState({ alt: !s.alt }),
+
+      isFull: mode === 'full', isSkim: mode === 'skim',
+      setFull: () => this.setState({ mode: 'full' }),
+      setSkim: () => this.setState({ mode: 'skim' }),
+      fullBg: mode === 'full' ? w.ink : 'transparent',
+      fullFg: mode === 'full' ? w.bg : mix(w.ink, 0.6),
+      skimBg: mode === 'skim' ? w.ink : 'transparent',
+      skimFg: mode === 'skim' ? w.bg : mix(w.ink, 0.6),
+
+      yr: s.yr,
+      setYr: (e) => this.setState({ yr: Number(e.target.value) }),
+      year: String(year), north: String(north), south: String(south),
+      nPct: ((north / tot) * 100).toFixed(1) + '%',
+      sPct: ((south / tot) * 100).toFixed(1) + '%',
+      claim: s.yr < 34 ? 'Today the two blocs sit ' + (north - south) + ' seats apart.'
+        : s.yr < 70 ? 'By ' + year + ', the north gains a bloc the size of Tamil Nadu.'
+          : 'By ' + year + ', one region alone can amend the constitution.',
+
+      scT: sc.t, scS: sc.s, scNo: String((s.storyIdx % cards.length) + 1).padStart(2, '0'),
+      ticks: cards.map((c, i) => ({ bg: i <= s.storyIdx % cards.length ? w.c : mix(w.ink, 0.2) })),
+      storyNext: () => this.setState({ storyIdx: (s.storyIdx + 1) % cards.length }),
+      storyPrev: () => this.setState({ storyIdx: (s.storyIdx + cards.length - 1) % cards.length }),
+
+      quizQ: qz.q, quizExpl: qz.e, quizTally: qz.tally,
+      quizOpts: qz.o.map((label, i) => {
+        const done = s.quiz !== null;
+        const right = done && i === qz.ok;
+        const wrong = done && s.quiz === i && i !== qz.ok;
+        return {
+          label: label,
+          bd: right ? w.c : wrong ? '#e0483a' : mix(w.ink, 0.2),
+          bg: right ? mix(w.c, 0.1) : 'transparent',
+          mark: right ? '✓' : wrong ? '×' : '',
+          mfg: right ? w.c : '#e0483a',
+          pick: () => this.setState({ quiz: i })
+        };
+      }),
+      answered: s.quiz !== null,
+      verdict: s.quiz === qz.ok ? 'Correct' : 'Not quite',
+
+      saved: savedSrc.map((x) => {
+        const wd = all.find((y) => y.k === x.k);
+        return Object.assign({}, x, { c: wd.c, desk: wd.n, open: () => this.setState({ world: x.k, screen: 'issue', alt: false, quiz: null }) });
+      }),
+
+      tabs: tabDefs.map((t) => Object.assign({}, t, {
+        fg: screen === t.k ? w.c : mix(w.ink, 0.45),
+        mark: screen === t.k ? w.c : 'transparent',
+        go: () => this.go(t.k)
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

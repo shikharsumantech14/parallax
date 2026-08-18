@@ -1,0 +1,39 @@
+<!--
+  Example payload for `fare-spread` — paste into
+  src/content/issues/2026-06-03-travel-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: fare-spread
+    eyebrow: "TWELVE MONTHS OF FARES"
+    title: "The month is not the price. The month is the *spread*."
+    intro: "The thin line is the full range, the solid bar the middle half, the notch the median. A long bar means booking date decides which end you get."
+    data:
+      caption: "October's median is more than double July's — and October's cheapest quote undercuts the dearest September one."
+      source: "Fare scrape, Delhi–Kathmandu return, 14,200 quotes over 12 months"
+      metric: "return fare"
+      unit: "₹ thousand"
+      periods:
+        - { label: Jan, min: 14.2, q1: 17.1, median: 19.4, q3: 22.0, max: 28.6 }
+        - { label: Feb, min: 13.8, q1: 16.4, median: 18.2, q3: 20.9, max: 26.4 }
+        - { label: Mar, min: 16.1, q1: 19.8, median: 22.6, q3: 26.2, max: 34.1 }
+        - { label: Apr, min: 19.4, q1: 24.6, median: 28.8, q3: 34.2, max: 47.5 }
+        - { label: May, min: 17.2, q1: 20.1, median: 22.4, q3: 25.6, max: 33.0 }
+        - { label: Jun, min: 12.6, q1: 14.4, median: 15.8, q3: 17.6, max: 21.8 }
+        - { label: Jul, min: 11.9, q1: 13.6, median: 14.9, q3: 16.4, max: 19.9 }
+        - { label: Aug, min: 12.4, q1: 14.1, median: 15.4, q3: 17.0, max: 20.6 }
+        - { label: Sep, min: 15.6, q1: 19.2, median: 22.1, q3: 26.4, max: 36.2 }
+        - { label: Oct, min: 21.2, q1: 28.4, median: 33.6, q3: 41.2, max: 58.4 }
+        - { label: Nov, min: 18.1, q1: 22.6, median: 26.0, q3: 30.8, max: 42.6 }
+        - { label: Dec, min: 16.8, q1: 21.2, median: 24.4, q3: 29.6, max: 41.0 }
+
+# Ordering check: min ≤ q1 ≤ median ≤ q3 ≤ max holds for all twelve.
+# Oct median 33.6 vs Jul 14.9 = 2.26× — "more than double".
+# OVERLAP CLAIM: Oct's min (21.2) undercuts Sep's max (36.2) ✓ — but
+# NOT Jul's max (19.9). The caption names September for that reason.
+# Widest month: Oct at 58.4 / 21.2 = 2.75×.

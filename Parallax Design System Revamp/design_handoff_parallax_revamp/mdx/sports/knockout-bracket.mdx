@@ -1,0 +1,43 @@
+<!--
+  Example payload for `knockout-bracket` — paste into
+  src/content/issues/2026-06-03-sports-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: knockout-bracket
+    eyebrow: "THE KNOCKOUT STAGE"
+    title: "The bracket, and the seed that was never *favourite*."
+    intro: "Every fork is a match and the surviving line carries on. Line thickness is the pre-match odds — a thin line reaching the right is an upset nobody priced."
+    data:
+      caption: "The two most likely winners were out by the semi-finals; the team that won was priced at 4%."
+      source: "Match results and closing pre-match odds, knockout stage 2026"
+      rounds: ["QUARTER-FINAL", "SEMI-FINAL", "FINAL", "WINNER"]
+      teams:
+        - { id: a, seed: 1, name: "Rivermouth United", short: "Rivermouth", odds: 0.34 }
+        - { id: b, seed: 8, name: "Coalbrook",         short: "Coalbrook",  odds: 0.02 }
+        - { id: c, seed: 4, name: "Ashford Rangers",   short: "Ashford",    odds: 0.11 }
+        - { id: d, seed: 5, name: "Fenwick City",      short: "Fenwick",    odds: 0.08 }
+        - { id: e, seed: 2, name: "Harborough",        short: "Harborough", odds: 0.24 }
+        - { id: f, seed: 7, name: "Dunmoor",           short: "Dunmoor",    odds: 0.03 }
+        - { id: g, seed: 3, name: "Kestrel Park",      short: "Kestrel",    odds: 0.14 }
+        - { id: h, seed: 6, name: "Southgate Mills",   short: "Southgate",  odds: 0.04 }
+      matches:
+        - { round: 0, index: 0, a: a, b: b, winner: a, score: "2–0" }
+        - { round: 0, index: 1, a: c, b: d, winner: d, score: "2–1" }
+        - { round: 0, index: 2, a: e, b: f, winner: e, score: "3–1" }
+        - { round: 0, index: 3, a: g, b: h, winner: h, score: "1–0" }
+        - { round: 1, index: 0, a: a, b: d, winner: d, score: "1–1 · 4–3p" }
+        - { round: 1, index: 1, a: e, b: h, winner: h, score: "2–0" }
+        - { round: 2, index: 0, a: d, b: h, winner: h, score: "2–1" }
+
+# Completeness: round 0 has 4 matches, round 1 has 2, round 2 has 1 —
+# exactly 2^(3−1−r). Each later round's a/b are the previous round's
+# winners in slot order ✓
+# Scores are WINNER-FIRST throughout (note 2–1, not 1–2).
+# Southgate (4%) won by margins of 1, 2 and 1 — aggregate 4.
+# Rivermouth (34%) and Harborough (24%) both exited in round 1.

@@ -1,0 +1,60 @@
+<!--
+  Example payload for `margin-bullets` — paste into
+  src/content/issues/2026-06-03-space-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: margin-bullets
+    eyebrow: "THE DESIGN REVIEW"
+    title: "Six margins, and the one that is *short*."
+    intro: "One row per subsystem, each on its own scale because decibels and kilograms do not compare. The bar is what it has, the tick is what it needs."
+    data:
+      caption: "Five subsystems close with margin; propellant does not."
+      source: "Critical design review margin report, June 2026"
+      rows:
+        - label: "Downlink margin"
+          value: 4.8
+          required: 3.0
+          max: 8
+          unit: " dB"
+          note: "Comfortable. The high-gain antenna closes the link with room to spare at maximum range."
+        - label: "Uplink margin"
+          value: 6.2
+          required: 3.0
+          max: 8
+          unit: " dB"
+          note: "The strongest margin on the spacecraft, because the transmitter is on the ground and can be arbitrarily large."
+        - label: "Ranging signal-to-noise"
+          value: 12.4
+          required: 9.0
+          max: 18
+          unit: " dB"
+          note: "Navigation holds. This is what turns an arrival prediction into an arrival measurement."
+        - label: "Thermal margin"
+          value: 11
+          required: 5
+          max: 20
+          unit: " °C"
+          note: "Eleven degrees between the hottest predicted case and the qualification limit."
+        - label: "Power margin"
+          value: 84
+          required: 40
+          max: 160
+          unit: " W"
+          note: "Healthy at arrival, and it degrades every year the mission is extended."
+        - label: "Propellant margin"
+          value: 22
+          required: 30
+          max: 60
+          unit: " kg"
+          note: "Eight kilograms short. Either a course correction gets deleted or the extended mission does."
+
+# Every row satisfies 0 < required ≤ max and value ≤ max.
+# Only propellant fails its requirement: 22 against 30, −8 kg.
+# It is also the only margin that cannot be recovered by turning
+# something off — which is the caption's point.

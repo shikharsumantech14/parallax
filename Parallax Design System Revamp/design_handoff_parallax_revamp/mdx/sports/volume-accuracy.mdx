@@ -1,0 +1,48 @@
+<!--
+  Example payload for `volume-accuracy` — paste into
+  src/content/issues/2026-06-03-sports-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: volume-accuracy
+    eyebrow: "TWO WAYS TO SCORE"
+    title: "Shooting a lot, or shooting *well*."
+    intro: "Each dot is a team: shots per match across, conversion up the side. The dashed lines are league averages; dot size is the two multiplied out."
+    data:
+      caption: "The most shots and the best conversion belong to different teams, and both won things."
+      source: "League shot log, 2025–26, all 38 matchdays"
+      x: { label: "Shots per match", unit: "" }
+      y: { label: "Conversion", unit: "%" }
+      size: { label: "Goals" }
+      quadrantLabels:
+        - "Top left · accurate, low volume"
+        - "Top right · good at both"
+        - "Bottom left · poor at both"
+        - "Bottom right · volume, no accuracy"
+      entities:
+        - { name: "Rivermouth", x: 17.2, y: 14.1, size: 92 }
+        - { name: "Harborough", x: 15.8, y: 12.4, size: 74 }
+        - { name: "Kestrel Pk", x: 14.1, y: 11.8, size: 63 }
+        - { name: "Ashford",    x: 13.4, y: 9.2,  size: 47 }
+        - { name: "Fenwick",    x: 12.6, y: 13.6, size: 65 }
+        - { name: "Southgate",  x: 9.8,  y: 15.9, size: 59, note: "Fewest shots in the top half, best conversion in the league." }
+        - { name: "Dunmoor",    x: 11.2, y: 8.1,  size: 34 }
+        - { name: "Coalbrook",  x: 8.4,  y: 7.2,  size: 23 }
+        - { name: "Marsh End",  x: 15.1, y: 7.9,  size: 45, note: "Third for volume, eleventh for conversion." }
+        - { name: "Oldcastle",  x: 10.4, y: 12.1, size: 48 }
+        - { name: "Thornbury",  x: 12.1, y: 10.4, size: 48 }
+        - { name: "Waverly",    x: 9.1,  y: 9.6,  size: 33 }
+
+# size = x × (y/100) × 38, rounded. Spot-check:
+#   Rivermouth 17.2 × 0.141 × 38 = 92.1 → 92 ✓
+#   Southgate   9.8 × 0.159 × 38 = 59.2 → 59 ✓
+#   Marsh End  15.1 × 0.079 × 38 = 45.3 → 45 ✓
+# Averages: x̄ = 12.4 shots, ȳ = 11.4% — these are DERIVED by the
+# component, not authored.
+# Southgate sits top-left (accuracy, low volume); Marsh End
+# bottom-right (volume, no accuracy). Same league, opposite corners.

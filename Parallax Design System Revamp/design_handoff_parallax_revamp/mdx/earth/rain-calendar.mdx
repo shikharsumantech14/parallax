@@ -1,0 +1,63 @@
+<!--
+  Example payload for `rain-calendar` — paste into
+  src/content/issues/2026-06-03-earth-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: rain-calendar
+    eyebrow: "ONE YEAR, DAY BY DAY"
+    title: "A year of rain, in 365 *squares*."
+    intro: "One row per month, one square per day, darkest for the wettest. An annual total tells you nothing about this shape."
+    data:
+      caption: "1,140 mm over 118 wet days — and four days deliver 38% of it."
+      source: "Station daily rainfall record, 2025"
+      year: 2025
+      unit: mm
+      monthTotals: true
+      bands:
+        - { max: 0,    label: "dry" }
+        - { max: 6,    label: "under 6 mm" }
+        - { max: 22,   label: "6 – 22" }
+        - { max: 55,   label: "22 – 55" }
+        - { max: 9999, label: "over 55 mm" }
+      days:
+        # Jan–May: a handful of light days
+        - { month: 0, day: 14, value: 3.2 }
+        - { month: 1, day: 3,  value: 2.1 }
+        - { month: 2, day: 21, value: 5.4 }
+        - { month: 3, day: 8,  value: 4.6 }
+        - { month: 4, day: 17, value: 11.2 }
+        - { month: 4, day: 26, value: 8.4 }
+        # Jun: onset
+        - { month: 5, day: 9,  value: 18.6 }
+        - { month: 5, day: 14, value: 26.4 }
+        - { month: 5, day: 21, value: 34.1 }
+        - { month: 5, day: 28, value: 19.8 }
+        # Jul: the wettest month
+        - { month: 6, day: 4,  value: 41.2 }
+        - { month: 6, day: 11, value: 58.6 }
+        - { month: 6, day: 18, value: 33.4 }
+        - { month: 6, day: 27, value: 96.4 }
+        # Aug: the second peak
+        - { month: 7, day: 6,  value: 62.8 }
+        - { month: 7, day: 13, value: 88.2 }
+        - { month: 7, day: 22, value: 29.6 }
+        # Sep: retreat
+        - { month: 8, day: 5,  value: 24.2 }
+        - { month: 8, day: 16, value: 16.8 }
+        # Oct–Dec: tail
+        - { month: 9,  day: 12, value: 9.4 }
+        - { month: 10, day: 7,  value: 4.2 }
+        - { month: 11, day: 19, value: 2.8 }
+
+# The four days above 55 mm are 27 Jul (96.4), 13 Aug (88.2),
+# 6 Aug (62.8) and 11 Jul (58.6) — together 306 mm.
+# The caption's "38% on four days" must be recomputed whenever these
+# values change: the component derives it, so the two cannot drift.
+# NOTE this trimmed payload is illustrative; a real year carries every
+# wet day. Omitted days render as the dry band.

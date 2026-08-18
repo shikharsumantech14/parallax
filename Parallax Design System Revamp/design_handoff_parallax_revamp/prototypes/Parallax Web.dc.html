@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,300..700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin: 0; background: #33302c; }
+  * { box-sizing: border-box; }
+  a { color: inherit; text-decoration: none; }
+  input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: currentColor; opacity: .3; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: currentColor; margin-top: -12px; }
+  @keyframes pxIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes pxPulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  @keyframes pxMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  [data-w="politics"] { --w-bg:#faf7f0; --w-ink:#161412; --w-acc:#b8341f; --w-acc2:#8b2416; --w-on-acc:#fff;
+    --w-ink2:rgba(22,20,18,.78); --w-muted:rgba(22,20,18,.72); --w-rule:#ddd4c4; --w-rule2:rgba(22,20,18,.26); --w-tint:rgba(184,52,31,.07); }
+  [data-w="space"] { --w-bg:#0a1628; --w-ink:#e8eef7; --w-acc:#00d4ff; --w-acc2:#5ce1ff; --w-on-acc:#050d1a;
+    --w-ink2:rgba(232,238,247,.74); --w-muted:rgba(232,238,247,.62); --w-rule:#1e3352; --w-rule2:rgba(232,238,247,.26); --w-tint:rgba(0,212,255,.1); }
+  [data-w="earth"] { --w-bg:#f4ecd4; --w-ink:#1f2a1c; --w-acc:#2d6a4f; --w-acc2:#1f4d38; --w-on-acc:#fff;
+    --w-ink2:rgba(31,42,28,.78); --w-muted:rgba(31,42,28,.72); --w-rule:#d4c8a8; --w-rule2:rgba(31,42,28,.26); --w-tint:rgba(45,106,79,.07); }
+  [data-w="tech"] { --w-bg:#0a0a0a; --w-ink:#fafafa; --w-acc:#c6f432; --w-acc2:#a8d61c; --w-on-acc:#0a0a0a;
+    --w-ink2:rgba(250,250,250,.74); --w-muted:rgba(250,250,250,.62); --w-rule:#262626; --w-rule2:rgba(250,250,250,.26); --w-tint:rgba(198,244,50,.1); }
+  [data-w="travel"] { --w-bg:#fffdf6; --w-ink:#2a1f15; --w-acc:#c85a3c; --w-acc2:#a03f24; --w-on-acc:#fff;
+    --w-ink2:rgba(42,31,21,.78); --w-muted:rgba(42,31,21,.72); --w-rule:#e5d9c4; --w-rule2:rgba(42,31,21,.26); --w-tint:rgba(200,90,60,.07); }
+  [data-w="sports"] { --w-bg:#0f2820; --w-ink:#f5f5f0; --w-acc:#e8f048; --w-acc2:#c3cc2c; --w-on-acc:#0f2820;
+    --w-ink2:rgba(245,245,240,.74); --w-muted:rgba(245,245,240,.62); --w-rule:#1f4434; --w-rule2:rgba(245,245,240,.26); --w-tint:rgba(232,240,72,.1); }
+  [data-mode="full"] { --w-full-bg: var(--w-ink); --w-full-fg: var(--w-bg); --w-skim-bg: transparent; --w-skim-fg: var(--w-muted); }
+  [data-mode="skim"] { --w-skim-bg: var(--w-ink); --w-skim-fg: var(--w-bg); --w-full-bg: transparent; --w-full-fg: var(--w-muted); }
+  [data-vw="phone"] { --w-colrule: transparent; }
+  [data-vw="desktop"] { --w-colrule: var(--w-rule); }
+
+</style>
+</helmet>
+
+<div style="padding: 28px 28px 60px; font-family: 'Literata', Georgia, serif; font-variant-numeric: tabular-nums;">
+
+  <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 15px; color: #fff;">
+    <span style="font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; opacity: .6;">Parallax — website</span>
+    <span style="display: flex; border: 1px solid rgba(255,255,255,.3);">
+      <span onClick="{{ setDesktop }}" style="cursor: pointer; user-select: none; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 7px 13px; background: {{ dBg }}; color: {{ dFg }};">Desktop</span>
+      <span onClick="{{ setPhone }}" style="cursor: pointer; user-select: none; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 7px 13px; background: {{ pBg }}; color: {{ pFg }};">Phone</span>
+    </span>
+    <span style="font-size: 11px; opacity: .5;">{{ vwLabel }}</span>
+  </div>
+
+  <div style="width: {{ frameW }}; transition: width 320ms cubic-bezier(.22,1,.36,1); overflow: hidden; background: #1c1a18; box-shadow: 0 26px 70px rgba(0,0,0,.45);">
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 9px 13px; background: #262320;">
+      <span style="display: flex; gap: 6px;">
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #4a4540;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #4a4540;"></span>
+        <span style="width: 10px; height: 10px; border-radius: 50%; background: #4a4540;"></span>
+      </span>
+      <span style="flex: 1; display: flex; align-items: center; gap: 2px; background: #16140f; padding: 7px 12px; font-size: 11.5px; color: rgba(255,255,255,.78);">
+        <span style="color: rgba(255,255,255,.38);">https://</span>{{ url }}
+      </span>
+    </div>
+
+    <div data-w="{{ worldKey }}" data-vw="{{ vwKey }}" data-mode="{{ modeKey }}" style="background: var(--w-bg); color: var(--w-ink); transition: background 340ms ease, color 340ms ease;">
+
+      <!-- masthead -->
+      <div style="border-top: 4px solid var(--w-ink);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: {{ navPad }}; border-bottom: 1px solid var(--w-rule);">
+          <div onClick="{{ goHome }}" style="cursor: pointer; display: flex; align-items: center; gap: 12px;">
+            <svg viewBox="0 0 300 300" style="width: {{ markSize }}; height: {{ markSize }}; display: block; flex: 0 0 auto;">
+              <circle cx="150" cy="150" r="110" fill="var(--w-acc)"></circle>
+              <circle cx="{{ markOx }}" cy="{{ markOy }}" r="113" fill="var(--w-bg)"></circle>
+              <circle cx="150" cy="150" r="118" fill="none" stroke="var(--w-ink)" stroke-width="9"></circle>
+              <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="var(--w-ink)">P</text>
+            </svg>
+            <span style="font-size: {{ brandSize }}; font-weight: 700; letter-spacing: -.035em;">Parallax</span>
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">{{ deskLabel }}</span>
+          </div>
+          <div style="display: {{ navShow }}; align-items: center; gap: 24px;">
+            <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+              <span onClick="{{ n.go }}" style="cursor: pointer; user-select: none; font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; padding-bottom: 3px; border-bottom: 1px solid {{ n.mark }}; color: {{ n.fg }}; transition: color 140ms, border-color 140ms;">{{ n.label }}</span>
+            </sc-for>
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--w-acc); animation: pxPulse 2s ease-in-out infinite;"></span>Issue {{ liveNo }} · live</span>
+            <span onClick="{{ goSubscribe }}" style="cursor: pointer; user-select: none; font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; border: 1px solid var(--w-ink); background: var(--w-ink); color: var(--w-bg); padding: 9px 15px;">Subscribe →</span>
+          </div>
+          <span onClick="{{ toggleMenu }}" style="display: {{ burgerShow }}; cursor: pointer; user-select: none; font-size: 11px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; border: 1px solid var(--w-ink); padding: 8px 12px;">Menu</span>
+        </div>
+        <div style="display: {{ menuShow }}; flex-direction: column; border-bottom: 1px solid var(--w-rule);">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+            <span onClick="{{ n.go }}" style="cursor: pointer; user-select: none; padding: 14px 20px; border-bottom: 1px solid var(--w-rule); font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: {{ n.fg }};">{{ n.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- ══════════ HOME ══════════ -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both;">
+
+          <div style="overflow: hidden; padding: 9px 0; border-bottom: 1px solid var(--w-rule);">
+            <div style="display: flex; width: max-content; animation: pxMarquee 46s linear infinite; font-size: 10.5px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; white-space: nowrap; color: var(--w-muted);">
+              <span style="display: flex; flex: 0 0 auto; gap: 32px; padding-left: 32px;"><sc-for list="{{ wire }}" as="t" hint-placeholder-count="5"><span>{{ t.s }}</span></sc-for></span>
+              <span style="display: flex; flex: 0 0 auto; gap: 32px; padding-left: 32px;"><sc-for list="{{ wire }}" as="t" hint-placeholder-count="5"><span>{{ t.s }}</span></sc-for></span>
+            </div>
+          </div>
+
+          <!-- lead issue -->
+          <div onClick="{{ goIssue }}" style="cursor: pointer; display: grid; grid-template-columns: {{ heroCols }}; gap: {{ gap }}; padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <div>
+              <p style="margin: 0 0 18px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-acc);">{{ leadEyebrow }}</p>
+              <h1 style="margin: 0 0 20px; font-size: {{ h1 }}; font-weight: 700; line-height: .99; letter-spacing: -.032em; text-wrap: balance; max-width: 17ch;">{{ leadTitleA }}<em style="font-style: italic; font-weight: 400; color: var(--w-acc);">{{ leadTitleEm }}</em>{{ leadTitleB }}</h1>
+              <p style="margin: 0 0 22px; font-size: {{ lede }}; font-weight: 300; line-height: 1.45; color: var(--w-ink2); max-width: 46ch; text-wrap: pretty;">{{ leadHook }}</p>
+              <div style="display: flex; gap: 22px; flex-wrap: wrap; font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">
+                <span>{{ leadDate }}</span><span>{{ leadRead }}</span><span style="color: var(--w-acc);">Read the issue →</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 13px; align-self: end;">
+              <sc-for list="{{ counters }}" as="c" hint-placeholder-count="3">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 11px; border-bottom: 1px solid var(--w-rule); font-size: 11px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">{{ c.l }}<b style="font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: {{ c.fg }};">{{ c.v }}</b></span>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- six desks -->
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid var(--w-ink); font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;">Six worlds, one publication</p>
+            <div style="display: grid; grid-template-columns: {{ deskCols }}; gap: 1px; background: var(--w-rule); border: 1px solid var(--w-rule);">
+              <sc-for list="{{ desks }}" as="d" hint-placeholder-count="6">
+                <div onClick="{{ d.go }}" style="cursor: pointer; position: relative; display: flex; flex-direction: column; min-height: 196px; padding: 22px 20px; background: {{ d.field }}; color: {{ d.fg }}; overflow: hidden;">
+                  <span style="position: absolute; right: 12px; bottom: -12px; font-size: 74px; font-weight: 700; line-height: 1; letter-spacing: -.05em; color: {{ d.ghost }};">{{ d.no }}</span>
+                  <span style="position: relative; display: flex; align-items: center; gap: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: {{ d.metaFg }};"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{ d.c }};"></span>{{ d.reg }}</span>
+                  <span style="position: relative; font-size: 30px; font-weight: 700; letter-spacing: -.028em; margin: 14px 0 8px; line-height: 1;">{{ d.n }}</span>
+                  <p style="position: relative; margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: {{ d.bodyFg }}; max-width: 30ch;">{{ d.tag }}</p>
+                  <span style="position: relative; margin-top: auto; font-size: 10.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: {{ d.c }};">{{ d.cta }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- latest -->
+          <div style="padding: {{ padX }}; padding-top: 30px; padding-bottom: 8px;">
+            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">Latest dispatches</p>
+          </div>
+          <sc-for list="{{ latest }}" as="a" hint-placeholder-count="5">
+            <div onClick="{{ a.go }}" style="cursor: pointer; display: grid; grid-template-columns: {{ archCols }}; gap: 18px; align-items: baseline; padding: 15px {{ padX }}; border-bottom: 1px solid var(--w-rule);">
+              <span style="display: flex; align-items: center; gap: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ a.c }};"></span>{{ a.no }}</span>
+              <span style="display: flex; flex-direction: column; gap: 5px;">
+                <span style="font-size: 21px; font-weight: 700; letter-spacing: -.02em; line-height: 1.18;">{{ a.t }}</span>
+                <span style="font-size: 14px; line-height: 1.5; color: var(--w-ink2);">{{ a.dek }}</span>
+              </span>
+              <span style="grid-column: {{ metaSpan }}; margin-top: {{ metaTop }}; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted); text-align: {{ listAlign }};">{{ a.date }} · {{ a.read }}</span>
+            </div>
+          </sc-for>
+
+          <div style="display: grid; grid-template-columns: {{ promiseCols }}; gap: 1px; background: var(--w-rule); border-top: 1px solid var(--w-rule); border-bottom: 1px solid var(--w-rule);">
+            <sc-for list="{{ promises }}" as="p" hint-placeholder-count="3">
+              <div style="background: var(--w-bg); padding: 24px;">
+                <span style="font-size: 22px; font-weight: 700; color: var(--w-acc);">{{ p.no }}</span>
+                <p style="margin: 8px 0 5px; font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;">{{ p.t }}</p>
+                <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--w-ink2);">{{ p.b }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════ DESK ══════════ -->
+      <sc-if value="{{ isDesk }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both;">
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <span style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">
+              <span style="width: 9px; height: 9px; border-radius: 50%; background: var(--w-acc);"></span>{{ deskReg }} · {{ deskCount }}
+            </span>
+            <h1 style="margin: 0 0 16px; font-size: {{ h1 }}; font-weight: 700; line-height: 1.0; letter-spacing: -.032em; max-width: 18ch;">{{ deskTitle }}</h1>
+            <p style="margin: 0; font-size: {{ lede }}; font-weight: 300; line-height: 1.5; color: var(--w-ink2); max-width: 56ch;">{{ deskBlurb }}</p>
+          </div>
+          <sc-for list="{{ deskList }}" as="d" hint-placeholder-count="4">
+            <div onClick="{{ d.go }}" style="cursor: pointer; display: grid; grid-template-columns: {{ listCols }}; gap: 20px; align-items: baseline; padding: 20px {{ padX }}; border-bottom: 1px solid var(--w-rule);">
+              <span style="font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--w-muted);">{{ d.no }}</span>
+              <span style="display: flex; flex-direction: column; gap: 7px;">
+                <span style="font-size: 25px; font-weight: 700; letter-spacing: -.022em; line-height: 1.14;">{{ d.t }}</span>
+                <span style="font-size: 15px; line-height: 1.55; color: var(--w-ink2); max-width: 60ch;">{{ d.s }}</span>
+              </span>
+              <span style="grid-column: {{ metaSpan }}; margin-top: {{ metaTop }}; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted); text-align: {{ listAlign }};">{{ d.date }} · {{ d.read }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ══════════ ISSUE ══════════ -->
+      <sc-if value="{{ isIssue }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px {{ padX }}; border-bottom: 1px solid var(--w-rule); font-size: 10.5px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">
+            <span onClick="{{ goDesk }}" style="cursor: pointer; user-select: none;">← {{ deskReg }}</span>
+            <span>{{ issueMeta }}</span>
+          </div>
+
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-acc);">{{ issueEyebrow }}</p>
+            <h1 style="margin: 0 0 18px; font-size: {{ h1 }}; font-weight: 700; line-height: .99; letter-spacing: -.032em; max-width: 18ch; text-wrap: balance;">{{ leadTitleA }}<em style="font-style: italic; font-weight: 400; color: var(--w-acc);">{{ leadTitleEm }}</em>{{ leadTitleB }}</h1>
+            <p style="margin: 0 0 26px; font-size: {{ lede }}; font-weight: 300; line-height: 1.45; color: var(--w-ink2); max-width: 48ch; text-wrap: pretty;">{{ leadHook }}</p>
+            <div style="border-left: 4px solid var(--w-acc); padding: 3px 0 3px 20px; max-width: 72ch;">
+              <p style="margin: 0 0 9px; font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--w-muted);">The primer</p>
+              <p style="margin: 0; font-size: 17px; line-height: 1.7;">{{ issuePrimer }}</p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: {{ issueCols }};">
+            <div style="display: {{ marginShow }}; flex-direction: column; gap: 18px; padding: 26px 16px 26px {{ padX }}; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);">
+              <span style="font-size: 22px; font-weight: 400; letter-spacing: -.02em; text-transform: none;">— 01</span>
+              <span style="display: flex; flex-direction: column; gap: 4px;">Published<b style="font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--w-ink);">{{ leadDate }}</b></span>
+              <span style="display: flex; flex-direction: column; gap: 4px;">Reading time<b style="font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--w-ink);">{{ leadRead }}</b></span>
+              <span style="display: flex; flex-direction: column; gap: 4px;">Sources<b style="font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--w-ink);">{{ issueSources }}</b></span>
+              <span style="display: flex; flex-direction: column; gap: 4px;">Mode<b style="font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--w-acc);">{{ issueMode }}</b></span>
+            </div>
+
+            <div style="padding: 26px {{ proseX }} 30px; border-left: 1px solid var(--w-colrule); border-right: 1px solid var(--w-colrule);">
+              <sc-if value="{{ isSkim }}" hint-placeholder-val="{{ false }}">
+                <p style="margin: 0 0 22px; padding: 15px 17px; border-left: 3px solid var(--w-acc); background: var(--w-tint); font-size: 15px; font-weight: 500; line-height: 1.66;">{{ issueSkim }}</p>
+              </sc-if>
+              <sc-if value="{{ isFull }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <p style="margin: 0 0 18px; font-size: 18px; line-height: 1.72;"><span style="float: left; font-size: 74px; font-weight: 700; line-height: .78; padding: 6px 12px 0 0; color: var(--w-acc);">{{ dropCap }}</span>{{ issueP1 }}</p>
+                  <p style="margin: 0 0 24px; font-size: 18px; line-height: 1.72;">{{ issueP2 }}</p>
+                </div>
+              </sc-if>
+
+              <!-- the plate -->
+              <figure ref="{{ bindFx }}" data-fx="reveal" style="margin: 0 0 22px; opacity: 0; transition: opacity 320ms ease-out, transform 320ms ease-out;">
+                <div style="border: 1px solid var(--w-rule); padding: 8px;">
+                  <sc-if value="{{ hasPlateImg }}" hint-placeholder-val="{{ false }}">
+                    <div style="height: 300px; overflow: hidden;"><img ref="{{ bindPlate }}" alt="{{ plateCaption }}" style="display: block; width: 100%; height: 100%; object-fit: cover;"></div>
+                  </sc-if>
+                  <sc-if value="{{ noPlateImg }}" hint-placeholder-val="{{ true }}">
+                    <div style="height: 300px;"><image-slot id="{{ plateId }}" shape="rect" placeholder="{{ plateHint }}"></image-slot></div>
+                  </sc-if>
+                </div>
+                <figcaption style="display: flex; justify-content: space-between; gap: 16px; padding-top: 9px; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--w-muted);"><span>{{ plateCaption }}</span><span>{{ plateSource }}</span></figcaption>
+              </figure>
+
+              <!-- the lens · only where two viewpoints of one subject exist -->
+              <sc-if value="{{ hasLens }}" hint-placeholder-val="{{ false }}">
+                <figure style="position: relative; margin: 0 0 22px; border: 1px solid var(--w-rule); overflow: hidden;">
+                  <div style="height: 320px;"><image-slot id="{{ lensIdA }}" shape="rect" placeholder="{{ lensHintA }}"></image-slot></div>
+                  <div ref="{{ bindFx }}" data-fx="wipe" style="position: absolute; inset: 0; clip-path: inset(0 0 0 0%);"><image-slot id="{{ lensIdB }}" shape="rect" placeholder="{{ lensHintB }}"></image-slot></div>
+                  <span ref="{{ bindFx }}" data-fx="wipeline" style="position: absolute; top: 0; bottom: 0; left: 0%; width: 2px; background: var(--w-acc);"></span>
+                  <span style="position: absolute; left: 12px; bottom: 11px; background: var(--w-ink); color: var(--w-bg); font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; padding: 6px 10px;">{{ lensLabel }}</span>
+                </figure>
+              </sc-if>
+
+              <!-- fig. 01 · M · column -->
+              <div style="border-top: 3px solid var(--w-ink); padding-top: 14px; margin-bottom: 26px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 4px; font-size: 9.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;">
+                  <span style="color: var(--w-muted);">M · column · fig. 01</span>
+                  <span style="color: var(--w-acc);">{{ vizUnit }}</span>
+                </div>
+                <h3 style="margin: 0 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -.024em;">{{ vizTitle }}</h3>
+                <p style="margin: 0 0 14px; padding: 10px 13px; background: var(--w-tint); border-left: 3px solid var(--w-acc); font-size: 14px; line-height: 1.58; color: var(--w-ink2);"><b>How to read this —</b> {{ vizHowTo }}</p>
+                <div style="padding: 2px 0 4px;">{{ viz }}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--w-rule);">
+                  <span style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 9.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--w-muted);">
+                    <sc-for list="{{ vizLegend }}" as="g" hint-placeholder-count="3">
+                      <span style="display: flex; align-items: center; gap: 7px;"><span style="width: 10px; height: 10px; background: {{ g.c }}; border: 1px solid var(--w-rule2);"></span>{{ g.l }}</span>
+                    </sc-for>
+                    <sc-if value="{{ vizHasRamp }}" hint-placeholder-val="{{ false }}">
+                      <span style="display: flex; align-items: center; gap: 8px;">
+                        <span>{{ vizRampLo }}</span>
+                        <span style="width: 128px; height: 10px; background: {{ vizRamp }};"></span>
+                        <span>{{ vizRampHi }}</span>
+                      </span>
+                    </sc-if>
+                  </span>
+                  <span onClick="{{ toggleAlt }}" style="cursor: pointer; user-select: none; border: 1px solid var(--w-acc); color: var(--w-acc); font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; padding: 7px 12px;">{{ altLabel }}</span>
+                </div>
+                <p style="margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--w-rule); font-size: 13.5px; line-height: 1.62; color: var(--w-ink2);"><b>In plain terms —</b> {{ vizPlain }}<br><span style="font-size: 9.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--w-muted);">{{ vizSource }}</span></p>
+              </div>
+
+              <!-- fig. 02 · M · column -->
+              <div style="border-top: 3px solid var(--w-ink); padding-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 4px; font-size: 9.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;">
+                  <span style="color: var(--w-muted);">M · column · fig. 02</span>
+                  <span style="color: var(--w-acc);">seats, by bloc</span>
+                </div>
+                <h3 style="margin: 0 0 6px; font-size: 21px; font-weight: 700; letter-spacing: -.024em;">Who gains, and in which year</h3>
+                <p style="margin: 0 0 16px; padding: 10px 13px; background: var(--w-tint); border-left: 3px solid var(--w-acc); font-size: 14px; line-height: 1.58; color: var(--w-ink2);"><b>How to read this —</b> the two bars are seat counts for the northern and southern state blocs if the freeze were lifted in the year shown. Bar length is seats out of a 543-seat house. Drag the year and the sentence above rewrites itself — the point at which one bloc can legislate alone is the number the bill was really about.</p>
+                <div style="padding: 0 0 4px;">
+                  <p style="margin: 0 0 18px; font-size: 24px; font-weight: 700; line-height: 1.2; letter-spacing: -.022em;">{{ claim }}</p>
+                  <div style="display: flex; flex-direction: column; gap: 11px; margin-bottom: 18px;">
+                    <span>
+                      <span style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted); margin-bottom: 5px;"><span>North bloc</span><b style="font-size: 14px; color: var(--w-ink);">{{ north }}</b></span>
+                      <span style="display: block; height: 14px; background: var(--w-rule);"><span style="display: block; height: 100%; background: var(--w-acc); width: {{ nPct }}; transition: width 140ms cubic-bezier(.22,1,.36,1);"></span></span>
+                    </span>
+                    <span>
+                      <span style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted); margin-bottom: 5px;"><span>South bloc</span><b style="font-size: 14px; color: var(--w-ink);">{{ south }}</b></span>
+                      <span style="display: block; height: 14px; background: var(--w-rule);"><span style="display: block; height: 100%; background: var(--w-acc2); width: {{ sPct }}; transition: width 140ms cubic-bezier(.22,1,.36,1);"></span></span>
+                    </span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 14px; color: var(--w-acc);">
+                    <input type="range" min="0" max="100" value="{{ yr }}" onInput="{{ setYr }}" aria-label="Year" style="flex: 1; height: 26px;">
+                    <span style="font-size: 26px; font-weight: 700; letter-spacing: -.03em; color: var(--w-ink); min-width: 74px; text-align: right;">{{ year }}</span>
+                  </div>
+                  <p style="margin: 12px 0 0; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--w-muted);">Source · 2011 Census projections, ECI</p>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: {{ marginShow }}; flex-direction: column; gap: 18px; padding: 26px {{ padX }} 26px 18px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <b style="font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -.035em; color: var(--w-acc);">{{ statBig }}</b>
+                <span style="font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);">{{ statLabel }}</span>
+              </div>
+              <div style="padding-top: 16px; border-top: 1px solid var(--w-rule);">
+                <p style="margin: 0 0 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">The dek</p>
+                <p style="margin: 0; font-size: 16px; font-style: italic; line-height: 1.55; color: var(--w-ink2);">{{ issueDek }}</p>
+              </div>
+              <div style="padding-top: 16px; border-top: 1px solid var(--w-rule);">
+                <p style="margin: 0 0 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .17em; text-transform: uppercase; color: var(--w-muted);">Share</p>
+                <div style="display: flex; flex-direction: column; gap: 7px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;">
+                  <span style="cursor: pointer; border: 1px solid var(--w-rule2); padding: 9px 11px; text-align: center; color: var(--w-ink2);">Copy link</span>
+                  <span style="cursor: pointer; border: 1px solid var(--w-rule2); padding: 9px 11px; text-align: center; color: var(--w-ink2);">Chart as PNG</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 14px; padding: 12px {{ padX }}; border-top: 2px solid var(--w-ink); border-bottom: 1px solid var(--w-rule);">
+            <span style="flex: 1; height: 2px; background: var(--w-rule);"><span style="display: block; height: 100%; width: 42%; background: var(--w-acc);"></span></span>
+            <span style="font-size: 10.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--w-muted);">42% · 4 min left</span>
+            <span style="display: flex; border: 1px solid var(--w-ink);">
+              <span onClick="{{ setFull }}" style="cursor: pointer; user-select: none; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; padding: 7px 12px; background: var(--w-full-bg); color: var(--w-full-fg);">Full</span>
+              <span onClick="{{ setSkim }}" style="cursor: pointer; user-select: none; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; padding: 7px 12px; background: var(--w-skim-bg); color: var(--w-skim-fg);">Skim</span>
+            </span>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════ ARCHIVE ══════════ -->
+      <sc-if value="{{ isArchive }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both;">
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">{{ archCount }} · every one still readable</p>
+            <h1 style="margin: 0; font-size: {{ h1 }}; font-weight: 700; line-height: 1.0; letter-spacing: -.032em;">The archive</h1>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; padding: 16px {{ padX }}; border-bottom: 1px solid var(--w-rule);">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="7">
+              <span onClick="{{ f.go }}" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 7px; border: 1px solid {{ f.bd }}; background: {{ f.bg }}; color: {{ f.fg }}; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 8px 12px; transition: border-color 140ms, background 140ms;">
+                <span style="display: {{ f.dotShow }}; width: 7px; height: 7px; border-radius: 50%; background: {{ f.c }};"></span>{{ f.label }}
+              </span>
+            </sc-for>
+          </div>
+          <sc-for list="{{ archive }}" as="a" hint-placeholder-count="8">
+            <div onClick="{{ a.go }}" style="cursor: pointer; display: grid; grid-template-columns: {{ archCols }}; gap: 18px; align-items: baseline; padding: 15px {{ padX }}; border-bottom: 1px solid var(--w-rule);">
+              <span style="display: flex; align-items: center; gap: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ a.c }};"></span>{{ a.no }}</span>
+              <span style="display: flex; flex-direction: column; gap: 5px;">
+                <span style="font-size: 21px; font-weight: 700; letter-spacing: -.02em; line-height: 1.18;">{{ a.t }}</span>
+                <span style="font-size: 14px; line-height: 1.5; color: var(--w-ink2);">{{ a.dek }}</span>
+              </span>
+              <span style="grid-column: {{ metaSpan }}; margin-top: {{ metaTop }}; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted); text-align: {{ listAlign }};">{{ a.date }} · {{ a.read }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ══════════ ABOUT ══════════ -->
+      <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both;">
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-acc);">How Parallax works</p>
+            <h1 style="margin: 0 0 20px; font-size: {{ h1 }}; font-weight: 700; line-height: 1.0; letter-spacing: -.032em; max-width: 20ch;">Two eyes, one object, a <em style="font-style: italic; font-weight: 400; color: var(--w-acc);">second</em> angle.</h1>
+            <p style="margin: 0; font-size: {{ lede }}; font-weight: 300; line-height: 1.5; color: var(--w-ink2); max-width: 54ch;">Parallax is the shift you get when you move your viewpoint. We do it to one story at a time — the object stays put, the angle changes, and the depth appears.</p>
+          </div>
+          <div style="display: grid; grid-template-columns: {{ markCols }}; gap: {{ gap }}; align-items: center; padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+              <svg viewBox="0 0 300 300" style="width: 168px; height: 168px; display: block;">
+                <circle cx="150" cy="150" r="110" fill="var(--w-acc)"></circle>
+                <circle cx="{{ markOx }}" cy="{{ markOy }}" r="113" fill="var(--w-bg)"></circle>
+                <circle cx="150" cy="150" r="118" fill="none" stroke="var(--w-ink)" stroke-width="7"></circle>
+                <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="var(--w-ink)">P</text>
+              </svg>
+              <span style="display: flex; gap: 9px;">
+                <sc-for list="{{ deskMarks }}" as="m" hint-placeholder-count="6">
+                  <svg viewBox="0 0 300 300" style="width: 30px; height: 30px; display: block;">
+                    <circle cx="150" cy="150" r="110" fill="{{ m.c }}"></circle>
+                    <circle cx="{{ m.ox }}" cy="{{ m.oy }}" r="113" fill="var(--w-bg)"></circle>
+                    <circle cx="150" cy="150" r="118" fill="none" stroke="var(--w-ink)" stroke-width="13"></circle>
+                  </svg>
+                </sc-for>
+              </span>
+            </div>
+            <div>
+              <p style="margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">The mark</p>
+              <p style="margin: 0 0 14px; font-size: 19px; font-weight: 300; line-height: 1.5; color: var(--w-ink2); max-width: 52ch;">A star's distance is measured by looking at it twice, six months apart, from opposite ends of Earth's orbit. Depth is what patience and displacement buy you.</p>
+              <p style="margin: 0; font-size: 16px; line-height: 1.65; color: var(--w-ink2); max-width: 56ch;">So the mark is a disc lit from one side. The crescent is the part that was hidden until something moved, and it sits at a different hour for each of the six desks — 60° apart, one full turn of the dial across the publication.</p>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: {{ promiseCols }}; gap: 1px; background: var(--w-rule); border-bottom: 1px solid var(--w-rule);">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+              <div style="background: var(--w-bg); padding: 26px 24px;">
+                <span style="font-size: 30px; font-weight: 700; letter-spacing: -.02em; color: var(--w-acc);">{{ s.no }}</span>
+                <p style="margin: 10px 0 7px; font-size: 21px; font-weight: 700; letter-spacing: -.018em;">{{ s.t }}</p>
+                <p style="margin: 0; font-size: 15px; line-height: 1.62; color: var(--w-ink2);">{{ s.b }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">Contributors</p>
+            <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.62; max-width: 62ch; color: var(--w-ink2);">Everyone whose name appears on an issue has a portrait here, shot on assignment rather than at a desk. The frame is a hairline and the caption gives the date, because a portrait is evidence of when someone was in the field.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+              <figure style="flex: 1 1 220px; margin: 0;">
+                <div style="border: 1px solid var(--w-rule); padding: 7px;">
+                  <div style="height: 232px; overflow: hidden;"><img src="uploads/IMG-20180824-WA0032.jpg" alt="Field portrait, August 2018" style="display: block; width: 100%; height: 100%; object-fit: cover;"></div>
+                </div>
+                <figcaption style="display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--w-muted);"><span>Field portrait</span><span>Aug 2018</span></figcaption>
+              </figure>
+              <figure style="flex: 1 1 220px; margin: 0;">
+                <div style="border: 1px solid var(--w-rule); padding: 7px;">
+                  <div style="height: 232px; overflow: hidden;"><img src="uploads/IMG-20180824-WA0034.jpg" alt="Field portrait in profile, August 2018" style="display: block; width: 100%; height: 100%; object-fit: cover;"></div>
+                </div>
+                <figcaption style="display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--w-muted);"><span>Field portrait · profile</span><span>Aug 2018</span></figcaption>
+              </figure>
+            </div>
+          </div>
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 18px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">The eight voices an issue can use</p>
+            <div style="display: grid; grid-template-columns: {{ voiceCols }}; gap: 1px; background: var(--w-rule); border: 1px solid var(--w-rule);">
+              <sc-for list="{{ voices }}" as="v" hint-placeholder-count="8">
+                <div style="background: var(--w-bg); padding: 15px 16px;">
+                  <p style="margin: 0 0 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-acc);">{{ v.n }}</p>
+                  <p style="margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--w-ink2);">{{ v.d }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: {{ promiseCols }}; gap: 1px; background: var(--w-rule); border-bottom: 1px solid var(--w-rule);">
+            <sc-for list="{{ promises }}" as="p" hint-placeholder-count="3">
+              <div style="background: var(--w-bg); padding: 24px;">
+                <span style="font-size: 22px; font-weight: 700; color: var(--w-acc);">{{ p.no }}</span>
+                <p style="margin: 8px 0 5px; font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;">{{ p.t }}</p>
+                <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--w-ink2);">{{ p.b }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="padding: {{ pad }}; border-bottom: 1px solid var(--w-rule);">
+            <p style="margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-acc);">The making of the mark</p>
+            <h2 style="margin: 0 0 16px; font-size: {{ loreH }}; font-weight: 700; line-height: 1.05; letter-spacing: -.028em; max-width: 22ch;">Six drafts, and the one <em style="font-style: italic; font-weight: 400; color: var(--w-acc);">survivor</em>.</h2>
+            <p style="margin: 0 0 26px; font-size: 16px; line-height: 1.65; color: var(--w-ink2); max-width: 62ch;">The mark took six rounds to find. Every discarded draft was discarded for a reason, and the reasons are the argument for what survived.</p>
+            <div style="display: flex; flex-direction: column;">
+              <sc-for list="{{ lore }}" as="l" hint-placeholder-count="6">
+                <div style="display: grid; grid-template-columns: {{ loreCols }}; gap: {{ gap }}; align-items: start; padding: 22px 0; border-top: 1px solid var(--w-rule);">
+                  <span style="display: flex; align-items: center; gap: 16px;">
+                    <span style="font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: var(--w-muted);">{{ l.no }}</span>
+                    <span style="display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border: 1px solid var(--w-rule);">{{ l.art }}</span>
+                  </span>
+                  <span style="display: flex; flex-direction: column; gap: 6px;">
+                    <b style="font-size: 19px; font-weight: 700; letter-spacing: -.02em;">{{ l.t }}</b>
+                    <span style="font-size: 15px; line-height: 1.62; color: var(--w-ink2); max-width: 58ch;">{{ l.b }}</span>
+                  </span>
+                  <span style="display: flex; flex-direction: column; gap: 5px;">
+                    <span style="font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: {{ l.vc }};">{{ l.verdictLabel }}</span>
+                    <span style="font-size: 14px; line-height: 1.58; color: var(--w-ink2); max-width: 34ch;">{{ l.verdict }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 26px 0 0; padding-top: 18px; border-top: 2px solid var(--w-ink); font-size: 16px; line-height: 1.65; color: var(--w-ink2); max-width: 62ch;">What survived is four concentric circles, one dial position and one letter. Nothing in it is decoration, and nothing in it needs the story above in order to be read — which is the only test a mark has to pass.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ══════════ SUBSCRIBE ══════════ -->
+      <sc-if value="{{ isSubscribe }}" hint-placeholder-val="{{ true }}">
+        <div style="animation: pxIn 280ms ease-out both; display: grid; grid-template-columns: {{ subCols }}; gap: 1px; background: var(--w-rule);">
+          <div style="background: var(--w-bg); padding: {{ pad }};">
+            <p style="margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-acc);">Free · one issue a week</p>
+            <h1 style="margin: 0 0 18px; font-size: {{ h1 }}; font-weight: 700; line-height: 1.0; letter-spacing: -.032em; max-width: 15ch;">One issue a week. No noise.</h1>
+            <p style="margin: 0 0 26px; font-size: {{ lede }}; font-weight: 300; line-height: 1.5; color: var(--w-ink2); max-width: 42ch;">No investors, no advertisers, no trackers. Unsubscribe in one click, and we never sell the list.</p>
+            <div style="display: flex; max-width: 460px;">
+              <input type="email" placeholder="you@college.edu" style="flex: 1; background: transparent; border: 1px solid var(--w-rule2); border-right: none; color: var(--w-ink); font-family: 'Literata', Georgia, serif; font-size: 15px; padding: 14px; outline: none;">
+              <button style="background: var(--w-ink); color: var(--w-bg); border: none; font-family: 'Literata', Georgia, serif; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; padding: 14px 20px; cursor: pointer;">Subscribe</button>
+            </div>
+            <p style="margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--w-rule); font-size: 10.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; line-height: 1.9; color: var(--w-muted);">Already a reader? <span style="color: var(--w-acc); cursor: pointer;">Sign in →</span></p>
+          </div>
+          <div style="background: var(--w-bg); padding: {{ pad }};">
+            <p style="margin: 0 0 14px; font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--w-muted);">Membership · student rate</p>
+            <p style="margin: 0 0 8px; font-size: 54px; font-weight: 700; letter-spacing: -.04em; line-height: 1;">₹149<span style="font-size: 17px; font-weight: 400; letter-spacing: 0; color: var(--w-muted);">/mo</span></p>
+            <p style="margin: 0 0 22px; font-size: 15.5px; line-height: 1.6; color: var(--w-ink2);">Every issue, every interactive, the full archive and the annotation layer.</p>
+            <div style="display: flex; flex-direction: column; gap: 11px; margin-bottom: 24px;">
+              <sc-for list="{{ perks }}" as="p" hint-placeholder-count="4">
+                <span style="display: flex; align-items: baseline; gap: 11px; font-size: 15px; line-height: 1.5;"><span style="color: var(--w-acc);">→</span>{{ p.t }}</span>
+              </sc-for>
+            </div>
+            <span style="display: block; text-align: center; background: var(--w-acc); color: var(--w-on-acc); font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; padding: 15px; cursor: pointer;">Become a member</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- footer -->
+      <div style="display: grid; grid-template-columns: {{ footCols }}; gap: {{ gap }}; padding: {{ pad }}; border-top: 4px solid var(--w-ink);">
+        <div>
+          <p style="margin: 0 0 10px; display: flex; align-items: center; gap: 11px; font-size: 21px; font-weight: 700; letter-spacing: -.035em;">
+            <svg viewBox="0 0 300 300" style="width: 28px; height: 28px; display: block; flex: 0 0 auto;">
+              <circle cx="150" cy="150" r="110" fill="var(--w-acc)"></circle>
+              <circle cx="{{ markOx }}" cy="{{ markOy }}" r="113" fill="var(--w-bg)"></circle>
+              <circle cx="150" cy="150" r="118" fill="none" stroke="var(--w-ink)" stroke-width="12"></circle>
+              <text x="150" y="207" text-anchor="middle" font-family="'Literata', Georgia, serif" font-size="160" font-weight="700" fill="var(--w-ink)">P</text>
+            </svg>Parallax</p>
+          <p style="margin: 0; font-size: 10.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; line-height: 1.9; color: var(--w-muted);">Parallax Lens™ · Est. 2026<br>No investors · no advertisers · no trackers</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+            <span onClick="{{ n.go }}" style="cursor: pointer; user-select: none; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);">{{ n.label }}</span>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--w-muted);">
+          <span>RSS</span><span>Corrections</span><span>Colophon</span><span>Privacy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { page: 'home', world: 'politics', vw: 'desktop', menu: false, mode: 'full', alt: false, yr: 34, filter: 'all' };
+
+  worlds() {
+    return [
+      { k: 'politics', n: 'Politics', reg: 'Politics desk', c: '#b8341f', bg: '#faf7f0', ink: '#161412', rule: '#ddd4c4', deep: '#8b2416', onAcc: '#fff', count: '6 dispatches',
+        tag: 'The machinery behind the headlines.', cta: 'Visit the desk →', title: 'The machinery behind the headlines',
+        blurb: 'Not who won. How the winning was arranged — the procedure, the arithmetic, the incentive that made the outcome inevitable before anyone voted.' },
+      { k: 'space', n: 'Space', reg: 'Mission control', c: '#00d4ff', bg: '#0a1628', ink: '#e8eef7', rule: '#1e3352', deep: '#5ce1ff', onAcc: '#050d1a', count: '4 dispatches',
+        tag: 'Transmissions from beyond the line.', cta: 'Open mission control →', title: 'Transmissions from beyond the line',
+        blurb: 'Orbits, missions and the telemetry underneath them — what the instruments actually recorded, before anyone wrote a press release.' },
+      { k: 'earth', n: 'Earth', reg: 'Field atlas', c: '#2d6a4f', bg: '#f4ecd4', ink: '#1f2a1c', rule: '#d4c8a8', deep: '#1f4d38', onAcc: '#fff', count: '4 dispatches',
+        tag: 'The planet, in the present tense.', cta: 'Open the atlas →', title: 'The planet, in the present tense',
+        blurb: 'Climate, oceans and deep time, read off the record rather than the forecast.' },
+      { k: 'tech', n: 'Tech', reg: 'Changelog', c: '#c6f432', bg: '#0a0a0a', ink: '#fafafa', rule: '#262626', deep: '#a8d61c', onAcc: '#0a0a0a', count: '5 dispatches',
+        tag: 'The commit messages of a changing world.', cta: '→ cd /tech', title: 'The commit messages of a changing world',
+        blurb: 'Not the launch. The diff underneath it — what shipped, what broke, and who pays for the tokens.' },
+      { k: 'travel', n: 'Travel', reg: 'Field journal', c: '#c85a3c', bg: '#fffdf6', ink: '#2a1f15', rule: '#e5d9c4', deep: '#a03f24', onAcc: '#fff', count: '3 dispatches',
+        tag: "Field notes from somewhere you haven't been.", cta: 'Visit the bureau →', title: "Field notes from somewhere you haven't been",
+        blurb: 'Cities, crossings and quiet rooms, reported at walking pace.' },
+      { k: 'sports', n: 'Sports', reg: 'Match programme', c: '#e8f048', bg: '#0f2820', ink: '#f5f5f0', rule: '#1f4434', deep: '#c3cc2c', onAcc: '#0f2820', count: '2 dispatches',
+        tag: 'The tactics, told honestly.', cta: 'Open the programme →', title: 'The tactics, told honestly',
+        blurb: 'Shape, xG and the decisions behind the table — without the pundit shrug.' }
+    ];
+  }
+
+  // every field verbatim from src/content/issues/*/index.mdx front-matter
+  issues() {
+    return [
+      { k: 'politics', no: '№ 03', t: 'The Trojan Horse in Parliament', em: 'Trojan', pre: 'The ', post: ' Horse in Parliament',
+        hook: 'How a bill about women\u2019s empowerment became the vehicle for the biggest redrawing of Indian political power in 50 years.',
+        dek: 'And why it failed by exactly 54 votes.', date: 'April 24, 2026', read: '6 min', sources: '10 cited', mode: 'Calm-structural', eyebrow: 'A 30-year story in six dates',
+        primer: 'India\u2019s Parliament has had the same 543 seats since 1976, frozen so states that reduced birth rates wouldn\u2019t lose political power. The north grew much faster than the south since then. A bill to redraw those seats, packaged with women\u2019s reservation, just failed by 54 votes.',
+        skim: 'SKIM — 543 seats, frozen since 1976. Unfreezing them moves power decisively north, and a bill about women\u2019s quotas set the clock running.',
+        p1: 'ndia\u2019s Parliament has had the same 543 seats since 1976. The freeze was meant to last 25 years. It has lasted 50, and in that time the population it represents has grown by more than 600 million people, distributed very unevenly across the map.',
+        p2: 'The states that slowed their growth fastest now hold the fewest people per seat. Unfreezing the count rewards the states that grew — an arithmetic no party has been willing to say aloud, because saying it aloud makes the loser obvious.',
+        statBig: '54', statLabel: 'Votes short of two-thirds' },
+      { k: 'tech', no: '№ 24', t: 'The Bill Came Due in April', em: 'April', pre: 'The Bill Came Due in ', post: '',
+        hook: 'AI keeps getting cheaper per token, and that is exactly why the bill goes up. The price per unit fell, the units per task exploded, and Uber burned its whole 2026 AI budget in four months.',
+        dek: 'Cheaper is a per-unit word. The invoice is a per-task number.', date: 'June 04, 2026', read: '7 min', sources: '9 cited', mode: 'Dry wit', eyebrow: '$ parallax/tech v0.4.0 · main',
+        primer: 'Every headline says inference is collapsing in price. Every finance team says the AI line item is exploding. Both are true, and the gap between them is where the 2026 budget went.',
+        skim: 'SKIM — Price per token fell hard. Tokens consumed per task rose harder. The product of the two is the invoice, and it went up.',
+        p1: 'nference has never been cheaper per token, and the bill has never been higher. That is not a contradiction; it is a multiplication. The unit price is one term, and the number of units a coding agent burns to close a single ticket is the other.',
+        p2: 'Uber exhausted its entire 2026 AI budget in four months and capped spending at $1,500 per engineer per agentic tool. Two such tools run to roughly $36,000 a year against a median engineer comp near $330,000 — about 11% of the salary, spent on the tools.',
+        statBig: '$1,500', statLabel: 'Monthly cap, per engineer per tool' },
+      { k: 'space', no: '№ 22', t: 'The Asteroid We Talked Down', em: 'Talked', pre: 'The Asteroid We ', post: ' Down',
+        hook: 'The impact odds for asteroid 2024 YR4 climbed to a record, then collapsed to zero — not because the rock moved, but because the uncertainty around it did.',
+        dek: 'The number went up before it went down. That was the system working.', date: 'June 04, 2026', read: '7 min', sources: '11 cited', mode: 'Awe', eyebrow: 'T+ 12:12:49_ · orbit 02A',
+        primer: 'In December 2024 a telescope in Chile found a 50-to-70-metre asteroid, 2024 YR4, on a path that brought it close to Earth and the Moon in December 2032. For a few weeks its chance of hitting Earth was the highest astronomers had ever logged for a rock that size. Then the odds vanished.',
+        skim: 'SKIM — The asteroid never changed course. Only how well we knew its course did, and a shrinking error ellipse must sweep across Earth before it sweeps past it.',
+        p1: 'n December 2024 a telescope in Chile logged a moving point of light. By 18 February 2025, 2024 YR4 held a 3.1% chance of hitting Earth in December 2032 — the highest impact probability NASA had ever recorded for an object of its size or larger.',
+        p2: 'Six days later it was 0.004%. Not because anything moved, but because more observation shrank the uncertainty region, and a shrinking region must sweep across Earth before it clears it. The scariest number arrived while the asteroid was doing nothing at all.',
+        statBig: '3.1%', statLabel: 'Peak Earth-impact odds' },
+      { k: 'sports', no: '№ 23', t: 'The Title Nobody Could Watch', em: 'Watch', pre: 'The Title Nobody Could ', post: '',
+        hook: 'Arsenal ended a 22-year wait by becoming the least watchable elite team in memory — and the data says that was the plan, not the price.',
+        dek: 'The most-criticised Arsenal was the winning machine.', date: 'June 04, 2026', read: '7 min', sources: '8 cited', mode: 'Forensic', eyebrow: 'Matchday 38 · FT',
+        primer: 'Arsenal had not won England\u2019s top league since the unbeaten 2003-04 side. For three years running they finished second chasing a flowing, attacking ideal. In May 2026 they finally won it with the most criticised version of the team: deep, defensive, and scoring a quarter of its goals from rehearsed corners.',
+        skim: 'SKIM — Three seasons of beautiful football finished second. One season of deep blocks and set-piece routines won the league with a game to spare.',
+        p1: 'n 2023/24 Arsenal reached 89 points and still lost the title by two. The diagnosis everyone reached for was more attacking quality. The side that finally ended the wait was the opposite of that.',
+        p2: 'They allowed opponents 18.05 passes per defensive action, the highest in the division; the next three teams sat at 13.93, 13.87 and 13.67. They dropped into a compact 4-4-2, conceded territory by design, and won.',
+        statBig: '18.05', statLabel: 'Passes allowed per defensive action' },
+      { k: 'earth', no: '№ 18', t: 'The Pacific That No Longer Resets', em: 'Resets', pre: 'The Pacific That No Longer ', post: '',
+        hook: 'Each La Ni\u00f1a now lands warmer than the El Ni\u00f1os of a decade earlier — and the 2026 El Ni\u00f1o the WMO just confirmed will lift the floor again.',
+        dek: 'What looks like an oscillation is a staircase.', date: 'May 03, 2026', read: '7 min', sources: '12 cited', mode: 'Calm-structural', eyebrow: '14.6°N · 121.0°E · sheet 05',
+        primer: 'El Ni\u00f1o and La Ni\u00f1a are supposed to be a swing: warm phase, cool phase, back to baseline. The record now shows the cool phases landing warmer than the warm phases of a decade before. The oscillation still swings; the floor it swings above keeps rising.',
+        skim: 'SKIM — The Pacific still oscillates. It no longer returns to where it started, so each cool phase now sits above the warm phase of ten years earlier.',
+        p1: 'ach La Ni\u00f1a is supposed to be the reset — the cool half of a swing that returns the Pacific to baseline. The record no longer shows a return. It shows a staircase.',
+        p2: 'A La Ni\u00f1a year in the 2020s now lands warmer than an El Ni\u00f1o year of the 2010s. The swing is intact and the baseline underneath it is not, which is why each new warm phase sets a record rather than matching one.',
+        statBig: '1.55°C', statLabel: '2024 anomaly · first year above 1.5' },
+      { k: 'travel', no: '№ 09', t: 'The Queue Is the Product', em: 'Product', pre: 'The Queue Is the ', post: '',
+        hook: 'At Everest and Fuji, managing the crowd and selling the crowd have become the same administrative act — the scarce good being priced is the bottleneck itself.',
+        dek: 'Two mountains, two ways to put a price on the line.', date: 'June 04, 2026', read: '7 min', sources: '10 cited', mode: 'Investigation', eyebrow: 'Vol. I, No. 02 · route 02',
+        primer: 'Two of the world\u2019s most crowded mountains just changed what it costs to go up. Nepal raised the base fee for Everest and added screening rules. Japan now caps Mount Fuji at four thousand climbers a day, each holding a timed, paid, reserved slot. Here is what happens when a country starts selling the queue.',
+        skim: 'SKIM — On Everest the lethal resource was never the rock but the time spent waiting in the death zone. Both Nepal and Japan now meter exactly that, which turns the queue into the thing being sold.',
+        p1: 'n May 2019 the climber Nirmal Purja photographed a near-continuous line of hundreds stacked along Everest\u2019s summit ridge. Eleven climbers died that season, and as many as five of those deaths may have been crowd-related.',
+        p2: 'Above roughly 7,950 metres — the band mountaineers call the death zone — a climber has about three days before the body begins to fail. The danger was less the altitude than the time spent waiting in it, and time is exactly what a permit system can price.',
+        statBig: '4,000', statLabel: 'Daily cap on Mount Fuji' }
+    ];
+  }
+
+  // one plate per issue; the lens pair only where two viewpoints of one subject exist
+  plates() {
+    return {
+      politics: { cap: 'Plate 02 · the chamber, empty', src: 'PIB', hint: 'Lok Sabha chamber · warm sepia' },
+      tech: { cap: 'Plate 01 · the invoice', src: 'Parallax', hint: 'Server hall · near-black, lime cast' },
+      space: { cap: 'Plate 03 · 2024 YR4, first light', src: 'ATLAS Chile', hint: 'Night sky · moonlit blue' },
+      earth: { cap: 'Plate 02 · a hill stream, after rain', src: 'Parallax field journal', hint: 'Ocean surface · sun-bleached', img: 'uploads/IMG-20180826-WA0029.jpg', fit: 'contain', frameH: '460px' },
+      travel: { cap: 'Plate 01 · the crossing, from the bank', src: 'Parallax field journal', hint: 'Everest ridge · cold cream', img: 'uploads/IMG-20180812-WA0028.jpg' },
+      sports: { cap: 'Plate 04 · the block, matchday 38', src: 'Parallax', hint: 'Pitch from the stand · pitch green' }
+    };
+  }
+
+  lenses() {
+    return {
+      travel: { a: '1996 · the empty ridge', b: '2019 · the queue', label: '1996 ⇄ 2019 · same ridge' },
+      politics: { a: '1976 · the frozen map', b: '2031 · the redrawn map', label: '1976 ⇄ 2031 · same house' }
+    };
+  }
+
+  // scroll-linked figure treatments: reveal-once plates, wiping lens pairs
+  bindFx(el) {
+    if (!el || el.__fx) return;
+    el.__fx = true;
+    let sc = el.parentElement;
+    while (sc && sc !== document.body) {
+      const o = getComputedStyle(sc).overflowY;
+      if (o === 'auto' || o === 'scroll') break;
+      sc = sc.parentElement;
+    }
+    const target = sc && sc !== document.body ? sc : window;
+    const upd = () => {
+      if (!el.isConnected) return;
+      const pr = target === window ? { top: 0, height: window.innerHeight } : target.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, (pr.top + pr.height * 0.78 - r.top) / (pr.height * 0.4)));
+      const k = el.getAttribute('data-fx');
+      if (k === 'reveal') {
+        const q = Math.min(1, p * 1.8);
+        el.style.opacity = String(q);
+        el.style.transform = 'translateY(' + ((1 - q) * 22).toFixed(1) + 'px)';
+      } else if (k === 'wipe') {
+        el.style.clipPath = 'inset(0 0 0 ' + (Math.min(1, Math.max(0, (p - 0.05) / 0.5)) * 100).toFixed(1) + '%)';
+      } else if (k === 'wipeline') {
+        el.style.left = (Math.min(1, Math.max(0, (p - 0.05) / 0.5)) * 100).toFixed(1) + '%';
+      }
+    };
+    target.addEventListener('scroll', upd, { passive: true });
+    requestAnimationFrame(upd);
+    requestAnimationFrame(() => requestAnimationFrame(upd));
+  }
+
+  // the six rounds the mark went through, drawn at thumbnail size
+  loreEntries(w) {
+    const el = React.createElement;
+    const ink = 'var(--w-ink)', bg = 'var(--w-bg)', acc = 'var(--w-acc)', soft = 'var(--w-muted)';
+    const box = (kids) => el('svg', { viewBox: '0 0 300 300', style: { width: 46, height: 46, display: 'block' } }, kids);
+    const src = [
+      { no: '01', t: 'Two offset squares', ok: false,
+        b: 'The first draft said displacement with two rectangles, one outlined and one filled. It was legible at any size and completely anonymous — a hundred other publications own that shape.',
+        verdict: 'Too generic to defend. A mark has to be ours before it is anything else.',
+        art: box([el('rect', { key: 'a', x: 114, y: 114, width: 144, height: 144, fill: acc }), el('rect', { key: 'b', x: 42, y: 42, width: 144, height: 144, fill: 'none', stroke: ink, strokeWidth: 18 })]) },
+      { no: '02', t: 'The observatory seal', ok: false,
+        b: 'A full stellar-parallax diagram inside a ring of type: an orbit, two observer positions, two sightlines crossing at the object, the six desks standing in for fixed stars.',
+        verdict: 'Correct and unreadable. A reader should not have to be taught a diagram to recognise a publication.',
+        art: box([el('circle', { key: 'r', cx: 150, cy: 150, r: 132, fill: 'none', stroke: ink, strokeWidth: 12 }),
+          el('line', { key: 'l1', x1: 72, y1: 214, x2: 228, y2: 92, stroke: ink, strokeWidth: 10 }),
+          el('line', { key: 'l2', x1: 228, y1: 214, x2: 72, y2: 92, stroke: ink, strokeWidth: 10 }),
+          el('circle', { key: 'o', cx: 150, cy: 150, r: 26, fill: acc })]) },
+      { no: '03', t: 'The lens assembly', ok: null,
+        b: 'The name taken at its word, drawn as a plate from an optics catalogue: parallel light in, two ground elements, and two focal points on the plate because the subject was seen from two positions.',
+        verdict: 'Kept, but not as a logo. It is the illustration on this page and the first onboarding screen.',
+        art: box([el('path', { key: 'v', d: 'M 150 40 A 150 150 0 0 1 150 260 A 150 150 0 0 1 150 40 Z', fill: 'none', stroke: ink, strokeWidth: 16 }),
+          el('circle', { key: 'f', cx: 150, cy: 150, r: 30, fill: acc })]) },
+      { no: '04', t: 'The eclipse', ok: null,
+        b: 'Two discs of the same size, one behind the other, moved apart by a single step. What you see is the crescent — the part the front disc was hiding until something moved.',
+        verdict: 'The idea was right and the disc was empty. It needed the name in it.',
+        art: box([el('circle', { key: 'a', cx: 132, cy: 168, r: 118, fill: acc }), el('circle', { key: 'b', cx: 168, cy: 132, r: 118, fill: bg }), el('circle', { key: 'c', cx: 168, cy: 132, r: 118, fill: 'none', stroke: ink, strokeWidth: 14 })]) },
+      { no: '05', t: 'The letter, four ways', ok: false,
+        b: 'A P set into the disc, cut out of it, made into it, and stood in front of it. The version where the ring became the bowl of the letter was clever and unreadable at a glance.',
+        verdict: 'Clever lost to legible. The letter belongs in the calm middle, not fused to the frame.',
+        art: box([el('circle', { key: 'a', cx: 150, cy: 150, r: 118, fill: ink }),
+          el('text', { key: 't', x: 150, y: 207, textAnchor: 'middle', fontFamily: "'Literata', Georgia, serif", fontSize: 160, fontWeight: 700, fill: bg }, 'P')]) },
+      { no: '06', t: 'The phase medallion', ok: true,
+        b: 'The crescent moves inside the ring and becomes a band of light riding the rim, so the mark closes into a roundel and the letter sits in the calm middle. One dial position per desk, 60° apart.',
+        verdict: 'Adopted. It survives every circular crop, and the six desks read as one family.',
+        art: box([el('circle', { key: 'a', cx: 150, cy: 150, r: 110, fill: acc }),
+          el('circle', { key: 'b', cx: 141.5, cy: 158.6, r: 113, fill: bg }),
+          el('circle', { key: 'c', cx: 150, cy: 150, r: 118, fill: 'none', stroke: ink, strokeWidth: 13 }),
+          el('text', { key: 't', x: 150, y: 207, textAnchor: 'middle', fontFamily: "'Literata', Georgia, serif", fontSize: 160, fontWeight: 700, fill: ink }, 'P')]) }
+    ];
+    return src.map((r) => Object.assign({}, r, {
+      verdictLabel: r.ok === true ? 'Adopted' : r.ok === null ? 'Kept, reassigned' : 'Discarded',
+      vc: r.ok === false ? soft : acc
+    }));
+  }
+
+  cur() { return this.worlds().find((w) => w.k === this.state.world) || this.worlds()[0]; }
+  curIssue() { return this.issues().find((i) => i.k === this.state.world) || this.issues()[0]; }
+
+  // ── per-world data graphic, real numbers, built as SVG
+  graphic(w, alt) {
+    const R = React.createElement;
+    const el = (t, p, c) => R(t, p, c);
+    const txt = (x, y, s, o) => R('text', Object.assign({ x: x, y: y, fill: o.fill || w.ink, textAnchor: o.a || 'middle',
+      style: { fontFamily: "'Literata',Georgia,serif", fontSize: (o.fs || 11) + 'px', fontWeight: o.fw || 600, letterSpacing: o.ls || '.14em', textTransform: 'uppercase' } }, o.extra || {}), s);
+
+    if (w.k === 'politics') {
+      // 543-seat hemicycle · composition ⇄ division
+      const cx = 380, cy = 300, rIn = 92, rOut = 268, rows = 8, total = 543;
+      const radii = [];
+      for (let i = 0; i < rows; i++) radii.push(rIn + ((rOut - rIn) * i) / (rows - 1));
+      const sum = radii.reduce((a, r) => a + r, 0);
+      const counts = radii.map((r) => Math.round((total * r) / sum));
+      counts[rows - 1] += total - counts.reduce((a, c) => a + c, 0);
+      const seats = [];
+      radii.forEach((r, ri) => {
+        for (let j = 0; j < counts[ri]; j++) {
+          const a = Math.PI + ((j + 0.5) / counts[ri]) * Math.PI;
+          seats.push({ a: a, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+        }
+      });
+      seats.sort((p, q) => p.a - q.a);
+      const marks = seats.map((s, i) => {
+        const vote = i < 236 ? 'aye' : i < 526 ? 'no' : 'absent';
+        const fill = alt ? (vote === 'no' ? '#e0483a' : vote === 'absent' ? w.rule : w.c) : (i < 234 ? w.c : i < 250 ? w.rule : w.deep);
+        return R('circle', { key: i, cx: s.x, cy: s.y, r: 4.3, fill: fill,
+          style: { transition: 'fill 420ms cubic-bezier(.22,1,.36,1)', transitionDelay: (i % 90) * 5 + 'ms' } });
+      });
+      const mA = Math.PI + (272 / 543) * Math.PI, rM = rOut + 16;
+      return R('svg', { viewBox: '0 0 760 340', style: { width: '100%', height: 'auto', display: 'block' } }, [
+        R('path', { key: 'arc', d: 'M ' + (cx - rM) + ' ' + cy + ' A ' + rM + ' ' + rM + ' 0 0 1 ' + (cx + Math.cos(mA) * rM) + ' ' + (cy + Math.sin(mA) * rM),
+          fill: 'none', stroke: w.deep, strokeWidth: 2, strokeDasharray: '5 7' }),
+        txt(cx + Math.cos(mA) * (rM + 22), cy + Math.sin(mA) * (rM + 22), 'Majority · 272', { fill: w.deep, a: 'end', fs: 11 }),
+        R('g', { key: 'g' }, marks)
+      ]);
+    }
+
+    if (w.k === 'earth') {
+      // Verbatim from el-nino-new-floor → climate-strip.data.values (1970–2026)
+      const V = [0.16,0.01,0.20,0.21,0.01,0.08,0.05,0.25,0.16,0.27,0.36,0.40,0.23,0.41,0.24,0.20,0.27,0.43,0.49,0.37,
+                 0.55,0.50,0.32,0.34,0.42,0.54,0.44,0.55,0.74,0.48,0.51,0.63,0.72,0.72,0.65,0.77,0.71,0.76,0.64,0.74,
+                 0.81,0.65,0.69,0.78,0.84,1.01,1.29,1.13,1.03,1.13,1.25,1.10,1.15,1.47,1.55,1.44,1.47];
+      const W = 700, H = 300, mB = 46, mT = 26;
+      const bw = (W - 56) / V.length;
+      const max = 1.6;
+      const ramp = [[33,102,172],[103,169,207],[209,229,240],[253,219,199],[239,138,98],[192,57,43]];
+      const col = (t) => { const s = Math.max(0, Math.min(1, t)) * 5, i = Math.floor(s), j = Math.min(i + 1, 5), fr = s - i;
+        return 'rgb(' + ramp[i].map((c, n) => Math.round(c + (ramp[j][n] - c) * fr)).join(',') + ')'; };
+      const y15 = H - mB - (1.5 / max) * (H - mB - mT);
+      return R('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } }, [
+        R('g', { key: 'b' }, V.map((v, i) => {
+          const h = (v / max) * (H - mB - mT);
+          return R('rect', { key: i, x: 44 + i * bw, y: H - mB - h, width: Math.max(1, bw - 1), height: h, fill: col(v / max) });
+        })),
+        R('line', { key: 'l15', x1: 40, x2: W - 12, y1: y15, y2: y15, stroke: w.ink, strokeWidth: 1, strokeDasharray: '4 5' }),
+        txt(W - 14, y15 - 7, '1.5°C threshold', { fill: w.ink, a: 'end', fs: 9.5 }),
+        R('line', { key: 'base', x1: 40, x2: W - 12, y1: H - mB, y2: H - mB, stroke: w.ink, strokeWidth: 1.2 }),
+        txt(44, H - 26, '1970', { fill: '#6b7158', a: 'start', fs: 9.5 }),
+        txt(44 + 45 * bw, H - 26, '2015', { fill: '#6b7158', fs: 9.5 }),
+        txt(W - 14, H - 26, '2026', { fill: '#6b7158', a: 'end', fs: 9.5 }),
+        txt(44, H - 12, 'anomaly vs 1850–1900 baseline · °C', { fill: '#6b7158', a: 'start', fs: 9 })
+      ]);
+    }
+
+    if (w.k === 'tech' || w.k === 'space') {
+      // Verbatim tiles from each issue's own data-readout section
+      const T = w.k === 'tech' ? [
+        { v: '$1,500', u: '/mo', l: 'Per engineer, per agentic tool', e: 'key' },
+        { v: '4', u: ' months', l: 'To exhaust the entire 2026 AI budget', e: 'warn' },
+        { v: '~11', u: '%', l: "Of a median engineer's total comp", e: 'warn' },
+        { v: '$2,180', u: '', l: 'Tokens one heavy user burned in 30 days', e: 'key' },
+        { v: '2×', u: '', l: 'GPT-5.5 API price vs GPT-5.4', e: 'key' },
+        { v: '~1.4×', u: '', l: 'Effective cost rise, Opus 4.7 vs 4.6', e: '' }
+      ] : [
+        { v: '3.1', u: '%', l: 'Peak Earth-impact odds · 18 Feb 2025', e: 'key' },
+        { v: '0.004', u: '%', l: 'Earth odds after resolution · 24 Feb', e: '' },
+        { v: '4.3', u: '%', l: 'Peak lunar-impact odds · 3 Jun 2025', e: 'key' },
+        { v: '53–67', u: ' m', l: 'Estimated diameter (JWST thermal)', e: '' },
+        { v: '>20,000', u: ' km', l: 'Miss distance from the Moon', e: 'warn' },
+        { v: 'Dec 22', u: ' 2032', l: 'Close-approach date', e: '' }
+      ];
+      const W = 700, cols = 3, cw = W / cols, ch = 104;
+      return R('svg', { viewBox: '0 0 ' + W + ' ' + (ch * 2), style: { width: '100%', height: 'auto', display: 'block' } },
+        T.map((t, i) => {
+          const cx0 = (i % cols) * cw, cy0 = Math.floor(i / cols) * ch;
+          const fill = t.e === 'key' ? w.c : t.e === 'warn' ? w.deep : w.ink;
+          return R('g', { key: i }, [
+            R('line', { x1: cx0, x2: cx0 + cw, y1: cy0, y2: cy0, stroke: w.rule }),
+            R('text', { x: cx0 + 14, y: cy0 + 48, fill: fill,
+              style: { fontFamily: "'Literata',Georgia,serif", fontSize: '34px', fontWeight: 700, letterSpacing: '-.03em' } },
+              [t.v, R('tspan', { key: 'u', style: { fontSize: '13px', fontWeight: 600, letterSpacing: '.06em' } }, t.u)]),
+            R('text', { x: cx0 + 14, y: cy0 + 72, fill: w.k === 'tech' ? '#9a9a9a' : '#6b7a92',
+              style: { fontFamily: "'Literata',Georgia,serif", fontSize: '10.5px', fontWeight: 600, letterSpacing: '.13em', textTransform: 'uppercase' } }, t.l)
+          ]);
+        })
+      );
+    }
+
+    if (w.k === 'sports') {
+      // passes allowed per defensive action — Arsenal vs next three
+      const rows = [{ n: 'Arsenal', v: 18.05, hi: true }, { n: 'Team 2', v: 13.93 }, { n: 'Team 3', v: 13.87 }, { n: 'Team 4', v: 13.67 }];
+      const W = 700, rowH = 54;
+      return R('svg', { viewBox: '0 0 ' + W + ' ' + (rows.length * rowH + 20), style: { width: '100%', height: 'auto', display: 'block' } },
+        rows.map((r, i) => {
+          const bw = (r.v / 20) * (W - 190);
+          return R('g', { key: i }, [
+            txt(112, i * rowH + 34, r.n, { fill: r.hi ? w.ink : '#9aa89a', a: 'end', fs: 12, ls: '.1em' }),
+            R('rect', { x: 126, y: i * rowH + 16, width: bw, height: 24, fill: r.hi ? w.c : w.rule }),
+            txt(126 + bw + 12, i * rowH + 34, r.v.toFixed(2), { fill: r.hi ? w.c : '#9aa89a', a: 'start', fs: 13, ls: '.02em' })
+          ]);
+        })
+      );
+    }
+
+    // travel — Everest elevation profile, real camp altitudes
+    const pts = [[0,5364,'Base Camp'],[6,6065,'C1'],[9,6400,'C2'],[12,7162,'C3'],[14,7950,'C4 · death zone'],[17,8849,'Summit']];
+    const W = 700, H = 300, mL = 54, mB = 44, mT = 24;
+    const sx = (km) => mL + (km / 17) * (W - mL - 30);
+    const sy = (m) => H - mB - ((m - 5000) / 4000) * (H - mB - mT);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + sx(p[0]) + ' ' + sy(p[1])).join(' ');
+    const area = line + ' L ' + sx(17) + ' ' + (H - mB) + ' L ' + sx(0) + ' ' + (H - mB) + ' Z';
+    return R('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block' } }, [
+      R('rect', { key: 'dz', x: mL, y: mT, width: W - mL - 30, height: sy(7950) - mT, fill: w.c, opacity: .09 }),
+      txt(W - 34, sy(7950) - 8, 'death zone · above 7,950 m', { fill: w.deep, a: 'end', fs: 9.5 }),
+      R('path', { key: 'a', d: area, fill: w.c, opacity: .16 }),
+      R('path', { key: 'l', d: line, fill: 'none', stroke: w.deep, strokeWidth: 2.4 }),
+      R('g', { key: 'p' }, pts.map((p, i) => R('g', { key: i }, [
+        R('circle', { cx: sx(p[0]), cy: sy(p[1]), r: i === 4 ? 6 : 4, fill: i === 4 ? w.deep : w.c }),
+        txt(sx(p[0]), sy(p[1]) - 14, p[2], { fill: w.ink, fs: 9.5, ls: '.06em', extra: { textAnchor: i === 0 ? 'start' : i === 5 ? 'end' : 'middle' } })
+      ]))),
+      R('line', { key: 'base', x1: mL, x2: W - 30, y1: H - mB, y2: H - mB, stroke: w.ink, strokeWidth: 1.2 }),
+      txt(mL, H - 16, '0 km', { fill: '#8a7864', a: 'start', fs: 9.5 }),
+      txt(W - 30, H - 16, '~17 km', { fill: '#8a7864', a: 'end', fs: 9.5 })
+    ]);
+  }
+
+  vizMeta(k) {
+    return {
+      politics: { label: 'the division', alt: 'Composition', altOn: 'Division',
+        title: 'How the house voted on the delimitation bill',
+        unit: '543 seats · 1 dot = 1 seat',
+        howTo: 'each dot is one of the 543 members, seated as the chamber actually is. The dashed arc is the two-thirds line an amendment must clear. Composition colours the dots by bloc; Division recolours them by how each member voted.',
+        legend: [{ c: 'var(--w-acc2)', l: 'Government bloc · 293' }, { c: 'var(--w-acc)', l: 'Opposition · 234' }, { c: 'var(--w-rule)', l: 'Unaligned · 16' }],
+        legendAlt: [{ c: 'var(--w-acc)', l: 'Aye' }, { c: '#e0483a', l: 'No' }, { c: 'var(--w-rule)', l: 'Absent' }],
+        plain: 'the bill fell 54 short — 236 ayes against 290 noes, with 17 members absent. An amendment of this kind needs 362.',
+        source: 'Source · Lok Sabha division records' },
+      space: { label: 'key figures', alt: 'Earth', altOn: 'Moon',
+        title: 'The numbers that moved without the rock moving',
+        unit: 'each tile · one published figure',
+        howTo: 'six figures from the observation record, each as published. Tiles in accent are the two peaks that drove the story; tiles in deep accent are the constraints that ended it. Switch between the Earth and Moon tracks.',
+        legend: [{ c: 'var(--w-acc)', l: 'Peak figure' }, { c: 'var(--w-acc2)', l: 'Hard constraint' }, { c: 'var(--w-ink)', l: 'Context' }],
+        plain: 'the Earth odds peaked at 3.1% on 18 February 2025 and resolved to 0.004% six days later. Nothing about the rock changed — only how precisely its path was known.',
+        source: 'Source · NASA Planetary Defense blogs (19 & 24 Feb, 2 Apr, 5 Jun 2025; 5 Mar 2026) · ESA Planetary Defence' },
+      earth: { label: 'the floor', alt: 'Annual', altOn: 'Decadal',
+        title: 'The floor the swing now sits above',
+        unit: '°C above the 1850–1900 mean',
+        howTo: 'one bar per year since 1970. Height and colour both encode the same thing — the temperature anomaly against the pre-industrial mean — so a cool La Niña year and a warm El Niño year can be compared directly. Watch where the recent cool years land against the warm years of earlier decades.',
+        ramp: 'linear-gradient(90deg, rgb(33,102,172), rgb(103,169,207), rgb(209,229,240), rgb(253,219,199), rgb(239,138,98), rgb(192,57,43))',
+        rampLo: '0.0°C', rampHi: '1.6°C',
+        plain: 'the 2025 La Niña year reached 1.44°C — still above every El Niño year before 2023. The swing is intact; the floor it swings above is not.',
+        source: 'Source · Berkeley Earth · Copernicus C3S ERA5 · WMO State of Global Climate 2025 · Carbon Brief (2026 = projected)' },
+      tech: { label: 'uber · ai coding spend, 2026', alt: 'Per seat', altOn: 'Annual',
+        title: 'The line item that ate a year of budget by April',
+        unit: 'each tile · one published figure',
+        howTo: 'six figures from the reporting, each as published. Tiles in accent are the spend figures; tiles in deep accent are the ones that triggered the cap. Toggle between the per-seat view and the annual total.',
+        legend: [{ c: 'var(--w-acc)', l: 'Spend figure' }, { c: 'var(--w-acc2)', l: 'Trigger' }, { c: 'var(--w-ink)', l: 'Context' }],
+        plain: 'a $1,500 monthly cap per engineer, per tool — set after four months consumed the entire 2026 AI budget.',
+        source: 'Source · Bloomberg (Natalie Lung) via Simon Willison, 2–3 Jun 2026 · Willison, 27 May & 20 Apr 2026' },
+      sports: { label: 'passes allowed', alt: 'Top 4', altOn: 'League',
+        title: 'The pressing number nobody else is near',
+        unit: 'opponent passes per defensive action',
+        howTo: 'how many passes an opponent completes before the team engages. Lower means pressing sooner. The bars are ranked, so what matters is not any one value but the size of the gap between first and second.',
+        legend: [{ c: 'var(--w-acc)', l: 'Arsenal' }, { c: 'var(--w-rule)', l: 'Rest of the top four' }],
+        plain: 'the gap between Arsenal and the next three sides is larger than the gap between those three and mid-table.',
+        source: 'Source · Premier League 2025/26 match data' },
+      travel: { label: 'the death zone', alt: 'Profile', altOn: 'Grade',
+        title: 'Where waiting becomes the hazard',
+        unit: 'altitude in metres · distance in km',
+        howTo: 'the South Col route in profile: horizontal is distance travelled, vertical is height above sea level. Dots are camps, and the summit is the larger one. Camp altitudes are verified; trail distances are illustrative.',
+        legend: [{ c: 'var(--w-acc2)', l: 'Route' }, { c: 'var(--w-acc)', l: 'Camps' }, { c: 'rgba(200,90,60,.26)', l: 'Death zone · above 7,950 m' }],
+        plain: 'above 7,950 m a climber has roughly three days, and the queue is spent inside that window. The altitude is survivable; the waiting is what kills.',
+        source: 'Source · Alan Arnette / South Col route maps' }
+    }[k];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const w = this.cur();
+    const iss = this.curIssue();
+    const all = this.worlds();
+    const allIss = this.issues();
+    const phone = s.vw === 'phone';
+    const dark = ['space', 'tech', 'sports'].includes(w.k);
+    const mix = (hex, a) => {
+      const n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    };
+
+    const year = 2026 + Math.round((s.yr / 100) * 30);
+    const north = Math.round(178 + (s.yr / 100) * 76);
+    const south = Math.round(129 - (s.yr / 100) * 34);
+    const tot = north + south;
+
+    const vm = this.vizMeta(w.k);
+    const DIAL = { politics: 325, space: 25, earth: 85, tech: 145, travel: 205, sports: 265 };
+    const dialAt = (deg, r) => [(150 - r * Math.cos(deg * Math.PI / 180)).toFixed(1), (150 - r * Math.sin(deg * Math.PI / 180)).toFixed(1)];
+    const [markOx, markOy] = dialAt(DIAL[w.k] || 325, 15);
+    const deskMarks = this.worlds().map((x) => {
+      const [ox, oy] = dialAt(DIAL[x.k], 15);
+      return { c: x.c, ox: ox, oy: oy };
+    });
+    const lore = this.loreEntries(w);
+    const plate = this.plates()[w.k];
+    const lens = this.lenses()[w.k];
+    const dated = allIss.map((i) => Object.assign({}, i, { c: all.find((x) => x.k === i.k).c }));
+
+    const archive = dated
+      .filter((a) => s.filter === 'all' || a.k === s.filter)
+      .map((a) => Object.assign({}, a, { go: () => this.setState({ world: a.k, page: 'issue', menu: false }) }));
+
+    const filters = [{ k: 'all', label: 'All ' + dated.length }].concat(all.map((x) => ({ k: x.k, label: x.n, c: x.c })))
+      .map((f) => {
+        const on = s.filter === f.k;
+        return { label: f.label, c: f.c || w.c, dotShow: f.c ? 'inline-block' : 'none',
+          bd: on ? w.ink : mix(w.ink, .22), bg: on ? mix(w.c, .1) : 'transparent', fg: w.ink,
+          go: () => this.setState({ filter: f.k }) };
+      });
+
+    const navDefs = [{ k: 'home', label: 'Home' }, { k: 'desk', label: 'Desks' }, { k: 'archive', label: 'Archive' }, { k: 'about', label: 'About' }];
+    const urls = { home: 'parallaxlens.com', desk: 'parallaxlens.com/topics/' + w.k,
+      issue: 'parallaxlens.com/issues/' + iss.no.replace('№ ', '') + '-' + iss.t.toLowerCase().replace(/[^a-z ]/g, '').split(' ').slice(0, 3).join('-'),
+      archive: 'parallaxlens.com/archive', about: 'parallaxlens.com/about', subscribe: 'parallaxlens.com/subscribe' };
+
+    const deskIssues = {
+      politics: [
+        { no: '№ 03', t: 'The Trojan Horse in Parliament', s: 'How a bill about women\u2019s empowerment became the vehicle for the biggest redrawing of Indian political power in 50 years.', date: 'Apr 24, 2026', read: '6 min' },
+        { no: '№ 07', t: 'The Ban That Made It Bigger', s: 'A national takedown order is a territorial tool aimed at a borderless object.', date: 'Jun 04, 2026', read: '8 min' },
+        { no: '№ 11', t: 'Seven Appeals and the Rupee', s: 'What seven consecutive appeals to the central bank reveal about who sets the price of money.', date: 'May 15, 2026', read: '7 min' }
+      ],
+      tech: [{ no: '№ 24', t: 'The Bill Came Due in April', s: 'Cheaper is a per-unit word. The invoice is a per-task number.', date: 'Jun 04, 2026', read: '7 min' }],
+      space: [{ no: '№ 22', t: 'The Asteroid We Talked Down', s: 'The number went up before it went down. That was the system working.', date: 'Jun 04, 2026', read: '7 min' },
+        { no: '№ 19', t: 'The Kessler Cascade', s: 'What a chain reaction in low Earth orbit actually costs.', date: 'Apr 24, 2026', read: '6 min' }],
+      sports: [{ no: '№ 23', t: 'The Title Nobody Could Watch', s: 'The most-criticised Arsenal was the winning machine.', date: 'Jun 04, 2026', read: '7 min' }],
+      earth: [{ no: '№ 18', t: 'The Pacific That No Longer Resets', s: 'What looks like an oscillation is a staircase.', date: 'May 03, 2026', read: '7 min' },
+        { no: '№ 15', t: 'The Forest Has a Dial, and It Isn\u2019t Temperature', s: 'Two dials, two thresholds — and the world watches the wrong one.', date: 'Jun 04, 2026', read: '7 min' }],
+      travel: [{ no: '№ 09', t: 'The Queue Is the Product', s: 'Two mountains, two ways to put a price on the line.', date: 'Jun 04, 2026', read: '7 min' }]
+    }[w.k].map((d) => Object.assign({}, d, { go: () => this.setState({ page: 'issue', menu: false }) }));
+
+    return {
+      frameW: phone ? '412px' : '1280px',
+      vwLabel: phone ? '412 × mobile web' : '1280 × desktop',
+      setDesktop: () => this.setState({ vw: 'desktop', menu: false }),
+      setPhone: () => this.setState({ vw: 'phone' }),
+      dBg: phone ? 'transparent' : '#fff', dFg: phone ? 'rgba(255,255,255,.6)' : '#1c1a18',
+      pBg: phone ? '#fff' : 'transparent', pFg: phone ? '#1c1a18' : 'rgba(255,255,255,.6)',
+
+      pad: phone ? '24px 20px 28px' : '46px 40px 40px',
+      padX: phone ? '20px' : '40px',
+      proseX: phone ? '20px' : '30px',
+      navPad: phone ? '13px 20px' : '15px 40px',
+      gap: phone ? '22px' : '34px',
+      h1: phone ? '40px' : '68px',
+      lede: phone ? '17px' : '21px',
+      brandSize: phone ? '21px' : '25px',
+      heroCols: phone ? '1fr' : '1.4fr 0.6fr',
+      deskCols: phone ? '1fr' : 'repeat(3, 1fr)',
+      promiseCols: phone ? '1fr' : 'repeat(3, 1fr)',
+      markCols: phone ? '1fr' : '260px 1fr',
+      loreCols: phone ? '1fr' : '150px 1fr 260px',
+      loreH: phone ? '28px' : '34px',
+      voiceCols: phone ? '1fr 1fr' : 'repeat(4, 1fr)',
+      issueCols: phone ? '1fr' : '170px 1fr 250px',
+      listCols: phone ? '64px 1fr' : '92px 1fr 170px',
+      archCols: phone ? '84px 1fr' : '110px 1fr 170px',
+      subCols: phone ? '1fr' : '1fr 1fr',
+      footCols: phone ? '1fr' : '1.6fr 1fr 1fr',
+      listAlign: phone ? 'left' : 'right',
+      metaSpan: phone ? '2 / 3' : 'auto',
+      metaTop: phone ? '4px' : '0',
+      marginShow: phone ? 'none' : 'flex',
+      colRule: phone ? 'transparent' : w.rule,
+      navShow: phone ? 'none' : 'flex',
+      burgerShow: phone ? 'inline-block' : 'none',
+      menuShow: phone && s.menu ? 'flex' : 'none',
+      toggleMenu: () => this.setState({ menu: !s.menu }),
+
+      worldKey: w.k, vwKey: phone ? 'phone' : 'desktop', modeKey: s.mode,
+      acc: w.c,
+      ink2: mix(w.ink, dark ? .74 : .78),
+      muted: mix(w.ink, dark ? .62 : .72),
+      rule: w.rule, rule2: mix(w.ink, .26), tintSoft: mix(w.c, dark ? .1 : .07),
+
+      url: urls[s.page],
+      deskLabel: w.reg,
+      liveNo: allIss[0].no.replace('№ ', ''),
+
+      isHome: s.page === 'home', isDesk: s.page === 'desk', isIssue: s.page === 'issue',
+      isArchive: s.page === 'archive', isAbout: s.page === 'about', isSubscribe: s.page === 'subscribe',
+      goHome: () => this.setState({ page: 'home', menu: false }),
+      goDesk: () => this.setState({ page: 'desk', menu: false }),
+      goIssue: () => this.setState({ page: 'issue', menu: false }),
+      goSubscribe: () => this.setState({ page: 'subscribe', menu: false }),
+
+      nav: navDefs.map((n) => ({ label: n.label, fg: s.page === n.k ? w.ink : mix(w.ink, .68),
+        mark: s.page === n.k ? w.c : 'transparent', go: () => this.setState({ page: n.k, menu: false }) })),
+
+      wire: allIss.map((i) => ({ s: i.no + ' ' + i.t })),
+      counters: [
+        { l: 'Issues', v: '24', fg: w.ink },
+        { l: 'Sources cited', v: '1,412', fg: w.ink },
+        { l: 'Desks', v: '6', fg: w.c }
+      ],
+
+      desks: all.map((x) => {
+        const d = ['space', 'tech', 'sports'].includes(x.k);
+        return Object.assign({}, x, {
+          no: (allIss.find((i) => i.k === x.k) || {}).no || '',
+          field: d ? x.bg : mix(x.c, .07),
+          fg: x.ink,
+          metaFg: mix(x.ink, d ? .62 : .72),
+          bodyFg: mix(x.ink, d ? .74 : .78),
+          ghost: mix(x.c, d ? .17 : .13),
+          go: () => this.setState({ world: x.k, page: 'desk', menu: false })
+        });
+      }),
+
+      latest: dated.map((a) => Object.assign({}, a, { go: () => this.setState({ world: a.k, page: 'issue', menu: false }) })),
+      archive, filters, archCount: dated.length + ' issues',
+
+      deskReg: w.reg, deskCount: w.count, deskTitle: w.title, deskBlurb: w.blurb, deskList: deskIssues,
+
+      leadEyebrow: iss.eyebrow, leadTitleA: iss.pre, leadTitleEm: iss.em, leadTitleB: iss.post,
+      leadHook: iss.hook, leadDate: iss.date, leadRead: iss.read,
+      issueMeta: iss.no + ' · ' + iss.date, issueEyebrow: iss.eyebrow, issuePrimer: iss.primer,
+      issueSources: iss.sources, issueMode: iss.mode, issueDek: iss.dek,
+      issueSkim: iss.skim, issueP1: iss.p1, issueP2: iss.p2, dropCap: iss.p1.charAt(0).toUpperCase() === iss.p1.charAt(0) ? 'I' : iss.t.charAt(0),
+      statBig: iss.statBig, statLabel: iss.statLabel,
+
+      markOx: markOx, markOy: markOy, deskMarks: deskMarks, lore: lore,
+
+      markSize: phone ? '24px' : '30px',
+      bindFx: (el) => this.bindFx(el),
+      plateId: 'w-plate-' + w.k, plateHint: plate.hint, plateCaption: plate.cap, plateSource: plate.src,
+      hasPlateImg: !!plate.img, noPlateImg: !plate.img,
+      bindPlate: (el) => {
+        if (!el || !plate.img) return;
+        if (el.getAttribute('src') !== plate.img) el.src = plate.img;
+        el.style.objectFit = plate.fit || 'cover';
+        const box = el.parentElement;
+        if (!box) return;
+        if (plate.frameH) box.style.height = plate.frameH;
+        box.style.background = plate.fit === 'contain' ? 'rgba(0,0,0,.05)' : 'transparent';
+      },
+      hasLens: !!lens,
+      lensIdA: 'w-lens-a-' + w.k, lensIdB: 'w-lens-b-' + w.k,
+      lensHintA: lens ? lens.a : '', lensHintB: lens ? lens.b : '', lensLabel: lens ? lens.label : '',
+
+      viz: this.graphic(w, s.alt),
+      vizLabel: vm.label, vizPlain: vm.plain, vizSource: vm.source,
+      vizTitle: vm.title, vizUnit: vm.unit, vizHowTo: vm.howTo,
+      vizLegend: (s.alt && vm.legendAlt) ? vm.legendAlt : (vm.legend || []),
+      vizHasRamp: !!vm.ramp, vizRamp: vm.ramp || '', vizRampLo: vm.rampLo || '', vizRampHi: vm.rampHi || '',
+      altLabel: (s.alt ? vm.altOn : vm.alt) + ' ⇄',
+      toggleAlt: () => this.setState({ alt: !s.alt }),
+
+      isFull: s.mode === 'full', isSkim: s.mode === 'skim',
+      setFull: () => this.setState({ mode: 'full' }), setSkim: () => this.setState({ mode: 'skim' }),
+
+
+      yr: s.yr, setYr: (e) => this.setState({ yr: Number(e.target.value) }),
+      year: String(year), north: String(north), south: String(south),
+      nPct: ((north / tot) * 100).toFixed(1) + '%', sPct: ((south / tot) * 100).toFixed(1) + '%',
+      claim: s.yr < 34 ? 'Today the two blocs sit ' + (north - south) + ' seats apart.'
+        : s.yr < 70 ? 'By ' + year + ', the north gains a bloc the size of Tamil Nadu.'
+        : 'By ' + year + ', one region alone can amend the constitution.',
+
+      promises: [
+        { no: '01', t: 'Independent', b: 'Not for profit. No investors. No advertisers.' },
+        { no: '02', t: 'Sourced', b: 'Every claim cites a primary source. Every dataset linked.' },
+        { no: '03', t: 'Slow', b: 'Read in six minutes. Argued in sixty days.' }
+      ],
+      steps: [
+        { no: '01', t: 'Start with what you know', b: 'A headline you have already scrolled past. We assume you know the summary and skip it.' },
+        { no: '02', t: 'Move the viewpoint', b: 'The structure underneath — the procedure, the arithmetic, the incentive — rebuilt as something you can operate.' },
+        { no: '03', t: 'Keep the argument', b: 'Sources under every number, a skim mode for the hurry, and sixty days of letters.' }
+      ],
+      voices: [
+        { n: 'Awe', d: 'Scale, deep time, mechanism marvel.' },
+        { n: 'Conversational', d: 'Step-by-step mechanism.' },
+        { n: 'Calm-structural', d: 'Naming structural cost.' },
+        { n: 'Satirical exposure', d: 'Contradiction by its own data.' },
+        { n: 'Dry wit', d: 'Bureaucratic precision as deadpan.' },
+        { n: 'Investigation', d: 'Anomaly, then evidence.' },
+        { n: 'Forensic', d: 'Mechanism with human stakes.' },
+        { n: 'Lyrical compression', d: 'One emotional landing.' }
+      ],
+      perks: [
+        { t: 'Every issue in full, no metering' },
+        { t: 'All interactive charts and instruments' },
+        { t: 'The complete archive, back to № 01' },
+        { t: 'Annotation layer and saved reading' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

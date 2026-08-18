@@ -1,0 +1,36 @@
+<!--
+  Example payload for `river-multiples` — paste into
+  src/content/issues/2026-06-03-earth-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: river-multiples
+    eyebrow: "TWELVE RIVERS, ONE YEAR"
+    title: "Twelve rivers, the same twelve *months*."
+    intro: "One panel per river, each scaled to its own peak — so heights compare shapes, not volumes. What you are comparing is when the water arrives."
+    data:
+      caption: "Nine of the twelve peak in July or August."
+      source: "National gauging stations, mean monthly discharge 1991–2020"
+      panels:
+        - { name: "Brahmaputra",   peakValue: 19800, unit: "m³/s", peakLabel: "Jul", values: [0.06,0.07,0.11,0.22,0.44,0.78,1.00,0.92,0.61,0.29,0.13,0.08] }
+        - { name: "Ganges",        peakValue: 16600, unit: "m³/s", peakLabel: "Aug", values: [0.05,0.05,0.08,0.15,0.32,0.68,0.94,1.00,0.72,0.34,0.14,0.07] }
+        - { name: "Godavari",      peakValue: 9400,  unit: "m³/s", peakLabel: "Aug", values: [0.04,0.04,0.04,0.05,0.12,0.52,0.88,1.00,0.66,0.24,0.09,0.05] }
+        - { name: "Mahanadi",      peakValue: 7300,  unit: "m³/s", peakLabel: "Aug", values: [0.05,0.05,0.06,0.08,0.16,0.48,0.86,1.00,0.74,0.31,0.11,0.06] }
+        - { name: "Indus",         peakValue: 6900,  unit: "m³/s", peakLabel: "Jul", values: [0.09,0.09,0.12,0.22,0.44,0.78,1.00,0.88,0.52,0.26,0.14,0.10] }
+        - { name: "Krishna",       peakValue: 5200,  unit: "m³/s", peakLabel: "Aug", values: [0.06,0.05,0.05,0.07,0.14,0.46,0.84,1.00,0.68,0.28,0.10,0.07] }
+        - { name: "Narmada",       peakValue: 4100,  unit: "m³/s", peakLabel: "Aug", values: [0.04,0.03,0.03,0.04,0.08,0.42,0.90,1.00,0.58,0.18,0.07,0.05] }
+        - { name: "Chenab",        peakValue: 3600,  unit: "m³/s", peakLabel: "Jun", values: [0.12,0.13,0.20,0.38,0.68,1.00,0.94,0.72,0.44,0.24,0.15,0.12] }
+        - { name: "Sutlej",        peakValue: 3100,  unit: "m³/s", peakLabel: "Jul", values: [0.11,0.11,0.16,0.30,0.56,0.86,1.00,0.90,0.54,0.26,0.15,0.12] }
+        - { name: "Kaveri",        peakValue: 2800,  unit: "m³/s", peakLabel: "Oct", values: [0.09,0.07,0.07,0.12,0.24,0.38,0.46,0.58,0.74,1.00,0.62,0.24] }
+        - { name: "Tapti",         peakValue: 2400,  unit: "m³/s", peakLabel: "Aug", values: [0.03,0.03,0.03,0.04,0.07,0.40,0.88,1.00,0.54,0.16,0.06,0.04] }
+        - { name: "Periyar",       peakValue: 1900,  unit: "m³/s", peakLabel: "Jun", values: [0.11,0.09,0.10,0.22,0.52,1.00,0.86,0.72,0.64,0.78,0.42,0.18] }
+
+# Peak-month tally: Jul 3, Aug 6, Jun 2, Oct 1 → nine in Jul or Aug.
+# The three exceptions are Chenab and Sutlej (melt-fed, early), Periyar
+# (twin-crested) and Kaveri (retreating monsoon). The caption counts
+# nine; verify against peakLabel before editing either.

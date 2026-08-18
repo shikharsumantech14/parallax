@@ -1,0 +1,39 @@
+<!--
+  Example payload for `heat-uptake` — paste into
+  src/content/issues/2026-06-03-earth-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: heat-uptake
+    eyebrow: "FIFTY-FIVE YEARS OF ENERGY"
+    title: "Where the extra heat *actually went*."
+    intro: "The bands stack, so the top edge is the whole total. Read it in zettajoules to watch the total grow, or as shares to see the split hold steady."
+    data:
+      caption: "382 zettajoules since 1970, 89% of it in the ocean."
+      source: "Ocean heat content reanalysis and cryosphere mass budget, 1970–2025"
+      from: 1970
+      to: 2025
+      unit: ZJ
+      mode: absolute
+      components:
+        - { id: upper, label: "Ocean, 0–700 m",     share: 0.556, note: "The top seven hundred metres take more than half of everything." }
+        - { id: deep,  label: "Ocean, below 700 m", share: 0.331, note: "Warming slowly and irreversibly on any human timescale." }
+        - { id: land,  label: "Land and groundwater", share: 0.058, note: "Small in energy terms, and where almost all of the visible damage happens." }
+        - { id: ice,   label: "Ice and atmosphere",  share: 0.055, note: "Melting ice absorbs energy without changing temperature, which is why this band stays thin." }
+      total:
+        - { period: 1970, value: 26 }
+        - { period: 1985, value: 78 }
+        - { period: 1995, value: 141 }
+        - { period: 2005, value: 223 }
+        - { period: 2015, value: 300 }
+        - { period: 2025, value: 382 }
+
+# Share check: 0.556 + 0.331 + 0.058 + 0.055 = 1.000 ✓
+# Ocean = 0.887, which is the caption's 89%.
+# Total grows 26 → 382, ×14.7 — while the four shares stay fixed. That
+# constancy is the argument, and it is why share mode matters.

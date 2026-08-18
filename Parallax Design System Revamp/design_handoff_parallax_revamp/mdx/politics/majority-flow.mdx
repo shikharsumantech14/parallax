@@ -1,0 +1,38 @@
+<!--
+  Example payload for `majority-flow` — paste into
+  src/content/issues/2026-06-03-politics-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: majority-flow
+    eyebrow: "THE ARITHMETIC OF A MAJORITY"
+    title: "Where a majority actually *comes from*."
+    intro: "Every seat enters as a party group, merges into a bloc, and arrives at one question — can that bloc pass a law alone. Press a group to see what its exit would do."
+    data:
+      caption: "The government bloc clears the majority by 21 seats."
+      source: "Lok Sabha party rolls and coalition agreements, June 2026"
+      majority: 272
+      chamberTotal: 543
+      unit: seats
+      groups:
+        - { id: gov,   label: "Government",            seats: 240, bloc: g }
+        - { id: allyA, label: "Ally · western states", seats: 28,  bloc: g }
+        - { id: allyB, label: "Ally · north-east",     seats: 25,  bloc: g }
+        - { id: opp,   label: "Main opposition",       seats: 99,  bloc: o }
+        - { id: regC,  label: "Regional · south",      seats: 42,  bloc: o }
+        - { id: regD,  label: "Regional · east",       seats: 37,  bloc: o }
+        - { id: unal,  label: "Unaligned",             seats: 72,  bloc: u }
+      blocs:
+        - { id: g, label: "Government bloc", canLegislate: true }
+        - { id: o, label: "Opposition bloc", canLegislate: false }
+        - { id: u, label: "Unaligned",       canLegislate: false }
+
+# Conservation check: 240+28+25+99+42+37+72 = 543 = chamberTotal ✓
+# Bloc g = 293, which clears 272 by 21. Either ally (28 or 25) is
+# load-bearing — removing one gives 265 or 268, both short. That is the
+# counterfactual the component is built to expose.

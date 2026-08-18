@@ -1,0 +1,52 @@
+<!--
+  Example payload for `debris-histogram` — paste into
+  src/content/issues/2026-06-03-space-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: debris-histogram
+    eyebrow: "WHAT IS ACTUALLY UP THERE"
+    title: "The debris nobody *can see*."
+    intro: "Objects sorted into size bins on a scale where each gridline is ten times the one below. A bar one step taller means ten times as many objects, not twice."
+    data:
+      caption: "175,816 objects, of which 13,816 can be tracked."
+      source: "Orbital debris catalogue and statistical size model, 2026"
+      countUnit: objects
+      flagLabel: "Trackable only"
+      bins:
+        - label: "1–5 cm"
+          count: 128000
+          flagged: false
+          note: "Too small to track, large enough to end a mission. This bar is the actual risk."
+        - label: "5–10 cm"
+          count: 34000
+          flagged: false
+          note: "Detected occasionally, catalogued almost never. Nothing manoeuvres around these."
+        - label: "10–20 cm"
+          count: 9382
+          flagged: true
+          note: "The smallest size radar holds reliably. Everything from here up has a name and an orbit."
+        - label: "20–50 cm"
+          count: 3100
+          flagged: true
+          note: "Catalogued, and the source of most conjunction warnings."
+        - label: "50 cm – 1 m"
+          count: 940
+          flagged: true
+          note: "Mostly spent upper stages and dead satellites."
+        - label: "1–3 m"
+          count: 310
+          flagged: true
+          note: "Large enough that a collision would create thousands of new objects in the bins to the left."
+        - label: "over 3 m"
+          count: 84
+          flagged: true
+          note: "Intact derelict spacecraft. Each one is a future debris cloud waiting for a trigger."
+
+# Totals: all bins 175,816; flagged bins 13,816 — 7.9% of the population.
+# Every count > 0, as a log axis requires.

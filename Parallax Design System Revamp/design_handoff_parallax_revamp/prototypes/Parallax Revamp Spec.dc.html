@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,300..700&display=swap" rel="stylesheet">
+<script src="./doc-page.js"></script>
+<style>
+  body { margin: 0; }
+  a { color: #b8341f; text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: #8b2416; }
+</style>
+</helmet>
+
+<doc-page margin="0.85in">
+  <div style="font-family: 'Literata', Georgia, serif; color: #161412; font-variant-numeric: tabular-nums;">
+
+    <p style="margin: 0 0 14px; font-weight: 600; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: #6b5f52;">Parallax Lens · internal · August 2026</p>
+    <h1 style="margin: 0 0 14px; font-size: 40px; font-weight: 700; line-height: 1.03; letter-spacing: -.032em;">The revamp, <em style="font-style: italic; font-weight: 400; color: #b8341f;">specified</em></h1>
+    <p style="margin: 0 0 10px; font-size: 17px; font-weight: 300; line-height: 1.5; color: rgba(22,20,18,.78); max-width: 46ch;">What the website and reader app are now built from — read off the two working prototypes rather than proposed on top of them.</p>
+    <p style="margin: 0 0 30px; padding-bottom: 22px; border-bottom: 3px solid #161412; font-size: 14px; line-height: 1.6; color: rgba(22,20,18,.72);">Source of truth: <b>Parallax Brand.dc.html</b> (the mark and its assets), <b>Parallax Web.dc.html</b> (six pages, desktop and mobile web) and <b>Parallax App.dc.html</b> (eleven screens, 393 × 852). Where the two differ, this document says so.</p>
+
+    <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">1 · What changed</h2>
+    <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.66;">Three decisions carry the revamp. Everything below is downstream of them.</p>
+    <div style="display: grid; grid-template-columns: 26px 1fr; gap: 10px 14px; margin-bottom: 14px; font-size: 15px; line-height: 1.6;">
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 4px;">01</span>
+      <span><b>One typeface, seven roles.</b> The old stack ran Zodiak, Erode, DM Mono and a per-topic display face. It is now Literata alone, with weight, size and tracking doing the work the extra families used to do. Anek Devanagari survives for one job only: the bilingual wordmark in the app.</span>
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 4px;">02</span>
+      <span><b>The six worlds are data, not themes.</b> Ground, ink, accent, accent-deep, rule and on-accent travel together as one record per world. Every surface reads them; nothing hard-codes a colour.</span>
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 4px;">03</span>
+      <span><b>Every issue carries its own instrument.</b> Each of the six has a data component built from its own published figures — a hemicycle, a climate strip, a bar rank, an elevation profile, or a readout of tiles.</span>
+    </div>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">2 · The mark</h2>
+    <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.66;">Four concentric circles, one dial position and one letter, on a 300-unit box centred at 150,150. Ring <b>r = 118</b>, stroke 7, ink. Light <b>r = 110</b>, accent. Occluder <b>r = 113</b> — three units larger than the light, which is what makes the crescent swell at the belly and taper to points — filled in the surface's ground colour. Letter: Literata 700 at 160 units, anchored middle at x = 150, baseline y = 207, so the cap centre lands optically on 150 rather than box-centred. Clear space is 15 units on all four sides.</p>
+    <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.66;">The occluder sits <b>15 units from centre, pushed away from the desk's angle θ</b>, so the crescent appears at θ. That angle is the only value that changes between desks — six stations, 60° apart, politics anchoring the dial at 325°.</p>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12.5px; text-align: center;">
+      <tbody><tr><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#b8341f"/><circle cx="137.7" cy="158.6" r="113" fill="#faf7f0"/><circle cx="150" cy="150" r="118" fill="none" stroke="#161412" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#161412">P</text></svg><span style="font-size: 10px;">Politics · 325°</span></span></td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#00d4ff"/><circle cx="136.4" cy="143.7" r="113" fill="#0a1628"/><circle cx="150" cy="150" r="118" fill="none" stroke="#e8eef7" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#e8eef7">P</text></svg><span style="font-size: 10px;">Space · 25°</span></span></td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#2d6a4f"/><circle cx="148.7" cy="135.1" r="113" fill="#f4ecd4"/><circle cx="150" cy="150" r="118" fill="none" stroke="#1f2a1c" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#1f2a1c">P</text></svg><span style="font-size: 10px;">Earth · 85°</span></span></td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#c6f432"/><circle cx="162.3" cy="141.4" r="113" fill="#0a0a0a"/><circle cx="150" cy="150" r="118" fill="none" stroke="#fafafa" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#fafafa">P</text></svg><span style="font-size: 10px;">Tech · 145°</span></span></td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#c85a3c"/><circle cx="163.6" cy="156.3" r="113" fill="#fffdf6"/><circle cx="150" cy="150" r="118" fill="none" stroke="#2a1f15" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#2a1f15">P</text></svg><span style="font-size: 10px;">Travel · 205°</span></span></td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;"><span style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><svg viewBox="0 0 300 300" style="width: 38px; height: 38px; display: block;"><circle cx="150" cy="150" r="110" fill="#e8f048"/><circle cx="151.3" cy="164.9" r="113" fill="#0f2820"/><circle cx="150" cy="150" r="118" fill="none" stroke="#f5f5f0" stroke-width="11"/><text x="150" y="207" text-anchor="middle" font-family="Literata, Georgia, serif" font-size="160" font-weight="700" fill="#f5f5f0">P</text></svg><span style="font-size: 10px;">Sports · 265°</span></span></td></tr></tbody>
+    </table>
+    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 9px 16px; font-size: 14.5px; line-height: 1.6; margin-bottom: 12px;">
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Outline cut</span><span>The everyday mark — masthead, footer, lockups, share cards. Ring stroke thickens as it shrinks: 7 units at 96px, 10 at 40px, 14 at 24px.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Reversed cut</span><span>Solid ink disc, letter knocked out, crescent dropped. This is the seal, and it is also the declared tier below 24px — favicon, app icon, inline end mark. Not a degradation; a different drawing.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Cover cut</span><span>A second crescent outside the ring on the opposite flank, from the same dial. Two accent elements, so it is reserved for covers, posters and the colophon. Never a favicon, avatar or masthead.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Never</span><span>No gradient or sphere shading, no off-station dial, no rotation, no second accent colour, no substitute letter, no drop shadow.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Assets</span><span>38 SVGs in <b>brand/</b>: mark, seal and cover per desk, plus favicon, app icon, avatar, watermark, end mark, three lockups and two banners. All generated from the same construction — regenerate rather than hand-edit.</span>
+    </div>
+    <p style="margin: 0 0 6px; font-size: 14.5px; line-height: 1.62;">Full construction, misuse plate and banner specimens live in <b>Parallax Brand.dc.html</b>. The six rounds of exploration behind the mark are published to readers on the website's About page.</p>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">3 · Colour</h2>
+    <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.66;">One accent per surface, plus ink and paper. The vivid accent is for hairlines, dots, fills and dark grounds; <b>accent-deep</b> is the type-safe sibling on light paper. Never three colours on a page.</p>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 7px 8px 7px 0; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">World</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Ground</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Ink</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Accent</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Deep</th>
+          <th style="text-align: left; padding: 7px 0 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Rule</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #b8341f;"></span>Politics</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#faf7f0</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#161412</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#b8341f</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#8b2416</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#ddd4c4</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #00d4ff;"></span>Space</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#0a1628</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#e8eef7</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#00d4ff</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#5ce1ff</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#1e3352</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #2d6a4f;"></span>Earth</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#f4ecd4</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#1f2a1c</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#2d6a4f</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#1f4d38</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#d4c8a8</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #c6f432;"></span>Tech</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#0a0a0a</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#fafafa</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#c6f432</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#a8d61c</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#262626</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #c85a3c;"></span>Travel</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#fffdf6</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#2a1f15</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#c85a3c</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#a03f24</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#e5d9c4</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;"><span style="display: inline-flex; align-items: center; gap: 7px;"><span style="width: 9px; height: 9px; border-radius: 50%; background: #e8f048;"></span>Sports</span></td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#0f2820</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#f5f5f0</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#e8f048</td>
+          <td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">#c3cc2c</td>
+          <td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">#1f4434</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin: 0 0 8px; font-size: 14.5px; line-height: 1.62;"><b>Derived values.</b> Secondary ink is the world's ink at 74% on dark grounds, 78% on light; muted meta at 60% and 72%. Tint fills are the accent at 8% (light) or 12% (dark). Nothing else is invented — no second accent, no grey ramp.</p>
+    <p style="margin: 0 0 6px; font-size: 14.5px; line-height: 1.62;"><b>On-accent</b> is the text colour that sits on an accent fill: paper white for politics, earth and travel; the world's own near-black for space, tech and sports.</p>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">4 · Type</h2>
+    <p style="margin: 0 0 14px; font-size: 15px; line-height: 1.66;">Literata, one family, optical sizing on. Tabular figures are on globally — dates, vote counts, odds and altitudes all align.</p>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12.5px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 7px 8px 7px 0; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Role</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Web</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">App</th>
+          <th style="text-align: left; padding: 7px 0 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Weight · tracking</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Headline</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">68 / 40 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">52 / 38 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">700 · −.032em</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Section title</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">25 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">30 / 33 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">700 · −.022em</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Lede / hook</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">21 / 17 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">15–17 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">300 · 0 · lh 1.5</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Prose</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">18 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">15 / 16 / 18.5 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">400 · 0 · lh 1.68–1.72</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Meta / eyebrow</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">10.5–11 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">9.5–10.5 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">600 · .14–.20em · caps</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Stat</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">40–54 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">26–46 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">700 · −.035em</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Drop cap</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">74 px</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">62 px</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">700 · lh .76 · accent</td></tr>
+      </tbody>
+    </table>
+    <p style="margin: 0 0 8px; font-size: 14.5px; line-height: 1.62;"><b>The italic accent word.</b> Every headline carries exactly one, set 400 italic in the world accent while the rest stays upright: <span style="white-space: nowrap;">The <em style="font-style: italic; font-weight: 400; color: #b8341f;">Trojan</em> horse in Parliament</span>. It is stored as three fields — before, accent, after — never as markup inside a string.</p>
+    <p style="margin: 0; font-size: 14.5px; line-height: 1.62;"><b>Reader text size</b> (app preferences) scales prose only: S 15px, M 16px, L 18.5px. Headlines, meta and stats do not move.</p>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">5 · Space, rules, radii</h2>
+    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 9px 16px; font-size: 14.5px; line-height: 1.6; margin-bottom: 14px;">
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Hairline</span><span>1px on the world's rule colour. Every list row, card edge, table divider and meta cell.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Section rule</span><span>2px on ink. Used once per screen — above the reading toolbar.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Page rule</span><span>4px on ink at the top of the masthead and the top of the footer.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Accent strip</span><span>4px on accent, one edge only: the primer block and the followed-world row.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Padding</span><span>Web 46/40px desktop, 24/20px phone. App 20px horizontal throughout; 6–18px vertical by block.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Radius</span><span>0 everywhere. The only rounded shapes in the system are topic dots and the mock device bezel.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Shadow</span><span>None on any surface. Elevation is a hairline, not a blur.</span>
+    </div>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">6 · The component set, as built</h2>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12.5px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 7px 8px 7px 0; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Component</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Spec</th>
+          <th style="text-align: left; padding: 7px 0 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Where</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Masthead</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">4px ink top rule, wordmark + desk register, pulsing live dot, ghost Subscribe. Collapses to a Menu button under 768px.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Web, all pages</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Feed card</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Full-bleed world ground, ghost issue number bled off the bottom-right corner, dot + desk + read time, headline with accent word, two ghost buttons.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App feed</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Primer</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">4px accent strip, "The primer" label, 3–5 sentences that let a reader skip the issue honestly.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Fact grid</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Published · reading time · sources · voice. Hairline cells, 2×2 on phone, a vertical rail on desktop. Voice is set in accent.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Data card</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Hairline box, "— 02 · label" header, one ghost alt-view toggle, the graphic, an "In plain terms —" caption and a source line. Never a graphic without both.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Number block</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">"— 03 · the number": the issue's single figure in accent, its label in caps, the dek in italic under a hairline.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App issue; web margin rail</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Instrument</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">A slider the reader drags, two proportion bars, and a claim sentence that rewrites itself at three thresholds. Politics only.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Reading toolbar</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">2px ink top rule, progress hairline, time left, Full ⇄ Skim. Pinned to the foot of the issue, not the viewport.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">60-second cards</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Five per issue, tick bar at the top, 40px claim over a 16px consequence. Tap anywhere advances.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Knowledge check</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">One question, three options, ✓ / × marks, an explanation that adds a fact rather than repeating the answer, and a reader tally.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Archive row</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Issue number, title, dot + desk + date + read time. Filter chips above; live search on title and desk.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Plate · Lens</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">The two image treatments — see §7. Both scroll-linked, both inside a hairline frame, neither displaced behind its frame.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Both, issue</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4; font-weight: 600;">Preference row</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Label left, control right, hairline between. Segmented controls are square ink-on-paper; switches are 46×24 square tracks.</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App · You</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">7 · Imagery</h2>
+    <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.66;">Two treatments, both scroll-linked, both live in the web and app prototypes. Neither displaces a photograph behind its frame: parallax of that kind is forbidden by name, because the brand promise is a shift of viewpoint, not a sliding backdrop. Photography is warm-toned for politics, earth and travel; moonlit for space; near-black with a lime cast for tech; pitch green for sports. <b>Colour is preferred and is the default for every editorial plate</b> — it is what carries the world palette into the picture. Black and white is permitted where the frame earns it: a portrait, an archival image, or a subject whose colour adds nothing. It is a choice made per picture, never a house style, and a b&amp;w plate still sits in the same hairline frame with the same caption. No grain filters, no press stock.</p>
+    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 9px 16px; font-size: 14.5px; line-height: 1.6; margin-bottom: 12px;">
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">The plate</span><span><b>The default, one per issue.</b> Sits at prose width inside a 1px frame with 6–8px of inset padding, captioned <em style="font-style: italic;">Plate 02 · the chamber, empty</em> on the left and the source on the right. Fades from 0 to 1 with a 20–22px rise as it reaches the lower third of the viewport — once, on first entry, never on the way back up.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">The lens</span><span><b>Conditional.</b> Two viewpoints of one subject in a single frame; scroll drives the wipe edge across, trailed by a 2px accent line. A caption block in ink names the pair (<em style="font-style: italic;">1996 ⇄ 2019 · same ridge</em>). Only where a genuine pair exists — before and after, empty and full, claim and record. Currently travel and politics; the other four run the plate alone.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Placement</span><span>After the opening prose, before the data card. The picture establishes the scene; the graphic then argues about it.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Sizing</span><span>Web 300px plate, 320px lens at the 720px prose column. App 186px plate, 210px lens at 20px margins. Never bleeds past the reading column.</span>
+    </div>
+    <p style="margin: 0 0 6px; font-size: 14.5px; line-height: 1.62;">Two further treatments were explored and held back: an <b>aperture</b> (a full-bleed frame that opens from a letterbox band) and an <b>overlay</b> (the issue's figure drawn onto the photograph in accent). Both work, both are in turn 8 of the revamp canvas, and neither is in the shipping system.</p>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">8 · Motion and states</h2>
+    <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.66;">Single-property, short, and never decorative. No parallax — the brand promise is a shift of perspective, not of background layers.</p>
+    <div style="display: grid; grid-template-columns: 150px 1fr; gap: 9px 16px; font-size: 14.5px; line-height: 1.6; margin-bottom: 14px;">
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Screen enter</span><span>Opacity 0 → 1 with a 10–14px rise, 280–320ms ease-out. Once per entry, never on scroll.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">World change</span><span>Background and colour cross-fade over 340ms. The ground changing is the navigation feedback.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Data change</span><span>Bar widths 140ms, seat fills 420ms with a 5ms-per-index stagger, both on cubic-bezier(.22,1,.36,1).</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Figures</span><span>Plates reveal once at 320ms ease-out. The lens wipe is scroll-linked, not timed — the reader owns the edge.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Live dot</span><span>Opacity 1 → .35 → 1 over 2s, infinite. The only looping animation in the system.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Hover</span><span>Border colour rule → ink, or muted → ink on text. No lift, no scale, no shadow.</span>
+      <span style="font-weight: 600; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #6b5f52; padding-top: 3px;">Selected</span><span>Ink fill with paper text (segmented controls, active tab), or accent tint with a 4px accent edge (followed world).</span>
+    </div>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">9 · Screen map</h2>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12.5px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 7px 8px 7px 0; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Website</th>
+          <th style="text-align: left; padding: 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Reader app</th>
+          <th style="text-align: left; padding: 7px 0 7px 8px; border-bottom: 2px solid #161412; font-weight: 600; font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase;">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Home</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Feed</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">The app feed is filtered to followed worlds; home is not.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Desk</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Worlds</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Web browses a desk; app subscribes to it.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Issue</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Issue</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Same blocks; web adds a margin rail, app stacks it as the number block.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Archive</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Archive</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App adds live search; both share the filter chips.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">About</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">—</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Editorial promises live on the public site only.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">—</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Sign in · Sign up · Link sent</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">Magic link only: no password, twenty minutes, one use.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">Subscribe</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">You</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">₹149/mo student rate is stated identically on both.</td></tr>
+        <tr><td style="padding: 8px 8px 8px 0; border-bottom: 1px dashed #ddd4c4;">—</td><td style="padding: 8px; border-bottom: 1px dashed #ddd4c4;">Cards · Quiz</td><td style="padding: 8px 0 8px 8px; border-bottom: 1px dashed #ddd4c4;">App-only. Both are per-issue and per-world.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin: 30px 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.022em;">10 · Known gaps</h2>
+    <p style="margin: 0 0 10px; font-size: 15px; line-height: 1.66;">Stated plainly so nobody builds on a floor that isn't there.</p>
+    <div style="display: grid; grid-template-columns: 26px 1fr; gap: 9px 14px; font-size: 14.5px; line-height: 1.6;">
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 3px;">01</span><span>Photography itself. The treatments are specified and built; the pictures are still empty frames. Every slot in both prototypes accepts a dropped image.</span>
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 3px;">02</span><span>Account recovery and sign-out. Sign in, sign up and link-sent exist; what happens when a link expires does not.</span>
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 3px;">03</span><span>The archive holds eight issues against a stated twenty-four. The remaining sixteen need real front-matter before launch.</span>
+      <span style="font-weight: 600; font-size: 11px; letter-spacing: .14em; color: #b8341f; padding-top: 3px;">04</span><span>Every world now carries ten instruments — 60 in all, each with the full contract (subject, how-to-read, labelled axes, legend, live readout, plain-terms line, source). What is still open is editorial: which instrument leads an issue, and whether every one needs a reader-driven control.</span>
+    </div>
+
+  </div>
+</doc-page>
+</x-dc>
+</body>
+</html>

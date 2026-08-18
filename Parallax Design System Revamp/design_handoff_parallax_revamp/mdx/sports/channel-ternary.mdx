@@ -1,0 +1,38 @@
+<!--
+  Example payload for `channel-ternary` — paste into
+  src/content/issues/2026-06-03-sports-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: channel-ternary
+    eyebrow: "WHERE THE ATTACK GOES"
+    title: "Left, centre, right — pick *two*."
+    intro: "A triangle, because the three shares must add to a hundred and only two are ever free. Distance from a corner is how little a team uses it."
+    data:
+      caption: "Five of the eight lean at least ten points toward one channel."
+      source: "Touch locations in the attacking third, thirds split at the width of the box"
+      corners:
+        - { id: left,   label: "LEFT" }
+        - { id: centre, label: "CENTRE" }
+        - { id: right,  label: "RIGHT" }
+      entities:
+        - { name: "Rivermouth",      values: [0.29, 0.46, 0.25] }
+        - { name: "Harborough",      values: [0.41, 0.22, 0.37] }
+        - { name: "Southgate Mills", values: [0.18, 0.28, 0.54], note: "The most one-sided team in the league." }
+        - { name: "Kestrel Park",    values: [0.34, 0.34, 0.32], note: "The only genuinely even team here." }
+        - { name: "Ashford Rangers", values: [0.46, 0.19, 0.35] }
+        - { name: "Fenwick City",    values: [0.24, 0.52, 0.24] }
+        - { name: "Dunmoor",         values: [0.38, 0.16, 0.46] }
+        - { name: "Coalbrook",       values: [0.31, 0.38, 0.31] }
+
+# Sum check: every entity's three values total 1.00 ✓
+# values are [left, centre, right] and map to [l, t, r] in the
+# barycentric formula — the TOP corner is centre.
+# Leaning ≥10 points above an even third (0.433+): Southgate 0.54,
+# Fenwick 0.52, Ashford 0.46, Dunmoor 0.46, Rivermouth 0.46 — five,
+# which is the caption's count. Kestrel Park is the even one.

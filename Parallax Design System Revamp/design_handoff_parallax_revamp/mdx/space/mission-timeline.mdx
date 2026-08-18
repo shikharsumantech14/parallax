@@ -1,0 +1,56 @@
+<!--
+  Example payload for `mission-timeline` — paste into
+  src/content/issues/2026-06-03-space-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: mission-timeline
+    eyebrow: "FOUR YEARS ON ONE CLOCK"
+    title: "Four years, and the seven minutes *inside them*."
+    intro: "One bar per phase on a single clock that starts at launch, so bar length is real duration. The diamonds are the moments that cannot be rescheduled."
+    data:
+      caption: "The phase that decides whether any of the rest happens takes 0.02% of the timeline."
+      source: "Mission plan, revision F · phase durations as flown or as budgeted"
+      totalDays: 1400
+      phases:
+        - label: "Launch window"
+          fromDay: 0
+          toDay: 14
+          note: "Fourteen days in which the rocket can fly at all. Miss it and the next one is twenty-six months away."
+        - label: "Trans-Mars cruise"
+          fromDay: 14
+          toDay: 210
+          note: "Six months of nothing happening on purpose. Three course corrections, and otherwise coasting."
+        - label: "Approach and navigation"
+          fromDay: 210
+          toDay: 228
+          note: "The last eighteen days, when the arrival point stops being a prediction and becomes a measurement."
+        - label: "Entry, descent, landing"
+          fromDay: 228
+          toDay: 228.3
+          note: "Seven minutes. Drawn at minimum width because at four years to the page it is thinner than the rule beneath it."
+        - label: "Primary surface mission"
+          fromDay: 228
+          toDay: 915
+          note: "One Mars year of guaranteed operations — the mission everything before it exists to deliver."
+        - label: "Extended mission"
+          fromDay: 915
+          toDay: 1400
+          note: "Unfunded at launch. Every extended mission in the programme's history has been granted."
+      milestones:
+        - { n: 1, label: "TCM-1",        atDay: 26 }
+        - { n: 2, label: "TCM-2",        atDay: 96 }
+        - { n: 3, label: "TCM-3",        atDay: 205 }
+        - { n: 4, label: "Entry",        atDay: 228, slip: none }
+        - { n: 5, label: "First drive",  atDay: 240 }
+        - { n: 6, label: "Cache sealed", atDay: 610 }
+
+# EDL is 0.3 days of 1400 = 0.021%. It renders at the 3px floor and
+# therefore triggers the "shortest phase at minimum width" chip.
+# EDL ends at 228.3 while the surface mission starts at 228 — a shared
+# boundary, which is legal; a true overlap is not.

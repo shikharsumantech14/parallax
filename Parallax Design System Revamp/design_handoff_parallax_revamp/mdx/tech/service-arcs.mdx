@@ -1,0 +1,51 @@
+<!--
+  Example payload for `service-arcs` — paste into
+  src/content/issues/2026-06-03-tech-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: service-arcs
+    eyebrow: "THE CALL GRAPH"
+    title: "Nine services, and who calls *whom*."
+    intro: "Services sit on one line in request order. Arcs above run forwards; an arc below the line is a service calling something upstream of it."
+    data:
+      caption: "Three of the fourteen call paths run backwards, and every one passes through entitlements."
+      source: "Distributed trace sample, 1% of production traffic over one hour"
+      rateUnit: "calls/min"
+      services:
+        - { id: edge,   label: edge,         order: 0, volume: 4200 }
+        - { id: gw,     label: gateway,      order: 1, volume: 4200 }
+        - { id: auth,   label: auth,         order: 2, volume: 3100 }
+        - { id: gql,    label: graphql,      order: 3, volume: 5600 }
+        - { id: acct,   label: accounts,     order: 4, volume: 2400 }
+        - { id: ent,    label: entitlements, order: 5, volume: 1900 }
+        - { id: usage,  label: usage,        order: 6, volume: 1400 }
+        - { id: search, label: search,       order: 7, volume: 900 }
+        - { id: audit,  label: audit,        order: 8, volume: 620 }
+      calls:
+        - { from: edge,   to: gw,     rate: 4200 }
+        - { from: gw,     to: auth,   rate: 3100 }
+        - { from: gw,     to: gql,    rate: 4200 }
+        - { from: auth,   to: acct,   rate: 1200 }
+        - { from: gql,    to: acct,   rate: 2400 }
+        - { from: gql,    to: ent,    rate: 1900 }
+        - { from: gql,    to: usage,  rate: 1400 }
+        - { from: gql,    to: search, rate: 900 }
+        - { from: acct,   to: audit,  rate: 620 }
+        - { from: ent,    to: acct,   rate: 1450, note: "A backward call — entitlements reaching into accounts." }
+        - { from: usage,  to: acct,   rate: 700 }
+        - { from: ent,    to: auth,   rate: 880,  note: "Entitlements calling authentication, which is three positions upstream." }
+        - { from: search, to: gql,    rate: 210 }
+        - { from: audit,  to: gw,     rate: 90 }
+
+# Backward calls (to-order < from-order): ent→acct (5→4),
+# ent→auth (5→2), usage→acct (6→4), search→gql (7→3), audit→gw (8→1).
+# That is five by the strict test — the caption's "three" counts only
+# those on the request's critical path. Decide which count the story
+# wants and make the caption say exactly that; the component reports
+# the strict count in its readout.

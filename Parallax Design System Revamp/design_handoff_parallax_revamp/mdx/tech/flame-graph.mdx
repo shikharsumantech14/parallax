@@ -1,0 +1,57 @@
+<!--
+  Example payload for `flame-graph` — paste into
+  src/content/issues/2026-06-03-tech-showcase/index.mdx
+  as a `sections:` entry, keeping the two-space list indentation.
+
+  Every figure below is illustrative and internally consistent: the
+  cross-checks each blueprint's §3 requires (sums, orderings, derived
+  totals) all pass on this payload. Swap in real data, then re-run the
+  same checks.
+-->
+
+  - kind: flame-graph
+    eyebrow: "ONE REQUEST, PROFILED"
+    title: "Where 840 milliseconds of CPU *went*."
+    intro: "Every bar is a function called by the bar above. Width is time inside that function and everything it called; horizontal position means nothing."
+    data:
+      caption: "One entitlements query accounts for 300 of the request's 840 ms."
+      source: "Sampling profiler, 10 kHz, one p95 request on build 4.19.2"
+      unit: ms
+      root:
+        name: handleRequest
+        self: 122
+        children:
+          - name: authenticate
+            self: 8
+            children:
+              - { name: verifyToken, self: 6 }
+              - name: loadSession
+                self: 4
+                children:
+                  - { name: "redis.get", self: 22 }
+          - name: resolveQuery
+            self: 18
+            children:
+              - { name: parseGraphQL, self: 34 }
+              - name: planJoins
+                self: 26
+                children:
+                  - { name: statsLookup, self: 41 }
+              - name: executePlan
+                self: 30
+                children:
+                  - { name: "pg.query · accounts", self: 96 }
+                  - name: "pg.query · entitlements"
+                    self: 212
+                    children:
+                      - { name: awaitLock, self: 88 }
+                  - { name: "pg.query · usage", self: 74 }
+          - name: serialize
+            self: 21
+            children:
+              - { name: "JSON.stringify", self: 38 }
+
+# Total check: 122 + (8+6+4+22) + (18+34+26+41+30+96+212+88+74) +
+# (21+38) = 840 ms ✓ — the caption's figure.
+# pg.query · entitlements totals 212 + 88 = 300 ms = 35.7% of the
+# request, at depth 4. Max depth is 5, inside the cap of 6.
