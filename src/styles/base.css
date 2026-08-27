@@ -172,10 +172,67 @@ body {
 }
 .mh__cta:hover { background: var(--accent); transform: translateY(-1px); }
 
+/* Phone nav — a native <details> disclosure, hidden entirely on desktop so the
+   duplicate links never reach the accessibility tree. See Masthead.astro. */
+.mh__menu { display: none; }
+
 @media (max-width: 900px) {
   .mh { grid-template-columns: 1fr auto; gap: 16px; }
   .mh__status { display: none; }
   .mh__links { display: none; }
+
+  .mh__menu { display: block; grid-column: 1 / -1; margin-top: 4px; }
+
+  .mh__menu-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    width: max-content;
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    padding: 8px 12px;
+    cursor: pointer;
+    list-style: none;                    /* kill the default disclosure marker */
+    min-height: 44px;                    /* CANON accessibility floor */
+    box-sizing: border-box;
+  }
+  .mh__menu-btn::-webkit-details-marker { display: none; }
+  .mh__menu-btn::after { content: '+'; font-size: 13px; line-height: 1; }
+  .mh__menu[open] .mh__menu-btn::after { content: '−'; }
+  .mh__menu-btn:hover,
+  .mh__menu[open] .mh__menu-btn { border-color: var(--ink); }
+  .mh__menu-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+
+  /* In-flow accordion: no scrim, no overlay, no transition — it pushes the
+     page down rather than covering it, so nothing traps focus.
+
+     MUST be gated on [open]. Setting `display` on a <details> child overrides
+     the browser's own hiding of the closed state, which leaves the drawer
+     permanently expanded — measured, not assumed. `open` is toggled natively,
+     so this still needs no JavaScript. */
+  .mh__menu-panel { display: none; flex-direction: column; border-top: 1px solid var(--rule); margin-top: 12px; }
+  .mh__menu[open] .mh__menu-panel { display: flex; }
+  .mh__menu-panel a {
+    padding: 14px 2px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; min-height: 44px;
+    box-sizing: border-box;
+  }
+  .mh__menu-panel a:hover { color: var(--accent-deep); }
+
+  /* The live badge, which the hidden status pill would otherwise take with it. */
+  .mh__menu-status {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 12px 2px 2px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .mh__menu-status b { font-weight: 600; color: var(--ink-soft); }
 }
 
 /* HERO (v2 — issue-face headline, larger scale, balanced wrap) */

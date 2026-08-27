@@ -70,4 +70,30 @@ const subLine = statusSub ?? date ?? 'Est. 2026';
     <AccountEntry />
     <a href="/#subscribe" class="mh__cta">Subscribe<span aria-hidden="true">→</span></a>
   </div>
+
+  {/*
+    Phone navigation. Below 900px the desktop nav and status pill are hidden,
+    which until now left the site with NO primary navigation at all on a phone.
+
+    Built on <details>/<summary> rather than an island: it is a native
+    disclosure, so it opens, closes and announces its state with ZERO
+    JavaScript and is keyboard-operable for free. That satisfies the fallback
+    contract by construction instead of by a no-JS branch.
+
+    Only one of the two navs is ever in the accessibility tree — the other is
+    display:none at every width — so the duplicate links never double up for
+    screen readers.
+  */}
+  <details class="mh__menu">
+    <summary class="mh__menu-btn">Menu</summary>
+    <nav class="mh__menu-panel" aria-label="Primary (compact)">
+      <a href="/#desks">Desks</a>
+      <a href="/about/">About</a>
+      <a href="/rss.xml">Feed</a>
+      <span class="mh__menu-status">
+        <span class="mh__status-dot" data-state={status}></span>
+        <b>{topLine}</b><span>{subLine}</span>
+      </span>
+    </nav>
+  </details>
 </header>
