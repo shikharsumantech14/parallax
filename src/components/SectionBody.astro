@@ -78,6 +78,7 @@ import FlightOfTheBall from './topic/sports/FlightOfTheBall.astro';
 import EloRiver from './topic/sports/EloRiver.astro';
 import CourtValue from './topic/sports/CourtValue.astro';
 import PaceRidge from './topic/sports/PaceRidge.astro';
+import ChannelTernary from './topic/sports/ChannelTernary.astro';
 import TrajectoryArc from './topic/space/TrajectoryArc.astro';
 import DeltaVLadder from './topic/space/DeltaVLadder.astro';
 import SignalReadout from './topic/space/SignalReadout.astro';
@@ -507,6 +508,9 @@ const data: any = section.data ?? {};
     )}
     {section.kind === 'pace-ridge' && (
       <PaceRidge metric={data.metric} unit={data.unit} source_n={data.source_n} stat={data.stat} domain={data.domain} groups={data.groups ?? []} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'channel-ternary' && (
+      <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* earth */}

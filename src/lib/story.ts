@@ -59,7 +59,7 @@ export const KIND_PRIORITY: Record<string, number> = {
   'lagrange-map': 82, 'queue-cliff': 82, 'transfer-window': 80,
   'gerrymander-lens': 80, 'ballot-flow': 80, 'bill-funnel': 66, 'chip-die': 78,
   'eclipse-cone': 76, 'elo-river': 76, 'city-grid': 74, 'season-wheel': 74,
-  'pace-ridge': 72, 'carbon-loop': 66, 'moore-ladder': 64,
+  'pace-ridge': 72, 'channel-ternary': 64, 'carbon-loop': 66, 'moore-ladder': 64,
   'atmosphere-column': 64, 'altitude-oxygen': 62, 'fare-terrain': 62,
   // classic data
   'data-readout': 70, 'timeline': 66, 'climate-strip': 64, 'carbon-gauge': 64,

@@ -5,9 +5,12 @@
  they differ, THIS file wins, because the handoff could not know the repo.
 
  1. SVG TEXT — the handoff TYPE-MAPPING.md:25 prescribes
-    font-family="var(--font-mono)". A CSS variable inside an SVG PRESENTATION
-    ATTRIBUTE does not resolve; every axis label would silently render in the
-    browser default serif. Use a LITERAL stack in a style attribute:
+    font-family="var(--font-mono)". Do not use it. NOT because var() fails —
+    measured 2026-08-27, it resolves fine in Chromium — but because a
+    presentation attribute is the lowest-specificity thing in CSS, so any
+    stylesheet rule silently beats it, and because satori/resvg do no var()
+    substitution when they rasterise the OG cards. Use a LITERAL stack in a
+    style attribute:
       style="font-family:'JetBrains Mono',ui-monospace,monospace"
     (RD-01b. See src/components/AGENTS.md section 5.)
 

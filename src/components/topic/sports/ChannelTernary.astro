@@ -1,0 +1,250 @@
+---
+/**
+ * ChannelTernary (`channel-ternary`) — three shares that must total a hundred,
+ * drawn in a triangle because only two of them are ever free.
+ *
+ * Blueprint: docs/design/blueprints/sports/channel-ternary.md
+ * SVG geometry + one entity-select island. Prefix `px-trn`.
+ *
+ * WAVE-0 EXEMPLAR for the SVG path. Two conventions it exists to demonstrate:
+ *   - SVG <text> uses a LITERAL font stack in a `style` attribute. A CSS
+ *     variable inside an SVG presentation attribute does NOT resolve, and the
+ *     failure is silent — the label just renders in the browser default serif.
+ *     (RD-01b; the handoff's TYPE-MAPPING.md:25 gets this wrong.)
+ *   - The SVG is aria-hidden and the <table> is the real content, so the
+ *     figure is readable without sight and without JS.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Corner { id: string; label: string }
+interface Entity { name: string; short?: string; values: [number, number, number]; note?: string }
+interface Props {
+  corners?: Corner[];
+  entities?: Entity[];
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+const { corners = [], entities = [], caption, source, howToRead } = Astro.props;
+
+/* ── Build-time validation (blueprint §3) ─────────────────────────────────
+   A ternary plot of unconstrained values is meaningless — the geometry IS the
+   sum constraint, so a payload that breaks it must not render at all. */
+if (corners.length !== 3) throw new Error(`[channel-ternary] needs exactly 3 corners, got ${corners.length}.`);
+if (entities.length < 4 || entities.length > 12) {
+  throw new Error(`[channel-ternary] needs 4–12 entities, got ${entities.length}.`);
+}
+for (const e of entities) {
+  if (!Array.isArray(e.values) || e.values.length !== 3) {
+    throw new Error(`[channel-ternary] "${e.name}" must have exactly 3 values.`);
+  }
+  const sum = e.values[0] + e.values[1] + e.values[2];
+  if (Math.abs(sum - 1) > 0.001) {
+    throw new Error(`[channel-ternary] "${e.name}" values sum to ${sum.toFixed(4)}, not 1.0 (±0.001).`);
+  }
+}
+
+// Barycentric mapping, blueprint §4. [⅓,⅓,⅓] lands on the centroid (150, 173.3).
+const pt = (l: number, t: number, r: number) => ({
+  x: 18 + r * 264 + t * 132,
+  y: 250 - t * 230,
+});
+const CENTROID = pt(1 / 3, 1 / 3, 1 / 3);
+const pct = (n: number) => Math.round(n * 100);
+
+const rows = entities.map((e, i) => {
+  const [l, t, r] = e.values;
+  const p = pt(l, t, r);
+  const shares = [l, t, r];
+  const maxIdx = shares.indexOf(Math.max(...shares));
+  return {
+    ...e, i, x: p.x, y: p.y,
+    pctL: pct(l), pctT: pct(t), pctR: pct(r),
+    maxPct: pct(shares[maxIdx]),
+    dominant: corners[maxIdx].label,
+  };
+});
+
+// Composed still = the most lopsided entity, so the default state already makes
+// the argument the figure exists to make.
+const defaultIdx = rows.reduce((best, r) => (r.maxPct > rows[best].maxPct ? r.i : best), 0);
+
+const readoutFor = (r: (typeof rows)[number]) =>
+  `${r.name} — ${r.pctL}% ${corners[0].label}, ${r.pctT}% ${corners[1].label}, ${r.pctR}% ${corners[2].label}. ` +
+  `Most lopsided: ${r.maxPct}% down ${r.dominant}.${r.note ? ' ' + r.note : ''}`;
+
+// Gridlines at 25/50/75 on all three axes — nine lines. For fraction f, each
+// axis contributes the segment joining the two points where that axis equals f.
+const grid: { x1: number; y1: number; x2: number; y2: number }[] = [];
+for (const f of [0.25, 0.5, 0.75]) {
+  const rest = 1 - f;
+  // axis = left
+  grid.push({ ...xy(pt(f, rest, 0)), ...xy2(pt(f, 0, rest)) });
+  // axis = top
+  grid.push({ ...xy(pt(rest, f, 0)), ...xy2(pt(0, f, rest)) });
+  // axis = right
+  grid.push({ ...xy(pt(rest, 0, f)), ...xy2(pt(0, rest, f)) });
+}
+function xy(p: { x: number; y: number }) { return { x1: p.x, y1: p.y }; }
+function xy2(p: { x: number; y: number }) { return { x2: p.x, y2: p.y }; }
+
+const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+---
+
+<VizCard prefix="px-trn" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-trn__stage">
+    <svg class="px-trn__svg" viewBox="0 0 300 274" aria-hidden="true" focusable="false">
+      <polygon class="px-trn__tri" points="150,20 282,250 18,250" />
+      {grid.map((g) => (
+        <line class="px-trn__grid" x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2} />
+      ))}
+      <circle class="px-trn__centroid" cx={CENTROID.x} cy={CENTROID.y} r="2.4" />
+
+      <text class="px-trn__corner" x="150" y="14" text-anchor="middle" style={MONO}>{corners[1].label}</text>
+      <text class="px-trn__corner" x="12" y="264" text-anchor="start" style={MONO}>{corners[0].label}</text>
+      <text class="px-trn__corner" x="288" y="264" text-anchor="end" style={MONO}>{corners[2].label}</text>
+
+      {rows.map((r) => (
+        <circle
+          class="px-trn__dot"
+          data-trn-dot={r.i}
+          cx={r.x.toFixed(2)}
+          cy={r.y.toFixed(2)}
+          r="5"
+          data-selected={r.i === defaultIdx ? 'true' : 'false'}
+        />
+      ))}
+    </svg>
+
+    <p class="px-trn__readout px-inst__readout" data-trn-readout aria-live="polite">
+      {readoutFor(rows[defaultIdx])}
+    </p>
+  </div>
+
+  {/* The ONLY way to identify a dot — the plot carries no labels, because eight
+      names inside a 300px triangle cannot be placed without collision. So this
+      is not an optional fallback, it is the figure's identity layer. */}
+  <table class="px-trn__table">
+    <caption class="px-trn__tcap">Every entity, its three shares, and where it leans</caption>
+    <thead>
+      <tr>
+        <th scope="col">Team</th>
+        <th scope="col">{corners[0].label}</th>
+        <th scope="col">{corners[1].label}</th>
+        <th scope="col">{corners[2].label}</th>
+        <th scope="col">Leans</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr data-trn-row={r.i} data-selected={r.i === defaultIdx ? 'true' : 'false'} data-trn-read={readoutFor(r)}>
+          <th scope="row">{r.name}</th>
+          <td data-hi={r.pctL >= 40 ? 'true' : 'false'}>{r.pctL}%</td>
+          <td data-hi={r.pctT >= 40 ? 'true' : 'false'}>{r.pctT}%</td>
+          <td data-hi={r.pctR >= 40 ? 'true' : 'false'}>{r.pctR}%</td>
+          <td>{r.dominant}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-trn').forEach(function (card) {
+      var dots = Array.prototype.slice.call(card.querySelectorAll('[data-trn-dot]'));
+      var trs = Array.prototype.slice.call(card.querySelectorAll('[data-trn-row]'));
+      var out = card.querySelector('[data-trn-readout]');
+      if (!trs.length || !out) return;
+      var def = trs.findIndex(function (t) { return t.getAttribute('data-selected') === 'true'; });
+      if (def < 0) def = 0;
+      var cur = def;
+
+      function paint(i) {
+        cur = i;
+        trs.forEach(function (t, n) {
+          t.setAttribute('data-selected', n === i ? 'true' : 'false');
+          t.setAttribute('aria-selected', n === i ? 'true' : 'false');
+        });
+        dots.forEach(function (d, n) { d.setAttribute('data-selected', n === i ? 'true' : 'false'); });
+        out.textContent = trs[i].getAttribute('data-trn-read') || '';
+      }
+
+      // The table rows are the control. The dots mirror them for pointer users;
+      // they are inside an aria-hidden <svg>, so they are never the a11y path.
+      trs.forEach(function (t, n) {
+        t.setAttribute('tabindex', '0');
+        t.setAttribute('role', 'button');
+        t.classList.add('is-operable');
+        t.addEventListener('click', function () { paint(n === cur ? def : n); });
+        t.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); paint(n === cur ? def : n); }
+          else if (e.key === 'Escape') { paint(def); }
+          else if (e.key === 'ArrowDown' && n + 1 < trs.length) { e.preventDefault(); trs[n + 1].focus(); }
+          else if (e.key === 'ArrowUp' && n > 0) { e.preventDefault(); trs[n - 1].focus(); }
+        });
+      });
+      dots.forEach(function (d, n) {
+        d.style.cursor = 'pointer';
+        d.addEventListener('click', function () { paint(n === cur ? def : n); });
+      });
+    });
+  })();
+</script>
+
+<style>
+  .px-trn__stage { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .px-trn__svg { width: 300px; height: 274px; flex: 0 0 auto; }
+  .px-trn__readout { flex: 1 1 200px; min-width: 200px; border-top: 0; padding-top: 0; margin-top: 0; }
+
+  .px-trn__tri { fill: var(--paper-deep); stroke: var(--rule); stroke-width: 1.4; }
+  .px-trn__grid { stroke: var(--rule); stroke-width: 1; }
+  .px-trn__centroid { fill: color-mix(in oklab, var(--ink) 40%, transparent); }
+  .px-trn__dot {
+    fill: color-mix(in oklab, var(--ink) 60%, transparent);
+    stroke: var(--paper-deep);
+    stroke-width: 1.2;
+    transition: fill 120ms var(--ease, ease), r 120ms var(--ease, ease);
+  }
+  .px-trn__dot[data-selected='true'] { fill: var(--accent); r: 7; }
+  /* Corners are the chart's vocabulary, so they take the accent; dots are peers
+     and stay ink. */
+  .px-trn__corner { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; fill: var(--accent); }
+
+  .px-trn__table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-trn__tcap {
+    text-align: left;
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+  .px-trn__table th,
+  .px-trn__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+  .px-trn__table thead th {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .px-trn__table th[scope='row'],
+  .px-trn__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
+  .px-trn__table td[data-hi='true'] { color: var(--accent); font-weight: 700; }
+  .px-trn__table td[data-hi='false'] { color: color-mix(in oklab, var(--ink) 85%, transparent); }
+  .px-trn__table tr[data-selected='true'] { background: var(--paper-warm); }
+  html.js .px-trn__table tr.is-operable { cursor: pointer; }
+  .px-trn__table tr.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+
+  @media (max-width: 640px) {
+    .px-trn__stage { flex-direction: column; }
+    /* Scales to the column but never below 260px, where the gridlines stop
+       resolving and the plot stops being readable at all. */
+    .px-trn__svg { width: 100%; min-width: 260px; height: auto; }
+    .px-trn__readout { min-width: 0; }
+  }
+</style>

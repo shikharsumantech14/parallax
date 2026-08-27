@@ -747,4 +747,12 @@
 - **PLAIN:** "Each stacked shape is one group's whole range of the stat; wider where more values cluster, with a line at the middle. The volt shape is the athlete this story follows."
 - **NOTES:** build-time Gaussian KDE (Silverman bandwidth, ONE global height scale so a genuinely peakier ridge reads taller) — authors pass raw `samples`, never pre-bin; at most one `subject` (volt ridge + dashed guideline across the full stack); `kernel density` honesty chip + per-ridge `n=`; `stat` auto-renders the `med`/`μ` tick. BLUEPRINT: `docs/design/blueprints/sports/pace-ridge.md`. RESEARCHER MUST CAPTURE: the subject's per-observation sample of the metric and ≥1 comparison group's sample, from a NAMED dataset.
 
+## channel-ternary
+- **World/Tier:** sports · SVG ternary · `src/components/topic/sports/ChannelTernary.astro`
+- **USE WHEN:** 4–12 entities split across exactly THREE mutually exclusive shares summing to 100, where the lopsidedness is the argument.
+- **DON'T USE:** more or fewer than three parts (→ `player-radar` for many axes, `comparison` for two); positions on the pitch (→ `tactics-pitch`); a value surface (→ `court-value`); a two-way split of a total (→ `revenue-mosaic`, tech).
+- **DATA:** `{ corners: [{id,label} ×3], entities: [{name, short?, values:[l,t,r], note?}] }`
+- **PLAIN:** "A triangle, because the three shares must add to a hundred and only two are ever free; distance FROM a corner is how little that channel is used."
+- **NOTES:** build FAILS if any entity's three values do not sum to 1.0 ±0.001, or outside 4–12 entities. The plot carries NO dot labels — eight names cannot be placed in a 300px triangle without collision, so the table is the identity layer, not an optional fallback. Pairs with `default`; never `bleed`.
+
 <!-- check:catalog expects exactly the SECTION_KINDS list above this line -->

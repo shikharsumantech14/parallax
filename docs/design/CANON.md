@@ -107,8 +107,12 @@ This is what makes 90 components feel like one publication.
 - Numerals are tabular everywhere (`font-variant-numeric: tabular-nums`).
 - The unified scale lives in `src/styles/viz-type.css` (`--viz-fs-*`, `.vz-*` roles)
   — use those tokens, don't restate sizes.
-- SVG text: inline `style="font-family:..."` (never presentation attributes), halo
-  via `paint-order="stroke"`.
+- SVG text: inline `style="font-family:..."` with a LITERAL stack (never a
+  presentation attribute), halo via `paint-order="stroke"`. Not because `var()`
+  fails there — measured 2026-08-27, it resolves fine in Chromium — but because
+  a presentation attribute is the lowest-specificity thing in CSS and any rule
+  silently beats it, and because satori/resvg do no var() substitution when they
+  rasterise the OG cards. See src/components/AGENTS.md §5.
 
 ## 6. Color discipline
 

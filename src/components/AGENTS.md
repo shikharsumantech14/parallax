@@ -289,6 +289,7 @@ Known reservations (still-live `px-` prefixes):
 |---|---|---|
 | `px-viz` | shared elevated data-viz card (`base.css`) | wraps every ported chart; `data-reveal` root |
 | `px-fnl` | `bill-funnel` | politics · HTML bars · `BillFunnel.astro` |
+| `px-trn` | `channel-ternary` | sports · SVG ternary · `ChannelTernary.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |
 | `px-cgauge` | CarbonGauge | kept on `px-` (free-standing gauge, light-touch port) |
 | `px-seats` | SeatChart | kept on `px-` |
@@ -406,8 +407,20 @@ Any component that emits inline SVG must follow these:
   raised-land depth without SVG-filter complexity.
 - **SVG text fonts.** Use
   `style="font-family:'Fraunces',Georgia,serif"` — *not* the
-  `font-family="..."` presentation attribute. CSS variables do not work
-  in SVG presentation attributes. Display labels: Fraunces (the serif voice;
+  `font-family="..."` presentation attribute.
+
+  **Corrected 2026-08-27.** This rule used to say "CSS variables do not work in
+  SVG presentation attributes". That is **not true** in current Chromium —
+  measured directly: against a control with no attribute (inheriting Schibsted
+  Grotesk), `font-family="var(--font-mono)"` resolved to JetBrains Mono. The
+  rule is still right, for two better reasons: a presentation attribute has the
+  **lowest specificity of anything in CSS**, so any stylesheet rule silently
+  overrides it; and build-time rasterisers (satori/resvg, which generate the OG
+  cards) do no CSS-variable substitution, so a `var()` that works in the browser
+  can still come out unstyled there. Use a **literal stack in a `style`
+  attribute** and both problems disappear.
+
+  Display labels: Fraunces (the serif voice;
   changed from Cormorant Garamond on 2026-06-21 with the unified type system).
   Coord/axis text: JetBrains Mono.
 - **Text halo.** `paint-order="stroke"` plus a `stroke` on the SVG `<text>`

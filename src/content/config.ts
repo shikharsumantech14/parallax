@@ -103,7 +103,8 @@ export const SECTION_KINDS = [
   'flight-of-the-ball',    // WebGL FLAGSHIP — drag+Magnus shot trajectory over a pitch
   'elo-river',             // SVG — Elo/rating streamgraph, braided season (crossovers)
   'court-value',           // SVG — xG/eFG value surface shaded over a pitch/court
-  'pace-ridge'             // SVG — ridgeline of a stat's distribution per group
+  'pace-ridge',             // SVG — ridgeline of a stat's distribution per group
+  'channel-ternary'       // SVG — three shares constrained to sum to 100
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;
