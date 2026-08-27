@@ -1,0 +1,232 @@
+---
+/**
+ * BillFunnel (`bill-funnel`) — a population of bills counted again at every
+ * stage it had to clear. The reader learns where the attrition actually is,
+ * which is rarely the vote.
+ *
+ * Blueprint: docs/design/blueprints/politics/bill-funnel.md
+ * Pure HTML/CSS — no SVG, no viewBox. Prefix `px-fnl`.
+ *
+ * WAVE-0 EXEMPLAR for the HTML/CSS path: the first kind built through
+ * core/VizCard.astro (RD-01a) and the px-inst primitive. Copy its shape.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Stage {
+  label: string;
+  count: number;
+  note?: string;
+}
+interface Props {
+  stages?: Stage[];
+  unit?: string;
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const { stages = [], unit = 'bills', caption, source, howToRead } = Astro.props;
+
+/* ── Build-time validation (blueprint §3) ──────────────────────────────────
+   A funnel cannot widen. Failing loudly here is the whole point: a silently
+   widening funnel is not a rendering bug, it is a data error that would be
+   published as an argument. */
+if (stages.length < 4 || stages.length > 10) {
+  throw new Error(`[bill-funnel] needs 4–10 stages, got ${stages.length}. See blueprint §10.`);
+}
+for (let i = 1; i < stages.length; i++) {
+  if (stages[i].count > stages[i - 1].count) {
+    throw new Error(
+      `[bill-funnel] a funnel cannot widen: stage "${stages[i].label}" has ${stages[i].count}, ` +
+        `more than "${stages[i - 1].label}" (${stages[i - 1].count}).`,
+    );
+  }
+}
+
+const total = stages[0].count;
+if (!(total > 0)) throw new Error('[bill-funnel] the first stage must have a count above zero.');
+
+/* Loss is DERIVED, never authored — an authored figure can disagree with the
+   counts it claims to summarise. Any `lost` on the payload is ignored. */
+const rows = stages.map((s, i) => {
+  const lost = i === 0 ? 0 : stages[i - 1].count - s.count;
+  return {
+    ...s,
+    i,
+    lost,
+    // One shared scale, normalised to stage 1 — this is what makes it a funnel
+    // rather than N independent bars.
+    survivedPct: (s.count / total) * 100,
+    lostPct: (lost / total) * 100,
+    pctOfTotal: Math.round((s.count / total) * 100),
+  };
+});
+
+// Composed still = the last stage selected: the session's actual output.
+const defaultIdx = rows.length - 1;
+const d = rows[defaultIdx];
+const readoutFor = (r: (typeof rows)[number]) =>
+  `${r.label} — ${r.count} of ${total} still alive, ${r.pctOfTotal}%.${r.note ? ' ' + r.note : ''}`;
+---
+
+<VizCard prefix="px-fnl" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-fnl__rows">
+    {rows.map((r) => (
+      <div
+        class="px-fnl__row"
+        data-fnl-row={r.i}
+        data-fnl-read={readoutFor(r)}
+        data-selected={r.i === defaultIdx ? 'true' : 'false'}
+      >
+        <span class="px-fnl__label">{r.label}</span>
+        <span class="px-fnl__track">
+          <span class="px-fnl__survived" style={`width:${r.survivedPct.toFixed(3)}%`}></span>
+          <span class="px-fnl__lost" style={`width:${r.lostPct.toFixed(3)}%`}></span>
+        </span>
+        <span class="px-fnl__val">
+          <b>{r.count}</b>
+          {r.i > 0 && <span class="px-fnl__loss">−{r.lost}</span>}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <p class="px-fnl__readout px-inst__readout" data-fnl-readout aria-live="polite">
+    {readoutFor(d)}
+  </p>
+
+  {/* Every note is present here regardless of JS, so no note is reachable only
+      by pressing. This is the AT-readable source (blueprint §7). */}
+  <dl class="px-fnl__notes">
+    {rows.map((r) => (
+      <Fragment>
+        <dt>{r.label} · {r.count} {unit} · {r.pctOfTotal}%</dt>
+        <dd>{r.note ?? '—'}</dd>
+      </Fragment>
+    ))}
+  </dl>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-fnl').forEach(function (card) {
+      var rows = Array.prototype.slice.call(card.querySelectorAll('[data-fnl-row]'));
+      var out = card.querySelector('[data-fnl-readout]');
+      if (!rows.length || !out) return;
+      var def = rows.length - 1;
+      var cur = def;
+
+      function paint(i) {
+        cur = i;
+        rows.forEach(function (r, n) {
+          var on = n === i;
+          r.setAttribute('data-selected', on ? 'true' : 'false');
+          r.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        out.textContent = rows[i].getAttribute('data-fnl-read') || '';
+      }
+
+      // The rows are plain <div>s in the markup and become operable ONLY here,
+      // so a no-JS reader is never offered an affordance that does nothing
+      // (blueprint §7). Everything they would reveal is already in the <dl>.
+      rows.forEach(function (r, n) {
+        r.setAttribute('role', 'button');
+        r.setAttribute('tabindex', '0');
+        r.setAttribute('aria-pressed', n === def ? 'true' : 'false');
+        r.classList.add('is-operable');
+        r.addEventListener('click', function () { paint(n === cur ? def : n); });
+        r.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            paint(n === cur ? def : n);
+          } else if (e.key === 'Escape') {
+            paint(def);
+          }
+        });
+      });
+    });
+  })();
+</script>
+
+<style>
+  .px-fnl__rows { margin-top: 4px; }
+
+  .px-fnl__row {
+    display: grid;
+    grid-template-columns: 186px 1fr 92px;
+    gap: 14px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  html.js .px-fnl__row.is-operable { cursor: pointer; }
+  .px-fnl__row.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+  .px-fnl__row[data-selected='true'] { background: var(--paper-warm); }
+
+  .px-fnl__label {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: color-mix(in oklab, var(--ink) 78%, transparent);
+  }
+  .px-fnl__row[data-selected='true'] .px-fnl__label { color: var(--ink); }
+
+  .px-fnl__track { display: flex; height: 17px; background: var(--paper-warm); }
+  .px-fnl__survived { background: var(--accent); }
+  /* PALER than survived, not darker — the loss is the quiet part of the row.
+     The copy in §9/EXPLAIN says "faded" for this reason. */
+  .px-fnl__lost { background: color-mix(in oklab, var(--accent) 34%, transparent); }
+  .px-fnl__row[data-selected='true'] .px-fnl__survived { background: var(--ink); }
+
+  .px-fnl__val {
+    display: flex; align-items: baseline; justify-content: flex-end; gap: 6px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-fnl__val b { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+  .px-fnl__loss {
+    font-size: 11px; font-weight: 400;
+    color: color-mix(in oklab, var(--ink) 50%, transparent);
+  }
+
+  .px-fnl__readout { border-top: 0; padding-top: 0; margin-top: 14px; }
+
+  .px-fnl__notes {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .px-fnl__notes dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .px-fnl__notes dd { margin: 3px 0 0; color: var(--ink-soft); }
+  /* With JS the readout carries the selected note, so the full list is a
+     redundant duplicate; keep it for AT but take it out of the visual flow. */
+  html.js .px-fnl__notes {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  @media (max-width: 640px) {
+    .px-fnl__row {
+      grid-template-columns: 1fr 64px;
+      gap: 4px 10px;
+      padding: 10px 0;
+    }
+    /* The bar drops to its own second line, spanning both columns, so the
+       label never has to truncate (blueprint §4). */
+    .px-fnl__track { grid-column: 1 / -1; grid-row: 2; }
+    .px-fnl__label { grid-column: 1; grid-row: 1; }
+    .px-fnl__val { grid-column: 2; grid-row: 1; }
+  }
+</style>

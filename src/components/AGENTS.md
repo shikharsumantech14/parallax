@@ -288,6 +288,7 @@ Known reservations (still-live `px-` prefixes):
 | Prefix | Owner | Notes |
 |---|---|---|
 | `px-viz` | shared elevated data-viz card (`base.css`) | wraps every ported chart; `data-reveal` root |
+| `px-fnl` | `bill-funnel` | politics · HTML bars · `BillFunnel.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |
 | `px-cgauge` | CarbonGauge | kept on `px-` (free-standing gauge, light-touch port) |
 | `px-seats` | SeatChart | kept on `px-` |

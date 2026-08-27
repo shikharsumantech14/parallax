@@ -58,6 +58,7 @@ import PowerFlow from './topic/politics/PowerFlow.astro';
 import CoalitionCalculus from './topic/politics/CoalitionCalculus.astro';
 import GerrymanderLens from './topic/politics/GerrymanderLens.astro';
 import BallotFlow from './topic/politics/BallotFlow.astro';
+import BillFunnel from './topic/politics/BillFunnel.astro';
 import TerrainRelief from './topic/earth/TerrainRelief.astro';
 import PlateMotion from './topic/earth/PlateMotion.astro';
 import AtmosphereColumn from './topic/earth/AtmosphereColumn.astro';
@@ -417,6 +418,9 @@ const data: any = section.data ?? {};
     )}
     {section.kind === 'ballot-flow' && (
       <BallotFlow candidates={data.candidates ?? []} rounds={data.rounds ?? []} winnerId={data.winnerId} majorityBasis={data.majorityBasis} caption={data.caption} source={data.source} />
+    )}
+    {section.kind === 'bill-funnel' && (
+      <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* space */}

@@ -49,6 +49,7 @@ export const SECTION_KINDS = [
   'coalition-calculus',    // HTML-interactive — coalition builder vs the majority line
   'gerrymander-lens',      // SVG — same votes, three maps, efficiency-gap counters
   'ballot-flow',           // SVG — ranked-choice round transfers (flowDash)
+  'bill-funnel',           // HTML — many bills surviving each procedural stage
   // space
   'orbit-globe',           // WebGL — dot-matrix Earth + inclined orbit rings
   'trajectory-arc',        // CSS-3D/SVG — launch→orbit parabola in a starfield

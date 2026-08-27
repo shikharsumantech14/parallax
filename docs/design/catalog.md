@@ -347,6 +347,14 @@
 - **PLAIN:** "Each column is one counting round; when a candidate is knocked out, the moving ribbons show where their votes went next, and the dashed line is the majority needed to win."
 - **NOTES:** the round-structured cousin of `power-flow` (build-time layout + `flowDash` speed ∝ value); two conservation asserts FAIL the build naming the round (an eliminated candidate's transfers must sum to their tally; Σ tallies + exhausted constant across rounds); exhausted ballots are always their own muted `--ink` @ 0.30 sink lane; `majorityBasis: 'continuing'` auto-renders the `majority of continuing ballots` chip and the majority tick descends per round. Pairs with `layout: wide`; never `bleed`/`split`. BLUEPRINT: `docs/design/blueprints/politics/ballot-flow.md`.
 
+
+## bill-funnel
+- **World/Tier:** politics · HTML bars · `src/components/topic/politics/BillFunnel.astro`
+- **USE WHEN:** a *population* of bills counted at each procedural stage in order (≥4 stages, monotonically non-increasing), where the attrition between stages is the argument.
+- **DON'T USE:** ONE bill's journey through the stages (→ `bill-passage`); what a bill contains (→ `bill-breakdown`); a dated legislative history (→ `timeline`).
+- **DATA:** `{ stages: [{label, count, note?}], unit?, caption?, source? }`
+- **PLAIN:** "The same bills counted again at every stage they had to clear; bar length is how many were still alive there, and the faded segment is what was lost since the row above."
+- **NOTES:** build FAILS if any stage exceeds the one before it (a funnel cannot widen), or if there are fewer than 4 or more than 10 stages. The per-row loss is derived, never authored. Pairs with `default`; never `split`.
 ## orbit-globe
 - **World/Tier:** space · WebGL · `src/components/topic/space/OrbitGlobe.astro`
 - **USE WHEN:** orbital shells / satellite populations around Earth — dossier has real altitudes (km) and ideally inclinations per constellation.
