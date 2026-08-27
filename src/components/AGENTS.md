@@ -20,7 +20,7 @@ Components split into:
   exception" below.
 - **`home/`** — meta-brand pieces used only on `/` and `/topics/*` index
   pages (TypographicChord, TopicStrip, CategoryCard, CategoryGrid,
-  ArchiveList, FeaturedIssue).
+  ArchiveList).
 - **`topic/<topic>/`** — topic-signature components. One folder per topic.
   Each topic also has its own `<Topic>Index.astro` that drives
   `/topics/<topic>/`.
