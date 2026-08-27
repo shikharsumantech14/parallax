@@ -59,11 +59,9 @@ for (const name of FILES) {
    #5a6e16, plus the theme header — with every gate green.
 
    So: assert every site that CLAIMS to mirror the canonical accents actually
-   does. Scoped deliberately to `--accent` / `--accent-deep`, because those are
-   the values that must agree everywhere. Backgrounds and inks are NOT checked —
-   the card renderers legitimately carry their own gradient pairs, and meta.css
-   carries a deliberately darker -deep for large type on light paper (documented
-   at shared/design/worlds.css). Widening this check to those would be noise.  */
+   does. Backgrounds and inks are NOT checked — the card renderers legitimately
+   carry their own gradient pairs, and widening the check to those would be
+   noise, which is how gates get switched off.  */
 
 const WORLDS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'];
 
@@ -82,16 +80,48 @@ function canonicalAccents() {
   return out;
 }
 
-/* Each mirror declares how to find one world's accent (and optionally its
-   accent-deep) in its own file. `deep: null` means that site legitimately does
-   not carry the deep variant. */
+/* THE ACCENT IS UNIVERSAL; THE DEEP IS NOT.
+   Every world's --accent means the same thing everywhere, so every mirror is
+   gated against it. --accent-deep carries TWO roles that are provably
+   irreconcilable on dark worlds (see the proof in shared/design/worlds.css):
+
+     light-paper role  worlds.css --world-*-deep / --w-accent-deep,
+                       meta.css --topic-*-deep. Printed on #faf7f0 or #fff.
+     in-world role     the theme files' --accent-deep, and CategoryCard's,
+                       both printed on that world's OWN ground.
+
+   So the deep values are gated WITHIN each role, never across them. A gate that
+   demanded they match is what would push a dark world's cyan back onto light
+   paper at 1.4:1.
+
+   `deep: null` means the mirror carries no deep variant to check. */
 const MIRRORS = [
   ...WORLDS.map((w) => ({
     label: `src/styles/themes/${w}.css`,
     file: `src/styles/themes/${w}.css`,
     world: w,
     accent: /--accent:\s*(#[0-9a-fA-F]{6})/,
-    deep: /--accent-deep:\s*(#[0-9a-fA-F]{6})/,
+    deep: null, // in-world role — gated against CategoryCard below, not canonical
+  })),
+  /* meta.css prints world identity on meta paper, so its -deep is the
+     light-paper role and must equal the canonical one. These agreed only by
+     accident until 2026-08-27; tech and sports had been hand-darkened here
+     while worlds.css kept the in-world values. */
+  ...WORLDS.map((w) => ({
+    label: `src/styles/meta.css --topic-${w}-deep`,
+    file: 'src/styles/meta.css',
+    world: w,
+    accent: new RegExp(`--topic-${w}:\\s*(#[0-9a-fA-F]{6})`),
+    deep: new RegExp(`--topic-${w}-deep:\\s*(#[0-9a-fA-F]{6})`),
+  })),
+  /* worlds.css must agree with itself: the :root scalar and the [data-world]
+     subtree token are the same role and are consumed interchangeably. */
+  ...WORLDS.map((w) => ({
+    label: `shared/design/worlds.css [data-world="${w}"]`,
+    file: 'shared/design/worlds.css',
+    world: w,
+    accent: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent:\\s*(#[0-9a-fA-F]{6})`),
+    deep: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent-deep:\\s*(#[0-9a-fA-F]{6})`),
   })),
   ...WORLDS.map((w) => ({
     label: `scripts/social/cards.ts THEMES.${w}`,
@@ -111,9 +141,21 @@ const MIRRORS = [
     file: 'src/components/home/CategoryCard.astro',
     world: w,
     accent: new RegExp(`\\.px-cat\\[data-topic="${w}"\\][^}]*--accent:\\s*(#[0-9a-fA-F]{6})`),
-    deep: new RegExp(`\\.px-cat\\[data-topic="${w}"\\][^}]*--accent-deep:\\s*(#[0-9a-fA-F]{6})`),
+    deep: null, // in-world role — gated against its theme file below
   })),
 ];
+
+/* The in-world deep role has no canonical scalar, so it is gated as an equality
+   between the two places that render it on a world's own ground. */
+const IN_WORLD_DEEP = WORLDS.map((w) => ({
+  world: w,
+  a: { label: `src/styles/themes/${w}.css`, file: `src/styles/themes/${w}.css`, re: /--accent-deep:\s*(#[0-9a-fA-F]{6})/ },
+  b: {
+    label: `home/CategoryCard.astro [data-topic="${w}"]`,
+    file: 'src/components/home/CategoryCard.astro',
+    re: new RegExp(`\\.px-cat\\[data-topic="${w}"\\][^}]*--accent-deep:\\s*(#[0-9a-fA-F]{6})`),
+  },
+}));
 
 function checkMirrors() {
   const canon = canonicalAccents();
@@ -141,6 +183,23 @@ function checkMirrors() {
       }
     }
   }
+
+  for (const p of IN_WORLD_DEEP) {
+    const read = (side) => {
+      const path = join(root, side.file);
+      if (!existsSync(path)) return null;
+      return readFileSync(path, 'utf-8').match(side.re)?.[1]?.toLowerCase() ?? null;
+    };
+    const a = read(p.a);
+    const b = read(p.b);
+    if (a && b && a !== b) {
+      console.error(
+        `design-sync --check: IN-WORLD ACCENT-DEEP MISMATCH for ${p.world} — ` +
+          `${p.a.label} has ${a}, ${p.b.label} has ${b}`,
+      );
+      bad++;
+    }
+  }
   return bad;
 }
 
@@ -150,5 +209,5 @@ if (check) {
     console.error(`\ndesign-sync --check: ${drift} problem${drift === 1 ? '' : 's'}.`);
     process.exit(1);
   }
-  console.log(`design-sync --check: all copies in sync · ${MIRRORS.length} palette mirrors match canonical`);
+  console.log(`design-sync --check: all copies in sync · ${MIRRORS.length} palette mirrors + ${IN_WORLD_DEEP.length} in-world deeps consistent`);
 }

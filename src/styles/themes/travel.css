@@ -13,7 +13,7 @@
   --rule-soft: #ede2cc;
   --ink: #2a1f15;
   --ink-soft: #5a4a3a;
-  --muted: #8a7864;
+  --muted: #645b52; /* DERIVED: ink at 72% over --bg. Not authored — see shared/design/worlds.css. */
   --accent: #c85a3c;
   --accent-deep: #9a4028;
   --accent-alt: #2d6a7a;        /* deep teal — used for sea/river accents */
@@ -27,7 +27,7 @@
 [data-topic="travel"] .px-hero h1 em { color: var(--accent); font-style: italic; font-weight: 400; }
 [data-topic="travel"] .px-hero__byline { border-color: var(--rule); color: var(--muted); }
 [data-topic="travel"] .px-section__num { color: var(--accent); font-family: var(--font-display); font-style: italic; font-weight: 500; }
-[data-topic="travel"] .px-eyebrow { color: var(--accent); font-style: italic; font-family: var(--font-display); letter-spacing: 0.08em; text-transform: none; font-weight: 500; }
+[data-topic="travel"] .px-eyebrow { color: var(--accent-deep); font-style: italic; font-family: var(--font-display); letter-spacing: 0.08em; text-transform: none; font-weight: 500; }
 [data-topic="travel"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
 
 [data-topic="travel"] .px-quote {
@@ -84,7 +84,13 @@
 }
 [data-topic="travel"] .px-prose__p { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--ink); }
 [data-topic="travel"] .px-prose__p strong { color: var(--accent); font-weight: 600; }
-[data-topic="travel"] .px-prose__p em { color: var(--accent); }
+/* Travel is the only world whose vivid accent fails AA as body text: #c85a3c
+   scores 3.91 on --bg and 4.14 on --paper, where politics (5.25) and earth
+   (5.28) clear it. So travel alone overrides prose emphasis to --accent-deep
+   (6.21/6.58). The other five keep the vivid accent, which is both legible and
+   the livelier mark. CANON §6. */
+[data-topic="travel"] .px-prose em,
+[data-topic="travel"] .px-prose__p em { color: var(--accent-deep); }
 
 /* COMPARISON */
 [data-topic="travel"] .px-compare__head { border-bottom-color: var(--rule); }

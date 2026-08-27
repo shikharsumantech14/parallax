@@ -18,24 +18,45 @@
 
 :root {
   --world-politics: #b8341f;  --world-politics-deep: #8b2416;
-  --world-space:    #00d4ff;  --world-space-deep:    #0085a1;
+  --world-space:    #00d4ff;  --world-space-deep:    #00708a;
   --world-earth:    #2d6a4f;  --world-earth-deep:    #1a4a36;
-  --world-tech:     #c6f432;  --world-tech-deep:     #9cc528;
+  --world-tech:     #c6f432;  --world-tech-deep:     #5a6e16;
   --world-travel:   #c85a3c;  --world-travel-deep:   #9a4028;
-  --world-sports:   #e8f048;  --world-sports-deep:   #b8c038;
+  --world-sports:   #e8f048;  --world-sports-deep:   #3f5428;
 }
 
-/* NOTE: meta.css historically carries --topic-tech-deep #5a6e16 and
-   --topic-sports-deep #3f5428 (extra-dark, for large type on light paper).
-   Those remain in meta.css for that use; the -deep values here are the theme
-   files' own accent-deep (text-safe within their world). Do not merge them. */
+/* ── DERIVED VALUES ─────────────────────────────────────────────────────────
+   --muted in each theme file is DERIVED, not authored: the world's own ink
+   composited over --bg at 60% on dark grounds, 72% on light. Measured
+   2026-08-27, the previously-authored values failed WCAG AA (4.5:1) for body
+   text on 8 of 12 world/surface combinations — worst travel #8a7864 at 3.94:1
+   and sports on paper at 3.74:1. Every derived value clears 5.27:1 and every
+   one is an improvement. Recompute rather than hand-tuning them warmer.
+
+   --ink-soft is deliberately NOT derived. The spec's 74%/78% formula was
+   measured too and is WORSE on every world (6.50–10.23 derived vs 7.78–11.62
+   authored), while the authored values already clear AA everywhere. Adopting
+   it would have reduced contrast for no benefit.
+
+   ── THE TWO ACCENT-DEEP ROLES ──────────────────────────────────────────────
+   --accent-deep in a theme file means "type-safe accent ON THAT WORLD'S OWN
+   GROUND". The --world-*-deep / --w-accent-deep values HERE mean "type-safe
+   accent on a LIGHT surface", because that is what consumes them: the app
+   (ground #faf7f0) renders --w-accent-deep as text, and chips/edges print a
+   world's identity on meta paper.
+
+   For the three light worlds those roles coincide. For the three dark worlds
+   they are provably irreconcilable — space needs luminance >= 0.2168 to clear
+   4.5:1 on its own #0a1628 ground, and <= 0.1787 to clear it on white. The
+   ranges do not overlap, so ONE value cannot serve both. Keep them separate.
+   meta.css reached the same conclusion independently for tech and sports. */
 
 [data-world="politics"] {
   --w-accent: #b8341f; --w-accent-deep: #8b2416; --w-accent-alt: #1e5a3f;
   --w-bg: #f4f1ea; --w-paper: #ffffff; --w-ink: #161412;
 }
 [data-world="space"] {
-  --w-accent: #00d4ff; --w-accent-deep: #0085a1; --w-accent-alt: #ffb347;
+  --w-accent: #00d4ff; --w-accent-deep: #00708a; --w-accent-alt: #ffb347;
   --w-bg: #0a1628; --w-paper: #111f36; --w-ink: #e8eef7;
 }
 [data-world="earth"] {
@@ -43,7 +64,7 @@
   --w-bg: #f0e9d8; --w-paper: #fbf6e9; --w-ink: #1f2a1c;
 }
 [data-world="tech"] {
-  --w-accent: #c6f432; --w-accent-deep: #9cc528; --w-accent-alt: #ff5c8a;
+  --w-accent: #c6f432; --w-accent-deep: #5a6e16; --w-accent-alt: #ff5c8a;
   --w-bg: #0d0d0d; --w-paper: #161616; --w-ink: #fafafa;
 }
 [data-world="travel"] {
@@ -51,6 +72,6 @@
   --w-bg: #faf6ef; --w-paper: #fffdf7; --w-ink: #2a1f15;
 }
 [data-world="sports"] {
-  --w-accent: #e8f048; --w-accent-deep: #b8c038; --w-accent-alt: #ff6b35;
+  --w-accent: #e8f048; --w-accent-deep: #3f5428; --w-accent-alt: #ff6b35;
   --w-bg: #0f2820; --w-paper: #143328; --w-ink: #f5f5f0;
 }
