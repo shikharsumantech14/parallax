@@ -14,7 +14,7 @@
  *
  * Committing these TTFs is fine and makes CI deterministic (no network fetch).
  */
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUT = join(process.cwd(), 'assets', 'fonts');
@@ -26,19 +26,27 @@ const UA = 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefo
 // satori needs STATIC TTF instances (not variable fonts — those crash its font
 // parser). Try Google Fonts CSS2 for a single static weight (legacy UA → TTF),
 // then fall back to @fontsource static TTFs on jsDelivr.
+// `satisfied` must match the way scripts/social/cards.ts LOOKS UP each font
+// (a regex over assets/fonts), not the filename we would write. The static
+// Fraunces on disk today is `Fraunces_72pt-SemiBold.ttf`, so matching on the
+// literal `file` would re-download a second Fraunces under a different name and
+// leave the card renderer picking between them by readdir order.
 const TARGETS = [
   {
     file: 'Fraunces-SemiBold.ttf',
+    satisfied: (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && !/italic/i.test(f),
     css: 'https://fonts.googleapis.com/css2?family=Fraunces:wght@600',
     fallback: 'https://cdn.jsdelivr.net/npm/@fontsource/fraunces/files/fraunces-latin-600-normal.ttf',
   },
   {
     file: 'Fraunces-Italic.ttf',
+    satisfied: (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && /italic/i.test(f),
     css: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600',
     fallback: 'https://cdn.jsdelivr.net/npm/@fontsource/fraunces/files/fraunces-latin-600-italic.ttf',
   },
   {
     file: 'JetBrainsMono-Medium.ttf',
+    satisfied: (f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f),
     css: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500',
     fallback: 'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Medium.ttf',
   },
@@ -50,8 +58,11 @@ const TARGETS = [
 // TTF), download a static "Fraunces SemiBold" TTF manually from
 // fonts.google.com (or the undercasetype/Fraunces repo) and drop it in
 // assets/fonts/Fraunces-SemiBold.ttf. JetBrains Mono fetches reliably (static).
-// The card renderer + evergreen orchestrator degrade gracefully to text-only
-// posts when a font is missing, so the pipeline ships either way.
+// The evergreen orchestrator degrades to text-only posts when a font is
+// missing. The CARD RENDERER DOES NOT: scripts/social/cards.ts is imported by
+// scripts/story/og.ts, which runs as the `prebuild` hook, so a missing TTF
+// fails `npm run build` outright — including on Vercel. It throws with this
+// script's name in the message rather than an unreadable ENOENT.
 
 async function download(url) {
   const res = await fetch(url, { headers: { 'User-Agent': UA } });
@@ -65,9 +76,11 @@ async function ttfUrlFrom(cssUrl) {
 }
 
 let ok = 0;
+const onDisk = existsSync(OUT) ? readdirSync(OUT) : [];
 for (const t of TARGETS) {
   const dest = join(OUT, t.file);
-  if (existsSync(dest)) { console.log(`✓ ${t.file} (already present)`); ok++; continue; }
+  const already = onDisk.find(t.satisfied);
+  if (already) { console.log(`✓ ${t.file} (satisfied by ${already})`); ok++; continue; }
   let buf = null;
   try {
     const url = await ttfUrlFrom(t.css);

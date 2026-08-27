@@ -30,9 +30,27 @@ export const THEMES: Record<Topic, Theme> = {
 };
 
 // ── fonts ──────────────────────────────────────────────────────────────────
+// This module is on the PREBUILD critical path (scripts/story/og.ts imports it,
+// and `prebuild` runs before every `npm run build`, including on Vercel). A
+// missing or renamed TTF therefore fails the whole deploy, not just the social
+// pipeline — so name the file we wanted rather than letting `undefined` flow
+// into join() and surface as an unreadable ENOENT.
 const fontDir = join(process.cwd(), 'assets', 'fonts');
-const frauncesFile = readdirSync(fontDir).find((f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && !/italic/i.test(f))!;
-const monoFile = readdirSync(fontDir).find((f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f))!;
+
+function findFont(label: string, match: (f: string) => boolean): string {
+  const hit = readdirSync(fontDir).find(match);
+  if (!hit) {
+    throw new Error(
+      `[cards] No ${label} TTF in ${fontDir}. satori needs a STATIC instance ` +
+        `(it crashes on variable fonts). Run \`node scripts/fetch-fonts.mjs\`, ` +
+        `or drop one in by hand.`,
+    );
+  }
+  return hit;
+}
+
+const frauncesFile = findFont('Fraunces', (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && !/italic/i.test(f));
+const monoFile = findFont('JetBrains Mono', (f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f));
 
 // ── sizes ──────────────────────────────────────────────────────────────────
 export type Size = 'wide' | 'square' | 'og';
