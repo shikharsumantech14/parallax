@@ -1,0 +1,77 @@
+---
+/**
+ * VizCard — the shared shell every NEW section kind renders inside.
+ *
+ * WHY THIS EXISTS (RD-01a, docs/REVAMP-PLAN.md §1). The 28 kinds are being
+ * built against TODAY'S canon while the rebrand is deferred. The design's
+ * instrument shell — a 3px world rule on top, a mono eyebrow row, a tinted
+ * "How to read this" callout, a plain+source footer — is a later decision. If
+ * each kind hand-rolled its own chrome, adopting that shell later would be
+ * markup surgery on 28 components. Routed through here it is ONE file.
+ *
+ * So: this deliberately renders the CURRENT look. It is the seam, not the skin.
+ *
+ * WHERE IT SITS. Inside core/Section.astro's slot:
+ *
+ *   Section   number · eyebrow · title · intro
+ *     VizCard   [how-to-read]  ·  <slot/> the graphic  ·  caption · source
+ *   Section   "In plain terms …"          ← already renders after the slot
+ *
+ * `plain` stays Section's job and keeps its meaning (the FORM, one sentence,
+ * below the graphic). `howToRead` is the handoff's contract part 02 — the same
+ * subject at paragraph length, ABOVE the graphic. Two fields, two positions,
+ * two lengths; see docs/REVAMP-PLAN.md §1 for why collapsing them breaks the
+ * verifier.
+ *
+ * ONLY AUTHORED howToRead RENDERS. It deliberately does NOT fall back to
+ * EXPLAIN[kind].how: those 81 strings were written as an interaction cue for
+ * the ⤢ modal ("Drag to spin the globe…"), not as in-flow reading guidance.
+ * Auto-rendering them would change every viz section of 23 published issues
+ * with copy never reviewed for that surface. The fallback flips on at shell
+ * adoption, after a copy pass.
+ */
+import { renderInline } from '../../lib/text';
+
+interface Props {
+  /** Component prefix, e.g. `px-fnl`. Joined to the shared `px-viz` root so
+   *  ExpandModal's `.px-viz` selector attaches and the kit's reveal works. */
+  prefix: string;
+  /** Contract part 02 — a paragraph, above the graphic. Authored only. */
+  howToRead?: string;
+  /** The DATA claim. Inline emphasis is rendered. */
+  caption?: string;
+  /** Either a plain string or `{ label, date }` from the section schema. */
+  source?: string | { label: string; date?: string };
+  /** Optional right-hand chip in the caption row (e.g. an honesty chip). */
+  chip?: string;
+  /** Extra classes / inline style passthrough for per-kind animation vars. */
+  class?: string;
+  style?: string;
+}
+
+const { prefix, howToRead, caption, source, chip, class: extra, style } = Astro.props;
+
+const sourceLine =
+  typeof source === 'string'
+    ? source
+    : source
+      ? [source.label, source.date].filter(Boolean).join(' · ')
+      : undefined;
+---
+
+<div class:list={['px-viz', prefix, extra]} data-reveal style={style}>
+  {caption && (
+    <div class="px-viz__cap">
+      <span set:html={renderInline(caption)} />
+      {chip && <b>{chip}</b>}
+    </div>
+  )}
+
+  {howToRead && (
+    <p class="px-viz__how"><b>How to read this —</b>{' ' + howToRead}</p>
+  )}
+
+  <slot />
+
+  {sourceLine && <div class="px-viz__src">Source · {sourceLine}</div>}
+</div>

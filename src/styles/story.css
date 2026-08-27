@@ -75,7 +75,13 @@
    children of the section root only — never nested data labels) gives the
    GRAPHIC the dvh budget and cuts internal scrolling. Data is never hidden. */
 .pxs-beat__viz > * > [class$='__cap'],
-.pxs-beat__viz > * > [class$='__src'] { display: none; }
+.pxs-beat__viz > * > [class$='__src'],
+/* Named EXPLICITLY, not left to the `__cap`/`__src` suffix match above: the
+   how-to-read block is `px-viz__how`, which matches neither. It is reading
+   guidance for the full issue and a paragraph of it would eat a story card's
+   entire dvh budget. Any future chrome element must be added here by name —
+   the suffix convention is a coincidence, not a contract. */
+.pxs-beat__viz > * > .px-viz__how { display: none; }
 .pxs-beat__viz > * { margin: 0; }
 .pxs-beat__kicker {
   font-family: var(--font-mono);

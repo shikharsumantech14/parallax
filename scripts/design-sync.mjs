@@ -145,6 +145,47 @@ const MIRRORS = [
   })),
 ];
 
+/* TD-01 / TD-04 (docs/design/TOKEN-RECORD.md). These are new tokens, so they get
+   a gate in the same commit that introduces them — an ungated token drifts
+   within two sessions, which is exactly what produced the four-way tech
+   accent-deep split. --paper-deep is TD-02's alias and must equal --paper-warm;
+   --on-accent is TD-04 and must equal that world's ground. */
+const NEW_TOKENS = [
+  { key: 'paper-warm', politics: '#f2eee4', space: '#12233c', earth: '#ece2c4', tech: '#171717', travel: '#f6efe2', sports: '#12332a' },
+  { key: 'paper-deep', politics: '#f2eee4', space: '#12233c', earth: '#ece2c4', tech: '#171717', travel: '#f6efe2', sports: '#12332a' },
+  { key: 'on-accent',  politics: '#f4f1ea', space: '#0a1628', earth: '#f0e9d8', tech: '#0d0d0d', travel: '#faf6ef', sports: '#0f2820' },
+];
+
+function checkNewTokens() {
+  let bad = 0;
+  for (const t of NEW_TOKENS) {
+    for (const w of WORLDS) {
+      const p = join(root, `src/styles/themes/${w}.css`);
+      if (!existsSync(p)) continue;
+      const got = readFileSync(p, 'utf-8').match(new RegExp(`--${t.key}:\\s*(#[0-9a-fA-F]{6})`))?.[1]?.toLowerCase();
+      if (!got) {
+        console.error(`design-sync --check: themes/${w}.css is missing --${t.key} (TOKEN-RECORD)`);
+        bad++;
+      } else if (got !== t[w]) {
+        console.error(`design-sync --check: --${t.key} DRIFT in themes/${w}.css — has ${got}, record says ${t[w]}`);
+        bad++;
+      }
+    }
+  }
+  // worlds.css mirrors two of them for cross-surface consumers
+  const wsrc = readFileSync(join(root, 'shared/design/worlds.css'), 'utf-8');
+  for (const [key, rec] of [['paper-warm', NEW_TOKENS[0]], ['on-accent', NEW_TOKENS[2]]]) {
+    for (const w of WORLDS) {
+      const got = wsrc.match(new RegExp(`\\[data-world="${w}"\\][^}]*--w-${key}:\\s*(#[0-9a-fA-F]{6})`))?.[1]?.toLowerCase();
+      if (got && got !== rec[w]) {
+        console.error(`design-sync --check: --w-${key} DRIFT for ${w} — has ${got}, record says ${rec[w]}`);
+        bad++;
+      }
+    }
+  }
+  return bad;
+}
+
 /* The in-world deep role has no canonical scalar, so it is gated as an equality
    between the two places that render it on a world's own ground. */
 const IN_WORLD_DEEP = WORLDS.map((w) => ({
@@ -205,9 +246,10 @@ function checkMirrors() {
 
 if (check) {
   drift += checkMirrors();
+  drift += checkNewTokens();
   if (drift) {
     console.error(`\ndesign-sync --check: ${drift} problem${drift === 1 ? '' : 's'}.`);
     process.exit(1);
   }
-  console.log(`design-sync --check: all copies in sync · ${MIRRORS.length} palette mirrors + ${IN_WORLD_DEEP.length} in-world deeps consistent`);
+  console.log(`design-sync --check: all copies in sync · ${MIRRORS.length} mirrors + ${IN_WORLD_DEEP.length} in-world deeps + ${NEW_TOKENS.length * WORLDS.length} record tokens`);
 }

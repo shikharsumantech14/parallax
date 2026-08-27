@@ -163,7 +163,13 @@ import { EXPLAIN } from '../../lib/explainers';
 
     modal.addEventListener('click', function (e) { if (e.target.closest('[data-modal-close]')) close(); });
 
-    document.querySelectorAll('.px-viz, .vb, .tl, .tel').forEach(function (root) {
+    // `[data-viz-root]` is the opt-in for figures whose root is NOT .px-viz.
+    // Eleven components style their own root (.px-coalc, .px-swheel, .px-map …)
+    // and so never got a ⤢ study view. Opting in by ATTRIBUTE rather than by
+    // adding the .px-viz class is deliberate: eight of them carry no card
+    // chrome at all, so the class would hand them a border, padding and a
+    // shadow they were never drawn with. The attribute changes nothing visual.
+    document.querySelectorAll('.px-viz, .vb, .tl, .tel, [data-viz-root]').forEach(function (root) {
       if (root.closest('[data-modal-slot]')) return;
       var btn = document.createElement('button');
       btn.type = 'button';

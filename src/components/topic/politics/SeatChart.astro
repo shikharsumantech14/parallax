@@ -16,7 +16,7 @@ const { subtitle, source, rows } = Astro.props;
 const maxMagnitude = Math.max(1, ...rows.map((r) => Math.abs(r.change)));
 ---
 
-<div class="px-seats" data-reveal>
+<div class="px-seats" data-viz-root data-reveal>
   {subtitle && <div class="px-seats__caption">{subtitle}</div>}
 
   {rows.map((r) => {

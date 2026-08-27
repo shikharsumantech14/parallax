@@ -132,6 +132,24 @@ const sectionSchema = z.object({
   // rendered as the in-flow "In plain terms" line. Falls back to the per-kind
   // default in src/lib/explainers.ts. Captions explain the DATA instead.
   plain: z.string().max(220).optional(),
+  // How to read the graphic — the FORM, at paragraph length, rendered ABOVE it.
+  // `plain` is one sentence below the graphic and stays that; this is the
+  // handoff's contract part 02, which the 220-char cap cannot hold (13 of the
+  // 28 supplied strings exceed it). Optional for now: it is tightened toward
+  // required only after the existing issues are backfilled, in its own commit.
+  howToRead: z.string().min(40).max(360).optional(),
+  // Promoted OUT of `data: z.any()`, where they were unvalidated and could go
+  // missing silently. The handoff's floor is "never a graphic without both",
+  // and CANON §7 already said "no source, no section" on the honour system.
+  // Renderers still fall back to data.caption / data.source so no existing
+  // issue breaks. See docs/REVAMP-PLAN.md §1 (two-tier contract).
+  caption: z.string().optional(),
+  source: z
+    .union([
+      z.string(),
+      z.object({ label: z.string(), date: z.string().optional() }),
+    ])
+    .optional(),
   // Geometry variant — see src/styles/layout-v2.css + docs/design/CANON.md §3
   // rhythm rules (≤1 bleed per act; split only for the issue's hero metaphor).
   layout: sectionLayoutEnum.optional(),
@@ -166,6 +184,24 @@ const issuesCollection = defineCollection({
     author: z.string().optional(),
     tags: z.array(z.string()).default([]),
     readTimeMinutes: z.number().optional(),
+    // The issue's DOMINANT rhetorical mode, for the fact grid's fourth cell.
+    // Named `voice`, not `mode`: `mode` is already the Full⇄Skim reading state
+    // and the collision would be fatal. The stylist assigns modes per SECTION at
+    // runtime and leaves no trace in the MDX, so this is the one authored
+    // summary of them — optional, and the grid drops to three cells when it is
+    // absent rather than inventing a value. See docs/REVAMP-PLAN.md §1.
+    voice: z
+      .enum([
+        'AWE',
+        'CONVERSATIONAL EXPLAINER',
+        'CALM-STRUCTURAL',
+        'SATIRICAL EXPOSURE',
+        'DRY WIT',
+        'INVESTIGATION',
+        'FORENSIC',
+        'LYRICAL COMPRESSION',
+      ])
+      .optional(),
     primer: z.string().min(80).max(420).optional(),
     ogImage: z.string().optional(),
     story: storySchema.optional(),

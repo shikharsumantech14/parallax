@@ -48,6 +48,157 @@
   border-radius: var(--r-pill);
   white-space: nowrap;
 }
+/* ════════════════════════════════════════════════════════════════════════════
+   px-inst — THE INSTRUMENT PRIMITIVE
+   ----------------------------------------------------------------------------
+   The shared control + legend + readout chrome for section kinds that let the
+   reader change an input and watch the claim change. Extracted from the two
+   components that had already solved it independently — tech/ChipDie.astro and
+   travel/SeasonWheel.astro — rather than designed fresh, so it starts from two
+   working implementations instead of one guess.
+
+   Three things it exists to stop each new kind reinventing:
+
+   1. RESERVED HEIGHT on the readout. SeasonWheel's `min-height` is the load-
+      bearing detail: without it the card reflows every time the readout text
+      changes length, which on a scrubber means the page jumps under the
+      reader's finger while they drag.
+   2. aria-live announcement. The graphic is decoration to a screen reader; the
+      readout IS the component's output, so it must be a live region and it must
+      be text, not a redrawn SVG.
+   3. LEGEND AS CONTROL (contract part 04) — swatch rows are <button
+      aria-pressed>, so reading the key and interrogating the chart are one
+      gesture instead of two affordances.
+
+   Every colour here is a token: swatches take their fill from `--fill`, set
+   inline by the component from the data it actually paints. A legend must never
+   be authored beside the chart — if the swatch and the mark can disagree, they
+   eventually will.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* The control row — chip-sets, segmented toggles, a scrubber's label row. */
+.px-inst__controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 16px 0 0;
+}
+.px-inst__chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 7px 11px;
+  cursor: pointer;
+  min-height: 44px;                 /* CANON accessibility floor */
+  display: inline-flex; align-items: center;
+  transition: border-color var(--t-quick, 140ms) var(--ease, ease);
+}
+.px-inst__chip:hover { border-color: var(--ink); }
+.px-inst__chip[aria-pressed='true'] {
+  color: var(--on-accent, var(--paper));
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+.px-inst__chip:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+
+/* Any surface the reader drags MUST allow vertical scrolling to pass through,
+   or the component traps the page scroll on a phone. Non-negotiable. */
+.px-inst__drag { touch-action: pan-y; }
+
+/* The live readout. Height is reserved so the card never reflows mid-drag. */
+.px-inst__readout {
+  min-height: 3.2em;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.px-inst__readout b { color: var(--ink); font-weight: 700; }
+
+/* Legend rows are the control (contract part 04). */
+.px-inst__legend { display: flex; flex-direction: column; margin-top: 16px; }
+.px-inst__row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  padding: 9px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+}
+.px-inst__row:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+.px-inst__row[aria-pressed='true'] { background: var(--paper-warm, var(--paper)); }
+.px-inst__row[aria-pressed='false']:not(:hover) { opacity: 0.72; }
+/* A pale swatch needs its own edge or it vanishes on paper at 12px. */
+.px-inst__sw {
+  flex: 0 0 auto;
+  width: 12px; height: 12px;
+  background: var(--fill, var(--accent));
+  border: 1px solid var(--rule);
+}
+.px-inst__row[aria-pressed='true'] .px-inst__sw { border-color: var(--ink); }
+.px-inst__label {
+  flex: 1 1 auto;
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink);
+}
+.px-inst__val {
+  flex: 0 0 auto;
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Continuous scales get a gradient bar with END LABELS — never fake discrete
+   swatches, which imply steps the data does not have. */
+.px-inst__scale { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.px-inst__scale-bar {
+  flex: 1 1 auto; height: 8px;
+  background: linear-gradient(to right, var(--scale-from), var(--scale-to));
+  border: 1px solid var(--rule);
+}
+.px-inst__scale-end {
+  flex: 0 0 auto;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "How to read this" — contract part 02, ABOVE the graphic (core/VizCard.astro).
+   Geometry is the handoff's, measured off the prototypes and invariant across
+   all 60 instruments: 10px 13px padding, 14px/1.58, a 3px accent rule on the
+   leading edge, on --paper-warm (TD-01). Ink clears 11.5:1 on that surface in
+   every world. */
+.px-viz__how {
+  margin: 0 0 18px;
+  padding: 10px 13px;
+  background: var(--paper-warm, var(--paper));
+  border-left: 3px solid var(--accent);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.58;
+  color: var(--ink-soft);
+}
+.px-viz__how b {
+  font-weight: 700;
+  color: var(--ink);
+}
+/* Phone: the tint reads as noise at 353px, and the accent edge alone carries
+   the block. Mirrors the prototypes' own S-figure treatment, which drops the
+   tint at small size. Carried from day one so shell adoption never has to
+   reopen mobile. */
+@media (max-width: 640px) {
+  .px-viz__how {
+    background: transparent;
+    padding: 2px 0 2px 11px;
+  }
+}
+
 .px-viz__src {
   margin-top: 22px;
   padding-top: 14px;
