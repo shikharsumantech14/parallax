@@ -10,6 +10,13 @@
 > DATA (shape sketch) · PLAIN (the "in plain terms" template explaining the FORM)
 > · NOTES (layout pairing, world, tier, component path, blueprint link).
 >
+> THREE COMPREHENSION FIELDS, three contracts (2026-08-27). `plain` is the FORM
+> in one sentence, below the graphic, 220 chars. `howToRead` is the FORM at
+> paragraph length, ABOVE the graphic, 40–360 chars — write one only where the
+> form can be misread. `caption` is the DATA claim and is the only one of the
+> three a verifier traces to the dossier. Never let `plain` assert data, and
+> never let `caption` merely describe the shape.
+>
 > STATUS (2026-07-06): covers the 64 kinds registered in `SECTION_KINDS`
 > (61 originals + the 3 flagships solar-system/chamber/power-flow). The **26
 > next-generation kinds have full blueprints** under `docs/design/blueprints/`

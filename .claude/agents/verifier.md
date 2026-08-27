@@ -45,11 +45,26 @@ Go section by section through the draft's frontmatter. For every:
 
 List each claim with its location in the draft (section kind + field).
 
-**Also audit the `plain` lines.** A section's `plain` line must describe the
-FORM of the graphic (how to read it), never assert the DATA. A `plain` that
-states a finding ("Leicester won", "the budget is exhausted") is a defect — flag
-it **⚠️ PLAIN-CLAIM** (the form belongs in `plain`, the data belongs in the
-caption). `plain` lines otherwise carry no sourced claim to trace.
+**Also audit the comprehension fields.** Since 2026-08-27 a viz section can
+carry THREE, and they have different contracts. Getting them mixed up is the
+most common authoring error, so check each explicitly:
+
+| Field | Carries | Renders | Traceable claim? |
+|---|---|---|---|
+| `howToRead` | the FORM, at paragraph length | ABOVE the graphic | no |
+| `plain` | the FORM, one sentence | BELOW the graphic | no |
+| `caption` | the DATA — the finding | with the figure | **YES — trace it** |
+
+- A `plain` or `howToRead` that states a finding ("Leicester won", "the budget
+  is exhausted") is a defect — flag **⚠️ PLAIN-CLAIM**. The form belongs in
+  those two; the data belongs in the caption.
+- A `caption` is the opposite: it SHOULD assert data, so trace it to the
+  dossier like any other claim. A caption that only describes the shape of the
+  graphic is a wasted line — flag **⚠️ CAPTION-FORM**.
+- `howToRead` and `plain` must not be near-duplicates of each other. If the
+  paragraph just restates the sentence at greater length, flag
+  **⚠️ REDUNDANT-HOWTO**; the paragraph should name what a mark IS and what the
+  axes mean, which the one-liner has no room for.
 
 ### Step 3 — Trace each claim to the dossier
 

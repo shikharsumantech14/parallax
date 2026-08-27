@@ -235,6 +235,20 @@ in-flow "In plain terms" line; omit it only when the per-kind default in
 `src/lib/explainers.ts` already fits this issue's framing. Narrative kinds
 (prose, quote, act-break, beat-sheet, comparison, analogy) take no `plain`.
 
+**How to read this (`howToRead`, optional):** a PARAGRAPH for figures a reader
+could misread — what one mark is, what the axes mean, and any inversion in the
+form. It renders ABOVE the graphic, where someone who just failed to follow the
+prose will meet it. 40–360 characters (the schema enforces this). It carries the
+FORM, exactly like `plain`, so the same rule applies: never assert the data.
+Do not write one that merely restates `plain` at greater length — if there is
+nothing to add beyond the one-liner, omit it. Worth writing when the form has a
+counter-intuitive reading: `channel-ternary`'s distance-from-a-corner means LOW
+use of that corner, which every reader gets backwards on first look.
+
+**Caption (`caption`):** the DATA claim — the finding, in one sentence, stated
+so a verifier can trace it ("214 bills went in and 47 came out with assent").
+This is the one comprehension field that SHOULD assert data.
+
 **Skim caption (`skimCaption`):** a one-line takeaway — the single thing this
 section proves — for the reader in Skim mode. Author it for every substantive
 section.
