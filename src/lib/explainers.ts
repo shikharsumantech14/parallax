@@ -100,6 +100,8 @@ export const EXPLAIN: Record<string, Explainer> = {
   'seat-chart': { what: 'Seats or races listed with who holds them now and how that changed — the ledger of wins and losses.', how: 'Scan the change column for where the ground shifted.' },
   'bill-breakdown': { what: 'A bill or ruling broken into its key provisions, one card per provision.', how: 'Read the cards in order; the highlighted card is the one that matters most.' },
   'orbital-shells': { what: 'The layers of space around Earth, from low orbit outward, with what lives at each altitude.', how: 'Read outward from Earth: each shell is a different orbital neighbourhood.' },
+  'orbit-trace': { what: 'A flat diagram of Earth ringed by named orbits, each drawn at its own altitude. The rings are spaced on a squeezed scale so the low and the distant fit together, and one satellite rides each ring.', how: 'Compare rings by how far they sit from Earth; the legend names each orbit and how many satellites share it.' },
+  'launch-stats': { what: 'One column per year, split into a bar for each operator, so the height of a column is the total and the slices inside it show who flew.', how: 'Read left to right for the trend, and compare the coloured slices within a year to see who carried it.' },
   'commit-grid': { what: 'Activity over time as a grid of squares — each square is one day, darker means busier.', how: 'Read left to right through the weeks; dark streaks are the intense stretches.' },
   'journey-map': { what: 'The stops of a journey in order, with the story of each leg.', how: 'Follow the line from the first stop to the last.' },
   'match-stat-line': { what: 'The head-to-head numbers from one match, side by side.', how: 'Each row is one stat; the longer side won that battle.' },

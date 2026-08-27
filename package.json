@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "node scripts/design-sync.mjs --check && astro build",
-    "prebuild": "tsx scripts/story/og.ts",
+    "build": "astro build",
+    "prebuild": "node scripts/design-sync.mjs --check && node scripts/check-catalog.mjs && tsx scripts/story/og.ts",
     "story:og": "tsx scripts/story/og.ts",
     "preview": "astro preview",
     "astro": "astro",

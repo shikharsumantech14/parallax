@@ -201,9 +201,15 @@ document.querySelectorAll('.px-gate-hidden').forEach(e => e.classList.remove('px
 ## 9. Verification commands
 
 ```bash
-npm run build            # publication — must exit 0 (44 pages today)
-npm run check:catalog    # SECTION_KINDS ↔ catalog.md, 1:1 and same order
-npm run design:check     # shared design tokens in sync (gates the build)
+npm run build            # publication — must exit 0 (44 pages today).
+                         # `prebuild` runs design:check + check:catalog FIRST,
+                         # before og.ts writes anything, so a failing gate
+                         # leaves the tree clean. Use `npx astro build` to skip
+                         # the hook while iterating.
+npm run check:catalog    # SECTION_KINDS ↔ catalog.md (1:1, same order) PLUS
+                         # EXPLAIN + KIND_PRIORITY coverage. Reports every
+                         # problem in one run.
+npm run design:check     # shared design tokens in sync
 npm run dev              # publication dev server → localhost:4321
 ```
 

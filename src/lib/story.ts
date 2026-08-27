@@ -36,6 +36,13 @@ export const KIND_PRIORITY: Record<string, number> = {
   // WebGL / flagship interactive
   'solar-system': 100, 'chamber': 100, 'orbit-globe': 96, 'data-globe': 96,
   'route-globe': 96, 'coalition-orbit': 94,
+  // The four remaining WebGL flagships — one per world, unscored until now, so
+  // they fell to the default 30 (see `?? 30` below) and were effectively
+  // unrankable as beats despite being the most arresting things in the library.
+  // Scored just under the globes: flagship, but never displacing solar-system,
+  // chamber or a globe when an issue carries one.
+  'terrain-relief': 94, 'flight-of-the-ball': 92, 'terminator-globe': 92,
+  'neural-flow': 90,
   // strong interactive / signature
   'power-flow': 92, 'climate-spiral': 90, 'vote-result': 88, 'shot-map': 86,
   'xg-race': 86, 'momentum-wave': 86, 'tactics-pitch': 86, 'trajectory-arc': 84,

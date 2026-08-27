@@ -60,7 +60,7 @@ auto-deploys on push to `main`.
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **90 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts the pairing (manual — it is *not* wired into `npm run build`). |
+| Section library | **90 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -590,9 +590,10 @@ em-dashes still needs to be fixed.
    toolbar that measurement disproved. In-SVG small type is a known separate
    residual, see §7.)
 8. If a new section kind was added, six files have to agree. `npm run
-   check:catalog` verifies only the pairing of (1) and (5) — name-for-name,
-   same order — and it is **not** part of `npm run build`, so run it yourself.
-   The other four are on you:
+   check:catalog` now verifies (1)↔(5) name-for-name and in order, **and**
+   that the kind has an `EXPLAIN` entry (4) and a `KIND_PRIORITY` score in
+   `src/lib/story.ts`. It runs in `prebuild`, so missing any of those fails
+   the build rather than failing silently. The rest are still on you:
    1. `SECTION_KINDS` in `src/content/config.ts`
    2. import + dispatch branch in `src/components/SectionBody.astro`
       (**not** `SectionRenderer.astro` — that file is article chrome only)
