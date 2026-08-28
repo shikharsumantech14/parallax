@@ -11,9 +11,12 @@ interface BillCard {
 
 interface Props {
   cards: BillCard[];
+  /* Optional — promoted onto the section schema in Phase 2 and merged
+     down in SectionBody. CANON §7: no source, no section. */
+  source?: string;
 }
 
-const { cards } = Astro.props;
+const { cards, source} = Astro.props;
 ---
 
 <div class="px-bills" data-viz-root data-reveal>
@@ -30,3 +33,4 @@ const { cards } = Astro.props;
     </article>
   ))}
 </div>
+{source && <div class="px-viz__src">Source · {source}</div>}

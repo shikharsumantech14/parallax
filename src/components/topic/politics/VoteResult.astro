@@ -17,8 +17,11 @@ interface Props {
   shortfall: number;
   label?: string;
   stamp?: string;
+  /* Optional — promoted onto the section schema in Phase 2 and merged
+     down in SectionBody. CANON §7: no source, no section. */
+  source?: string;
 }
-const { for: forVotes, against, required, present, shortfall, label, stamp = 'Defeated' } = Astro.props;
+const { for: forVotes, against, required, present, shortfall, label, stamp = 'Defeated', source} = Astro.props;
 
 const cast = forVotes + against;
 const forPct = cast === 0 ? 0 : (forVotes / cast) * 100;
@@ -62,3 +65,4 @@ const dots = Array.from({ length: seats }, (_, i) =>
     <div><span class="vb__n vb__n--neg">−{shortfall}</span>Short</div>
   </div>
 </div>
+{source && <div class="px-viz__src">Source · {source}</div>}

@@ -118,12 +118,34 @@ interface Props {
 }
 
 const { section } = Astro.props;
-const data: any = section.data ?? {};
+
+/* `caption` and `source` were promoted onto the section schema in Phase 2, but
+   the ~90 dispatch arms below were written before that and read `data.caption`
+   / `data.source`. Merging the promoted fields down into `data` here makes the
+   new top-level form work for EVERY kind at once, instead of editing ninety
+   arms and missing some. The authored `data.*` still wins where it exists, so
+   no existing issue changes.
+
+   `source` accepts `{ label, date }` per the schema; components expect a
+   string, so it is flattened here — the one place that knows about both
+   shapes. */
+const promotedSource =
+  typeof section.source === 'string'
+    ? section.source
+    : section.source
+      ? [section.source.label, section.source.date].filter(Boolean).join(' · ')
+      : undefined;
+
+const data: any = {
+  ...(section.data ?? {}),
+  caption: (section.data as any)?.caption ?? section.caption,
+  source: (section.data as any)?.source ?? promotedSource,
+};
 ---
 
-    {section.kind === 'timeline' && <Timeline events={data.events ?? []} />}
+    {section.kind === 'timeline' && <Timeline events={data.events ?? []} source={data.source} />}
 
-    {section.kind === 'bill-breakdown' && <BillBreakdown cards={data.cards ?? []} />}
+    {section.kind === 'bill-breakdown' && <BillBreakdown cards={data.cards ?? []} source={data.source} />}
 
     {section.kind === 'vote-result' && (
       <>
@@ -135,6 +157,7 @@ const data: any = section.data ?? {};
           shortfall={data.shortfall ?? 0}
           label={data.label}
           stamp={data.stamp}
+          source={data.source}
         />
         {data.followup && <p class="px-followup">{data.followup}</p>}
       </>
@@ -147,7 +170,7 @@ const data: any = section.data ?? {};
       </>
     )}
 
-    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} />}
+    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} caption={data.caption} source={data.source} />}
 
     {section.kind === 'analogy' && (
       <BrothersAnalogy
