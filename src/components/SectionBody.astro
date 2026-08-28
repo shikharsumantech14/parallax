@@ -107,6 +107,11 @@ import ElevationProfile from './topic/earth/ElevationProfile.astro';
 import RegionMap from './topic/earth/RegionMap.astro';
 import ClimateStrip from './topic/earth/ClimateStrip.astro';
 import CarbonGauge from './topic/earth/CarbonGauge.astro';
+import AgePyramid from './topic/politics/AgePyramid.astro';
+import MarginBullets from './topic/space/MarginBullets.astro';
+import StateTimeline from './topic/tech/StateTimeline.astro';
+import AttritionWaffle from './topic/travel/AttritionWaffle.astro';
+import FinishInterval from './topic/sports/FinishInterval.astro';
 
 interface Props {
   section: Section;
@@ -423,6 +428,9 @@ const data: any = section.data ?? {};
     {section.kind === 'bill-funnel' && (
       <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
+    {section.kind === 'age-pyramid' && (
+      <AgePyramid bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+    )}
 
     {/* space */}
     {section.kind === 'trajectory-arc' && (
@@ -451,6 +459,9 @@ const data: any = section.data ?? {};
     )}
     {section.kind === 'eclipse-cone' && (
       <EclipseCone source={data.source} occulter={data.occulter} target={data.target} showPenumbra={data.showPenumbra} caption={data.caption} sourceCite={data.sourceCite} />
+    )}
+    {section.kind === 'margin-bullets' && (
+      <MarginBullets rows={data.rows ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terrain-relief' && (
       <TerrainRelief dem={data.dem} place={data.place} exaggeration={data.exaggeration} exaggerateTo={data.exaggerateTo} contourInterval_m={data.contourInterval_m} peaks={data.peaks ?? []} seaLevel={data.seaLevel} caption={data.caption} source={data.source} />
@@ -482,6 +493,9 @@ const data: any = section.data ?? {};
     {section.kind === 'moore-ladder' && (
       <MooreLadder points={data.points ?? []} yLabel={data.yLabel} unit={data.unit} fit={data.fit} fitRange={data.fitRange} caption={data.caption} source={data.source} />
     )}
+    {section.kind === 'state-timeline' && (
+      <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+    )}
     {section.kind === 'terminator-globe' && (
       <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} showEoT={data.showEoT} caption={data.caption} source={data.source} />
     )}
@@ -497,6 +511,9 @@ const data: any = section.data ?? {};
     {section.kind === 'fare-terrain' && (
       <FareTerrain routes={data.routes ?? []} unit={data.unit} sweetSpotDays={data.sweetSpotDays} caption={data.caption} source={data.source} />
     )}
+    {section.kind === 'attrition-waffle' && (
+      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+    )}
     {section.kind === 'flight-of-the-ball' && (
       <FlightOfTheBall sport={data.sport} shot={data.shot} goal={data.goal} showGhost={data.showGhost} slowmo={data.slowmo} caption={data.caption} source={data.source} />
     )}
@@ -511,6 +528,9 @@ const data: any = section.data ?? {};
     )}
     {section.kind === 'channel-ternary' && (
       <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+    )}
+    {section.kind === 'finish-interval' && (
+      <FinishInterval model={data.model} runs={data.runs} positions={data.positions} zones={data.zones ?? []} rows={data.rows ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* earth */}

@@ -1,0 +1,492 @@
+---
+/**
+ * MarginBullets (`margin-bullets`) — several measurements, each against its own
+ * requirement and in its own unit. The reader learns which subsystems close and
+ * which do not, without being invited to compare quantities that do not compare.
+ *
+ * Blueprint: docs/design/blueprints/space/margin-bullets.md
+ * Pure HTML/CSS — no SVG, no viewBox. Follows the HTML/CSS exemplar
+ * politics/BillFunnel.astro (VizCard shell + px-inst primitive + upgrade-in-the-
+ * island interaction).
+ *
+ * THREE CONTRACT RESOLUTIONS, recorded here because they are deviations from a
+ * literal reading of the blueprint and a future editor deserves the reason:
+ *
+ *  1. PREFIX. Blueprint §1 says `px-mbl`; the build order says `px-mgb`. Both
+ *     are free (re-grepped meta.css, base.css, src/components/), so this follows
+ *     the build order and the blueprint §1 line needs correcting to match.
+ *
+ *  2. TEXT COLOUR. Blueprint §6 paints two TEXT roles — the value cell and the
+ *     readout's signed margin — in the vivid `--accent`. CANON §6 forbids vivid
+ *     accent as type on light paper, and the blueprint's own header says CANON
+ *     applies regardless. `--accent-deep` is the type-safe accent in every world
+ *     (dark worlds define it as the in-world legible variant, light worlds as
+ *     the darkened one), so type takes `--accent-deep` and only FILLS — the bars
+ *     — take vivid `--accent`. `--accent-alt` is type-safe on all six grounds as
+ *     authored, so the "short" half needs no substitute.
+ *
+ *  3. NODE BUDGET. §10 caps the card at 100 DOM nodes, while §3 allows 8 rows
+ *     and §7 mandates a fallback table — which cannot all three hold. The two
+ *     data marks are therefore pseudo-elements driven by inline custom
+ *     properties rather than spans: they are pure presentation (the table is the
+ *     content), and dropping 2 nodes per row brings a 6-row card back under 100.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Row {
+  /** MUST carry or imply the unit — there is no shared axis to carry it. */
+  label: string;
+  value: number;
+  required: number;
+  /** The row's OWN full range; sets 100% of this row's track and nothing else. */
+  max: number;
+  /** Leading space where the convention is "4.8 dB". Printed verbatim. */
+  unit: string;
+  note?: string;
+}
+interface Props {
+  rows?: Row[];
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const { rows: input = [], caption, source, howToRead } = Astro.props;
+
+/* ── Build-time validation (blueprint §3) ──────────────────────────────────
+   Every bar here is normalised to its own `max`, so a row whose numbers fall
+   outside that range does not render badly — it renders *plausibly*, at a
+   length that means something it is not. That is a published false claim, and
+   it must cost a build instead. */
+if (input.length < 4 || input.length > 8) {
+  throw new Error(`[margin-bullets] needs 4–8 rows, got ${input.length}. See blueprint §10.`);
+}
+
+input.forEach((r, i) => {
+  const name = r && r.label ? r.label : `row ${i + 1}`;
+  if (!r || typeof r !== 'object') {
+    throw new Error(`[margin-bullets] ${name} is not an object: ${JSON.stringify(r)}.`);
+  }
+  // The unit is not decoration. With six independent scales, two bars of equal
+  // length have nothing in common, and a bare number is unreadable.
+  if (typeof r.unit !== 'string' || r.unit.trim() === '') {
+    throw new Error(`[margin-bullets] row "${name}" has no unit. Every row must carry one — the rows share no axis.`);
+  }
+  ([['value', r.value], ['required', r.required], ['max', r.max]] as const).forEach(([k, v]) => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      throw new Error(`[margin-bullets] row "${name}": ${k} must be a finite number, got ${JSON.stringify(v)}.`);
+    }
+  });
+  if (!(r.required > 0 && r.required <= r.max)) {
+    throw new Error(
+      `[margin-bullets] row "${name}" breaks 0 < required <= max: required ${r.required}, max ${r.max}.`,
+    );
+  }
+  if (!(r.value >= 0 && r.value <= r.max)) {
+    throw new Error(
+      `[margin-bullets] row "${name}" breaks 0 <= value <= max: value ${r.value}, max ${r.max}.`,
+    );
+  }
+});
+
+/* Decimal places are DERIVED from the authored numbers rather than looked up
+   from a unit table: `unit` is free text, so a table would silently mis-round
+   any unit nobody thought of. 4.8 against 3 → 1 dp; 84 against 40 → 0 dp,
+   which is exactly the convention blueprint §4 asks for. */
+const decimalsOf = (n: number) => {
+  const s = String(n);
+  if (s.indexOf('e') >= 0 || s.indexOf('E') >= 0) return 0;
+  const dot = s.indexOf('.');
+  return dot < 0 ? 0 : Math.min(3, s.length - dot - 1);
+};
+
+const rows = input.map((r, i) => {
+  const dp = Math.max(decimalsOf(r.value), decimalsOf(r.required));
+  const margin = r.value - r.required;
+  const ok = r.value >= r.required;
+  const valueText = r.value.toFixed(dp);
+  const reqText = r.required.toFixed(dp);
+  const sign = margin > 0 ? '+' : margin < 0 ? '−' : '±';
+  // The true minus sign (U+2212), not a hyphen: at mono 11px in a tabular
+  // column a hyphen reads as a dash and the sign is the whole point.
+  const marginNum = `${sign}${Math.abs(margin).toFixed(dp)}`;
+  return {
+    ...r,
+    i,
+    ok,
+    dp,
+    valueText,
+    reqText,
+    marginNum,
+    marginText: `${marginNum}${r.unit}`,
+    vsText: `${valueText}${r.unit} against a requirement of ${reqText}${r.unit}`,
+    // Blueprint §8: where the margin is negative the readout says so in words,
+    // because a minus sign is easy to miss and this is the whole argument.
+    noteText: [r.note, ok ? '' : 'This subsystem does not close.'].filter(Boolean).join(' ') || '—',
+    vPct: (r.value / r.max) * 100,
+    rPct: (r.required / r.max) * 100,
+  };
+});
+
+/* Composed still (§5) = the failing row selected. Where several fail, the worst
+   RELATIVE shortfall is the argument — an 8 kg gap against a 30 kg requirement
+   is a bigger problem than an 8 W gap against 400 W, and the rows do not share
+   a unit to compare absolutely. Ties keep the earlier row. All-pass falls back
+   to the last row (§7). */
+let defaultIdx = rows.length - 1;
+let worst = 0;
+rows.forEach((r) => {
+  if (r.ok) return;
+  const shortfall = (r.required - r.value) / r.required;
+  if (shortfall > worst) {
+    worst = shortfall;
+    defaultIdx = r.i;
+  }
+});
+const d = rows[defaultIdx];
+---
+
+<VizCard prefix="px-mgb" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-mgb__rows">
+    {rows.map((r) => (
+      <div
+        class="px-mgb__row"
+        data-mgb-row={r.i}
+        data-ok={r.ok ? 'true' : 'false'}
+        data-selected={r.i === defaultIdx ? 'true' : 'false'}
+        data-mgb-sub={r.label}
+        data-mgb-mar={r.marginText}
+        data-mgb-vs={r.vsText}
+        data-mgb-note={r.noteText}
+      >
+        <span class="px-mgb__label">{r.label}</span>
+        {/* Bar and requirement tick are ::before / ::after on this one element,
+            positioned from these two custom properties — see the header note on
+            the §10 node budget. */}
+        <span
+          class="px-mgb__track"
+          style={`--mgb-v:${r.vPct.toFixed(3)}%;--mgb-r:${r.rPct.toFixed(3)}%`}
+        ></span>
+        <span class="px-mgb__val">{r.valueText}{r.unit}</span>
+      </div>
+    ))}
+  </div>
+
+  {/* Readout before legend, per §4's cell order — and because the readout is
+      the answer to pressing a row, so it belongs next to the rows.
+      aria-atomic, because the three cells change together and are one sentence
+      to a listener, not three separate updates. */}
+  <div
+    class="px-mgb__readout px-inst__readout"
+    data-mgb-readout
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    <span class="px-mgb__rsub" data-mgb-rsub>{d.label}</span>
+    <span class="px-mgb__rcell">
+      <b class="px-mgb__rmar" data-mgb-rmar data-neg={d.ok ? 'false' : 'true'}>{d.marginText}</b>
+      <small class="px-mgb__rvs" data-mgb-rvs>{d.vsText}</small>
+    </span>
+    <span class="px-mgb__rnote" data-mgb-rnote>{d.noteText}</span>
+  </div>
+
+  <div class="px-mgb__legend">
+    <span class="px-mgb__lg"><span class="px-inst__sw" style="--fill: var(--accent)"></span>Meets the requirement</span>
+    <span class="px-mgb__lg"><span class="px-inst__sw" style="--fill: var(--accent-alt)"></span>Short of it</span>
+    <span class="px-mgb__lg"><i class="px-mgb__lgtick"></i>Requirement</span>
+  </div>
+
+  {/* The AT-readable source (blueprint §7). Deliberately NOT operable: the
+      chart rows are the single control, and a second set of targets for the
+      same six facts is noise in the tab order. */}
+  <table class="px-mgb__table">
+    <caption class="px-mgb__tcap">Every subsystem, what it has, what it needs, and the margin</caption>
+    <thead>
+      <tr>
+        <th scope="col">Subsystem</th>
+        <th scope="col">Value</th>
+        <th scope="col">Required</th>
+        <th scope="col">Margin</th>
+        <th scope="col">Unit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr data-ok={r.ok ? 'true' : 'false'}>
+          <th scope="row">{r.label}</th>
+          <td>{r.valueText}</td>
+          <td>{r.reqText}</td>
+          <td class="px-mgb__tmar">{r.marginNum}</td>
+          <td>{r.unit.trim()}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  {/* Every note, present regardless of JS, so nothing is reachable only by
+      pressing (blueprint §7 / the fallback contract). */}
+  <dl class="px-mgb__notes">
+    {rows.map((r) => (
+      <Fragment>
+        <dt>{r.label} · {r.valueText}{r.unit} · {r.marginText}</dt>
+        <dd>{r.noteText}</dd>
+      </Fragment>
+    ))}
+  </dl>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-mgb').forEach(function (card) {
+      var rows = Array.prototype.slice.call(card.querySelectorAll('[data-mgb-row]'));
+      var sub = card.querySelector('[data-mgb-rsub]');
+      var mar = card.querySelector('[data-mgb-rmar]');
+      var vs = card.querySelector('[data-mgb-rvs]');
+      var note = card.querySelector('[data-mgb-rnote]');
+      if (!rows.length || !sub || !mar || !vs || !note) return;
+      var def = 0;
+      for (var k = 0; k < rows.length; k++) {
+        if (rows[k].getAttribute('data-selected') === 'true') def = k;
+      }
+      var cur = def;
+
+      function paint(i) {
+        cur = i;
+        rows.forEach(function (r, n) {
+          var on = n === i;
+          r.setAttribute('data-selected', on ? 'true' : 'false');
+          r.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        var r = rows[i];
+        sub.textContent = r.getAttribute('data-mgb-sub') || '';
+        mar.textContent = r.getAttribute('data-mgb-mar') || '';
+        mar.setAttribute('data-neg', r.getAttribute('data-ok') === 'false' ? 'true' : 'false');
+        vs.textContent = r.getAttribute('data-mgb-vs') || '';
+        note.textContent = r.getAttribute('data-mgb-note') || '';
+      }
+
+      // The rows are plain <div>s in the markup and become operable ONLY here,
+      // so a no-JS reader is never offered an affordance that does nothing. Its
+      // reading of the figure is complete without them: every bar, tick and
+      // value is painted, and every note is in the <dl> below.
+      rows.forEach(function (r, n) {
+        r.setAttribute('role', 'button');
+        r.setAttribute('tabindex', '0');
+        r.setAttribute('aria-pressed', n === def ? 'true' : 'false');
+        r.classList.add('is-operable');
+        r.addEventListener('click', function () { paint(n === cur ? def : n); });
+        r.addEventListener('keydown', function (e) {
+          var k = e.key;
+          if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.preventDefault(); paint(n === cur ? def : n); }
+          else if (k === 'Escape') { paint(def); }
+          else if (k === 'ArrowDown' && n + 1 < rows.length) { e.preventDefault(); rows[n + 1].focus(); paint(n + 1); }
+          else if (k === 'ArrowUp' && n > 0) { e.preventDefault(); rows[n - 1].focus(); paint(n - 1); }
+        });
+      });
+    });
+  })();
+</script>
+
+<style>
+  /* No transitions anywhere in this component, by design. Blueprint §5 allows
+     only `reveal` on the card root (VizCard's data-reveal) and explicitly says
+     the bars do not grow — so the reduced-motion still and the animated state
+     are the same pixels, and there is nothing for a prefers-reduced-motion
+     block to switch off. */
+
+  .px-mgb__rows { margin-top: 4px; }
+
+  .px-mgb__row {
+    display: grid;
+    grid-template-columns: 168px 1fr 104px;
+    gap: 14px;
+    align-items: center;
+    padding: 9px 0;
+    /* §4 geometry gives a 36px row; the CANON touch floor is 44px, and the
+       px-inst controls already sit at 44. Applied unconditionally so the no-JS
+       layout and the operable layout are pixel-identical. */
+    min-height: 44px;
+    border-bottom: 1px solid var(--rule);
+  }
+  html.js .px-mgb__row.is-operable { cursor: pointer; }
+  .px-mgb__row.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+  .px-mgb__row[data-selected='true'] { background: var(--paper-warm); }
+
+  .px-mgb__label {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: color-mix(in oklab, var(--ink) 80%, transparent);
+  }
+  .px-mgb__row[data-selected='true'] .px-mgb__label { color: var(--ink); }
+
+  .px-mgb__track {
+    position: relative;
+    display: block;
+    height: 18px;
+    background: var(--paper-warm);
+    /* The selected row's background is ALSO --paper-warm (§6), which would make
+       the track's right-hand end vanish exactly on the row the reader chose —
+       and with no shared axis, that end IS this row's full range. A hairline
+       edge keeps it. Same reasoning as the px-inst swatch border. */
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  /* The value bar: what it has. */
+  .px-mgb__track::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--mgb-v, 0%);
+    background: var(--accent);
+  }
+  .px-mgb__row[data-ok='false'] .px-mgb__track::before { background: var(--accent-alt); }
+  /* The requirement tick: what it needs. Overhangs the track top and bottom so
+     it stays legible where the bar covers its position — ink on a vivid accent
+     fill is not a contrast pair, ink on the row ground is (§4). */
+  .px-mgb__track::after {
+    content: '';
+    position: absolute;
+    left: var(--mgb-r, 0%);
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    /* Centres the 2px rule on the fraction, so it marks the requirement rather
+       than the requirement plus a pixel. */
+    margin-left: -1px;
+    background: var(--ink);
+  }
+
+  .px-mgb__val {
+    text-align: right;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    /* --accent-deep, not vivid --accent: this is type. See header note 2. */
+    color: var(--accent-deep);
+  }
+  .px-mgb__row[data-ok='false'] .px-mgb__val { color: var(--accent-alt); }
+
+  .px-mgb__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 14px;
+  }
+  .px-mgb__lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: color-mix(in oklab, var(--ink) 65%, transparent);
+  }
+  .px-mgb__lgtick { flex: 0 0 auto; width: 2px; height: 12px; background: var(--ink); }
+
+  .px-mgb__readout {
+    display: grid;
+    grid-template-columns: 168px 104px 1fr;
+    gap: 14px;
+    align-items: start;
+    /* px-inst reserves 3.2em; the note cell runs to three lines of mono at this
+       column width, so reserve for the tallest state or the card jumps under
+       the reader's finger every time they change rows. */
+    min-height: 4.6em;
+  }
+  .px-mgb__rsub { color: var(--ink); font-weight: 700; line-height: 1.4; }
+  .px-mgb__rcell { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+  .px-mgb__rmar { font-size: 15px; font-weight: 700; line-height: 1.2; color: var(--accent-deep); }
+  .px-mgb__rmar[data-neg='true'] { color: var(--accent-alt); }
+  .px-mgb__rvs { font-size: 10px; line-height: 1.4; color: var(--muted); }
+  .px-mgb__rnote { color: var(--ink-soft); }
+
+  .px-mgb__table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-mgb__tcap {
+    text-align: left;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+  .px-mgb__table th,
+  .px-mgb__table td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--rule);
+    text-align: right;
+  }
+  .px-mgb__table thead th {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .px-mgb__table th[scope='row'],
+  .px-mgb__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
+  .px-mgb__table td { color: color-mix(in oklab, var(--ink) 85%, transparent); }
+  .px-mgb__table tr[data-ok='true'] .px-mgb__tmar { color: var(--accent-deep); font-weight: 700; }
+  .px-mgb__table tr[data-ok='false'] .px-mgb__tmar { color: var(--accent-alt); font-weight: 700; }
+
+  .px-mgb__notes {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .px-mgb__notes dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .px-mgb__notes dd { margin: 3px 0 0; color: var(--ink-soft); }
+  /* With JS the readout carries the selected note, so this list is a redundant
+     duplicate; keep it for AT but take it out of the visual flow. */
+  html.js .px-mgb__notes {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 640px) {
+    .px-mgb__row {
+      grid-template-columns: 1fr 84px;
+      gap: 5px 10px;
+      padding: 10px 0;
+    }
+    /* The track drops to its own second line spanning both columns (§4), so a
+       long subsystem name never has to truncate and the value cell keeps its
+       full 12.5px. */
+    .px-mgb__label { grid-column: 1; grid-row: 1; }
+    .px-mgb__val { grid-column: 2; grid-row: 1; }
+    .px-mgb__track { grid-column: 1 / -1; grid-row: 2; }
+
+    .px-mgb__readout { grid-template-columns: 1fr; gap: 6px; min-height: 6.4em; }
+    .px-mgb__rcell { flex-direction: row; align-items: baseline; gap: 8px; text-align: left; }
+
+    .px-mgb__table th,
+    .px-mgb__table td { padding: 6px 5px; }
+  }
+</style>

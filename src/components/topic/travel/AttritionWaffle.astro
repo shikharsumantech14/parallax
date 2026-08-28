@@ -1,0 +1,348 @@
+---
+/**
+ * AttritionWaffle (`attrition-waffle`) — a hundred squares, one per person who
+ * set out, grouped by where they stopped. The reader learns a published rate by
+ * counting it instead of trusting it.
+ *
+ * Blueprint: docs/design/blueprints/travel/attrition-waffle.md
+ * Pure HTML/CSS grid + one group-select island. Prefix `px-waf`.
+ *
+ * TWO BLUEPRINT CONTRADICTIONS RESOLVED HERE, both in favour of the drawing:
+ *   - §1 calls this a "10×10 grid" while §4 specifies `repeat(20, 1fr)`, five
+ *     rows of twenty, and §4's mobile note defends that silhouette explicitly
+ *     ("dropping to 10-wide would double the rows"). §4 wins; §1's tier line is
+ *     shorthand for "a hundred squares".
+ *   - §4's "at 375px ~15px" was computed against the raw 375px viewport. Inside
+ *     `.px-wrap` (20px) and `.px-viz` (30px) that leaves 273px, i.e. ~11px
+ *     cells — under §4's own countability floor. See the mobile block below.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Group {
+  id: string;
+  label: string;
+  count: number;
+  color?: string;
+  note?: string;
+}
+interface Props {
+  /** Literal 100. Documentation only — the denominator is never anything else. */
+  n?: number;
+  /** The REAL sample size when the figure is normalised to a hundred. */
+  trueN?: number;
+  /** 'trekkers', 'patients' — named in the readout, omitted when absent. */
+  subject?: string;
+  groups?: Group[];
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const { n, trueN, subject, groups = [], caption, source, howToRead } = Astro.props;
+
+const K = '[attrition-waffle]';
+
+/* ── Build-time validation (blueprint §3) ──────────────────────────────────
+   The squares ARE the data here — nothing is scaled, so there is no rendering
+   that can absorb a bad payload. A waffle whose parts do not make a hundred
+   silently publishes a rate that does not exist, which is worse than a failed
+   build. Every check below therefore throws, naming the offending group. */
+if (n !== undefined && n !== 100) {
+  throw new Error(
+    `${K} \`n\` documents the denominator and must be exactly 100 if present, got ${n}. ` +
+      'A real sample of another size goes in `trueN`.',
+  );
+}
+if (groups.length < 3 || groups.length > 6) {
+  throw new Error(`${K} needs 3–6 outcome groups, got ${groups.length}. See blueprint §10.`);
+}
+
+const seenIds = new Set<string>();
+groups.forEach((g, i) => {
+  if (!g || !g.id || !g.label) throw new Error(`${K} group ${i} needs both an \`id\` and a \`label\`.`);
+  if (seenIds.has(g.id)) {
+    throw new Error(`${K} duplicate group id "${g.id}" — ids identify the outcome and must be unique.`);
+  }
+  seenIds.add(g.id);
+  if (typeof g.count !== 'number' || !Number.isFinite(g.count) || g.count < 0) {
+    throw new Error(`${K} group "${g.label}" has a count of ${g.count}; it must be a finite number of 0 or more.`);
+  }
+});
+
+const sum = groups.reduce((t, g) => t + g.count, 0);
+if (Math.abs(sum - 100) > 1e-9) {
+  throw new Error(
+    `${K} the counts must sum to exactly 100 — they sum to ${sum}. ` +
+      groups.map((g) => `${g.label} = ${g.count}`).join('; ') +
+      '.',
+  );
+}
+
+/* Fractional counts mean the real sample was normalised, which is a claim about
+   the data and not a formatting detail — so it is only allowed when `trueN`
+   declares the real n and the caption states it. */
+const isNormalised = groups.some((g) => !Number.isInteger(g.count));
+if (isNormalised && trueN === undefined) {
+  throw new Error(
+    `${K} fractional counts are only permitted when \`trueN\` is set: rounding a real sample down to ` +
+      'a hundred squares is a claim the caption has to carry.',
+  );
+}
+
+/* Rounding five numbers that total 100 can land on 99 or 101. The blueprint
+   gives the remainder to the LARGEST group — a fixed rule so the choice is
+   never arbitrary, and the one that distorts a proportion least. */
+const squares = groups.map((g) => Math.round(g.count));
+const drift = 100 - squares.reduce((t, v) => t + v, 0);
+if (drift !== 0) {
+  let big = 0;
+  for (let i = 1; i < squares.length; i++) if (squares[i] > squares[big]) big = i;
+  squares[big] += drift;
+}
+squares.forEach((v, i) => {
+  if (v < 1) {
+    throw new Error(
+      `${K} group "${groups[i].label}" comes to ${v} squares. A group that cannot be counted is not a ` +
+        'group — fold it into the "other" bucket.',
+    );
+  }
+});
+
+if (trueN !== undefined) {
+  if (!Number.isInteger(trueN) || trueN < 1) {
+    throw new Error(`${K} \`trueN\` must be a positive whole number, got ${trueN}.`);
+  }
+  if (!caption) {
+    throw new Error(`${K} \`trueN\` is set (${trueN}), so the caption must state the real sample size. There is no caption.`);
+  }
+  // Separators stripped so a caption reading "1,240 walkers" satisfies trueN: 1240.
+  if (!caption.replace(/[,\s]/g, '').includes(String(trueN))) {
+    throw new Error(
+      `${K} the figure is normalised to a hundred, so the caption must state the real n (${trueN}). ` +
+        `It reads: "${caption}".`,
+    );
+  }
+}
+
+/* ── The ramp (blueprint §6) ───────────────────────────────────────────────
+   An ordered sequence, not a palette: the groups are outcomes on one axis
+   (finished → stopped for progressively more specific reasons), so the colour
+   has to read as a ramp. `groups[].color` overrides a step but is NOT a
+   data-encoding exemption — an authored colour has to keep the order. */
+const RAMP = [
+  'var(--accent-deep)',
+  'var(--accent)',
+  'color-mix(in oklab, var(--accent) 70%, var(--paper))',
+  'color-mix(in oklab, var(--ink) 55%, transparent)',
+  'color-mix(in oklab, var(--ink) 34%, transparent)',
+  'color-mix(in oklab, var(--ink) 22%, transparent)',
+];
+
+const rows = groups.map((g, i) => ({ ...g, i, squares: squares[i], fill: g.color ?? RAMP[i] }));
+
+// Row-major, in `groups` order, one contiguous block per group — the contiguity
+// is what makes the proportions countable at a glance (§4).
+const cells: number[] = [];
+for (const r of rows) for (let k = 0; k < r.squares; k++) cells.push(r.i);
+
+// One custom property per group on the grid, so 100 cells carry a data-index
+// instead of 100 inline backgrounds, and the swatch below can never disagree
+// with the block above it.
+const gridVars = rows.map((r) => `--f${r.i}:${r.fill}`).join(';');
+
+const who = subject ? ` ${subject}` : '';
+const first = rows[0];
+const restCount = 100 - first.squares;
+
+/* The default line is the headline SPLIT, not a "press a group" prompt: with no
+   JS the note line renders exactly as written, and a printed instruction to
+   press something is an affordance that does not exist. The cue lives in
+   `howToRead` and in EXPLAIN.how, which is where cues belong. Sighted default
+   and AT label are the same sentence deliberately. */
+const headline = `${first.squares} of 100${who} — ${first.label}. The other ${restCount} did not.`;
+
+const readoutFor = (r: (typeof rows)[number]) =>
+  `${r.label} — ${r.squares} of 100${who}.${r.note ? ' ' + r.note : ''}`;
+
+const chip = trueN !== undefined ? `per hundred · n = ${trueN}` : undefined;
+---
+
+<VizCard prefix="px-waf" howToRead={howToRead} caption={caption} source={source} chip={chip}>
+  {/* role="img" with the split as its label: a hundred individually announced
+      cells would bury the argument, so the ledger below is the AT-readable
+      source and the grid is one picture (blueprint §7). */}
+  <div class="px-waf__grid" role="img" aria-label={headline} style={gridVars} data-waf-grid>
+    {cells.map((g) => <i class="px-waf__cell" data-waf-g={g}></i>)}
+  </div>
+
+  <div class="px-waf__ledger px-inst__legend" data-waf-ledger>
+    {rows.map((r) => (
+      <button
+        type="button"
+        class="px-inst__row px-waf__row"
+        style={`--fill:${r.fill}`}
+        data-waf-row={r.i}
+        data-waf-read={readoutFor(r)}
+        disabled
+      >
+        {/* The swatch repeats the block colour and carries no information the
+            label and count do not — announcing it would just add noise. */}
+        <span class="px-inst__sw" aria-hidden="true"></span>
+        <span class="px-inst__label">{r.label}</span>
+        <span class="px-inst__val">{r.squares}</span>
+      </button>
+    ))}
+  </div>
+
+  <p class="px-waf__note px-inst__readout" data-waf-note aria-live="polite">{headline}</p>
+
+  {/* Every note is here regardless of JS, so no reason is reachable only by
+      pressing (blueprint §7). With JS the readout carries the selected one, so
+      this becomes a duplicate and leaves the visual flow but stays for AT. */}
+  <dl class="px-waf__notes">
+    {rows.map((r) => (
+      <Fragment>
+        <dt>{r.label} · {r.squares} of 100</dt>
+        <dd>{r.note ?? '—'}</dd>
+      </Fragment>
+    ))}
+  </dl>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-waf').forEach(function (card) {
+      var grid = card.querySelector('[data-waf-grid]');
+      var ledger = card.querySelector('[data-waf-ledger]');
+      var note = card.querySelector('[data-waf-note]');
+      if (!grid || !ledger || !note) return;
+      var rows = Array.prototype.slice.call(ledger.querySelectorAll('[data-waf-row]'));
+      if (!rows.length) return;
+      var defHTML = note.innerHTML;
+      var cur = -1;
+
+      function paint(i) {
+        cur = i;
+        rows.forEach(function (r, k) { r.setAttribute('aria-pressed', k === i ? 'true' : 'false'); });
+        if (i < 0) {
+          grid.removeAttribute('data-sel');
+          ledger.removeAttribute('data-sel');
+          note.innerHTML = defHTML;
+        } else {
+          grid.setAttribute('data-sel', String(i));
+          ledger.setAttribute('data-sel', String(i));
+          note.textContent = rows[i].getAttribute('data-waf-read') || '';
+        }
+      }
+
+      // The rows ship DISABLED, so a reader without JS is never shown a control
+      // that cannot do anything. They become operable only here. Native buttons
+      // already handle Enter/Space, so the island only adds Esc.
+      rows.forEach(function (r, k) {
+        r.disabled = false;
+        r.setAttribute('aria-pressed', 'false');
+        r.addEventListener('click', function () { paint(k === cur ? -1 : k); });
+        r.addEventListener('keydown', function (e) { if (e.key === 'Escape') paint(-1); });
+      });
+
+      // ONE delegated handler for the whole grid, so a stray tap anywhere in a
+      // block selects that block (blueprint §8). The cells get no role and no
+      // tabindex: they live inside role="img", and the ledger row is the same
+      // control, so putting 100 stops in the tab order would only be a trap.
+      grid.classList.add('is-operable');
+      grid.addEventListener('click', function (e) {
+        var cell = e.target && e.target.closest ? e.target.closest('[data-waf-g]') : null;
+        if (!cell) return;
+        var g = parseInt(cell.getAttribute('data-waf-g'), 10);
+        if (g >= 0) paint(g === cur ? -1 : g);
+      });
+    });
+  })();
+</script>
+
+<style>
+  .px-waf__grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 3px;
+    margin-top: 4px;
+  }
+  .px-waf__cell {
+    display: block;
+    aspect-ratio: 1;
+    /* No radius, ever: a rounded square stops reading as a countable unit. */
+    transition: opacity 120ms var(--ease, ease);
+  }
+  .px-waf__cell[data-waf-g='0'] { background: var(--f0); }
+  .px-waf__cell[data-waf-g='1'] { background: var(--f1); }
+  .px-waf__cell[data-waf-g='2'] { background: var(--f2); }
+  .px-waf__cell[data-waf-g='3'] { background: var(--f3); }
+  .px-waf__cell[data-waf-g='4'] { background: var(--f4); }
+  .px-waf__cell[data-waf-g='5'] { background: var(--f5); }
+
+  /* Selection dims everything outside the block. Six static rules instead of a
+     hundred style writes per press — and it means the dimmed state is CSS, so
+     reduced-motion's global transition kill lands on it for free. */
+  .px-waf__grid[data-sel='0'] .px-waf__cell:not([data-waf-g='0']),
+  .px-waf__grid[data-sel='1'] .px-waf__cell:not([data-waf-g='1']),
+  .px-waf__grid[data-sel='2'] .px-waf__cell:not([data-waf-g='2']),
+  .px-waf__grid[data-sel='3'] .px-waf__cell:not([data-waf-g='3']),
+  .px-waf__grid[data-sel='4'] .px-waf__cell:not([data-waf-g='4']),
+  .px-waf__grid[data-sel='5'] .px-waf__cell:not([data-waf-g='5']) { opacity: 0.2; }
+
+  html.js .px-waf__grid.is-operable .px-waf__cell { cursor: pointer; }
+
+  .px-waf__ledger { margin-top: 22px; }
+  .px-waf__row:disabled { cursor: default; }
+  /* Dimming an unpressed row means "not this one", which says nothing before the
+     reader has chosen anything — so the primitive's rest-dim is held back until
+     something is selected. §5's composed still is a COMPLETE ledger. */
+  .px-waf__ledger:not([data-sel]) .px-waf__row[aria-pressed='false'] { opacity: 1; }
+  /* The count is the auditable number on the row, so it takes full ink and its
+     own 44px column (blueprint §4/§6) rather than the primitive's soft value. */
+  .px-waf__row .px-inst__val {
+    min-width: 44px;
+    text-align: right;
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* The ledger's own last rule already separates this; a second dashed one
+     directly under it just reads as a stutter. */
+  .px-waf__note { border-top: 0; padding-top: 0; margin-top: 14px; }
+
+  .px-waf__notes {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .px-waf__notes dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .px-waf__notes dd { margin: 3px 0 0; color: var(--ink-soft); }
+  html.js .px-waf__notes {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  @media (max-width: 640px) {
+    /* The grid stays 20 wide — 10 would double the rows and break the five-row
+       silhouette (§4). To keep the cell above the countability floor it takes
+       the card's full width instead: `.px-viz` pads 30px a side (base.css) and
+       that padding alone costs ~3px of every cell. Cancelling exactly that —
+       nothing more, so the page can never overflow — puts a 375px cell at
+       ~14.7px instead of ~11px. Below ~15px the grid stops being countable and
+       becomes a texture, which is the whole kind lost. */
+    .px-waf__grid { margin-inline: -30px; gap: 2px; }
+  }
+</style>

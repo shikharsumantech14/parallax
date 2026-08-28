@@ -1,0 +1,436 @@
+---
+/**
+ * AgePyramid (`age-pyramid`) — a body's composition by age band and a binary
+ * split, mirrored about a centre line. The reader learns whether an imbalance
+ * is a generational effect working through, or roughly constant all the way up.
+ *
+ * Blueprint: docs/design/blueprints/politics/age-pyramid.md
+ * Pure HTML/CSS — no SVG, no viewBox. Prefix `px-pyr`.
+ *
+ * Follows the HTML/CSS path set by politics/BillFunnel.astro (VizCard shell,
+ * flat named props, build-time validation) and the table/a11y pattern set by
+ * sports/ChannelTernary.astro (the graphic is aria-hidden; the <table> is the
+ * real content). Control chrome is CONSUMED from the `px-inst` primitive in
+ * dataviz-v2.css — chips, the reserved-height aria-live readout — not restated.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Band {
+  /** e.g. '55–64'. Oldest FIRST in array order — never sorted here. */
+  label: string;
+  left: number;
+  right: number;
+}
+interface Side {
+  label: string;
+  /** Blueprint §6: available, but NOT a data-encoding exemption. A demographic
+   *  split has no canonical colours, so the ink/accent defaults are the right
+   *  answer in almost every case. */
+  color?: string;
+}
+interface Props {
+  bands?: Band[];
+  sides?: { left: Side; right: Side };
+  mode?: 'count' | 'share';
+  /** What a count counts, for the unit eyebrow (§8). Beyond blueprint §3 — see
+   *  the catalog NOTES. Purely a label; it never touches the geometry. */
+  unit?: string;
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const {
+  bands = [],
+  sides,
+  mode = 'count',
+  unit = 'counts',
+  caption,
+  source,
+  howToRead,
+} = Astro.props;
+
+/* ── Build-time validation (blueprint §3, §10) ─────────────────────────────
+   Failing loudly here is the whole point. A pyramid drawn from a band that
+   totals zero, or from a negative "count", is not a rendering bug — it is a
+   data error that would be published as an argument about a population. */
+if (mode !== 'count' && mode !== 'share') {
+  throw new Error(`[age-pyramid] mode must be 'count' or 'share', got ${JSON.stringify(mode)}.`);
+}
+if (!sides || !sides.left?.label || !sides.right?.label) {
+  throw new Error('[age-pyramid] sides.left.label and sides.right.label are both required — an unlabelled side is an unreadable chart.');
+}
+if (bands.length < 4 || bands.length > 8) {
+  throw new Error(`[age-pyramid] needs 4–8 bands, got ${bands.length}. See blueprint §10.`);
+}
+
+const seen = new Set<string>();
+for (const b of bands) {
+  if (!b.label) throw new Error('[age-pyramid] every band needs a label; one band has none.');
+  // The label is the table's row identity, so a duplicate makes two different
+  // populations indistinguishable to a screen reader.
+  if (seen.has(b.label)) throw new Error(`[age-pyramid] duplicate band label "${b.label}" — band labels must be unique.`);
+  seen.add(b.label);
+  for (const side of ['left', 'right'] as const) {
+    const v = b[side];
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) {
+      throw new Error(
+        `[age-pyramid] band "${b.label}" has a ${side} value of ${JSON.stringify(v)}; ` +
+          'every value must be a finite number of 0 or more.',
+      );
+    }
+  }
+  // `share` mode divides each row by its own total, so an empty band has no
+  // share to draw — it is a hole in the data, not a zero-height bar.
+  if (b.left + b.right <= 0) {
+    throw new Error(`[age-pyramid] band "${b.label}" totals 0. Share mode normalises each row to its own total, so an empty band cannot be drawn — drop it or merge it into a neighbour.`);
+  }
+}
+
+/* One shared scale for `count` mode: the largest SINGLE side value anywhere in
+   the chart sets 100%. This is what makes the two halves comparable to each
+   other and not just to themselves. */
+const maxSide = Math.max(...bands.map((b) => Math.max(b.left, b.right)));
+if (!(maxSide > 0)) throw new Error('[age-pyramid] every value is 0; there is nothing to draw.');
+
+const nf = new Intl.NumberFormat('en-US');
+const pctW = (n: number, of: number) => `${((n / of) * 100).toFixed(3)}%`;
+
+const rows = bands.map((b) => {
+  const total = b.left + b.right;
+  // Round ONE side and derive the other, so the two printed shares always total
+  // exactly 100. Rounding both independently prints 99 or 101 often enough to
+  // be noticed, and a pair of shares that don't add up discredits the figure.
+  const lPct = Math.round((b.left / total) * 100);
+  const rPct = 100 - lPct;
+  return {
+    label: b.label,
+    total,
+    l: { wCount: pctW(b.left, maxSide), wShare: pctW(b.left, total), vCount: nf.format(b.left), vShare: `${lPct}%`, raw: b.left },
+    r: { wCount: pctW(b.right, maxSide), wShare: pctW(b.right, total), vCount: nf.format(b.right), vShare: `${rPct}%`, raw: b.right },
+  };
+});
+
+const totalL = bands.reduce((s, b) => s + b.left, 0);
+const totalR = bands.reduce((s, b) => s + b.right, 0);
+
+const fillL = sides.left.color ?? 'var(--ink)';
+/* --accent-DEEP, not --accent. On a phone the value label moves INSIDE the bar,
+   and --on-accent over the vivid accent measures 3.91:1 on travel — kinds are
+   cross-world per CANON §2, so "this is a politics kind" is not a defence. Over
+   accent-deep it clears 6.21:1 in every world. When type sits on a fill, the
+   fill has to be the type-safe sibling. */
+const fillR = sides.right.color ?? 'var(--accent-deep)';
+
+/* A five-character value ("1,234", or a "100%" in share mode) needs more than
+   the blueprint's 34px before it stops spilling off the end of its bar on a
+   phone, where the on-fill colour makes the spill invisible. Measured here
+   rather than guessed in CSS, because CSS cannot count characters. */
+const wideVal = rows.some((r) =>
+  [r.l.vCount, r.l.vShare, r.r.vCount, r.r.vShare].some((v) => v.length >= 5),
+);
+
+/* §8: the live region announces the MODE, not the values — the per-row numbers
+   are permanently in the table, so re-announcing them would be noise. */
+const READ = {
+  count: `Showing counts. All bars are on one scale, set by the largest single side in any band (${nf.format(maxSide)}).`,
+  share: 'Showing share of each band. Every row is re-normalised to its own total, so the size of the band drops out and only the balance is left.',
+};
+const UNIT = { count: unit, share: 'share of band' };
+---
+
+<VizCard
+  prefix="px-pyr"
+  class={`px-pyr--${mode}${wideVal ? ' px-pyr--wideval' : ''}`}
+  howToRead={howToRead}
+  caption={caption}
+  source={source}
+  chip="share of band"
+>
+  <div class="px-pyr__head">
+    {/* The chips ship `hidden` and are unhidden by the island (blueprint §7),
+        so a reader without JS is never shown a control that does nothing. */}
+    <div class="px-inst__controls px-pyr__chips" role="group" aria-label="Value mode" hidden data-pyr-controls>
+      <button type="button" class="px-inst__chip" data-pyr-mode="count" aria-pressed={mode === 'count' ? 'true' : 'false'}>Counts</button>
+      <button type="button" class="px-inst__chip" data-pyr-mode="share" aria-pressed={mode === 'share' ? 'true' : 'false'}>Share of band</button>
+    </div>
+    {/* Outside the hidden group on purpose: the unit eyebrow is the one thing
+        that must state what the bars mean even when nothing is operable. */}
+    <p class="px-pyr__unit" data-pyr-unit data-u-count={UNIT.count} data-u-share={UNIT.share}>{UNIT[mode]}</p>
+  </div>
+
+  {/* The bars are decoration to a screen reader — read aloud they collapse to a
+      string of bare numbers with no side names. The <table> below is the real
+      content, which is also why the mode toggle has nothing to announce but
+      the mode. (Same division of labour as channel-ternary.) */}
+  <div class="px-pyr__rows" aria-hidden="true">
+    {rows.map((r) => (
+      <div class="px-pyr__row">
+        <span
+          class="px-pyr__bar px-pyr__bar--l"
+          style={`--fill:${fillL};width:${mode === 'count' ? r.l.wCount : r.l.wShare}`}
+          data-w-count={r.l.wCount}
+          data-w-share={r.l.wShare}
+        >
+          <span class="px-pyr__val" data-v-count={r.l.vCount} data-v-share={r.l.vShare}>{mode === 'count' ? r.l.vCount : r.l.vShare}</span>
+        </span>
+
+        <span class="px-pyr__band">{r.label}</span>
+
+        <span
+          class="px-pyr__bar px-pyr__bar--r"
+          style={`--fill:${fillR};width:${mode === 'count' ? r.r.wCount : r.r.wShare}`}
+          data-w-count={r.r.wCount}
+          data-w-share={r.r.wShare}
+        >
+          <span class="px-pyr__val" data-v-count={r.r.vCount} data-v-share={r.r.vShare}>{mode === 'count' ? r.r.vCount : r.r.vShare}</span>
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <p class="px-pyr__legend">
+    <span class="px-pyr__lg"><i class="px-pyr__sw" style={`--fill:${fillL}`} aria-hidden="true"></i>{sides.left.label} · {nf.format(totalL)}</span>
+    <span class="px-pyr__lg"><i class="px-pyr__sw" style={`--fill:${fillR}`} aria-hidden="true"></i>{sides.right.label} · {nf.format(totalR)}</span>
+  </p>
+
+  <p class="px-pyr__readout px-inst__readout" data-pyr-readout data-r-count={READ.count} data-r-share={READ.share} aria-live="polite">
+    {READ[mode]}
+  </p>
+
+  {/* Absolute counts in BOTH modes (blueprint §7). The numbers a reader would
+      otherwise have to press a chip to see are never only behind that chip. */}
+  <table class="px-pyr__table">
+    <caption class="px-pyr__tcap">Every band as counts — the absolute numbers, in either mode</caption>
+    <thead>
+      <tr>
+        <th scope="col">Band</th>
+        <th scope="col">{sides.left.label}</th>
+        <th scope="col">{sides.right.label}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <th scope="row">{r.label}</th>
+          <td>{r.l.vCount}</td>
+          <td>{r.r.vCount}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-pyr').forEach(function (card) {
+      var chips = Array.prototype.slice.call(card.querySelectorAll('[data-pyr-mode]'));
+      var bars = Array.prototype.slice.call(card.querySelectorAll('[data-w-count]'));
+      var vals = Array.prototype.slice.call(card.querySelectorAll('[data-v-count]'));
+      var out = card.querySelector('[data-pyr-readout]');
+      var unit = card.querySelector('[data-pyr-unit]');
+      var group = card.querySelector('[data-pyr-controls]');
+      if (chips.length !== 2 || !out || !group) return;
+
+      function paint(m) {
+        chips.forEach(function (c) {
+          c.setAttribute('aria-pressed', c.getAttribute('data-pyr-mode') === m ? 'true' : 'false');
+        });
+        bars.forEach(function (b) { b.style.width = b.getAttribute('data-w-' + m); });
+        vals.forEach(function (v) { v.textContent = v.getAttribute('data-v-' + m); });
+        if (unit) unit.textContent = unit.getAttribute('data-u-' + m);
+        out.textContent = out.getAttribute('data-r-' + m);
+        // Drives the honesty chip in VizCard's caption row, which this
+        // component renders into but does not own.
+        card.classList.toggle('px-pyr--share', m === 'share');
+        card.classList.toggle('px-pyr--count', m !== 'share');
+      }
+
+      chips.forEach(function (c, i) {
+        c.addEventListener('click', function () { paint(c.getAttribute('data-pyr-mode')); });
+        // Two tab stops (blueprint §8) — the arrows only move focus between the
+        // chips; they never change the mode behind the reader's back.
+        c.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); chips[i ? 0 : 1].focus(); }
+        });
+      });
+      group.hidden = false;
+    });
+  })();
+</script>
+
+<style>
+  /* ── control head ─────────────────────────────────────────────────────── */
+  .px-pyr__head {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: 10px 14px;
+    margin-bottom: 10px;
+  }
+  .px-pyr__head .px-inst__controls { margin: 0; }
+  /* [hidden] is a UA rule, and .px-inst__controls sets `display:flex` from an
+     author sheet — author beats UA, so without this the no-JS build would show
+     two dead chips. */
+  .px-pyr__head .px-inst__controls[hidden] { display: none; }
+  .px-pyr__unit {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── rows ─────────────────────────────────────────────────────────────── */
+  .px-pyr__rows { margin-top: 4px; }
+
+  /* Blueprint §4's `1fr 62px 1fr` plus a fixed 46px gutter at each end. The
+     gutter is what lets the value label ride at the bar's OUTER edge (§4's
+     flex-end reading) without the widest bar pushing its own label off the
+     card — and because both 1fr tracks stay identical row to row, the single
+     shared scale survives. */
+  .px-pyr__row {
+    display: grid;
+    grid-template-columns: 46px 1fr 62px 1fr 46px;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .px-pyr__bar {
+    position: relative;
+    height: 20px;
+    background: var(--fill, var(--ink));
+    /* The ONE sanctioned width tween (§5): the same data is being re-expressed,
+       so the motion IS the explanation of what share mode did to the rows. */
+    transition: width 150ms ease-out;
+  }
+  .px-pyr__bar--l { grid-column: 2; justify-self: end; }
+  .px-pyr__band { grid-column: 3; }
+  .px-pyr__bar--r { grid-column: 4; justify-self: start; }
+
+  .px-pyr__band {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklab, var(--ink) 65%, transparent);
+  }
+
+  .px-pyr__val {
+    position: absolute; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 11.5px; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: color-mix(in oklab, var(--ink) 70%, transparent);
+  }
+  .px-pyr__bar--l .px-pyr__val { right: 100%; margin-right: 8px; }
+  .px-pyr__bar--r .px-pyr__val { left: 100%; margin-left: 8px; }
+
+  /* ── legend ───────────────────────────────────────────────────────────── */
+  /* Not px-inst__legend: that primitive is legend-as-control (44px pressable
+     rows), and this kind has exactly one control. Two rows that look pressable
+     and aren't would be a worse affordance than none. */
+  .px-pyr__legend {
+    display: flex; flex-wrap: wrap; gap: 18px;
+    margin: 16px 0 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklab, var(--ink) 65%, transparent);
+  }
+  .px-pyr__lg { display: inline-flex; align-items: center; gap: 8px; }
+  /* Takes its fill from the same `--fill` the bar does, so the key and the mark
+     cannot drift apart. A pale swatch needs its own edge to survive on paper. */
+  .px-pyr__sw {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 14px; height: 9px;
+    background: var(--fill, var(--ink));
+    border: 1px solid var(--rule);
+  }
+
+  /* ── table ────────────────────────────────────────────────────────────── */
+  .px-pyr__table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-pyr__tcap {
+    text-align: left;
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+  .px-pyr__table th,
+  .px-pyr__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+  .px-pyr__table thead th {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .px-pyr__table th[scope='row'],
+  .px-pyr__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
+  .px-pyr__table td { color: color-mix(in oklab, var(--ink) 85%, transparent); }
+
+  /* ── honesty chip ─────────────────────────────────────────────────────── */
+  /* The chip lives in VizCard's caption row, which this component renders into
+     but does not own — hence the fully-global selector, namespaced by a class
+     unique to this kind. It has to be class-gated rather than build-time-only:
+     the moment the bars stop being counts the chip must appear, and the moment
+     they are counts again it must go. */
+  :global(.px-pyr--count .px-viz__cap b) { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The composed still (§5) is the authored mode at rest — which is exactly
+       what the build-time HTML already paints. Nothing to freeze, only the
+       re-normalisation tween to switch off. */
+    .px-pyr__bar { transition: none; }
+  }
+
+  /* ── 375px (blueprint §4) ─────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    /* The gutters go first: at a 273px card column they were eating more than
+       a third of the data width. The three-column pyramid itself holds. */
+    .px-pyr__row {
+      grid-template-columns: 1fr 54px 1fr;
+      column-gap: 6px;
+      padding: 5px 0;
+    }
+    .px-pyr__bar--l { grid-column: 1; }
+    .px-pyr__band { grid-column: 2; }
+    .px-pyr__bar--r { grid-column: 3; }
+
+    /* Each bar becomes its own query container so the label can decide from the
+       bar's REAL painted width whether it fits inside. A media query cannot
+       know that — the width is a percentage of the data, not of the viewport. */
+    .px-pyr__bar { container-type: inline-size; }
+    .px-pyr__val {
+      display: none;
+      margin: 0;
+      font-weight: 700;
+      color: var(--on-accent, var(--paper));
+    }
+    .px-pyr__bar--l .px-pyr__val { right: 4px; left: auto; }
+    .px-pyr__bar--r .px-pyr__val { left: 4px; right: auto; }
+
+    .px-pyr__legend { gap: 12px; }
+    .px-pyr__head { margin-bottom: 8px; }
+  }
+
+  /* These bite only on a phone, because that is the only place a container
+     exists — with no container ancestor a container query is never true. They
+     sit after the media block so the `display:block` wins on a wide bar. */
+  @container (min-width: 34px) {
+    .px-pyr__val { display: block; }
+  }
+  /* Long values need more room before they stop spilling off the bar into the
+     card, where an on-fill colour is invisible. Below that they drop out and
+     stay in the table, exactly as §4 asks. */
+  @container (max-width: 47.99px) {
+    .px-pyr--wideval .px-pyr__val { display: none; }
+  }
+</style>

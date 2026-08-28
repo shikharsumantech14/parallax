@@ -50,6 +50,7 @@ export const SECTION_KINDS = [
   'gerrymander-lens',      // SVG — same votes, three maps, efficiency-gap counters
   'ballot-flow',           // SVG — ranked-choice round transfers (flowDash)
   'bill-funnel',           // HTML — many bills surviving each procedural stage
+  'age-pyramid',           // HTML — composition by age band and sex, counts or shares
   // space
   'orbit-globe',           // WebGL — dot-matrix Earth + inclined orbit rings
   'trajectory-arc',        // CSS-3D/SVG — launch→orbit parabola in a starfield
@@ -61,6 +62,7 @@ export const SECTION_KINDS = [
   'lagrange-map',          // SVG — three-body effective-potential contour field
   'transfer-window',       // SVG interactive — Hohmann transfer Δv + phase scrubber
   'eclipse-cone',          // SVG/CSS-3D — umbra/penumbra shadow-cone geometry to scale
+  'margin-bullets',        // HTML — subsystem margins vs requirement, each in its own unit
   // earth
   'data-globe',            // WebGL — 3D choropleth globe (graticule style)
   'core-sample',           // CSS-3D — ice/sediment core column, scrub strata
@@ -83,6 +85,7 @@ export const SECTION_KINDS = [
   'queue-cliff',           // SVG interactive — M/M/1 utilization cliff 1/(1−ρ)
   'chip-die',              // CSS-3D — exploded die floorplan, area ∝ real mm²
   'moore-ladder',          // SVG — base-2 log doubling fit (Moore's law)
+  'state-timeline',        // HTML — per-service health lanes + incident clock
   // travel
   'route-globe',           // WebGL — 3D globe + great-circle arc
   'elevation-trek',        // CSS-3D/SVG — route elevation profile, moving marker
@@ -94,6 +97,7 @@ export const SECTION_KINDS = [
   'altitude-oxygen',       // SVG — altitude vs breathable oxygen curve + landmarks
   'season-wheel',          // SVG — radial year of a destination's climate
   'fare-terrain',          // SVG — fare/price surface across dates or routes
+  'attrition-waffle',      // HTML — 100 countable squares; an auditable rate
   // sports
   'tactics-pitch',         // CSS-3D — tilted pitch with player markers + heat
   'shot-map',              // SVG/CSS-3D — goal frame + shot-placement scatter
@@ -103,8 +107,9 @@ export const SECTION_KINDS = [
   'flight-of-the-ball',    // WebGL FLAGSHIP — drag+Magnus shot trajectory over a pitch
   'elo-river',             // SVG — Elo/rating streamgraph, braided season (crossovers)
   'court-value',           // SVG — xG/eFG value surface shaded over a pitch/court
-  'pace-ridge',             // SVG — ridgeline of a stat's distribution per group
-  'channel-ternary'       // SVG — three shares constrained to sum to 100
+  'pace-ridge',            // SVG — ridgeline of a stat's distribution per group
+  'channel-ternary',       // SVG — three shares constrained to sum to 100
+  'finish-interval',       // HTML — projected position + 90% interval; overlaps = undecided
 ] as const;
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;

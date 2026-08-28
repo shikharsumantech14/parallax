@@ -112,6 +112,27 @@ ad-hoc picks.
 
 ---
 
+## TD-06 — type on a fill sits on `--accent-deep`, never on `--accent`
+
+Added 2026-08-27, after two Wave-1 components independently reached for
+`--on-accent` over a vivid `--accent` fill.
+
+Measured, `--on-accent` over `--accent`:
+
+| politics | space | earth | tech | travel | sports |
+|---|---|---|---|---|---|
+| 5.25 | 10.24 | 5.28 | 15.17 | **3.91 ✗** | 12.63 |
+
+Over `--accent-deep` it clears **6.21:1 at worst** in all six.
+
+**Rule: any fill that carries text uses `--accent-deep`.** The vivid accent is
+for hairlines, dots, bars and edges — marks nothing is written on.
+
+"But this is a politics kind" is not a defence: `CANON §2` lets any kind run in
+any world, so a component that only works on five of the six is a component with
+a latent bug. The pressed state of `.px-inst__chip` already follows this rule,
+which is why it passes everywhere.
+
 ## TD-05 — the two accent-deep roles stay separate (ratifying Phase 1)
 
 Recorded here because it is the precedent the above rely on. `--accent-deep`

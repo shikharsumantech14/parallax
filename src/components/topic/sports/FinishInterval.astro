@@ -1,0 +1,536 @@
+---
+/**
+ * FinishInterval (`finish-interval`) — six teams with the same season left.
+ * A projected finishing position per team, drawn with the range the model
+ * actually gives. The reader learns which positions are decided and which are
+ * still open, because the answer is whether the bars overlap.
+ *
+ * Blueprint: docs/design/blueprints/sports/finish-interval.md
+ * Pure HTML/CSS — no SVG, no viewBox. Prefix `px-fin`.
+ *
+ * Follows the HTML/CSS path established by politics/BillFunnel.astro:
+ * core/VizCard.astro shell (RD-01a), the px-inst readout primitive, plain
+ * <div> rows upgraded to buttons only inside the island.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface Zone {
+  fromPos: number;
+  toPos: number;
+  label: string;
+  tone: 'good' | 'bad';
+}
+interface Row {
+  name: string;
+  median: number;
+  low: number; // 5th percentile position — the BEST finish
+  high: number; // 95th percentile position — the WORST finish
+  note?: string;
+}
+interface Props {
+  model?: string;
+  runs?: number;
+  positions?: number;
+  zones?: Zone[];
+  rows?: Row[];
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const {
+  model = '',
+  runs,
+  positions = 0,
+  zones = [],
+  rows = [],
+  caption,
+  source,
+  howToRead,
+} = Astro.props;
+
+/* ── Build-time validation (blueprint §3) ──────────────────────────────────
+   THE INTERVAL IS THE CONTENT. Every rule below exists because the failure it
+   catches renders as a plausible chart carrying a false claim — a bar drawn
+   off its own scale, or no bar at all, in a figure whose entire argument is
+   "look how much these bars overlap". A named build failure is cheap; a
+   published projection that quietly misstates its own uncertainty is not. */
+if (!model.trim()) {
+  throw new Error(
+    '[finish-interval] `model` is mandatory — the projection must name what produced it, and it is printed in the source line. See blueprint §3.',
+  );
+}
+if (!Number.isInteger(positions) || positions < 5) {
+  throw new Error(
+    `[finish-interval] \`positions\` must be a whole number of 5 or more (the league size sets the scale), got ${positions}.`,
+  );
+}
+if (rows.length < 8 || rows.length > 20) {
+  throw new Error(`[finish-interval] needs 8–20 rows, got ${rows.length}. See blueprint §10.`);
+}
+for (const r of rows) {
+  if (![r.low, r.median, r.high].every((n) => typeof n === 'number' && Number.isFinite(n))) {
+    throw new Error(`[finish-interval] "${r.name}" needs numeric low, median and high.`);
+  }
+  // A row with no interval is a standing, not a projection — and a chart of
+  // standings is a `league-table`. Refusing it here is the blueprint's §3 rule.
+  if (r.low === r.high) {
+    throw new Error(
+      `[finish-interval] "${r.name}" has low === high (${r.low}); an interval of zero width is a settled position — use \`league-table\`.`,
+    );
+  }
+  if (!(r.low <= r.median && r.median <= r.high)) {
+    throw new Error(
+      `[finish-interval] "${r.name}" must satisfy low <= median <= high, got ${r.low} / ${r.median} / ${r.high}.`,
+    );
+  }
+  if (r.low < 1 || r.high > positions) {
+    throw new Error(
+      `[finish-interval] "${r.name}" runs ${r.low}–${r.high}, outside the 1–${positions} scale this chart draws.`,
+    );
+  }
+}
+for (const z of zones) {
+  if (z.tone !== 'good' && z.tone !== 'bad') {
+    throw new Error(`[finish-interval] zone "${z.label}" has tone "${z.tone}"; expected 'good' or 'bad'.`);
+  }
+  if (!(z.fromPos >= 1 && z.fromPos <= z.toPos && z.toPos <= positions)) {
+    throw new Error(
+      `[finish-interval] zone "${z.label}" spans ${z.fromPos}–${z.toPos}, which is not inside 1–${positions}.`,
+    );
+  }
+}
+
+/* ── Scale ────────────────────────────────────────────────────────────────
+   ONE mapping from position to horizontal offset, used by the dots, the bars
+   AND the zone strips. The prototype's layout bug was a zone strip measured
+   against a different box from the dots, so position 1 did not start where the
+   track started; sharing `ipos` is the fix, and the strips are inset to the
+   track in CSS so both boxes are the same box. */
+const ipos = (p: number) => ((p - 1) / (positions - 1)) * 100;
+const clamp = (n: number) => Math.min(100, Math.max(0, n));
+const pc = (n: number) => `${n.toFixed(3)}%`;
+
+const ord = (n: number) => {
+  if (!Number.isInteger(n)) return String(n);
+  const h = n % 100;
+  const t = n % 10;
+  const suffix = h >= 11 && h <= 13 ? 'th' : t === 1 ? 'st' : t === 2 ? 'nd' : t === 3 ? 'rd' : 'th';
+  return `${n}${suffix}`;
+};
+
+/* Overlap is DERIVED, never authored. It is the argument the figure makes, so
+   an authored count could contradict the bars the reader is looking at. The
+   readout and the table's column read from this one value (blueprint §11). */
+const overlaps = (a: Row, b: Row) => a.low <= b.high && b.low <= a.high;
+
+const items = rows.map((r, i) => {
+  const n = rows.filter((o, j) => j !== i && overlaps(r, o)).length;
+  return {
+    ...r,
+    i,
+    n,
+    barLeft: ipos(r.low),
+    barWidth: ipos(r.high) - ipos(r.low),
+    dotLeft: ipos(r.median),
+    span: r.high - r.low + 1,
+  };
+});
+
+/* Composed still (blueprint §5) = a team from the contested middle, because
+   the default state should already be making the argument: most overlaps
+   first, then the widest interval, then array order. */
+const defaultIdx = items.reduce((best, r) => {
+  const b = items[best];
+  if (r.n !== b.n) return r.n > b.n ? r.i : best;
+  if (r.span !== b.span) return r.span > b.span ? r.i : best;
+  return best;
+}, 0);
+
+const overlapSentence = (n: number) =>
+  n === 0
+    ? "No other team's range overlaps it, which is another way of saying this position is already decided."
+    : n === 1
+      ? '1 other team has an overlapping range, which is another way of saying the position is not decided.'
+      : `${n} other teams have an overlapping range, which is another way of saying the position is not decided.`;
+
+const readoutFor = (r: (typeof items)[number]) =>
+  `${r.name} — most likely ${ord(r.median)}, range ${ord(r.low)} to ${ord(r.high)}. ` +
+  overlapSentence(r.n) +
+  (r.note ? ` ${r.note}` : '');
+
+/* Five scale labels, floored so an 18-team league reads 1 · 5 · 9 · 13 · 18
+   rather than drifting to 14 on a rounding tie (blueprint §4). */
+const ticks = Array.from({ length: 5 }, (_, i) => 1 + Math.floor((i * (positions - 1)) / 4));
+
+const zoneMarks = zones.map((z) => {
+  // Generalised from §4's `left: 0` / `right: 0` forms. Clamped, this is
+  // ARITHMETICALLY IDENTICAL for an end-anchored zone (fromPos 1 → left 0;
+  // toPos === positions → right 0) and, unlike the literal form, it draws a
+  // mid-table zone where the data actually is instead of stretching it to the
+  // nearest edge.
+  const start = clamp(ipos(z.fromPos - 0.5));
+  const end = clamp(ipos(z.toPos + 0.5));
+  return { ...z, start, width: end - start, range: `${ord(z.fromPos)}–${ord(z.toPos)}` };
+});
+
+/* The model has to reach the source line, and leaving that to the author means
+   it eventually goes missing (blueprint §9: never just "projection"). Compose
+   it here; skip the prepend when the authored source already names the model,
+   so the common case where they are the same string does not print twice. */
+const authored =
+  typeof source === 'string' ? source : source ? [source.label, source.date].filter(Boolean).join(' · ') : '';
+const modelLine =
+  runs && !/\d[\d,]*\s*(runs|simulations|sims)/i.test(model)
+    ? `${model} · ${runs.toLocaleString('en-US')} runs`
+    : model;
+const sourceLine = !authored
+  ? modelLine
+  : authored.toLowerCase().includes(model.trim().toLowerCase())
+    ? authored
+    : `${modelLine} · ${authored}`;
+---
+
+<VizCard prefix="px-fin" howToRead={howToRead} caption={caption} source={sourceLine}>
+  <div class="px-fin__plot">
+    {/* One strip layer behind every row, inset to the TRACK — see the CSS. The
+        strips are context, not data, so they are decoration to a screen reader;
+        their content is carried as text by the key below. */}
+    <div class="px-fin__zones" aria-hidden="true">
+      {zoneMarks.map((z) => (
+        <div
+          class="px-fin__zone"
+          data-tone={z.tone}
+          style={`left:${pc(z.start)};width:${pc(z.width)}`}
+        ></div>
+      ))}
+    </div>
+
+    <div class="px-fin__rows">
+      {items.map((r) => (
+        <div
+          class="px-fin__row"
+          data-fin-row={r.i}
+          data-fin-read={readoutFor(r)}
+          data-selected={r.i === defaultIdx ? 'true' : 'false'}
+        >
+          <span class="px-fin__name">{r.name}</span>
+          {/* The mark is a picture of the value cell beside it, so it is hidden
+              from AT rather than read out as three empty boxes. */}
+          <span class="px-fin__track" aria-hidden="true">
+            <span class="px-fin__bar" style={`left:${pc(r.barLeft)};width:${pc(r.barWidth)}`}></span>
+            <span class="px-fin__dot" style={`left:${pc(r.dotLeft)}`}></span>
+          </span>
+          <span class="px-fin__val">{r.low}–{r.high}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div class="px-fin__scale" aria-hidden="true">
+    <span class="px-fin__ticks">
+      {ticks.map((t) => (
+        <span class="px-fin__tick vz-axis">{ord(t)}</span>
+      ))}
+    </span>
+  </div>
+
+  {zoneMarks.length > 0 && (
+    <p class="px-fin__key">
+      {zoneMarks.map((z) => (
+        <span class="px-fin__keyitem">
+          {/* Reuses the px-inst swatch, which carries the 1px edge a 22%-accent
+              fill needs to be visible at 12px. Not a legend-as-control: the
+              zones are context and there is nothing to toggle. */}
+          <i class="px-inst__sw" data-tone={z.tone}></i>
+          <span>{z.range} {z.label}</span>
+        </span>
+      ))}
+    </p>
+  )}
+
+  <p class="px-fin__readout px-inst__readout" data-fin-readout aria-live="polite">
+    {readoutFor(items[defaultIdx])}
+  </p>
+
+  {/* The AT-readable source (blueprint §7). The overlap count is the argument,
+      so it is a real column here — and it stays visible with JS on, because no
+      readout can show ten of them at once, which is the comparison. */}
+  <table class="px-fin__table">
+    <caption class="px-fin__tcap">
+      Every team's projected finish, the range around it, and how many other ranges it overlaps
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Team</th>
+        <th scope="col">Likely</th>
+        <th scope="col">Best</th>
+        <th scope="col">Worst</th>
+        <th scope="col">Span</th>
+        <th scope="col">Overlaps</th>
+      </tr>
+    </thead>
+    <tbody>
+      {items.map((r) => (
+        <tr data-fin-trow={r.i} data-selected={r.i === defaultIdx ? 'true' : 'false'}>
+          <th scope="row">{r.name}</th>
+          <td>{r.median}</td>
+          <td>{r.low}</td>
+          <td>{r.high}</td>
+          <td>{r.span}</td>
+          <td data-hi={r.n >= 3 ? 'true' : 'false'}>{r.n}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-fin').forEach(function (card) {
+      // `is:inline` emits this block once per instance on the page, so a second
+      // finish-interval would otherwise bind every card twice.
+      if (card.getAttribute('data-fin-on')) return;
+      card.setAttribute('data-fin-on', '1');
+
+      var rows = Array.prototype.slice.call(card.querySelectorAll('[data-fin-row]'));
+      var trs = Array.prototype.slice.call(card.querySelectorAll('[data-fin-trow]'));
+      var out = card.querySelector('[data-fin-readout]');
+      if (!rows.length || !out) return;
+      var def = rows.findIndex(function (r) { return r.getAttribute('data-selected') === 'true'; });
+      if (def < 0) def = 0;
+      var cur = def;
+
+      function paint(i) {
+        cur = i;
+        rows.forEach(function (r, n) {
+          r.setAttribute('data-selected', n === i ? 'true' : 'false');
+          r.setAttribute('aria-pressed', n === i ? 'true' : 'false');
+        });
+        trs.forEach(function (t, n) { t.setAttribute('data-selected', n === i ? 'true' : 'false'); });
+        out.textContent = rows[i].getAttribute('data-fin-read') || '';
+      }
+
+      // The rows ship as plain <div>s and become operable ONLY here, so a no-JS
+      // reader is never shown an affordance that does nothing (blueprint §7).
+      // Everything pressing would reveal is already in the table and the notes.
+      rows.forEach(function (r, n) {
+        r.setAttribute('role', 'button');
+        r.setAttribute('tabindex', '0');
+        r.setAttribute('aria-pressed', n === def ? 'true' : 'false');
+        r.classList.add('is-operable');
+        r.addEventListener('click', function () { paint(n === cur ? def : n); });
+        r.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            paint(n === cur ? def : n);
+          } else if (e.key === 'Escape') {
+            paint(def);
+          } else if (e.key === 'ArrowDown' && n + 1 < rows.length) {
+            e.preventDefault();
+            rows[n + 1].focus();
+          } else if (e.key === 'ArrowUp' && n > 0) {
+            e.preventDefault();
+            rows[n - 1].focus();
+          }
+        });
+      });
+    });
+  })();
+</script>
+
+<style>
+  /* The row grid and the scale row share one template so the ticks land under
+     the track they label. Change one, change the other — and the zone inset
+     below, which is the label column + gap on the left and the value column +
+     gap on the right. */
+  .px-fin__row,
+  .px-fin__scale {
+    display: grid;
+    grid-template-columns: 138px 1fr 74px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .px-fin__plot { position: relative; margin-top: 4px; }
+
+  /* Inset to the BAR TRACK, never the full row. A strip that runs under the
+     label column claims position 1 begins 150px to the left of where the dots
+     say it does — the prototype's layout bug, and what the acceptance
+     checklist probes. */
+  .px-fin__zones {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 150px;
+    right: 86px;
+    pointer-events: none;
+  }
+  .px-fin__zone { position: absolute; top: 0; bottom: 0; }
+  /* Deliberately a whisper: 22% accent over the card's own elevated surface.
+     Ten rows of intervals behind a strong fill would leave the strips reading
+     as the data and the bars as the background. */
+  .px-fin__zone[data-tone='good'] { background: color-mix(in oklab, var(--accent) 22%, var(--paper-deep)); }
+  .px-fin__zone[data-tone='bad'] { background: color-mix(in oklab, var(--accent-alt) 22%, var(--paper-deep)); }
+
+  .px-fin__rows { position: relative; }
+
+  .px-fin__row {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  html.js .px-fin__row.is-operable { cursor: pointer; }
+  .px-fin__row.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
+  .px-fin__row[data-selected='true'] { background: var(--paper-deep); }
+  /* A 30px row is a fine reading rhythm and a poor thumb target. Grown only
+     where the pointer is coarse, and only once the row is actually a control. */
+  @media (pointer: coarse) {
+    html.js .px-fin__row.is-operable { min-height: 44px; }
+  }
+
+  .px-fin__name {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: color-mix(in oklab, var(--ink) 85%, transparent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 120ms ease-out;
+  }
+  /* Text takes --accent-deep, not the vivid --accent the colour spec names for
+     the marks: CANON §6 reserves vivid accent for fills and rules, because it
+     fails AA as type on the three light worlds this kind can be dropped into. */
+  .px-fin__row[data-selected='true'] .px-fin__name { color: var(--accent-deep); }
+
+  .px-fin__track { position: relative; display: block; height: 16px; }
+
+  /* Half-alpha on purpose: the zone strip has to read THROUGH the bar, so the
+     reader can see which consequential band an interval crosses. */
+  .px-fin__bar {
+    position: absolute;
+    top: 6px;
+    height: 4px;
+    background: color-mix(in oklab, var(--ink) 72%, transparent);
+    opacity: 0.5;
+    transition: background-color 120ms ease-out;
+  }
+  .px-fin__row[data-selected='true'] .px-fin__bar { background: var(--accent); }
+
+  /* Solid, where the bar is not: the dot is the estimate, the bar is the doubt.
+     Positioned by its centre so the dot size can change on small screens
+     without the offset going stale — equivalent to §4's calc(ipos − 6px). */
+  .px-fin__dot {
+    position: absolute;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--ink) 72%, transparent);
+    transition: background-color 120ms ease-out;
+  }
+  .px-fin__row[data-selected='true'] .px-fin__dot { background: var(--accent); }
+
+  .px-fin__val {
+    justify-self: end;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklab, var(--ink) 72%, transparent);
+    transition: color 120ms ease-out;
+  }
+  .px-fin__row[data-selected='true'] .px-fin__val { color: var(--accent-deep); }
+
+  .px-fin__scale { margin-top: 8px; }
+  .px-fin__ticks { grid-column: 2; display: flex; justify-content: space-between; }
+  .px-fin__tick {
+    color: color-mix(in oklab, var(--ink) 45%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .px-fin__key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 14px 0 0;
+  }
+  .px-fin__keyitem {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-fin__key .px-inst__sw[data-tone='good'] { --fill: color-mix(in oklab, var(--accent) 22%, var(--paper-deep)); }
+  .px-fin__key .px-inst__sw[data-tone='bad'] { --fill: color-mix(in oklab, var(--accent-alt) 22%, var(--paper-deep)); }
+
+  .px-fin__table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-fin__tcap {
+    text-align: left;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+  .px-fin__table th,
+  .px-fin__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+  .px-fin__table thead th {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .px-fin__table th[scope='row'],
+  .px-fin__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .px-fin__table td { color: color-mix(in oklab, var(--ink) 85%, transparent); }
+  .px-fin__table td[data-hi='true'] { color: var(--accent-deep); font-weight: 700; }
+  .px-fin__table tr[data-selected='true'] { background: var(--paper-deep); }
+
+  /* Reduced motion: the composed still IS the rendered state — the default
+     team is already selected in the HTML and no interval animates in, because
+     an uncertainty range that grows outward implies it was ever narrower. The
+     only motion here is the 120ms selection tint, which goes too. */
+  @media (prefers-reduced-motion: reduce) {
+    .px-fin__name,
+    .px-fin__bar,
+    .px-fin__dot,
+    .px-fin__val { transition: none; }
+  }
+
+  @media (max-width: 640px) {
+    /* The label column drops and truncates (blueprint §4) — and the value
+       column comes down with it, because on a 273px card the specified 74px +
+       12px gaps leave a 71px track, and the whole figure is a comparison of
+       bar overlap. These three numbers set the zone inset below. */
+    .px-fin__row,
+    .px-fin__scale {
+      grid-template-columns: 104px 1fr 56px;
+      gap: 10px;
+    }
+    .px-fin__zones { left: 114px; right: 66px; }
+    .px-fin__name { font-size: 12px; }
+    .px-fin__val { font-size: 11.5px; }
+    .px-fin__dot { width: 10px; height: 10px; top: 3px; }
+    /* Five ticks need ~120px of mono; the track has ~93px. Keep the two ends
+       and the middle — the ones that carry the scale — and drop the pair that
+       would collide. */
+    .px-fin__tick:nth-child(2),
+    .px-fin__tick:nth-child(4) { display: none; }
+  }
+</style>

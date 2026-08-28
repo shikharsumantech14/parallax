@@ -288,6 +288,11 @@ Known reservations (still-live `px-` prefixes):
 | Prefix | Owner | Notes |
 |---|---|---|
 | `px-viz` | shared elevated data-viz card (`base.css`) | wraps every ported chart; `data-reveal` root |
+| `px-fin` | `finish-interval` | sports · `FinishInterval.astro` |
+| `px-waf` | `attrition-waffle` | travel · `AttritionWaffle.astro` |
+| `px-stl` | `state-timeline` | tech · `StateTimeline.astro` |
+| `px-mgb` | `margin-bullets` | space · `MarginBullets.astro` |
+| `px-pyr` | `age-pyramid` | politics · `AgePyramid.astro` |
 | `px-fnl` | `bill-funnel` | politics · HTML bars · `BillFunnel.astro` |
 | `px-trn` | `channel-ternary` | sports · SVG ternary · `ChannelTernary.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |

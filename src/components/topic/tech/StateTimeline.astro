@@ -1,0 +1,631 @@
+---
+/**
+ * StateTimeline (`state-timeline`) — one lane per service across a single
+ * window, coloured by discrete health state, with the incident timeline pinned
+ * beneath it. The reader learns how long the failure was visible in the data
+ * before it was visible to anyone.
+ *
+ * Blueprint: docs/design/blueprints/tech/state-timeline.md
+ * Pure HTML/CSS + one marker-select island. Prefix `px-stl`.
+ *
+ * Follows the WAVE-0 HTML/CSS exemplar (politics/BillFunnel.astro): flat named
+ * props, build-time validation that throws, VizCard shell, px-inst primitives,
+ * and a no-JS render that is already the finished figure.
+ */
+import VizCard from '../../core/VizCard.astro';
+
+interface StateDef { id: string; label: string; ok?: boolean }
+interface Segment { from: number; to: number; state: string }
+interface Lane { label: string; segments: Segment[] }
+interface Mark { n: number; atHour: number; label: string; note?: string }
+interface Props {
+  window?: { fromHour: number; toHour: number };
+  states?: StateDef[];
+  lanes?: Lane[];
+  marks?: Mark[];
+  caption?: string;
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const {
+  // Destructured away from `window` so the frontmatter never shadows the DOM
+  // global's type in a file that also ships a browser island.
+  window: win = { fromHour: 0, toHour: 24 },
+  states = [],
+  lanes = [],
+  marks = [],
+  caption,
+  source,
+  howToRead,
+} = Astro.props;
+
+/* ── Build-time validation (blueprint §3) ──────────────────────────────────
+   A gap or an overlap in a lane reads as "no data", and this chart has no such
+   state — so a payload that does not tile must not render at all. Every throw
+   names the lane (or the state, or the marker) so the build error points at the
+   line of MDX that has to change. */
+const EPS = 1e-6;
+const span = win.toHour - win.fromHour;
+if (!(span > 0)) {
+  throw new Error(
+    `[state-timeline] the window must run forwards: got fromHour ${win.fromHour} → toHour ${win.toHour}.`,
+  );
+}
+
+// Colour here is categorical, so a legend is mandatory and there is no sensible
+// default key to invent. Three is also the ceiling, because the health ramp is
+// three FIXED hexes (§6) rather than a scale that can be extended.
+if (states.length < 2 || states.length > 3) {
+  throw new Error(
+    `[state-timeline] needs 2–3 states, best first, got ${states.length}. See blueprint §3/§6.`,
+  );
+}
+const byId = new Map<string, StateDef & { i: number }>();
+states.forEach((s, i) => {
+  if (byId.has(s.id)) throw new Error(`[state-timeline] duplicate state id "${s.id}".`);
+  byId.set(s.id, { ...s, i });
+});
+if (!states.some((s) => s.ok)) {
+  throw new Error(
+    '[state-timeline] at least one state must carry `ok: true` — per-lane uptime is DERIVED from those flags, and without one every lane would report 0%.',
+  );
+}
+
+if (lanes.length < 3 || lanes.length > 8) {
+  throw new Error(`[state-timeline] needs 3–8 lanes, got ${lanes.length}. See blueprint §2/§10.`);
+}
+
+for (const lane of lanes) {
+  const segs = lane.segments ?? [];
+  if (segs.length < 1 || segs.length > 12) {
+    throw new Error(
+      `[state-timeline] lane "${lane.label}" has ${segs.length} segments; the budget is 1–12 (blueprint §10).`,
+    );
+  }
+  segs.forEach((sg, i) => {
+    if (!byId.has(sg.state)) {
+      throw new Error(
+        `[state-timeline] lane "${lane.label}" segment ${i + 1} uses state "${sg.state}", which is not declared in \`states\`.`,
+      );
+    }
+    if (!(sg.to - sg.from > EPS)) {
+      throw new Error(
+        `[state-timeline] lane "${lane.label}" segment ${i + 1} does not move forwards (${sg.from} → ${sg.to}).`,
+      );
+    }
+    const expected = i === 0 ? win.fromHour : segs[i - 1].to;
+    if (Math.abs(sg.from - expected) > EPS) {
+      const fault =
+        i === 0 ? 'must start at the window' : sg.from > expected ? 'leaves a gap' : 'overlaps the segment before it';
+      throw new Error(
+        `[state-timeline] lane "${lane.label}" ${fault}: segment ${i + 1} starts at ${sg.from}, expected ${expected}. Segments must tile the window exactly.`,
+      );
+    }
+  });
+  const last = segs[segs.length - 1];
+  if (Math.abs(last.to - win.toHour) > EPS) {
+    throw new Error(
+      `[state-timeline] lane "${lane.label}" ends at ${last.to}, not at the window's ${win.toHour}. Segments must tile the window exactly.`,
+    );
+  }
+}
+
+// 8 is where 15px circles stop fitting on a phone-width track even after the
+// stagger below has used every row it can without the marker lane taking over
+// the card.
+if (marks.length > 8) {
+  throw new Error(`[state-timeline] ${marks.length} markers; the cap is 8 (blueprint §10).`);
+}
+const seenN = new Set<number>();
+for (const m of marks) {
+  if (!Number.isInteger(m.n) || m.n < 1) {
+    throw new Error(`[state-timeline] marker "${m.label}" needs a positive whole \`n\`, got ${m.n}.`);
+  }
+  if (seenN.has(m.n)) throw new Error(`[state-timeline] duplicate marker number ${m.n} ("${m.label}").`);
+  seenN.add(m.n);
+  if (m.atHour < win.fromHour - EPS || m.atHour > win.toHour + EPS) {
+    throw new Error(
+      `[state-timeline] marker ${m.n} ("${m.label}") sits at ${m.atHour}, outside the window ${win.fromHour}–${win.toHour}.`,
+    );
+  }
+}
+
+/* ── Derivation ────────────────────────────────────────────────────────────
+   Uptime, the state totals, the onset and the default marker are all computed
+   from the segments. Nothing here may be authored: an authored figure can
+   disagree with the lane it claims to summarise, and the gap between the onset
+   and the first alert IS the argument this chart exists to make. */
+const okIds = new Set(states.filter((s) => s.ok).map((s) => s.id));
+const okLabel = states.find((s) => s.ok)!.label;
+const pos = (h: number) => ((h - win.fromHour) / span) * 100;
+
+// 13.6 → "13:36". Fractional hours are the authoring unit; clock time is the
+// reading unit, and the reader should never have to convert.
+const clock = (h: number) => {
+  const t = Math.round(h * 60);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+const dur = (h: number) => {
+  const t = Math.round(h * 60);
+  const hh = Math.floor(t / 60);
+  return hh ? `${hh}h ${String(t % 60).padStart(2, '0')}m` : `${t % 60}m`;
+};
+
+// Two states means healthy/down, not healthy/degraded — with a two-step ramp it
+// is the amber middle that goes unused, never the red end.
+const ci = (i: number) => (states.length === 2 ? [0, 2][i] : i);
+
+const laneRows = lanes.map((lane) => {
+  const perState = states.map((s) => ({
+    label: s.label,
+    hours: lane.segments.filter((g) => g.state === s.id).reduce((a, g) => a + (g.to - g.from), 0),
+  }));
+  const okHours = lane.segments.reduce((a, g) => a + (okIds.has(g.state) ? g.to - g.from : 0), 0);
+  const uptime = (okHours / span) * 100;
+  const firstBad = lane.segments.find((g) => !okIds.has(g.state));
+  return {
+    label: lane.label,
+    perState,
+    uptime,
+    band: uptime >= 96 ? 'ok' : uptime >= 90 ? 'warn' : 'bad',
+    leftOk: firstBad ? clock(firstBad.from) : null,
+    segments: lane.segments.map((g, i) => ({
+      width: ((g.to - g.from) / span) * 100,
+      ci: ci(byId.get(g.state)!.i),
+      last: i === lane.segments.length - 1,
+    })),
+  };
+});
+
+/* Marker stagger. Two marks closer than MIN_GAP_PCT of the window cannot both
+   wear a 15px circle on the ~270px track a 375px card gives, so the later one
+   drops to the next row and its stalk lengthens to keep pointing at its true
+   hour. 6% ≈ 16px there — one circle plus a hair. Resolved at BUILD time, so
+   the geometry is identical with and without JS, and the acceptance line "no
+   label collision at 375px" holds on the static render. */
+const MIN_GAP_PCT = 6;
+const rowOf = new Map<number, number>();
+const rowLast: number[] = [];
+[...marks]
+  .sort((a, b) => a.atHour - b.atHour)
+  .forEach((m) => {
+    const p = pos(m.atHour);
+    let r = 0;
+    while (r < rowLast.length && p - rowLast[r] < MIN_GAP_PCT) r++;
+    rowLast[r] = p;
+    rowOf.set(m.n, r);
+  });
+const markRows = Math.max(1, rowLast.length);
+
+// Rendered — and therefore tabbed — in `n` order, positioned by the hour.
+const markList = [...marks]
+  .sort((a, b) => a.n - b.n)
+  .map((m) => ({ ...m, row: rowOf.get(m.n) ?? 0, left: pos(m.atHour), time: clock(m.atHour) }));
+
+// The earliest moment ANY lane left an ok state. Segments are ordered, so the
+// first non-ok segment of a lane is that lane's onset.
+let onset = Infinity;
+for (const lane of lanes) {
+  const bad = lane.segments.find((g) => !okIds.has(g.state));
+  if (bad) onset = Math.min(onset, bad.from);
+}
+
+/* Composed still (§5) = "the first alert": the earliest event that lands AFTER
+   something had already gone wrong. Derived rather than authored for the same
+   reason uptime is — and because the distance between `onset` and this marker
+   is the claim the caption makes. */
+let defaultIdx = markList.findIndex((m) => m.atHour > onset + EPS);
+if (defaultIdx < 0) defaultIdx = markList.length - 1;
+if (defaultIdx < 0) defaultIdx = 0;
+const d = markList[defaultIdx];
+
+const axis = [0, 1, 2, 3, 4].map((i) => clock(win.fromHour + (span * i) / 4));
+
+/* DECLARED NON-THEMEABLE ENCODING (blueprint §6, CANON §6 "fixed data
+   encodings"). Green/amber/red is a cross-domain convention for service status;
+   re-tinting it per world would make "down" mean six different colours across
+   the publication. The three hexes therefore appear exactly ONCE — here — and
+   every paint site downstream is a var(). The encoding never carries meaning by
+   colour alone: the legend names all three and the readout says the state in
+   words. Passed through VizCard's documented style passthrough so the custom
+   properties live on the .px-viz root and survive the ExpandModal portal. */
+const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
+---
+
+<VizCard prefix="px-stl" howToRead={howToRead} caption={caption} source={source} style={PALETTE}>
+  <div class="px-stl__legend">
+    {states.map((s, i) => (
+      <span class="px-stl__key">
+        <span class="px-inst__sw" style={`--fill:var(--stl-s${ci(i)})`} aria-hidden="true"></span>
+        <span class="px-stl__keylab">{s.label}</span>
+      </span>
+    ))}
+  </div>
+
+  {/* The lane grid is a picture of the table further down. Exposing both makes a
+      screen reader read every service twice, the second time with none of its
+      numbers — so the table is the AT path (blueprint §7) and this is decoration
+      over it. The marker lane below is NOT inside this, because its markers are
+      the one real control. */}
+  <div class="px-stl__lanes" aria-hidden="true">
+    <div class="px-stl__head">
+      <span>Service</span><span></span><span>Uptime</span>
+    </div>
+    {laneRows.map((r) => (
+      <div class="px-stl__lane">
+        <span class="px-stl__lab">{r.label}</span>
+        <span class="px-stl__track">
+          {r.segments.map((g) => (
+            <span
+              class="px-stl__seg"
+              data-last={g.last ? 'true' : 'false'}
+              style={`width:${g.width.toFixed(4)}%;--seg:var(--stl-s${g.ci})`}
+            ></span>
+          ))}
+        </span>
+        <span class="px-stl__up" data-band={r.band}>{r.uptime.toFixed(1)}%</span>
+      </div>
+    ))}
+  </div>
+
+  {markList.length > 0 && (
+    <div class="px-stl__marks">
+      {/* Same three-column grid as the lanes, and the box sits in column 2, so a
+          marker's left% is a percentage of the TRACK rather than of the row. */}
+      <div class="px-stl__markbox" style={`--rows:${markRows}`}>
+        {markList.map((m, i) => (
+          <span
+            class="px-stl__mark"
+            data-stl-mark={i}
+            data-stl-n={m.n}
+            data-stl-label={m.label}
+            data-stl-time={m.time}
+            data-stl-note={m.note ?? ''}
+            data-selected={i === defaultIdx ? 'true' : 'false'}
+            style={`left:${m.left.toFixed(4)}%;--row:${m.row}`}
+          >
+            <span class="px-stl__stalk" aria-hidden="true"></span>
+            <span class="px-stl__num">{m.n}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )}
+
+  <div class="px-stl__axis" aria-hidden="true">
+    <div class="px-stl__ticks">{axis.map((t) => <span>{t}</span>)}</div>
+  </div>
+
+  {markList.length > 0 && (
+    <p class="px-stl__readout px-inst__readout" data-stl-readout aria-live="polite">
+      <span data-stl-out-label>{d.label}</span>{' — '}<b
+        class="px-stl__clock"
+        data-stl-out-time>{d.time}</b>{'. '}<span data-stl-out-note>{d.note ?? ''}</span>
+    </p>
+  )}
+
+  {/* Both tables are permanent content, not a JS-redundant fallback: the lag
+      argument is only checkable across the two together — when each service
+      LEFT healthy, against the clock time of the first event. */}
+  <table class="px-stl__table">
+    <caption class="px-stl__tcap">
+      Time in each state, and when each service left {okLabel.toLowerCase()}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Service</th>
+        {states.map((s) => <th scope="col">{s.label}</th>)}
+        <th scope="col">Left {okLabel.toLowerCase()}</th>
+        <th scope="col">Uptime</th>
+      </tr>
+    </thead>
+    <tbody>
+      {laneRows.map((r) => (
+        <tr>
+          <th scope="row">{r.label}</th>
+          {r.perState.map((p) => <td>{dur(p.hours)}</td>)}
+          <td>{r.leftOk ?? '—'}</td>
+          <td data-band={r.band}>{r.uptime.toFixed(1)}%</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  {markList.length > 0 && (
+    <table class="px-stl__table" data-ev>
+      <caption class="px-stl__tcap">The incident timeline, in clock time</caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Clock</th>
+          <th scope="col">Event</th>
+          <th scope="col">What happened</th>
+        </tr>
+      </thead>
+      <tbody>
+        {markList.map((m, i) => (
+          <tr data-stl-row={i} data-selected={i === defaultIdx ? 'true' : 'false'}>
+            <th scope="row">{m.n}</th>
+            <td>{m.time}</td>
+            <td>{m.label}</td>
+            <td class="px-stl__note">{m.note ?? '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('.px-stl').forEach(function (card) {
+      var marks = Array.prototype.slice.call(card.querySelectorAll('[data-stl-mark]'));
+      var rows = Array.prototype.slice.call(card.querySelectorAll('[data-stl-row]'));
+      var out = card.querySelector('[data-stl-readout]');
+      if (!marks.length || !out) return;
+      var oL = out.querySelector('[data-stl-out-label]');
+      var oT = out.querySelector('[data-stl-out-time]');
+      var oN = out.querySelector('[data-stl-out-note]');
+      var def = 0;
+      marks.forEach(function (m, n) { if (m.getAttribute('data-selected') === 'true') def = n; });
+      var cur = def;
+
+      function paint(i) {
+        cur = i;
+        marks.forEach(function (m, n) {
+          m.setAttribute('data-selected', n === i ? 'true' : 'false');
+          m.setAttribute('aria-pressed', n === i ? 'true' : 'false');
+        });
+        rows.forEach(function (r, n) { r.setAttribute('data-selected', n === i ? 'true' : 'false'); });
+        oL.textContent = marks[i].getAttribute('data-stl-label') || '';
+        oT.textContent = marks[i].getAttribute('data-stl-time') || '';
+        oN.textContent = marks[i].getAttribute('data-stl-note') || '';
+      }
+
+      // The markers are plain <span>s in the markup and become operable ONLY
+      // here, so a no-JS reader is never shown an affordance that does nothing.
+      // Everything a press reveals is already in the events table.
+      marks.forEach(function (m, n) {
+        m.setAttribute('role', 'button');
+        m.setAttribute('tabindex', '0');
+        m.setAttribute('aria-pressed', n === def ? 'true' : 'false');
+        m.setAttribute(
+          'aria-label',
+          'Event ' + m.getAttribute('data-stl-n') + ': ' + m.getAttribute('data-stl-label') +
+            ', ' + m.getAttribute('data-stl-time'),
+        );
+        m.classList.add('is-operable');
+        m.addEventListener('click', function () { paint(n); });
+        m.addEventListener('keydown', function (e) {
+          var k = e.key;
+          if (k === 'Enter' || k === ' ' || k === 'Spacebar') { e.preventDefault(); paint(n); }
+          else if (k === 'Escape') { paint(def); marks[def].focus(); }
+          else if (k === 'ArrowRight' || k === 'ArrowLeft') {
+            var t = n + (k === 'ArrowRight' ? 1 : -1);
+            if (t >= 0 && t < marks.length) { e.preventDefault(); paint(t); marks[t].focus(); }
+          }
+        });
+      });
+
+      // The events-table rows mirror the markers for pointer users — 44px-tall
+      // targets where the circle is 15px. They are deliberately NOT tab stops:
+      // the markers already carry the complete keyboard path, and duplicating it
+      // would double the tab order for one control.
+      rows.forEach(function (r, n) {
+        r.classList.add('is-operable');
+        r.addEventListener('click', function () { if (n !== cur) paint(n); });
+      });
+    });
+  })();
+</script>
+
+<style>
+  /* ── legend (mandatory: the encoding is categorical) ─────────────────── */
+  .px-stl__legend { display: flex; flex-wrap: wrap; gap: 7px 18px; margin: 2px 0 16px; }
+  .px-stl__key { display: inline-flex; align-items: center; gap: 7px; }
+  .px-stl__keylab {
+    font-family: var(--font-mono);
+    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* ── lanes ───────────────────────────────────────────────────────────── */
+  /* One shared template across the head, the lanes, the marker lane and the
+     axis, so all four align to the same track column. */
+  .px-stl__head,
+  .px-stl__lane,
+  .px-stl__marks,
+  .px-stl__axis {
+    display: grid;
+    grid-template-columns: 118px 1fr 58px;
+    gap: 12px;
+    align-items: center;
+  }
+  .px-stl__lanes { display: flex; flex-direction: column; gap: 5px; }
+  .px-stl__head { margin-bottom: 7px; }
+  .px-stl__head span {
+    font-family: var(--font-mono);
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-stl__head span:last-child { text-align: right; }
+
+  .px-stl__lab {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: color-mix(in oklab, var(--ink) 80%, transparent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .px-stl__track { display: flex; height: 20px; background: var(--paper-deep); min-width: 0; }
+  .px-stl__seg { flex: 0 0 auto; background: var(--seg); }
+  /* The last segment also grows, so sub-pixel rounding accumulated across up to
+     twelve widths lands there instead of leaving a sliver of bare track at the
+     right edge — which would read as a gap, the one thing this chart forbids. */
+  .px-stl__seg[data-last='true'] { flex-grow: 1; }
+
+  .px-stl__up {
+    font-family: var(--font-mono);
+    font-size: 10.5px; font-weight: 700; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-stl__up[data-band='ok'] { color: var(--accent); }
+  .px-stl__up[data-band='warn'] { color: var(--stl-s1); }
+  .px-stl__up[data-band='bad'] { color: var(--stl-s2); }
+
+  /* ── marker lane ─────────────────────────────────────────────────────── */
+  /* Barely a gap: the stalks have to read as attached to the track above them,
+     not as a second row of ornaments. */
+  .px-stl__marks { margin-top: 2px; }
+  .px-stl__markbox {
+    grid-column: 2;
+    position: relative;
+    min-width: 0;
+    height: calc(30px + (var(--rows, 1) - 1) * 18px);
+  }
+  .px-stl__mark {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  /* The visible marker is a 15px disc on a hairline stalk — deliberately small,
+     because it points at one minute on a clock and a fat dot would lie about
+     the precision. But CANON's 44px target floor is about the FINGER, not the
+     ink, so the hit area is widened invisibly around it. Measured before this:
+     three marks were 23px tall and one 41px. `content-box` keeps the padding
+     from inflating the drawn stalk. */
+  html.js .px-stl__mark.is-operable {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    box-sizing: content-box;
+    margin-left: -14px;
+    justify-content: flex-start;
+  }
+  html.js .px-stl__mark.is-operable { cursor: pointer; }
+  .px-stl__mark:focus-visible { outline: none; }
+  .px-stl__mark:focus-visible .px-stl__num { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+
+  /* The stalk grows with the row so a staggered marker still points at its own
+     hour on the track above. */
+  .px-stl__stalk {
+    width: 1px;
+    height: calc(var(--stl-stalk, 8px) + var(--row, 0) * 18px);
+    background: color-mix(in oklab, var(--ink) 35%, transparent);
+  }
+  .px-stl__num {
+    position: relative;
+    width: 15px; height: 15px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 9.5px; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: color-mix(in oklab, var(--ink) 65%, transparent);
+    color: var(--paper-deep);
+    transition: background-color 120ms var(--ease, ease), color 120ms var(--ease, ease);
+  }
+  /* --on-accent is the governed foreground on an accent fill (TD-04); the
+     blueprint's --paper-deep is its fallback, and the two agree in every world. */
+  /* --accent-DEEP, not --accent: --on-accent over the vivid accent measures
+     3.91:1 on travel (kinds are cross-world per CANON §2), while over
+     accent-deep it clears 6.21:1 in every world. When type sits ON a fill, the
+     fill has to be the type-safe sibling. */
+  .px-stl__mark[data-selected='true'] .px-stl__num {
+    background: var(--accent-deep);
+    color: var(--on-accent, var(--paper-deep));
+  }
+  html.js .px-stl__mark.is-operable:hover .px-stl__num { background: color-mix(in oklab, var(--ink) 85%, transparent); }
+  /* The circle is 15px because that is what reads as a timeline pin; the hit
+     area is a 31 × 35 pseudo-element, and it exists only once the marker is
+     actually operable. The 44px control surface is the events-table row. */
+  html.js .px-stl__mark.is-operable .px-stl__num::before { content: ''; position: absolute; inset: -10px -8px; }
+
+  /* ── hour axis ───────────────────────────────────────────────────────── */
+  .px-stl__ticks { grid-column: 2; display: flex; justify-content: space-between; min-width: 0; margin-top: 2px; }
+  .px-stl__ticks span {
+    font-family: var(--font-mono);
+    font-size: 9.5px; letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklab, var(--ink) 45%, transparent);
+  }
+
+  /* ── readout ─────────────────────────────────────────────────────────── */
+  .px-stl__readout { margin-top: 16px; }
+  /* CANON §6: accent-as-text takes --accent-deep so the clock stays legible when
+     this kind runs inside a light-paper world. */
+  .px-stl__clock { color: var(--accent-deep, var(--accent)); font-weight: 700; }
+
+  /* ── tables (the AT path, and the pointer control) ───────────────────── */
+  .px-stl__table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-stl__tcap {
+    text-align: left;
+    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 8px;
+  }
+  .px-stl__table th,
+  .px-stl__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+  .px-stl__table thead th {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600;
+  }
+  .px-stl__table th[scope='row'],
+  .px-stl__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
+  .px-stl__table td[data-band='ok'] { color: var(--accent); font-weight: 700; }
+  .px-stl__table td[data-band='warn'] { color: var(--stl-s1); font-weight: 700; }
+  .px-stl__table td[data-band='bad'] { color: var(--stl-s2); font-weight: 700; }
+
+  /* Events table: prose columns read left, and the rows are the 44px targets. */
+  .px-stl__table[data-ev] thead th { text-align: left; }
+  .px-stl__table[data-ev] thead th:nth-child(2),
+  .px-stl__table[data-ev] td:nth-child(2) { text-align: right; }
+  .px-stl__table[data-ev] td:nth-child(n + 3) { text-align: left; }
+  .px-stl__table[data-ev] th,
+  .px-stl__table[data-ev] td { padding: 14px 6px; }
+  .px-stl__note {
+    font-family: var(--font-body);
+    font-size: 12px; line-height: 1.45;
+    color: var(--ink-soft);
+    min-width: 22ch;
+  }
+  .px-stl__table[data-ev] tr[data-selected='true'] { background: var(--paper-warm); }
+  html.js .px-stl__table[data-ev] tbody tr.is-operable { cursor: pointer; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-stl__num { transition: none; }
+  }
+
+  @media (max-width: 640px) {
+    /* The track drops to its own full-width row (the bill-funnel reflow) rather
+       than sharing the row with a shrunken label column. At 375px the three-
+       column grid leaves ~107px of track — 4.5px per hour, where no marker can
+       be placed and no segment can be told from its neighbour. */
+    .px-stl__head,
+    .px-stl__lane { grid-template-columns: 1fr 58px; gap: 4px 10px; }
+    .px-stl__lab { grid-column: 1; grid-row: 1; }
+    .px-stl__up { grid-column: 2; grid-row: 1; }
+    .px-stl__track { grid-column: 1 / -1; grid-row: 2; }
+    .px-stl__head span:nth-child(2) { display: none; }
+    .px-stl__lanes { gap: 12px; }
+    /* The marker lane and the axis follow the track to full width, or they stop
+       aligning to the thing they annotate. */
+    .px-stl__marks,
+    .px-stl__axis { grid-template-columns: 1fr; gap: 0; }
+    .px-stl__markbox,
+    .px-stl__ticks { grid-column: 1; }
+    .px-stl__note { min-width: 20ch; }
+  }
+
+  @media (max-width: 340px) {
+    .px-stl__mark { --stl-stalk: 4px; }
+  }
+</style>
