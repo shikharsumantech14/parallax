@@ -60,7 +60,7 @@ auto-deploys on push to `main`.
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **90 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
+| Section library | **97 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -617,7 +617,7 @@ em-dashes still needs to be fixed.
 - **Current state (read first):** `docs/STATE-OF-PLAY.md` — what is built,
   what is uncommitted, what is compile-verified only, what is still open.
 - **Design canon:** `docs/design/` — `CANON.md` (master rules), `catalog.md`
-  (the 90-kind component palette), `motion.md`, the `*-SPEC.md` set,
+  (the 97-kind component palette), `motion.md`, the `*-SPEC.md` set,
   `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
   the canonical historical reference).
@@ -629,6 +629,50 @@ em-dashes still needs to be fixed.
 ---
 
 ## 10. Change log for this file
+
+### 2026-08-28 — Design-revamp execution: gates hardened, WCAG pass, library 97
+
+The Claude Design revamp is in execution; its decision record and phase state
+live in `docs/REVAMP-PLAN.md` (RD-01…RD-09 + TD-01…TD-06 in
+`docs/design/TOKEN-RECORD.md`) and the live snapshot in `docs/STATE-OF-PLAY.md`.
+Durable changes to the standing rules recorded here:
+
+**(1) Gates.** `check:catalog` now runs in `prebuild` (ahead of the OG writer),
+reports every error class in one run, and asserts EXPLAIN + KIND_PRIORITY
+coverage. `design-sync --check` gates 30 palette mirrors + 6 in-world
+accent-deeps + 18 record tokens across every declaring file, not just the two
+generated copies. §2 and §8 updated accordingly.
+
+**(2) Colour law.** `--muted` is now DERIVED (ink at 60% dark / 72% light —
+the authored values failed WCAG AA on 8 of 12 world/surface pairs);
+`--accent-deep` carries two documented roles (in-world vs light-paper — provably
+irreconcilable on dark worlds, see `shared/design/worlds.css`); small text on
+light grounds uses `--accent-deep`, never the vivid accent; and TD-06: any FILL
+that carries text uses `--accent-deep`. New tokens `--paper-warm` (six measured
+literals), `--paper-deep` (alias), `--on-accent` (= world ground) — all gated.
+
+**(3) Schema.** Sections gained optional `howToRead` (form, paragraph, ABOVE
+the graphic, 40–360), top-level `caption` (the DATA claim — the only
+comprehension field the verifier traces) and `source` (string or
+`{label, date}`); issues gained optional `voice`. `plain` keeps its FORM
+meaning. `SectionBody` merges the promoted fields down into `data`, so both
+authoring forms work for every kind.
+
+**(4) Corrected a false technical claim this file's siblings carried:** CSS
+variables DO resolve in SVG presentation attributes in current Chromium. The
+literal-stack convention stands anyway — presentation attributes lose to any
+stylesheet rule, and satori/resvg do no var() substitution. See
+`src/components/AGENTS.md` §5.
+
+**(5) Phone navigation exists now** — a native `<details>` masthead menu below
+900px (the nav was previously `display:none` with no replacement).
+
+**(6) Sources.** CANON §7's "no source, no section" is actually true of
+published content for the first time: 21 missing source lines backfilled with
+the operator's confirmed mapping, and Timeline/BillBreakdown/VoteResult gained
+source rendering. The 22 missing captions are DELIBERATE (each section's
+`intro` already states the finding; a caption would be a duplicate the
+verifier's REDUNDANT-HOWTO/CAPTION-FORM flags exist to catch).
 
 ### 2026-07-14 — P6–P8 executed: 90-kind library, funnel closed, app onboarding
 

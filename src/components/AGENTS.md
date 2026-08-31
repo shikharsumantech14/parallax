@@ -49,10 +49,10 @@ this overrides the old §5 "Display labels: Cormorant Garamond" guidance).
 
 ## 2. Section-kind → component map
 
-**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**90 kinds**
-as of 2026-07-14 — 30 narrative/classic-viz kinds below + `act-break` + the
-**59-kind** v2 3D / interactive library in the block after the table; counted
-against the array, not from memory). The catalog with per-kind usage rules is
+**Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**97 kinds**
+as of 2026-08-28 — 30 narrative/classic-viz kinds below + `act-break` + the
+**59-kind** v2 3D / interactive library + the **7 revamp-wave kinds** (both
+blocks after the table); counted against the array, not from memory). The catalog with per-kind usage rules is
 `docs/design/catalog.md`, and `npm run check:catalog` now exists as a real
 gate: it enforces a 1:1 match between `SECTION_KINDS` and the catalog's `##`
 blocks, **in the same order**. A new kind that is missing from the catalog (or
@@ -227,6 +227,24 @@ every breadth kind in their world.
 
 ---
 
+### Revamp-wave kinds (2026-08, docs/REVAMP-PLAN.md Phase 3) — 7 so far, 21 to go
+
+All render through `core/VizCard.astro` (the RD-01a shell seam: caption row,
+how-to-read panel, source line — components never render those themselves) and
+consume the `px-inst` control/readout/legend primitive in `dataviz-v2.css`.
+Contract per kind: `docs/design/blueprints/<world>/<kind>.md` — **read its
+standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
+
+| kind | component | world | form |
+|---|---|---|---|
+| `bill-funnel` | `topic/politics/BillFunnel.astro` | politics | HTML funnel bars (widening funnel fails the build) — the HTML-path exemplar |
+| `age-pyramid` | `topic/politics/AgePyramid.astro` | politics | HTML mirrored bars, counts ⇄ share-of-band |
+| `margin-bullets` | `topic/space/MarginBullets.astro` | space | HTML bullet rows, each in its own unit |
+| `state-timeline` | `topic/tech/StateTimeline.astro` | tech | HTML health lanes + incident clock (declared green/amber/red fixed encoding) |
+| `attrition-waffle` | `topic/travel/AttritionWaffle.astro` | travel | HTML 100-square waffle, `role="img"` grid + ledger |
+| `finish-interval` | `topic/sports/FinishInterval.astro` | sports | HTML projected position + 90% interval (44px targets on coarse pointer only) |
+| `channel-ternary` | `topic/sports/ChannelTernary.astro` | sports | SVG ternary (sum-to-1 fails the build; the table IS the identity layer) — the SVG-path exemplar |
+
 ## 3. Adding a new section kind — checklist
 
 A new component touches **nine** places (2026-07-05: +explainer, +catalog;
@@ -234,10 +252,9 @@ A new component touches **nine** places (2026-07-05: +explainer, +catalog;
 breadth pass kept catching).
 Miss one and the build either fails, silently renders nothing, or fails
 `npm run check:catalog` — which enforces a 1:1, same-order match between
-`SECTION_KINDS` and the catalog blocks (90 ↔ 90 today). Note that
-`check:catalog` is a **manual** gate: `npm run build` runs only
-`design-sync.mjs --check`, so run the catalog check yourself after adding a
-kind. Item 8 (the scene registry) applies to WebGL kinds only; the other
+`SECTION_KINDS` and the catalog blocks (97 ↔ 97 today) **plus** EXPLAIN and
+KIND_PRIORITY coverage. Since 2026-08-27 it runs in `prebuild`, ahead of the
+OG writer — so `npm run build` fails on a half-wired kind with a clean tree. Item 8 (the scene registry) applies to WebGL kinds only; the other
 eight apply to every kind.
 
 1. **Add the kind name** to `SECTION_KINDS` in `src/content/config.ts`.

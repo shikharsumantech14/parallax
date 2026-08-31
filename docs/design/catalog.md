@@ -17,13 +17,13 @@
 > three a verifier traces to the dossier. Never let `plain` assert data, and
 > never let `caption` merely describe the shape.
 >
-> STATUS (2026-07-06): covers the 64 kinds registered in `SECTION_KINDS`
-> (61 originals + the 3 flagships solar-system/chamber/power-flow). The **26
-> next-generation kinds have full blueprints** under `docs/design/blueprints/`
-> (all authored + adversarially verified) but are NOT yet in `SECTION_KINDS` or
-> this catalog — their catalog blocks + registry entries land at P6 when each
-> component is implemented (see each blueprint's footer). Adding a block here
-> without the matching `SECTION_KINDS` entry breaks `npm run check:catalog`, so
+> STATUS (2026-08-28): covers all **97** kinds registered in `SECTION_KINDS` —
+> the 90 from P0–P8 plus the first 7 revamp-wave kinds (docs/REVAMP-PLAN.md
+> Phase 3; 21 blueprinted kinds remain under `docs/design/blueprints/`, landing
+> wave by wave via `scripts/wire-kind.mjs`). Adding a block here
+> without the matching `SECTION_KINDS` entry breaks `npm run check:catalog`
+> — which now runs in `prebuild`, so it fails the build, and it also asserts
+> every kind has an EXPLAIN entry and a KIND_PRIORITY score. Note
 > the two move together, per component.
 
 ## hero

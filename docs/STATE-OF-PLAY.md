@@ -2,9 +2,10 @@
 
 > **Purpose.** A cold-start snapshot for anyone (human or agent) picking this repo
 > up fresh. `AGENTS.md` tells you the *rules*; `docs/PROJECT.md` is the *history*;
+> `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-07-14.** If the git state below no longer matches reality,
+> **Last updated: 2026-08-28.** If the git state below no longer matches reality,
 > trust the repo and update this file.
 
 ---
@@ -12,13 +13,14 @@
 ## 1. The one-paragraph version
 
 Parallax is a visual explainer publication (static Astro site at the repo root)
-plus a separate Astro SSR reader-account app (`app/`, Supabase-backed). A
-nine-phase **product-elevation program (P0–P8)** has just been completed in code:
-a written design canon, a 90-kind component library, a plain-language layer for
-casual readers, layout variety, an InShorts-style shareable story mode at
-`/s/<slug>/`, a rebuilt account app, and a complete signup→reading funnel.
-**Everything from that program is currently uncommitted.** The next planned
-effort is a full product revamp — design *and* functionality.
+plus a separate Astro SSR reader-account app (`app/`, Supabase-backed). The
+P0–P8 product-elevation program is **committed, pushed and deployed** (both
+sites live). The current effort is the **design-system revamp** driven by the
+Claude Design handoff — its source of truth is `docs/REVAMP-PLAN.md`, every
+decision is locked as RD-01…RD-09, and execution stands at: **Phases 0–2
+complete, Phase 3 at Wave 1 of 4 (library 97 of 118 kinds), Phase 4's
+agent-facing half plus the source backfill done.** Three commits await the
+operator's push. Nothing is uncommitted.
 
 ---
 
@@ -27,239 +29,154 @@ effort is a full product revamp — design *and* functionality.
 | Fact | Value |
 |---|---|
 | Branch | `main` |
-| Last commit | `ed04da5` (home hero + eye-tracking fix) |
-| Unpushed commits | none |
-| **Uncommitted files** | **~70** — recount with `git status --porcelain \| wc -l`. Do not trust this number: it drifted 60 → 72 during the doc refresh that produced this file. |
-| Root build | green — `npm run build`, 44 pages |
-| App build | green — `cd app && npm run build`, exit 0 |
-| Migration applied? | **No** — `20260705000000_journey_onboarding.sql` is written but not applied |
-| Deployed? | **No** — none of this is live |
-
-**The single biggest risk is that ~70 files of finished work exist only in the
-working tree.** Getting it committed is the operator's first move (see the
-go-live sequence in §5 — the migration goes first, then the app, then the
-publication).
-
----
+| Pushed | everything through `c0887a3` (Phase 4 partial) — **live on Vercel** |
+| **Unpushed commits** | **3** — `266734b` (Phase 3 Wave 1, library 92→97), `37a6f7d` (source backfill), and HEAD (this handover doc pass — its hash is unnameable from inside itself). Operator runs `git push`. |
+| Working tree | **clean** — nothing uncommitted |
+| Root build | green — `npm run build`, 44 pages, gates in `prebuild` |
+| App build | green — `cd app && npm run build`, exit 0 (compile-only on this box) |
+| Migration | `20260705000000_journey_onboarding.sql` **applied** by the operator |
+| Live smoke | operator-verified: signup → `/welcome` → Shelf, `/api/join`, app favicon 200, published og:image 200, draft og:image absent |
 
 ## 3. What this box can and cannot do
 
-This development machine is **code-only** for Parallax. It has no `.env.local`,
-no database access, and the git repo is owned by a different account.
+Unchanged: this machine is **code-only** for Parallax. No `.env.local`, no
+database, git pushes are the operator's. Publication work is browser-verifiable
+via `npm run dev`; app work is **compile-verifiable only** (`cd app && npm run
+build` is the entire local gate — write "build green, runtime unverified").
 
-- ✅ **Can:** edit code, run both builds, run the publication dev server and
-  verify it in a browser (`npm run dev` → `localhost:4321`).
-- ❌ **Cannot:** run the `app/` project (its middleware throws
-  `Missing env: PUBLIC_SUPABASE_URL` on every request), touch the production
-  database, apply migrations, deploy, or commit/push.
-
-**Consequence for agents:** publication work is *runtime-verifiable* — verify it
-in the browser, don't just assume. App work is **compile-verifiable only**;
-`cd app && npm run build` is the gate, and anything requiring auth or a database
-must be handed to the operator with clear instructions. Never pull production
-secrets to work around this.
+One measurement trap, twice confirmed this cycle: **the preview browser reports
+false page overflow.** With the pane not displayed, `clientWidth` is 0 and every
+overflow probe fires; even displayed, `position: fixed` elements (the annotation
+editor at `opacity: 0`, the reading-progress bar) measure wider than the
+viewport. The only honest test is `window.scrollTo(9999, y)` → `scrollX`
+stays 0. Do not "fix" overflow you have not proven that way.
 
 ---
 
-## 4. What was just built (P0–P8)
+## 4. The revamp: what is DONE (all committed)
+
+Decision record + full phase plan: `docs/REVAMP-PLAN.md` (v2). Decisions
+RD-01…RD-09 are **locked — do not re-litigate**. Highlights of what shipped:
 
 | Phase | Outcome |
 |---|---|
-| **P0** | Design canon in `docs/design/` — `CANON.md`, `motion.md`, `catalog.md`, three specs, `physics/`, `worlds/`, `blueprints/`; plus `shared/design/` tokens with `design:sync`/`design:check` |
-| **P1** | Lazy code-split `viz3d` scene registry, `kepler.ts` math, the `plain` comprehension layer, `layout` variety + `act-break`, `SectionBody` extraction |
-| **P2** | Flagship components: `solar-system`, `chamber`, `power-flow`, plus politics world identity |
-| **P3** | App design language v2 (`.plate`/`.tile`/`.chip`/`.toggle`/`.stat`/`.appbar`) + the login flagship with its 5-state machine and world tinting |
-| **P4** | Story mode skeleton: `/s/<slug>/`, `StoryLayout`, `StoryShell`, card components, `src/lib/story.ts`, OG generation, share |
-| **P5** | ~24 further blueprints + the full 90-kind `catalog.md` + `check:catalog` |
-| **P6** | **22 new components** across all six worlds; the app dashboard rebuilt as "The Shelf"; the welcome/onboarding flow; the publication funnel |
-| **P7** | Story breadth: the 22 kinds ranked for beat selection, teaser compaction, prose text cards, admin story links |
-| **P8** | The four editorial agents wired to the component catalog *(retrofit demonstration still pending)* |
+| **0** | Draft issues no longer emit 404 `og:image`; `app/public/` exists (favicon was 404ing live); card-renderer font lookup fails loudly; `fetch-fonts` matches disk. Deployed. |
+| **1** | `check:catalog` rebuilt (coverage of EXPLAIN + KIND_PRIORITY, no error-masking) and wired into `prebuild` **ahead of** the OG writer; `design-sync --check` gates 30 palette mirrors + 6 in-world deeps + 18 record tokens; tech accent-deep 4-way drift fixed; dead `FeaturedIssue.astro` (7th palette, 5 retired fonts) deleted; **WCAG pass** — derived `--muted` (60%/72%), the accent-deep two-role split, travel small-text fixes → all six worlds measure zero failures; **phone navigation** added (native `<details>` menu ≤900px — the site had none). |
+| **2** | `docs/design/TOKEN-RECORD.md` (TD-01…TD-06); schema grew optional `howToRead`, top-level `caption`, `source {label,date}`, issue `voice`; `core/VizCard.astro` (the RD-01a shell seam); `px-inst` primitive in `dataviz-v2.css`; 11 bespoke-root figures gained the ⤢ modal via `[data-viz-root]`. |
+| **3** | Wave 0: `bill-funnel` + `channel-ternary` (the two path exemplars, fully verified). Wave 1: `age-pyramid`, `margin-bullets`, `state-timeline`, `attrition-waffle`, `finish-interval`. **Library 97 of 118.** All wired through all NINE registry places. |
+| **4 (partial)** | The three comprehension fields have stated contracts in the drafter, verifier (new flags: `CAPTION-FORM`, `REDUNDANT-HOWTO`) and catalog grammar. **Source backfill: 21 → 0 missing sources** on published figures (operator-confirmed mapping); `SectionBody` now merges promoted `caption`/`source` down into `data` for every kind; Timeline/BillBreakdown/VoteResult gained source rendering. |
 
-The component library is now **90 section kinds** (`npm run check:catalog`
-enforces a 1:1, same-order match between `SECTION_KINDS` and `catalog.md`).
+**Corrections discovered in execution** (already folded into the plan/docs — do
+not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
+claim was **false** (the convention stands for specificity + satori reasons —
+see `src/components/AGENTS.md` §5); TD-06 (*any fill that carries text uses
+`--accent-deep`*, vivid accent fails on travel at 3.91:1); the bill-funnel
+blueprint's "darker segment" copy bug; the 12-bespoke-roots audit claim was
+overstated (only 2 near-duplicate `.px-viz`, 8 carry no card at all — hence the
+attribute, not the class).
 
----
+## 5. What is left, in order
 
-## 5. What is actually left
+1. **Operator: `git push`** (3 commits). Vercel deploys on push.
+2. **Phase 3 Waves 2–4** — 21 kinds remain: Wave 2 (7 SVG, ~1.5 sessions),
+   Wave 3 (7 geometry, ~2.5), Wave 4 (7 hard, ~3.5). The build pattern is
+   proven: parallel component agents (component file ONLY), orchestrator wires
+   via **`scripts/wire-kind.mjs`** (example config in its header), worked
+   example into the world's showcase, browser-verify against the blueprint §11,
+   one commit per wave. Blueprints live at `docs/design/blueprints/<world>/`
+   **with a standing corrections header — read it first; it overrides the
+   handoff**. The editorial review flagged Wave 4's kinds as the least
+   defensible spend; reassess before starting it.
+3. **Phase 5 — mobile legibility** (~4–6 days): generalise the
+   `PowerFlow.astro:348` font-bump to the ~38 remaining SVG-text components
+   (4 of 42 have it; ShotMap does NOT, despite older notes saying 5).
+4. **Phase 6–8 — workstream B** (shell adoption + flatness RD-05, B1 instrument
+   retrofits, B3 web pages, B2 app). Best-first B1 items are HOURS:
+   `scaling-plot` log⇄linear 4h, `xg-race` scrub 3h, `climate-spiral` scrub 3h.
+   The plan argues B beats Wave 2 on reader value (70 of the original 90 kinds
+   have never appeared in a published issue).
+5. **Schema tightening** — make `source` required now the gap is 0. Its own
+   revertible commit. The 22 missing *captions* are **deliberate**: all 22
+   carry an `intro` that already states the finding; adding captions would trip
+   the verifier's new REDUNDANT rule. Recorded in `37a6f7d`.
+6. **Deferred by decision**: the brand mark (RD-03 — B4 ~12d parked), `/subscribe`
+   + pricing, photography (rejected; drawn-plate treatment optional), About lore.
+7. **Operator-optional, still open**: apex-vs-`www` primary domain in Vercel
+   (canonical + og:image take a 307 today); OG filename fingerprinting
+   (cheapest at 10 published issues).
 
-### Operator-only (blocked on access this box doesn't have)
+## 6. Known residuals — deliberate, do not "discover"
 
-**Go-live sequence — this order matters. It is the canonical one; `docs/design/JOURNEY-SPEC.md` §6
-and `docs/COMMERCIALISATION-SETUP.md` Stage 5 state the same steps.**
+- **In-SVG fine print ~3.4–7px at 375px** on fixed-viewBox cards. Phase 5 is the
+  fix; the per-component bump pattern exists in 4 components.
+- **SeatChart renders `px-seats__source` / "Source:"** where everything else
+  uses `px-viz__src` / "Source · " — so story.css's `[class$='__src']` hiding
+  rule misses it. Fold into shell adoption, not a content commit.
+- **The ⤢ expand button is 30px** (pre-revamp). Fold into shell adoption.
+- **`state-timeline` carries 3 raw hexes** — a DECLARED fixed encoding
+  (green/amber/red service status), single declaration, never colour-alone.
+- **Text-heavy story beats scroll** (sanctioned); **dashboard tiles title-case
+  slugs** (issues-manifest bridge unbuilt — first move of Phase 8).
+- **`finish-interval` rows are 34px with a mouse, 44px on touch** — deliberate
+  (`@media (pointer: coarse)`).
 
-1. **Apply the migration** `app/supabase/migrations/20260705000000_journey_onboarding.sql`
-   **first**, before any deploy. It only adds two columns with defaults and is
-   idempotent, so the currently-deployed app is unaffected by it.
-2. **Get the app live before the publication.** The newsletter form now posts to
-   `/api/join` on the app subdomain, so if the publication ships first its form
-   posts into a 404. Zero-risk sequence: commit the `app/` changes, push, wait
-   for that deploy to go green and smoke it, *then* commit and push the
-   publication changes. (Whether a single push rebuilds one project or both
-   depends on the per-project root-directory settings in the Vercel dashboard —
-   there is no `vercel.json` in this repo to confirm it from, so don't assume.)
-3. **Smoke the funnel** end to end: join round-trip · gate → login (world-tinted)
-   → welcome → back-to-issue toast · save + first-save microline ·
-   `/?newsletter=confirmed` ribbon · admin story link.
-4. **Real-iPhone pass** on story mode (scroll-snap, `dvh`, safe areas) via a
-   Vercel branch preview. Pre-approved fallback if snapping is flaky: ship
-   `scroll-snap-type: y proximity` globally.
+## 7. Traps that have actually bitten (additions this cycle in bold)
 
-### Editorial call
-5. **P8 retrofit demonstration** — put the new components into two published
-   issues and run one fresh `pipeline:draft` to prove catalog-driven selection.
-   This touches live content and bills the pipeline, so it needs a human to start it.
-
-### Optional code follow-ups (none blocking)
-6. Per-component mobile chart reflow (see the honest residual in §6).
-7. Per-kind story compaction for text-heavy narrative kinds.
-8. Richer Shelf modules: reading-progress hairlines from `reading_events`,
-   topic-affinity bars, and real issue titles via an issues-manifest bridge
-   (tiles currently title-case the slug).
-
----
-
-## 6. Known residuals — do not mistake these for bugs to "discover"
-
-These are **known, deliberate, and documented**. Re-deriving them wastes a session.
-
-- **Mobile in-SVG fine print renders ~3.4–7px at 375px.** SVG cards use a fixed
-  `viewBox` with `width:100%`, so the whole graphic scales down uniformly. There
-  is no clean blanket fix — a `min-width` breaks tall-narrow columns, discs, and
-  small gauges. Legibility is carried by the HTML layer (the `plain` line,
-  caption, legend, and tables at real pixel sizes) plus the ⤢ expand-modal study
-  view. A per-component reflow round was offered and consciously deferred.
-- **Text-heavy story beats scroll inside their card.** `comparison` (~3.8×),
-  `paradox` (~2.3×), and `timeline` (~1.5×) exceed the card budget and use the
-  spec-sanctioned 62dvh internal scroller. The real fix for a viz-poor issue is
-  an authored `story:` frontmatter block where the editor hand-picks visual
-  beats — an editorial action, not a code gap.
-- **Dashboard tiles title-case the slug** instead of showing real issue titles.
-  The issues-manifest bridge was specified but not built.
-- **The reading gate is soft by design.** The publication is static, so teaser
-  content is in the page source. This was chosen deliberately to keep teasers
-  shareable and Google-indexable; no-JS and crawlers see the full article.
-
----
-
-## 7. Traps that have actually bitten this project
-
-- **A subagent once ran `git checkout` on shared files** and silently wiped hours
-  of accumulated wiring across `config.ts` and `SectionBody.astro`. Any workflow
-  that spawns agents must carry an absolute git prohibition, and shared/registry
-  files must be edited by the orchestrator alone, never by parallel agents.
-- **Section `plain` is capped at 220 characters** by Zod. Overshooting breaks the
-  build — it happened twice.
-- **`coalition-calculus` dispatches with a spread** (`{...data}`, flat props),
-  unlike every other kind. Don't "fix" it into the standard shape.
-- **`CityGrid` hard-throws** unless it gets 1–3 cities, each with exactly 36 bins.
-- **Globe seed-yaw:** to face longitude `cLon`, set
-  `drag.s.yaw = -((cLon + 90) * Math.PI) / 180`. A `+180` there is the classic
-  bug that opens the globe on the wrong hemisphere.
-- **The preview browser's viewport measurements are unreliable.** Fixed-position
-  elements routinely measure a few pixels over `clientWidth`; those are artifacts,
-  not real overflow. Verify a suspected overflow by measuring the element itself
-  before "fixing" it. One adversarial review's only "major" finding was exactly
-  this false positive, disproven by direct measurement.
-- **Two different `/welcome` pages exist.** The publication's `/welcome` is the
-  cinematic "Second Angle" intro story; the app's `/welcome` is post-signup
-  onboarding. Different projects, different files. Never conflate them.
-
----
+- A subagent once wiped uncommitted work with `git checkout` — **commits only;
+  the shared registry files are edited by the orchestrator alone, never by
+  parallel agents** (component agents get an explicit one-file scope).
+- `plain` is Zod-capped at 220 chars — and **13 of the handoff's own explainer
+  strings exceed it**; EXPLAIN is uncapped, `section.plain` is not.
+- **`<details>` panels: setting `display` on the panel overrides native hiding**
+  — gate on `[open]` (bit the masthead menu; measured, not assumed).
+- **Node one-liners with regex/quotes break in Git Bash on Windows** — write
+  scratch `.mjs`/`.py` files instead. **Python prints need
+  `PYTHONIOENCODING=utf-8`** (cp1252 chokes on em-dashes).
+- **Exact-string anchors fail on CRLF files** — `config.ts` is CRLF, match
+  `\r?\n` (this is why `wire-kind.mjs` exists).
+- `coalition-calculus` dispatches with a spread; `CityGrid` hard-throws outside
+  1–3 cities; globe seed-yaw is `-((cLon + 90) * PI) / 180`.
+- The false-overflow measurement trap (§3).
 
 ## 8. Where to find things
 
 | You want… | Read |
 |---|---|
-| The rules any agent must follow | `AGENTS.md` (root — auto-loaded) |
-| Full project history | `docs/PROJECT.md` |
-| The visual law (taste as checkable rules) | `docs/design/CANON.md` |
-| Named motion vocabulary | `docs/design/motion.md` |
-| The 90-kind component palette | `docs/design/catalog.md` |
-| Per-component implementation contracts | `docs/design/blueprints/` |
-| Per-world visual language | `docs/design/worlds/` |
-| The reader journey + verbatim copy deck | `docs/design/JOURNEY-SPEC.md` |
-| App surface design | `docs/design/APP-DESIGN-SPEC.md` |
-| Story mode | `docs/design/STORY-MODE-SPEC.md` |
+| The revamp's decisions + phases | `docs/REVAMP-PLAN.md` (RD-01…RD-09 §1) |
+| Token law incl. TD-06 | `docs/design/TOKEN-RECORD.md` |
+| The 28 blueprints (corrected) | `docs/design/blueprints/<world>/` — header first |
+| The registry wirer | `scripts/wire-kind.mjs` |
+| The two component exemplars | `topic/politics/BillFunnel.astro` (HTML), `topic/sports/ChannelTernary.astro` (SVG) |
+| The shell + instrument primitives | `core/VizCard.astro`, `px-inst` in `src/styles/dataviz-v2.css` |
 | Section-kind → component map | `src/components/AGENTS.md` |
-| Issue authoring + data shapes | `src/content/issues/_AGENTS.md` |
-| The account app | `app/AGENTS.md` |
-| Editorial pipeline + voice | `research/AGENTS.md`, `research/_voice/mode-library.md` |
-| Operator go-live checklist | `docs/COMMERCIALISATION-SETUP.md` |
+| Issue authoring incl. new fields | `src/content/issues/_AGENTS.md` |
+| The design handoff (delivered artifact) | `Parallax Design System Revamp/` — authority: AGENTS → INTEGRATION → blueprints; README is stale background |
+| Standing rules / app / pipeline | `AGENTS.md`, `app/AGENTS.md`, `research/AGENTS.md` |
 
-**Live examples of every new component:** the six
-`src/content/issues/2026-06-03-<world>-showcase/` issues. They are
-`status: draft`, so they build as issue pages but have **no** story page, and the
-reading gate hides everything past section 2 for anonymous readers. To see them
-all while developing, run this in the browser console:
-
-```js
-document.querySelectorAll('.px-gate-hidden').forEach(e => e.classList.remove('px-gate-hidden'))
-```
-
----
+Live examples of all 7 new kinds: the six `2026-06-03-<world>-showcase` issues
+(status draft — unhide gated sections in the console with
+`document.querySelectorAll('.px-gate-hidden').forEach(e => e.classList.remove('px-gate-hidden'))`).
 
 ## 9. Verification commands
 
 ```bash
-npm run build            # publication — must exit 0 (44 pages today).
-                         # `prebuild` runs design:check + check:catalog FIRST,
-                         # before og.ts writes anything, so a failing gate
-                         # leaves the tree clean. Use `npx astro build` to skip
-                         # the hook while iterating.
-npm run check:catalog    # SECTION_KINDS ↔ catalog.md (1:1, same order) PLUS
-                         # EXPLAIN + KIND_PRIORITY coverage. Reports every
-                         # problem in one run.
-npm run design:check     # shared design tokens in sync
-npm run dev              # publication dev server → localhost:4321
+npm run build            # 44 pages. prebuild runs design-sync --check +
+                         # check-catalog BEFORE og.ts writes anything.
+                         # Use `npx astro build` to skip the hook while iterating.
+npm run check:catalog    # 97 ↔ 97, order, EXPLAIN + KIND_PRIORITY coverage
+npm run design:check     # 30 mirrors + 6 in-world deeps + 18 record tokens
+cd app && npm run build  # the ONLY local gate for app work
 ```
 
-```bash
-cd app && npm run build  # app SSR — the ONLY local gate for app work
-```
-
-Standing checks before declaring anything done:
+Standing greps (all must return zero):
 
 ```bash
 grep -rn "Shikhar S" src/ --include="*.astro" --include="*.ts" --include="*.mdx" --include="*.css"
 ```
 
-must return zero hits (no hardcoded author name in code or content — the
-operator is **Shikhar Suman**; older docs grepped the wrong surname and
-also self-matched the guides, so use this form). Also: `No\.\s0` clean except
-the travel masthead variant, and no horizontal overflow at 375px.
+```bash
+grep -rn 'font-family="var(' src/components/topic/
+```
 
----
-
-## 10. The next effort: a full product revamp
-
-The operator's stated next step is a **complete revamp — design and
-functionality** — aimed at something more commercial, more current, and more
-enjoyable to interact with, with explicit latitude to rework design principles
-and replace existing decisions.
-
-Whoever picks that up should understand the tension, and resolve it deliberately
-rather than by accident:
-
-- The design canon in `docs/design/` exists **precisely so that design decisions
-  survive a handover between models without quality decay.** It is the accumulated
-  output of P0–P5.
-- A revamp with liberty to rewrite those principles is a legitimate choice — but
-  it should be a *decision*, not a side effect of not having read them.
-
-**The recommended framing:** the canon is the *handover payload*, not the
-obstacle. A new session inherits full context by reading it, then works within an
-explicitly scoped mandate — for example, commercial and marketing surfaces,
-visual treatment, and interaction language are open for reinvention, while these
-stay fixed unless the operator says otherwise:
-
-1. **The fallback contract** — every component paints its final state under no-JS,
-   `prefers-reduced-motion`, and missing WebGL.
-2. **Data honesty** — declared log scales and compressions; `plain` describes the
-   *form*, captions carry the *data*; no invented values.
-3. **Accessibility floor** — focus rings, 44×44 targets, real semantics.
-4. **The brand/legal naming split** — "Parallax" in body copy, "Parallax Lens" in
-   titles, RSS, and legal lines.
-
-Everything else — palettes, layout systems, motion, typography, the home page,
-the app surfaces, even the six-world structure — is arguable, provided the
-argument is written down in `docs/design/` the way the current canon is.
+Plus per touched component: no-JS final state, `prefers-reduced-motion`, 375px
+with the honest overflow test (§3), 44px targets on touch, text ≥ 9.5px.

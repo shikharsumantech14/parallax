@@ -881,6 +881,37 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-08-17 → 08-28 — Design-revamp: analysis, decisions, Phases 0–4 execution
+
+The Claude Design handoff (`Parallax Design System Revamp/`, committed with its
+8 recovered `.dc.html` prototypes) was analysed by a ~30-agent audit, ruled on
+(RD-01…RD-09 — staged annex-first scope, mark deferred, trio kept, flatness at
+Phase 6, full workstream B sequenced), and executed through Phase 3 Wave 1.
+Source of truth: `docs/REVAMP-PLAN.md` (v2.1, with an execution-state table);
+snapshot: `docs/STATE-OF-PLAY.md`. Shipped, in order: **Phase 0** pre-deploy
+hardening (draft og:image 404s, app favicon, font-lookup crash) + the P6–P8
+backlog pushed, migration applied, both sites deployed; **Phase 1** gates
+(`check:catalog` coverage + no masking + into `prebuild`; `design-sync` palette
+mirrors) and a measured WCAG pass — derived `--muted`, the accent-deep two-role
+split (the app was rendering tech/sports accent-deep text at 1.88/1.85:1 on
+light paper), travel small-text fixes, all six worlds now zero failures — plus
+phone navigation (native `<details>` masthead menu; the site had none <900px);
+**Phase 2** `docs/design/TOKEN-RECORD.md` (TD-01…TD-06), schema fields
+`howToRead`/top-level `caption`+`source`/issue `voice`, `core/VizCard.astro`,
+the `px-inst` primitive, ⤢ for 11 bespoke-root figures; **Phase 3** Waves 0–1 —
+seven new kinds (bill-funnel, channel-ternary, age-pyramid, margin-bullets,
+state-timeline, attrition-waffle, finish-interval), library **97**, each
+build-validating its payload invariant and browser-verified against its
+blueprint §11 (`scripts/wire-kind.mjs` wires the registry); **Phase 4 partial**
+— the three comprehension fields contracted across drafter/verifier/catalog,
+and the source backfill: 21 published figures with no source line → 0
+(operator-confirmed mapping; Timeline/BillBreakdown/VoteResult gained source
+rendering; the 22 caption gaps ruled deliberate). Notable corrections en route:
+the "CSS vars don't resolve in SVG presentation attributes" claim disproven
+(convention retained for specificity/satori reasons); TD-06 (text sits on
+`--accent-deep`, never the vivid accent). Remaining: Waves 2–4 (21 kinds),
+Phase 5 mobile legibility, Phases 6–8 (workstream B), B4 behind RD-03.
+
 ### 2026-07-14 — P6 breadth (22 kinds → 90) + responsive pass + P8 agent wiring + app Shelf/welcome + funnel + story breadth
 
 Closed the four items the 2026-07-05 entry listed as "remaining", plus the

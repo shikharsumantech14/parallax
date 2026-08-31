@@ -59,6 +59,25 @@ Every section conforms to:
                               // ("each block is one seat…"), NEVER the data
                               // (that's the caption's job). Omit to fall back to
                               // the per-kind default in src/lib/explainers.ts.
+  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED (2026-08-27).
+                              // The FORM at PARAGRAPH length, rendered ABOVE
+                              // the graphic by core/VizCard.astro — what a mark
+                              // IS, what the axes mean, any inversion in the
+                              // form. Write one ONLY where the form can be
+                              // misread (channel-ternary: distance FROM a
+                              // corner = LOW use — readers get it backwards).
+                              // Never a longer restatement of `plain`; if there
+                              // is nothing to add, omit it.
+  caption?: string;           // TOP-LEVEL since 2026-08-27 — the DATA claim,
+                              // one sentence, traceable ("214 bills went in and
+                              // 47 came out"). The ONE comprehension field that
+                              // SHOULD assert data; the verifier traces it.
+                              // Legacy data.caption still works (SectionBody
+                              // merges; authored data.* wins).
+  source?: string | { label: string; date?: string };
+                              // TOP-LEVEL since 2026-08-27. CANON §7: no
+                              // source, no section. Object form renders as
+                              // "label · date". Legacy data.source still works.
   layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
                               // geometry variant — rhythm rules in
                               // docs/design/CANON.md §3: ≤1 bleed per act,
@@ -410,6 +429,22 @@ asteroid flagship does it this way.
 have no story page.** They are viz reference, not story reference.
 
 ---
+
+## 14. The three comprehension fields — who says what (2026-08-27)
+
+| Field | Carries | Renders | Length | Verifier |
+|---|---|---|---|---|
+| `howToRead` | the FORM, paragraph | ABOVE the graphic | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
+| `plain` | the FORM, one sentence | BELOW the graphic | ≤220 | flags data-assertion (PLAIN-CLAIM) |
+| `caption` | **the DATA — the finding** | with the figure | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
+
+Issues may also carry an optional top-level `voice:` — the DOMINANT rhetorical
+mode (one of the eight, e.g. `FORENSIC`), authored by the stylist for the fact
+grid's fourth cell. Omit rather than guess; the grid drops to three cells.
+
+Do NOT add captions to `paradox`/`timeline` sections whose `intro` already
+states the finding — that duplication is exactly what REDUNDANT flags exist to
+catch (ruled 2026-08-28; see REVAMP-PLAN §0).
 
 ## Change log
 

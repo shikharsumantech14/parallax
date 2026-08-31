@@ -1,6 +1,8 @@
 # Revamp plan — the source of truth
 
-> **Status: v2, 2026-08-27. Decisions locked; execution in progress.**
+> **Status: v2.1, 2026-08-28. Decisions locked; Phases 0–2 complete, Phase 3 at
+> Wave 1 of 4, Phase 4 partial. See the execution table below and
+> `docs/STATE-OF-PLAY.md` for the live snapshot.**
 > v1 was analysis with open questions. v2 is a decision record plus an execution
 > sequence. Every open question in v1 has been ruled on; the rulings are §1 and
 > they are not to be re-litigated. Where v1 stated a fact that later verification
@@ -8,6 +10,30 @@
 >
 > Read `docs/STATE-OF-PLAY.md` first for where the repo stands. Read `AGENTS.md`
 > for the standing rules. This file is what to build, in what order, and why.
+
+---
+
+## 0. Execution state (2026-08-28)
+
+| Phase | Status |
+|---|---|
+| −1 · Ship the P0–P8 backlog | ✅ pushed + deployed, migration applied, funnel smoked live |
+| 0 · Pre-deploy hardening | ✅ deployed (`2625cdd`) |
+| 1 · Guardrails + WCAG + phone nav | ✅ deployed (`92870b7`…`7c553a2`) |
+| 2 · Chrome primitives (TOKEN-RECORD, schema, VizCard, px-inst) | ✅ (`6f6ca2a`) |
+| 3 · The 28 kinds | Wave 0 ✅ (`d86673a`, `afcb49b`) · Wave 1 ✅ (`266734b`) — **library 97/118**; Waves 2–4 remain |
+| 4 · Editorial floor | agent-facing half ✅ (`c0887a3`); **source backfill 21→0** ✅ (`37a6f7d`); captions deliberately declined (all 22 carry an `intro` stating the finding); schema tightening pending |
+| 5 · Mobile legibility | not started |
+| 6–8 · Workstream B | not started (B4 parked behind RD-03) |
+
+Execution corrections folded into the docs (do not rediscover): the SVG
+`var()`-in-presentation-attribute claim was false — the convention stands for
+specificity/satori reasons; **TD-06** added (text sits on `--accent-deep`,
+never the vivid accent — travel fails at 3.91:1); the 12-bespoke-roots claim
+was overstated (2 near-duplicates, 8 card-less → `[data-viz-root]` attribute,
+not the class); bill-funnel's "darker segment" copy bug fixed in three places;
+ShotMap does NOT carry the mobile font-bump (4 of 42, not 5). Tooling:
+`scripts/wire-kind.mjs` wires the six code registry places per kind.
 
 ---
 
@@ -278,5 +304,12 @@ Each phase is independently releasable and revertible.
 
 ## 8. Change log
 
+- **2026-08-28 — v2.1.** Execution-state table added (§0). Recorded in-flight
+  corrections: TD-06, the disproven SVG-var() rationale, the bespoke-roots
+  overstatement, the bill-funnel copy bug, the font-bump count (4 not 5).
+  Sources backfilled 21→0 with the operator's confirmed mapping; the 22 caption
+  gaps ruled REDUNDANT (each carries an `intro` stating the finding). Library
+  97/118 after Waves 0–1; `scripts/wire-kind.mjs` extracted from the wave
+  tooling.
 - **2026-08-27 — v2.** Rewritten as a decision record plus an execution sequence after a verification pass (3 agents) and two design passes. Nine corrections to v1 folded into §3. All open questions from v1 §3 ruled on and moved to §1 as RD-05 through RD-09 plus the standing rulings. Workstream B sequenced in full (RD-09).
 - **2026-08-18 — v1.** Analysis of the handoff; four decisions locked (RD-01–04); the 18-item contradiction register; workstream B sized. One correction applied to the audit's own output: a reviewer read per-kind estimates as *days* and reported ~190 agent-days for the 28 kinds; they are **hours** — 212h ≈ 26 agent-days.
