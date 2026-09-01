@@ -567,7 +567,7 @@ const data: any = {
       <SeaLevelTank levels={data.levels ?? []} landmarks={data.landmarks} maxM={data.maxM} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'climate-spiral' && (
-      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} caption={data.caption} source={data.source} />
+      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'quake-depth' && (
       <QuakeDepth quakes={data.quakes ?? []} caption={data.caption} source={data.source} />

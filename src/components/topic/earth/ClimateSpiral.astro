@@ -1,27 +1,55 @@
 ---
 /**
- * ClimateSpiral (earth) — the warming spiral. A build-time polar SVG: angle =
- * month (January at the top, advancing clockwise), radius ∝ the month's value
- * normalised across the whole series (larger value → larger radius). The
- * spiral is drawn as a chain of short connected segments through every month
- * in chronological order, each segment coloured by its value (cool → warm).
- * On scroll-in the segments stroke-draw in sequence, tracing the spiral
- * outward in time. Faint concentric reference rings + month labels ring the rim.
+ * ClimateSpiral (earth) — the warming spiral, with a TIME SCRUB.
  *
- * No-JS / reduced-motion: every segment paints fully drawn (the dash-offset
- * hidden rule sits behind `html.js`; reduced-motion resets with !important).
+ * A build-time polar SVG: angle = month (January at the top, advancing
+ * clockwise), radius ∝ the month's value normalised across the whole series
+ * (larger value → larger radius). The spiral is drawn as a chain of short
+ * connected segments through every month in chronological order, each segment
+ * coloured by its value (cool → warm). Faint concentric reference rings +
+ * month labels ring the rim.
  *
- * data: { months[]{ year, month (1–12), value }, unit?, baseline?, caption?, source? }
+ * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). The finished spiral shows
+ * the whole record at once, which is the one view in which the shape cannot be
+ * read: every winding overlaps every other. Dragging the scrub winds it
+ * forward month by month — the future drops to a ghost, the centre reads the
+ * year you are standing in, and the readout names that month's value and
+ * whether it was a new high.
+ *
+ * TWO ANIMATIONS, TWO PROPERTIES — this is the load-bearing detail. The
+ * scroll-in reveal owns `stroke-dashoffset` (each segment draws itself in
+ * sequence, staggered by `--d`). The scrub owns `opacity` and nothing else, so
+ * the two can never fight over a value, and neither has to know the other
+ * exists. Opacity is deliberately NOT transitioned: a scrub must track the
+ * finger, and a 200ms fade on 500 segments does not.
+ *
+ * The dimming is one class move, not a loop. Segments are flat siblings, so
+ * marking the first future segment `is-cut` lets a sibling combinator dim
+ * every segment after it in CSS. The island touches two elements per input
+ * event regardless of series length — a 170-year record costs the same as this
+ * 4-year one.
+ *
+ * No-JS / reduced-motion: every segment paints fully drawn at full opacity
+ * (the dash-offset hidden rule sits behind `html.js`; reduced-motion resets
+ * with !important), the scrubber never renders — it ships `hidden` and the
+ * island unhides it only after the payload parses — and the centre reads the
+ * full span. Reduced-motion keeps the scrub working; it is comprehension.
+ *
+ * data: { months[]{ year, month (1–12), value }, unit?, baseline?,
+ *         howToRead?, caption?, source? }
  */
+import VizCard from '../../core/VizCard.astro';
+
 interface MonthPt { year: number; month: number; value: number; }
 interface Props {
   months: MonthPt[];
   unit?: string;
   baseline?: string;
+  howToRead?: string;
   caption?: string;
-  source?: string;
+  source?: string | { label: string; date?: string };
 }
-const { months = [], unit = '', baseline, caption, source } = Astro.props;
+const { months = [], unit = '', baseline, howToRead, caption, source } = Astro.props;
 
 // ── geometry ────────────────────────────────────────────────────────────────
 const SIZE = 460;
@@ -105,19 +133,67 @@ const monthLabels = MONTH_LBL.map((m, idx) => {
   const dx = Math.cos(a), dy = Math.sin(a);
   // anchor by horizontal direction; baseline by vertical direction
   const anchor = dx > EPS ? 'start' : dx < -EPS ? 'end' : 'middle';
-  const baseline = dy > EPS ? 'hanging' : dy < -EPS ? 'auto' : 'middle';
-  return { m, x: cx + dx * r, y: cy + dy * r, anchor, baseline };
+  const base = dy > EPS ? 'hanging' : dy < -EPS ? 'auto' : 'middle';
+  return { m, x: cx + dx * r, y: cy + dy * r, anchor, base };
 });
 
 const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
 const firstYear = pts[0]?.year ?? '';
 const lastYear = pts[n - 1]?.year ?? '';
+
+/* ── the scrub payload ────────────────────────────────────────────────────
+   One row per month: [markerX, markerY, year, month(1–12), value, isRecord].
+   `isRecord` is a RUNNING max over the series up to that month — the honest
+   form of "a new high", which can only ever mean "highest so far", never
+   "highest in a record the reader has not been shown yet". */
+let runMax = -Infinity;
+const monthTable = pts.map((p, i) => {
+  const isRecord = p.value > runMax;
+  if (isRecord) runMax = p.value;
+  return [
+    +xy[i].x.toFixed(1),
+    +xy[i].y.toFixed(1),
+    p.year,
+    p.month,
+    p.value,
+    isRecord && i > 0 ? 1 : 0,
+  ];
+});
+
+const restReadout = n
+  ? `${firstYear}–${lastYear} · ${n} months · peak ${fmtVal(maxVal)}`
+  : 'No data';
+
+/* px-inst reserves 3.2em for a readout so the card cannot reflow under a
+   dragging finger, and that is not enough for a line carrying a month, a
+   value and a record clause — it wraps on a narrow card and shoves the source
+   line down MID-DRAG. A fixed em cannot fix it: the wrap point depends on the
+   unit string and the viewport. So the worst-case string is rendered as a
+   hidden sizing twin stacked in the same grid cell and the box reserves the
+   true height at whatever width it gets. Same fix as sports/XgRace.astro —
+   generalise into px-inst at shell adoption. */
+const readoutFor = (r: (number | string)[]) =>
+  `${MONTH_LBL[(r[3] as number) - 1]} ${r[2]} · ${fmtVal(r[4] as number)}${r[5] ? ' · warmest month yet' : ''}`;
+const longestReadout = monthTable
+  .map(readoutFor)
+  .concat(restReadout)
+  .reduce((a, b) => (b.length > a.length ? b : a), '');
 ---
 
-<div class="px-viz" data-reveal>
-  {caption && <div class="px-viz__cap"><span>{caption}</span>{n > 0 && <b>{fmtVal(maxVal)} peak</b>}</div>}
-
-  <div class="px-spiral">
+<VizCard
+  prefix="px-spiral"
+  howToRead={howToRead}
+  caption={caption}
+  source={source}
+  chip={n > 0 ? `${fmtVal(maxVal)} peak` : undefined}
+>
+  <div
+    class="px-spiral__box"
+    data-spr-box
+    data-spr-unit={unit}
+    data-spr-rest={restReadout}
+    data-spr-last={String(lastYear)}
+  >
     <svg
       class="px-spiral__svg"
       viewBox={`${-PAD} ${-PAD} ${VB} ${VB}`}
@@ -125,34 +201,40 @@ const lastYear = pts[n - 1]?.year ?? '';
       role="img"
       aria-label={caption ? `Climate spiral: ${caption}, ${firstYear}–${lastYear}` : `Climate spiral, ${firstYear}–${lastYear}`}
     >
-      <!-- reference rings -->
+      {/* reference rings */}
       <g class="px-spiral__rings">
         {rings.map((r) => (
           <circle cx={cx} cy={cy} r={r.toFixed(1)} class="px-spiral__ring" />
         ))}
       </g>
 
-      <!-- month labels (anchored per quadrant so they hug the rim, not the spiral) -->
+      {/* month labels (anchored per quadrant so they hug the rim, not the spiral) */}
       <g class="px-spiral__months">
         {monthLabels.map((l) => (
-          <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} dominant-baseline={l.baseline}>{l.m}</text>
+          <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} dominant-baseline={l.base}>{l.m}</text>
         ))}
       </g>
 
-      <!-- the spiral, coloured segment by segment -->
+      {/* the spiral, coloured segment by segment. Flat siblings on purpose:
+          the scrub dims the future with one sibling-combinator rule, so the
+          island moves a single class instead of walking the whole series. */}
       <g class="px-spiral__path">
         {segments.map((s) => (
           <path
             class="px-spiral__seg"
+            data-spr-seg={s.i}
             d={s.d}
             style={`stroke:${s.color}; --len:${s.len}; --d:${(s.i * stepDelay).toFixed(0)}ms`}
           />
         ))}
       </g>
 
-      <!-- center span readout -->
+      {/* where the scrub is standing on the spiral */}
+      <circle class="px-spiral__cursor" data-spr-mark cx={cx} cy={cy} r="5" />
+
+      {/* center span readout */}
       <text class="px-spiral__yr px-spiral__yr--lo" x={cx} y={cy - 8} text-anchor="middle">{firstYear}</text>
-      <text class="px-spiral__yr px-spiral__yr--hi" x={cx} y={cy + 14} text-anchor="middle">{lastYear}</text>
+      <text class="px-spiral__yr px-spiral__yr--hi" data-spr-year x={cx} y={cy + 14} text-anchor="middle">{lastYear}</text>
     </svg>
 
     <div class="px-spiral__scale">
@@ -161,13 +243,89 @@ const lastYear = pts[n - 1]?.year ?? '';
       <span>Warmer</span>
       {baseline && <span class="px-spiral__base">Baseline · {baseline}</span>}
     </div>
-  </div>
 
-  {source && <div class="px-viz__src">Source · {source}</div>}
-</div>
+    {/* JS-only control. Ships hidden; the island unhides it only once the
+        payload has parsed, so a bad payload degrades to the static spiral. */}
+    {n > 1 && (
+      <div class="px-spiral__scrub px-inst__controls" hidden data-spr-scrub>
+        <label class="px-spiral__scrub-lab">
+          <span>Month — drag to wind the spiral</span>
+          <input
+            class="px-spiral__range px-inst__drag"
+            type="range"
+            min="0"
+            max={n - 1}
+            step="1"
+            value={n - 1}
+            data-spr-range
+          />
+        </label>
+      </div>
+    )}
+
+    <p class="px-spiral__readout px-inst__readout">
+      <span data-spr-readout aria-live="polite">{restReadout}</span>
+      <span class="px-spiral__sizer" aria-hidden="true">{longestReadout}</span>
+    </p>
+
+    <script type="application/json" class="px-spiral__data" data-spr-data set:html={JSON.stringify(monthTable)} />
+  </div>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    document.querySelectorAll('[data-spr-box]').forEach(function (box) {
+      var raw = box.querySelector('[data-spr-data]');
+      var range = box.querySelector('[data-spr-range]');
+      var scrub = box.querySelector('[data-spr-scrub]');
+      if (!raw || !range || !scrub) return;
+
+      var table;
+      try { table = JSON.parse(raw.textContent); } catch (e) { return; }
+      if (!table || table.length < 2) return;
+
+      var segs = box.querySelectorAll('[data-spr-seg]');
+      var mark = box.querySelector('[data-spr-mark]');
+      var yearEl = box.querySelector('[data-spr-year]');
+      var out = box.querySelector('[data-spr-readout]');
+      var unit = box.getAttribute('data-spr-unit') || '';
+      var rest = box.getAttribute('data-spr-rest') || '';
+      var lastYear = box.getAttribute('data-spr-last') || '';
+      var last = table.length - 1;
+      var cut = null;                     // the segment currently marked
+
+      function fmt(v) { return (v > 0 ? '+' : '') + v.toFixed(2) + (unit ? ' ' + unit : ''); }
+
+      function paint(i) {
+        var row = table[Math.max(0, Math.min(last, i))];
+        if (!row) return;
+        var atRest = i >= last;
+
+        // move the cut, never walk the series: one class off, one class on.
+        if (cut) { cut.classList.remove('is-cut'); cut = null; }
+        if (!atRest && segs[i]) { cut = segs[i]; cut.classList.add('is-cut'); }
+
+        box.setAttribute('data-scrubbing', atRest ? 'false' : 'true');
+        mark.setAttribute('cx', row[0]);
+        mark.setAttribute('cy', row[1]);
+        yearEl.textContent = atRest ? lastYear : row[2];
+        out.textContent = atRest
+          ? rest
+          : MONTHS[row[3] - 1] + ' ' + row[2] + ' · ' + fmt(row[4])
+            + (row[5] ? ' · warmest month yet' : '');
+      }
+
+      range.addEventListener('input', function () { paint(parseInt(range.value, 10)); });
+      scrub.removeAttribute('hidden');
+    });
+  })();
+</script>
 
 <style>
-  .px-spiral { width: 100%; }
+  .px-spiral__box { width: 100%; }
   /* max-width tracks the padded viewBox (SIZE 460 + 2×30 pad) so the spiral
      keeps its drawn size while the label headroom stays inside the box. */
   .px-spiral__svg { width: 100%; height: auto; max-width: 520px; margin: 0 auto; display: block; overflow: visible; }
@@ -194,8 +352,23 @@ const lastYear = pts[n - 1]?.year ?? '';
     /* base/resting = fully drawn (no-JS safe) */
     stroke-dasharray: var(--len);
     stroke-dashoffset: 0;
+    /* the reveal owns stroke-dashoffset and ONLY that. The scrub owns opacity,
+       which is deliberately not transitioned — a scrub must track the finger. */
     transition: stroke-dashoffset 240ms linear var(--d);
   }
+
+  /* the un-wound remainder of the record. One marked segment dims every
+     segment after it, so the island never walks the series. */
+  .px-spiral__seg.is-cut,
+  .px-spiral__seg.is-cut ~ .px-spiral__seg { opacity: 0.13; }
+
+  .px-spiral__cursor {
+    display: none;
+    fill: var(--ink);
+    stroke: var(--paper);
+    stroke-width: 2;
+  }
+  .px-spiral__box[data-scrubbing='true'] .px-spiral__cursor { display: block; }
 
   .px-spiral__yr {
     font-family: var(--issue-face, var(--font-display));
@@ -227,7 +400,30 @@ const lastYear = pts[n - 1]?.year ?? '';
   }
   .px-spiral__base { margin-left: auto; }
 
+  /* the live line and the worst-case sizing twin share one grid cell, so the
+     box is always as tall as the longest string it can ever show, at this
+     width. visibility:hidden keeps the twin in layout and out of the a11y tree. */
+  .px-spiral__readout { display: grid; }
+  .px-spiral__readout > * { grid-area: 1 / 1; }
+  .px-spiral__sizer { visibility: hidden; }
+
+  .px-spiral__scrub[hidden] { display: none; }
+  .px-spiral__scrub-lab {
+    display: flex; flex-direction: column; gap: 8px; width: 100%;
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  .px-spiral__range {
+    width: 100%;
+    /* the CANON touch floor applies to the whole control, not just the thumb */
+    min-height: 44px;
+    accent-color: var(--accent-deep, var(--accent));
+    cursor: pointer;
+  }
+  .px-spiral__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
+
   @media (prefers-reduced-motion: reduce) {
     .px-viz:not(.is-in) .px-spiral__seg { stroke-dashoffset: 0 !important; }
+    /* the scrub still works — it is comprehension. Only the draw-in goes. */
   }
 </style>
