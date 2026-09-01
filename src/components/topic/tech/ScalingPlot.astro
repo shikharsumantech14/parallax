@@ -1,19 +1,37 @@
 ---
 /**
- * ScalingPlot (tech) — a scaling scatter (e.g. params vs. performance). A
- * build-time SVG scatter that honors `logX` / `logY` (the axis mapping becomes
- * log10 when set). Points render as accent circles with optional labels over a
- * gridline + axis-label frame (mono). When `fit` is set, a straight
- * least-squares line is fitted through the data in the CHOSEN space (log or
- * linear, per axis) and stroke-draws on reveal. Points pop in staggered. Flat
- * (no 3D). All geometry computed in frontmatter; zero runtime JS.
+ * ScalingPlot (tech) — a scaling scatter (e.g. params vs. performance) with a
+ * LOG ⇄ LINEAR axis toggle.
  *
- * No-JS / reduced-motion: the fit line paints fully drawn + points fully shown
- * (hidden states sit behind `html.js`; reduced-motion resets with !important).
+ * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). The props already carried
+ * `logX` / `logY` at build time; the reader could not see what the log axis was
+ * doing to the shape. Now they can press Linear and watch the lower points
+ * collapse toward the axis — which is the whole claim a log scale makes.
+ *
+ * HOW IT WORKS, AND WHY THIS WAY. Both projections are computed in frontmatter
+ * and both are in the DOM. No scale math ships to the client: the island swaps
+ * one attribute, CSS moves the points. That keeps the component's build-time
+ * character, honours the JS budget (no bundle, one tiny is:inline island), and
+ * means the no-JS state is the authored projection, fully painted.
+ *
+ * The control renders ONLY when an axis is authored log. On a linear payload
+ * this component behaves exactly as it did before — there is nothing to toggle.
+ *
+ * Points translate between projections (that motion IS the comprehension);
+ * gridlines, ticks, fit lines and point labels are per-projection layers that
+ * cross-fade, because each projection runs its own label placement and
+ * de-clutter pass and can legitimately drop a different label.
+ *
+ * No-JS / reduced-motion: the fit line paints fully drawn, points fully shown,
+ * axes in the authored projection (hidden states sit behind `html.js`;
+ * reduced-motion resets with !important). Reduced-motion keeps the toggle
+ * working — it is comprehension, not decoration — and only drops the tween.
  *
  * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
- *         caption?, source? }
+ *         howToRead?, caption?, source? }
  */
+import VizCard from '../../core/VizCard.astro';
+
 interface Point { x: number; y: number; label?: string; }
 interface Props {
   points: Point[];
@@ -22,8 +40,9 @@ interface Props {
   logX?: boolean;
   logY?: boolean;
   fit?: boolean;
+  howToRead?: string;
   caption?: string;
-  source?: string;
+  source?: string | { label: string; date?: string };
 }
 const {
   points = [],
@@ -32,6 +51,7 @@ const {
   logX = false,
   logY = false,
   fit = false,
+  howToRead,
   caption,
   source,
 } = Astro.props;
@@ -39,13 +59,7 @@ const {
 const W = 640, H = 340, padL = 60, padR = 22, padT = 22, padB = 46;
 const iw = W - padL - padR, ih = H - padT - padB;
 
-// Axis transform: log10 (guarding non-positive values) or identity.
-const txX = (v: number) => (logX ? Math.log10(Math.max(v, 1e-9)) : v);
-const txY = (v: number) => (logY ? Math.log10(Math.max(v, 1e-9)) : v);
-
 // Domain in transformed space, padded so points don't sit on the frame.
-const xs = points.map((p) => txX(p.x));
-const ys = points.map((p) => txY(p.y));
 const safeMinMax = (arr: number[]) => {
   if (!arr.length) return { lo: 0, hi: 1 };
   let lo = Math.min(...arr), hi = Math.max(...arr);
@@ -53,12 +67,6 @@ const safeMinMax = (arr: number[]) => {
   const pad = (hi - lo) * 0.08;
   return { lo: lo - pad, hi: hi + pad };
 };
-const xD = safeMinMax(xs);
-const yD = safeMinMax(ys);
-
-// Transformed value → pixel.
-const px = (vT: number) => padL + ((vT - xD.lo) / (xD.hi - xD.lo)) * iw;
-const py = (vT: number) => padT + (1 - (vT - yD.lo) / (yD.hi - yD.lo)) * ih;
 
 // Point label placement — defensive clamps so labels never clip the frame and
 // edge points keep their text inside the plot. Label normally sits ABOVE the
@@ -69,83 +77,181 @@ const LBL_FS = 9;            // matches .px-scale__plabel font-size
 const LBL_UP = 10;           // gap above the dot
 const LBL_DOWN = 15;         // gap below the dot (room for the glyph + dot)
 const EDGE = 4;              // keep this far inside the frame
-const plotted = points.map((p, i) => {
-  const cx = px(txX(p.x));
-  const cy = py(txY(p.y));
-  const above = cy - LBL_UP - LBL_FS >= padT;      // does it clip the top?
-  const ly = above ? cy - LBL_UP : cy + LBL_DOWN;
-  // horizontal anchor: end near the right edge, start near the left, else middle
-  let anchor: 'start' | 'middle' | 'end' = 'middle';
-  let lx = cx;
-  if (cx > W - padR - 28) { anchor = 'end'; lx = Math.min(cx, W - padR - EDGE); }
-  else if (cx < padL + 28) { anchor = 'start'; lx = Math.max(cx, padL + EDGE); }
-  return { ...p, i, cx, cy, lx, ly, anchor, showLabel: !!p.label };
-});
-
-// Greedy de-clutter: when label anchor points cluster within a small box,
-// drop the later one's label so we never stack illegible text. Pure
-// visibility flag — data + dots are untouched (only the <text> is gated).
+// Greedy de-clutter box — see the pass inside project().
 const LBL_MIN_DX = 46, LBL_MIN_DY = 13;
-const placed: { x: number; y: number }[] = [];
-for (const p of plotted) {
-  if (!p.showLabel) continue;
-  const collides = placed.some(
-    (q) => Math.abs(q.x - p.lx) < LBL_MIN_DX && Math.abs(q.y - p.ly) < LBL_MIN_DY,
-  );
-  if (collides) p.showLabel = false;
-  else placed.push({ x: p.lx, y: p.ly });
-}
+
+// A padded domain may sit below zero — harmless in log space (the values are
+// exponents) but on a linear count axis it prints a negative quantity, which is
+// not a thing that exists. When the raw data is non-negative, the linear floor
+// is zero. Surfaced by the linear projection; the log-only render never showed it.
+const floorAtZero = (
+  d: { lo: number; hi: number },
+  raws: number[],
+  isLog: boolean,
+) => (!isLog && d.lo < 0 && raws.every((v) => v >= 0) ? { lo: 0, hi: d.hi } : d);
 
 // Gridlines — 5 ticks each axis. Tick labels show the value in the ORIGINAL
 // space (un-log) so the reader sees real magnitudes; log ticks step by powers.
 const TICKS = 5;
-const fmtTick = (vT: number, isLog: boolean) => {
+const fmtTick = (vT: number, isLog: boolean, digits = 0) => {
   const real = isLog ? Math.pow(10, vT) : vT;
   const abs = Math.abs(real);
-  if (abs !== 0 && (abs >= 1e4 || abs < 1e-2)) return real.toExponential(0).replace('e+', 'e');
+  if (abs !== 0 && (abs >= 1e4 || abs < 1e-2)) return real.toExponential(digits).replace('e+', 'e');
   if (abs >= 1000) return Math.round(real).toLocaleString();
   return (Math.round(real * 100) / 100).toString();
 };
-const xTicks = Array.from({ length: TICKS }, (_, i) => {
-  const vT = xD.lo + (i / (TICKS - 1)) * (xD.hi - xD.lo);
-  return { x: px(vT), label: fmtTick(vT, logX) };
-});
-const yTicks = Array.from({ length: TICKS }, (_, i) => {
-  const vT = yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo);
-  return { y: py(vT), label: fmtTick(vT, logY) };
-});
+// Format the whole tick SET, not each tick alone: one mantissa digit is plenty
+// until two ticks collapse to the same string (1.07e6 and 1.47e6 both read
+// "1e6"), and an axis that labels two different gridlines identically is worse
+// than a noisier one. Decided per set so the clean form survives where it can.
+const fmtTicks = (vTs: number[], isLog: boolean) => {
+  const at = (digits: number) => vTs.map((v) => fmtTick(v, isLog, digits));
+  const zero = at(0);
+  return new Set(zero).size === zero.length ? zero : at(1);
+};
 
-// Least-squares fit in transformed space → a straight line across the domain.
-let fitLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
-if (fit && points.length >= 2) {
-  const N = xs.length;
-  const sx = xs.reduce((a, b) => a + b, 0);
-  const sy = ys.reduce((a, b) => a + b, 0);
-  const sxx = xs.reduce((a, b) => a + b * b, 0);
-  const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
-  const denom = N * sxx - sx * sx;
-  if (Math.abs(denom) > 1e-12) {
-    const slope = (N * sxy - sx * sy) / denom;
-    const intercept = (sy - slope * sx) / N;
-    const yAt = (vT: number) => slope * vT + intercept;
-    fitLine = {
-      x1: px(xD.lo), y1: py(yAt(xD.lo)),
-      x2: px(xD.hi), y2: py(yAt(xD.hi)),
-    };
+/* ── One projection of the data ───────────────────────────────────────────
+   Everything downstream of the axis mapping — pixel positions, label
+   placement, de-clutter, ticks, the least-squares fit — depends on whether an
+   axis is log. So the whole pipeline is a function of (logX, logY) and we run
+   it twice. Nothing is shared between the two results by reference. */
+function project(lgX: boolean, lgY: boolean) {
+  const txX = (v: number) => (lgX ? Math.log10(Math.max(v, 1e-9)) : v);
+  const txY = (v: number) => (lgY ? Math.log10(Math.max(v, 1e-9)) : v);
+
+  const xs = points.map((p) => txX(p.x));
+  const ys = points.map((p) => txY(p.y));
+  const xD = floorAtZero(safeMinMax(xs), points.map((p) => p.x), lgX);
+  const yD = floorAtZero(safeMinMax(ys), points.map((p) => p.y), lgY);
+
+  // Transformed value → pixel.
+  const px = (vT: number) => padL + ((vT - xD.lo) / (xD.hi - xD.lo)) * iw;
+  const py = (vT: number) => padT + (1 - (vT - yD.lo) / (yD.hi - yD.lo)) * ih;
+
+  const plotted = points.map((p, i) => {
+    const cx = px(txX(p.x));
+    const cy = py(txY(p.y));
+    const above = cy - LBL_UP - LBL_FS >= padT;      // does it clip the top?
+    const labelY = above ? cy - LBL_UP : cy + LBL_DOWN;
+    // horizontal anchor: end near the right edge, start near the left, else middle
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    let labelX = cx;
+    if (cx > W - padR - 28) { anchor = 'end'; labelX = Math.min(cx, W - padR - EDGE); }
+    else if (cx < padL + 28) { anchor = 'start'; labelX = Math.max(cx, padL + EDGE); }
+    return { ...p, i, cx, cy, lx: labelX, ly: labelY, anchor, showLabel: !!p.label };
+  });
+
+  // Greedy de-clutter: when label anchor points cluster within a small box,
+  // drop the later one's label so we never stack illegible text. Pure
+  // visibility flag — data + dots are untouched (only the <text> is gated).
+  // Runs per projection: linear crowds points the log axis had spread out.
+  const placed: { x: number; y: number }[] = [];
+  for (const p of plotted) {
+    if (!p.showLabel) continue;
+    const collides = placed.some(
+      (q) => Math.abs(q.x - p.lx) < LBL_MIN_DX && Math.abs(q.y - p.ly) < LBL_MIN_DY,
+    );
+    if (collides) p.showLabel = false;
+    else placed.push({ x: p.lx, y: p.ly });
   }
+
+  const xAt = Array.from({ length: TICKS }, (_, i) => xD.lo + (i / (TICKS - 1)) * (xD.hi - xD.lo));
+  const yAt = Array.from({ length: TICKS }, (_, i) => yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo));
+  const xLbls = fmtTicks(xAt, lgX);
+  const yLbls = fmtTicks(yAt, lgY);
+  const xTicks = xAt.map((vT, i) => ({ x: px(vT), label: xLbls[i] }));
+  const yTicks = yAt.map((vT, i) => ({ y: py(vT), label: yLbls[i] }));
+
+  // Least-squares fit in transformed space → a straight line across the domain.
+  let fitLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
+  if (fit && points.length >= 2) {
+    const N = xs.length;
+    const sx = xs.reduce((a, b) => a + b, 0);
+    const sy = ys.reduce((a, b) => a + b, 0);
+    const sxx = xs.reduce((a, b) => a + b * b, 0);
+    const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
+    const denom = N * sxx - sx * sx;
+    if (Math.abs(denom) > 1e-12) {
+      const slope = (N * sxy - sx * sy) / denom;
+      const intercept = (sy - slope * sx) / N;
+      const yAt = (vT: number) => slope * vT + intercept;
+      fitLine = {
+        x1: px(xD.lo), y1: py(yAt(xD.lo)),
+        x2: px(xD.hi), y2: py(yAt(xD.hi)),
+      };
+    }
+  }
+  const fitLen = fitLine
+    ? Math.hypot(fitLine.x2 - fitLine.x1, fitLine.y2 - fitLine.y1).toFixed(0)
+    : '0';
+
+  return { plotted, xTicks, yTicks, fitLine, fitLen };
 }
-const fitLen = fitLine
-  ? Math.hypot(fitLine.x2 - fitLine.x1, fitLine.y2 - fitLine.y1).toFixed(0)
-  : '0';
+
+// A = the authored projection (what no-JS and first paint show).
+// B = the all-linear alternate. Built only when there is a log axis to undo.
+const isLogged = logX || logY;
+const A = project(logX, logY);
+const B = isLogged ? project(false, false) : null;
+const layers = B ? [{ p: A, k: 'a' }, { p: B, k: 'b' }] : [{ p: A, k: 'a' }];
+
+/* ── The readout (px-inst contract part 05) ───────────────────────────────
+   Derived from the data, never authored beside the chart: a readout that can
+   disagree with the marks eventually will. It states the span the log axis is
+   compressing, and then how much of the axis the remaining points actually
+   occupy once it is undone. Both are measurements, not adjectives. */
+const nPts = points.length;
+const logAxisWord = logX && logY ? 'both axes' : logX ? 'x-axis' : 'y-axis';
+const logVals = logX ? points.map((p) => p.x) : points.map((p) => p.y);
+const vMin = logVals.length ? Math.min(...logVals) : 0;
+const vMax = logVals.length ? Math.max(...logVals) : 0;
+const ratio = vMin > 0 && vMax > vMin ? vMax / vMin : null;
+const fmtRatio = (r: number) =>
+  r >= 100 ? Math.round(r).toLocaleString() : (Math.round(r * 10) / 10).toString();
+
+// How much of the logged axis the non-extreme points share, in the LINEAR
+// projection — i.e. the compression the reader is about to see.
+function compressionPct(): number | null {
+  if (!B || nPts < 3) return null;
+  const coords = logX ? B.plotted.map((p) => p.cx) : B.plotted.map((p) => p.cy);
+  const axisLen = logX ? iw : ih;
+  const idxMax = logVals.indexOf(vMax);
+  const rest = coords.filter((_, i) => i !== idxMax);
+  if (rest.length < 2) return null;
+  const span = Math.max(...rest) - Math.min(...rest);
+  return Math.max(1, Math.round((span / axisLen) * 100));
+}
+const comp = compressionPct();
+
+const readLog =
+  `Log ${logAxisWord} · equal steps are equal multiples` +
+  (ratio ? `. Top value is ${fmtRatio(ratio)}× the bottom.` : '.');
+const readLinear = comp
+  ? `Linear ${logAxisWord} · the other ${nPts - 1} points share ${comp}% of it. That compression is what the log scale was holding open.`
+  : `Linear ${logAxisWord} · true proportions, no scale compression.`;
+
+// Axis titles carry the "(log)" suffix, so they change with the mode. Only the
+// logged axis gets swap strings; the island falls back to the rendered text.
+const xTitleLog = xLabel ? `${xLabel}${logX ? ' (log)' : ''}` : '';
+const xTitleLin = xLabel ?? '';
+const yTitleLog = yLabel ? `${yLabel}${logY ? ' (log)' : ''}` : '';
+const yTitleLin = yLabel ?? '';
 ---
 
-<div class="px-viz" data-reveal>
-  <div class="px-viz__cap">
-    <span>{caption}</span>
-    {yLabel && <b>{yLabel}{logY ? ' · log' : ''}</b>}
-  </div>
-
-  <div class="px-scale">
+<VizCard
+  prefix="px-scale"
+  howToRead={howToRead}
+  caption={caption}
+  source={source}
+  chip={yLabel}
+>
+  <div
+    class="px-scale__box"
+    data-scale-plot
+    data-scale="log"
+    data-read-log={readLog}
+    data-read-linear={readLinear}
+  >
     <svg
       class="px-scale__svg"
       viewBox={`0 0 ${W} ${H}`}
@@ -153,62 +259,124 @@ const fitLen = fitLine
       role="img"
       aria-label={caption ? `Scaling plot: ${caption}` : 'Scaling scatter plot'}
     >
-      <!-- gridlines + axis ticks -->
-      <g class="px-scale__grid">
-        {yTicks.map((t) => (
-          <g>
-            <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="var(--rule)" />
-            <text class="px-scale__tick" x={padL - 8} y={t.y + 3} text-anchor="end">{t.label}</text>
-          </g>
-        ))}
-        {xTicks.map((t) => (
-          <g>
-            <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} stroke="var(--rule)" opacity="0.55" />
-            <text class="px-scale__tick" x={t.x} y={padT + ih + 16} text-anchor="middle">{t.label}</text>
-          </g>
-        ))}
-      </g>
+      {/* gridlines + axis ticks — one layer per projection, cross-faded */}
+      {layers.map(({ p, k }) => (
+        <g class:list={['px-scale__grid', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
+          {p.yTicks.map((t) => (
+            <g>
+              <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="var(--rule)" />
+              <text class="px-scale__tick" x={padL - 8} y={t.y + 3} text-anchor="end">{t.label}</text>
+            </g>
+          ))}
+          {p.xTicks.map((t) => (
+            <g>
+              <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} stroke="var(--rule)" opacity="0.55" />
+              <text class="px-scale__tick" x={t.x} y={padT + ih + 16} text-anchor="middle">{t.label}</text>
+            </g>
+          ))}
+        </g>
+      ))}
 
-      <!-- fit line (under the points) -->
-      {fitLine && (
-        <line
-          class="px-scale__fit"
-          x1={fitLine.x1.toFixed(1)} y1={fitLine.y1.toFixed(1)}
-          x2={fitLine.x2.toFixed(1)} y2={fitLine.y2.toFixed(1)}
-          style={`--len:${fitLen}`}
-        />
-      )}
+      {/* fit line (under the points) — refitted per projection */}
+      {layers.map(({ p, k }) => (
+        p.fitLine && (
+          <line
+            class:list={['px-scale__fit', 'px-scale__lyr', `px-scale__lyr--${k}`]}
+            x1={p.fitLine.x1.toFixed(1)} y1={p.fitLine.y1.toFixed(1)}
+            x2={p.fitLine.x2.toFixed(1)} y2={p.fitLine.y2.toFixed(1)}
+            style={`--len:${p.fitLen}`}
+          />
+        )
+      ))}
 
-      <!-- points -->
+      {/* points — ONE set, translated between projections. That motion is the
+          argument the toggle exists to make, so it is never a cross-fade. */}
       <g class="px-scale__pts">
-        {plotted.map((p) => (
-          <g class="px-scale__pt" style={`transition-delay:${600 + p.i * 60}ms`}>
-            <circle cx={p.cx.toFixed(1)} cy={p.cy.toFixed(1)} r="5" />
-            {p.label && p.showLabel && (
-              <text class="px-scale__plabel" x={p.lx.toFixed(1)} y={p.ly.toFixed(1)} text-anchor={p.anchor}>{p.label}</text>
-            )}
+        {A.plotted.map((p) => (
+          <g
+            class="px-scale__pt"
+            style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(B ? B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(B ? B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
+          >
+            <g class="px-scale__pop" style={`transition-delay:${600 + p.i * 60}ms`}>
+              <circle cx="0" cy="0" r="5" />
+            </g>
           </g>
         ))}
       </g>
 
-      <!-- axis titles -->
-      {xLabel && <text class="px-scale__axis-title" x={padL + iw / 2} y={H - 6} text-anchor="middle">{xLabel}{logX ? ' (log)' : ''}</text>}
+      {/* point labels — own layer per projection: placement, anchor AND which
+          labels survive de-clutter all differ once the axis changes */}
+      {layers.map(({ p, k }) => (
+        <g class:list={['px-scale__lbls', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
+          {p.plotted.map((q) => (
+            q.label && q.showLabel && (
+              <text class="px-scale__plabel" x={q.lx.toFixed(1)} y={q.ly.toFixed(1)} text-anchor={q.anchor}>{q.label}</text>
+            )
+          ))}
+        </g>
+      ))}
+
+      {/* axis titles */}
+      {xLabel && (
+        <text
+          class="px-scale__axis-title"
+          x={padL + iw / 2} y={H - 6} text-anchor="middle"
+          data-axt data-axt-log={xTitleLog} data-axt-linear={xTitleLin}
+        >{xTitleLog}</text>
+      )}
       {yLabel && (
         <text
           class="px-scale__axis-title"
           x={14} y={padT + ih / 2}
           text-anchor="middle"
           transform={`rotate(-90 14 ${padT + ih / 2})`}
-        >{yLabel}{logY ? ' (log)' : ''}</text>
+          data-axt data-axt-log={yTitleLog} data-axt-linear={yTitleLin}
+        >{yTitleLog}</text>
       )}
     </svg>
-  </div>
 
-  {source && <div class="px-viz__src">Source · {source}</div>}
-</div>
+    {isLogged && (
+      <div class="px-scale__ctl px-inst__controls" role="group" aria-label="Axis scale">
+        <button type="button" class="px-inst__chip" data-scale-set="log" aria-pressed="true">Log</button>
+        <button type="button" class="px-inst__chip" data-scale-set="linear" aria-pressed="false">Linear</button>
+      </div>
+    )}
+    {isLogged && (
+      <p class="px-scale__readout px-inst__readout" data-scale-readout aria-live="polite">{readLog}</p>
+    )}
+  </div>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('[data-scale-plot]').forEach(function (box) {
+      var chips = Array.prototype.slice.call(box.querySelectorAll('[data-scale-set]'));
+      if (!chips.length) return;
+      var out = box.querySelector('[data-scale-readout]');
+      var titles = Array.prototype.slice.call(box.querySelectorAll('[data-axt]'));
+
+      function paint(mode) {
+        box.setAttribute('data-scale', mode);
+        chips.forEach(function (c) {
+          c.setAttribute('aria-pressed', c.getAttribute('data-scale-set') === mode ? 'true' : 'false');
+        });
+        if (out) out.textContent = box.getAttribute('data-read-' + mode) || out.textContent;
+        titles.forEach(function (t) {
+          var v = t.getAttribute('data-axt-' + mode);
+          if (v !== null) t.textContent = v;
+        });
+      }
+
+      chips.forEach(function (c) {
+        c.addEventListener('click', function () { paint(c.getAttribute('data-scale-set')); });
+      });
+    });
+  })();
+</script>
 
 <style>
-  .px-scale { width: 100%; }
+  .px-scale__box { width: 100%; }
   .px-scale__svg { width: 100%; height: auto; display: block; overflow: visible; }
 
   .px-scale__tick {
@@ -229,13 +397,23 @@ const fitLen = fitLine
     font-weight: 700;
   }
 
+  /* ── projection layers ──────────────────────────────────────────────────
+     --a is the authored projection and paints by default, so the no-JS state
+     is the authored one. --b sits at opacity 0 until the toggle asks for it. */
+  .px-scale__lyr { transition: opacity var(--t-soft) var(--ease); }
+  .px-scale__lyr--b { opacity: 0; }
+  .px-scale__box[data-scale='linear'] .px-scale__lyr--a { opacity: 0; }
+  .px-scale__box[data-scale='linear'] .px-scale__lyr--b { opacity: 1; }
+
   .px-scale__fit {
     fill: none;
     stroke: var(--accent-deep, var(--accent));
     stroke-width: 2;
     stroke-dasharray: var(--len);
     stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1300ms var(--ease);
+    /* carries the layer cross-fade too: `transition` is one property, so the
+       shared .px-scale__lyr rule above would otherwise be overwritten here */
+    transition: stroke-dashoffset 1300ms var(--ease), opacity var(--t-soft) var(--ease);
   }
 
   .px-scale__pt circle {
@@ -245,7 +423,8 @@ const fitLen = fitLine
   }
   .px-scale__plabel {
     /* point label — mono, ink-soft, tabular (point names often carry magnitudes).
-       font-size stays 9px: the frontmatter LBL_FS de-clutter math depends on it. */
+       font-size stays 9px: the de-clutter math in project() depends on LBL_FS,
+       so a responsive bump here needs per-breakpoint de-clutter (Phase 5). */
     font-family: var(--font-mono);
     font-size: 9px;
     letter-spacing: 0.02em;
@@ -258,7 +437,18 @@ const fitLen = fitLine
     stroke-linejoin: round;
   }
 
+  /* position: the dot travels between projections (the comprehension payload) */
   .px-scale__pt {
+    transform: translate(var(--x), var(--y));
+    transition: transform var(--t-soft) var(--ease);
+  }
+  .px-scale__box[data-scale='linear'] .px-scale__pt {
+    transform: translate(var(--x2), var(--y2));
+  }
+
+  /* reveal: the pop-in lives on an inner group so it never fights the
+     positional transform above */
+  .px-scale__pop {
     opacity: 1;
     transform: none;
     transform-box: fill-box;
@@ -266,12 +456,34 @@ const fitLen = fitLine
     transition: opacity var(--t-quick) var(--ease), transform var(--t-soft) var(--ease-snap);
   }
 
+  /* controls are inert without JS, so they never render without it */
+  .px-scale__ctl { display: none; }
+  html.js .px-scale__ctl { display: flex; }
+
   /* reveal: fit line stroke-draws, points pop in staggered (behind html.js) */
   html.js .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-scale__pt { opacity: 0; transform: scale(0.1); }
+  html.js .px-viz:not(.is-in) .px-scale__pop { opacity: 0; transform: scale(0.1); }
+
+  /* PHASE 5 (mobile legibility) — measured here, deliberately NOT fixed.
+     At a 375px viewport this SVG lays out at 273px against a 640 viewBox, so
+     the scale factor is 0.427 and rendered text is: ticks 4.06px, axis titles
+     4.27px, point labels 3.84px. Clearing the 9.5px floor needs ~23 SVG units.
+
+     A plain font-size bump does NOT work here, which is why this is left whole
+     for the phase that owns it:
+       - y-ticks are right-anchored at x=52 (padL−8). "3,192" at 23 units is
+         ~69 units wide, so it starts at x=−17 — off the canvas and straight
+         through the rotated axis title at x=14.
+       - the de-clutter math in project() is tuned to LBL_FS=9; scaling the
+         point labels needs LBL_MIN_DX/DY to scale with them, and those are
+         build-time constants that cannot know the viewport.
+     The real fixes (a mobile tick format, or per-breakpoint de-clutter with
+     two rendered label sets) are cross-component decisions, not this file's. */
 
   @media (prefers-reduced-motion: reduce) {
     .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-scale__pt { opacity: 1 !important; transform: none !important; }
+    .px-viz:not(.is-in) .px-scale__pop { opacity: 1 !important; transform: none !important; }
+    /* the toggle still switches — it is comprehension. Only the tween goes. */
+    .px-scale__lyr, .px-scale__pt { transition: none; }
   }
 </style>

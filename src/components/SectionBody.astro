@@ -584,7 +584,7 @@ const data: any = {
       <VersionGraph nodes={data.nodes ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'scaling-plot' && (
-      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} caption={data.caption} source={data.source} />
+      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'throughput-dial' && (
       <ThroughputDial value={data.value ?? 0} max={data.max ?? 100} unit={data.unit} label={data.label} zones={data.zones} caption={data.caption} source={data.source} />
