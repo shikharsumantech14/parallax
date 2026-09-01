@@ -20,7 +20,7 @@
 | blueprints | 36 |
 | neverUsedAnywhere | 3 |
 | neverInPublished | 77 |
-| danglingDecisions | 19 |
+| danglingDecisions | 9 |
 
 ## Section kinds
 
@@ -136,40 +136,48 @@ It is computed here rather than asserted.
 
 ## Decisions
 
-`implemented by` counts citations in `src/`, `app/`, `shared/`, `scripts/`.
-Zero is not an error — it means decided but not yet built.
+`implemented by` counts files that DO something and name the ID: `src/`,
+`app/`, `shared/`, `scripts/`, `.claude/hooks/`, `.claude/skills/`,
+`.claude/settings.json`. Prose (docs, `.claude/rules/`) is cited, not
+implementing.
+
+**Zero is not an error, and it is not proof of absence.** It means either
+*decided but not yet built* (RD-03, the deferred brand mark) **or**
+*built by files that never name the ID* — TD-03 is cited in 30 blueprints
+while the tokens implementing it carry no `TD-03` comment. This graph can
+only see citations. Treat a zero as a question, never as a verdict.
 
 | id | cited in | implemented by |
 |---|---|---|
-| **CD-01** | 6 files | 1 |
-| **CD-02** | 3 files | 1 |
+| **CD-01** | 7 files | 3 |
+| **CD-02** | 6 files | 4 |
 | **CD-03** | 2 files | 0 — _dangling_ |
 | **CD-04** | 2 files | 0 — _dangling_ |
-| **CD-05** | 2 files | 0 — _dangling_ |
+| **CD-05** | 3 files | 1 |
 | **CD-06** | 2 files | 0 — _dangling_ |
-| **CD-07** | 2 files | 0 — _dangling_ |
+| **CD-07** | 3 files | 1 |
 | **CD-08** | 3 files | 0 — _dangling_ |
-| **CD-09** | 5 files | 1 |
-| **CD-10** | 2 files | 0 — _dangling_ |
-| **CD-11** | 3 files | 1 |
-| **CD-12** | 5 files | 0 — _dangling_ |
-| **RD-01** | 8 files | 1 |
-| **RD-01a** | 7 files | 4 |
-| **RD-01b** | 33 files | 1 |
+| **CD-09** | 5 files | 2 |
+| **CD-10** | 3 files | 1 |
+| **CD-11** | 4 files | 2 |
+| **CD-12** | 7 files | 2 |
+| **RD-01** | 10 files | 3 |
+| **RD-01a** | 8 files | 5 |
+| **RD-01b** | 35 files | 3 |
 | **RD-02** | 5 files | 0 — _dangling_ |
-| **RD-03** | 4 files | 0 — _dangling_ |
+| **RD-03** | 6 files | 2 |
 | **RD-04** | 2 files | 0 — _dangling_ |
 | **RD-05** | 4 files | 0 — _dangling_ |
 | **RD-06** | 3 files | 0 — _dangling_ |
-| **RD-07** | 2 files | 0 — _dangling_ |
-| **RD-08** | 2 files | 0 — _dangling_ |
-| **RD-09** | 7 files | 0 — _dangling_ |
-| **TD-01** | 45 files | 9 |
+| **RD-07** | 3 files | 1 |
+| **RD-08** | 3 files | 1 |
+| **RD-09** | 8 files | 1 |
+| **TD-01** | 46 files | 10 |
 | **TD-02** | 37 files | 7 |
-| **TD-03** | 30 files | 0 — _dangling_ |
+| **TD-03** | 32 files | 2 |
 | **TD-04** | 10 files | 8 |
 | **TD-05** | 2 files | 0 — _dangling_ |
-| **TD-06** | 9 files | 0 — _dangling_ |
+| **TD-06** | 10 files | 1 |
 
 ## Issues
 

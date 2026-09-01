@@ -142,7 +142,12 @@ function buildDecisions() {
       cites.get(m[1]).add(f);
     }
   }
-  const isCode = (f) => /^(src|app|shared|scripts)\//.test(f);
+  /* "Implemented by" means a file that DOES something, not one that describes
+     it. Source trees count; so do hooks, skills and settings, which are
+     executable policy. .claude/rules/ and docs/ do not — they are prose. */
+  const isCode = (f) => /^(src|app|shared|scripts)\//.test(f)
+    || /^\.claude\/(hooks|skills)\//.test(f)
+    || f === '.claude/settings.json';
   return [...cites.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([id, set]) => {
@@ -240,8 +245,16 @@ function renderMarkdown(g) {
 
   P('## Decisions');
   P();
-  P('`implemented by` counts citations in `src/`, `app/`, `shared/`, `scripts/`.');
-  P('Zero is not an error — it means decided but not yet built.');
+  P('`implemented by` counts files that DO something and name the ID: `src/`,');
+  P('`app/`, `shared/`, `scripts/`, `.claude/hooks/`, `.claude/skills/`,');
+  P('`.claude/settings.json`. Prose (docs, `.claude/rules/`) is cited, not');
+  P('implementing.');
+  P();
+  P('**Zero is not an error, and it is not proof of absence.** It means either');
+  P('*decided but not yet built* (RD-03, the deferred brand mark) **or**');
+  P('*built by files that never name the ID* — TD-03 is cited in 30 blueprints');
+  P('while the tokens implementing it carry no `TD-03` comment. This graph can');
+  P('only see citations. Treat a zero as a question, never as a verdict.');
   P();
   P('| id | cited in | implemented by |');
   P('|---|---|---|');
@@ -307,13 +320,29 @@ function renderBrief(g) {
 
 function renderDocAudit(g) {
   const docs = buildDocs();
+  /* Blueprints are 36 near-identical spec files; listing each one buries the
+     signal. Summarise them and list everything else. */
+  const isBlueprint = (p) => p.startsWith('docs/design/blueprints/');
+  const listed = docs.filter((d) => !isBlueprint(d.path));
+  const bps = docs.filter((d) => isBlueprint(d.path));
+
   const L = ['# Doc inventory', ''];
+  L.push(`_${docs.length} docs · ${bps.length} blueprints summarised at the end · `
+    + `${docs.filter((d) => d.archived).length} archived._`);
+  L.push('');
   L.push('| doc | last commit | KB | |');
   L.push('|---|---|---|---|');
-  for (const d of docs) {
+  for (const d of listed) {
     L.push(`| \`${d.path}\` | ${d.lastCommit} | ${(d.bytes / 1024).toFixed(1)} | ${d.archived ? 'archived' : ''} |`);
   }
   L.push('');
+  if (bps.length) {
+    const oldest = bps.reduce((a, b) => (a.lastCommit < b.lastCommit ? a : b));
+    L.push(`## Blueprints — ${bps.length} files, oldest touched ${oldest.lastCommit}`);
+    L.push('');
+    L.push('Not listed individually. Check one only if a specific kind is in question.');
+    L.push('');
+  }
   L.push('## Dangling decisions (decided, no implementing file)');
   L.push('');
   const dangling = g.decisions.filter((d) => d.implementedBy.length === 0);
