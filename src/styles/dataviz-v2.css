@@ -120,6 +120,33 @@
 }
 .px-inst__readout b { color: var(--ink); font-weight: 700; }
 
+/* ── --sized: the exact reserve, for readouts min-height cannot hold ───────
+   `min-height: 3.2em` above covers two lines and is enough for a readout that
+   names one thing. It is NOT enough once a readout carries proper nouns and a
+   derived clause — xg-race ("52' · PSG 1.44 xG — Inter 0.28 xG · PSG ahead by
+   1.16") wrapped to a third line and shoved the source line down ~15px MID-DRAG,
+   which is the exact failure the reserve exists to prevent.
+
+   No fixed em value can fix that, because the wrap point depends on strings the
+   component does not choose (team names, a unit) AND on the viewport. So the
+   component renders its own worst-case string as a hidden twin stacked in the
+   same grid cell, and the box reserves the true height at whatever width it is
+   given — measured, not guessed:
+
+     <p class="px-inst__readout px-inst__readout--sized">
+       <span data-…-readout aria-live="polite">{live}</span>
+       <span class="px-inst__sizer" aria-hidden="true">{longest}</span>
+     </p>
+
+   OPT-IN, and it must stay opt-in. Making the base rule a grid container would
+   turn every inline child into its own grid row, which breaks the readouts that
+   mix them — tech/StateTimeline.astro renders <span> + text + <b> and would
+   stack onto three lines. `visibility: hidden` keeps the twin in layout and out
+   of the accessibility tree; the live line keeps the aria-live region. */
+.px-inst__readout--sized { display: grid; }
+.px-inst__readout--sized > * { grid-area: 1 / 1; }
+.px-inst__sizer { visibility: hidden; }
+
 /* Legend rows are the control (contract part 04). */
 .px-inst__legend { display: flex; flex-direction: column; margin-top: 16px; }
 .px-inst__row {

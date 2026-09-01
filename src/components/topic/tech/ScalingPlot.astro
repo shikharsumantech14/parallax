@@ -230,6 +230,13 @@ const readLinear = comp
   ? `Linear ${logAxisWord} · the other ${nPts - 1} points share ${comp}% of it. That compression is what the log scale was holding open.`
   : `Linear ${logAxisWord} · true proportions, no scale compression.`;
 
+// The longest string this readout can ever show. Rendered as the hidden twin
+// that `px-inst__readout--sized` stacks behind the live line, so the box
+// reserves the true height and the card cannot jump when the mode changes —
+// measured at 375px, the linear line runs a row longer than the log one and
+// shifted the source line 17px. See the rule in src/styles/dataviz-v2.css.
+const longestReadout = readLinear.length >= readLog.length ? readLinear : readLog;
+
 // Axis titles carry the "(log)" suffix, so they change with the mode. Only the
 // logged axis gets swap strings; the island falls back to the rendered text.
 const xTitleLog = xLabel ? `${xLabel}${logX ? ' (log)' : ''}` : '';
@@ -342,7 +349,10 @@ const yTitleLin = yLabel ?? '';
       </div>
     )}
     {isLogged && (
-      <p class="px-scale__readout px-inst__readout" data-scale-readout aria-live="polite">{readLog}</p>
+      <p class="px-scale__readout px-inst__readout px-inst__readout--sized">
+        <span data-scale-readout aria-live="polite">{readLog}</span>
+        <span class="px-inst__sizer" aria-hidden="true">{longestReadout}</span>
+      </p>
     )}
   </div>
 </VizCard>

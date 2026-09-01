@@ -167,15 +167,10 @@ const uid =
 
 const restReadout = `Full time · ${home} ${homeFinal.toFixed(2)} xG — ${away} ${awayFinal.toFixed(2)} xG`;
 
-/* px-inst reserves 3.2em for a readout so the card cannot reflow under a
-   dragging finger. That is not enough here: this readout carries two team
-   names and a lead clause, so it wraps to a second line on a narrow card and
-   shoves everything below it down mid-drag — the exact failure the reserve
-   exists to prevent, and a fixed em value cannot fix it because the wrap point
-   depends on the team names AND the viewport.
-   So the worst-case string is rendered as a hidden sizing twin stacked in the
-   same grid cell: the box then reserves the true height at whatever width it
-   is given. Measured, not guessed. */
+/* The longest string this readout can ever show. Rendered as the hidden twin
+   that `px-inst__readout--sized` stacks behind the live line, so the box
+   reserves the true height and cannot reflow under a dragging finger — see the
+   rule in src/styles/dataviz-v2.css for why min-height alone cannot do it. */
 const readoutFor = (m: number, hv: number, av: number) => {
   const lead =
     hv > av ? `${home} ahead by ${(hv - av).toFixed(2)}`
@@ -296,9 +291,9 @@ const longestReadout = minuteTable
       </label>
     </div>
 
-    <p class="px-xgr__readout px-inst__readout">
+    <p class="px-xgr__readout px-inst__readout px-inst__readout--sized">
       <span data-xgr-readout aria-live="polite">{restReadout}</span>
-      <span class="px-xgr__sizer" aria-hidden="true">{longestReadout}</span>
+      <span class="px-inst__sizer" aria-hidden="true">{longestReadout}</span>
     </p>
 
     <script type="application/json" class="px-xgr__data" data-xgr-data set:html={JSON.stringify(minuteTable)} />
@@ -443,13 +438,6 @@ const longestReadout = minuteTable
   .px-xgr__key i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
   .px-xgr__key--home i { background: var(--accent); }
   .px-xgr__key--away i { background: var(--ink-soft); }
-
-  /* the live line and the worst-case sizing twin share one grid cell, so the
-     box is always as tall as the longest string it can ever show, at this
-     width. visibility:hidden keeps the twin in layout and out of the a11y tree. */
-  .px-xgr__readout { display: grid; }
-  .px-xgr__readout > * { grid-area: 1 / 1; }
-  .px-xgr__sizer { visibility: hidden; }
 
   .px-xgr__scrub[hidden] { display: none; }
   .px-xgr__scrub-lab {
