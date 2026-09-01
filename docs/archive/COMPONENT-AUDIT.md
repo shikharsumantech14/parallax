@@ -1,3 +1,15 @@
+> # ARCHIVED — FROZEN HISTORY. NOT CURRENT.
+>
+> **Froze:** 2026-06-20  ·  **Superseded by:** `docs/design/catalog.md + npm run check:catalog`
+>
+> **Why kept:** A point-in-time component inventory. The catalog plus the build-enforced gate are now the live source.
+>
+> Do not treat anything below as the current state of the project, and do not
+> act on its instructions. The single entry point is `docs/STATE-OF-PLAY.md`.
+> Archived 2026-09-01 under CONTEXT-PLAN.md CD-07/CD-10.
+
+---
+
 # Component audit — kit vs. pipeline vs. issues (2026-06-03)
 
 > Audit behind the "3D/interactive component library" work. Answers: are all the

@@ -630,6 +630,41 @@ em-dashes still needs to be fixed.
 
 ## 10. Change log for this file
 
+### 2026-09-01 — Context system Phase A: the subtree guides now actually load
+
+`docs/CONTEXT-PLAN.md` (CD-01…CD-12) is the plan; this is its first phase.
+
+**(1) A live defect, fixed.** `CLAUDE.md` claimed subtree `AGENTS.md` files were
+"picked up when working in their tree (via the agents.md cascading-read
+convention)." **That was never true** — Claude Code reads `CLAUDE.md`, not
+`AGENTS.md`, and subdirectory discovery covers `CLAUDE.md`/`CLAUDE.local.md`
+only. The root guide loaded solely because root `CLAUDE.md` `@`-imports it.
+Everything below was invisible: `src/components/AGENTS.md` (~17.1k tokens),
+`app/AGENTS.md` (~8.3k), `src/content/issues/_AGENTS.md` (~8.0k),
+`research/AGENTS.md` (~3.9k) — **~37k tokens of convention that never entered a
+session.** Every agent that ever edited a component did so without the SVG
+rules, the prefix table or the nine-registry-place list. Fixed with three-line
+loader shims (`src/components/CLAUDE.md`, `app/CLAUDE.md`,
+`research/CLAUDE.md`); the guides stay in `AGENTS.md` for portability.
+
+**(2) A new trap, found while fixing (1).** `src/content/issues/` **cannot host
+a `CLAUDE.md`**, and neither can `src/content/`. The collection is
+`type: 'content'`, so Astro parses every `.md` at the collection root as an
+entry (`InvalidContentEntryFrontmatterError`) and rejects any `.md` directly in
+`src/content/` as belonging to no collection (`UnknownContentCollectionError`).
+Both break the build; both were verified, not assumed. This is the same trap the
+guide's leading underscore exists to dodge. That subtree is reached by
+`.claude/rules/issue-authoring.md` instead — a rule lives outside `src/`, so
+Astro never sees it. **Rule of thumb: inside `src/content/`, put agent
+instructions in `.claude/rules/`, never in the tree.**
+
+**(3) `claudeMdExcludes`** now skips `Parallax Design System Revamp/**` (11 MB,
+140 files, its own AGENTS.md, explicitly "stale background" per RD-02) via a
+committed `.claude/settings.json`.
+
+**(4) `.claude/rules/` exists now.** Path-scoped instruction files that load
+only when a matching file is touched. First occupant is the issues rule above.
+
 ### 2026-08-28 — Design-revamp execution: gates hardened, WCAG pass, library 97
 
 The Claude Design revamp is in execution; its decision record and phase state

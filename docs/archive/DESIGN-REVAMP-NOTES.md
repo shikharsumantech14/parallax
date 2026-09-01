@@ -1,3 +1,15 @@
+> # ARCHIVED — FROZEN HISTORY. NOT CURRENT.
+>
+> **Froze:** 2026-06-20  ·  **Superseded by:** `docs/PROJECT.md`
+>
+> **Why kept:** Self-marked COMPLETE (2026-06-03). Its history lives in PROJECT.md; unrelated to the later Claude Design revamp in REVAMP-PLAN.md.
+>
+> Do not treat anything below as the current state of the project, and do not
+> act on its instructions. The single entry point is `docs/STATE-OF-PLAY.md`.
+> Archived 2026-09-01 under CONTEXT-PLAN.md CD-07/CD-10.
+
+---
+
 # Design revamp notes — Claude Design v2 export
 
 > **Status:** COMPLETE (2026-06-03). The earlier 2026-06-02 pass shipped

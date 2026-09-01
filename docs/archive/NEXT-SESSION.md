@@ -1,3 +1,15 @@
+> # ARCHIVED — FROZEN HISTORY. NOT CURRENT.
+>
+> **Froze:** 2026-07-07  ·  **Superseded by:** `docs/STATE-OF-PLAY.md`
+>
+> **Why kept:** Described the P0-P8 product-elevation program as in flight with TWO active threads. That program shipped, was pushed and deployed; the design revamp replaced it.
+>
+> Do not treat anything below as the current state of the project, and do not
+> act on its instructions. The single entry point is `docs/STATE-OF-PLAY.md`.
+> Archived 2026-09-01 under CONTEXT-PLAN.md CD-07/CD-10.
+
+---
+
 # Next-session pickup — Parallax
 
 > **TWO active threads.** Pick the one you're resuming:

@@ -10,7 +10,7 @@
 > operator. Do not improvise taste.
 >
 > **Authority order** (when documents disagree): a component's blueprint > the world
-> spec > this canon > older docs (`docs/CLAUDE-DESIGN-BRIEF.md`, `DESIGN-REVAMP-NOTES.md`
+> spec > this canon > older docs (`docs/archive/CLAUDE-DESIGN-BRIEF.md`, `docs/archive/DESIGN-REVAMP-NOTES.md`
 > — both are historical context now, not law).
 
 ---

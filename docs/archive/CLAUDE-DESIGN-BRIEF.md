@@ -1,3 +1,15 @@
+> # ARCHIVED — FROZEN HISTORY. NOT CURRENT.
+>
+> **Froze:** 2026-05-26  ·  **Superseded by:** `docs/REVAMP-PLAN.md`
+>
+> **Why kept:** The brief SUBMITTED to Claude Design on 2026-05-24. Kept as the input record; the delivered handoff and every ruling on it live in REVAMP-PLAN.md (RD-01..RD-09).
+>
+> Do not treat anything below as the current state of the project, and do not
+> act on its instructions. The single entry point is `docs/STATE-OF-PLAY.md`.
+> Archived 2026-09-01 under CONTEXT-PLAN.md CD-07/CD-10.
+
+---
+
 # Claude Design — system brief
 
 > **Status:** Submitted to Claude Design on 2026-05-24. This file is the

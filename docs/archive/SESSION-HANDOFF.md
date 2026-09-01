@@ -1,3 +1,15 @@
+> # ARCHIVED — FROZEN HISTORY. NOT CURRENT.
+>
+> **Froze:** 2026-06-20  ·  **Superseded by:** `docs/STATE-OF-PLAY.md`
+>
+> **Why kept:** A cold-start onboarding file that predates the revamp entirely. STATE-OF-PLAY now serves this role.
+>
+> Do not treat anything below as the current state of the project, and do not
+> act on its instructions. The single entry point is `docs/STATE-OF-PLAY.md`.
+> Archived 2026-09-01 under CONTEXT-PLAN.md CD-07/CD-10.
+
+---
+
 # Session handoff — new agent onboarding
 
 > **For the new session / new account.** This file is the fastest

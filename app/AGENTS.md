@@ -484,7 +484,7 @@ bottom list only.
 - **Design canon governing this app:** `docs/design/APP-DESIGN-SPEC.md`
   (the app's own surfaces) and `docs/design/JOURNEY-SPEC.md` (the
   end-to-end reader journey; `/welcome` closes its fix #7).
-- **Claude Design brief:** `docs/CLAUDE-DESIGN-BRIEF.md` —
+- **Claude Design brief:** `docs/archive/CLAUDE-DESIGN-BRIEF.md` (archived) —
   the design direction submitted externally.
 - **Publication agent guide:** `../AGENTS.md` (root).
 - **Publication CLAUDE.md:** `../CLAUDE.md`.

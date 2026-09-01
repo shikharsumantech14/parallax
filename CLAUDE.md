@@ -33,12 +33,30 @@
 
 ## Subtree memory
 
-Subdirectory `AGENTS.md` files are picked up when working in their tree
-(via the agents.md cascading-read convention):
+**Claude Code reads `CLAUDE.md`, not `AGENTS.md`.** Subdirectory discovery
+covers `CLAUDE.md` / `CLAUDE.local.md` only — there is no cascading AGENTS.md
+read. This file's `@AGENTS.md` import is the only reason the root guide loads.
 
-- `src/content/issues/_AGENTS.md` — issue schema, primer rules,
-  build-error catalog. (Underscored because Astro's content collection
-  would otherwise treat it as an issue entry and fail validation.)
-- `src/components/AGENTS.md` — section-kind → component map, SVG
-  conventions, how to add a new component.
-- `research/AGENTS.md` — editorial pipeline, voice system, dossier flow.
+Each subtree therefore carries a three-line `CLAUDE.md` shim that imports its
+guide; the guide stays in `AGENTS.md` so other agent tooling still finds it.
+The shim loads on demand when Claude reads a file in that tree.
+
+| Guide | Reached via |
+|---|---|
+| `src/components/AGENTS.md` — section-kind → component map, SVG conventions, how to add a component | `src/components/CLAUDE.md` |
+| `app/AGENTS.md` — the SSR reader-account project | `app/CLAUDE.md` |
+| `research/AGENTS.md` — editorial pipeline, voice system, dossier flow | `research/CLAUDE.md` |
+| `src/content/issues/_AGENTS.md` — issue schema, primer rules, build-error catalog | **`.claude/rules/issue-authoring.md`** (see below) |
+
+**The issues subtree is the exception, and it is load-bearing.** It cannot host
+a shim: the collection is `type: 'content'`, so Astro parses every `.md` at the
+root of `src/content/issues/` as an entry, and any `.md` directly in
+`src/content/` belongs to no collection. Both break the build — verified
+2026-09-01. That is the same trap the guide's leading underscore dodges. A
+path-scoped rule sits outside `src/`, so Astro never sees it.
+
+> Corrected 2026-09-01. This section previously claimed subtree `AGENTS.md`
+> files were "picked up via the agents.md cascading-read convention." That was
+> never true, and it cost every prior session ~37k tokens of unreachable
+> convention — an agent editing a component did so without the component rules.
+> See `docs/CONTEXT-PLAN.md` §2.1.

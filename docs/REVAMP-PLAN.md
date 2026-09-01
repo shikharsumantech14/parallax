@@ -266,7 +266,7 @@ Plus, per touched component: a 375px overflow sweep, a no-JS final-state check, 
 
 ```bash
 grep -rn "Shikhar S" src/ --include="*.astro" --include="*.ts" --include="*.mdx" --include="*.css"
-grep -rn 'font-family="var(' src/components/
+grep -rn 'font-family="var(' src/components/ --include="*.astro" --include="*.ts" --include="*.css"
 ```
 
 both must return zero. Never `git checkout` / `reset` / `stash` / `restore` to

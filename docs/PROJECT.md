@@ -1480,7 +1480,7 @@ no external image service.
 ### 2026-06-02 — v2 design revamp (Claude Design port, P0–P5 + topic indexes)
 
 Ported the external Claude Design "v2" kit into the codebase (full analysis +
-plan in `docs/DESIGN-REVAMP-NOTES.md`). An editorial-modern evolution, adopted
+plan in `docs/archive/DESIGN-REVAMP-NOTES.md`). An editorial-modern evolution, adopted
 faithfully with controlled customizations. Both projects build green;
 **uncommitted** (operator commits). The glass ReadingToolbar is the one
 deferred piece.
@@ -1817,7 +1817,7 @@ listener in a future polish session.)
 
 #### External: Claude Design brief committed
 
-`docs/CLAUDE-DESIGN-BRIEF.md` captures the verbatim brief submitted to
+`docs/archive/CLAUDE-DESIGN-BRIEF.md` captures the verbatim brief submitted to
 Claude Design covering: company blurb, current-state self-assessment
 (generic-looking, text-heavy → wants visual-heavy editorial polish),
 typography expectations, logo + identity system request, hero / banner
@@ -1858,7 +1858,7 @@ following the rules at `src/components/AGENTS.md`.
 - Content: `src/content/guides/privacy.mdx`, `terms.mdx`
 
 **Docs:**
-- `docs/CLAUDE-DESIGN-BRIEF.md` (new — design brief)
+- `docs/CLAUDE-DESIGN-BRIEF.md` (new — design brief; archived 2026-09-01)
 - `docs/PROJECT.md` (this entry)
 - `app/AGENTS.md`, `src/components/AGENTS.md` (refreshed elsewhere this
   session)

@@ -39,10 +39,19 @@ operator's push. Nothing is uncommitted.
 
 ## 3. What this box can and cannot do
 
-Unchanged: this machine is **code-only** for Parallax. No `.env.local`, no
-database, git pushes are the operator's. Publication work is browser-verifiable
-via `npm run dev`; app work is **compile-verifiable only** (`cd app && npm run
-build` is the entire local gate — write "build green, runtime unverified").
+This machine is **code-only for the app**, and git pushes are the operator's.
+Precisely (corrected 2026-09-01 — this section previously said "no
+`.env.local`" flatly, which is wrong and was caught by `doc-audit`'s own
+premise):
+
+- **Root `.env.local` EXISTS** — the pipeline's `ANTHROPIC_API_KEY` etc. So the
+  API-CLI pipeline scripts (`npm run pipeline:*`, `rag:*`) can run here, and
+  running them **bills real money**. Gitignored; never commit it.
+- **`app/.env.local` is ABSENT** — no Supabase URL/keys, so the app cannot run
+  or be runtime-tested on this box. `cd app && npm run build` is the entire
+  local gate — write "build green, runtime unverified".
+
+Publication work is browser-verifiable via `npm run dev`.
 
 One measurement trap, twice confirmed this cycle: **the preview browser reports
 false page overflow.** With the pane not displayed, `clientWidth` is 0 and every
@@ -152,6 +161,8 @@ attribute, not the class).
 | Issue authoring incl. new fields | `src/content/issues/_AGENTS.md` |
 | The design handoff (delivered artifact) | `Parallax Design System Revamp/` — authority: AGENTS → INTEGRATION → blueprints; README is stale background |
 | Standing rules / app / pipeline | `AGENTS.md`, `app/AGENTS.md`, `research/AGENTS.md` |
+| How context reaches a session | `docs/CONTEXT-PLAN.md` (CD-01…CD-12 §3; §10 in plain terms) |
+| Frozen history — **not current** | `docs/archive/` — read its README before citing anything there |
 
 Live examples of all 7 new kinds: the six `2026-06-03-<world>-showcase` issues
 (status draft — unhide gated sections in the console with
