@@ -150,17 +150,17 @@ only see citations. Treat a zero as a question, never as a verdict.
 | id | cited in | implemented by |
 |---|---|---|
 | **CD-01** | 7 files | 3 |
-| **CD-02** | 6 files | 4 |
+| **CD-02** | 7 files | 4 |
 | **CD-03** | 2 files | 0 — _dangling_ |
 | **CD-04** | 2 files | 0 — _dangling_ |
 | **CD-05** | 3 files | 1 |
 | **CD-06** | 2 files | 0 — _dangling_ |
 | **CD-07** | 3 files | 1 |
 | **CD-08** | 3 files | 0 — _dangling_ |
-| **CD-09** | 5 files | 2 |
+| **CD-09** | 6 files | 2 |
 | **CD-10** | 3 files | 1 |
-| **CD-11** | 4 files | 2 |
-| **CD-12** | 7 files | 2 |
+| **CD-11** | 6 files | 3 |
+| **CD-12** | 10 files | 2 |
 | **RD-01** | 10 files | 3 |
 | **RD-01a** | 8 files | 5 |
 | **RD-01b** | 35 files | 3 |

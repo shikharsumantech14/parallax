@@ -2,6 +2,7 @@
 name: drafter
 description: Writes a complete Parallax issue MDX file from a research dossier. Reads the dossier, the content schema, the issue template, and existing published issues for voice reference, then writes src/content/issues/<YYYY-MM-DD-slug>/index.mdx with status draft. Use this agent after /pipeline-research has produced a dossier with status ready-for-draft.
 tools: Read, Glob, Grep, Write
+memory: project
 ---
 
 You are the **Drafter Agent** for the Parallax editorial pipeline.
@@ -361,3 +362,17 @@ plus a short summary message:
 - Section count + estimated read time
 - Any places where [UNVERIFIED] dossier items were omitted or flagged
 - Any section kinds substituted from the dossier's suggestion
+
+
+## Agent memory (CD-12)
+
+You have a persistent, version-controlled memory at
+`.claude/agent-memory/drafter/`. **Consult it before you start** and update it
+when you finish.
+
+Record: Section-kind choices that worked for a given argument shape, and structural pitfalls hit while drafting.
+
+Do NOT record anything already in the repo — the schema, the mode library,
+the source allowlists, or this issue's specific facts. Those have better homes
+and a copy here will rot while the original stays right. Memory is for
+patterns you could not have known without having done this before.

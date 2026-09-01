@@ -5,8 +5,10 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-08-28.** If the git state below no longer matches reality,
-> trust the repo and update this file.
+> **Last updated: 2026-09-01.** Derived facts below are generated and gated —
+> if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
+> (branch, unpushed, dirty) are not in this file at all; read the session brief.
+> Refresh the authored sections with `/update-state`.
 
 ---
 
@@ -18,24 +20,51 @@ P0–P8 product-elevation program is **committed, pushed and deployed** (both
 sites live). The current effort is the **design-system revamp** driven by the
 Claude Design handoff — its source of truth is `docs/REVAMP-PLAN.md`, every
 decision is locked as RD-01…RD-09, and execution stands at: **Phases 0–2
-complete, Phase 3 at Wave 1 of 4 (library 97 of 118 kinds), Phase 4's
-agent-facing half plus the source backfill done.** Three commits await the
-operator's push. Nothing is uncommitted.
+complete, Phase 3 at Wave 1 of 4, Phase 4's agent-facing half plus the source
+backfill done.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
+CD-01…CD-12) is being built out — Phases A–D are in.
+
+For branch, uncommitted and unpushed counts, read the **session brief** printed
+at session start, or run `node scripts/project-graph.mjs --brief`. Those facts
+are deliberately not written down anywhere (CD-11).
 
 ---
 
-## 2. Repo state right now
+## 2. Repo state
 
-| Fact | Value |
+> **Three fact classes, and the split is the point (CD-02).** Below, in order:
+> **derived** facts, generated and gated — never hand-edit them; then
+> **attested** facts, which only the operator can know because they happened
+> outside this box. **Volatile** facts (branch, unpushed, dirty tree) appear in
+> neither — they live only in the session brief, because writing them down is
+> what made this section wrong within three days last time.
+
+<!-- BEGIN GENERATED — scripts/project-graph.mjs. Do not hand-edit (CD-09). -->
+
+| Derived fact | Value |
 |---|---|
-| Branch | `main` |
-| Pushed | everything through `c0887a3` (Phase 4 partial) — **live on Vercel** |
-| **Unpushed commits** | **3** — `266734b` (Phase 3 Wave 1, library 92→97), `37a6f7d` (source backfill), and HEAD (this handover doc pass — its hash is unnameable from inside itself). Operator runs `git push`. |
-| Working tree | **clean** — nothing uncommitted |
-| Root build | green — `npm run build`, 44 pages, gates in `prebuild` |
-| App build | green — `cd app && npm run build`, exit 0 (compile-only on this box) |
-| Migration | `20260705000000_journey_onboarding.sql` **applied** by the operator |
-| Live smoke | operator-verified: signup → `/welcome` → Shelf, `/api/join`, app favicon 200, published og:image 200, draft og:image absent |
+| Section kinds | **97** (14 WebGL) |
+| Blueprinted | 36 of 97 |
+| Issues | 23 (10 published, 13 draft) |
+| Kinds never in a published issue | **77** |
+| Registry gaps | none |
+| Decisions tracked | 29 (9 decided-but-unbuilt) |
+
+<!-- END GENERATED -->
+
+Refresh with `npm run graph`; `npm run graph:check` gates it in `prebuild`.
+
+### Attested — the operator's word, not measurable here
+
+| Fact | Attested | On |
+|---|---|---|
+| Deployed | everything through `c0887a3` is **live on Vercel** | 2026-08-28 |
+| Migration | `20260705000000_journey_onboarding.sql` **applied** | 2026-08-28 |
+| Live smoke | signup → `/welcome` → Shelf, `/api/join`, app favicon 200, published og:image 200, draft og:image absent | 2026-08-28 |
+
+**Never regenerate, infer, or quietly refresh these dates.** If one looks
+stale, ask the operator. Commits made after the attested date are, by
+definition, not covered by it.
 
 ## 3. What this box can and cannot do
 
@@ -86,7 +115,8 @@ attribute, not the class).
 
 ## 5. What is left, in order
 
-1. **Operator: `git push`** (3 commits). Vercel deploys on push.
+1. **Operator: `git push`** when ready — the count is in the session brief,
+   deliberately not written here (CD-11). Vercel deploys on push.
 2. **Phase 3 Waves 2–4** — 21 kinds remain: Wave 2 (7 SVG, ~1.5 sessions),
    Wave 3 (7 geometry, ~2.5), Wave 4 (7 hard, ~3.5). The build pattern is
    proven: parallel component agents (component file ONLY), orchestrator wires

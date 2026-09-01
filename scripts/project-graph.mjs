@@ -58,6 +58,13 @@ function walk(dir, out = []) {
   return out;
 }
 
+/* Narrative kinds explain themselves — they carry prose, not a graphic — so
+   they are exempt from EXPLAIN. MUST stay in sync with the identical list in
+   scripts/check-catalog.mjs and the header of src/lib/explainers.ts. */
+const NARRATIVE = new Set([
+  'hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
+]);
+
 /* ── 1 · kinds and their nine registry places ──────────────────────────── */
 function buildKinds() {
   const config = read('src/content/config.ts');
@@ -276,7 +283,11 @@ function renderMarkdown(g) {
 
 function renderStateBlock(g) {
   const t = g.totals;
-  const gaps = g.kinds.filter((k) => !k.inCatalog || !k.hasExplain).length;
+  /* Narrative kinds carry prose, not a graphic, so they are EXEMPT from
+     EXPLAIN — check-catalog.mjs holds the same list. Counting them as gaps
+     made this table contradict a green check:catalog, and two gates
+     disagreeing is worse than one gate. */
+  const gaps = g.kinds.filter((k) => !k.inCatalog || (!k.hasExplain && !NARRATIVE.has(k.kind))).length;
   return [
     '<!-- BEGIN GENERATED — scripts/project-graph.mjs. Do not hand-edit (CD-09). -->',
     '',
