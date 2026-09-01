@@ -242,8 +242,22 @@ portable for other tooling and become reachable for this one.
 @AGENTS.md
 ```
 
-Same for `src/content/issues/CLAUDE.md` (→ `@_AGENTS.md`), `app/CLAUDE.md`,
-`research/CLAUDE.md`.
+Same for `app/CLAUDE.md` and `research/CLAUDE.md`.
+
+> **CORRECTION, verified in execution 2026-09-01.** This step originally
+> specified a fourth shim at `src/content/issues/CLAUDE.md`. **That breaks the
+> build**, and so does the fallback at `src/content/CLAUDE.md`. The issues
+> collection is `type: 'content'`: Astro parses every `.md` at the collection
+> root as an entry (`InvalidContentEntryFrontmatterError`) and rejects any `.md`
+> directly in `src/content/` as belonging to no collection
+> (`UnknownContentCollectionError`). Both were observed, not reasoned about.
+> This is the same trap `_AGENTS.md`'s leading underscore exists to dodge — the
+> plan reproduced the very mistake the filename documents.
+>
+> **That subtree uses `.claude/rules/issue-authoring.md` instead**, pulled
+> forward from B1. Rules live outside `src/`, so Astro never sees them.
+> **Standing rule: inside `src/content/`, agent instructions go in
+> `.claude/rules/`, never in the tree.**
 
 **Effect:** when Claude reads any file in that subtree, the guide loads on
 demand. ~37k tokens go from unreachable to reachable, at zero always-loaded cost.

@@ -1,5 +1,50 @@
 {
   "claudeMdExcludes": [
     "**/Parallax Design System Revamp/**"
-  ]
+  ],
+  "permissions": {
+    "deny": [
+      "Read(./dist/**)",
+      "Read(./.astro/**)",
+      "Read(./app/dist/**)",
+      "Read(./app/.vercel/**)",
+      "Read(./**/node_modules/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-git.mjs\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-generated.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gate-registry.mjs\"",
+            "timeout": 90
+          }
+        ]
+      }
+    ]
+  }
 }
