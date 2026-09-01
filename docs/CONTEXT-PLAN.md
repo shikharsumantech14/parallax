@@ -1,7 +1,20 @@
 # Context system — the plan
 
-> **Status: v1.1 DRAFT, 2026-09-01. Awaiting operator review + external model review.
-> Nothing here is built. No file has been changed.**
+> **Status: v1.2, 2026-09-01. Phases A–E BUILT and committed. One item outstanding.**
+>
+> | Phase | State |
+> |---|---|
+> | **A · Delivery** | ✅ `d6489cb` — 3 shims + 1 rule, false claim corrected, 5 docs archived |
+> | **B · Disclosure** | ✅ `06097ab` — 5 rules, 3 hooks, 48 tests · **B4 trim outstanding** |
+> | **C · Skills** | ✅ `0c9283b` — 8 skills, all injections verified |
+> | **D · Graph + continuity** | ✅ `a8b70ae`, `ad5a17d` — generator gated in prebuild, session brief, memory seeded |
+> | **E · Editorial** | ✅ `ad5a17d` — agent memory on 3 agents, `/pipeline-status` |
+>
+> **Outstanding: the B4 AGENTS.md trim (866 → ~250 lines).** CD-03 requires each
+> moved rule be *observed firing* in a fresh session before its AGENTS.md copy
+> is deleted, and the building session could not restart itself to verify. The
+> rules are additive today; nothing is lost, the resident block is simply still
+> large. **This is the next session's first task** — see §14.
 >
 > v1.1 is a self-review pass (Fable 5, max effort) that stress-tested v1 against
 > the official subagent documentation and the hybrid-system question. It found
@@ -1229,8 +1242,72 @@ Honest tripwires, so a future review knows when to reopen:
 
 ---
 
-## 14. Change log
+## 14. The B4 trim — the one outstanding step
 
+Everything else is built. This is what remains, written so it can be picked up
+cold.
+
+**Why it was not done during the build.** CD-03 requires that a rule be
+*observed firing* before its AGENTS.md copy is deleted. Observation needs a
+fresh session — the building session cannot restart itself, and deleting on
+the assumption that a glob works is exactly the failure CD-03 exists to
+prevent. The A1 correction proved the point: the plan's own `src/content/issues/`
+shim broke the build, and only building revealed it.
+
+**The procedure, per section:**
+
+1. Open a file matching the rule's `paths:` glob.
+2. Run `/context`. Confirm the rule appears under the loaded instruction files.
+   (Optionally register an `InstructionsLoaded` hook to log
+   `load_reason: "path_glob_match"` with the file path.)
+3. Only then delete the duplicated content from `AGENTS.md` — **its own commit**,
+   citing CD-03 and naming what was observed.
+4. If the rule does **not** appear: fix the glob and retry once. If it still
+   does not, **the content stays in AGENTS.md** and the rule is deleted. Record
+   the failure in the AGENTS.md change log.
+
+**What may move** (the rules already exist and carry the content):
+
+| AGENTS.md section | Rule that now covers it |
+|---|---|
+| §3 topics/fonts table | `.claude/rules/design-tokens.md` |
+| §7 token + SVG visual rules | `.claude/rules/design-tokens.md` |
+| §2 WebGL detail | `.claude/rules/viz3d.md` |
+| §2 commands + cost table | `.claude/rules/pipeline-scripts.md` |
+| §5 pipeline detail, §6 voice detail | `.claude/rules/editorial-voice.md`, `pipeline-scripts.md` |
+| §7 schema rules | `.claude/rules/issue-authoring.md` |
+| §8 verification checklist | `/verify-done` skill |
+
+**What must NOT move (CD-04):** §1 identity, §4 the layout map, §7 hard rules
+(git discipline, no-hardcoded-names, the brand/legal naming split), the
+standing greps, and §10's most recent change-log entries.
+
+**Expected result:** 866 → ~250 lines, ~13.9k → ~4k resident. **~250 is a
+target, not a promise.** A rule that will not fire reliably goes back into
+AGENTS.md and the file stays bigger. Correctness outranks the line count.
+
+---
+
+## 15. Change log
+
+- **2026-09-01 — v1.2. BUILT.** Phases A–E executed and committed (`d6489cb`,
+  `06097ab`, `a8b70ae`, `0c9283b`, `ad5a17d`). Five corrections the build
+  forced on the plan, all found by verifying rather than assuming:
+  **(1)** A1's `src/content/issues/CLAUDE.md` shim **breaks the build** —
+  Astro parses it as a collection entry, and `src/content/CLAUDE.md` fails too.
+  The plan reproduced the exact mistake `_AGENTS.md`'s underscore documents.
+  That subtree uses a path-scoped rule instead.
+  **(2)** B1's `svg-and-components` and `app-ssr` rules were dropped as
+  redundant — Phase A's shims already deliver those guides.
+  **(3)** Hook tests caught two real bugs pre-wiring: `git -C . push` evaded
+  the matcher, and branch names containing `/` were falsely blocked.
+  **(4)** The graph counted narrative kinds as registry gaps, contradicting a
+  green `check:catalog`.
+  **(5)** The generated state block was hand-written from memory and wrong in
+  two values — CD-09's failure mode, demonstrated on the block documenting it.
+  First real finding from the graph: **77 of 97 kinds have never appeared in a
+  published issue** (REVAMP-PLAN asserted "70 of 90"), independently verified.
+  Outstanding: the B4 trim (§14).
 - **2026-09-01 — v1.1 DRAFT.** Self-review pass (Fable 5, max effort) on the
   hybrid question. CD-02 corrected from a two-way to a three-way fact split
   (derived / attested / judged) after finding v1 would have committed volatile
