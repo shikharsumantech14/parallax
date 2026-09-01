@@ -1,23 +1,50 @@
 ---
 /**
- * XgRace (sports) — a cumulative expected-goals "race". Each shot event adds to
- * its team's running xG total; the result is two step-lines climbing across the
- * match minutes (home in the accent, away in muted ink). Both step paths draw
- * themselves in on scroll-in (stroke-dash). End-value labels sit at each line's
- * final point; a faint half-time gridline marks 45'. A legend below carries the
- * team names + final xG. Flat SVG, build-time only; the only motion is the CSS
- * stroke-draw.
+ * XgRace (sports) — a cumulative expected-goals "race", with a MINUTE SCRUB.
  *
- * No-JS / reduced-motion: both paths paint fully drawn (the dashoffset hidden
- * rule sits behind `html.js`; reduced-motion resets with !important). The
- * legend states each team's final xG textually.
+ * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). Each shot event adds to its
+ * team's running xG total; the result is two step-lines climbing across the
+ * match minutes (home in the accent, away in muted ink). The finished chart
+ * only ever answered "who ended up with the better chances". Dragging the
+ * minute scrub replays the match: the lines ahead of the playhead drop back to
+ * a ghost, and the readout states who was ahead AT that minute — which is the
+ * question a race chart is actually asking.
  *
- * data: { events[]{ minute, team, xg }, home?, away?, caption?, source? }
+ * HOW IT WORKS, AND WHY THIS WAY. A per-minute table of pixel positions AND
+ * values is computed in frontmatter and inlined as JSON. No scale math ships
+ * to the client: the island reads row `m` and assigns coordinates. Same
+ * decision as ScalingPlot's log/linear toggle — the projection stays a
+ * build-time concern, and there is exactly one place a value can come from.
+ *
+ * The "future" of the race is de-emphasised, never removed: both step paths
+ * are drawn twice — a dim ghost underneath, and the real line clipped to the
+ * scrubbed region on top. At rest the clip covers the whole plot, so the ghost
+ * is completely hidden behind the real line and the chart is byte-for-byte the
+ * finished one. That is what makes the no-JS state the finished answer rather
+ * than an empty shell (the Family D contract in src/components/AGENTS.md §10).
+ *
+ * No-JS / reduced-motion: both paths paint fully drawn, the scrubber never
+ * renders (it ships `hidden` and the island unhides it only after the payload
+ * parses, so a broken payload degrades to the static chart rather than a dead
+ * control), and the legend states each team's final xG textually.
+ * Reduced-motion keeps the scrub working — it is comprehension, not
+ * decoration — and only drops the tween.
+ *
+ * data: { events[]{ minute, team, xg }, home?, away?, howToRead?, caption?, source? }
  */
+import VizCard from '../../core/VizCard.astro';
+
 type Side = 'home' | 'away';
 interface Ev { minute: number; team: Side; xg: number; }
-interface Props { events: Ev[]; home?: string; away?: string; caption?: string; source?: string; }
-const { events = [], home = 'Home', away = 'Away', caption, source } = Astro.props;
+interface Props {
+  events: Ev[];
+  home?: string;
+  away?: string;
+  howToRead?: string;
+  caption?: string;
+  source?: string | { label: string; date?: string };
+}
+const { events = [], home = 'Home', away = 'Away', howToRead, caption, source } = Astro.props;
 
 // ── viewBox + plot box ──────────────────────────────────────────────────────
 const W = 720, H = 320;
@@ -29,6 +56,10 @@ const evs = (events || []).filter((e) => e && Number.isFinite(e.minute) && Numbe
 const lastMin = Math.max(90, ...evs.map((e) => e.minute || 0));
 const maxMin = Math.ceil(lastMin / 5) * 5;     // round axis up to a clean 5'
 
+// Event minutes are clamped into the axis once, here, so the step series and
+// the per-minute table can never disagree about when a shot happened.
+const atMin = (e: Ev) => Math.max(0, Math.min(maxMin, e.minute));
+
 // Build a cumulative step series for one side: start at (0,0), and after each
 // event jump to the new running total. Points are [minute, cumXg].
 function series(side: Side): [number, number][] {
@@ -39,7 +70,7 @@ function series(side: Side): [number, number][] {
     .sort((a, b) => a.minute - b.minute)
     .forEach((e) => {
       acc += Math.max(0, e.xg || 0);
-      pts.push([Math.max(0, Math.min(maxMin, e.minute)), acc]);
+      pts.push([atMin(e), acc]);
     });
   // extend the final value flat to the end of the match
   if (pts[pts.length - 1][0] < maxMin) pts.push([maxMin, acc]);
@@ -68,6 +99,28 @@ function stepPath(pts: [number, number][]): string {
 }
 const homePath = stepPath(homeSeries);
 const awayPath = stepPath(awaySeries);
+
+/* ── the per-minute table (the scrub payload) ─────────────────────────────
+   One row per minute: [playheadX, homeMarkerY, awayMarkerY, homeXg, awayXg].
+   Everything the island needs to paint a scrubbed state, already projected.
+   Values are the cumulative totals up to and including that minute, summed
+   from the same clamped event minutes the step series uses. */
+const cumAt = (side: Side, m: number) =>
+  evs
+    .filter((e) => e.team === side && atMin(e) <= m)
+    .reduce((a, e) => a + Math.max(0, e.xg || 0), 0);
+
+const minuteTable = Array.from({ length: maxMin + 1 }, (_, m) => {
+  const h = cumAt('home', m);
+  const a = cumAt('away', m);
+  return [
+    +px(m).toFixed(1),
+    +py(h).toFixed(1),
+    +py(a).toFixed(1),
+    +h.toFixed(2),
+    +a.toFixed(2),
+  ];
+});
 
 // y-axis ticks (xG) + x-axis ticks (minutes)
 const yTicks = [0, 0.5, 1, 1.5, 2, 2.5, 3].filter((t) => t <= maxXg + 0.001);
@@ -99,12 +152,58 @@ if (Math.abs(homeLblY - awayLblY) < LBL_MIN_GAP) {
 const clampLblY = (y: number) => Math.max(plotT + 6, Math.min(plotB - 4, y));
 homeLblY = clampLblY(homeLblY);
 awayLblY = clampLblY(awayLblY);
+
+// A clipPath needs an id, and two of these can share a page (a showcase issue
+// is a catalog). Derive it from the payload so it is unique per chart and
+// stable across builds — a random suffix would churn the diff every rebuild.
+const uid =
+  'xgr' +
+  Math.abs(
+    [...`${home}|${away}|${evs.length}|${maxMin}`].reduce(
+      (a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0,
+      0,
+    ),
+  ).toString(36);
+
+const restReadout = `Full time · ${home} ${homeFinal.toFixed(2)} xG — ${away} ${awayFinal.toFixed(2)} xG`;
+
+/* px-inst reserves 3.2em for a readout so the card cannot reflow under a
+   dragging finger. That is not enough here: this readout carries two team
+   names and a lead clause, so it wraps to a second line on a narrow card and
+   shoves everything below it down mid-drag — the exact failure the reserve
+   exists to prevent, and a fixed em value cannot fix it because the wrap point
+   depends on the team names AND the viewport.
+   So the worst-case string is rendered as a hidden sizing twin stacked in the
+   same grid cell: the box then reserves the true height at whatever width it
+   is given. Measured, not guessed. */
+const readoutFor = (m: number, hv: number, av: number) => {
+  const lead =
+    hv > av ? `${home} ahead by ${(hv - av).toFixed(2)}`
+      : av > hv ? `${away} ahead by ${(av - hv).toFixed(2)}`
+        : 'level';
+  return `${m}' · ${home} ${hv.toFixed(2)} xG — ${away} ${av.toFixed(2)} xG · ${lead}`;
+};
+const longestReadout = minuteTable
+  .map((r, m) => readoutFor(m, r[3], r[4]))
+  .concat(restReadout)
+  .reduce((a, b) => (b.length > a.length ? b : a), '');
 ---
 
-<div class="px-viz" data-reveal>
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>xG race</b></div>}
-
-  <div class="px-xgr">
+<VizCard
+  prefix="px-xgr"
+  howToRead={howToRead}
+  caption={caption}
+  source={source}
+  chip="xG race"
+>
+  <div
+    class="px-xgr__box"
+    data-xgr-box
+    data-xgr-home={home}
+    data-xgr-away={away}
+    data-xgr-max={maxMin}
+    data-xgr-rest={restReadout}
+  >
     <svg
       class="px-xgr__svg"
       viewBox={`0 0 ${W} ${H}`}
@@ -112,7 +211,20 @@ awayLblY = clampLblY(awayLblY);
       role="img"
       aria-label={`Cumulative xG race: ${home} ${homeFinal.toFixed(2)} vs ${away} ${awayFinal.toFixed(2)}`}
     >
-      <!-- y gridlines + labels -->
+      <defs>
+        {/* width is the scrub: the island narrows it, and at rest it covers the
+            whole plot so the real lines fully hide the ghosts beneath them */}
+        <clipPath id={uid}>
+          <rect
+            class="px-xgr__clip"
+            data-xgr-clip
+            x={plotL} y={plotT - 8}
+            width={plotW} height={plotH + 16}
+          />
+        </clipPath>
+      </defs>
+
+      {/* y gridlines + labels */}
       {yTicks.map((t) => (
         <g>
           <line class="px-xgr__grid" x1={plotL} y1={py(t).toFixed(1)} x2={plotR} y2={py(t).toFixed(1)} />
@@ -120,20 +232,38 @@ awayLblY = clampLblY(awayLblY);
         </g>
       ))}
 
-      <!-- x ticks (minutes) -->
+      {/* x ticks (minutes) */}
       {xTicks.map((m) => (
         <text class="px-xgr__ax" x={px(m).toFixed(1)} y={plotB + 18} text-anchor="middle">{m}'</text>
       ))}
 
-      <!-- half-time line -->
+      {/* half-time line */}
       <line class="px-xgr__ht" x1={htX.toFixed(1)} y1={plotT} x2={htX.toFixed(1)} y2={plotB} />
       <text class="px-xgr__ht-lbl" x={htX.toFixed(1)} y={plotT - 4} text-anchor="middle">HT</text>
 
-      <!-- step lines -->
-      <path class="px-xgr__line px-xgr__line--away" d={awayPath} pathLength="1" />
-      <path class="px-xgr__line px-xgr__line--home" d={homePath} pathLength="1" />
+      {/* ghost step lines — the whole match, dimmed. Only ever seen where the
+          clipped real line above them stops. */}
+      <path class="px-xgr__ghost px-xgr__ghost--away" d={awayPath} />
+      <path class="px-xgr__ghost px-xgr__ghost--home" d={homePath} />
 
-      <!-- end-value labels -->
+      {/* step lines — clipped to the scrubbed region */}
+      <g clip-path={`url(#${uid})`}>
+        <path class="px-xgr__line px-xgr__line--away" d={awayPath} pathLength="1" />
+        <path class="px-xgr__line px-xgr__line--home" d={homePath} pathLength="1" />
+      </g>
+
+      {/* the playhead + the two markers reading off it — shown only while the
+          scrub is off its resting position */}
+      <g class="px-xgr__cursor" data-xgr-cursor>
+        <line
+          class="px-xgr__play" data-xgr-play
+          x1={plotR} y1={plotT} x2={plotR} y2={plotB}
+        />
+        <circle class="px-xgr__mark px-xgr__mark--away" data-xgr-mark-away cx={plotR} cy={awayEnd.y.toFixed(1)} r="4" />
+        <circle class="px-xgr__mark px-xgr__mark--home" data-xgr-mark-home cx={plotR} cy={homeEnd.y.toFixed(1)} r="4" />
+      </g>
+
+      {/* end-value labels */}
       <g class="px-xgr__end px-xgr__end--away">
         <circle cx={awayEnd.x.toFixed(1)} cy={awayEnd.y.toFixed(1)} r="3.5" />
         <text x={(awayEnd.x + 8).toFixed(1)} y={awayLblY.toFixed(1)} dominant-baseline="middle">{awayFinal.toFixed(2)}</text>
@@ -148,13 +278,88 @@ awayLblY = clampLblY(awayLblY);
       <span class="px-xgr__key px-xgr__key--home"><i></i>{home} · {homeFinal.toFixed(2)} xG</span>
       <span class="px-xgr__key px-xgr__key--away"><i></i>{away} · {awayFinal.toFixed(2)} xG</span>
     </div>
-  </div>
 
-  {source && <div class="px-viz__src">Source · {source}</div>}
-</div>
+    {/* JS-only control. Ships hidden; the island unhides it only once the
+        payload has parsed, so a bad payload degrades to the static chart. */}
+    <div class="px-xgr__scrub px-inst__controls" hidden data-xgr-scrub>
+      <label class="px-xgr__scrub-lab">
+        <span>Minute — drag to replay the race</span>
+        <input
+          class="px-xgr__range px-inst__drag"
+          type="range"
+          min="0"
+          max={maxMin}
+          step="1"
+          value={maxMin}
+          data-xgr-range
+        />
+      </label>
+    </div>
+
+    <p class="px-xgr__readout px-inst__readout">
+      <span data-xgr-readout aria-live="polite">{restReadout}</span>
+      <span class="px-xgr__sizer" aria-hidden="true">{longestReadout}</span>
+    </p>
+
+    <script type="application/json" class="px-xgr__data" data-xgr-data set:html={JSON.stringify(minuteTable)} />
+  </div>
+</VizCard>
+
+<script is:inline>
+  (function () {
+    if (!document.documentElement.classList.contains('js')) return;
+    document.querySelectorAll('[data-xgr-box]').forEach(function (box) {
+      var raw = box.querySelector('[data-xgr-data]');
+      var range = box.querySelector('[data-xgr-range]');
+      var scrub = box.querySelector('[data-xgr-scrub]');
+      if (!raw || !range || !scrub) return;
+
+      var table;
+      try { table = JSON.parse(raw.textContent); } catch (e) { return; }
+      if (!table || !table.length) return;
+
+      var clip = box.querySelector('[data-xgr-clip]');
+      var play = box.querySelector('[data-xgr-play]');
+      var mh = box.querySelector('[data-xgr-mark-home]');
+      var ma = box.querySelector('[data-xgr-mark-away]');
+      var out = box.querySelector('[data-xgr-readout]');
+      var home = box.getAttribute('data-xgr-home') || 'Home';
+      var away = box.getAttribute('data-xgr-away') || 'Away';
+      var maxMin = parseInt(box.getAttribute('data-xgr-max'), 10);
+      var rest = box.getAttribute('data-xgr-rest') || '';
+      var clipX = parseFloat(clip.getAttribute('x'));
+      var clipW = parseFloat(clip.getAttribute('width'));
+
+      function paint(m) {
+        var row = table[Math.max(0, Math.min(table.length - 1, m))];
+        if (!row) return;
+        var x = row[0], hy = row[1], ay = row[2], hv = row[3], av = row[4];
+        var atRest = m >= maxMin;
+
+        box.setAttribute('data-scrubbing', atRest ? 'false' : 'true');
+        clip.setAttribute('width', atRest ? clipW : Math.max(0, x - clipX));
+        play.setAttribute('x1', x); play.setAttribute('x2', x);
+        mh.setAttribute('cx', x); mh.setAttribute('cy', hy);
+        ma.setAttribute('cx', x); ma.setAttribute('cy', ay);
+
+        if (atRest) { out.textContent = rest; return; }
+        var lead = hv > av
+          ? home + ' ahead by ' + (hv - av).toFixed(2)
+          : av > hv
+            ? away + ' ahead by ' + (av - hv).toFixed(2)
+            : 'level';
+        out.textContent = m + "' · " + home + ' ' + hv.toFixed(2) + ' xG — '
+          + away + ' ' + av.toFixed(2) + ' xG · ' + lead;
+      }
+
+      range.addEventListener('input', function () { paint(parseInt(range.value, 10)); });
+      scrub.removeAttribute('hidden');
+    });
+  })();
+</script>
 
 <style>
-  .px-xgr { width: 100%; }
+  .px-xgr__box { width: 100%; }
   .px-xgr__svg { width: 100%; height: auto; display: block; overflow: visible; }
 
   .px-xgr__grid { stroke: var(--rule); stroke-width: 1; }
@@ -182,6 +387,29 @@ awayLblY = clampLblY(awayLblY);
   }
   .px-xgr__line--home { stroke: var(--accent); }
   .px-xgr__line--away { stroke: var(--ink-soft); }
+
+  /* the un-scrubbed remainder of the match. Sits under the real lines and is
+     completely covered by them at rest, so this changes nothing until a drag. */
+  .px-xgr__ghost {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    opacity: 0.2;
+  }
+  .px-xgr__ghost--home { stroke: var(--accent); }
+  .px-xgr__ghost--away { stroke: var(--ink-soft); }
+
+  /* playhead + the markers reading off it */
+  .px-xgr__cursor { display: none; }
+  .px-xgr__box[data-scrubbing='true'] .px-xgr__cursor { display: block; }
+  .px-xgr__play { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 2 3; }
+  .px-xgr__mark { stroke: var(--paper); stroke-width: 1.5; }
+  .px-xgr__mark--home { fill: var(--accent); }
+  .px-xgr__mark--away { fill: var(--ink-soft); }
+
+  /* the finals are still true, but they are not the answer while scrubbing */
+  .px-xgr__box[data-scrubbing='true'] .px-xgr__end { opacity: 0.28; }
 
   .px-xgr__end circle { fill: currentColor; }
   .px-xgr__end text {
@@ -216,8 +444,32 @@ awayLblY = clampLblY(awayLblY);
   .px-xgr__key--home i { background: var(--accent); }
   .px-xgr__key--away i { background: var(--ink-soft); }
 
+  /* the live line and the worst-case sizing twin share one grid cell, so the
+     box is always as tall as the longest string it can ever show, at this
+     width. visibility:hidden keeps the twin in layout and out of the a11y tree. */
+  .px-xgr__readout { display: grid; }
+  .px-xgr__readout > * { grid-area: 1 / 1; }
+  .px-xgr__sizer { visibility: hidden; }
+
+  .px-xgr__scrub[hidden] { display: none; }
+  .px-xgr__scrub-lab {
+    display: flex; flex-direction: column; gap: 8px; width: 100%;
+    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  .px-xgr__range {
+    width: 100%;
+    /* the CANON touch floor applies to the whole control, not just the thumb */
+    min-height: 44px;
+    accent-color: var(--accent-deep, var(--accent));
+    cursor: pointer;
+  }
+  .px-xgr__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
+
   @media (prefers-reduced-motion: reduce) {
     .px-viz:not(.is-in) .px-xgr__line { stroke-dashoffset: 0 !important; }
     .px-viz:not(.is-in) .px-xgr__end { opacity: 1 !important; }
+    /* the scrub still works — it is comprehension. Only the tween goes. */
+    .px-xgr__end { transition: none; }
   }
 </style>
