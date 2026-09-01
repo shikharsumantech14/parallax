@@ -76,6 +76,17 @@
    GRAPHIC the dvh budget and cuts internal scrolling. Data is never hidden. */
 .pxs-beat__viz > * > [class$='__cap'],
 .pxs-beat__viz > * > [class$='__src'],
+/* DEPTH 1 as well as depth 2, and the difference is not cosmetic. Most kinds
+   nest their source inside the graphic root (`.px-viz > .px-viz__src`), but
+   Timeline, BillBreakdown and VoteResult emit it as a SIBLING of the root when
+   they gained source rendering in the 2026-08-28 backfill — so it lands as a
+   direct child of the beat and the `> * >` chain above sails straight past it.
+   Measured at shell adoption: three of five source nodes in a real story were
+   still visible. Depth 1 is chrome by construction (a beat's own children are
+   the section root and its siblings), so this cannot reach a nested data
+   label. */
+.pxs-beat__viz > [class$='__cap'],
+.pxs-beat__viz > [class$='__src'],
 /* Named EXPLICITLY, not left to the `__cap`/`__src` suffix match above: the
    how-to-read block is `px-viz__how`, which matches neither. It is reading
    guidance for the full issue and a paragraph of it would eat a story card's

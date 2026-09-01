@@ -873,23 +873,52 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   .px-bnr__stat { text-align: left; }
 }
 
-/* ── VIZ CARD SHELL (v2 — elevated rounded surface for data-viz) ──────── */
+/* ── READING-SURFACE FLATNESS (RD-05, Phase 6 shell adoption) ──────────────
+   Reading surfaces and home go radius-0 / shadow-none / hairline-elevation.
+   The boundary is a SURFACE CLASS, never per-component: home cards flatten
+   with the reading surfaces, because flat-next-to-soft in one scroll column
+   is the worst of both.
+
+   THE FLIP LIVES HERE, NOT IN shared/design/tokens.css — and that is
+   load-bearing. Those tokens are the canonical source for BOTH projects, and
+   `app/` consumes `--r-tile` / `--r-card` in three files. Flipping them at the
+   source would flatten the app too, which RD-05 explicitly forbids: the app
+   keeps its own spec until Phase 8. So the publication overrides them for
+   itself and the shared values stay as the app's.
+
+   `--r-pill` is deliberately NOT flipped. It carries status chips, CTAs, the
+   toolbar and progress caps (43 sites) — UI chrome, not a reading surface, and
+   RD-05's own carve-out keeps glass on toolbar and modal chrome until their
+   flat reskin. Squaring every chip in the product is a different decision than
+   this one. */
+:root {
+  --r-card: 0;
+  --r-tile: 0;
+}
+
+/* ── VIZ CARD SHELL (flat: a world rule on top, a hairline around) ─────────
+   The 3px top rule replaces the drop shadow as the card's edge and its world
+   signature. Colour splits by desk brightness (REVAMP-PLAN §3, correction 1,
+   verified 72/72): INK on the light desks, ACCENT on the dark ones — on a dark
+   ground an ink rule disappears into the paper, and on a light ground the
+   vivid accent is louder than the figure it frames. `--viz-edge` carries that
+   choice per world; the fallback keeps a 7th world legible rather than
+   edgeless. */
 .px-viz {
   position: relative;
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: var(--r-tile);
+  border-top: 3px solid var(--viz-edge, var(--ink));
+  border-radius: 0;
   padding: 28px 30px;
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
-  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  transition: border-color var(--t-quick) var(--ease);
 }
+/* RD-05 hover split: lift on a DATA MARK survives (it is CANON §9's inspect
+   verb); lift on cards retires to border-colour only. The top rule re-asserts
+   itself so the world signature does not flicker on hover. */
 .px-viz:hover {
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
-  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--ink) 26%, transparent);
+  border-top-color: var(--viz-edge, var(--ink));
 }
 
 /* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */

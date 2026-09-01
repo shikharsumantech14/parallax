@@ -7,6 +7,10 @@
   --bg: #f4f1ea;
   --paper: #ffffff;
   --paper-warm: #f2eee4;   /* TD-01 — measured; the how-to-read panel. Not derived. */
+
+  /* RD-05 shell: the viz card's 3px top rule. Light desk — INK, because
+     the vivid accent at 3px is louder than the figure it frames. */
+  --viz-edge: var(--ink);
   --paper-deep: #f2eee4;   /* TD-02 — alias of --paper-warm; there is no 2nd surface. */
   --on-accent: #f4f1ea;    /* TD-04 — foreground on an accent fill (= this world's ground). */
   --rule: #d8cfbf;
@@ -300,14 +304,9 @@
 }
 .px-seats__row[data-region="north"] .px-seats__delta { color: var(--accent); }
 .px-seats__row[data-region="south"] .px-seats__delta { color: var(--accent-alt); }
-.px-seats__source {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  padding: 14px 0;
-  font-style: italic;
-}
+/* `.px-seats__source` retired at shell adoption — SeatChart now renders the
+   shared `.px-viz__src`, so its source line matches every other kind and
+   story.css's `[class$='__src']` beat rule finally reaches it. */
 
 /* --- PARADOX --- */
 .px-paradox { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--rule); }

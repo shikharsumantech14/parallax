@@ -20,7 +20,7 @@
 | blueprints | 36 |
 | neverUsedAnywhere | 3 |
 | neverInPublished | 77 |
-| danglingDecisions | 9 |
+| danglingDecisions | 8 |
 
 ## Section kinds
 
@@ -167,7 +167,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **RD-02** | 5 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 2 files | 0 — _dangling_ |
-| **RD-05** | 4 files | 0 — _dangling_ |
+| **RD-05** | 11 files | 7 |
 | **RD-06** | 3 files | 0 — _dangling_ |
 | **RD-07** | 3 files | 1 |
 | **RD-08** | 3 files | 1 |

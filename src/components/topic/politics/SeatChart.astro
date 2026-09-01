@@ -36,5 +36,9 @@ const maxMagnitude = Math.max(1, ...rows.map((r) => Math.abs(r.change)));
     );
   })}
 
-  {source && <div class="px-seats__source">Source: {source}</div>}
+  {/* `px-viz__src` / "Source · ", not a bespoke class: story.css hides a beat's
+      source chrome with `[class$='__src']`, and the old `px-seats__source`
+      ended in `__source`, so every story card carrying a seat chart kept a
+      source line no other kind shows (STATE-OF-PLAY §6). */}
+  {source && <div class="px-viz__src">Source · {source}</div>}
 </div>

@@ -23,6 +23,14 @@
 .px-viz:hover > .px-vexp, .vb:hover > .px-vexp, .tl:hover > .px-vexp, .tel:hover > .px-vexp,
 .px-vexp:focus-visible { opacity: 1; }
 .px-vexp:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Touch: 30px is below the CANON 44px floor, and this button is how a phone
+   reader reaches the study view that carries in-SVG fine print (STATE-OF-PLAY
+   §6). Same shape as finish-interval's rows — desktop keeps the small hover
+   affordance, coarse pointers get a real target. */
+@media (pointer: coarse) {
+  .px-vexp { width: 44px; height: 44px; font-size: 17px; }
+}
 /* roots that aren't already positioned (px-viz/.vb/.tl/.tel are, defensively) */
 .vb, .tl, .tel { position: relative; }
 
