@@ -166,16 +166,16 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **RD-01b** | 36 files | 3 |
 | **RD-02** | 5 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
-| **RD-04** | 2 files | 0 — _dangling_ |
+| **RD-04** | 3 files | 0 — _dangling_ |
 | **RD-05** | 25 files | 21 |
 | **RD-06** | 3 files | 0 — _dangling_ |
 | **RD-07** | 3 files | 1 |
-| **RD-08** | 3 files | 1 |
-| **RD-09** | 8 files | 1 |
-| **RD-10** | 2 files | 0 — _dangling_ |
-| **RD-11** | 2 files | 0 — _dangling_ |
-| **RD-12** | 2 files | 0 — _dangling_ |
-| **RD-13** | 2 files | 0 — _dangling_ |
+| **RD-08** | 4 files | 1 |
+| **RD-09** | 7 files | 1 |
+| **RD-10** | 3 files | 0 — _dangling_ |
+| **RD-11** | 3 files | 0 — _dangling_ |
+| **RD-12** | 3 files | 0 — _dangling_ |
+| **RD-13** | 3 files | 0 — _dangling_ |
 | **TD-01** | 46 files | 10 |
 | **TD-02** | 37 files | 7 |
 | **TD-03** | 32 files | 2 |

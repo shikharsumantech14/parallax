@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-01.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-04.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -18,11 +18,14 @@ Parallax is a visual explainer publication (static Astro site at the repo root)
 plus a separate Astro SSR reader-account app (`app/`, Supabase-backed). The
 P0–P8 product-elevation program is **committed, pushed and deployed** (both
 sites live). The current effort is the **design-system revamp** driven by the
-Claude Design handoff — its source of truth is `docs/REVAMP-PLAN.md`, every
-decision is locked as RD-01…RD-09, and execution stands at: **Phases 0–2
-complete, Phase 3 at Wave 1 of 4, Phase 4's agent-facing half plus the source
-backfill done.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
-CD-01…CD-12) is being built out — Phases A–D are in.
+Claude Design handoff — its source of truth is `docs/REVAMP-PLAN.md`, **v3,
+signed 2026-09-04**: decisions RD-01…RD-13 (RD-03/07/09 superseded by
+RD-10/12/13, struck not deleted), and the order is **look first** (RD-13):
+finish 6.1 → 6.3 type → 7 web pages → the brand → 8 app → 5 mobile → Waves
+2–4. Execution stands at: **Phases 0–2 complete, Phase 3 at Wave 1 of 4,
+Phase 4's agent half plus the backfill done, 6.2 done, 6.1 three-quarters
+done.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
+CD-01…CD-12) is being built out — Phases A–E are in.
 
 For branch, uncommitted and unpushed counts, read the **session brief** printed
 at session start, or run `node scripts/project-graph.mjs --brief`. Those facts
@@ -93,8 +96,10 @@ stays 0. Do not "fix" overflow you have not proven that way.
 
 ## 4. The revamp: what is DONE (all committed)
 
-Decision record + full phase plan: `docs/REVAMP-PLAN.md` (v2). Decisions
-RD-01…RD-09 are **locked — do not re-litigate**. Highlights of what shipped:
+Decision record + full phase plan: `docs/REVAMP-PLAN.md` (**v3, signed
+2026-09-04**). Decisions RD-01…RD-13 are **locked — do not re-litigate**;
+RD-03/07/09 are superseded by RD-10/12/13 and stay struck in the table so
+citations resolve. Highlights of what shipped:
 
 | Phase | Outcome |
 |---|---|
@@ -103,6 +108,8 @@ RD-01…RD-09 are **locked — do not re-litigate**. Highlights of what shipped:
 | **2** | `docs/design/TOKEN-RECORD.md` (TD-01…TD-06); schema grew optional `howToRead`, top-level `caption`, `source {label,date}`, issue `voice`; `core/VizCard.astro` (the RD-01a shell seam); `px-inst` primitive in `dataviz-v2.css`; 11 bespoke-root figures gained the ⤢ modal via `[data-viz-root]`. |
 | **3** | Wave 0: `bill-funnel` + `channel-ternary` (the two path exemplars, fully verified). Wave 1: `age-pyramid`, `margin-bullets`, `state-timeline`, `attrition-waffle`, `finish-interval`. **Library 97 of 118.** All wired through all NINE registry places. |
 | **4 (partial)** | The three comprehension fields have stated contracts in the drafter, verifier (new flags: `CAPTION-FORM`, `REDUNDANT-HOWTO`) and catalog grammar. **Source backfill: 21 → 0 missing sources** on published figures (operator-confirmed mapping); `SectionBody` now merges promoted `caption`/`source` down into `data` for every kind; Timeline/BillBreakdown/VoteResult gained source rendering. |
+| **6.2** | B1 best-first, all three: `scaling-plot` log⇄linear (`e5fd2f1`), `xg-race` minute scrub (`d304c2d`), `climate-spiral` month scrub (`714d1ac`) — every projection computed at build, no scale math on the client; the `px-inst` exact readout reserve generalised (`328395d`); `howToRead` ×4 and the live caption fix (`81cc2da`). |
+| **6.1 (¾)** | Flat viz card + `--viz-edge` world rule, ink on light desks / accent on dark (`b74815d`); RD-05 shadow sweep 115→64, hover retired to border-colour, the toolbar's flat 2px-ink skin (`943fe09`); the `Source ·` fold — one render site for every kind (`8eea66f`); ⤢ 44px on touch, SeatChart naming, story depth-1 hiding. **Not done:** `EXPLAIN.how` flip (copy review), CANON/motion edits (signature). |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
 not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
@@ -111,47 +118,69 @@ see `src/components/AGENTS.md` §5); TD-06 (*any fill that carries text uses
 `--accent-deep`*, vivid accent fails on travel at 3.91:1); the bill-funnel
 blueprint's "darker segment" copy bug; the 12-bespoke-roots audit claim was
 overstated (only 2 near-duplicate `.px-viz`, 8 carry no card at all — hence the
-attribute, not the class).
+attribute, not the class). Added this cycle: the radius flip cannot live in
+`shared/design/tokens.css` (the app consumes it — flatten there and RD-05's own
+carve-out breaks); `--r-pill` is not flipped; three token flips reach 99 of 249
+radii, not 128 of 267; ten theme elevation rules were v2-port orphans, including
+the plan's own `.px-appr__svg` example; the tinted `howToRead` shipped in Phase
+2; `TYPE-MAPPING.md` forbids Literata, so RD-04 was compliance, not rejection
+(RD-11).
 
 ## 5. What is left, in order
 
 1. **Operator: `git push`** when ready — the count is in the session brief,
    deliberately not written here (CD-11). Vercel deploys on push.
-2. **Phase 3 Waves 2–4** — 21 kinds remain: Wave 2 (7 SVG, ~1.5 sessions),
-   Wave 3 (7 geometry, ~2.5), Wave 4 (7 hard, ~3.5). The build pattern is
-   proven: parallel component agents (component file ONLY), orchestrator wires
-   via **`scripts/wire-kind.mjs`** (example config in its header), worked
-   example into the world's showcase, browser-verify against the blueprint §11,
-   one commit per wave. Blueprints live at `docs/design/blueprints/<world>/`
+2. **6.1 finish** — table the 81 `EXPLAIN.how` strings for copy review; draft
+   the CANON.md/motion.md edits for signature; strip the 70 `.px-viz__src`
+   emitters and retire the interim hide.
+3. **6.3 type harvest** (RD-08) — measure the font binaries first; instrument
+   h3, eyebrows, the three-line drop cap.
+4. **Phase 7 — six web pages** — masthead to the 768px spec; home; desk = the
+   topic index reskinned (ruled); issue on the 3-column grid **with the gate
+   rework in one commit** (RD-12); `/archive` against the 10 real issues; About
+   with the mark explained and the lore rows. `/subscribe` behind pricing.
+5. **The brand** (RD-10) — the glyph outline proven on `mark.svg` first, *then*
+   estimate; the swap list; a push busts favicon/OG caches.
+6. **Phase 8 app** — manifest bridge first; eleven screens; compile-only here.
+7. **Phase 5 — mobile legibility** (~4–6 days): generalise the
+   `PowerFlow.astro:348` font-bump to the ~38 remaining SVG-text components
+   (4 of 42 have it; ShotMap does NOT, despite older notes saying 5). Three
+   files are already measured — `ScalingPlot.astro` carries the numbers.
+8. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
+   days, against 77 of 97 unused. When they run, the build pattern is proven:
+   parallel component agents (component file ONLY), orchestrator wires via
+   **`scripts/wire-kind.mjs`** (example config in its header), worked example
+   into the world's showcase, browser-verify against the blueprint §11, one
+   commit per wave. Blueprints live at `docs/design/blueprints/<world>/`
    **with a standing corrections header — read it first; it overrides the
    handoff**. The editorial review flagged Wave 4's kinds as the least
-   defensible spend; reassess before starting it.
-3. **Phase 5 — mobile legibility** (~4–6 days): generalise the
-   `PowerFlow.astro:348` font-bump to the ~38 remaining SVG-text components
-   (4 of 42 have it; ShotMap does NOT, despite older notes saying 5).
-4. **Phase 6–8 — workstream B** (shell adoption + flatness RD-05, B1 instrument
-   retrofits, B3 web pages, B2 app). Best-first B1 items are HOURS:
-   `scaling-plot` log⇄linear 4h, `xg-race` scrub 3h, `climate-spiral` scrub 3h.
-   The plan argues B beats Wave 2 on reader value (70 of the original 90 kinds
-   have never appeared in a published issue).
-5. **Schema tightening** — make `source` required now the gap is 0. Its own
+   defensible spend.
+9. **Schema tightening** — make `source` required now the gap is 0. Its own
    revertible commit. The 22 missing *captions* are **deliberate**: all 22
    carry an `intro` that already states the finding; adding captions would trip
    the verifier's new REDUNDANT rule. Recorded in `37a6f7d`.
-6. **Deferred by decision**: the brand mark (RD-03 — B4 ~12d parked), `/subscribe`
-   + pricing, photography (rejected; drawn-plate treatment optional), About lore.
-7. **Operator-optional, still open**: apex-vs-`www` primary domain in Vercel
-   (canonical + og:image take a 307 today); OG filename fingerprinting
-   (cheapest at 10 published issues).
+10. **Still rejected/deferred**: photography and the lens (five grounds);
+    `/subscribe` + pricing.
+11. **Operator-optional, still open**: apex-vs-`www` primary domain in Vercel
+    (canonical + og:image take a 307 today); OG filename fingerprinting
+    (cheapest at 10 published issues).
 
 ## 6. Known residuals — deliberate, do not "discover"
 
 - **In-SVG fine print ~3.4–7px at 375px** on fixed-viewBox cards. Phase 5 is the
   fix; the per-component bump pattern exists in 4 components.
-- **SeatChart renders `px-seats__source` / "Source:"** where everything else
-  uses `px-viz__src` / "Source · " — so story.css's `[class$='__src']` hiding
-  rule misses it. Fold into shell adoption, not a content commit.
-- **The ⤢ expand button is 30px** (pre-revamp). Fold into shell adoption.
+- **Phase 5's bump is owed on `ScalingPlot`, `XgRace`, `ClimateSpiral`** —
+  `ScalingPlot.astro` carries the measurements and why a plain bump fails
+  (23 SVG units needed at 375px; y-ticks at that size run off the canvas into
+  the rotated axis title; the de-clutter constants are build-time).
+- **The ⤢ modal shows no source since `8eea66f`.** It portals the card; the
+  source lives with the section now. Landed as-is by ruling; a modal source
+  line is a separate, later call.
+- **70 components still emit `.px-viz__src`** under an interim, deliberately
+  unscoped `display: none` in `dataviz-v2.css`, until they are stripped.
+- **`howToRead` control clauses are wrong under no-JS** wherever the control is
+  `html.js`-gated — reordered so the static reading leads; the proper fix is a
+  JS-gated field or a VizCard convention (a schema call).
 - **`state-timeline` carries 3 raw hexes** — a DECLARED fixed encoding
   (green/amber/red service status), single declaration, never colour-alone.
 - **Text-heavy story beats scroll** (sanctioned); **dashboard tiles title-case
@@ -176,12 +205,26 @@ attribute, not the class).
 - `coalition-calculus` dispatches with a spread; `CityGrid` hard-throws outside
   1–3 cities; globe seed-yaw is `-((cLon + 90) * PI) / 180`.
 - The false-overflow measurement trap (§3).
+- **`--r-tile` / `--r-card` are consumed by `app/` from the shared token
+  source** — flipping them there flattens the app against RD-05's own carve-out.
+  Override in the publication's `base.css`. (Nearly done at shell adoption.)
+- **`npm run graph` chained with `graph:check` in one shell line reports STALE
+  spuriously** — the check runs before the write flushes. Run the script
+  directly, or the two commands separately. (Cost a diagnosis.)
+- **The preview browser reports `prefers-reduced-motion: reduce`**, so the
+  motion contract's global reset makes every `transition` compute to `none`.
+  Not a CSS defect — verify against a known-good committed rule first. (Cost a
+  diagnosis.)
+- **A `scrollIntoView` measurement taken before the reveal reflow settles is
+  garbage** — 703px reported for a 76px paragraph. Wait ~1s, re-measure.
+- **Bash heredocs carrying Astro/JSX content break in Git Bash** — use the
+  Write tool or a scratch `.py`, as §7 already says for Node one-liners.
 
 ## 8. Where to find things
 
 | You want… | Read |
 |---|---|
-| The revamp's decisions + phases | `docs/REVAMP-PLAN.md` (RD-01…RD-09 §1) |
+| The revamp's decisions + phases | `docs/REVAMP-PLAN.md` (RD-01…RD-13 §1; the v3 order in §4-v3) |
 | Token law incl. TD-06 | `docs/design/TOKEN-RECORD.md` |
 | The 28 blueprints (corrected) | `docs/design/blueprints/<world>/` — header first |
 | The registry wirer | `scripts/wire-kind.mjs` |
