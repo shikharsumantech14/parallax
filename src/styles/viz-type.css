@@ -89,3 +89,19 @@
   white-space: nowrap;
 }
 .px-plain__k::after { content: ' —'; color: var(--muted); }
+
+/* Shell adoption (Phase 6): the source is the plain paragraph's SECOND LINE —
+   9px / 600 / .14em mono, per REVAMP-PLAN §4 Phase 6.1 — instead of a dashed-
+   rule footer inside the card. "Source · " is real text, not ::before, so it
+   is copyable and read by AT. Rendered by core/Section.astro for every kind. */
+.px-plain__src {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

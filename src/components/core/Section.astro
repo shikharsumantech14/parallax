@@ -22,10 +22,22 @@ interface Props {
   kind?: string;
   plain?: string;
   layout?: string;
+  /** Shell adoption (Phase 6): the source line moves OUT of the card and
+   *  becomes the second line of the plain paragraph — one render site for
+   *  every kind instead of ~70, which also ends the sibling-vs-child depth
+   *  split that story.css had to special-case. `string` or the schema's
+   *  `{ label, date }`; joined the way VizCard used to. */
+  source?: string | { label: string; date?: string };
 }
-const { number, eyebrow, title, intro, kind, plain, layout } = Astro.props;
+const { number, eyebrow, title, intro, kind, plain, layout, source } = Astro.props;
 
 const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
+const sourceLine =
+  typeof source === 'string'
+    ? source
+    : source
+      ? [source.label, source.date].filter(Boolean).join(' · ')
+      : undefined;
 const layoutAttr = layout && layout !== 'default' ? layout : undefined;
 const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
 ---
@@ -37,8 +49,11 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
       {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
       {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
       {intro && <p class="px-section__intro">{intro}</p>}
-      {plainText && (
-        <p class="px-plain"><span class="px-plain__k">In plain terms</span>{' ' + plainText}</p>
+      {(plainText || sourceLine) && (
+        <p class="px-plain">
+          {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}
+          {sourceLine && <span class="px-plain__src">Source · {sourceLine}</span>}
+        </p>
       )}
     </div>
     <div class="px-section__stage">
@@ -52,8 +67,11 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
     {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
     {intro && <p class="px-section__intro">{intro}</p>}
     <slot />
-    {plainText && (
-      <p class="px-plain"><span class="px-plain__k">In plain terms</span>{' ' + plainText}</p>
+    {(plainText || sourceLine) && (
+      <p class="px-plain">
+        {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}
+        {sourceLine && <span class="px-plain__src">Source · {sourceLine}</span>}
+      </p>
     )}
   </section>
 )}

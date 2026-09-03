@@ -237,6 +237,16 @@
   color: var(--muted);
   font-style: italic;
 }
+/* INTERIM, shell adoption (Phase 6). The source line now renders in
+   core/Section.astro as the plain paragraph's second line, and VizCard no
+   longer emits `.px-viz__src`. Seventy pre-VizCard components still emit their
+   own; until they are stripped, this hides them so no page shows the source
+   twice. It is deliberately UNSCOPED: the ⤢ modal portals the card out of
+   `.px-section`, and a scoped hide would let those seventy re-appear there
+   while VizCard kinds show none. Hiding everywhere is the design's actual
+   consequence — source lives with the section, not the card — made visible
+   rather than papered over. Story mode already hid it in beats. */
+.px-viz__src { display: none; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    APPROVAL CHART (politics) — dual line, animated draw, gradient fill

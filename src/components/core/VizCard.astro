@@ -49,14 +49,12 @@ interface Props {
   style?: string;
 }
 
-const { prefix, howToRead, caption, source, chip, class: extra, style } = Astro.props;
-
-const sourceLine =
-  typeof source === 'string'
-    ? source
-    : source
-      ? [source.label, source.date].filter(Boolean).join(' · ')
-      : undefined;
+const { prefix, howToRead, caption, chip, class: extra, style } = Astro.props;
+/* `source` is still ACCEPTED so the ten kinds that pass it keep compiling, but
+   it is no longer rendered here. Shell adoption (Phase 6) moved the source
+   line out of the card into core/Section.astro, as the second line of the
+   plain paragraph — one render site for every kind. Section reads it from the
+   section frontmatter directly, so nothing needs to flow through this prop. */
 ---
 
 <div class:list={['px-viz', prefix, extra]} data-reveal style={style}>
@@ -72,6 +70,4 @@ const sourceLine =
   )}
 
   <slot />
-
-  {sourceLine && <div class="px-viz__src">Source · {sourceLine}</div>}
 </div>
