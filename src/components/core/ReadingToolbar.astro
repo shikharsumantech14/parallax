@@ -99,27 +99,28 @@ const { readTime = 7, issueId, theme = 'light' } = Astro.props;
     transition: transform 80ms linear;
   }
 
-  /* Bottom-floating glass pill */
+  /* Bottom-floating pill — the flat 2px-ink-rule skin (Phase 6, standing
+     ruling in REVAMP-PLAN §1). Fixed position and live progress are kept;
+     only the glass goes: opaque paper, a 2px ink rule, no blur, no shadow.
+     Ink and paper already flip per world, so the dark-theme override below
+     no longer needs its own colours. The pill radius stays — --r-pill is UI
+     chrome and is deliberately outside the RD-05 radius flip. */
   .rtb {
     position: fixed; left: 50%; bottom: 24px;
     transform: translate(-50%, 12px);
     z-index: 90;
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-border);
+    background: var(--paper);
+    border: 2px solid var(--ink);
     border-radius: var(--r-pill);
-    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.4) inset;
     opacity: 0; pointer-events: none;
     transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
   }
   .rtb.is-shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
   .rtb[data-theme="dark"] {
-    background: var(--glass-bg-dark);
-    border-color: rgba(232,238,247,0.12);
-    box-shadow: 0 12px 32px -16px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,238,247,0.08) inset;
+    background: var(--paper);
+    border-color: var(--ink);
   }
 
   .rtb__seg {
@@ -130,7 +131,8 @@ const { readTime = 7, issueId, theme = 'light' } = Astro.props;
   .rtb__thumb {
     position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px);
     background: var(--paper); border-radius: var(--r-pill);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    /* RD-05: the thumb's 1px shadow retired; paper on the 6%-ink track reads. */
+    border: 1px solid var(--rule);
     transition: left var(--t-soft) var(--ease-snap);
   }
   .rtb__seg[data-mode="skim"] .rtb__thumb { left: 50%; }

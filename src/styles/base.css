@@ -928,18 +928,14 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   animation-timing-function: var(--ease);
 }
 
-/* ── CORE BOXED COMPONENTS → elevated cards (shared across topics) ────── */
-.px-compare, .px-readout {
+/* ── CORE BOXED COMPONENTS (flat, RD-05) ─────────────────────────────── */
+/* `.px-readout` was dropped from this rule: DataReadout has emitted `.tel`
+   since the v2 port, so the selector matched nothing. */
+.px-compare {
   border-radius: var(--r-tile);
   overflow: hidden;
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
-  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  /* RD-05: shadow-none, no lift. The hairline is the edge; hover is
+     border-colour only (card-lift retired, mark-inspect untouched). */
+  transition: border-color var(--t-quick) var(--ease);
 }
-.px-compare:hover, .px-readout:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
-}
+.px-compare:hover { border-color: color-mix(in oklab, var(--ink) 26%, transparent); }

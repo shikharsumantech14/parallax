@@ -138,11 +138,11 @@ const art = sections
     border-radius: 999px;
     padding: 13px 24px;
     text-decoration: none;
-    transition: transform var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
+    transition: border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
   }
+  /* RD-05: no lift, no shadow. Colour carries the hover. */
   .px-fplate__read:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 24px -16px color-mix(in oklab, var(--ink) 60%, transparent);
+    border-color: var(--ink);
   }
   .px-fplate__story {
     font-family: var(--font-mono);
@@ -166,9 +166,7 @@ const art = sections
     border: 1px solid var(--rule);
     border-radius: var(--r-tile);
     padding: 30px 32px;
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
+    /* RD-05: flat. The 1px rule and the 3px accent ::before are the edges. */
   }
   .px-fplate__art::before {
     content: '';

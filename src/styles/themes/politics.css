@@ -541,54 +541,24 @@
    ============================================================================ */
 .px-vote,
 .px-paradox,
+/* RD-05 flatness. `.px-vote`, `.px-paradox`, `.px-appr__svg` and `.px-pwm`
+   were deleted from this block at shell adoption: VoteResult, Paradox,
+   ApprovalChart and PowerMatrix emit `.vb` / `.px2` / `.ac` / `.pm` since the
+   v2 port, so those rules matched nothing (src/components/AGENTS.md §4,
+   retired prefixes). The plan's own hairline example, `.px-appr__svg`, was one
+   of them. The three that remain are live. `.px-analogy` is an ink plate on
+   light paper and needs no hairline: its fill is its edge. */
 .px-beats,
 .px-bills__card,
 .px-analogy {
   border-radius: var(--r-tile);
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
-  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+  /* RD-05: shadow-none, no lift. The hairline is the edge; hover is
+     border-colour only (card-lift retired, mark-inspect untouched). */
+  transition: border-color var(--t-quick) var(--ease);
 }
-.px-vote:hover,
-.px-paradox:hover,
 .px-beats:hover,
-.px-bills__card:hover,
-.px-analogy:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
-}
-/* clip the paradox's two inner panels to the rounded corners */
-.px-paradox { overflow: hidden; }
-/* soften the vote readout bar */
-.px-vote__bar { border-radius: var(--r-card); }
-
-/* approval chart: the SVG is the card surface */
-.px-appr__svg {
-  border-radius: var(--r-tile);
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
-}
-
-/* power matrix: promote the block to an elevated card (caption sits inside) */
-.px-pwm {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-tile);
-  padding: 24px 26px;
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-    0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
-  transition: box-shadow var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
-}
-.px-pwm:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-    0 28px 56px -28px color-mix(in oklab, var(--ink) 50%, transparent);
+.px-bills__card:hover {
+  border-color: color-mix(in oklab, var(--ink) 26%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

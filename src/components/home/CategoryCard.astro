@@ -193,12 +193,13 @@ const tplus = `T+ ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getS
     /* cursor-warmth radial defaults (CSS-only, no JS to update them) */
     --mx: 0.5;
     --my: 0.5;
-    transition: transform var(--t-soft) var(--ease), border-color var(--t-soft) var(--ease), box-shadow var(--t-soft) var(--ease);
+    transition: border-color var(--t-soft) var(--ease);
   }
+  /* RD-05: home cards flatten WITH the reading surfaces (a surface class,
+     never per-component). Hover is border-colour only; the stripe below
+     still thickens, which is the affordance that survives. */
   .px-cat:hover {
-    transform: translateY(-2px);
     border-color: var(--accent);
-    box-shadow: 0 18px 36px -28px rgba(0,0,0,0.45);
   }
   /* Top accent stripe — thickens on hover (v2 .tile__stripe) */
   .px-cat::after {

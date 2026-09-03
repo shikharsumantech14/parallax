@@ -303,11 +303,11 @@ const payload = JSON.stringify({
     position: relative;
     background: var(--paper);
     border: 1px solid var(--rule);
+    /* Bespoke root, so it carries the shell itself: the same 3px world rule
+       `.px-viz` gets (ink on light desks, accent on dark), flat per RD-05. */
+    border-top: 3px solid var(--viz-edge, var(--ink));
     border-radius: var(--r-tile);
     padding: 26px 30px 24px;
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-      0 18px 40px -28px color-mix(in oklab, var(--ink) 40%, transparent);
   }
 
   /* caption row — editorial serif + the honesty threshold chip */
