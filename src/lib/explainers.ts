@@ -76,7 +76,7 @@ export const EXPLAIN: Record<string, Explainer> = {
   'itinerary-reel': { what: 'A trip broken into day-by-day cards, each listing what happens that day.', how: 'Move through the days left to right.' },
   'climate-calendar': { what: 'A month-by-month picture of a place’s weather — the typical temperature and rainfall for each month of the year.', how: 'Warmer colours mark hotter months; taller bars mark wetter ones.' },
   'timezone-arc': { what: 'Where it is day or night across several cities at this moment, laid along a 24-hour band.', how: 'Light means daytime, dark means night — read each city’s local time.' },
-  'tactics-pitch': { what: 'A team’s shape on the pitch, with every player placed in their position and seen at an angle.', how: 'Drag to rotate the pitch; each disc is a player in their starting spot.' },
+  'tactics-pitch': { what: 'A team’s shape on the pitch, with every player placed in their position and seen at an angle.', how: 'Each disc is a player in their starting spot; the pitch can be turned to read the shape from either end.' },
   'shot-map': { what: 'Every shot at goal plotted where it was taken. Bigger marks were better chances (higher “xG”).', how: 'Closer to goal and bigger = a better chance; the colour shows what happened.' },
   'xg-race': { what: 'Two teams’ chances stacking up minute by minute. The higher line created the better openings.', how: 'A steeper climb means a spell of strong chances for that team.' },
   'momentum-wave': { what: 'Which team was on top through the match — the wave swells toward whoever was pressing.', how: 'Above the centre line means the home side was on top; below means the away side.' },

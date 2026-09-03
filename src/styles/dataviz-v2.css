@@ -215,6 +215,18 @@
   font-weight: 700;
   color: var(--ink);
 }
+/* ONE PANEL PER SECTION. Since the EXPLAIN.how fallback flipped on (Phase
+   6.1), core/Section.astro renders the how-to-read block for EVERY kind,
+   above the graphic — that is the only way the 87 kinds that do not route
+   through VizCard can show one at all (an authored howToRead on a timeline
+   was silently dropped before this). The ten VizCard kinds still render
+   theirs INSIDE the card, where the handoff's shell puts it. So a section
+   whose slotted card already carries a panel hides Section's copy. `:has()`
+   rather than an allowlist of VizCard kinds, because every Wave 2–4 kind
+   will route through VizCard and an allowlist is a double-render waiting to
+   happen. Support floor is the same as color-mix(), already relied on. */
+.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none; }
+
 /* Phone: the tint reads as noise at 353px, and the accent edge alone carries
    the block. Mirrors the prototypes' own S-figure treatment, which drops the
    tint at small size. Carried from day one so shell adoption never has to

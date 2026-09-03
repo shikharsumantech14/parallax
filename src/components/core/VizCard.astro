@@ -23,12 +23,18 @@
  * two lengths; see docs/REVAMP-PLAN.md §1 for why collapsing them breaks the
  * verifier.
  *
- * ONLY AUTHORED howToRead RENDERS. It deliberately does NOT fall back to
- * EXPLAIN[kind].how: those 81 strings were written as an interaction cue for
- * the ⤢ modal ("Drag to spin the globe…"), not as in-flow reading guidance.
- * Auto-rendering them would change every viz section of 23 published issues
- * with copy never reviewed for that surface. The fallback flips on at shell
- * adoption, after a copy pass.
+ * THE howToRead FALLBACK IS ON (Phase 6.1, operator ruling 2026-09-04 after
+ * the copy review in docs/design/EXPLAIN-HOW-REVIEW.md). This card still
+ * renders whatever `howToRead` it is handed, inside the card, where the
+ * handoff's shell puts it — but it never resolves the fallback itself, because
+ * it does not know its kind. SectionBody resolves
+ * `section.howToRead ?? EXPLAIN[kind].how` at the dispatch line for the ten
+ * VizCard kinds. For the other 87 kinds, core/Section.astro renders the same
+ * panel ABOVE the graphic (the only place they can get one); a `:has()` rule
+ * in dataviz-v2.css hides Section's copy when the slotted card carries its
+ * own, so every section shows exactly one.
+ *
+ * `source` is still accepted but no longer rendered here — see the note below.
  */
 import { renderInline } from '../../lib/text';
 

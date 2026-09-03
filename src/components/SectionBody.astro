@@ -1,4 +1,5 @@
 ---
+import { EXPLAIN } from '../lib/explainers';
 /**
  * SectionBody — the kind → component switch, with NO wrapper chrome.
  *
@@ -449,10 +450,10 @@ const data: any = {
       <BallotFlow candidates={data.candidates ?? []} rounds={data.rounds ?? []} winnerId={data.winnerId} majorityBasis={data.majorityBasis} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'bill-funnel' && (
-      <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'age-pyramid' && (
-      <AgePyramid bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <AgePyramid bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* space */}
@@ -484,7 +485,7 @@ const data: any = {
       <EclipseCone source={data.source} occulter={data.occulter} target={data.target} showPenumbra={data.showPenumbra} caption={data.caption} sourceCite={data.sourceCite} />
     )}
     {section.kind === 'margin-bullets' && (
-      <MarginBullets rows={data.rows ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <MarginBullets rows={data.rows ?? []} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terrain-relief' && (
       <TerrainRelief dem={data.dem} place={data.place} exaggeration={data.exaggeration} exaggerateTo={data.exaggerateTo} contourInterval_m={data.contourInterval_m} peaks={data.peaks ?? []} seaLevel={data.seaLevel} caption={data.caption} source={data.source} />
@@ -517,7 +518,7 @@ const data: any = {
       <MooreLadder points={data.points ?? []} yLabel={data.yLabel} unit={data.unit} fit={data.fit} fitRange={data.fitRange} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'state-timeline' && (
-      <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terminator-globe' && (
       <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} showEoT={data.showEoT} caption={data.caption} source={data.source} />
@@ -535,7 +536,7 @@ const data: any = {
       <FareTerrain routes={data.routes ?? []} unit={data.unit} sweetSpotDays={data.sweetSpotDays} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'attrition-waffle' && (
-      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'flight-of-the-ball' && (
       <FlightOfTheBall sport={data.sport} shot={data.shot} goal={data.goal} showGhost={data.showGhost} slowmo={data.slowmo} caption={data.caption} source={data.source} />
@@ -550,10 +551,10 @@ const data: any = {
       <PaceRidge metric={data.metric} unit={data.unit} source_n={data.source_n} stat={data.stat} domain={data.domain} groups={data.groups ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'channel-ternary' && (
-      <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'finish-interval' && (
-      <FinishInterval model={data.model} runs={data.runs} positions={data.positions} zones={data.zones ?? []} rows={data.rows ?? []} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <FinishInterval model={data.model} runs={data.runs} positions={data.positions} zones={data.zones ?? []} rows={data.rows ?? []} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* earth */}
@@ -567,7 +568,7 @@ const data: any = {
       <SeaLevelTank levels={data.levels ?? []} landmarks={data.landmarks} maxM={data.maxM} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'climate-spiral' && (
-      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'quake-depth' && (
       <QuakeDepth quakes={data.quakes ?? []} caption={data.caption} source={data.source} />
@@ -584,7 +585,7 @@ const data: any = {
       <VersionGraph nodes={data.nodes ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'scaling-plot' && (
-      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'throughput-dial' && (
       <ThroughputDial value={data.value ?? 0} max={data.max ?? 100} unit={data.unit} label={data.label} zones={data.zones} caption={data.caption} source={data.source} />
@@ -615,7 +616,7 @@ const data: any = {
       <ShotMap shots={data.shots ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'xg-race' && (
-      <XgRace events={data.events ?? []} home={data.home} away={data.away} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <XgRace events={data.events ?? []} home={data.home} away={data.away} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'momentum-wave' && (
       <MomentumWave points={data.points ?? []} events={data.events} home={data.home} away={data.away} caption={data.caption} source={data.source} />

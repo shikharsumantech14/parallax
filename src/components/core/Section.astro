@@ -28,10 +28,20 @@ interface Props {
    *  split that story.css had to special-case. `string` or the schema's
    *  `{ label, date }`; joined the way VizCard used to. */
   source?: string | { label: string; date?: string };
+  /** Contract part 02, "how to read this" — a paragraph ABOVE the graphic.
+   *  Authored `howToRead` wins; otherwise EXPLAIN[kind].how, the fallback that
+   *  flipped on at shell adoption after the operator's copy review
+   *  (docs/design/EXPLAIN-HOW-REVIEW.md). Rendered here for EVERY kind because
+   *  87 of 97 do not route through VizCard, and before this an authored
+   *  howToRead on any of them was silently dropped. The ten VizCard kinds also
+   *  render theirs inside the card; dataviz-v2.css hides this copy when the
+   *  slotted card already carries one, so a section shows exactly one. */
+  howToRead?: string;
 }
-const { number, eyebrow, title, intro, kind, plain, layout, source } = Astro.props;
+const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead } = Astro.props;
 
 const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
+const howText = howToRead ?? (kind ? EXPLAIN[kind]?.how : undefined);
 const sourceLine =
   typeof source === 'string'
     ? source
@@ -49,6 +59,9 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
       {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
       {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
       {intro && <p class="px-section__intro">{intro}</p>}
+      {howText && (
+        <p class="px-viz__how px-viz__how--section"><b>How to read this —</b>{' ' + howText}</p>
+      )}
       {(plainText || sourceLine) && (
         <p class="px-plain">
           {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}
@@ -66,6 +79,9 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
     {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
     {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
     {intro && <p class="px-section__intro">{intro}</p>}
+    {howText && (
+      <p class="px-viz__how px-viz__how--section"><b>How to read this —</b>{' ' + howText}</p>
+    )}
     <slot />
     {(plainText || sourceLine) && (
       <p class="px-plain">
