@@ -48,7 +48,7 @@ are deliberately not written down anywhere (CD-11).
 | Issues | 23 (10 published, 13 draft) |
 | Kinds never in a published issue | **77** |
 | Registry gaps | none |
-| Decisions tracked | 29 (9 decided-but-unbuilt) |
+| Decisions tracked | 33 (12 decided-but-unbuilt) |
 
 <!-- END GENERATED -->
 

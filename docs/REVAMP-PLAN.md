@@ -1,19 +1,32 @@
 # Revamp plan — the source of truth
 
-> **Status: v2.1, 2026-08-28. Decisions locked; Phases 0–2 complete, Phase 3 at
-> Wave 1 of 4, Phase 4 partial. See the execution table below and
-> `docs/STATE-OF-PLAY.md` for the live snapshot.**
+> **Status: v3, signed 2026-09-04.** RD-10…RD-13 govern; §4-v3 is the
+> execution order. Two riders signed with it: the parked `Source ·` fold lands
+> as-is, and the README's *desk* page is the topic index reskinned.
+>
+> **What v3 is.** The operator's ruling, 2026-09-04, on re-reading v2: *"I wanted
+> to revamp the whole thing — the components, the pages, the sections, the desks,
+> the branding — like I had in the Claude Design."* v2 adjudicated the handoff and
+> sequenced the visible redesign last, behind the 28 instruments. That was a
+> defensible engineering order and the wrong product. v3 flips the sequence to
+> **look first** and un-parks the mark. It does **not** reopen the rulings that
+> rest on correctness (photography, the toolbar relocation, the fixed headline
+> steps, the motion budget, the a11y floor, RD-01b), and it does not adopt
+> Literata — on re-examination the handoff's own `TYPE-MAPPING.md` forbids it
+> (RD-11). Superseded rulings stay in §1, struck through with a pointer, so a
+> citation in code or a commit body never dangles.
+>
 > v1 was analysis with open questions. v2 is a decision record plus an execution
 > sequence. Every open question in v1 has been ruled on; the rulings are §1 and
-> they are not to be re-litigated. Where v1 stated a fact that later verification
-> disproved, §3 records the correction.
+> they are not to be re-litigated except by the operator, as here. Where v1
+> stated a fact that later verification disproved, §3 records the correction.
 >
 > Read `docs/STATE-OF-PLAY.md` first for where the repo stands. Read `AGENTS.md`
 > for the standing rules. This file is what to build, in what order, and why.
 
 ---
 
-## 0. Execution state (2026-08-28)
+## 0. Execution state (2026-09-04)
 
 | Phase | Status |
 |---|---|
@@ -21,10 +34,29 @@
 | 0 · Pre-deploy hardening | ✅ deployed (`2625cdd`) |
 | 1 · Guardrails + WCAG + phone nav | ✅ deployed (`92870b7`…`7c553a2`) |
 | 2 · Chrome primitives (TOKEN-RECORD, schema, VizCard, px-inst) | ✅ (`6f6ca2a`) |
-| 3 · The 28 kinds | Wave 0 ✅ (`d86673a`, `afcb49b`) · Wave 1 ✅ (`266734b`) — **library 97/118**; Waves 2–4 remain |
+| 3 · The 28 kinds | Wave 0 ✅ (`d86673a`, `afcb49b`) · Wave 1 ✅ (`266734b`) — **library 97/118**; Waves 2–4 remain, **now sequenced last (RD-13)** |
 | 4 · Editorial floor | agent-facing half ✅ (`c0887a3`); **source backfill 21→0** ✅ (`37a6f7d`); captions deliberately declined (all 22 carry an `intro` stating the finding); schema tightening pending |
-| 5 · Mobile legibility | not started |
-| 6–8 · Workstream B | not started (B4 parked behind RD-03) |
+| 5 · Mobile legibility | not started; measured on three files (`ScalingPlot.astro` carries the numbers and why a plain bump fails) |
+| 6.1 · Shell adoption | **half done** — flat viz card + `--viz-edge` world rule (`b74815d`); RD-05 shadow sweep 115→64 + the toolbar's flat skin (`943fe09`); ⤢ 44px on touch, SeatChart source naming, story depth-1 hiding. **Not done:** `EXPLAIN.how` flip (copy review), CANON/motion edits (signature), the `Source ·` fold — **landed as-is** (operator ruling 2026-09-04; the ⤢ modal shows no source, which is the design's own consequence — a modal source line is a separate, later call) |
+| 6.2 · B1 best-first | ✅ all three — `scaling-plot` log⇄linear (`e5fd2f1`), `xg-race` scrub (`d304c2d`), `climate-spiral` scrub (`714d1ac`); `px-inst` readout reserve generalised (`328395d`); `howToRead` ×4 + the live caption fix (`81cc2da`) |
+| 6.3 · Type harvest | not started |
+| 7 · Web pages | not started — **now next** (RD-13) |
+| Brand · the mark | **un-parked** (RD-10); scoping first, see §4-v3 |
+| 8 · App | not started |
+
+Execution corrections folded into the docs this cycle (do not rediscover): the
+RD-05 radius flip **cannot** be done in `shared/design/tokens.css` — `app/`
+consumes `--r-tile`/`--r-card` there and would flatten against RD-05's own
+carve-out, so the publication overrides them in `base.css`; `--r-pill` is
+deliberately not flipped (43 sites of UI chrome); three token flips reach 99 of
+249 radii, not "128 of 267"; ten of seventeen theme "elevated card" rules were
+orphans from the v2 port, including this file's own hairline example
+`.px-appr__svg`; the tinted `howToRead` was already shipped in Phase 2; the
+`px-inst` 3.2em readout reserve is not enough for a readout carrying proper
+nouns (three instances, generalised as `px-inst__readout--sized`); Timeline,
+BillBreakdown and VoteResult emit their source as a **sibling** of the graphic
+root, so story.css needed a depth-1 rule as well as depth-2. The B1 estimates
+(4h/3h/3h) came in on budget in one session.
 
 Execution corrections folded into the docs (do not rediscover): the SVG
 `var()`-in-presentation-attribute claim was false — the convention stands for
@@ -49,13 +81,17 @@ across handovers: a ruling that is cited is a ruling that survives.
 | **RD-01a** | All 28 route through **one shared wrapper** (`src/components/core/VizCard.astro`) so a later chrome change is one file, not 28. |
 | **RD-01b** | In-SVG `<text>` uses a **literal font stack**, never `var()` inside an SVG presentation attribute — that does not resolve and fails silently to the default serif. |
 | **RD-02** | The 8 `.dc.html` prototypes are recovered and committed. **Authority order: `AGENTS.md` → `INTEGRATION.md` → blueprints.** The handoff README is stale background, not the tiebreaker. For the 28 kinds the **blueprint** is binding; screenshots are reference only (four contain real ledger-collision bugs the blueprints already correct). |
-| **RD-03** | **The brand mark is deferred.** The locked 2026-06-22 lens mark stands. The 38 medallion SVGs stay unused; B4 and the About lore section ride the eventual decision. |
+| ~~**RD-03**~~ | ~~**The brand mark is deferred.** The locked 2026-06-22 lens mark stands. The 38 medallion SVGs stay unused; B4 and the About lore section ride the eventual decision.~~ **SUPERSEDED by RD-10 (v3, 2026-09-04).** Kept so citations resolve. |
 | **RD-04** | **The Fraunces / Schibsted Grotesk / JetBrains Mono trio stays.** Literata never enters the product. `TYPE-MAPPING.md` is authoritative; the README's type section is superseded. |
 | **RD-05** | **Flatness covers the reading surfaces and home** — issue pages, viz cards, primer, home cards go radius-0 / shadow-none / hairline-elevation at shell adoption (Phase 6). The app keeps its own spec until Phase 8. Glass survives only on fixed toolbar and modal chrome until its flat reskin. The boundary is a **surface class, never per-component**: home cards flatten *with* the reading surfaces, because flat-next-to-soft in one scroll column is the worst of both. |
 | **RD-06** | **The 8 ambient WebGL rotations stay alive.** They pause off-viewport and freeze to composed stills under reduced-motion. The handoff's one-loop-per-page budget is rejected; the repo's per-viewport semantic budget governs. The motion table was written against a stack with no 3D library and cannot govern surfaces it never drew. |
-| **RD-07** | **Issue page: harvest the furniture now, defer the floor plan.** The fact grid, drop cap and meta strip enter the current 720px column. The 3-column grid (170px fact rail / 1fr / 250px dek+share) waits for Phase 7, where it is designed together with the `ReadingGate` rework it requires. |
+| ~~**RD-07**~~ | ~~**Issue page: harvest the furniture now, defer the floor plan.** The fact grid, drop cap and meta strip enter the current 720px column. The 3-column grid (170px fact rail / 1fr / 250px dek+share) waits for Phase 7, where it is designed together with the `ReadingGate` rework it requires.~~ **SUPERSEDED by RD-12 (v3).** The furniture list and the gate constraint carry forward unchanged; only the deferral is lifted. |
 | **RD-08** | **Type harvest under RD-04:** adopt prose 16→18px (after a real measurement of the font binaries), instrument `h3` at 22px/700/−.024em in `--font-display`, 9.5px/600/.16em mono eyebrows, and a drop cap sized *"spans three lines"* in Fraunces. **Reject** the fixed 68/40 headline steps — keep the fluid `clamp()`. The prototype has zero `@media` and zero `clamp`, so 68/40 is a two-width toggle, not a scale. |
-| **RD-09** | **Full sequential workstream B** after the annex: manifest bridge → B1 best-first retrofits → shell adoption → B3 web pages → B2 app screens. `/subscribe` and billing are gated on a separate pricing decision. |
+| ~~**RD-09**~~ | ~~**Full sequential workstream B** after the annex: manifest bridge → B1 best-first retrofits → shell adoption → B3 web pages → B2 app screens. `/subscribe` and billing are gated on a separate pricing decision.~~ **SUPERSEDED by RD-13 (v3).** The pricing gate on `/subscribe` survives. |
+| **RD-10** | **The brand mark is un-parked** (supersedes RD-03). The phase medallion ships as the mark: masthead, colophon, favicon, app icon, OG cards, social banners, the six per-desk marks/seals/covers, and the About page's *"the mark, explained"* + the six-row lore section. **Constraints carried from the handoff's own misuse list:** no gradient or sphere shading, no off-station dial (`politics 325 · space 25 · earth 85 · tech 145 · travel 205 · sports 265`, fixed), no rotation, no second accent, no substitute letter, no drop shadow; the reversed cut below 24px is a declared tier, not a degradation. **One correction to the delivered assets:** all 38 SVGs set the `P` as live `<text font-family="Literata…">`, so as shipped the mark depends on a font RD-11 keeps out of the product, and the favicon already renders in whatever serif the OS has. The glyph is **outlined once at build time from the Literata binary into a `<path>`** — a Literata *shape*, no Literata *file* — so the mark is identical everywhere, including satori/resvg, which cannot load fonts for SVG text. The old CSS-drawn lens (`.mh__lens`, the Colophon lens) retires with it. |
+| **RD-11** | **RD-04 was re-examined at the operator's request and STANDS.** The trio stays; Literata does not enter the product. Not a taste call: the handoff's own `TYPE-MAPPING.md` states Literata is *"an artifact of the design runtime, not a design decision, and it must not reach the repo"*, and maps every role onto the trio. The README's migration-plan Phase 2 ("switch body and display to Literata") is the stale instruction RD-02's authority order already subordinates. Adopting Literata would move the product *away* from the handoff. The v2 questioner (this plan's author) mis-framed RD-04 as a rejection of the design; it was compliance with it. |
+| **RD-12** | **The 3-column issue floor plan ships in Phase 7** (supersedes RD-07's deferral): 170px fact rail / 1fr / 250px dek+share, per §3 correction 9, **in the same commit as the `ReadingGate` rework** — the standing ruling's two constraints bind: `.px-section` counting is preserved or the gate is reworked with it, and the free allowance always includes at least one graphic. The furniture (fact grid with the `Voice` cell, drop cap, meta strip, primer strip) lands with it, not ahead of it. S-size figures render in-flow until the rail is designed (standing ruling unchanged). |
+| **RD-13** | **Look first** (supersedes RD-09). The order is now: **finish 6.1 → 6.3 type harvest → 7 web pages (six, per the README) → the brand → 8 app (eleven screens) → 5 mobile legibility → 3 Waves 2–4.** The annex is last, not dropped; Waves 3–4 are **reassessed at the look's exit** per the editorial review's standing doubt about Wave 4 — the operator decides then whether 21 more kinds are worth ~22 days against a library where 77 of 97 have never reached a reader. The manifest bridge (Phase 8 item 1) stays first *within* the app phase. `/subscribe` stays behind the pricing decision. |
 
 ### Standing rulings (same force as the above)
 
@@ -81,6 +117,19 @@ The handoff is two projects wearing one name.
 - **The rebrand (workstream B):** the new mark, flatness, the seven-part contract, **32 retrofits of components that already exist**, photography, and 13 app screens. This is the revamp's own stated thesis — `README.md:19`, *"gives every issue its own data instrument"* — and it had **zero** blueprints until the prototypes were recovered.
 
 There is **zero overlap** between the 28 blueprinted kinds and the instruments the README names, and 12 of the 14 it names already exist in `SECTION_KINDS`.
+
+**What v3 changes about this framing.** v2 read the two projects and built the
+fully-specified one first. The operator commissioned the handoff as *one*
+project — the whole look — and v2's "instruments first" produced, after ~19
+agent-days, a site that reads as the old site with flat cards. v3 keeps every
+ruling that rests on correctness and reverses the two that rested on sequencing
+and caution (the mark, the floor plan). The rebrand's "zero blueprints" problem
+is real and unchanged: the README specifies six web pages and eleven app
+screens in prose, the mark in a construction table, and nothing per-desk beyond
+tokens, the dial angle and the cover cuts. So the look-first phases below carry
+**scoping steps before estimates**, and where v2 carried a number with no
+source — "B4 ~12 days" appears nowhere the repo can trace — v3 says so instead
+of repeating it.
 
 ---
 
@@ -136,6 +185,61 @@ Branching: push first, then a short-lived branch per phase merged at its exit
 gate. Deploy order for anything touching `app/` is **app, then publication**.
 Iterate with `npx astro build` — `npm run build` fires the `prebuild` hook, which
 rewrites 10 tracked OG PNGs before the token gate can fail.
+
+### §4-v3 — the look-first sequence (RD-13)
+
+The per-phase specs below (Phases 0–8) are unchanged and remain binding for
+their content. **Only the order changes**, and two phases gain scope (7 and the
+brand). Read a phase's spec below; read its *place* here.
+
+| Order | Phase | Entry | Exit |
+|---|---|---|---|
+| 1 | **6.1 finish** — the `Source ·` fold (parked, 5 files), the `EXPLAIN.how` flip, the CANON/motion edits | operator: modal-source decision; copy review of the 81 strings; signature on the canon edits | every viz card on every published issue carries the full shell; canon documents match the shipped CSS |
+| 2 | **6.3 type harvest** (RD-08) | measure the font binaries first — the 16→18px step is conditional on it | prose 18px, instrument `h3` 22/700/−.024em, 9.5/600/.16em eyebrows, the three-line Fraunces drop cap; 375px sweep green |
+| 3 | **7 web pages** — the README's six: masthead, home, desk, issue, archive, about | RD-12 signed (3-column + gate rework in one commit) | see Phase 7 below, extended by v3 |
+| 4 | **The brand** (RD-10) — new phase, scoped in v3 | the glyph-outline tooling proven on one SVG; the swap list agreed | the medallion everywhere the lens was; About carries *the mark, explained* and the lore rows; favicon/OG/app-icon busted |
+| 5 | **8 app** — the README's eleven screens | manifest bridge first, as before | per Phase 8 below; compile-verified only on this box |
+| 6 | **5 mobile legibility** | — | per Phase 5 below |
+| 7 | **3 Waves 2–4** | **operator reassesses at the look's exit** | per Phase 3 below |
+
+**Phase 7, extended by v3.** The README names six pages; v2 scoped three. All
+six are in: **masthead** (4px ink top rule, wordmark 16/700/−.032em, desk
+register 9/600/.17em, `№ NN · live` dot, ghost Subscribe, Menu under 768px);
+**home** (hero with the live issue's eyebrow / headline with accent word / dek /
+fact rail; then latest-issue rows — number, title, dot + desk + date + read
+time, hairline between); **desk** (one world's ground, its issues listed — the
+topic index reskinned, not a new route; **confirmed by the operator
+2026-09-04**); **issue** (the block order at
+README:270, on the RD-12 grid); **archive** (chips + live search, against the 10
+real issues — the prototype's 14 fictional backlist rows must not shape the
+empty state); **about** (promise hero → the mark explained → three steps → the
+eight voices → editorial promises → the lore section). `/subscribe` stays behind
+pricing. The fact grid's fourth cell is `Voice`, per the standing ruling.
+
+**The brand phase, scoped.** What exists: 38 SVGs in the handoff's `brand/` —
+`mark`, `seal`, `cover` house cuts; `mark-/seal-/cover-<desk>` ×6; two lockups
+(+ on-dark); `favicon` (32), `app-icon` (1024), `avatar` (1000); `banner-ink` /
+`banner-paper`; `watermark`, `end-mark`; six video/social overlays. What must
+happen, in order: (1) a build step that outlines the `P` from the Literata 700
+binary into a `<path>` on a 300-unit box, baseline 207, and rewrites all 38
+(RD-10) — proven on `mark.svg` first, diffed against the rendered original at
+96/40/24px; (2) an inline-SVG `<Mark desk size cut>` component, with the ring
+stroke stepping 7/10/14 units at 96/40/24px and the reversed cut selected
+automatically below 24px; (3) the swap: masthead (`.mh__lens` retires),
+colophon, `favicon.svg`, `app/public/` icons, `scripts/social/cards.ts` and the
+OG writer (URL-bust — favicons and share cards are cached hard); (4) the About
+page's *"the mark, explained"* (168px mark, the six desk phases beneath, the
+two-paragraph premise) and the six lore rows with the 46px thumbnails — which
+are `React.createElement` calls in `Web.dc.html:665-698`, not SVG files, and
+must be re-drawn or re-extracted (§3 correction 5); (5) the per-desk cuts on
+the topic indexes and covers. **Estimate after step 1**, not before: v2's "~12
+days" has no traceable source, and step 1 is the only unknown of consequence.
+
+**What v3 does not reopen.** Photography and the lens (five grounds, unchanged —
+the lens needs raster pairs); the toolbar's fixed position and live progress;
+the fluid headline clamp; the WebGL rotations; the a11y floor; RD-01b; the
+reading gate. The plate ships as the *drawn* plate. Where the prototypes carry
+zero `aria-*`, the blueprints and the repo's floor still win without discussion.
 
 ### Phase 0 — Ship the backlog · operator-led · ~0.5–1 day
 
@@ -276,27 +380,56 @@ undo — commits only, and the operator pushes.
 
 ## 6. Operator-input schedule
 
-| Phase | What only you can do |
+| When (v3 order) | What only you can do |
 |---|---|
-| 0 | `git push`; apply the migration; deploy app then publication; sign off the live smoke |
-| 1 | The OG-fingerprinting / `vercel.json` Cache-Control decision — cheapest now, at 10 published issues |
-| 2 | Ratify the token decision record (new tokens are a canon change under the handoff's own rules) |
-| 3 | Nothing mid-wave; wave-exit deploys are your pushes |
-| 4 | Approve the caption/source backfill (factual claims, not delegable); review the pipeline demonstration |
-| 6 | Sign the canon edits |
-| 7–8 | Runtime smoke per group; the pricing decision, which gates only `/subscribe` |
-| Any time | The RD-03 mark revisit — B4 (~12 days) and the About lore are ready behind it |
+| ~~Now~~ | ~~Sign v3~~ **signed 2026-09-04** |
+| 6.1 finish | ~~The modal-source decision for the parked `Source ·` fold~~ **ruled: land as-is (2026-09-04)**; the copy review of the 81 `EXPLAIN.how` strings once the agent has tabled them; sign the CANON/motion edits once drafted |
+| 6.3 | Nothing — the binary measurement is the agent's; you see the before/after |
+| 7 | Sign RD-12's grid + gate rework as one commit; ~~rule on the `desk` page~~ **ruled: the topic index reskinned, not a route (2026-09-04)**; the pricing decision, which gates only `/subscribe` |
+| Brand | Approve the glyph-outline diff on `mark.svg` before the other 37 are rewritten; approve the swap list; **push** — favicon and OG caches are busted only by a deploy |
+| 8 | Runtime smoke per group (nothing here is runtime-verifiable on this box); the followed-worlds decision; the two migrations |
+| Look's exit | **Reassess Waves 2–4** — the 21 remaining kinds, ~22 days, against 77 of 97 unused |
+| Any time | Nothing is parked behind a decision any more; the pricing call is the only open gate |
+
+Phases 0–4's rows are discharged and dropped from this table; their history is
+§8 and `docs/PROJECT.md`.
 
 ---
 
 ## 7. Effort
+
+v2's table is kept for the record; v3's follows it. Done work is subtracted,
+unsourced numbers are named as such, and the brand block is not estimated until
+its one real unknown is measured.
+
+**v2 (2026-08-27), for the record:**
 
 | | Agent-days |
 |---|---|
 | Phases 0–5 — annex, floor, fixes | ~45 |
 | Phases 6–8 — workstream B | ~54 |
 | **Total** | **~99** |
-| B4 brand, parked behind RD-03 | ~12 |
+| B4 brand, parked behind RD-03 | ~12 · *no traceable source* |
+
+**v3 (2026-09-04), remaining, in RD-13 order:**
+
+| Block | Agent-days | Basis |
+|---|---|---|
+| 6.1 finish (fold, `EXPLAIN.how` flip, canon edits) | ~1.5 | fold is built; the rest is copy + doc |
+| 6.3 type harvest | ~2 | v2's figure; the 18px step is conditional on the binary measurement |
+| 7 web pages, six (was three) | ~11.5 + the three added pages | v2's 11.5 covered masthead/archive/issue; home, desk, about are **unestimated** — desk may be a reskin (cheap) or a route (not) |
+| The brand | **scope first** | step 1 (glyph outline) is the only unknown of consequence; everything after it is a swap list |
+| 8 app, eleven screens | ~22 | v2's figure, unchanged |
+| 5 mobile legibility | ~4–6 | v2's figure; three files already measured |
+| 3 Waves 2–4 | ~22 | 179.5 h remaining of 212; **reassessed at the look's exit** |
+| **The look (rows 1–5)** | **~37 + three pages + the brand** | |
+| **Everything** | **~63 + three pages + the brand** | |
+
+Done since v2 and subtracted above: Phases 0–2, Waves 0–1 (32.5 h), Phase 4's
+agent half and the backfill, 6.2 in full (10 h), half of 6.1. The B1 estimates
+were accurate to the session, so v2's hour-figures are trusted where they exist;
+its day-figures for unbuilt web pages are not, because they were never
+itemised.
 
 Each phase is independently releasable and revertible.
 
@@ -304,6 +437,27 @@ Each phase is independently releasable and revertible.
 
 ## 8. Change log
 
+- **2026-09-04 — v3, signed the same day.** The operator, on being shown what v2
+  had done with the handoff, ruled: the whole revamp — components, pages,
+  sections, desks, branding — look first. Four amendments were put to the
+  operator and answered yes; one was withdrawn by the agent on re-reading the
+  handoff. **RD-10** un-parks the mark (supersedes RD-03) and corrects the
+  delivered assets: all 38 SVGs set the `P` as live Literata text, so the glyph
+  is outlined at build time — a Literata shape, no Literata file. **RD-11**
+  records that RD-04 was re-examined and **stands**: the handoff's own
+  `TYPE-MAPPING.md` forbids Literata in the repo; the v2 author had mis-framed
+  compliance as rejection, and the operator's "yes" to Literata was given on
+  that mis-framing. **RD-12** ships the 3-column issue grid in Phase 7 with the
+  gate rework (supersedes RD-07's deferral). **RD-13** flips the sequence
+  (supersedes RD-09): finish 6.1 → 6.3 → 7 (six pages, not three) → the brand →
+  8 → 5 → Waves 2–4, the last reassessed at the look's exit. Superseded rows are
+  struck, not deleted, so citations resolve. §0 brought current through
+  `943fe09`; §4-v3 added ahead of the unchanged per-phase specs; §6 and §7
+  rewritten with done work subtracted and unsourced figures named ("B4 ~12
+  days" traces to nothing). The `Source ·` fold sits built and unsigned in the
+  working tree. Signed 2026-09-04 with two riders: the parked fold lands as-is
+  (the ⤢ modal's missing source is a separate, later call), and the README's
+  *desk* page is the topic index reskinned, not a new route.
 - **2026-08-28 — v2.1.** Execution-state table added (§0). Recorded in-flight
   corrections: TD-06, the disproven SVG-var() rationale, the bespoke-roots
   overstatement, the bill-funnel copy bug, the font-bump count (4 not 5).
