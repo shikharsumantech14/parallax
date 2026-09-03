@@ -407,7 +407,8 @@ const ariaLabel =
   `at the goalward heart of the shot cloud, fading to ${fmt(vMin)} ${valueLabel} at the edges. ` +
   `${nBands} contour value bands.`;
 const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
-const srcLine = source ? `${model} · ${source}` : model;
+// The source line now renders from core/Section.astro (Phase 6.1). What
+// stays here is the MODEL name — data, not chrome — on its own class.
 ---
 
 <div class="px-viz" data-reveal>
@@ -511,9 +512,7 @@ const srcLine = source ? `${model} · ${source}` : model;
     </svg>
   </div>
 
-  {(caption || source) && (
-    <div class="px-viz__src">{srcLine}</div>
-  )}
+  {model && <div class="px-cval__model">{model}</div>}
 </div>
 
 <style>
@@ -620,5 +619,13 @@ const srcLine = source ? `${model} · ${source}` : model;
 
   @media (max-width: 420px) {
     .px-cval__dot { r: 1.5; }
+  }
+
+  /* the value-model line — keeps the look the old in-card source line had */
+  .px-cval__model {
+    margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--rule);
+    font-family: var(--font-mono); font-size: var(--viz-fs-src, 10px);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+    font-style: italic;
   }
 </style>
