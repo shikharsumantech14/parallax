@@ -1,5 +1,12 @@
 # Parallax visual canon
 
+> **DRAFT AMENDMENTS AWAITING SIGNATURE (2026-09-04).** §1 (flat surfaces), §7
+> (where the source line renders), §10 (the four-layer explainability stack),
+> §11 (glass modal-only), §13 items 5 and 9, and the new §14 were drafted at
+> shell adoption against the shipped CSS. REVAMP-PLAN §6 requires the operator's
+> signature on canon edits; until this line is removed, those passages are the
+> agent's draft, not law. The rest of this document is unchanged.
+>
 > **What this is.** The master design document for the Parallax product elevation
 > (2026-07). Every visual decision that would otherwise live in a designer's (or a
 > model's) head is written here as a **checkable rule**. If you are implementing a
@@ -24,7 +31,11 @@ editorial: things *settle*, *draw*, and *sweep* into place the way a chart is in
 and then they hold still. Interactivity is an invitation ("drag to orbit", "hover a
 bloc"), never a demand. Whitespace is content. When in doubt, the test is: *would
 this feel right in a Pentagram annual report — and would it survive being printed
-in two colors?* If no to either, cut it.
+in two colors?* If no to either, cut it. Surfaces are **flat** (RD-05, shell
+adoption 2026-09): reading surfaces and home carry no radius and no drop shadow;
+a hairline is the edge, and every figure wears a 3px world rule on top — ink on
+the light desks, accent on the dark. Elevation is for marks and scenes, never for
+the paper they sit on (§14).
 
 ---
 
@@ -133,7 +144,13 @@ This is what makes 90 components feel like one publication.
   `vertical ×12`. The component renders this automatically from its data flags —
   honesty is not left to the author's memory.
 - Count-ups tween to the value already in the HTML (existing VizMotion contract).
-- Every viz keeps its `source` line. No source, no section.
+- Every viz keeps its `source` line. No source, no section. Since shell adoption
+  (2026-09) it renders **once, from `core/Section.astro`**, as the plain
+  paragraph's second line — `SOURCE · …` at 9px/600/.14em mono — for every kind,
+  from the section frontmatter. Components do not render their own; the seventy
+  that did were stripped. (The ⤢ study view therefore shows no source: it portals
+  the card, and the source lives with the section. A modal source line is a
+  separate decision, recorded in REVAMP-PLAN §0.)
 
 ## 8. The fallback-first doctrine
 
@@ -174,12 +191,29 @@ A small, fixed vocabulary — components compose these, never invent new gesture
 
 ## 10. The comprehension layer ("a smart 15-year-old finishes every issue")
 
-- Every viz section renders the **plain line**: `IN PLAIN TERMS — <one sentence>`
-  under the caption (`.px-plain`, static HTML). The sentence explains the FORM
-  ("Each block is one seat; the dotted arc is the majority line"), the caption
-  explains the DATA, the prose makes the ARGUMENT. Three layers, no overlap.
-- Authored `section.plain` overrides the per-kind default from
-  `src/lib/explainers.ts`. The drafter authors one per viz section.
+- Every viz section carries a three-part explainability stack, all static HTML,
+  all rendered by `core/Section.astro` (shell adoption, 2026-09):
+  1. **How to read this** — a paragraph ABOVE the graphic (`.px-viz__how`, the
+     handoff's contract part 02). Authored `section.howToRead` wins; otherwise
+     the per-kind `EXPLAIN[kind].how` from `src/lib/explainers.ts` (the fallback
+     flipped on 2026-09-04 after the copy review in
+     `docs/design/EXPLAIN-HOW-REVIEW.md`). The ten VizCard kinds render theirs
+     INSIDE the card, where the handoff's shell puts it; a `:has()` rule hides
+     Section's copy there, so **a section shows exactly one**, never two.
+  2. The graphic, with its **caption** — the DATA claim, the only field the
+     verifier traces.
+  3. The **plain line** BELOW the graphic: `IN PLAIN TERMS — <one sentence>`
+     (`.px-plain`) explaining the FORM ("Each block is one seat; the dotted arc is
+     the majority line"), with `SOURCE · …` as its second line (§7).
+  The prose makes the ARGUMENT. Four layers, no overlap: how-to-read = usage,
+  caption = data, plain = form, prose = argument. Confusing them trips the
+  verifier's `PLAIN-CLAIM` / `CAPTION-FORM` / `REDUNDANT-HOWTO` flags.
+- Authored `section.plain` and `section.howToRead` override the per-kind defaults
+  from `src/lib/explainers.ts`. The drafter authors a `plain` per viz section and
+  a `howToRead` per **instrument** (any kind with a control): a control clause
+  ("Press Linear…") must never lead the paragraph, because the control is
+  `html.js`-gated and the paragraph is not — the static reading leads, the
+  control trails.
 - Every section carries a `skimCaption` (skim mode = the complete 90-second read).
 - Jargon rule: the first use of any term of art in an issue gets an in-prose gloss
   or a plain-line mention. The verifier checks this.
@@ -189,7 +223,9 @@ A small, fixed vocabulary — components compose these, never invent new gesture
 Reject on sight, in any surface:
 
 - Gradient buttons/CTAs; rainbow or mesh gradients; glassmorphic content cards
-  (glass is for the toolbar/modal chrome only); floating blob shapes; neumorphism.
+  (glass survives on **modal** chrome only — the reading toolbar has been flat,
+  opaque paper with a 2px ink rule, since `943fe09`); drop shadows on any
+  reading surface (§14); floating blob shapes; neumorphism.
 - Bloom/postprocessing, lens flares, photoreal planets, skyboxes, star-field
   particle backgrounds (space's darkness is paper, not a screensaver).
 - Spring/bounce easing (see `motion.md` — our springs are critically damped, they
@@ -220,13 +256,56 @@ Universal checks (every blueprint inherits these):
 3. Reduced-motion: composed still, no dead space, hints hidden.
 4. Tokens only — grep the component for hex literals; only blueprint-declared
    fixed encodings pass.
-5. Caption + source + plain line all render.
+5. How-to-read + caption + plain line + source all render — exactly one of each
+   per section (§10); the component renders none of the four itself except the
+   caption row inside a VizCard.
 6. WebGL: boots only on scroll-in; disposes on pagehide; three-chunk absent from
    pages without 3D kinds; DPR ≤ 2; RAF pauses off-screen.
 7. Data payload validates against the blueprint schema by inspection; component
    degrades gracefully on missing optional fields.
 8. The px- prefix is unique (grep `meta.css`, `base.css`, and this repo's
    components before claiming).
+9. Flat (RD-05, §14): the card carries no `border-radius`, no `box-shadow`, no
+   hover `transform`; the 3px `--viz-edge` top rule is present; nothing the
+   component adds re-elevates the paper. Marks may still lift (§9).
+
+## 14. Surfaces and elevation (RD-05, shell adoption 2026-09)
+
+Written against the shipped CSS (`b74815d`, `943fe09`), not the handoff's
+prototypes — where they differ, this is what is true.
+
+- **The boundary is a surface class, never a component.** Reading surfaces
+  (issue pages, viz cards, primer, letters, annotations, the gate) and home
+  (category cards, the featured plate, archive rows, the six topic indexes)
+  flatten together. Flat-next-to-soft in one scroll column is the worst of both.
+- **Flat means:** `border-radius: 0`, `box-shadow: none`, no hover translate. The
+  edge is a **1px `--rule` hairline**; where a shadow used to be a surface's
+  only edge (the topic-index empty states), the hairline replaced it.
+- **Every figure wears a 3px rule on top, `--viz-edge`** — `var(--ink)` on the
+  light desks (politics, earth, travel), `var(--accent)` on the dark (space,
+  tech, sports). On a dark ground an ink rule vanishes into the paper; on a
+  light ground the vivid accent is louder than the figure it frames. Declared per
+  theme in `src/styles/themes/<world>.css`; a world without one falls back to
+  ink. Bespoke `[data-viz-root]` cards carry the same rule themselves.
+- **The radius flip lives in the publication, not the shared tokens.**
+  `--r-card` and `--r-tile` are overridden to `0` in `src/styles/base.css`,
+  NOT in `shared/design/tokens.css` — `app/` consumes those tokens and keeps its
+  own spec until Phase 8. **`--r-pill` is not flipped**: status chips, CTAs, the
+  toolbar and progress caps are UI chrome, not reading surfaces.
+- **What keeps its shadow, and why:** focus rings (a11y); inset hairlines (they
+  *are* the edge); halo rings and glows on data marks; slider thumbs; CSS-3D
+  scene depth — ArchStack, PlayerCard, TacticsPitch, ChipDie, CoreSample,
+  SeaLevelTank, AtmosphereColumn, BillPassage, ItineraryReel — where the shadow
+  is the graphic's physics (RD-06); the viz3d overlay chrome; modal, popover and
+  toast chrome; the onboarding surface's own identity. Elevation is for things
+  the reader *reads*, never for the paper they read *on*.
+- **Hover on a surface is `border-color` only** (`motion.md` rule 7). `hoverLift`
+  is a mark's gesture.
+- **The reading toolbar** is fixed, opaque paper, a **2px ink rule**, no blur, no
+  shadow; live progress stays. Glass survives on modal chrome only.
+- **A hairline never disappears into its ground.** The `--viz-edge` fallback and
+  the light/dark split above exist because the same rule cannot serve both
+  grounds; do not "simplify" it to one colour.
 
 ---
 

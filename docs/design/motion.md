@@ -1,5 +1,12 @@
 # Parallax motion vocabulary
 
+> **DRAFT AMENDMENTS AWAITING SIGNATURE (2026-09-04).** The `cardLift`,
+> `pageEnter` and `worldFade` rows, the `hoverLift` scope note, hard rule 7 and
+> the reduced-motion line for the two page motions were drafted at shell
+> adoption against the shipped CSS. Until this line is removed they are the
+> agent's draft, not law (REVAMP-PLAN §6). Open with them: whether `--t-page`
+> stays 600ms or is retimed toward the handoff's ~300/340ms.
+>
 > The complete, closed set of motions used across the publication, the app, and
 > story mode. Blueprints and specs reference these **by name** — "markers use
 > `settle`, orbits use `orbitIdle`" — instead of restating curves. If a design
@@ -43,7 +50,8 @@ live pulses) and must be slow enough to read as ambient, not busy.
 
 | Name | Spec | Use |
 |---|---|---|
-| `hoverLift` | translateZ 6px / scale 1.03 + opacity of siblings →0.55 · 150ms `--ease` | picked marks in scenes/charts |
+| `hoverLift` | translateZ 6px / scale 1.03 + opacity of siblings →0.55 · 150ms `--ease` | picked marks in scenes/charts — **marks only** (the inspect verb, CANON §9) |
+| `cardLift` | **RETIRED 2026-09-04 (RD-05).** Cards, plates, index rows, letters and annotations no longer translate or cast a shadow on hover; the affordance is `border-color` only, 140ms `--ease` (`.px-viz:hover`, `.px-cat:hover`, `.px-trv-index__card:hover` are the shipped forms) | nothing — listed so a blueprint that reaches for it gets a hard answer |
 | `tooltipIn` | opacity 0→1 + translateY 4px→0 · 140ms `--ease` · leave: 80ms | shared tooltip |
 | `stateSwitch` | outgoing 160ms fade → geometry `settle` to new positions ≤600ms · never a hard cut | `setState` transitions (chamber division, scale toggles) |
 | `flipCard` | rotateY 0→180° · 420ms `--ease` (existing `.px3d-flip`) | player-card and flip surfaces |
@@ -56,6 +64,8 @@ live pulses) and must be slow enough to read as ambient, not busy.
 | `plateIn` | opacity 0→1 + translateY 10px→0 · 420ms `--ease` | app plates/cards on load, one stagger level max |
 | `lensSettle` | the two brand rings translate from ±6px overlap into registration + red sphere opacity 0→1 · 600ms `--ease-snap` · ONCE per surface | brand moment (login, welcome) — the only sanctioned flourish |
 | `toastIn` | translateY 12px→0 + opacity · 220ms `--ease` · auto-dismiss 8s · leave 160ms | WelcomeBack toast, save confirmations |
+| `pageEnter` | the CSS-native cross-document view transition (`@view-transition { navigation: auto }`, `base.css`) · `--t-page` **600ms** `--ease` · root crossfade, no transform | every navigation on the publication. **Named 2026-09-04; not retimed.** The handoff specifies ~300ms; `--t-page` is shared by five other transitions (welcome, dataviz), so retuning it is a token decision for the operator, recorded in REVAMP-PLAN §6, not made here |
+| `worldFade` | **the same view transition**, when the navigation also changes `data-topic` — the whole palette crossfades with the root. No separate implementation exists or is needed | desk → desk, issue → home. The handoff's 340ms is likewise unadopted pending the `--t-page` decision |
 
 ## Hard rules
 
@@ -68,6 +78,11 @@ live pulses) and must be slow enough to read as ambient, not busy.
    (`orbitIdle`/`orbitBody`/`flowDash`) active per viewport.
 5. **Hover states never move layout** — lift/opacity only, no size reflow.
 6. **Time compression is honest:** any `orbitBody` speed is stated in the caption.
+7. **Reading surfaces do not lift (RD-05, 2026-09-04).** Cards, plates and index
+   rows respond to hover with `border-color` only. `hoverLift` is for a data
+   MARK — the inspect gesture — and nothing else. The data-draw entrances
+   (`sweep`, `grow`, `settle`, `countup`) are untouched by the flatness pass: a
+   flat card still gets inked.
 
 ## Reduced motion (`prefers-reduced-motion: reduce`)
 
@@ -80,7 +95,10 @@ live pulses) and must be slow enough to read as ambient, not busy.
 - **Interaction feedback** → `hoverLift` becomes opacity-only; `stateSwitch`
   becomes a hard swap; `flipCard` becomes an instant flip; tooltips appear/disappear
   without transition.
-- **Chrome** → `lensSettle` renders the registered lockup; toasts appear statically.
+- **Chrome** → `lensSettle` renders the registered lockup; toasts appear statically;
+  `pageEnter` / `worldFade` become an instant swap (the browser suppresses the
+  view transition under reduced-motion on its own — nothing to gate). `cardLift`
+  is retired, so there is nothing to reduce.
 - Drag/zoom remain available (user-initiated motion is not animation), but
   `orbitIdle` auto-rotate stays off.
 
