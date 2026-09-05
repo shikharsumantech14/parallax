@@ -33,7 +33,9 @@ body {
   align-items: center;
   gap: 24px;
   padding: 20px 0 16px;
-  border-top: 3px solid var(--ink);
+  /* Phase 7: 4px, per the prototype's masthead wrapper. The figure rule is a
+     separate 3px (--viz-edge, §14) — they are not the same rule. */
+  border-top: 4px solid var(--ink);
   border-bottom: 1px solid var(--ink);
   margin-bottom: 36px;
   position: relative;
@@ -122,10 +124,10 @@ body {
 .mh__status-tx b {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.17em;
   text-transform: uppercase;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .mh__status-tx span {
   font-family: var(--font-mono);
@@ -142,7 +144,8 @@ body {
 .mh__links a {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.17em;
   text-transform: uppercase;
   color: var(--ink);
   text-decoration: none;
@@ -160,22 +163,36 @@ body {
 .mh__cta {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.17em;
   text-transform: uppercase;
   color: var(--paper);
   background: var(--ink);
-  padding: 10px 16px;
+  border: 1px solid var(--ink);
+  padding: 9px 15px;
   border-radius: var(--r-pill);
   text-decoration: none;
   display: inline-flex; align-items: center; gap: 8px;
-  transition: background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
+  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
 }
-.mh__cta:hover { background: var(--accent); transform: translateY(-1px); }
+/* No hover lift: CANON §14 retires the gesture on chrome. Colour carries it. */
+.mh__cta:hover { background: var(--accent); border-color: var(--accent); }
 
 /* Phone nav — a native <details> disclosure, hidden entirely on desktop so the
    duplicate links never reach the accessibility tree. See Masthead.astro. */
 .mh__menu { display: none; }
 
+/* Phone-nav threshold. The Phase 7 spec says 768px and Phase 1 deferred the
+   change to here -- but it CANNOT ship until the masthead's layout is reworked.
+   Measured 2026-09-05 at 800px with the drawer moved to 768: the grid's
+   `1fr auto 1fr` crushes the brand column to 70px, and BOTH the wordmark and
+   the tagline wrap to two lines (.mh__name 70x36, .mh__tagline 70x36; the
+   masthead grows 85px -> 117px). Nothing overflows or clips, so the honest
+   test passes -- it is simply broken to look at. The prototype has no such
+   band because its masthead is a two-group flex (brand left, live badge + nav
+   + Subscribe right), not a three-column grid with a centre status pill.
+   Moving the badge is a visible structural decision, so the threshold stays
+   at 900 until that rework is ruled on. */
 @media (max-width: 900px) {
   .mh { grid-template-columns: 1fr auto; gap: 16px; }
   .mh__status { display: none; }
