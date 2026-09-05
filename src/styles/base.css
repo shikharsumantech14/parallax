@@ -420,9 +420,17 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 /* Standfirst — the lead-in voice. Serif at a confident regular weight
    (review R2: the old 20px/300 read spindly and "like a fourth font");
    clearly THE LEAD against the unified 16px sans body below it. */
+/* The standfirst rides with the body register. 20px, not the 21.3px that
+   would give exact x-height parity with a 17.5px Schibsted body: Fraunces
+   has the smallest x-height of the trio (0.435 per em against Schibsted's
+   0.530), so a serif lead set to match the body optically has to be set
+   very large. 20px closes most of the inversion — the lead had been reading
+   SMALLER than the prose it introduces — while keeping the lead a lead.
+   Ruled 2026-09-05, Phase 6.3. The `breath` layout keeps its own display
+   scale (layout-v2.css, clamp 19-24px). */
 .px-section__intro {
   font-family: var(--font-display);
-  font-size: 18.5px;
+  font-size: 20px;
   line-height: 1.55;
   color: var(--ink-soft);
   max-width: 62ch;
@@ -471,11 +479,24 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 /* THE body register (review R2: ONE size/leading for all flow text —
    prose paragraphs, quote/vote followups — CANON §5 rhythm rule). Justified
-   with hyphenation ≥640px (review R4: the print brand earns aligned edges). */
+   with hyphenation ≥640px (review R4: the print brand earns aligned edges).
+
+   17.5px, not the 18px RD-08 names, and not by taste — by measurement
+   (2026-09-05, Phase 6.3). The prototype's body is 18px/1.72 Literata, and
+   Schibsted's x-height is the LARGER of the two (0.530 vs 0.515 per em). So
+   18px Literata's 9.27px x-height is 9.27/0.530 = 17.5px of Schibsted; a
+   literal 18px would overshoot the design's own optical intent by 3%.
+   Leading stays 1.68: Schibsted's line box is 1.235em against Literata's
+   1.485em, so copying the prototype's 1.72 would over-lead.
+
+   Five worlds share this now — space's 15.5px/1.72 override was folded in
+   here. TRAVEL DELIBERATELY OPTS OUT (19px Fraunces, themes/travel.css) by
+   ruling 2026-09-05; its body therefore runs ~11% smaller in x-height than
+   the other five. Do not "fix" that as drift. */
 .px-prose__p,
 .px-followup {
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 17.5px;
   line-height: 1.68;
   color: var(--ink-soft);
   margin-bottom: 18px;
