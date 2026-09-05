@@ -3,7 +3,6 @@ import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
 import NewsletterNotice from '../components/core/NewsletterNotice.astro';
-import HeroLens from '../components/home/HeroLens.astro';
 import WireStrip from '../components/home/WireStrip.astro';
 import FeaturedPlate from '../components/home/FeaturedPlate.astro';
 import ManifestoStrip from '../components/home/ManifestoStrip.astro';
@@ -48,6 +47,18 @@ const archive = issuesByDate.map((issue) => ({
   readTimeMinutes: issue.data.readTimeMinutes
 }));
 
+/* The lead issue's fact rail (Phase 7). Every figure is DERIVED -- issues and
+   sources are counted from the published collection, desks from TOPICS -- so
+   the rail cannot drift from the archive the way a hardcoded number would.
+   The prototype's own counters are 'Issues / Sources cited / Desks'; its
+   values (24 issues, 1,412 sources) are its fiction, not ours. */
+const sourcesCited = allIssues.reduce((n, i) => n + (i.data.sources?.length ?? 0), 0);
+const homeFacts = [
+  { label: 'Issues', value: String(allIssues.length) },
+  { label: 'Sources cited', value: sourcesCited.toLocaleString('en-US') },
+  { label: 'Desks', value: String(TOPICS.length), accent: true },
+];
+
 // The wire — 3 latest dispatches (HOME-SPEC §3)
 const wireItems = issuesByDate.slice(0, 3).map((issue) => ({
   slug: issue.slug,
@@ -72,13 +83,12 @@ for (const issue of allIssues) {
 
   <Masthead variant="meta" issueNumber={featured ? String(issueNumberFor(featured.slug)).padStart(2, '0') : '01'} />
 
-  <HeroLens latestSlug={featured?.slug} />
 
   {wireItems.length > 0 && featured && <WireStrip items={wireItems} latestSlug={featured.slug} />}
 
-  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} countsByTopic={countsByTopic} cols={2} />
+  {featured && <FeaturedPlate issue={featured} issueNumber={issueNumberFor(featured.slug)} facts={homeFacts} />}
 
-  {featured && <FeaturedPlate issue={featured} issueNumber={issueNumberFor(featured.slug)} />}
+  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} countsByTopic={countsByTopic} cols={2} />
 
   <ManifestoStrip />
 

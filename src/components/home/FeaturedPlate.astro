@@ -15,11 +15,19 @@ import SectionBody from '../SectionBody.astro';
 import { KIND_PRIORITY } from '../../lib/story';
 import { renderEmphasis, formatIssueNumber } from '../../lib/text';
 
+interface Fact {
+  label: string;
+  value: string;
+  accent?: boolean;
+}
+
 interface Props {
   issue: CollectionEntry<'issues'>;
   issueNumber: number;
+  /** Publication counters for the fact rail. Derived by the page. */
+  facts?: Fact[];
 }
-const { issue, issueNumber } = Astro.props;
+const { issue, issueNumber, facts = [] } = Astro.props;
 const { topic, title, hook, sections } = issue.data;
 
 /* Never on the home — these kinds boot the WebGL runtime (three.js chunk). */
@@ -53,7 +61,21 @@ const art = sections
     <div class="px-fplate__links">
       <a class="px-fplate__read" href={`/issues/${issue.slug}/`}>Read the issue →</a>
       <a class="px-fplate__story" href={`/s/${issue.slug}/`}>60-second version →</a>
+      {/* The only route to /welcome from the home page since HeroLens left it
+          (Phase 7). Do not drop it without giving onboarding another door. */}
+      <a class="px-fplate__how" href="/welcome/">How Parallax works</a>
     </div>
+
+    {facts.length > 0 && (
+      <dl class="px-fplate__rail" aria-label="Parallax by the numbers">
+        {facts.map((f) => (
+          <div class="px-fplate__fact" data-accent={f.accent ? 'true' : undefined}>
+            <dt class="px-fplate__fact-l">{f.label}</dt>
+            <dd class="px-fplate__fact-v">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )}
   </div>
 
   {art && (
@@ -155,6 +177,58 @@ const art = sections
     padding: 14px 0;
   }
   .px-fplate__story:hover { color: var(--ink); border-color: var(--ink); }
+  .px-fplate__how {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding: 14px 0;
+  }
+  .px-fplate__how:hover { color: var(--ink); border-color: var(--rule); }
+
+  /* ── the fact rail ──────────────────────────────────────────────────────
+     The prototype stacks its counters VERTICALLY, because in its hero they
+     own the whole right column. Ours cannot: that column holds the issue's
+     own graphic, which is the stronger object and already built. So the rail
+     runs horizontally under the links, on a hairline. Deliberate deviation,
+     recorded rather than silently taken. */
+  .px-fplate__rail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin: 34px 0 0;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+  }
+  .px-fplate__fact { display: flex; flex-direction: column; gap: 6px; }
+  .px-fplate__fact-l {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-fplate__fact-v {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  /* The desks count wears the world accent, as the prototype's third counter
+     does -- accent-deep, because this is small text on light paper (TD-06). */
+  .px-fplate__fact[data-accent] .px-fplate__fact-v { color: var(--fp-accent-deep); }
+  @media (max-width: 640px) {
+    .px-fplate__rail { gap: 26px; }
+    .px-fplate__fact-v { font-size: 22px; }
+  }
 
   /* ── right column — the art plate ───────────────────────────────────── */
   /* Meta-toned .px-viz-style frame carried by the WRAPPER; the inner
