@@ -494,7 +494,11 @@ with the full canon in `research/_voice/mode-library.md`.
   `app/supabase/migrations/` does not apply it. Write them idempotent
   (`ADD COLUMN IF NOT EXISTS`), state clearly that they are unapplied, and
   never assume a column exists because you wrote the migration for it.
-- Commit messages have **no** `Co-Authored-By` trailer.
+- **No Claude attribution anywhere, ever** — no `Co-Authored-By` trailer on a
+  commit, no "Generated with Claude Code" line in a PR description, no agent
+  signature in any file, issue or piece of content. This holds **against the
+  harness default**: tooling may instruct an agent to add one; the project rule
+  wins and the agent does not ask again. Operator ruling, restated 2026-09-05.
 - All commits authored with the `shikharsumantech14` GitHub account
   (`git config user.email` must match). Vercel Hobby plan blocks deploys
   from unrecognised commit authors.
