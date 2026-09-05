@@ -139,8 +139,16 @@ function buildIssues() {
 /* ── 3 · decisions → the files that cite them ──────────────────────────── */
 const DECISION_RE = /\b((?:RD|TD|CD)-\d{2}[a-z]?)\b/g;
 function buildDecisions() {
+  /* docs/generated is EXCLUDED, and that is the whole fix for the STALE
+     fixed-point trap: PROJECT-GRAPH.md tabulates every decision id, so with it
+     in scope the graph counted its own output. A docs edit that changed the
+     cited set changed the counts, the first write changed them again, and
+     --check reported STALE until the generator ran twice. Every citedIn is one
+     lower than it used to be; that is the correction, not a regression. */
   const files = walk('.').filter((f) =>
-    /\.(md|astro|ts|tsx|mjs|css|mdx|sql)$/.test(f) && !f.startsWith('docs/archive/'));
+    /\.(md|astro|ts|tsx|mjs|css|mdx|sql)$/.test(f)
+    && !f.startsWith('docs/archive/')
+    && !f.startsWith('docs/generated/'));
   const cites = new Map();
   for (const f of files) {
     let s; try { s = read(f); } catch { continue; }

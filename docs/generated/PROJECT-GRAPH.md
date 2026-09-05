@@ -149,41 +149,41 @@ only see citations. Treat a zero as a question, never as a verdict.
 
 | id | cited in | implemented by |
 |---|---|---|
-| **CD-01** | 7 files | 3 |
-| **CD-02** | 7 files | 4 |
-| **CD-03** | 3 files | 0 — _dangling_ |
-| **CD-04** | 3 files | 0 — _dangling_ |
-| **CD-05** | 3 files | 1 |
-| **CD-06** | 2 files | 0 — _dangling_ |
-| **CD-07** | 3 files | 1 |
-| **CD-08** | 3 files | 0 — _dangling_ |
-| **CD-09** | 6 files | 2 |
-| **CD-10** | 3 files | 1 |
-| **CD-11** | 6 files | 3 |
-| **CD-12** | 10 files | 2 |
-| **RD-01** | 10 files | 3 |
-| **RD-01a** | 8 files | 5 |
-| **RD-01b** | 36 files | 3 |
-| **RD-02** | 5 files | 0 — _dangling_ |
-| **RD-03** | 7 files | 2 |
-| **RD-04** | 4 files | 0 — _dangling_ |
-| **RD-05** | 32 files | 22 |
-| **RD-06** | 8 files | 1 |
-| **RD-07** | 4 files | 1 |
-| **RD-08** | 9 files | 4 |
-| **RD-09** | 7 files | 1 |
-| **RD-10** | 5 files | 0 — _dangling_ |
-| **RD-11** | 4 files | 0 — _dangling_ |
-| **RD-12** | 5 files | 1 |
-| **RD-13** | 6 files | 1 |
-| **TD-01** | 46 files | 10 |
-| **TD-02** | 37 files | 7 |
-| **TD-03** | 32 files | 2 |
-| **TD-04** | 10 files | 8 |
-| **TD-05** | 2 files | 0 — _dangling_ |
-| **TD-06** | 10 files | 1 |
-| **TD-07** | 2 files | 0 — _dangling_ |
-| **TD-08** | 2 files | 0 — _dangling_ |
+| **CD-01** | 6 files | 3 |
+| **CD-02** | 6 files | 4 |
+| **CD-03** | 2 files | 0 — _dangling_ |
+| **CD-04** | 2 files | 0 — _dangling_ |
+| **CD-05** | 2 files | 1 |
+| **CD-06** | 1 files | 0 — _dangling_ |
+| **CD-07** | 2 files | 1 |
+| **CD-08** | 2 files | 0 — _dangling_ |
+| **CD-09** | 5 files | 2 |
+| **CD-10** | 2 files | 1 |
+| **CD-11** | 5 files | 3 |
+| **CD-12** | 9 files | 2 |
+| **RD-01** | 9 files | 3 |
+| **RD-01a** | 7 files | 5 |
+| **RD-01b** | 35 files | 3 |
+| **RD-02** | 4 files | 0 — _dangling_ |
+| **RD-03** | 6 files | 2 |
+| **RD-04** | 3 files | 0 — _dangling_ |
+| **RD-05** | 31 files | 22 |
+| **RD-06** | 7 files | 1 |
+| **RD-07** | 3 files | 1 |
+| **RD-08** | 8 files | 4 |
+| **RD-09** | 6 files | 1 |
+| **RD-10** | 4 files | 0 — _dangling_ |
+| **RD-11** | 3 files | 0 — _dangling_ |
+| **RD-12** | 4 files | 1 |
+| **RD-13** | 5 files | 1 |
+| **TD-01** | 45 files | 10 |
+| **TD-02** | 36 files | 7 |
+| **TD-03** | 31 files | 2 |
+| **TD-04** | 9 files | 8 |
+| **TD-05** | 1 files | 0 — _dangling_ |
+| **TD-06** | 9 files | 1 |
+| **TD-07** | 1 files | 0 — _dangling_ |
+| **TD-08** | 1 files | 0 — _dangling_ |
 
 ## Issues
 
