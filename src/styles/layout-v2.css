@@ -87,3 +87,90 @@
     padding-bottom: 15vh; /* lets the copy scroll past while the stage holds */
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE ISSUE FLOOR PLAN (RD-12, Phase 7)
+   170px fact rail · 1fr prose · 250px dek — the prototype's `issueCols`
+   (Web.dc.html:980), which collapses to a single column on phones.
+
+   The rails are SIBLINGS of #px-article, never wrappers around it. That is
+   deliberate and load-bearing: ReadingGate walks `#px-article`.children to
+   count `.px-section`, so nesting the sections one level deeper would make
+   the gate find nothing and hand the whole issue away for free. Keep the
+   article's own child list flat.
+   ══════════════════════════════════════════════════════════════════════════ */
+.px-floor {
+  display: grid;
+  grid-template-columns: 170px 1fr 250px;
+  align-items: start;
+  column-gap: 0;
+}
+.px-floor > #px-article {
+  min-width: 0;                      /* let the prose column shrink, not overflow */
+  padding-inline: 30px;
+  border-inline: 1px solid var(--rule);
+}
+
+.px-floor__facts,
+.px-floor__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-block: 26px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-floor__facts { padding-right: 16px; }
+.px-floor__aside { padding-left: 18px; }
+
+.px-floor__no {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--ink);
+}
+.px-floor__fact { display: flex; flex-direction: column; gap: 4px; }
+.px-floor__fact b {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+/* The Voice cell is the one that carries the world (standing ruling). */
+.px-floor__fact--voice b { color: var(--accent-deep); }
+
+.px-floor__aside-l {
+  margin: 0 0 8px;
+  letter-spacing: 0.17em;
+}
+.px-floor__dek-t {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+/* Phones get one column and no rails, as the prototype does (`marginShow`).
+   The facts are NOT dropped — Banner already carries date, read time and the
+   issue number above the article, so hiding the rail loses nothing but the
+   Voice cell, which is decoration at this width. */
+@media (max-width: 900px) {
+  .px-floor { grid-template-columns: 1fr; }
+  .px-floor__facts,
+  .px-floor__aside { display: none; }
+  .px-floor > #px-article { padding-inline: 0; border-inline: 0; }
+}

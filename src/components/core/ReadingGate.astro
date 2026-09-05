@@ -78,20 +78,39 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     var FREE = parseInt(gate.getAttribute('data-free') || '2', 10);
     var appUrl = gate.getAttribute('data-app-url') || 'https://app.parallaxlens.com';
 
+    /* RD-12: the free allowance must always include at least one GRAPHIC.
+       Counting content alone is not enough -- an issue that opens with two
+       prose sections used to wall the reader before any figure, which sells
+       the thing Parallax is for. `data-kind` is on every .px-section already
+       (core/Section.astro), and the narrative set is the same seven kinds
+       check-catalog treats as EXPLAIN-exempt. Keep the two lists in step. */
+    var NARRATIVE = ['hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison'];
+    function isGraphic(el) {
+      if (!el.classList.contains('px-section')) return false;
+      var k = el.getAttribute('data-kind') || '';
+      return k !== '' && NARRATIVE.indexOf(k) === -1;
+    }
+
     var kids = Array.prototype.slice.call(article.children);
-    var shown = 0, gating = false;
+    var shown = 0, seenGraphic = false, gating = false;
     kids.forEach(function (el) {
       if (el.id === 'px-finish-sentinel') return;
       var isContent = el.classList.contains('px-section') || el.classList.contains('px-prose-full');
       if (!gating) {
         if (isContent) {
           shown++;
-          if (shown > FREE) {
+          /* Test BEFORE crediting this element, or the graphic that satisfies
+             the guarantee is the very one the wall hides -- the flag has to
+             mean "a figure has ALREADY been given away", not "this one would
+             count". Cost a shipped-looking constraint that did nothing. */
+          if (shown > FREE && seenGraphic) {
             gating = true;
             article.insertBefore(gate, el);
             gate.hidden = false;
             el.classList.add('px-gate-hidden');
+            return;
           }
+          if (isGraphic(el)) seenGraphic = true;
         }
       } else {
         el.classList.add('px-gate-hidden');

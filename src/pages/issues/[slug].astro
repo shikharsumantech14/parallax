@@ -14,6 +14,7 @@ import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
 import ReadingGate from '../../components/core/ReadingGate.astro';
 import WelcomeBack from '../../components/core/WelcomeBack.astro';
+import { formatIssueNumber } from '../../lib/text';
 import TopicStrip from '../../components/home/TopicStrip.astro';
 
 export async function getStaticPaths() {
@@ -35,6 +36,12 @@ const allIssues = await getCollection('issues');
 const sorted = allIssues.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
 const issueIndex = sorted.findIndex((i) => i.slug === issue.slug);
 const issueNumber = String(issueIndex + 1).padStart(2, '0');
+
+/* The fact rail's date. Same stamp as Banner, CategoryCard and the home
+   rows -- one date format across the site. */
+const factDate = data.publishedAt
+  .toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })
+  .toUpperCase();
 
 // Per-topic "back to the desk" wording — matches the voice of each
 // topic-index page so the navigation reads as "back to where this
@@ -95,12 +102,37 @@ const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
 
   {data.primer && <Primer text={data.primer} />}
 
-  <article id="px-article" data-mode="full">
-    {data.sections.map((section, i) => (
-      <SectionRenderer section={section} index={numberIndex[i]} />
-    ))}
-    <span id="px-finish-sentinel" aria-hidden="true"></span>
-  </article>
+  <div class="px-floor">
+    <aside class="px-floor__facts" aria-label="Issue facts">
+      <span class="px-floor__no">{formatIssueNumber(issueNumber)}</span>
+      <span class="px-floor__fact">Published<b>{factDate}</b></span>
+      {data.readTimeMinutes && (
+        <span class="px-floor__fact">Reading time<b>{data.readTimeMinutes} min</b></span>
+      )}
+      <span class="px-floor__fact">Sources<b>{data.sources.length}</b></span>
+      {/* Fourth cell is VOICE, not "Mode" — the standing ruling: "Mode"
+          collides fatally with the Full/Skim `mode` state the toolbar owns.
+          Renders only when the stylist authored one; the rail drops to three
+          cells otherwise, never an invented value. */}
+      {data.voice && (
+        <span class="px-floor__fact px-floor__fact--voice">Voice<b>{data.voice}</b></span>
+      )}
+    </aside>
+
+    <article id="px-article" data-mode="full">
+      {data.sections.map((section, i) => (
+        <SectionRenderer section={section} index={numberIndex[i]} />
+      ))}
+      <span id="px-finish-sentinel" aria-hidden="true"></span>
+    </article>
+
+    <aside class="px-floor__aside" aria-label="About this issue">
+      <div class="px-floor__dek">
+        <p class="px-floor__aside-l">The dek</p>
+        <p class="px-floor__dek-t">{data.hook}</p>
+      </div>
+    </aside>
+  </div>
 
   <ReadingGate freeSections={2} />
 
