@@ -229,9 +229,14 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 - **`--r-tile` / `--r-card` are consumed by `app/` from the shared token
   source** — flipping them there flattens the app against RD-05's own carve-out.
   Override in the publication's `base.css`. (Nearly done at shell adoption.)
-- **`npm run graph` chained with `graph:check` in one shell line reports STALE
-  spuriously** — the check runs before the write flushes. Run the script
-  directly, or the two commands separately. (Cost a diagnosis.)
+- **`graph:check` can report STALE right after a fresh `npm run graph`** — not
+  a flush race, as this entry used to say. The citation scan walks `docs/`
+  including `docs/generated/`, so the graph counts its own output; when the
+  set of cited decisions changes, the first write changes the counts and a
+  second run reaches the fixed point. Run the generator twice, then check.
+  The real fix is to skip `docs/generated` in the scan (one line in
+  `scripts/project-graph.mjs`; changes every `citedIn` by one). (Cost two
+  diagnoses.)
 - **The preview browser reports `prefers-reduced-motion: reduce`**, so the
   motion contract's global reset makes every `transition` compute to `none`.
   Not a CSS defect — verify against a known-good committed rule first. (Cost a
