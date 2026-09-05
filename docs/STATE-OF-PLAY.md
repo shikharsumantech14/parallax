@@ -245,14 +245,17 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 - **`--r-tile` / `--r-card` are consumed by `app/` from the shared token
   source** — flipping them there flattens the app against RD-05's own carve-out.
   Override in the publication's `base.css`. (Nearly done at shell adoption.)
-- **`graph:check` can report STALE right after a fresh `npm run graph`** — not
-  a flush race, as this entry used to say. The citation scan walks `docs/`
-  including `docs/generated/`, so the graph counts its own output; when the
-  set of cited decisions changes, the first write changes the counts and a
-  second run reaches the fixed point. Run the generator twice, then check.
-  The real fix is to skip `docs/generated` in the scan (one line in
-  `scripts/project-graph.mjs`; changes every `citedIn` by one). (Cost two
-  diagnoses.)
+- **`graph:check` used to report STALE right after a fresh `npm run graph`** —
+  never a flush race, whatever this entry said first. The citation scan walked
+  `docs/` including `docs/generated/`, so the graph counted its own output:
+  when the set of cited decisions changed, the first write changed the counts
+  and only a second run reached the fixed point. **Fixed 2026-09-05
+  (`1459380`)** — `buildDecisions()` excludes `docs/generated/`, one pass now
+  reaches the fixed point, and every `citedIn` dropped by exactly one (all 35
+  verified; nothing else moved). The entry stays because the *shape* recurs: a
+  generator whose output lives inside its own input set has no fixed point in
+  one pass. Check that before adding anything to `docs/generated/`. (Cost two
+  diagnoses and three double-runs.)
 - **A class-name sweep cannot establish an invariant about a behaviour.**
   `b0260b2` swept `.px-viz__src` and the docs recorded source-once as settled;
   three differently-named emitters were still rendering, one on a published
