@@ -27,12 +27,28 @@ build**:
 - `primer` — 80–420 chars
 - `plain` — max 220 chars. Explains the *form* of the viz ("each block is one
   seat"), never the data
-- `howToRead` — 40–360 chars, renders ABOVE the graphic
-- `caption` — the DATA claim; the only comprehension field the verifier traces
+- `howToRead` — 40–360 chars, renders ABOVE the graphic. Optional: leave it
+  out and `EXPLAIN[kind].how` (`src/lib/explainers.ts`) renders in its place —
+  the fallback is live for every kind (a section shows exactly one panel).
+  **Instruments — any kind with a control (scaling-plot, xg-race,
+  climate-spiral, tactics-pitch) — must author one**, and the static reading
+  leads, the control clause trails ("…Press Linear for the proportional
+  view"): the control is `html.js`-gated, the paragraph is not
+- `caption` — the DATA claim; the only comprehension field the verifier traces.
+  Never a scale or axis word ("· log scale" is FORM — it was stripped from
+  the published token-bill caption on 2026-09-04, CAPTION-FORM); a reader
+  with the log/linear toggle can make such a caption false
 - `sources[].url` — must be a real URL; mock URLs break the build
 - every `sourceRefs[]` entry must resolve to an existing `source.id`
 - `layout` ∈ `default | wide | bleed | split | split-flip | breath`
 - `skimCaption` applies to `kind: prose` only; other kinds ignore it
+- `source` — string or `{ label, date }`, on the section (or legacy `data.source`).
+  Renders ONCE, from `core/Section.astro`, as `SOURCE · …` — the second line of
+  the plain paragraph BELOW the graphic, for every kind (`.px-plain__src`).
+  Components emit no source line of their own any more (`.px-viz__src` is gone),
+  so do not duplicate the source into the graphic's data or caption. `plain`
+  renders in the same paragraph, as `IN PLAIN TERMS — …`.
+
 
 ## Status
 

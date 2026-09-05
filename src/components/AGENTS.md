@@ -18,6 +18,16 @@ Components split into:
   progressive-enhancement islands — `core/Reveal.astro` and
   `core/VizMotion.astro` — discussed in §"v2 data-viz + chrome class
   exception" below.
+
+  **`core/VizCard.astro`** (RD-01a, 2026-08) is the shared shell the revamp-wave
+  kinds render inside — and, since Phase 6.2 (2026-09-04), `scaling-plot`,
+  `xg-race` and `climate-spiral` too: ten kinds in all. It renders the caption
+  row (with an optional chip), an optional in-card how-to-read panel, and the
+  graphic slot — **not** the source line (it still accepts `source`, ignored).
+  Every other piece of explainability chrome — the how-to-read panel for the 87
+  non-VizCard kinds, the `plain` line, the `Source · …` second line — is
+  `core/Section.astro`'s, for every kind. Components render none of it.
+
 - **`home/`** — meta-brand pieces used only on `/` and `/topics/*` index
   pages (TypographicChord, TopicStrip, CategoryCard, CategoryGrid,
   ArchiveList).
@@ -25,11 +35,11 @@ Components split into:
   Each topic also has its own `<Topic>Index.astro` that drives
   `/topics/<topic>/`.
 - **`SectionRenderer.astro`** — the article-chrome shell. Wraps a section in
-  `core/Section.astro` (numbering, eyebrow, `plain` line, skim caption) and
+  `core/Section.astro` (numbering, eyebrow, the how-to-read panel ABOVE the graphic — `section.howToRead ?? EXPLAIN[kind].how` — and, BELOW it, the `plain` line with the `Source · …` second line, plus the skim caption) and
   delegates the actual kind dispatch to `SectionBody.astro`.
 - **`SectionBody.astro`** — **the dispatcher** (since 2026-07-05). Reads
   `section.kind`, renders the matching component, and passes through the
-  section's `data` payload. Shared with story mode, which renders bodies
+  section's `data` payload (and, for the ten `VizCard` kinds only, resolves `section.howToRead ?? EXPLAIN[section.kind]?.how` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports `EXPLAIN` for this). Shared with story mode, which renders bodies
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
@@ -67,7 +77,7 @@ joined `chamber` + `solar-system`) → the 2026-07-14 **breadth pass** (+22).
 `src/components/SectionBody.astro` (no wrapper — shared with story mode);
 `SectionRenderer.astro` wraps it in the article chrome (`core/Section.astro`
 number/eyebrow/title/intro + the "In plain terms" line + `data-layout` +
-the skim-caption block, which any kind may now carry). **Add new kinds to
+the how-to-read panel ABOVE the graphic (`section.howToRead ?? EXPLAIN[kind].how`, hidden by a `:has()` rule when the slotted `VizCard` renders its own) + the `plain` line with the `Source · …` second line BELOW it + the skim-caption block, which any kind may now carry; SectionRenderer passes `source` and `howToRead` through to CoreSection). **Add new kinds to
 SectionBody**, not SectionRenderer.
 
 | Kind | Component | Topic-scope |
@@ -112,7 +122,7 @@ in their parent topic.
 `timeline` and `paradox` kinds were rewritten to the v2 kit's exact markup
 and animations, and now emit the kit's *generic* data-viz class names
 (`.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel`) inside the
-shared elevated `.px-viz` card (CSS in `src/styles/dataviz-v2.css`). This is
+shared flat `.px-viz` card (`.px-viz` itself in `base.css` — radius 0, no shadow, a 3px `--viz-edge` top rule; the kit classes' CSS in `src/styles/dataviz-v2.css`). This is
 a deliberate, documented break from the `px-` prefix convention — see the
 "v2 data-viz + chrome class exception" section below for the full list, the
 `html.js`-gated reveal contract, and which components were left on their
@@ -132,7 +142,7 @@ contract — is documented in the "3D / interactive component library" section
 (§10). Each component's per-component cosmetic CSS is a **scoped
 `<style>` in its own `.astro`** (unique `px-*` prefix — see §4); only the
 shared 3D mechanics + `.viz3d` mount live in `components-3d.css`. All take
-`caption?` + `source?` like the other viz, and all render a static
+`caption?` + `source?` like the other viz — but since Phase 6.1 (2026-09-04) **no component renders the source line itself**: `core/Section.astro` emits it as `.px-plain__src` below the graphic for every kind, so a new component must not add one, and all render a static
 SVG/HTML fallback by default.
 
 | Kind | Component | Topic | Tech |
@@ -160,7 +170,7 @@ SVG/HTML fallback by default.
 | `data-globe` | `topic/earth/DataGlobe.astro` | earth | **WebGL** |
 | `core-sample` | `topic/earth/CoreSample.astro` | earth | CSS-3D |
 | `sea-level-tank` | `topic/earth/SeaLevelTank.astro` | earth | CSS-3D/SVG |
-| `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG/canvas |
+| `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG/canvas — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); MONTH scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-month tables precomputed at build; the scroll-in reveal owns `stroke-dashoffset`, the scrub owns opacity only) |
 | `quake-depth` | `topic/earth/QuakeDepth.astro` | earth | SVG |
 | `terrain-relief` | `topic/earth/TerrainRelief.astro` | earth | **WebGL** (FLAGSHIP — real DEM ridgeline/contour; shared math `scripts/viz3d/terrain.ts`) |
 | `plate-motion` | `topic/earth/PlateMotion.astro` | earth | **WebGL** (plate velocity field from Euler poles; data `public/geo/plates.json`) |
@@ -170,7 +180,7 @@ SVG/HTML fallback by default.
 | `arch-stack` | `topic/tech/ArchStack.astro` | tech | CSS-3D |
 | `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | SVG |
 | `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG |
-| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG |
+| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Carries the measurements for the still-owed Phase-5 mobile font bump and why a plain bump fails |
 | `throughput-dial` | `topic/tech/ThroughputDial.astro` | tech | SVG/CSS-3D |
 | `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`) |
 | `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + SVG latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`) |
@@ -189,7 +199,7 @@ SVG/HTML fallback by default.
 | `fare-terrain` | `topic/travel/FareTerrain.astro` | travel | SVG (fare/price ridgeline across dates or routes) |
 | `tactics-pitch` | `topic/sports/TacticsPitch.astro` | sports | CSS-3D/SVG |
 | `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG |
-| `xg-race` | `topic/sports/XgRace.astro` | sports | SVG |
+| `xg-race` | `topic/sports/XgRace.astro` | sports | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); minute scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-minute tables precomputed at build; clipPath id derived from a payload hash) |
 | `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG |
 | `player-card` | `topic/sports/PlayerCard.astro` | sports | CSS-3D flip |
 | `flight-of-the-ball` | `topic/sports/FlightOfTheBall.astro` | sports | **WebGL** (FLAGSHIP — drag + Magnus trajectory; shared math `scripts/viz3d/ballistics.ts`) |
@@ -230,8 +240,8 @@ every breadth kind in their world.
 ### Revamp-wave kinds (2026-08, docs/REVAMP-PLAN.md Phase 3) — 7 so far, 21 to go
 
 All render through `core/VizCard.astro` (the RD-01a shell seam: caption row,
-how-to-read panel, source line — components never render those themselves) and
-consume the `px-inst` control/readout/legend primitive in `dataviz-v2.css`.
+optional in-card how-to-read panel, the graphic slot — components never render caption or how-to-read themselves, and since Phase 6.1 nobody renders the source line but `core/Section.astro`, which puts it below the graphic as `.px-plain__src` for every kind; VizCard still accepts `source` but ignores it). Ten kinds render through VizCard today: the seven below plus `scaling-plot`, `xg-race` and `climate-spiral`, re-routed in Phase 6.2 (2026-09-04). For those ten, `SectionBody` resolves `section.howToRead ?? EXPLAIN[kind].how` at the dispatch line so the card carries the panel, and `.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none }` in `dataviz-v2.css` hides Section's copy — exactly one panel per section. All ten
+consume the `px-inst` control/readout/legend primitive in `dataviz-v2.css`. Its readout has an **opt-in** `px-inst__readout--sized` modifier: the component renders its worst-case readout string as a `visibility: hidden` `.px-inst__sizer` twin stacked in the same grid cell, so the box reserves its true height (a `min-height: 3.2em` was not enough — `xg-race` reflowed 15px mid-drag, `scaling-plot` jumped 17px on the live page). Used by `scaling-plot`, `xg-race`, `climate-spiral`. **Keep it opt-in** — `StateTimeline` mixes inline children in its readout and the grid stack would break it.
 Contract per kind: `docs/design/blueprints/<world>/<kind>.md` — **read its
 standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
 
@@ -268,7 +278,7 @@ eight apply to every kind.
 4. **Add CSS** in the correct theme file (`src/styles/themes/<topic>.css`),
    `base.css` if universal, or a scoped `<style>` (v2-library pattern).
 5. **Add the EXPLAIN entry** in `src/lib/explainers.ts` (what/how — feeds the
-   in-flow "In plain terms" line AND the expand modal; blueprint §9 wording).
+   in-flow "In plain terms" line (`what`) AND — since 2026-09-04 — the live how-to-read panel above the graphic (`how`, the fallback whenever the section has no authored `howToRead`; every kind renders it) AND the expand modal; blueprint §9 wording. Rule for instrument kinds: the static reading leads, the control clause trails — the controls are `html.js`-gated, the paragraph is not).
 6. **Add the catalog block** in `docs/design/catalog.md` (same order as
    SECTION_KINDS — `npm run check:catalog` fails otherwise).
 7. **Document it here** — add a row to §2 and any non-obvious rule. New v2
@@ -296,7 +306,7 @@ class exception" section below for full detail):
   (`core/Masthead.astro`, CSS in `base.css`).
 - The ported data-viz adopt the kit's *generic* names —
   `.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel` (plus the
-  shell hooks `.px-viz__cap` / `.px-viz__src`) — defined in
+  shell hooks `.px-viz__cap` / `.px-viz__how` — `.px-viz__src` was retired 2026-09-04, the source line is now `.px-plain__src`, see §4 `px-plain`) — defined in
   `src/styles/dataviz-v2.css`. These are intentional adoptions, **not**
   collisions: the kit's animation/reveal CSS is tightly coupled to them.
 
@@ -304,7 +314,7 @@ Known reservations (still-live `px-` prefixes):
 
 | Prefix | Owner | Notes |
 |---|---|---|
-| `px-viz` | shared elevated data-viz card (`base.css`) | wraps every ported chart; `data-reveal` root |
+| `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; `data-reveal` root; the ⤢ `.px-vexp` button is 44px on `(pointer: coarse)` |
 | `px-fin` | `finish-interval` | sports · `FinishInterval.astro` |
 | `px-waf` | `attrition-waffle` | travel · `AttritionWaffle.astro` |
 | `px-stl` | `state-timeline` | tech · `StateTimeline.astro` |
@@ -320,7 +330,7 @@ Known reservations (still-live `px-` prefixes):
 | `px-msl` | MatchStatLine | kept on `px-` |
 | `px-primer` | Primer | |
 | `px-prose-full` / `px-skim-caption-block` | skim-mode wrappers (now emitted by `SectionRenderer.astro`) | |
-| `px-plain` | the "In plain terms" line (`core/Section.astro`; CSS in `viz-type.css`) | |
+| `px-plain` | the "In plain terms" line (`core/Section.astro`; CSS in `viz-type.css`) | `.px-plain__src` is its second line — `Source · …` (real text, 9px/600/.14em mono), rendered by Section for EVERY kind from `section.source ?? data.source` (`{label, date}` joined with ` · `). The one source emitter in the codebase since 2026-09-04; components must not add their own |
 | `px-act` | ActBreak chapter divider (scoped in `core/ActBreak.astro`) | |
 | `px-acct` | AccountEntry masthead slot (scoped in `core/AccountEntry.astro`) | |
 | `px-hlens` | home hero (scoped in `home/HeroLens.astro`) — carries the ONE sanctioned cursor-parallax (HOME-SPEC §2) | |
@@ -518,7 +528,7 @@ These render directly in templates, not via the dispatcher:
 |---|---|
 | `core/Hero.astro` | inline in `src/pages/issues/[slug].astro` |
 | `core/Primer.astro` | inline in `src/pages/issues/[slug].astro` |
-| `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` (floating glass pill: reading-progress bar + Full/Skim toggle + live % + read time + Save). Replaced the old `.px-reader-controls` row. |
+| `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` (floating flat pill — opaque `var(--paper)`, `border: 2px solid var(--ink)`, no backdrop-filter or shadow, pill radius kept; glass is modal-only since 2026-09-04: reading-progress bar + Full/Skim toggle + live % + read time + Save). Replaced the old `.px-reader-controls` row. |
 | `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`** — not mounted on the issue page directly. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
 | `core/AnnotationLayer.astro` | inline in `[slug].astro`, between article and ReactionsBar |
@@ -536,7 +546,7 @@ These render directly in templates, not via the dispatcher:
 | `core/VizMotion.astro` | both layouts, after content — count-up + cursor-warmth island (`[data-countup]` / `[data-warmth]`) |
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
-| `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. |
+| `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. The ⤢ button (`.px-vexp`) is 44px on `(pointer: coarse)`. Because the source line renders from `core/Section.astro` rather than inside the card, **the modal shows no source** — ruled as-is on 2026-09-04, not a bug. The modal keeps its glass; it is the only surface that does. |
 | `intro/IntroStory.astro` | `welcome.astro` (and inside `IntroExperience`) — the 5-scene "The Second Angle" onboarding player. Vanilla `is:inline` player (auto/manual, prev/next/dots/skip/keyboard); no-JS scenes stack + scroll. `px-intro`. |
 | `intro/IntroExperience.astro` | `index.astro`, once — home first-visit overlay. Auto-plays the story, then an optional spotlight tour of the real home. Gated by localStorage `px_intro_seen_v1`; `?intro=1` force-replays; `[hidden]` by default (no-JS shows nothing). `px-xp`. |
 | `intro/WorldViz.astro` | inside `IntroStory` — per-category mini data-viz on the six worlds cards (vote split / orbit / stripes / commit grid / route / momentum wave) |
@@ -681,14 +691,14 @@ selectors, so renaming them would mean rewriting the whole animation layer.
   gone; their per-world microcopy now reads in `core/Banner.astro`.
 - **Data-viz:** the generic kit names
   `.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel`, plus the
-  shared shell hooks `.px-viz__cap` (caption) and `.px-viz__src` (source
+  shared shell hooks `.px-viz__cap` (caption) and `.px-viz__how` (how-to-read panel). `.px-viz__src` was one of them until 2026-09-04; it is **retired** — zero emitters, zero rules — and the source
   line). All CSS lives in the new `src/styles/dataviz-v2.css`, imported
   **last** in both `IssueLayout.astro` and `HomeLayout.astro`.
 
 **Components fully ported** (rewritten to the kit's markup + animations —
 stroke-draw lines, grow bars, scale-pop polygon, count-up tiles, the
 44-column MP-dot vote chamber, scan sweep — and wrapped in the shared
-elevated `.px-viz` card):
+flat `.px-viz` card — radius 0, no shadow, 3px `--viz-edge` top rule since 2026-09-04):
 
 | Component | Kit class |
 |---|---|
@@ -866,7 +876,7 @@ above 640px). Safety nets: `.px-viz { max-width: 100% }`,
 viewport, because the SVG cards use a fixed `viewBox` with `width: 100%`.
 There is no clean blanket fix — a blanket `min-width` breaks the tall-narrow
 columns, discs and gauges. Today mobile legibility is carried by the **HTML**
-layer (the plain line, caption, and legends/tables at real px) plus the ⤢
+layer (the how-to-read panel, the plain line with its `Source ·` line, caption, and legends/tables at real px) plus the ⤢
 expand-modal study view. A per-component mobile-reflow round was scoped and
 **not** done; it is the obvious next move if small-screen charts matter.
 
@@ -893,6 +903,87 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+
+### 2026-09-04 — Phase 6.1 shell adoption + 6.2 best-first; REVAMP-PLAN v3 signed
+
+Eleven commits (e5fd2f1 → dc6a28c), all committed. The canon edits
+(`docs/design/CANON.md`, `motion.md`) are a MARKED DRAFT awaiting the
+operator's signature; the `--t-page` retime is the one open token decision.
+
+- **The source fold (§1, §2, §4, §9).** `core/Section.astro` now renders the
+  source line as `.px-plain__src` — `Source · …`, 9px/600/.14em mono — as the
+  plain paragraph's **second line, below the graphic, for every kind**, from
+  `section.source ?? data.source` (`SectionRenderer` passes `source` through;
+  Section joins `{label, date}`). The **seventy** per-component `.px-viz__src`
+  emitters were stripped (66 canonical one-liners, 3 variants; SeatChart's
+  bespoke `px-seats__source` had already gone to the shared class and is now
+  gone with it). `.px-viz__src` has **zero emitters and zero CSS** — the rule
+  and the interim unscoped hide were retired in `dataviz-v2.css` (a note
+  remains). `VizCard` no longer renders source (still accepts the prop).
+  `CourtValue` kept its value-MODEL line on a new scoped `.px-cval__model`.
+  The ⤢ modal portals the card, so it shows no source — ruled as-is. The
+  verifier is unaffected (it reads MDX).
+- **The how-to-read fallback is ON (§1, §2, §3).** `core/Section.astro`
+  renders `<p class="px-viz__how px-viz__how--section">` ABOVE the graphic
+  (after intro, before the slot) for every kind from
+  `section.howToRead ?? EXPLAIN[kind].how`. For the **ten** VizCard kinds
+  (`bill-funnel`, `age-pyramid`, `margin-bullets`, `state-timeline`,
+  `attrition-waffle`, `finish-interval`, `channel-ternary`, `scaling-plot`,
+  `xg-race`, `climate-spiral`) `SectionBody` resolves the same expression at
+  the dispatch line (it now imports `EXPLAIN`) so the card carries the panel,
+  and `.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section
+  { display: none }` guarantees exactly ONE panel per section. Before this an
+  authored `howToRead` on any of the 87 non-VizCard kinds was silently
+  dropped. Instrument rule: **the static reading leads, the control clause
+  trails** (controls are `html.js`-gated, the paragraph is not).
+  `tactics-pitch`'s `how` is the only live control cue; 29 draft-only cues
+  await a bulk pass (`docs/design/EXPLAIN-HOW-REVIEW.md`: 90 `how` strings,
+  30 CUE / 60 READ).
+- **Flat surfaces (§4, §7, §9).** `.px-viz` is flat — radius 0, no shadow,
+  `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour
+  only. New per-theme token `--viz-edge` (`var(--ink)` on politics/earth/
+  travel, `var(--accent)` on space/tech/sports). The RD-05 radius flip
+  (`--r-card: 0; --r-tile: 0`) lives in `base.css :root`, **not** in
+  `shared/design/tokens.css`, because `app/` consumes those; `--r-pill` is
+  deliberately untouched (43 sites of UI chrome). Shadow sweep 115 → 64
+  declarations: removed on surfaces only (`.px-compare`, `.px-beats`,
+  `.px-bills__card`, `.px-analogy`, `.px-shells`, `.px-commit__frame`,
+  `.px-elev__stack`, the gate card, letters, annotation items, home cards,
+  featured plate, travel ticket cards, the six topic-index empty states — which
+  gained a 1px hairline — and the bespoke roots `.px-coalc` / `.px-swheel`,
+  which also gained the 3px `--viz-edge` rule). KEPT: focus rings, inset
+  hairlines, halos on data marks, slider thumbs, CSS-3D scene depth (ArchStack,
+  PlayerCard, TacticsPitch, ChipDie, CoreSample, SeaLevelTank,
+  AtmosphereColumn, BillPassage, ItineraryReel — RD-06), viz3d overlay,
+  modal/popover/toast chrome, the onboarding surface. Ten of seventeen theme
+  "elevated card" rules were v2-port orphans (`.px-readout`, `.px-vote`,
+  `.px-paradox`, `.px-appr__svg`, `.px-pwm`, `.px-ortrace__wrap`,
+  `.px-launch__svg`, `.px-bench__svg`, `.px-scurve__svg`, `.px-route__card`)
+  — elevation blocks deleted, base rules left for the deferred dead-CSS pass
+  (§9). `ReadingToolbar` `.rtb` is flat: opaque paper, `2px solid var(--ink)`,
+  no backdrop-filter, pill radius kept; glass survives on the modal only. The
+  ⤢ `.px-vexp` is 44px on `(pointer: coarse)`.
+- **Phase 6.2 best-first (§2).** `scaling-plot` gained a LOG/LINEAR axis
+  toggle (`px-inst__chip` + `aria-pressed`; both projections computed in
+  frontmatter, no scale math on the client; two latent tick-formatter bugs
+  fixed). `xg-race` gained a minute scrub and `climate-spiral` a MONTH scrub
+  (month, not the plan's year — the payload is four years): native
+  `<input type=range>`, ships hidden, the island unhides it once the payload
+  parses; per-minute/month tables precomputed at build. All three now route
+  through `core/VizCard.astro`. `px-inst` gained the **opt-in**
+  `px-inst__readout--sized` + `.px-inst__sizer` height reservation (must stay
+  opt-in — `StateTimeline` mixes inline children).
+- **Story mode.** `story.css` now hides `[class$='__cap']` / `[class$='__src']`
+  at depth 1 as well as depth 2 — Timeline, BillBreakdown and VoteResult emit
+  chrome as a SIBLING of the graphic root. The `__src` beat rule is left in
+  place as a harmless suffix rule.
+- **Still owed:** the Phase-5 mobile font bump on ScalingPlot / XgRace /
+  ClimateSpiral (ScalingPlot.astro carries the measurements and why a plain
+  bump fails); a JS-gated `howToRead` control clause (a schema call); the
+  `--t-page` retime. Next per RD-13: Phase 6.3 type harvest, which begins by
+  measuring the font binaries.
+
 
 ### 2026-07-14 — P6 component breadth (+22 kinds), funnel islands, responsive pass
 

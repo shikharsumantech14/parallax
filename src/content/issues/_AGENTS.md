@@ -61,13 +61,22 @@ Every section conforms to:
                               // the per-kind default in src/lib/explainers.ts.
   howToRead?: string;         // 40–360 chars, ZOD-ENFORCED (2026-08-27).
                               // The FORM at PARAGRAPH length, rendered ABOVE
-                              // the graphic by core/VizCard.astro — what a mark
-                              // IS, what the axes mean, any inversion in the
-                              // form. Write one ONLY where the form can be
-                              // misread (channel-ternary: distance FROM a
-                              // corner = LOW use — readers get it backwards).
-                              // Never a longer restatement of `plain`; if there
-                              // is nothing to add, omit it.
+                              // the graphic by core/Section.astro for EVERY
+                              // kind (2026-09-04) — what a mark IS, what the
+                              // axes mean, any inversion in the form. The ten
+                              // VizCard kinds render theirs inside the card
+                              // instead; a :has() rule in dataviz-v2.css hides
+                              // Section's copy there, so a section shows exactly
+                              // one panel. Omit to fall back to EXPLAIN[kind].how
+                              // in src/lib/explainers.ts — the fallback is LIVE,
+                              // so a panel renders either way; author one only
+                              // where the default misleads (channel-ternary:
+                              // distance FROM a corner = LOW use — readers get
+                              // it backwards). Never a longer restatement of
+                              // `plain`. On instrumented kinds (scaling-plot,
+                              // xg-race, climate-spiral) the static reading
+                              // LEADS and the control clause TRAILS: the
+                              // controls are html.js-gated, the paragraph is not.
   caption?: string;           // TOP-LEVEL since 2026-08-27 — the DATA claim,
                               // one sentence, traceable ("214 bills went in and
                               // 47 came out"). The ONE comprehension field that
@@ -76,8 +85,16 @@ Every section conforms to:
                               // merges; authored data.* wins).
   source?: string | { label: string; date?: string };
                               // TOP-LEVEL since 2026-08-27. CANON §7: no
-                              // source, no section. Object form renders as
-                              // "label · date". Legacy data.source still works.
+                              // source, no section. Since 2026-09-04 it renders
+                              // ONCE, from core/Section.astro, as the second
+                              // line of the "In plain terms" paragraph BELOW the
+                              // graphic (`.px-plain__src`, literal text
+                              // "Source · …"); object form joins to
+                              // "Source · label · date". Components and VizCard
+                              // render no source of their own any more
+                              // (`.px-viz__src` is gone). The ⤢ study modal
+                              // portals only the card, so it shows no source —
+                              // ruled as-is. Legacy data.source still works.
   layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
                               // geometry variant — rhythm rules in
                               // docs/design/CANON.md §3: ≤1 bleed per act,
@@ -90,9 +107,10 @@ Every section conforms to:
 ```
 
 `SECTION_KINDS` is the source of truth for valid `kind` values. Current
-count (2026-07-14): **90 kinds** — 31 originals plus the 59-kind v2
-interactive library. Earlier figures in this file ("63", then "61") were
-wrong and are superseded. Each maps to a component dispatched by
+count (2026-09-04): **97 kinds** — 31 originals, the 59-kind v2 interactive
+library, and the seven Phase 3 revamp kinds. Earlier figures in this file
+("63", "61", then "90") were right for their date and are superseded. Each
+maps to a component dispatched by
 `src/components/SectionBody.astro` (the switch; `SectionRenderer.astro` is
 the article chrome around it) — see `src/components/AGENTS.md` for the full
 table and `docs/design/catalog.md` for per-kind usage rules. `docs/design/catalog.md`
@@ -430,13 +448,23 @@ have no story page.** They are viz reference, not story reference.
 
 ---
 
-## 14. The three comprehension fields — who says what (2026-08-27)
+## 14. The comprehension fields — who says what (2026-08-27, render sites updated 2026-09-04)
 
 | Field | Carries | Renders | Length | Verifier |
 |---|---|---|---|---|
-| `howToRead` | the FORM, paragraph | ABOVE the graphic | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
-| `plain` | the FORM, one sentence | BELOW the graphic | ≤220 | flags data-assertion (PLAIN-CLAIM) |
-| `caption` | **the DATA — the finding** | with the figure | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
+| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; `EXPLAIN[kind].how` is the LIVE fallback when omitted. The ten VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
+| `plain` | the FORM, one sentence | BELOW the graphic, the "In plain terms" paragraph from `core/Section.astro` | ≤220 | flags data-assertion (PLAIN-CLAIM) |
+| `caption` | **the DATA — the finding** | with the figure (VizCard's caption row, or the component's own `__cap`) | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
+| `source` | the citation | BELOW the graphic as the plain paragraph's SECOND LINE — `.px-plain__src`, literal "Source · …" — from `core/Section.astro` for every kind. Components render none; the ⤢ modal shows none (ruled as-is) | free | CANON §7: no source, no section |
+
+**Instrumented kinds (`scaling-plot` LOG/LINEAR toggle, `xg-race` minute scrub,
+`climate-spiral` month scrub — 2026-09-04).** The controls are `html.js`-gated;
+the paragraph is not. So in `howToRead` the static reading LEADS and the
+control clause TRAILS ("…Press Linear for the proportional view…"), and the
+`caption` must not name a projection the reader can flip — the published
+token-bill caption dropped its trailing "· log scale" for exactly that
+CAPTION-FORM reason. The `data` shapes in §11 are unchanged: the toggle and
+scrubs are derived at build, never authored.
 
 Issues may also carry an optional top-level `voice:` — the DOMINANT rhetorical
 mode (one of the eight, e.g. `FORENSIC`), authored by the stylist for the fact
@@ -447,6 +475,27 @@ states the finding — that duplication is exactly what REDUNDANT flags exist to
 catch (ruled 2026-08-28; see REVAMP-PLAN §0).
 
 ## Change log
+
+### 2026-09-04 — Shell adoption: render sites for `howToRead` / `source` moved to Section
+Phase 6.1 changed WHERE two schema fields render, not their meaning. `source`
+(§2, §14) now renders once, from `core/Section.astro`, as the second line of
+the "In plain terms" paragraph below the graphic — `.px-plain__src`, literal
+"Source · label · date" — for every kind; the seventy per-component emitters
+and `.px-viz__src` are gone, VizCard accepts the prop but renders nothing,
+and the ⤢ modal shows no source (ruled as-is). `howToRead` (§2, §14) now
+renders ABOVE the graphic from Section for every kind, with
+`EXPLAIN[kind].how` as the LIVE fallback — before this an authored
+`howToRead` on any of the 87 non-VizCard kinds was silently dropped; the ten
+VizCard kinds render it in-card and a `:has()` rule keeps it to one panel per
+section. New authoring rule for the three instrumented kinds (`scaling-plot`
+log/linear toggle, `xg-race` minute scrub, `climate-spiral` month scrub):
+static reading leads, control clause trails, and the caption must not name a
+projection the reader can flip (the published token-bill caption lost its
+"· log scale"). `data` shapes in §11 are unchanged. §2's kind count corrected
+90 → **97** (it had been stale since the Phase 3 waves). CANON §10 now calls
+this the four-layer stack — its amendment is a marked DRAFT awaiting the
+operator's signature.
+
 
 ### 2026-07-14 — Breadth kinds (+22), story frontmatter, arity/conservation throws
 Added §12: the 22 kinds from the P6 component-breadth pass and their `data`

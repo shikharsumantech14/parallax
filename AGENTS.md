@@ -143,13 +143,23 @@ src/
 │   ├── s/[slug].astro         ← story mode; builds only for status !== 'draft'
 │   └── topics/[topic].astro   ← dynamic: 6 routes, dispatches to <Topic>Index
 ├── components/
-│   ├── SectionRenderer.astro  ← ARTICLE CHROME only (core/Section wrapper,
+│   ├── SectionRenderer.astro  ← ARTICLE CHROME only (core/Section wrapper —
+│   │                            passes `source` + `howToRead` through to it —
 │   │                            act-break divider, skim-caption block)
 │   ├── SectionBody.astro      ← the actual dispatcher: section.kind →
 │   │                            component. Shared with story mode. THIS is
 │   │                            the file a new section kind is wired into.
+│   │                            Also resolves `howToRead ?? EXPLAIN[kind].how`
+│   │                            for the ten VizCard kinds so the panel renders
+│   │                            inside the card (Section's copy hides via :has()).
 │   ├── core/                  ← topic-agnostic (Masthead, Banner, Hero,
-│   │                            Primer, Section, Quote, Prose, Comparison,
+│   │                            Primer, Section [owns ALL explainability chrome for
+│   │                            every kind: how-to-read panel ABOVE the graphic,
+│   │                            plain line + `Source · …` second line BELOW —
+│   │                            components render none of it], VizCard [the
+│   │                            shell for ten kinds: caption row + chip +
+│   │                            in-card how-to-read + graphic slot; renders NO
+│   │                            source], Quote, Prose, Comparison,
 │   │                            DataReadout, BeatSheet, Sources, Colophon,
 │   │                            ReadingToolbar [replaced SkimToggle; mounts
 │   │                            SaveButton], the Reveal + VizMotion motion
@@ -169,10 +179,15 @@ src/
 │   └── topic/<topic>/         ← per-topic signature components + <Topic>Index
 ├── styles/
 │   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode + `.mh` masthead
+│   │                            + the RD-05 radius flip (`--r-card: 0; --r-tile: 0`
+│   │                            in :root — here, NOT in shared/design, because
+│   │                            app/ consumes those tokens) + the flat `.px-viz`
+│   │                            shell (3px `--viz-edge` top rule, no shadow)
 │   ├── meta.css               ← Meta brand tokens + home/topic-index styles
 │   ├── dataviz-v2.css         ← v2 data-viz kit CSS (animations + html.js-gated reveals); imported last in both layouts
 │   ├── components-3d.css      ← shared 3D mechanics (.px3d-* tilt/flip) + the .viz3d WebGL mount for the v2 3D/interactive library
 │   ├── viz-type.css           ← unified data-viz type scale (caption/axis/legend/value label roles)
+│   │                            + `.px-plain__src`, the `Source ·` second line of the plain paragraph
 │   ├── layout-v2.css          ← the `layout:` section geometries (default / wide
 │   │                            / bleed / split / split-flip / breath)
 │   ├── story.css              ← story mode (.pxs-*), incl. the beat-card
@@ -183,13 +198,18 @@ src/
 │   │                            loaded only where the intro/overlay render.
 │   │                            (welcome.css is now largely superseded — survives
 │   │                            only for AccountLine + the About px-abt bits.)
-│   └── themes/<topic>.css     ← Layer B — full theme per topic
+│   └── themes/<topic>.css     ← Layer B — full theme per topic, incl. `--viz-edge`
+│                                (ink on light desks, accent on dark — the
+│                                figure's 3px top rule)
 ├── lib/
 │   ├── text.ts                ← renderEmphasis, renderInline, stripEmphasis,
 │   │                            formatIssueNumber, formatSectionLabel
-│   ├── explainers.ts          ← EXPLAIN: per-kind default "in plain terms"
-│   │                            line (what / how) — the fallback when a
-│   │                            section has no authored `plain`
+│   ├── explainers.ts          ← EXPLAIN: per-kind default `what` (the "in plain
+│   │                            terms" fallback when a section has no `plain`)
+│   │                            and `how` (the LIVE how-to-read fallback when a
+│   │                            section has no `howToRead`, every kind, since
+│   │                            2026-09-04). 90 entries + 7 narrative-exempt kinds;
+│   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
 └── scripts/viz3d/             ← lazy WebGL for the 14 3D section kinds:
@@ -216,7 +236,10 @@ docs/
 shared/design/                 ← tokens.css + worlds.css — the CANONICAL token
                                   source for BOTH projects. Edit here, then
                                   `npm run design:sync`; `design:check` gates
-                                  the root build.
+                                  the root build. EXCEPTION: the RD-05 radius
+                                  flip is a publication-only override in
+                                  src/styles/base.css — app/ reads these radii
+                                  and keeps its own spec until Phase 8.
 app/                           ← separate Astro SSR project (see app/AGENTS.md)
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
 .claude/agents/                ← agent system prompts (discovery, researcher,
@@ -398,6 +421,11 @@ with the full canon in `research/_voice/mode-library.md`.
 - `plain` = the **form** of the graphic; `caption` = the **data** claim (the
   only one the verifier traces); `howToRead` = how to use it. Confusing these
   trips PLAIN-CLAIM / CAPTION-FORM / REDUNDANT-HOWTO.
+- Instrument `howToRead` (any kind with a chip / scrub / toggle): the static
+  reading leads, the control clause trails — controls are `html.js`-gated, the
+  paragraph is not, so a no-JS reader must get a complete sentence before the
+  clause about a control they cannot see.
+
 - `sources[].url` must be a real URL; every `sourceRefs[]` must resolve.
 - `layout` in `default | wide | bleed | split | split-flip | breath`.
 - `skimCaption` applies to `kind: prose` only.
@@ -417,8 +445,31 @@ with the full canon in `research/_voice/mode-library.md`.
 - **CSS prefix isolation** — each component owns a unique `px-<abbrev>` (≤6
   chars). Check `meta.css` for collisions first.
 - **Story cards hide a section's chrome, never its data** — `story.css` hides
-  `[class$='__cap']` / `[class$='__src']` inside a beat. Graphic containers
+  `[class$='__cap']` / `[class$='__src']` inside a beat, at depth 1 and 2
+  (some kinds emit chrome as a sibling of the graphic root). The source line
+  is Section's `.px-plain__src`; `.px-viz__src` no longer exists — do not
+  reintroduce it. Graphic containers
   must never end in `__cap`/`__src`; keep that invariant when naming.
+- **Explainability chrome renders once, from `core/Section.astro`.** The
+  how-to-read panel sits ABOVE the graphic (`section.howToRead ??
+  EXPLAIN[kind].how`); the plain line and its `Source · …` second line
+  (`.px-plain__src`, from `section.source ?? data.source`) sit BELOW — for
+  every kind. Components render none of source / plain / how themselves. The
+  one exception: the ten VizCard kinds render their how-to-read INSIDE the
+  card, and `dataviz-v2.css` hides Section's copy with `:has()` so a section
+  shows exactly one panel. Do not add a `.px-viz__src` emitter back — the
+  seventy that existed were stripped on 2026-09-04.
+- **Surfaces are flat (RD-05).** `.px-viz` and every reading / home surface:
+  `border-radius: 0`, no `box-shadow`, hover changes border-colour only; every
+  figure wears a 3px `border-top: var(--viz-edge)` (ink on light desks, accent
+  on dark). The radius flip (`--r-card: 0; --r-tile: 0`) lives in
+  `src/styles/base.css` `:root`, NOT in `shared/design/tokens.css` — app/
+  reads those and keeps its own spec until Phase 8. `--r-pill` is deliberately
+  untouched (43 sites of UI chrome). Shadows survive only on focus rings, inset
+  hairlines, data-mark halos, slider thumbs, CSS-3D scene depth (RD-06), viz3d
+  overlay chrome, modal / popover / toast chrome and the onboarding surface.
+  The reading toolbar is flat (paper + 2px ink rule); glass is modal-only.
+
 - **Mobile: page overflow is fixed; in-SVG fine print is not.** Fixed-`viewBox`
   cards still render fine print at ~3.4–7px at 375px. **Deliberate residual** —
   Phase 5 of the revamp. Legibility is carried by the HTML layer and the ⤢
@@ -513,7 +564,9 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 - **Current state (read first):** `docs/STATE-OF-PLAY.md` — what is built,
   what is uncommitted, what is compile-verified only, what is still open.
-- **Design canon:** `docs/design/` — `CANON.md` (master rules), `catalog.md`
+- **Design canon:** `docs/design/` — `CANON.md` (master rules — its 2026-09-04 amendments are a MARKED DRAFT
+  awaiting the operator's signature; build to them, but do not cite them as
+  signed), `catalog.md`
   (the 97-kind component palette), `motion.md`, the `*-SPEC.md` set,
   `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
@@ -526,6 +579,56 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-04 — Shell adoption (Phase 6.1) lands; REVAMP-PLAN v3 signed
+
+Eleven commits. Durable changes to the standing rules recorded here; the
+phase state is in `docs/STATE-OF-PLAY.md` (v3) and the decision record in
+`docs/REVAMP-PLAN.md` (v3, signed 2026-09-04: RD-10…RD-13 govern, RD-03/07/09
+struck not deleted, order is look-first per RD-13).
+
+**(1) Explainability chrome has ONE render site.** `core/Section.astro` now
+renders, for every kind, the how-to-read panel ABOVE the graphic
+(`howToRead ?? EXPLAIN[kind].how` — the `how` fallback is LIVE for the first
+time; before this an authored `howToRead` on any of the 87 non-VizCard kinds
+was silently dropped) and the plain line with `Source · …` as its second line
+BELOW (`.px-plain__src`, from `section.source ?? data.source`). The seventy
+per-component `.px-viz__src` emitters were stripped; the class has zero
+emitters and zero rules. VizCard no longer renders source (still accepts the
+prop) and renders the how-to-read inside the card for its ten kinds;
+`dataviz-v2.css` hides Section's copy via `:has()` so each section shows
+exactly one panel. The ⤢ modal portals the card, so it shows no source —
+ruled as-is. §4 and §7 updated.
+
+**(2) Surfaces are flat (RD-05).** `.px-viz` and every reading/home surface
+lost radius and shadow; hover is border-colour only; every figure wears a 3px
+`--viz-edge` top rule (new per-theme token: ink on light desks, accent on
+dark). 115 `box-shadow` declarations → 64; ten of seventeen theme 'elevated
+card' rules were v2-port orphans and are gone. The radius flip lives in
+`base.css :root`, not `shared/design/tokens.css` (app/ consumes those);
+`--r-pill` untouched. Measured: three token flips reach 99 of 249 radii, not
+the plan's '128 of 267'. Toolbar `.rtb` is flat (paper + 2px ink); glass
+survives on modal chrome only. story.css hides `__cap`/`__src` at depth 1 as
+well as depth 2.
+
+**(3) Instruments.** scaling-plot (LOG/LINEAR toggle), xg-race (minute scrub)
+and climate-spiral (month scrub) gained controls — both projections / all
+per-step tables precomputed in frontmatter, native inputs shipped hidden and
+unhidden by the island. `px-inst__readout--sized` (+ `.px-inst__sizer`) is an
+OPT-IN modifier that reserves true readout height with a hidden worst-case
+twin; it must stay opt-in (StateTimeline mixes inline children). Authoring
+rule for instrument `howToRead`: static reading leads, control clause trails.
+
+**(4) Canon.** `CANON.md` + `motion.md` amendments (§1 flat surfaces, §7
+source-once, §10 four-layer stack + one-panel rule, §11 glass modal-only, new
+§14 Surfaces and elevation; `cardLift` RETIRED, `hoverLift` marks-only,
+`pageEnter`/`worldFade` named at `--t-page` 600ms) are committed as a MARKED
+DRAFT awaiting the operator's signature. Also open: the `--t-page` retime,
+Phase 5's mobile font bump on ScalingPlot/XgRace/ClimateSpiral, the 29
+draft-only EXPLAIN cues, a JS-gated `howToRead` control clause (schema call).
+Next per RD-13: 6.3 type harvest, beginning by MEASURING the font binaries
+(RD-08's 16→18px is conditional on it).
+
 
 ### 2026-09-01 — Context system Phase B4: this file trimmed 901 → ~615
 

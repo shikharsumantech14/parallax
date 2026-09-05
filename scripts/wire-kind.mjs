@@ -16,7 +16,7 @@
  *     "prefix": "px-pyr",
  *     "props": "bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit}",
  *     "explainWhat": "<=220 chars, the FORM, never the data",
- *     "explainHow": "the interaction cue for the expand modal",
+ *     "explainHow": "40-360 chars, the HOW-TO-READ paragraph; renders live above the graphic (inside the card for VizCard kinds) whenever the section has no authored howToRead. Static reading first, control clause last",
  *     "catalogBlock": "## age-pyramid
 - **World/Tier:** ...",
  *     "priority": 66 }
@@ -30,6 +30,16 @@
  *
  * Idempotent: every step skips if its edit is already present, so a partial run
  * can be re-run safely. Line endings are matched per file.
+
+ *
+ * The dispatch arm it emits is the VizCard idiom (shell adoption, 2026-09-04):
+ * `howToRead` falls back to EXPLAIN[section.kind]?.how so the card carries the
+ * panel itself and Section's copy is hidden by the `:has()` rule in
+ * dataviz-v2.css — SectionBody already imports EXPLAIN, nothing to add. `source`
+ * is still passed for compatibility but VizCard no longer renders it: the
+ * source line is `.px-plain__src`, rendered once by core/Section.astro below
+ * the graphic for every kind. A non-VizCard component needs neither prop.
+
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -73,7 +83,7 @@ else {
   if (!armRe.test(s)) die(`dispatch arm for '${afterKind}'`);
   const arm =
     `    {section.kind === '${kind}' && (${N}` +
-    `      <${component} ${props} howToRead={section.howToRead} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
+    `      <${component} ${props} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
     `    )}${N}`;
   s = s.replace(armRe, `$1${arm}`);
   wr('src/components/SectionBody.astro', s);

@@ -12,10 +12,29 @@
 >
 > THREE COMPREHENSION FIELDS, three contracts (2026-08-27). `plain` is the FORM
 > in one sentence, below the graphic, 220 chars. `howToRead` is the FORM at
-> paragraph length, ABOVE the graphic, 40–360 chars — write one only where the
+> paragraph length, ABOVE the graphic, 40–360 chars — author one where the default `EXPLAIN[kind].how` (rendered in its place since 2026-09-04 — an authored one replaces it, never adds a second panel) is not enough and the
 > form can be misread. `caption` is the DATA claim and is the only one of the
 > three a verifier traces to the dossier. Never let `plain` assert data, and
 > never let `caption` merely describe the shape.
+
+>
+> SHELL ADOPTION (2026-09-04, Phase 6.1). Explainability chrome renders ONCE,
+> from `core/Section.astro`, for every kind: the how-to-read panel ABOVE the
+> graphic (authored `howToRead`, else `EXPLAIN[kind].how` from
+> `src/lib/explainers.ts` — so every section shows a panel, and authoring one
+> replaces the default rather than adding one), and BELOW the graphic the plain
+> line with the source as its second line (`Source · …`, from the section-level
+> `source`, or `data.source` where a kind still carries one). Components render
+> none of source / plain / how themselves; the ten kinds routed through
+> `core/VizCard.astro` (bill-funnel, age-pyramid, margin-bullets, state-timeline,
+> attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race,
+> climate-spiral) show the how-to-read INSIDE the card instead, and Section's copy
+> is hidden there — exactly one panel per section. Instrument rule for any kind
+> with a control: the `howToRead` opens with the static reading and the control
+> clause trails it (the control is `html.js`-gated, the paragraph is not); and
+> the `caption` must not name a scale the reader can change (a `· log scale`
+> tail on a toggle-able axis is CAPTION-FORM).
+
 >
 > STATUS (2026-08-28): covers all **97** kinds registered in `SECTION_KINDS` —
 > the 90 from P0–P8 plus the first 7 revamp-wave kinds (docs/REVAMP-PLAN.md
@@ -446,7 +465,7 @@
 - **World/Tier:** space · CSS-3D / SVG (build-time SVG geometry inside a `core/Tilt.astro` pointer-tilt shell; no WebGL) · `src/components/topic/space/EclipseCone.astro`
 - **USE WHEN:** the story is eclipse or occultation geometry — a solar/lunar eclipse, the totality coincidence, a star occulted by a body, transit vs eclipse; the dossier has the three radii (source, occulter, target) and the two distances (source→occulter, occulter→target).
 - **DON'T USE:** the *path* of an eclipse across a map (→ `region-map` with a track); a timeline of eclipse events (→ `timeline`); the orbit that produces the alignment (→ `solar-system`/`lagrange-map`). If the point is not the cone geometry itself, this is the wrong tool.
-- **DATA:** `{ source: {name, radiusKm}, occulter: {name, radiusKm, distanceFromSourceKm}, target: {name, radiusKm, distanceFromOcculterKm, distanceRangeKm?: [min,max]}, showPenumbra?: true, caption?, sourceCite? }` — NB the citation field is `sourceCite`; the nested `source` object is the light SOURCE (e.g. the Sun), not the citation.
+- **DATA:** `{ source: {name, radiusKm}, occulter: {name, radiusKm, distanceFromSourceKm}, target: {name, radiusKm, distanceFromOcculterKm, distanceRangeKm?: [min,max]}, showPenumbra?: true, caption?, sourceCite? }` — NB the nested `source` object is the light SOURCE (e.g. the Sun), not the citation — author the citation as the SECTION-level `source` (which `core/Section.astro` renders as the plain paragraph's second line; it ignores the light-source object because it carries no `label`). `sourceCite` in `data` is still accepted but renders nowhere since 2026-09-04, when the in-card emitter was stripped with the rest.
 - **PLAIN:** "A shadow cone drawn from the occulting body to its true tip length, with the target placed at its real fraction of that length — so you can see whether the shadow's point actually reaches it."
 - **NOTES:** space world; cone half-angle exaggerated for visibility (auto-chip `cone angle exaggerated · length-ratio true · baseline compressed`), but the axial length-ratio is exact and the angular-diameter inset is true 1:1; `wide`/hero-capable, standalone (not `split`). BLUEPRINT: `docs/design/blueprints/space/eclipse-cone.md`.
 
@@ -483,12 +502,12 @@
 - **NOTES:** worked example in `2026-06-03-earth-showcase`.
 
 ## climate-spiral
-- **World/Tier:** earth · SVG/canvas · `src/components/topic/earth/ClimateSpiral.astro`
+- **World/Tier:** earth · build-time SVG + one month-scrub island (routed through `core/VizCard.astro`) · `src/components/topic/earth/ClimateSpiral.astro`
 - **USE WHEN:** a monthly climate series spiralling by year — seasonal cycle plus long-term drift in one figure.
 - **DON'T USE:** one value per year (→ `climate-strip`); monthly travel planning (→ `climate-calendar`, travel).
 - **DATA:** `{ months: [{year, month (1-12), value}], unit?, baseline? }`
 - **PLAIN:** "A line spiralling outward, one loop per year around twelve month-spokes; the outward creep is the warming."
-- **NOTES:** worked example in `2026-06-03-earth-showcase`.
+- **NOTES:** worked example in `2026-06-03-earth-showcase`. Month scrub (B1, Phase 6.2 — month rather than year because the payload is a four-year record): a native `<input type=range>` (`px-inst__drag`) that ships `hidden` and is unhidden by the island only after the payload parses, so a broken payload degrades to the static spiral. The future drops to a ghost (one `is-cut` class move, dimmed by a sibling combinator — two elements touched per input regardless of series length), the centre reads the year, and the `px-inst__readout` names that month's value and whether it was a new high, reserving its worst-case height (`px-inst__readout--sized`) so nothing reflows mid-drag. Two animations, two properties: the scroll-in reveal owns `stroke-dashoffset`, the scrub owns `opacity` only. No-JS paints every segment at full opacity. Routed through `core/VizCard.astro`. In the `howToRead` the static reading leads and the drag clause trails.
 
 ## quake-depth
 - **World/Tier:** earth · SVG · `src/components/topic/earth/QuakeDepth.astro`
@@ -563,12 +582,12 @@
 - **NOTES:** worked example in `2026-06-03-tech-showcase`.
 
 ## scaling-plot
-- **World/Tier:** tech · SVG · `src/components/topic/tech/ScalingPlot.astro`
+- **World/Tier:** tech · SVG + one axis-toggle island (routed through `core/VizCard.astro`) · `src/components/topic/tech/ScalingPlot.astro`
 - **USE WHEN:** an x/y scaling relationship — power laws, cost curves — optionally with log axes and a fit line.
 - **DON'T USE:** the adoption S-curve story (→ `adoption-curve`); ranked one-metric bars (→ `benchmark-chart`).
 - **DATA:** `{ points: [{x, y, label?}], xLabel?, yLabel?, logX?, logY?, fit? }`
 - **PLAIN:** "A scatter of points on (optionally log) axes; the fit line shows the law the points obey."
-- **NOTES:** worked example in `2026-06-03-tech-showcase`.
+- **NOTES:** worked example in `2026-06-03-tech-showcase`; published in `2026-06-04-ai-coding-token-bill` (authored `howToRead`). LOG ⇄ LINEAR axis toggle (B1, Phase 6.2): two `px-inst__chip` buttons (`aria-pressed`) that render ONLY when `logX` or `logY` is authored — a linear payload has nothing to toggle. Both projections are computed in frontmatter and both sit in the DOM; the island swaps one attribute and CSS moves the points, so no scale math ships to the client and no-JS paints the authored projection. The `px-inst__readout` is derived from the data and reserves its worst-case height (`px-inst__readout--sized`) so the card cannot reflow on toggle. Routed through `core/VizCard.astro`. In the `howToRead` the static reading leads and the 'Press Linear' clause trails; never name the scale in the `caption` — the reader can change it, so it is form, not data (CAPTION-FORM).
 
 ## throughput-dial
 - **World/Tier:** tech · SVG/CSS-3D · `src/components/topic/tech/ThroughputDial.astro`
@@ -731,12 +750,12 @@
 - **NOTES:** worked example in `2026-06-03-sports-showcase`.
 
 ## xg-race
-- **World/Tier:** sports · SVG · `src/components/topic/sports/XgRace.astro`
+- **World/Tier:** sports · SVG + one minute-scrub island (routed through `core/VizCard.astro`) · `src/components/topic/sports/XgRace.astro`
 - **USE WHEN:** a cumulative xG race between two teams — who was creating, and exactly when it flipped.
 - **DON'T USE:** individual shots' detail (→ `shot-map`); a momentum feel without xG data (→ `momentum-wave`).
 - **DATA:** `{ events: [{minute, team: 'home'|'away', xg}], home?, away? }`
 - **PLAIN:** "Two step-lines climbing with each chance created; the higher line was creating more, and the steps show when."
-- **NOTES:** worked example in `2026-06-03-sports-showcase`.
+- **NOTES:** worked example in `2026-06-03-sports-showcase`. Minute scrub (B1, Phase 6.2): a native `<input type=range>` (`px-inst__drag`) that ships `hidden` and is unhidden by the island only after the per-minute payload parses, so a broken payload degrades to the static chart. The per-minute table of positions and values is precomputed at build; the island reads one row and assigns coordinates — no scale math on the client. Both step-lines are drawn twice, a dim ghost underneath and the real line clipped to the scrubbed region on top, so at rest the chart is byte-for-byte the finished one and no-JS is the finished answer. The `px-inst__readout` states who was ahead at that minute and reserves its worst-case height (`px-inst__readout--sized`). The clipPath id is derived from a payload hash, so two on one page cannot collide. Routed through `core/VizCard.astro`. In the `howToRead` the static reading leads and the drag clause trails.
 
 ## momentum-wave
 - **World/Tier:** sports · SVG · `src/components/topic/sports/MomentumWave.astro`
@@ -801,5 +820,5 @@
 - **DON'T USE:** settled standings (→ `league-table`); a rating history over time (→ `elo-river`); a single win probability (→ `data-readout`); a completed bracket (→ `knockout-bracket`); a distribution of observations rather than a range (→ `pace-ridge`).
 - **DATA:** `{ model, runs?, positions, zones?: [{fromPos, toPos, label, tone: 'good'|'bad'}], rows: [{name, median, low, high, note?}], caption?, source? }`
 - **PLAIN:** "The dot is the most likely finishing position and the bar is the range the model gives nine times out of ten; where two bars overlap, nothing on the pitch has decided the order between those teams yet."
-- **NOTES:** build FAILS if any row has `low === high` (a zero-width interval is a standing — use `league-table`), if `low <= median <= high` breaks, if any row runs outside the 1–`positions` scale, outside 8–20 rows, or if `model` is missing. The overlap count is DERIVED, never authored — it drives both the readout and the table's column. `model` is composed into the source line by the component, so it cannot go missing. Zone strips are inset to the bar track, not the row, and are deliberately near-invisible (22% accent over the card surface) because they are context, not data. No honesty chip — the position scale is linear and complete. Pairs with `default` or `wide`; not hero-capable. BLUEPRINT: `docs/design/blueprints/sports/finish-interval.md`. RESEARCHER MUST CAPTURE: the simulation's NAME and run count, the league size, and per team the median plus the 5th/95th-percentile finishing positions — never a range invented around a published projection.
+- **NOTES:** build FAILS if any row has `low === high` (a zero-width interval is a standing — use `league-table`), if `low <= median <= high` breaks, if any row runs outside the 1–`positions` scale, outside 8–20 rows, or if `model` is missing. The overlap count is DERIVED, never authored — it drives both the readout and the table's column. `model` is mandatory (build FAILS without it) but since the source fold it no longer reaches the rendered source line: that line renders from `core/Section.astro` (`section.source ?? data.source`), and `core/VizCard.astro` drops the model-composed string the component still hands it — so the authored `source` must name the model and its run count itself (blueprint §9: never just "projection"). Zone strips are inset to the bar track, not the row, and are deliberately near-invisible (22% accent over the card surface) because they are context, not data. No honesty chip — the position scale is linear and complete. Pairs with `default` or `wide`; not hero-capable. BLUEPRINT: `docs/design/blueprints/sports/finish-interval.md`. RESEARCHER MUST CAPTURE: the simulation's NAME and run count, the league size, and per team the median plus the 5th/95th-percentile finishing positions — never a range invented around a published projection.
 <!-- check:catalog expects exactly the SECTION_KINDS list above this line -->

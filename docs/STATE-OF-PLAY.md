@@ -23,8 +23,8 @@ signed 2026-09-04**: decisions RD-01…RD-13 (RD-03/07/09 superseded by
 RD-10/12/13, struck not deleted), and the order is **look first** (RD-13):
 finish 6.1 → 6.3 type → 7 web pages → the brand → 8 app → 5 mobile → Waves
 2–4. Execution stands at: **Phases 0–2 complete, Phase 3 at Wave 1 of 4,
-Phase 4's agent half plus the backfill done, 6.2 done, 6.1 three-quarters
-done.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
+Phase 4's agent half plus the backfill done, 6.2 done, 6.1 built — only the
+canon signature outstanding.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
 CD-01…CD-12) is being built out — Phases A–E are in.
 
 For branch, uncommitted and unpushed counts, read the **session brief** printed
@@ -51,7 +51,7 @@ are deliberately not written down anywhere (CD-11).
 | Issues | 23 (10 published, 13 draft) |
 | Kinds never in a published issue | **77** |
 | Registry gaps | none |
-| Decisions tracked | 33 (12 decided-but-unbuilt) |
+| Decisions tracked | 35 (12 decided-but-unbuilt) |
 
 <!-- END GENERATED -->
 
@@ -107,9 +107,9 @@ citations resolve. Highlights of what shipped:
 | **1** | `check:catalog` rebuilt (coverage of EXPLAIN + KIND_PRIORITY, no error-masking) and wired into `prebuild` **ahead of** the OG writer; `design-sync --check` gates 30 palette mirrors + 6 in-world deeps + 18 record tokens; tech accent-deep 4-way drift fixed; dead `FeaturedIssue.astro` (7th palette, 5 retired fonts) deleted; **WCAG pass** — derived `--muted` (60%/72%), the accent-deep two-role split, travel small-text fixes → all six worlds measure zero failures; **phone navigation** added (native `<details>` menu ≤900px — the site had none). |
 | **2** | `docs/design/TOKEN-RECORD.md` (TD-01…TD-06); schema grew optional `howToRead`, top-level `caption`, `source {label,date}`, issue `voice`; `core/VizCard.astro` (the RD-01a shell seam); `px-inst` primitive in `dataviz-v2.css`; 11 bespoke-root figures gained the ⤢ modal via `[data-viz-root]`. |
 | **3** | Wave 0: `bill-funnel` + `channel-ternary` (the two path exemplars, fully verified). Wave 1: `age-pyramid`, `margin-bullets`, `state-timeline`, `attrition-waffle`, `finish-interval`. **Library 97 of 118.** All wired through all NINE registry places. |
-| **4 (partial)** | The three comprehension fields have stated contracts in the drafter, verifier (new flags: `CAPTION-FORM`, `REDUNDANT-HOWTO`) and catalog grammar. **Source backfill: 21 → 0 missing sources** on published figures (operator-confirmed mapping); `SectionBody` now merges promoted `caption`/`source` down into `data` for every kind; Timeline/BillBreakdown/VoteResult gained source rendering. |
+| **4 (partial)** | The three comprehension fields have stated contracts in the drafter, verifier (new flags: `CAPTION-FORM`, `REDUNDANT-HOWTO`) and catalog grammar. **Source backfill: 21 → 0 missing sources** on published figures (operator-confirmed mapping); `SectionBody` now merges promoted `caption`/`source` down into `data` for every kind; Timeline/BillBreakdown/VoteResult gained source rendering (since folded into `core/Section.astro` with every other kind — `8eea66f` / `b0260b2`; the three still accept the prop, render nothing). |
 | **6.2** | B1 best-first, all three: `scaling-plot` log⇄linear (`e5fd2f1`), `xg-race` minute scrub (`d304c2d`), `climate-spiral` month scrub (`714d1ac`) — every projection computed at build, no scale math on the client; the `px-inst` exact readout reserve generalised (`328395d`); `howToRead` ×4 and the live caption fix (`81cc2da`). |
-| **6.1 (¾)** | Flat viz card + `--viz-edge` world rule, ink on light desks / accent on dark (`b74815d`); RD-05 shadow sweep 115→64, hover retired to border-colour, the toolbar's flat 2px-ink skin (`943fe09`); the `Source ·` fold — one render site for every kind (`8eea66f`); ⤢ 44px on touch, SeatChart naming, story depth-1 hiding. **Not done:** `EXPLAIN.how` flip (copy review), CANON/motion edits (signature). |
+| **6.1 (built, unsigned)** | Flat viz card + `--viz-edge` world rule, ink on light desks / accent on dark (`b74815d`); RD-05 shadow sweep 115→64, hover retired to border-colour, the toolbar's flat 2px-ink skin (`943fe09`); the `Source ·` fold — one render site for every kind (`8eea66f`); ⤢ 44px on touch, SeatChart naming, story depth-1 hiding. The `EXPLAIN.how` fallback is **on** for every kind — `core/Section.astro` renders the how-to-read above the graphic, `SectionBody` resolves `section.howToRead ?? EXPLAIN[kind].how` for the ten VizCard kinds, a `:has()` rule guarantees exactly one panel per section, `tactics-pitch` rewritten as the one live cue (`bdbfea8`); the 70 `.px-viz__src` emitters stripped, the class and the interim hide retired — zero emitters, zero rules (`b0260b2`); CANON/motion amendments drafted and committed under a DRAFT line (`dc6a28c`). **Not done:** the operator's signature on those amendments, and the `--t-page` call (600ms kept, or retimed toward the handoff's ~300/340ms). |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
 not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
@@ -124,15 +124,21 @@ carve-out breaks); `--r-pill` is not flipped; three token flips reach 99 of 249
 radii, not 128 of 267; ten theme elevation rules were v2-port orphans, including
 the plan's own `.px-appr__svg` example; the tinted `howToRead` shipped in Phase
 2; `TYPE-MAPPING.md` forbids Literata, so RD-04 was compliance, not rejection
-(RD-11).
+(RD-11); the `EXPLAIN.how` review is of **90** strings, not the plan's 81 (Phase 1
+backfilled nine breadth-pass kinds — the plan's figure is historical, not a
+ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
+**silently dropped** until `core/Section.astro` took the render (`bdbfea8`).
 
 ## 5. What is left, in order
 
 1. **Operator: `git push`** when ready — the count is in the session brief,
    deliberately not written here (CD-11). Vercel deploys on push.
-2. **6.1 finish** — table the 81 `EXPLAIN.how` strings for copy review; draft
-   the CANON.md/motion.md edits for signature; strip the 70 `.px-viz__src`
-   emitters and retire the interim hide.
+2. **6.1 finish** — operator: sign the CANON.md/motion.md amendments
+   (`dc6a28c` — a DRAFT line sits at the top of each file until then) and rule
+   on `--t-page` (600ms kept, or retimed toward the handoff's ~300/340ms).
+   Everything else in 6.1 is built: the copy review was tabled at 90 strings
+   (not 81), the `EXPLAIN.how` fallback is on (`bdbfea8`), the 70 `.px-viz__src`
+   emitters are gone (`b0260b2`).
 3. **6.3 type harvest** (RD-08) — measure the font binaries first; instrument
    h3, eyebrows, the three-line drop cap.
 4. **Phase 7 — six web pages** — masthead to the 768px spec; home; desk = the
@@ -176,8 +182,23 @@ the plan's own `.px-appr__svg` example; the tinted `howToRead` shipped in Phase
 - **The ⤢ modal shows no source since `8eea66f`.** It portals the card; the
   source lives with the section now. Landed as-is by ruling; a modal source
   line is a separate, later call.
-- **70 components still emit `.px-viz__src`** under an interim, deliberately
-  unscoped `display: none` in `dataviz-v2.css`, until they are stripped.
+
+- **29 draft-only `EXPLAIN.how` cues still read as modal controls** ("Drag to
+  spin…") — left for a bulk pass by ruling; none renders on a published page
+  (`tactics-pitch` was the one live cue and is rewritten in `bdbfea8`).
+- **`CANON.md` and `motion.md` carry a DRAFT line at the top** (`dc6a28c`) —
+  the shell-adoption passages (CANON §1/§7/§10/§11/§13/§14; motion's
+  `cardLift`/`pageEnter`/`worldFade` rows and hard rule 7) are the agent's draft
+  until the operator removes that line. Cite them as draft, not law.
+- **`--t-page` stays 600ms.** `pageEnter`/`worldFade` are named in `motion.md`
+  against the existing CSS view transition; the handoff's ~300/340ms is
+  unadopted — a token decision the operator still owes.
+
+- **`.px-viz__src` is gone** — zero emitters, zero rules since `b0260b2`; the
+  source line is `.px-plain__src`, rendered once by `core/Section.astro`.
+  `story.css`'s `[class$='__src']` beat rule is left in place on purpose (a
+  suffix rule; costs nothing). Do not give a component its own source, plain
+  or how-to-read emitter — Section owns all three for every kind.
 - **`howToRead` control clauses are wrong under no-JS** wherever the control is
   `html.js`-gated — reordered so the static reading leads; the proper fix is a
   JS-gated field or a VizCard convention (a schema call).
@@ -220,6 +241,14 @@ the plan's own `.px-appr__svg` example; the tinted `howToRead` shipped in Phase
 - **Bash heredocs carrying Astro/JSX content break in Git Bash** — use the
   Write tool or a scratch `.py`, as §7 already says for Node one-liners.
 
+- **An authored `howToRead` on any of the 87 non-VizCard kinds was silently
+  dropped until `bdbfea8`** — nothing read the field outside VizCard. Since
+  then `core/Section.astro` owns the how-to-read (above), plain and `Source ·`
+  (below) for every kind, and the `:has()` rule in `dataviz-v2.css` hides
+  Section's panel when a slotted VizCard already carries one. A component that
+  grows its own emitter for any of the three re-opens the double render.
+
+
 ## 8. Where to find things
 
 | You want… | Read |
@@ -230,6 +259,10 @@ the plan's own `.px-appr__svg` example; the tinted `howToRead` shipped in Phase
 | The registry wirer | `scripts/wire-kind.mjs` |
 | The two component exemplars | `topic/politics/BillFunnel.astro` (HTML), `topic/sports/ChannelTernary.astro` (SVG) |
 | The shell + instrument primitives | `core/VizCard.astro`, `px-inst` in `src/styles/dataviz-v2.css` |
+
+| The explainability chrome for every kind (how-to-read above; plain + `Source ·` below) | `core/Section.astro`; `.px-plain__src` in `src/styles/viz-type.css`; the one-panel `:has()` rule in `src/styles/dataviz-v2.css` |
+| The canon, with its unsigned shell-adoption draft | `docs/design/CANON.md`, `docs/design/motion.md` — the DRAFT line at the top says which passages are not yet law |
+
 | Section-kind → component map | `src/components/AGENTS.md` |
 | Issue authoring incl. new fields | `src/content/issues/_AGENTS.md` |
 | The design handoff (delivered artifact) | `Parallax Design System Revamp/` — authority: AGENTS → INTEGRATION → blueprints; README is stale background |

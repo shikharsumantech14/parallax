@@ -37,10 +37,10 @@
 | 3 · The 28 kinds | Wave 0 ✅ (`d86673a`, `afcb49b`) · Wave 1 ✅ (`266734b`) — **library 97/118**; Waves 2–4 remain, **now sequenced last (RD-13)** |
 | 4 · Editorial floor | agent-facing half ✅ (`c0887a3`); **source backfill 21→0** ✅ (`37a6f7d`); captions deliberately declined (all 22 carry an `intro` stating the finding); schema tightening pending |
 | 5 · Mobile legibility | not started; measured on three files (`ScalingPlot.astro` carries the numbers and why a plain bump fails) |
-| 6.1 · Shell adoption | **half done** — flat viz card + `--viz-edge` world rule (`b74815d`); RD-05 shadow sweep 115→64 + the toolbar's flat skin (`943fe09`); ⤢ 44px on touch, SeatChart source naming, story depth-1 hiding. **Not done:** `EXPLAIN.how` flip (copy review), CANON/motion edits (signature), the `Source ·` fold — **landed as-is** (operator ruling 2026-09-04; the ⤢ modal shows no source, which is the design's own consequence — a modal source line is a separate, later call) |
+| 6.1 · Shell adoption | **done bar the signature** — flat viz card + `--viz-edge` world rule (`b74815d`); RD-05 shadow sweep 115→64 + the toolbar's flat skin (`943fe09`); ⤢ 44px on touch, SeatChart source naming, story depth-1 hiding; the `Source ·` fold **landed as-is** — `core/Section.astro` renders `Source · …` as the plain paragraph's second line for every kind (`8eea66f`), and the seventy per-component `.px-viz__src` emitters are gone, the class has zero emitters and zero rules (`b0260b2`); the `EXPLAIN.how` flip is **on** for every kind — Section renders the panel above the graphic, VizCard inside the card for its ten, one panel per section by `:has()` (`bdbfea8`; the review tabled at `9851c9a` counted 90 strings, not 81); the CANON/motion edits are drafted and committed as a **marked draft** (`dc6a28c`). **Not done:** the operator's signature on the canon edits (removing the DRAFT line at the top of each file is the signature) and the `--t-page` retime call (the handoff's ~300/340ms against the shipped 600ms). The ⤢ modal shows no source — the design's own consequence; a modal source line is a separate, later call |
 | 6.2 · B1 best-first | ✅ all three — `scaling-plot` log⇄linear (`e5fd2f1`), `xg-race` scrub (`d304c2d`), `climate-spiral` scrub (`714d1ac`); `px-inst` readout reserve generalised (`328395d`); `howToRead` ×4 + the live caption fix (`81cc2da`) |
-| 6.3 · Type harvest | not started |
-| 7 · Web pages | not started — **now next** (RD-13) |
+| 6.3 · Type harvest | not started — **now next** (RD-13); begins by measuring the font binaries, on which RD-08's 16→18px step is conditional |
+| 7 · Web pages | not started — after 6.3 (RD-13) |
 | Brand · the mark | **un-parked** (RD-10); scoping first, see §4-v3 |
 | 8 · App | not started |
 
@@ -57,6 +57,25 @@ nouns (three instances, generalised as `px-inst__readout--sized`); Timeline,
 BillBreakdown and VoteResult emit their source as a **sibling** of the graphic
 root, so story.css needed a depth-1 rule as well as depth-2. The B1 estimates
 (4h/3h/3h) came in on budget in one session.
+
+
+Execution corrections folded into the docs at shell adoption 3–5 (do not
+rediscover): the `Source ·` fold is a **`core/Section.astro`** change, not a
+VizCard one — Section receives the resolved `source` and `howToRead` from
+`SectionRenderer` and renders both for every kind, so the seventy per-component
+`.px-viz__src` emitters were stripped and the class now has zero emitters and
+zero rules (`b0260b2`; `CourtValue`'s value-model line moved to its own
+`.px-cval__model`); VizCard still accepts `source` and no longer renders it;
+the `EXPLAIN.how` review was of **90** strings, not 81 (Phase 1's backfill of
+nine breadth-pass kinds postdates v2's count) — 19 kinds render on published
+pages (69 sections), exactly one live cue (`tactics-pitch`, rewritten), 29
+draft-only cues left for a bulk pass; before `bdbfea8` an authored `howToRead`
+on any of the 87 non-VizCard kinds was silently dropped, and the one-panel
+guarantee is the `:has()` rule in `dataviz-v2.css`; `climate-spiral`'s scrub
+steps by **month**, not year — the payload is four years; and
+`pageEnter`/`worldFade` were named as the **existing** `--t-page` 600ms view
+transition, not the handoff's ~300/340ms, which is an open token decision.
+
 
 Execution corrections folded into the docs (do not rediscover): the SVG
 `var()`-in-presentation-attribute claim was false — the convention stands for
@@ -170,7 +189,7 @@ were stated wrongly in v1 and must not be carried forward.
   | `#f2eee4` | `#12233c` | `#ece2c4` | `#171717` | `#f6efe2` | `#12332a` |
 
   Never derive these from `--bg`: they sit *above* the ground on light worlds and *above* it on dark worlds in opposite directions, so a naive mapping inverts the moment a politics kind runs in a dark-world issue — which `CANON §2` permits.
-- **Shared chrome partially exists.** `SectionRenderer.astro` wraps every kind except `hero`/`act-break` in `core/Section.astro`, which renders the ghost numeral, eyebrow, title, intro, the plain line, and `data-kind`/`data-layout`. **Caption and source are rendered per-component from `data`** — `Section.astro` is never passed `data`.
+- **Shared chrome now exists for everything but the caption** (2026-09-04 — `8eea66f`, `bdbfea8`, `b0260b2`). `SectionRenderer.astro` wraps every kind except `hero`/`act-break` in `core/Section.astro`, which renders the ghost numeral, eyebrow, title, intro, the how-to-read panel **above** the graphic (`section.howToRead ?? EXPLAIN[kind].how`), the plain line with `Source · …` as its second line **below** it (`section.source ?? data.source`, `{label, date}` joined), and `data-kind`/`data-layout`. No component renders source, plain or how-to-read itself; the one exception is `VizCard`, which renders the how-to-read *inside* the card for its ten kinds while Section's copy is hidden by `:has()`, so a section never shows two panels. `.px-viz__src` has zero emitters and zero rules. **Caption is still rendered per-component** — VizCard's caption row for the ten, each older kind's own `__cap` — and `Section.astro` is still never passed `data`; it receives the resolved `source` and `howToRead`. `SectionRenderer.astro` wraps every kind except `hero`/`act-break` in `core/Section.astro`, which renders the ghost numeral, eyebrow, title, intro, the plain line, and `data-kind`/`data-layout`. **Caption and source are rendered per-component from `data`** — `Section.astro` is never passed `data`.
 - **The label architecture is a two-primitive system**, and the repo already builds one of the two. The prototype file that most loudly asserts *"labels are HTML, geometry is SVG"* breaks its own rule **47 times**; per instrument the choice is clean (28 HTML, 16 in-SVG, **0 mixed**), and the 16 are exactly the tick-dense cases where HTML positioning is worse. **31 of 72 instruments contain no SVG at all.**
 - **caption/source coverage:** 148 viz sections across 23 issues; **45 lack a caption, 28 lack a source**; 17 of 23 issues would fail a required-caption rule.
 - **13 of 28 supplied explainer strings exceed the 220-char `plain` cap** (porkchop-grid 299 down to turnout-margin 229).
@@ -194,7 +213,7 @@ brand). Read a phase's spec below; read its *place* here.
 
 | Order | Phase | Entry | Exit |
 |---|---|---|---|
-| 1 | **6.1 finish** — the `Source ·` fold (parked, 5 files), the `EXPLAIN.how` flip, the CANON/motion edits | operator: modal-source decision; copy review of the 81 strings; signature on the canon edits | every viz card on every published issue carries the full shell; canon documents match the shipped CSS |
+| 1 | **6.1 finish** — ✅ the `Source ·` fold landed (`8eea66f`, `b0260b2`), the `EXPLAIN.how` flip is on (`bdbfea8`), the CANON/motion edits drafted as a marked DRAFT (`dc6a28c`) | operator: signature on the canon edits; the `--t-page` retime call | **met bar the signature** — every viz card on every published issue carries the full shell; the canon drafts match the shipped CSS |
 | 2 | **6.3 type harvest** (RD-08) | measure the font binaries first — the 16→18px step is conditional on it | prose 18px, instrument `h3` 22/700/−.024em, 9.5/600/.16em eyebrows, the three-line Fraunces drop cap; 375px sweep green |
 | 3 | **7 web pages** — the README's six: masthead, home, desk, issue, archive, about | RD-12 signed (3-column + gate rework in one commit) | see Phase 7 below, extended by v3 |
 | 4 | **The brand** (RD-10) — new phase, scoped in v3 | the glyph-outline tooling proven on one SVG; the swap list agreed | the medallion everywhere the lens was; About carries *the mark, explained* and the lore rows; favicon/OG/app-icon busted |
@@ -272,7 +291,7 @@ zero `aria-*`, the blueprints and the repo's floor still win without discussion.
 
 1. **Token decision record** → `docs/design/` and `shared/design/worlds.css`: the six `--paper-warm` literals, `--paper-deep` as an alias, `--accent-warm` → `--accent-alt`. This precedes every kind: an undefined custom property in an SVG fill is invalid at computed-value time, falls back to **black or transparent**, and passes `astro build`, `design:check` *and* the blueprints' own "every colour is a `var(--*)`" acceptance box. `rain-calendar`'s dry band is ~94% of its cells.
 2. `src/content/config.ts`: optional top-level `caption`, structured `source {label, date?}`, `howToRead` (max ~360), and an optional issue-level `voice` enum. Renderer falls back to `data.caption` / `data.source`, so nothing existing breaks.
-3. **`src/components/core/VizCard.astro`** (RD-01a). Root `px-viz px-<kind>`; a slot for the graphic; caption/source from props; a `howToRead` render point **above** the graphic, class `px-viz__how`, added **explicitly** to `story.css`'s hiding rule rather than relying on the `[class$='__cap']` suffix coincidence. At annex it renders **current-canon skin**, and only *authored* `howToRead` — the `EXPLAIN.how` fallback flips on at Phase 6 after a copy review of all 81 strings, because `how` was written as a modal interaction cue and auto-rendering it in-flow would change every viz section of 23 issues with copy never reviewed for that surface. At ≤640px the callout drops its tint and keeps the accent border-left (the S-figure precedent), carried from day one so shell adoption does not reopen mobile.
+3. **`src/components/core/VizCard.astro`** (RD-01a). Root `px-viz px-<kind>`; a slot for the graphic; caption from props (source was rendered here too until the Phase 6 fold moved it to `core/Section.astro` — VizCard still accepts the prop and no longer renders it, `8eea66f`); a `howToRead` render point **above** the graphic, class `px-viz__how`, added **explicitly** to `story.css`'s hiding rule rather than relying on the `[class$='__cap']` suffix coincidence. At annex it renders **current-canon skin**, and only *authored* `howToRead` — the `EXPLAIN.how` fallback flips on at Phase 6 after a copy review of all the strings (**done 2026-09-04**: the review covered 90, not 81 — Phase 1 backfilled nine; ruled *flip it, rewrite `tactics-pitch`, leave the rest*; the fallback now resolves in `SectionBody` for the ten VizCard kinds and in `core/Section.astro` for the other 87, `bdbfea8`), because `how` was written as a modal interaction cue and auto-rendering it in-flow would change every viz section of 23 issues with copy never reviewed for that surface. At ≤640px the callout drops its tint and keeps the accent border-left (the S-figure precedent), carried from day one so shell adoption does not reopen mobile.
 4. Migrate the 12 bespoke roots to `px-viz px-<x>`; delete the duplicated card CSS; verify ⤢ attaches to all 12 in a browser.
 5. **`px-inst` primitive**, extracted from `ChipDie` and `SeasonWheel` (the two components that already carry a chip row and an `aria-live` readout with reserved height): chip row, range skin, readout, sr-only text, ledger fold, boot helper. Final form — CSS + a boot helper vs an Astro shell — is decided after an hour inside those two files, not pre-committed here.
 6. Shared legend and readout class definitions. New kinds consume them; the six kit-local variants migrate opportunistically, not as a gate.
@@ -332,8 +351,8 @@ re-touching the same files.
 
 **Entry:** annex deployed; the canon edits committed (they are decided — this is the doc commit, not a decision point).
 
-1. **Shell adoption** — the RD-01a dividend, one file plus one CSS block: `VizCard` restyles to the prototype shell (3px border-top **ink on light desks, accent on dark**), the tinted `howToRead` on the six literals, the `EXPLAIN.how` fallback flip after the copy review, and `Source · ` as the second line of the plain paragraph at 9px/600/.14em. Simultaneously: the **RD-05 flatness pass** on reading surfaces and home (three token flips retire 128 of 267 radii; ~20 named shadow classes; a hairline added wherever the shadow was the only edge, e.g. `.px-appr__svg`), and the toolbar's flat 2px-ink-rule skin. `CANON.md` and `motion.md` are edited **in the same commits** — `pageEnter` ~300ms and `worldFade` 340ms added as named motions, `hoverLift` split into mark-inspect (kept) and card-lift (retired), data-draw motions (`sweep`, `grow`, `settle`, `countup`) kept.
-2. **B1 best-first**, because the repo already carries the payload or the control: `scaling-plot` log⇄linear (**4h** — `ScalingPlot.astro:22-23` already has the props at build time; the payoff is *"On this axis the growth is a straight line, which reads as a schedule somebody could keep. Press Linear."* → *"…This is what the log axis was hiding."*), `xg-race` minute scrub (3h), `climate-spiral` year scrub (3h), then the rest by value. **Declines stand:** the risk corridor (a 29th new kind hiding in the retrofit set), `latency-waterfall` (needs a payload change *and* re-authored published data, and `COLLISIONS.md §3` already assigns its argument to `latency-ridge`), `itinerary-reel`, the swing ladder.
+1. **Shell adoption** — the RD-01a dividend, one file plus one CSS block: `VizCard` restyles to the prototype shell (3px border-top **ink on light desks, accent on dark**), the tinted `howToRead` on the six literals, the `EXPLAIN.how` fallback flip after the copy review, and `Source · ` as the second line of the plain paragraph at 9px/600/.14em. Simultaneously: the **RD-05 flatness pass** on reading surfaces and home (three token flips retire 128 of 267 radii; ~20 named shadow classes; a hairline added wherever the shadow was the only edge, e.g. `.px-appr__svg`), and the toolbar's flat 2px-ink-rule skin. `CANON.md` and `motion.md` are edited to match (**as executed: drafted after the CSS commits as one marked-draft commit, `dc6a28c` — a DRAFT line at the top of each file names the passages; removing it is the signature**) — `pageEnter` and `worldFade` named as motions (**named as the existing CSS view transition at `--t-page` 600ms; the handoff's ~300/340ms is unadopted, a token decision still open**), `hoverLift` split into mark-inspect (kept) and card-lift (retired), data-draw motions (`sweep`, `grow`, `settle`, `countup`) kept.
+2. **B1 best-first**, because the repo already carries the payload or the control: `scaling-plot` log⇄linear (**4h** — `ScalingPlot.astro:22-23` already has the props at build time; the payoff is *"On this axis the growth is a straight line, which reads as a schedule somebody could keep. Press Linear."* → *"…This is what the log axis was hiding."*), `xg-race` minute scrub (3h), `climate-spiral` time scrub (3h — shipped as a **month** scrub, `714d1ac`: the payload is four years), then the rest by value. **Declines stand:** the risk corridor (a 29th new kind hiding in the retrofit set), `latency-waterfall` (needs a payload change *and* re-authored published data, and `COLLISIONS.md §3` already assigns its argument to `latency-ridge`), `itinerary-reel`, the swing ladder.
 3. RD-08's prose 16→18px lands here, after measuring the binaries.
 
 ### Phase 7 — B3 web pages · ~11.5 days
@@ -383,13 +402,13 @@ undo — commits only, and the operator pushes.
 | When (v3 order) | What only you can do |
 |---|---|
 | ~~Now~~ | ~~Sign v3~~ **signed 2026-09-04** |
-| 6.1 finish | ~~The modal-source decision for the parked `Source ·` fold~~ **ruled: land as-is (2026-09-04)**; the copy review of the 81 `EXPLAIN.how` strings once the agent has tabled them; sign the CANON/motion edits once drafted |
+| 6.1 finish | ~~The modal-source decision for the parked `Source ·` fold~~ **ruled: land as-is (2026-09-04)**; ~~the copy review of the `EXPLAIN.how` strings~~ **tabled at 90 (not 81) and ruled: flip it, rewrite `tactics-pitch`, leave the rest (2026-09-04, `9851c9a` → `bdbfea8`)**; **sign the CANON/motion edits** — drafted and committed as a marked draft (`dc6a28c`); removing the DRAFT line at the top of each file is the signature; and rule on the `--t-page` retime (the handoff's ~300/340ms against the shipped 600ms), named in the motion.md draft as an open token decision |
 | 6.3 | Nothing — the binary measurement is the agent's; you see the before/after |
 | 7 | Sign RD-12's grid + gate rework as one commit; ~~rule on the `desk` page~~ **ruled: the topic index reskinned, not a route (2026-09-04)**; the pricing decision, which gates only `/subscribe` |
 | Brand | Approve the glyph-outline diff on `mark.svg` before the other 37 are rewritten; approve the swap list; **push** — favicon and OG caches are busted only by a deploy |
 | 8 | Runtime smoke per group (nothing here is runtime-verifiable on this box); the followed-worlds decision; the two migrations |
 | Look's exit | **Reassess Waves 2–4** — the 21 remaining kinds, ~22 days, against 77 of 97 unused |
-| Any time | Nothing is parked behind a decision any more; the pricing call is the only open gate |
+| Any time | Nothing is parked behind a decision any more; the pricing call is the only gate that parks work — the canon signature (6.1's exit) and the `--t-page` retime are open too, and neither blocks 6.3 |
 
 Phases 0–4's rows are discharged and dropped from this table; their history is
 §8 and `docs/PROJECT.md`.
@@ -415,18 +434,18 @@ its one real unknown is measured.
 
 | Block | Agent-days | Basis |
 |---|---|---|
-| 6.1 finish (fold, `EXPLAIN.how` flip, canon edits) | ~1.5 | fold is built; the rest is copy + doc |
+| 6.1 finish | **0 — done** (`8eea66f`, `bdbfea8`, `b0260b2`, `dc6a28c`) | only the canon signature and the `--t-page` call remain, both the operator's |
 | 6.3 type harvest | ~2 | v2's figure; the 18px step is conditional on the binary measurement |
 | 7 web pages, six (was three) | ~11.5 + the three added pages | v2's 11.5 covered masthead/archive/issue; home, desk, about are **unestimated** — desk may be a reskin (cheap) or a route (not) |
 | The brand | **scope first** | step 1 (glyph outline) is the only unknown of consequence; everything after it is a swap list |
 | 8 app, eleven screens | ~22 | v2's figure, unchanged |
 | 5 mobile legibility | ~4–6 | v2's figure; three files already measured |
 | 3 Waves 2–4 | ~22 | 179.5 h remaining of 212; **reassessed at the look's exit** |
-| **The look (rows 1–5)** | **~37 + three pages + the brand** | |
-| **Everything** | **~63 + three pages + the brand** | |
+| **The look (rows 1–5)** | **~35.5 + three pages + the brand** | |
+| **Everything** | **~61.5 + three pages + the brand** | |
 
 Done since v2 and subtracted above: Phases 0–2, Waves 0–1 (32.5 h), Phase 4's
-agent half and the backfill, 6.2 in full (10 h), half of 6.1. The B1 estimates
+agent half and the backfill, 6.2 in full (10 h), 6.1 in full bar the signature (the fold, the flip, the emitter strip and the canon drafts — `8eea66f`, `bdbfea8`, `b0260b2`, `dc6a28c`). The B1 estimates
 were accurate to the session, so v2's hour-figures are trusted where they exist;
 its day-figures for unbuilt web pages are not, because they were never
 itemised.
@@ -436,6 +455,22 @@ Each phase is independently releasable and revertible.
 ---
 
 ## 8. Change log
+
+- **2026-09-05 — v3.1.** §0 brought current through `dc6a28c` — the 2026-09-04
+  session's five shell-adoption commits and the canon draft. 6.1 finished bar
+  the signature, in the order §4-v3 row 1 set: the `Source ·` fold
+  (`8eea66f` — `core/Section.astro` renders `Source · …` as the plain
+  paragraph's second line for every kind; VizCard stops rendering it), the
+  `EXPLAIN.how` review tabled at 90 strings, not 81, and ruled *flip it,
+  rewrite `tactics-pitch`, leave the rest* (`9851c9a`), the fallback flipped on
+  for every kind with one panel per section guaranteed by `:has()`
+  (`bdbfea8`), the seventy per-component `.px-viz__src` emitters stripped and
+  the class retired (`b0260b2`), and the CANON/motion amendments committed as a
+  **marked draft** awaiting signature (`dc6a28c`) — `pageEnter`/`worldFade`
+  named as the existing 600ms `--t-page` transition, the handoff's ~300/340ms
+  left as an open token decision. §3's shared-chrome fact, §4-v3 row 1, §6 and
+  §7 corrected; 6.3 is next per RD-13.
+
 
 - **2026-09-04 — v3, signed the same day.** The operator, on being shown what v2
   had done with the handoff, ruled: the whole revamp — components, pages,

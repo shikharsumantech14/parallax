@@ -61,7 +61,7 @@ inspection — under three absolutes: every interactive byte serves
 (nothing heavy loads until its mount scrolls in, and never on pages that don't
 use it); and the **fallback contract is untouchable**. Home, topic indexes and
 about stay near-zero-JS: small vanilla `is:inline` islands only — scroll-reveal,
-count-up + cursor-warmth, reading toolbar, expand-to-modal, the Phase-B reader
+count-up + cursor-warmth, reading toolbar, expand-to-modal, the `px-inst` instrument controls on issue pages (the scaling-plot LOG/LINEAR toggle, the xg-race minute scrub and the climate-spiral month scrub — every projection precomputed at build, the control `html.js`-gated and hidden until the payload parses), the Phase-B reader
 islands, the reading gate, and the three funnel islands (`AccountEntry`,
 `WelcomeBack`, `NewsletterNotice`). The onboarding surface ("The Second Angle")
 keeps its own documented exception. Everything degrades to its final painted
@@ -86,7 +86,7 @@ npm run new-issue  # scaffold a new issue folder (scripts/new-issue.mjs)
   rhythm, spacing, and the Parallax meta-brand aesthetic used on home and
   `/topics/*` index pages.
 - **Layer B — Topic themes (themes/*.css).** Each of the 6 topics defines a
-  full token set (`--bg`, `--ink`, `--accent`, `--font-display`, …) scoped
+  full token set (`--bg`, `--ink`, `--accent`, `--font-display`, `--viz-edge` — the 3px figure top-rule colour: ink on the light desks politics / earth / travel, accent on the dark space / tech / sports — …) scoped
   under `:root[data-topic="<topic>"]`. Flipping `<html data-topic>` swaps the
   entire look.
 
@@ -201,7 +201,7 @@ index` / `← cd ..` / `← Back to bureau index` / `← Fixture index`).
 1. Topic-variant masthead
 2. Compact `TopicStrip` (cross-topic nav)
 3. `Hero` (eyebrow, title with `*italic*` accent, dek, byline)
-4. Sections iterated via `SectionRenderer.astro` dispatcher
+4. Sections iterated via `SectionRenderer.astro` (article chrome) → `core/Section.astro` (the explainability stack for every kind: how-to-read panel ABOVE the graphic from `howToRead ?? EXPLAIN[kind].how`; plain line + `Source · …` second line BELOW, from `section.source ?? data.source`) → `SectionBody.astro` (the kind → component dispatch). Components render none of source / plain / how themselves; the ten VizCard kinds render the how-to-read inside the card and Section's copy is hidden there by `:has()`.
 5. `Sources` list
 
 ### 3.7 Editorial pipeline (agent-assisted)
@@ -430,7 +430,7 @@ src/
 │   │   ├── Masthead.astro   # 6 variants
 │   │   ├── ReadingGate.astro # metered soft signup wall (primer + 2 sections, then themed account wall)
 │   │   ├── Hero.astro
-│   │   ├── Section.astro
+│   │   ├── Section.astro    # owns the explainability stack for EVERY kind: how-to-read ABOVE the graphic (authored howToRead, else EXPLAIN[kind].how), plain line + `Source · …` (.px-plain__src) BELOW. Components render none of source/plain/how themselves (VizCard's ten kinds render the how-to-read in-card; Section's copy is hidden there by :has())
 │   │   ├── Quote.astro
 │   │   ├── BeatSheet.astro
 │   │   ├── Prose.astro
@@ -499,7 +499,7 @@ src/
 │       ├── 2026-05-03-travel-components/index.mdx   # draft — component test fixture
 │       └── 2026-05-03-sports-components/index.mdx   # draft — component test fixture
 ├── styles/
-│   ├── base.css             # Layer A — topic-agnostic rhythm
+│   ├── base.css             # Layer A — topic-agnostic rhythm + the flat .px-viz shell (3px --viz-edge rule) + the RD-05 radius flip (--r-card/--r-tile: 0 on :root — here, not in shared/design/tokens.css, because app/ consumes those)
 │   ├── meta.css             # Meta brand tokens + home/topic-index styles
 │   ├── intro.css            # "The Second Angle" intro design system (px-intro scenes/player + px-xp home overlay/tour; own palette tokens)
 │   ├── welcome.css          # largely superseded — survives only for AccountLine (px-wj) + About px-abt bits
@@ -880,6 +880,169 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 ---
 
 ## 12. Change log
+
+
+### 2026-09-04 — Revamp plan v3 signed (look first) + Phase 6.1 shell adoption + B1 instrument retrofits
+
+Eleven commits on `main`, `d304c2d` → `dc6a28c`, all committed (a change from
+the uncommitted sprawl of earlier entries). The operator re-read REVAMP-PLAN v2
+and ruled **look first**: the plan is now **v3, signed 2026-09-04**, RD-10…RD-13
+added, RD-03/07/09 struck (not deleted) in §1. Under it, Phase 6.2 (B1
+best-first) closed and Phase 6.1 (shell adoption) closed in code, with only the
+canon signature and one token decision outstanding. Source of truth:
+`docs/REVAMP-PLAN.md` (v3) + `docs/STATE-OF-PLAY.md` (v3, operator-approved via
+`/update-state`, `9851c9a`).
+
+**A — B1 instrument retrofits (Phase 6.2, complete).** `scaling-plot` gained a
+**LOG / LINEAR axis toggle** (`e5fd2f1`): both projections are computed in
+frontmatter — no scale math on the client — the readout is derived from data,
+the control is the `px-inst` chip pair (`aria-pressed`) + `px-inst__readout`,
+routed through `core/VizCard.astro`; two latent tick-formatter bugs fell out of
+it (a negative floor on a count axis; duplicate exponential labels). `xg-race`
+gained a **minute scrub** (`d304c2d`) and `climate-spiral` a **month scrub**
+(`714d1ac` — the plan said year; month was chosen because the payload is four
+years). Both are a native `<input type=range>` that ships hidden and is unhidden
+by the island once the payload parses; the per-minute / per-month tables are
+precomputed at build. `XgRace` derives its `clipPath` id from a payload hash;
+in `ClimateSpiral` the scroll-in reveal owns `stroke-dashoffset` and the scrub
+owns opacity only. **`px-inst` gained an opt-in exact readout reserve**
+(`328395d`): `px-inst__readout--sized` + `.px-inst__sizer` render the
+component's worst-case readout string as a `visibility: hidden` twin stacked in
+the same grid cell, so the box reserves its true height — `min-height: 3.2em`
+was not enough (xg-race reflowed 15px mid-drag; scaling-plot jumped 17px on the
+live page). Applied to the three instruments; it **must stay opt-in** because
+`StateTimeline` mixes inline children. Editorial (`81cc2da`): `howToRead`
+authored for four sections (the token-bill `scaling-plot` + the tech / sports /
+earth showcases); the *published* token-bill caption dropped its trailing
+"· log scale" (CAPTION-FORM — the reader can now change the scale). Rule for
+instrument how-to-reads: **the static reading leads, the control clause trails**
+— the controls are `html.js`-gated, the paragraph is not.
+
+**B — Phase 6.1 shell adoption, five commits.**
+
+- **1/n — the flat viz card and its world rule** (`b74815d`). `.px-viz` is flat:
+  `border-radius: 0`, no `box-shadow`, a 3px top rule
+  `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border-colour
+  only. New per-theme token `--viz-edge` in `src/styles/themes/<world>.css` —
+  `var(--ink)` on the light desks (politics, earth, travel), `var(--accent)` on
+  the dark (space, tech, sports). The RD-05 radius flip — `--r-card: 0;
+  --r-tile: 0` — lives in `src/styles/base.css` `:root`, **not** in
+  `shared/design/tokens.css`, because `app/` consumes those tokens and keeps its
+  own spec until Phase 8. `--r-pill` deliberately **not** flipped (43 sites of
+  UI chrome). Measured, not assumed: the three token flips reach **99 of 249**
+  radii, not the plan's "128 of 267". The ⤢ expand button (`.px-vexp`) is 44px
+  under `(pointer: coarse)`. SeatChart's bespoke `px-seats__source` replaced by
+  the shared class, its CSS retired. `story.css` now hides `[class$='__cap']` /
+  `[class$='__src']` at depth 1 as well as depth 2 — Timeline / BillBreakdown /
+  VoteResult emit their chrome as a *sibling* of the graphic root.
+- **2/n — the RD-05 shadow sweep and the toolbar's flat skin** (`943fe09`).
+  115 `box-shadow` declarations → 64. Removed on **surfaces only**: the
+  `px-viz`-style cards, `.px-compare`, `.px-beats`, `.px-bills__card`,
+  `.px-analogy`, `.px-shells`, `.px-commit__frame`, `.px-elev__stack`, the gate
+  card, letters, annotation items, home category cards, the featured plate +
+  its CTA, the travel index ticket cards, the six topic-index empty states
+  (which got a 1px hairline — the shadow had been their only edge), and the
+  bespoke roots `.px-coalc` / `.px-swheel` (which also gained the 3px
+  `--viz-edge` rule). **Kept**: focus rings, inset hairlines, halo rings / glows
+  on data marks, slider thumbs, CSS-3D scene depth (ArchStack, PlayerCard,
+  TacticsPitch, ChipDie, CoreSample, SeaLevelTank, AtmosphereColumn,
+  BillPassage, ItineraryReel — RD-06), viz3d overlay chrome, modal / popover /
+  toast chrome, the onboarding surface. Ten of seventeen theme "elevated card"
+  rules were **orphans from the v2 port** (`.px-readout`, `.px-vote`,
+  `.px-paradox`, `.px-appr__svg`, `.px-pwm`, `.px-ortrace__wrap`,
+  `.px-launch__svg`, `.px-bench__svg`, `.px-scurve__svg`, `.px-route__card`) —
+  their elevation blocks deleted, base rules left for the deferred dead-CSS
+  pass. Reading toolbar `.rtb` flat: opaque `var(--paper)`, `border: 2px solid
+  var(--ink)`, no `backdrop-filter`, no shadow, pill radius kept; the live
+  progress bar untouched; thumb shadow → 1px rule. Hover lift retired to
+  border-colour on every surface.
+- **3/n — the Source fold** (`8eea66f`). `core/Section.astro` now renders the
+  source line as `.px-plain__src` — `SOURCE · …` at 9px / 600 / .14em mono — as
+  the plain paragraph's **second line, below the graphic, for every kind**, from
+  `section.source ?? data.source` (SectionRenderer passes `source` to
+  CoreSection; Section joins `{label, date}`). VizCard no longer renders source
+  (it still accepts the prop). The verifier is unaffected (it reads MDX). The ⤢
+  modal portals the card, so it shows no source — ruled as-is, a later call.
+  CSS in `viz-type.css`.
+- **4/n — the how-to-read fallback is on, for every kind** (`bdbfea8`).
+  `core/Section.astro` renders `<p class="px-viz__how px-viz__how--section">`
+  **above** the graphic (after `intro`, before `<slot/>`) for every kind, from
+  `section.howToRead ?? EXPLAIN[kind].how`; SectionRenderer passes `howToRead`.
+  For the **ten VizCard kinds** (bill-funnel, age-pyramid, margin-bullets,
+  state-timeline, attrition-waffle, finish-interval, channel-ternary,
+  scaling-plot, xg-race, climate-spiral) `SectionBody` resolves
+  `section.howToRead ?? EXPLAIN[section.kind]?.how` at the dispatch line (it now
+  imports `EXPLAIN`) so VizCard renders it *inside* the card, and the
+  `dataviz-v2.css` rule `.px-section:has(.px-viz > .px-viz__how)
+  .px-viz__how--section { display: none; }` guarantees **exactly one panel per
+  section**. Before this, an authored `howToRead` on any of the 87 non-VizCard
+  kinds was **silently dropped**. `tactics-pitch`'s `how` rewritten ("Each disc
+  is a player in their starting spot; the pitch can be turned to read the shape
+  from either end.") — the only live control cue; 29 draft-only cues left for a
+  bulk pass. `VizCard.astro`'s header comment updated.
+- **5/n — the seventy in-card source emitters are gone** (`b0260b2`). Every
+  per-component `.px-viz__src` emitter stripped (66 canonical one-liners, 3
+  variants, the SeatChart comment rewritten); the `.px-viz__src` CSS rule and
+  the interim unscoped hide retired in `dataviz-v2.css` (a note remains).
+  **`.px-viz__src` now has zero emitters and zero rules; the source line class
+  is `.px-plain__src`.** CourtValue kept its value-*model* line on a new scoped
+  class `.px-cval__model`. The `story.css` `[class$='__src']` beat rule stays (a
+  harmless suffix rule).
+
+**C — REVAMP-PLAN v3, signed** (`f40fd4c`). **RD-10 supersedes RD-03**: the
+mark is **un-parked** — all 38 handoff SVGs set the P as live `<text
+font-family=Literata>`, so the glyph is to be outlined at build time (a Literata
+*shape*, no Literata *file*). **RD-11**: RD-04 re-examined and **stands** — the
+handoff's own `TYPE-MAPPING.md` says Literata "must not reach the repo"; the v2
+author had mis-framed compliance as rejection. **RD-12 supersedes RD-07**: the
+3-column issue grid ships in Phase 7 in the **same commit** as the ReadingGate
+rework. **RD-13 supersedes RD-09**: the order is finish 6.1 → 6.3 type harvest
+→ 7 web pages (the README's **six**: masthead, home, desk, issue, archive,
+about; "desk" = the topic index reskinned, ruled) → the brand (scope first —
+"B4 ~12 days" traces to nothing) → 8 app (eleven screens) → 5 mobile → Waves
+2–4 (reassessed at the look's exit). Two riders: the Source fold lands as-is
+(modal shows no source); desk = reskin. §0 execution state, §4-v3 sequence, §6,
+§7, §8 rewritten.
+
+**D — Docs.** `docs/STATE-OF-PLAY.md` → v3 (`9851c9a`).
+`docs/design/EXPLAIN-HOW-REVIEW.md` **tabled**: **90** `how` strings (not 81 —
+the plan's count predates Phase 1's backfill of nine breadth-pass kinds), 30
+CUE / 60 READ; 19 kinds would render on published pages (69 sections); exactly
+**one** live cue (tactics-pitch). `CANON.md` + `motion.md` amendments committed
+as a **marked DRAFT** (`dc6a28c` — a DRAFT line at the top of each file),
+**awaiting the operator's signature** per REVAMP-PLAN §6: CANON §1 flat surfaces
++ world rule; §7 source renders once, from Section; §10 the four-layer stack
+(how-to-read ABOVE, caption, plain + source BELOW, prose) + the one-panel rule +
+"static reading leads, control trails"; §11 glass modal-only, reading-surface
+shadows on the kill list; §13 items 5 and 9; new **§14 Surfaces and elevation**
+(RD-05). `motion.md`: `hoverLift` marks-only; `cardLift` a RETIRED row;
+`pageEnter` / `worldFade` **named** as the existing CSS view transition at
+`--t-page` 600ms (the handoff's ~300/340ms unadopted — a token decision still
+open); hard rule 7; the reduced-motion line.
+
+**Where this leaves the architecture** (any doc contradicting these is stale):
+`core/Section.astro` owns all explainability chrome for every kind — how-to-read
+above, plain + `Source ·` below — and components render none of it themselves
+(VizCard's ten kinds render the how-to-read in-card, Section's copy hidden by
+`:has()`). VizCard = caption row (+ optional chip) + optional in-card
+how-to-read + the graphic slot; it does **not** render the source line.
+`EXPLAIN[kind].how` is the live fallback on every kind. `.px-viz` and every
+reading / home surface are **flat** — radius 0, no shadow, hover border-colour
+only — every figure wears the 3px `--viz-edge` top rule, the radius override
+lives in `base.css :root`, `--r-pill` is untouched, the toolbar is paper + 2px
+ink, and glass survives on modal chrome only.
+
+**Remaining.** Phase 6.1 is complete **except** the canon signature (and the
+`--t-page` retime decision). Phase 6.2 is complete. Next per RD-13: **6.3 type
+harvest**, which begins by **measuring the font binaries** — RD-08's 16→18px is
+conditional on it. Still owed: Phase 5's mobile font bump on ScalingPlot /
+XgRace / ClimateSpiral (`ScalingPlot.astro` carries the measurements and why a
+plain bump fails); the modal shows no source; the 29 draft-only EXPLAIN cues; a
+JS-gated `howToRead` control clause (a schema call); the `--t-page` decision.
+Counts as of this entry: 97 kinds; 90 EXPLAIN entries + 7 narrative-exempt; 33
+decisions tracked (12 decided-but-unbuilt); 77 kinds never in a published issue;
+10 published / 13 draft issues.
+
 
 ### 2026-08-17 → 08-28 — Design-revamp: analysis, decisions, Phases 0–4 execution
 
