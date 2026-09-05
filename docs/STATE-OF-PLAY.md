@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-04.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-05.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -85,12 +85,19 @@ premise):
 
 Publication work is browser-verifiable via `npm run dev`.
 
-One measurement trap, twice confirmed this cycle: **the preview browser reports
+One measurement trap, three times confirmed: **the preview browser reports
 false page overflow.** With the pane not displayed, `clientWidth` is 0 and every
 overflow probe fires; even displayed, `position: fixed` elements (the annotation
 editor at `opacity: 0`, the reading-progress bar) measure wider than the
-viewport. The only honest test is `window.scrollTo(9999, y)` → `scrollX`
-stays 0. Do not "fix" overflow you have not proven that way.
+viewport. `window.scrollTo(9999, y)` → `scrollX` is the honest test **only once
+the viewport is real** — corrected 2026-09-05, when it returned `scrollX: 352`
+on a page with no overflow at all. A hidden pane reports `innerWidth: 0`,
+`clientWidth: 0` and a non-zero `scrollWidth`, so the scroll test fires too; it
+is not immune, it is downstream of the same zero. **Assert `innerWidth > 0` in
+the same call as the probe**, or set a real viewport first with `resize_window`
+— which works even while the pane is hidden and is cheaper than displaying
+it. Do not "fix" overflow you have not proven with the viewport width printed
+beside it.
 
 ---
 
@@ -199,6 +206,15 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
   `story.css`'s `[class$='__src']` beat rule is left in place on purpose (a
   suffix rule; costs nothing). Do not give a component its own source, plain
   or how-to-read emitter — Section owns all three for every kind.
+  **This entry was true about the class and false about the rule until
+  `b5c68b1` (2026-09-05).** `b0260b2` swept on the *name* `.px-viz__src`; three
+  components emitted a source under other names and survived it —
+  `core/DataReadout` (`.tel__src`, doubling on the **published**
+  the-bill-came-due-in-april), `politics/CoalitionCalculus` (`.px-coalc__src`)
+  and `travel/SeasonWheel` (`.px-swheel__src`). All three are now gone and each
+  keeps its unrendered `source` prop per the VizCard precedent. The standing
+  check is a grep for `__src` under `src/components`, which must return only
+  `core/Section.astro`.
 - **`howToRead` control clauses are wrong under no-JS** wherever the control is
   `html.js`-gated — reordered so the static reading leads; the proper fix is a
   JS-gated field or a VizCard convention (a schema call).
@@ -237,6 +253,13 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
   The real fix is to skip `docs/generated` in the scan (one line in
   `scripts/project-graph.mjs`; changes every `citedIn` by one). (Cost two
   diagnoses.)
+- **A class-name sweep cannot establish an invariant about a behaviour.**
+  `b0260b2` swept `.px-viz__src` and the docs recorded source-once as settled;
+  three differently-named emitters were still rendering, one on a published
+  page, for four days. When the rule is *"no component renders X"*, the check
+  has to match **X** — grep the rendered string `Source ·` under
+  `src/components` — not the class name someone happened to use for it.
+  Cost: a user-visible duplicate on a live issue. (`b5c68b1`)
 - **The preview browser reports `prefers-reduced-motion: reduce`**, so the
   motion contract's global reset makes every `transition` compute to `none`.
   Not a CSS defect — verify against a known-good committed rule first. (Cost a

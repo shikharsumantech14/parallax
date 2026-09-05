@@ -170,7 +170,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **RD-05** | 32 files | 22 |
 | **RD-06** | 8 files | 1 |
 | **RD-07** | 4 files | 1 |
-| **RD-08** | 6 files | 1 |
+| **RD-08** | 8 files | 3 |
 | **RD-09** | 7 files | 1 |
 | **RD-10** | 5 files | 0 — _dangling_ |
 | **RD-11** | 4 files | 0 — _dangling_ |
