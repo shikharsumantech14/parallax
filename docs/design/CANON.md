@@ -1,12 +1,5 @@
 # Parallax visual canon
 
-> **DRAFT AMENDMENTS AWAITING SIGNATURE (2026-09-04).** §1 (flat surfaces), §7
-> (where the source line renders), §10 (the four-layer explainability stack),
-> §11 (glass modal-only), §13 items 5 and 9, and the new §14 were drafted at
-> shell adoption against the shipped CSS. REVAMP-PLAN §6 requires the operator's
-> signature on canon edits; until this line is removed, those passages are the
-> agent's draft, not law. The rest of this document is unchanged.
->
 > **What this is.** The master design document for the Parallax product elevation
 > (2026-07). Every visual decision that would otherwise live in a designer's (or a
 > model's) head is written here as a **checkable rule**. If you are implementing a
