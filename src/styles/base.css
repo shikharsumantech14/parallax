@@ -237,10 +237,16 @@ body {
 
 /* HERO (v2 — issue-face headline, larger scale, balanced wrap) */
 .px-hero { margin: 0 0 72px; }
+/* The eyebrow, to RD-08's spec: 9.5px / 600 / .16em (Phase 6.3, 2026-09-05).
+   Was 11px/.22em. 9.5px is the repo's text floor, so it is a floor value on
+   purpose, not a size to trim further; the weight carries what the size gives
+   up. Three worlds used to re-letter-space this — earth and tech folded in
+   here; SPORTS DELIBERATELY OPTS OUT in themes/sports.css. */
 .px-eyebrow {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent-deep); /* accent-deep, not accent: CANON §6 — small text on a light ground. */
   margin-bottom: 24px;
@@ -267,8 +273,8 @@ body {
 .px-hero__byline {
   margin-top: 32px;
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--muted);
   border-top: 1px solid var(--rule);
@@ -558,8 +564,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   position: absolute;
   top: 22px; right: 22px;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   padding: 3px 6px;
   color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */
   border: 1px solid var(--accent);
@@ -576,8 +582,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-compare__row:last-child { border-bottom: none; }
 .px-compare__row-label {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--muted);
   padding: 16px 20px 16px 26px;
@@ -663,8 +669,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 .px-readout__label {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.15em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--ink-soft);
   line-height: 1.5;
@@ -691,8 +697,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-sources { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 24px; max-width: var(--col-prose); }
 .px-sources__title {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   margin-bottom: 18px;
   color: var(--ink);
@@ -879,8 +885,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-bnr__readout {
   display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--muted);
 }
