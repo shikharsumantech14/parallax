@@ -27,9 +27,14 @@ body {
    `.mh` class names are a deliberate v2 adoption (documented in
    src/components/AGENTS.md) — the lens-mark + status CSS is tightly coupled.
    ────────────────────────────────────────────────────────────────────────── */
+/* Two groups, not three columns (Phase 7, per Web.dc.html:74). The old
+   `1fr auto 1fr` gave the centre status pill a whole column and squeezed the
+   brand between two flexible tracks -- which is what broke the 769-900 band
+   when the drawer moved to 768. Brand left, everything else right. */
 .mh {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
   gap: 24px;
   padding: 20px 0 16px;
@@ -139,7 +144,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.mh__r { display: inline-flex; align-items: center; gap: 24px; justify-self: end; }
+.mh__r { display: inline-flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .mh__links { display: inline-flex; gap: 22px; }
 .mh__links a {
   font-family: var(--font-mono);
@@ -182,23 +187,33 @@ body {
    duplicate links never reach the accessibility tree. See Masthead.astro. */
 .mh__menu { display: none; }
 
-/* Phone-nav threshold. The Phase 7 spec says 768px and Phase 1 deferred the
-   change to here -- but it CANNOT ship until the masthead's layout is reworked.
-   Measured 2026-09-05 at 800px with the drawer moved to 768: the grid's
-   `1fr auto 1fr` crushes the brand column to 70px, and BOTH the wordmark and
-   the tagline wrap to two lines (.mh__name 70x36, .mh__tagline 70x36; the
-   masthead grows 85px -> 117px). Nothing overflows or clips, so the honest
-   test passes -- it is simply broken to look at. The prototype has no such
-   band because its masthead is a two-group flex (brand left, live badge + nav
-   + Subscribe right), not a three-column grid with a centre status pill.
-   Moving the badge is a visible structural decision, so the threshold stays
-   at 900 until that rework is ruled on. */
+/* Phone-nav threshold. The Phase 7 spec says 768px; it stays at 900 for a
+   MEASURED reason, not an unfinished one.
+
+   The two-group flex above fixed the real defect -- at `1fr auto 1fr` the
+   769-900 band crushed the brand to 70px and wrapped the wordmark onto two
+   lines. That is gone: the wordmark holds one line at 769 now.
+
+   But the desktop nav still does not FIT that band. Brand 195 + gap 24 +
+   right group 597 = 816px of content against ~739px available at 769, so the
+   flex wraps to two rows and the masthead goes 85px -> 143px across
+   769-890px -- which includes iPad portrait (810/820/834). Nothing clips and
+   nothing overflows; it is simply taller and looser than the drawer it would
+   replace, and the drawer is a designed compact state rather than an accident
+   of wrapping. Shipping 768 today would trade a good state for a worse one.
+
+   To actually earn 768 the right group has to lose ~80px. The prototype's own
+   badge is plain text and a dot -- no border, no padding (~34px), and its nav
+   carries no account entry. Slimming to match is a visible change, so it is a
+   separate call. Measured 2026-09-06. */
 @media (max-width: 900px) {
-  .mh { grid-template-columns: 1fr auto; gap: 16px; }
+  .mh { gap: 16px; }
   .mh__status { display: none; }
   .mh__links { display: none; }
 
-  .mh__menu { display: block; grid-column: 1 / -1; margin-top: 4px; }
+  /* `flex: 1 0 100%` is the flex spelling of the old `grid-column: 1 / -1` —
+     the drawer takes a row of its own under the brand. */
+  .mh__menu { display: block; flex: 1 0 100%; margin-top: 4px; }
 
   .mh__menu-btn {
     display: inline-flex; align-items: center; gap: 6px;
