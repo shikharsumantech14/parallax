@@ -1,27 +1,36 @@
-# app/ — agent guide
+# Reader-account surfaces — agent guide
 
-> Local rules for the **Parallax app subdomain** at
-> `app.parallaxlens.com`. Read the root `AGENTS.md` first for
-> project-level context, then this file for app-specific conventions.
+> Auth, the Shelf and every `/api/*` route. These were a separate Astro
+> project at `app.parallaxlens.com` until 2026-09-06; they are part of the
+> publication now, and this file moved with them (it was `app/AGENTS.md`).
+> Read the root `AGENTS.md` first, then this for surface-specific conventions.
+>
+> **Sections 3–10 below still carry pre-merge detail** — `app/`-relative paths,
+> a second dev server, `output: 'server'`. The endpoint inventory and the
+> patterns are sound; the geography is not. Trust §1 and §2, and check a path
+> against the repo before following it.
 
 ---
 
-## 1. What this subdirectory is
+## 1. What these surfaces are
 
-`app/` is a **separate Astro project** from the publication. The
-publication at `parallaxlens.com` (root of this repo) stays
-`output: 'static'` and pure-typography. The app at
-`app.parallaxlens.com` is `output: 'server'` and hosts everything
-auth-aware:
+One project, `output: 'hybrid'`. The publication prerenders (45 pages); these
+routes opt out with `export const prerender = false` (24 of them) and hold
+everything auth-aware. Miss that export on a new surface and it bakes at build
+time with no session — which is the failure mode to watch for here:
 
 - **Auth.** Magic-link + Google OAuth via Supabase. Pages: `/login`,
   `/auth/callback`. API: `/api/auth/signout`.
-- **Onboarding.** `/welcome` — the one-time post-signup plate (optional
-  name + world picker), reached from `/auth/callback` when
-  `profiles.welcomed_at` is NULL. API: `/api/onboarding`. Added
-  2026-07-14; needs the journey migration applied first (§9). Not to be
-  confused with the **publication's** `/welcome` (the cinematic "Second
-  Angle" story) — different project, different domain, different file.
+- **Onboarding.** **`/account/welcome`** — the one-time post-signup plate
+  (optional name + world picker), reached from `/auth/callback` when
+  `profiles.welcomed_at` is NULL. API: `/api/onboarding`. The journey
+  migration is applied (confirmed 2026-09-06 by the callback reaching this
+  branch at all — an unapplied column errors and falls through instead).
+  **It is NOT `/welcome`.** That is the publication's cinematic "Second
+  Angle" story. Before the merge they were different projects and the name
+  could be reused; afterwards one namespace held both, the callback kept
+  pointing at the old path, and every first-time reader got the intro story
+  instead of setup until `cf0c0b6`.
 - **Dashboard — "The Shelf".** `/dashboard`. Rebuilt 2026-07-14 on the
   `app.css` v2 primitives. Module order: greeting header → shelf tile
   grid (saved issues) → reading log (3 `.stat`s) → "In the margins" (the
@@ -37,20 +46,18 @@ auth-aware:
   `/admin/comments` (annotations + letters) and `/admin/social` (social
   post approvals).
 - **Health.** `/api/health` returns env booleans + runtime info.
-- **Wired into the publication but NOT yet deployed:** `/api/join`
-  (Tier-1 unified "Join": one email → newsletter subscribe + Supabase
-  magic-link account in a single step) is now the POST target of the
-  publication's `NewsletterForm.astro` — repointed from `/api/subscribe`
-  on 2026-07-14. `/api/me` is used by the publication's
-  `AccountEntry.astro` as a stale-session **confirmer only, never a
-  gatekeeper**, and remains the optional server-confirmed upgrade for
-  `ReadingGate.astro` (which reads auth client-side). Both endpoints and
-  both publication changes are uncommitted and undeployed.
-  **Deploy order matters: the app must go live BEFORE the publication**,
-  or the newsletter form posts to an endpoint that isn't there yet.
+- **`/api/join`** — Tier-1 unified "Join": one email → newsletter subscribe
+  + Supabase magic-link account in a single step. The POST target of
+  `NewsletterForm.astro`. Live and smoke-tested 2026-09-06.
+- **`/api/me`** — used by `AccountEntry.astro` as a stale-session **confirmer
+  only, never a gatekeeper**, and the optional server-confirmed upgrade for
+  `ReadingGate.astro` (which reads auth client-side). Deliberately
+  auth-OPTIONAL: it answers `{authed:false}` rather than refusing, which is
+  why it is absent from the middleware's AUTH_ROUTES.
 
-Two Vercel projects deploy from this one repo: the publication (root
-directory `.`) and the app (root directory `app/`).
+**Deploy order is moot now** — one project, one deploy, so the publication and
+the endpoints it calls always ship together. The old rule ("app before
+publication") existed because they could not.
 
 The publication's new soft signup gate (`ReadingGate.astro`) detects
 auth client-side via the shared, client-readable `sb-<ref>-auth-token`
@@ -60,23 +67,38 @@ exists as an optional server-confirmed upgrade to that heuristic.
 
 ---
 
-## 2. Why split, not hybrid?
+## 2. Why merged, not split
 
-If you're tempted to flip `astro.config.mjs` at the repo root to
-`output: 'hybrid'`, **stop and re-read the approved plan**. The split
-exists because:
+This section argued the opposite until 2026-09-06, in strong terms — *"stop
+and re-read the approved plan… Do not undo it."* It was undone deliberately.
+Keeping the reversal on the record is more useful than either claim alone.
 
-- The publication's per-topic theming, masthead variants, section
-  components, and SVG layouts are static-perfect. Hybrid mode would
-  move every issue request onto a serverless function.
-- The publication's design investment (30+ hours of typographic and
-  per-topic work) is protected from regressions when the app fails.
-- The app can be replaced or torn down without touching the
-  publication.
-- Auth cookies scoped to `.parallaxlens.com` work across both subdomains.
+**The four original arguments, and what became of each:**
 
-This is the single most consequential architectural decision in the
-commercialisation plan. Do not undo it.
+- *"Hybrid would move every issue request onto a serverless function."*
+  **False as stated.** `output: 'hybrid'` prerenders by DEFAULT; routes opt
+  out individually. The merged build emits 45 static pages and exactly 24 SSR
+  routes — issues are still served from the CDN, measured in
+  `.vercel/output/static`.
+- *"The design investment is protected when the app fails."* **Still true, and
+  still the strongest argument** — but it now rests on the prerender split
+  rather than on two projects. A 500 in `/api/save` cannot touch a static
+  issue page.
+- *"The app can be torn down without touching the publication."* **Given up on
+  purpose.** Teardown is no longer cheap; that was judged an acceptable price.
+- *"Auth cookies scoped to `.parallaxlens.com` work across both subdomains."*
+  **Unchanged** — the cookie is still apex-scoped, which is why
+  `app.parallaxlens.com` still works as an alias.
+
+**What the split actually cost:**
+
+- Two projects to maintain, redesign and deploy in the right order.
+- Every reader island had to call an ABSOLUTE cross-origin URL, baking the
+  host in at build time. That is precisely what silently broke seven features
+  on 2026-09-06 when the served host differed from the baked one.
+- **A service worker's scope is per-origin, and a TWA points at one
+  `start_url`.** PWA and TWA were not reachable across two origins at all.
+  This was the deciding reason.
 
 ---
 
@@ -108,7 +130,11 @@ database.
 
 ---
 
-## 4. File map (current state)
+## 4. File map (PRE-MERGE — paths need re-rooting)
+
+> Everything below moved: `app/src/**` → `src/**`, `app/supabase/` →
+> `supabase/`, and there is one `astro.config.mjs` (`output: 'hybrid'`) at the
+> repo root. The SHAPE is still right; the prefixes are not.
 
 ```
 app/
@@ -197,20 +223,21 @@ app/
 
 ## 5. Local dev
 
+One server, one port:
+
 ```bash
-cd app
-npm install
-cp .env.example .env.local         # fill the real values
-npm run dev                        # http://localhost:4322
+npm run dev                        # http://localhost:4321
 ```
 
-The publication runs at `localhost:4321`; the app at `localhost:4322`.
-Both must be running for end-to-end testing of save-for-later +
-reactions + annotations + reading-events client islands.
+Save, reactions, annotations, letters and reading-events all call RELATIVE
+paths, so they hit the same origin with nothing else to start. `DEV_ADMIN_EMAIL`
+in `.env.local` makes `astro dev` treat every request as that signed-in user,
+so auth-gated pages open without inbox access; it is dead-code-eliminated from
+production builds.
 
 Health check:
 ```bash
-curl http://localhost:4322/api/health
+curl http://localhost:4321/api/health
 ```
 
 ---

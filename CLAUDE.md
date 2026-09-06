@@ -44,7 +44,7 @@ The shim loads on demand when Claude reads a file in that tree.
 | Guide | Reached via |
 |---|---|
 | `src/components/AGENTS.md` — section-kind → component map, SVG conventions, how to add a component | `src/components/CLAUDE.md` |
-| `app/AGENTS.md` — the SSR reader-account project | `app/CLAUDE.md` |
+| `docs/APP-SURFACES.md` — the reader-account surfaces (no shim: one project since the merge, so it is read on request, not by path) | — |
 | `research/AGENTS.md` — editorial pipeline, voice system, dossier flow | `research/CLAUDE.md` |
 | `src/content/issues/_AGENTS.md` — issue schema, primer rules, build-error catalog | **`.claude/rules/issue-authoring.md`** (see below) |
 

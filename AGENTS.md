@@ -49,14 +49,14 @@ auto-deploys on push to `main`.
 
 | Layer        | Choice                                              |
 |--------------|-----------------------------------------------------|
-| Framework    | Astro 4.16.x, static output, `format: directory`    |
+| Framework    | Astro 4.16.x, **`output: 'hybrid'`** + `@astrojs/vercel` serverless, `format: directory`. 45 pages prerender; 24 SSR routes opt out with `export const prerender = false` — miss one and it bakes at build time with no session. |
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
 | Fonts        | Google Fonts — unified trio: **Fraunces** (serif voice: headlines, leads, nameplates, the one italic accent word), **Schibsted Grotesk** (the single sans: body, UI, structural headings — replaced Inter Tight as `--font-body`), **JetBrains Mono** (labels, eyebrows, numerals). The old per-world display faces (Space Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex) are retired; see §3 / §7. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
-| Node         | `>=20.0.0`                                          |
-| Hosting      | Vercel (static, auto-deploy on push to `main`)      |
+| Node         | `22.x` — a PINNED major, never a range (§7)          |
+| Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
@@ -180,8 +180,9 @@ src/
 ├── styles/
 │   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode + `.mh` masthead
 │   │                            + the RD-05 radius flip (`--r-card: 0; --r-tile: 0`
-│   │                            in :root — here, NOT in shared/design, because
-│   │                            app/ consumes those tokens) + the flat `.px-viz`
+│   │                            in :root, NOT in shared/design — the reason was
+│   │                            that app/ consumed those tokens, which the merge
+│   │                            retired; the carve-out is now vestigial) + `.px-viz`
 │   │                            shell (3px `--viz-edge` top rule, no shadow)
 │   ├── meta.css               ← Meta brand tokens + home/topic-index styles
 │   ├── dataviz-v2.css         ← v2 data-viz kit CSS (animations + html.js-gated reveals); imported last in both layouts
@@ -234,13 +235,12 @@ docs/
                                   worlds/, blueprints/) — read before any
                                   visual work
 shared/design/                 ← tokens.css + worlds.css — the CANONICAL token
-                                  source for BOTH projects. Edit here, then
-                                  `npm run design:sync`; `design:check` gates
-                                  the root build. EXCEPTION: the RD-05 radius
-                                  flip is a publication-only override in
-                                  src/styles/base.css — app/ reads these radii
-                                  and keeps its own spec until Phase 8.
-app/                           ← separate Astro SSR project (see app/AGENTS.md)
+                                  source. Edit here, then `npm run design:sync`;
+                                  `design:check` gates the build. The RD-05
+                                  radius flip still sits in src/styles/base.css
+                                  rather than here, but only by inertia: the
+                                  reason was app/, and app/ is gone.
+supabase/migrations/           ← the operator applies these; writing one does not
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
 .claude/agents/                ← agent system prompts (discovery, researcher,
                                   drafter, stylist, verifier)
@@ -250,19 +250,28 @@ scripts/                       ← pipeline CLI (tsx-driven, bills to API key)
                                   story/og.ts (the `prebuild` hook)
 ```
 
-The `app/` SSR project's own map lives in `app/AGENTS.md`. The paths added
-most recently, worth knowing before you go looking:
+**The reader-account surfaces live here now** (merged 2026-09-06; the design
+notes are `docs/APP-SURFACES.md`). They are the SSR half of the hybrid build:
 
 ```
-app/src/pages/welcome.astro              ← post-signup "You're in." plate
+src/middleware.ts                        ← session + the AUTH_ROUTES /
+                                           ADMIN_ROUTES guard. THIS is what
+                                           enforces auth — requireUser only
+                                           narrows the type (§7)
+src/pages/login.astro                    ← magic link + Google OAuth
+src/pages/auth/callback.ts               ← routes first-time users to
+                                           /account/welcome. NOT /welcome —
+                                           that is the publication's intro
+                                           story, and the collision shipped
+                                           broken once already
+src/pages/account/welcome.astro          ← post-signup "You're in." plate
                                            (name + six world-interest chips)
-app/src/pages/api/onboarding.ts          ← its POST handler (save / skip)
-app/src/pages/auth/callback.ts           ← routes first-time users to /welcome
-app/src/pages/dashboard/index.astro      ← "The Shelf"
-app/supabase/migrations/20260705000000_journey_onboarding.sql
-                                         ← adds profiles.welcomed_at +
-                                           profiles.stated_interests.
-                                           NOT YET APPLIED — operator applies.
+src/pages/api/onboarding.ts              ← its POST handler (save / skip)
+src/pages/dashboard/index.astro          ← "The Shelf"
+src/pages/admin/                         ← moderation queues (ADMIN_EMAILS)
+supabase/migrations/                     ← 11 files. APPLIED state is not
+                                           visible from the repo — ask before
+                                           assuming a column exists.
 ```
 
 For deeper rules on each subtree, see the local AGENTS.md:
@@ -275,11 +284,10 @@ For deeper rules on each subtree, see the local AGENTS.md:
   conventions, how to add a new component.
 - `research/AGENTS.md` — editorial pipeline, voice system, sources, dossier
   template.
-- `app/AGENTS.md` — the **separate Astro SSR project** for
-  `app.parallaxlens.com` (reader auth + dashboard + `/api/*`). The
-  publication at the repo root stays static; `app/` handles every
-  auth-aware surface. See `docs/COMMERCIALISATION-SETUP.md` for the
-  operator setup checklist.
+- `docs/APP-SURFACES.md` — the reader-account surfaces (auth, the Shelf,
+  `/api/*`), formerly `app/AGENTS.md`. One project since 2026-09-06;
+  `app.parallaxlens.com` survives only as an alias. See
+  `docs/COMMERCIALISATION-SETUP.md` for the operator setup checklist.
 
 ---
 
@@ -340,11 +348,12 @@ Setup: `research/notebooklm-setup.md`.
   **`.claude/rules/pipeline-scripts.md`**. Voice: **`.claude/rules/editorial-voice.md`**.
   Category status: **`/pipeline-status`** skill.
 
-**Reader-account product (Phase A + B).** A separate Astro SSR project
-at `app/` serves `app.parallaxlens.com` — auth, dashboard, and all
-reader-interaction APIs. See `app/AGENTS.md` for full detail. The
-publication stays `output: 'static'`; reader features attach as small
-client islands that call the app subdomain. Phase A shipped. Phase B
+**Reader-account product (Phase A + B).** Auth, the Shelf and every
+`/api/*` route are part of THIS project since the merge (2026-09-06) — see
+`docs/APP-SURFACES.md`. The build is `output: 'hybrid'`: the publication
+prerenders, those routes opt out. Reader features attach as small client
+islands calling RELATIVE paths, which is what makes them immune to which
+host served the page (§7). Phase A shipped. Phase B
 mostly shipped (reactions, save, reading-events, annotations capture +
 moderation queue, Letters block); remaining: topic affinity heatmap
 (B-4, data-gated). See `docs/PROJECT.md` §12 (2026-06-01 entries) for
@@ -463,8 +472,10 @@ with the full canon in `research/_voice/mode-library.md`.
   `border-radius: 0`, no `box-shadow`, hover changes border-colour only; every
   figure wears a 3px `border-top: var(--viz-edge)` (ink on light desks, accent
   on dark). The radius flip (`--r-card: 0; --r-tile: 0`) lives in
-  `src/styles/base.css` `:root`, NOT in `shared/design/tokens.css` — app/
-  reads those and keeps its own spec until Phase 8. `--r-pill` is deliberately
+  `src/styles/base.css` `:root`, NOT in `shared/design/tokens.css`. That split
+  existed because app/ read those tokens; the merge removed the reason, so the
+  override is vestigial — moving it is an RD-05 call, not a cleanup.
+  `--r-pill` is deliberately
   untouched (43 sites of UI chrome). Shadows survive only on focus rings, inset
   hairlines, data-mark halos, slider thumbs, CSS-3D scene depth (RD-06), viz3d
   overlay chrome, modal / popover / toast chrome and the onboarding surface.
