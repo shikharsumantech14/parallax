@@ -12,6 +12,20 @@
  * already renders in whatever serif the OS happens to have. This turns the
  * glyph into geometry once; the OUTPUT is committed, the binary never is.
  *
+ * WHICH INSTANCE — settled 2026-09-06, operator ruling "variable at display
+ * opsz". Literata is variable on opsz 7..72, and the instances differ enough to
+ * matter: cap height 0.701/em at the text cut against 0.730/em at the display
+ * cut. Google's CSS2 API serves a STATIC SLICE when you pin the axis to a
+ * point, so no variable instancer is needed — just ask for the point:
+ *
+ *   https://fonts.googleapis.com/css2?family=Literata:opsz,wght@72,700
+ *
+ * Pinning matters. Requesting the RANGE (`opsz,wght@7..72,700`) with a legacy
+ * UA returns a static at the TEXT end, which is a different letterform; that
+ * mistake cost one round of measurement here. Verified: the opsz@72 slice
+ * renders identically to what Chrome picks for Literata at 160px (607 vs 608
+ * ink pixels at 96px), and its cap height matches the type harvest's 0.730.
+ *
  * THE BINARY IS NOT IN THE REPO, deliberately (RD-11: a Literata *shape*, no
  * Literata *file*). Obtaining one is genuinely awkward and worth writing down:
  *   · Google Fonts serves .woff even to the legacy User-Agent that makes it
