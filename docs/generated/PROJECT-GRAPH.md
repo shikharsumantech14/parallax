@@ -172,7 +172,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **RD-07** | 3 files | 1 |
 | **RD-08** | 8 files | 4 |
 | **RD-09** | 6 files | 1 |
-| **RD-10** | 8 files | 4 |
+| **RD-10** | 11 files | 7 |
 | **RD-11** | 5 files | 2 |
 | **RD-12** | 6 files | 3 |
 | **RD-13** | 5 files | 1 |

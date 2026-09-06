@@ -35,6 +35,7 @@ interface Props {
 const { issueNumber, date, status = 'live', statusLabel, statusSub } = Astro.props;
 
 import AccountEntry from './AccountEntry.astro';
+import Mark from './Mark.astro';
 
 const stateWord = status === 'draft' ? 'Draft' : 'Live';
 const topLine =
@@ -44,9 +45,7 @@ const subLine = statusSub ?? date ?? 'Est. 2026';
 
 <header class="mh">
   <a class="mh__brand" href="/" aria-label="Parallax — home">
-    <span class="mh__lens" aria-hidden="true">
-      <span class="mh__lens-dot"></span>
-    </span>
+    <Mark size={28} class="mh__mark" />
     <span class="mh__type">
       <span class="mh__name">Paral<span class="mh__name-tail">lax</span></span>
       <span class="mh__tagline">Visual Explainers · Est. 2026</span>

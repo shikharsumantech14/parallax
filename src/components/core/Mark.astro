@@ -44,10 +44,8 @@
  * 32px. The spec threshold and the shipped asset disagree. Pass `cut`
  * explicitly when generating files rather than leaning on the default.
  */
-import { MARK_GLYPH, glyphTier } from '../../lib/mark-glyph';
+import { markBody, type Cut, type Desk } from '../../lib/mark';
 import type { Topic } from '../../content/config';
-
-type Cut = 'mark' | 'seal' | 'reversed';
 
 interface Props {
   /** Desk station + accent. Omitted = the house cut, which the delivered
@@ -63,33 +61,22 @@ interface Props {
 
 const { desk = 'politics', size = 40, cut, title, class: extra } = Astro.props;
 
-/* The stations, fixed by RD-10. */
-const DIAL: Record<Topic, number> = {
-  politics: 325, space: 25, earth: 85, tech: 145, travel: 205, sports: 265,
-};
-/* The prototype's formula (Web.dc.html:914), r = 15. */
-const dialAt = (deg: number, r = 15) => [
-  +(150 - r * Math.cos((deg * Math.PI) / 180)).toFixed(1),
-  +(150 - r * Math.sin((deg * Math.PI) / 180)).toFixed(1),
-];
-const [ox, oy] = dialAt(DIAL[desk]);
-
-/* Ring weight steps so the mark survives being small — thicker as it shrinks. */
-const ring = size >= 96 ? 7 : size >= 40 ? 10 : 14;
-
-/* Below 24px the reversed cut is the declared tier. An explicit `cut` still
-   wins: the rule is a default, not a lock. */
-const resolved: Cut = cut ?? (size < 24 ? 'reversed' : 'mark');
-
-const glyph = MARK_GLYPH[glyphTier(size)];
-
-/* Colour comes from tokens, so the mark rethemes with its world and the six
-   desk cuts need no separate files. `--topic-*` is defined on meta pages too
-   (meta.css), so the house cut works off-world. */
-const accent = `var(--topic-${desk})`;
-const ground = 'var(--bg)';
-const ink = 'var(--ink)';
-const paper = 'var(--bg)';
+/* Geometry lives in src/lib/mark.ts — one definition for this component, the
+   favicon writer and the OG cards, which cannot share CSS with anything. */
+const body = markBody({
+  desk: desk as Desk,
+  size,
+  cut,
+  /* Tokens, so the mark rethemes with its world and the six desk cuts need no
+     separate files. `--topic-*` is defined on meta pages too (meta.css), so
+     the house cut works off-world. */
+  colors: {
+    accent: `var(--topic-${desk})`,
+    ground: 'var(--bg)',
+    ink: 'var(--ink)',
+    paper: 'var(--bg)',
+  },
+});
 
 const labelled = Boolean(title);
 ---
@@ -104,27 +91,7 @@ const labelled = Boolean(title);
   focusable="false"
 >
   {title && <title>{title}</title>}
-
-  {resolved === 'reversed' ? (
-    <>
-      <circle cx="150" cy="150" r="118" fill={ink} />
-      <path d={glyph} fill={paper} />
-    </>
-  ) : resolved === 'seal' ? (
-    <>
-      <circle cx="150" cy="150" r="118" fill={ink} />
-      <circle cx="150" cy="150" r="110" fill={accent} />
-      <circle cx={ox} cy={oy} r="113" fill={ink} />
-      <path d={glyph} fill={paper} />
-    </>
-  ) : (
-    <>
-      <circle cx="150" cy="150" r="110" fill={accent} />
-      <circle cx={ox} cy={oy} r="113" fill={ground} />
-      <circle cx="150" cy="150" r="118" fill="none" stroke={ink} stroke-width={ring} />
-      <path d={glyph} fill={ink} />
-    </>
-  )}
+  <Fragment set:html={body} />
 </svg>
 
 <style>

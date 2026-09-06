@@ -12,6 +12,7 @@
    Prefix: px-col. Pure CSS, no JS (the embedded NewsletterForm carries its
    own island). */
 import NewsletterForm from './NewsletterForm.astro';
+import Mark from './Mark.astro';
 
 interface Props {
   /* Render the newsletter signup above the colophon. Default on, matching the
@@ -41,7 +42,7 @@ const desks: { label: string; href: string }[] = [
 <footer class="px-col">
   <div class="px-col__head">
     <a class="px-col__brand" href="/">
-      <span class="px-col__lens" aria-hidden="true"><span class="px-col__lens-dot"></span></span>
+      <Mark size={22} class="px-col__mark" />
       <span class="px-col__name">Parallax</span>
     </a>
     <p class="px-col__manifesto">

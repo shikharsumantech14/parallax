@@ -1,0 +1,1079 @@
+<title>Parallax Voice Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+
+<style>
+/* ─── Tokens · dark is the default: this is read in a dim room ───────────── */
+:root{
+  --ground:#141311;
+  --surface:#1c1a17;
+  --sunk:#0e0d0c;
+  --rule:#2e2b26;
+  --rule-soft:#232120;
+  --text:#f1eee7;
+  --muted:#918b7f;
+  --brass:#c0a469;
+  --brass-dim:#7d6a44;
+  --signal:#dc5247;
+  --safe:#7aab7e;
+  --shade:rgba(255,255,255,.04);
+
+  --read:30px;
+  --ui:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --serif:'Fraunces',Georgia,'Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ground:#e7e5dd;
+    --surface:#f1efe9;
+    --sunk:#dbd8ce;
+    --rule:#cbc6b9;
+    --rule-soft:#dcd8cd;
+    --text:#1a1815;
+    --muted:#6a655b;
+    --brass:#7c6531;
+    --brass-dim:#9c8759;
+    --signal:#b23a2e;
+    --safe:#3f6b45;
+    --shade:rgba(0,0,0,.04);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#e7e5dd;
+  --surface:#f1efe9;
+  --sunk:#dbd8ce;
+  --rule:#cbc6b9;
+  --rule-soft:#dcd8cd;
+  --text:#1a1815;
+  --muted:#6a655b;
+  --brass:#7c6531;
+  --brass-dim:#9c8759;
+  --signal:#b23a2e;
+  --safe:#3f6b45;
+  --shade:rgba(0,0,0,.04);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--text);
+  font-family:var(--ui);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ─── The bar ────────────────────────────────────────────────────────────── */
+.bar{
+  position:sticky;top:0;z-index:20;
+  background:var(--ground);
+  border-bottom:1px solid var(--rule);
+}
+.bar__in{
+  max-width:70rem;margin:0 auto;padding:.7rem 1.4rem;
+  display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1.1rem;
+}
+.brandline{display:flex;align-items:center;gap:.6rem;margin-right:auto}
+.rec{width:.62rem;height:.62rem;border-radius:50%;background:var(--signal);flex:none}
+@media (prefers-reduced-motion: no-preference){
+  .rec{animation:blip 2.6s ease-in-out infinite}
+}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.brandline b{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.brandline span{
+  font-family:var(--mono);font-size:.66rem;color:var(--muted);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+
+.ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem}
+.grp{display:flex;align-items:center;border:1px solid var(--rule);background:var(--surface)}
+.grp>*+*{border-left:1px solid var(--rule)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.btn{
+  font-family:var(--mono);font-size:.68rem;font-weight:500;
+  letter-spacing:.09em;text-transform:uppercase;
+  padding:.42rem .68rem;color:var(--muted);
+  transition:color .12s,background .12s;
+}
+.btn:hover{color:var(--text);background:var(--shade)}
+.btn[aria-pressed="true"]{color:var(--ground);background:var(--brass)}
+.grp .btn{min-width:2.1rem;text-align:center}
+.sizeval{
+  font-family:var(--mono);font-size:.68rem;color:var(--text);
+  padding:.42rem .3rem;min-width:2.4rem;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+
+/* progress strip */
+.meter{
+  max-width:70rem;margin:0 auto;padding:0 1.4rem .7rem;
+  display:flex;align-items:center;gap:.85rem;
+}
+.meter__track{
+  flex:1;height:4px;background:var(--sunk);position:relative;overflow:hidden;
+}
+.meter__fill{
+  position:absolute;inset:0 auto 0 0;width:0;background:var(--brass);
+  transition:width .25s ease;
+}
+.meter__txt{
+  font-family:var(--mono);font-size:.66rem;color:var(--muted);
+  letter-spacing:.06em;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.meter__txt b{color:var(--text);font-weight:500}
+
+/* ─── Page head ──────────────────────────────────────────────────────────── */
+.wrap{max-width:70rem;margin:0 auto;padding:0 1.4rem 8rem}
+.head{padding:3.4rem 0 2.2rem;border-bottom:3px solid var(--text)}
+.kicker{
+  font-family:var(--mono);font-size:.7rem;color:var(--brass);
+  letter-spacing:.2em;text-transform:uppercase;margin:0 0 1rem;
+}
+h1{
+  font-family:var(--serif);font-optical-sizing:auto;
+  font-size:clamp(2.4rem,6vw,4rem);font-weight:600;line-height:1.03;
+  letter-spacing:-.02em;margin:0;text-wrap:balance;max-width:16ch;
+}
+h1 em{font-style:italic;font-weight:500}
+.dek{
+  font-size:1.02rem;color:var(--muted);max-width:52ch;margin:1.2rem 0 0;
+  line-height:1.6;
+}
+
+.toc{
+  display:flex;flex-wrap:wrap;gap:.4rem;padding:1.4rem 0;
+  border-bottom:1px solid var(--rule);
+}
+.toc a{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;
+  text-transform:uppercase;text-decoration:none;color:var(--muted);
+  border:1px solid var(--rule);padding:.36rem .6rem;
+}
+.toc a:hover{color:var(--text);border-color:var(--brass);background:var(--shade)}
+
+/* ─── Briefing (not read aloud) ──────────────────────────────────────────── */
+.brief{padding:2.6rem 0 1rem}
+.brief h2{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--brass);margin:0 0 1.4rem;
+}
+.specs{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));
+  gap:0;border-top:1px solid var(--rule);
+}
+.spec{padding:.95rem 1.1rem .95rem 0;border-bottom:1px solid var(--rule-soft)}
+.spec dt{
+  font-family:var(--mono);font-size:.63rem;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 .3rem;
+}
+.spec dd{margin:0;font-size:.92rem;line-height:1.45}
+.notes{margin:2rem 0 0;padding:0;list-style:none;max-width:60ch}
+.notes li{
+  position:relative;padding:0 0 0 1.6rem;margin:0 0 .7rem;
+  font-size:.95rem;line-height:1.6;color:var(--text);
+}
+.notes li::before{
+  content:'';position:absolute;left:0;top:.6em;
+  width:.5rem;height:1px;background:var(--brass);
+}
+.notes b{font-weight:600}
+
+/* ─── Parts ──────────────────────────────────────────────────────────────── */
+.part-wrap{scroll-margin-top:8rem}
+.part{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem 1.2rem;
+  margin:5rem 0 2.4rem;padding:.9rem 0 .8rem;
+  border-top:3px solid var(--text);border-bottom:1px solid var(--rule);
+}
+.part__no{
+  font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--signal);
+}
+.part__t{
+  font-family:var(--serif);font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:600;
+  letter-spacing:-.015em;margin:0;line-height:1.1;flex:1 1 14rem;
+}
+.part__meta{
+  font-family:var(--mono);font-size:.68rem;color:var(--muted);
+  letter-spacing:.06em;font-variant-numeric:tabular-nums;
+}
+
+/* ─── Takes ──────────────────────────────────────────────────────────────── */
+.take{
+  display:grid;grid-template-columns:4.6rem 1fr;gap:0 1.6rem;
+  padding:1.5rem 0;border-bottom:1px solid var(--rule-soft);
+  scroll-margin-top:8.5rem;
+}
+.rail{display:flex;flex-direction:column;align-items:flex-start;gap:.55rem;padding-top:.45rem}
+.tn{
+  font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.1em;
+  color:var(--brass);font-variant-numeric:tabular-nums;
+}
+.mark{
+  width:1.35rem;height:1.35rem;border:1px solid var(--rule);
+  background:var(--surface);display:grid;place-items:center;flex:none;
+  transition:border-color .12s,background .12s;
+}
+.mark:hover{border-color:var(--brass)}
+.mark::after{
+  content:'';width:.6rem;height:.6rem;border-radius:50%;
+  background:transparent;transition:background .12s;
+}
+.take.is-done .mark{border-color:var(--safe)}
+.take.is-done .mark::after{background:var(--safe)}
+.take.is-done .tn{color:var(--muted)}
+.take.is-done .body{opacity:.42}
+
+.body{min-width:0}
+.line{
+  font-family:var(--serif);font-optical-sizing:auto;
+  font-size:var(--read);line-height:1.6;font-weight:400;
+  letter-spacing:-.005em;max-width:26em;margin:0 0 .85em;
+  text-wrap:pretty;
+}
+.line:last-child{margin-bottom:0}
+.line em{font-style:italic}
+.line b{font-weight:600}
+.line .beat{color:var(--brass);font-style:normal}
+
+/* Cues — never read aloud */
+.cue{
+  border-left:3px solid var(--signal);background:var(--shade);
+  padding:.62rem .9rem;margin:0 0 1.1rem;max-width:40em;
+  font-family:var(--mono);font-size:.72rem;line-height:1.65;color:var(--muted);
+}
+.cue:last-child{margin-bottom:0}
+.cue__tag{
+  color:var(--signal);font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  margin-right:.5rem;
+}
+.cue b{color:var(--text);font-weight:500}
+body.no-cues .cue{display:none}
+
+.hold{
+  display:flex;align-items:center;gap:.8rem;margin:0 0 1.1rem;max-width:40em;
+  border:1px dashed var(--rule);padding:.8rem .9rem;
+}
+.hold__k{
+  font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--brass);white-space:nowrap;
+}
+.hold__v{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+.endnote{
+  margin:4.5rem 0 0;padding:1.6rem 0 0;border-top:3px solid var(--text);
+  font-size:.92rem;color:var(--muted);max-width:56ch;line-height:1.65;
+}
+.endnote b{color:var(--text);font-weight:600}
+
+@media (max-width:640px){
+  .take{grid-template-columns:1fr;gap:.7rem}
+  .rail{flex-direction:row;align-items:center;gap:.7rem;padding-top:0}
+  .line{max-width:none}
+  .wrap,.bar__in,.meter{padding-left:1rem;padding-right:1rem}
+}
+
+@media print{
+  .bar,.meter,.toc,.mark{display:none}
+  body{background:#fff;color:#000}
+  .line{font-size:19pt;max-width:none}
+  .part-wrap{break-before:page}
+  .take{break-inside:avoid}
+}
+</style>
+
+<div class="bar">
+  <div class="bar__in">
+    <div class="brandline">
+      <span class="rec" aria-hidden="true"></span>
+      <b>Voice&nbsp;session</b>
+      <span>Parallax&nbsp;Lens</span>
+    </div>
+    <div class="ctrls">
+      <div class="grp">
+        <button class="btn" id="dec" type="button" aria-label="Smaller text">A&minus;</button>
+        <span class="sizeval" id="sizeVal">30</span>
+        <button class="btn" id="inc" type="button" aria-label="Larger text">A+</button>
+      </div>
+      <div class="grp" role="group" aria-label="Reading pace">
+        <button class="btn wpm" type="button" data-wpm="125">125</button>
+        <button class="btn wpm" type="button" data-wpm="138">138</button>
+        <button class="btn wpm" type="button" data-wpm="152">152</button>
+      </div>
+      <div class="grp">
+        <button class="btn" id="cues" type="button" aria-pressed="true">Cues on</button>
+      </div>
+      <div class="grp">
+        <button class="btn" id="theme" type="button">Light</button>
+      </div>
+    </div>
+  </div>
+  <div class="meter">
+    <span class="meter__txt" id="progTxt">0 of 0 takes</span>
+    <span class="meter__track"><span class="meter__fill" id="progFill"></span></span>
+    <span class="meter__txt" id="totTxt">&mdash;</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="head">
+    <p class="kicker">Reading script &middot; voice identity capture</p>
+    <h1>Six worlds, one <em>voice</em>.</h1>
+    <p class="dek">Around thirty-five to forty minutes of read-aloud material about Parallax, written for the mouth rather than the eye — phonetically broad, tonally steady, and about something you actually know. Mark each take as you bank it.</p>
+  </header>
+
+  <nav class="toc" aria-label="Parts">
+    <a href="#p00">00 &middot; Slate</a>
+    <a href="#p01">01 &middot; What this is</a>
+    <a href="#p02">02 &middot; Six worlds</a>
+    <a href="#p03">03 &middot; How it is built</a>
+    <a href="#p04">04 &middot; Rules of the page</a>
+    <a href="#p05">05 &middot; Why any of it</a>
+    <a href="#p06">06 &middot; Range</a>
+  </nav>
+
+  <section class="brief">
+    <h2>Before you press record</h2>
+    <dl class="specs">
+      <div class="spec"><dt>Format</dt><dd>Mono WAV, 48&nbsp;kHz, 24-bit</dd></div>
+      <div class="spec"><dt>Level</dt><dd>Peaks near &minus;6&nbsp;dBFS, never clipping</dd></div>
+      <div class="spec"><dt>Processing</dt><dd>None. No EQ, no compression, no noise reduction</dd></div>
+      <div class="spec"><dt>Distance</dt><dd>15&ndash;20&nbsp;cm, slightly off-axis, pop filter</dd></div>
+      <div class="spec"><dt>Sitting</dt><dd>One or two sessions, same room, same chair, same mic</dd></div>
+      <div class="spec"><dt>Yield</dt><dd>~5,200 words &rarr; 34&ndash;42&nbsp;min of usable audio</dd></div>
+    </dl>
+    <ul class="notes">
+      <li><b>Do not perform.</b> The model learns your average. Read the way you talk when you are explaining something to somebody you like — not the way you would read the news.</li>
+      <li><b>Consistency beats range.</b> Everything through Part 05 sits inside one narrating register. Part 06 deliberately stretches it; skip Part 06 entirely if you want a single flat narrator voice rather than an expressive one.</li>
+      <li><b>Stumbles are free.</b> Stop, breathe for two full seconds, then re-read from the top of the sentence. Do not splice mid-sentence. The silence gives you a clean edit point.</li>
+      <li><b>Leave the breaths in.</b> Do not trim them out afterwards. Do not gate the silence. Clipped breaths are the single most common way a clone ends up sounding synthetic.</li>
+      <li><b>Water at room temperature</b>, nothing carbonated, no dairy for an hour beforehand. Take a real break at the end of Part 03.</li>
+      <li><b>Red blocks are never read aloud.</b> They are delivery notes for you. Switch <b>Cues off</b> in the bar above once you know the script and want a clean page.</li>
+    </ul>
+  </section>
+
+  <!-- ══ PART 00 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p00">
+    <header class="part">
+      <span class="part__no">Part 00</span>
+      <h2 class="part__t">Slate and calibration</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t001">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 001 recorded"></button><span class="tn">001</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> The slate. Say it flat and unhurried, at the distance you intend to keep for the whole session. Do not lean in.</div>
+        <p class="line">Voice identity session. Parallax Lens. Take one. Recording at my normal speaking distance, in the room I intend to use for all of it.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t002">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 002 recorded"></button><span class="tn">002</span></div>
+      <div class="body">
+        <div class="hold"><span class="hold__k">Room tone</span><span class="hold__v">Twenty seconds of silence. Stay still. Do not swallow, do not shift the chair, do not touch the desk.</span></div>
+        <div class="cue"><span class="cue__tag">Cue</span> Every capture needs a sample of the room with nobody in it. Record it now, while the room is exactly as it will be for the rest of the session.</div>
+      </div>
+    </section>
+
+    <section class="take" id="t003">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 003 recorded"></button><span class="tn">003</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Level set. Read it, look at the meter, fix the gain, then read it again. Do not touch the gain after this.</div>
+        <p class="line">This is my ordinary voice at my ordinary volume, at the distance I mean to keep for the next half hour. Nothing raised. Nothing hushed. If this sounds like me on a good day, explaining something to somebody I like, then the level is right and I can leave it alone.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t004">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 004 recorded"></button><span class="tn">004</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Numbers and dates. Steady rhythm, no sing-song. Let each one land before the next.</div>
+        <p class="line">One, two, three, four, five, six, seven, eight, nine, ten. Eleven, twelve, thirteen, fourteen, fifteen. Twenty. Thirty-seven. Fifty. Ninety-nine. One hundred. Two hundred and fifty. One thousand, four hundred and six.</p>
+        <p class="line">Nineteen sixty-nine. Two thousand and eight. Two thousand and twenty-six. The third of September. The twenty-first of December. Eleven point four per cent. Minus forty degrees. Six point three kilometres. Nine hundred grams. Twelve hours, eight minutes, forty seconds.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t005">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 005 recorded"></button><span class="tn">005</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Letters, then initialisms. Say each acronym the way you would actually say it out loud — NASA as a word, B.B.C. letter by letter.</div>
+        <p class="line">A, B, C, D, E, F, G. H, I, J, K, L, M, N, O, P. Q, R, S, T, U, V. W, X, Y, and Z.</p>
+        <p class="line">NASA. ISRO. UNESCO. The B.B.C. G.D.P. A kilowatt hour. A megabyte. A gigawatt. HTML and CSS. R.S.S. Version two point four.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t006">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 006 recorded"></button><span class="tn">006</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Sound coverage. Slower than feels natural, one clean pass. These are the consonant clusters English hides in — get them on tape once, properly, and never think about them again.</div>
+        <p class="line">The measure of a thing is rarely the thing itself. Youth, truth, breadth, both. Vision, pleasure, treasure, usual. Singing, ringing, long and strong. Splash, script, strength, twelfth. Choice, voice, loud, allowed. Judge, chalk, bough, though, thought, and through.</p>
+        <p class="line">Wristwatch. Sixths. Asked. Clothes. Film. Rural. World. Particularly. February. Library. Comfortable. Anemone. Nuclear.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 01 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p01">
+    <header class="part">
+      <span class="part__no">Part 01</span>
+      <h2 class="part__t">What this is</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t007">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 007 recorded"></button><span class="tn">007</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> This is the register for everything up to Part 06. Warm, unhurried, curious. You are showing somebody a thing you built, not announcing it.</div>
+        <p class="line">Start with the word, because the word is the argument.</p>
+        <p class="line">Parallax is the shift you get when you move. Hold a finger up at arm's length, close one eye, then the other, and the finger jumps against the wall behind it. Nothing about the finger has changed. Nothing about the wall has changed. What changed is where you were standing.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t008">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 008 recorded"></button><span class="tn">008</span></div>
+      <div class="body">
+        <p class="line">Astronomers have been using that jump for nearly two centuries to work out how far away a star is. Photograph it in January. Photograph it again in July. Let the width of the Earth's orbit do the arithmetic, and the tiny sideways twitch of the star against the ones behind it gives you a distance.</p>
+        <p class="line">The Greeks understood the trick and could not measure it — their instruments were nowhere near fine enough, and for centuries the failure was taken as evidence that the Earth stood still. The first star finally gave up its distance in eighteen thirty-eight. A small honest displacement, measured carefully, produced a number that no single viewpoint could ever have produced.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t009">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 009 recorded"></button><span class="tn">009</span></div>
+      <div class="body">
+        <p class="line">This publication borrows the method and points it at the news.</p>
+        <p class="line">Parallax is a visual explainer. Each issue takes one topic — a familiar one, usually, the kind you would say you already understand — and rebuilds it from the structure up. Not a recap of what happened. Not a warmer opinion about what happened. A reconstruction. The timeline laid out end to end. The vote counted seat by seat. The budget split into the parts it is genuinely made of. The paradox drawn until you can see the exact place where it bites.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t010">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 010 recorded"></button><span class="tn">010</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Land the masthead line and give it a full beat of silence before you carry on. That pause is doing real work.</div>
+        <p class="line">The line on the masthead is six words long. Stories you think you already understand.</p>
+        <p class="line">The second half of that sentence is the part that does the work. Not stories you have never heard of — those are easy, and there is an entire industry supplying them. Stories you have heard so many times that the hearing has quietly replaced the knowing. A budget everybody has an opinion about and nobody has seen laid out. A treaty everyone can name and nobody can describe. A record that gets quoted every season by people who could not tell you what it actually measures.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t011">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 011 recorded"></button><span class="tn">011</span></div>
+      <div class="body">
+        <p class="line">An issue takes about six minutes to read and is built to survive being argued with for sixty days. Everything in it is sourced, and the source sits where the claim is made, not buried in a list at the bottom that nobody opens.</p>
+        <p class="line">There is no advertising, so nobody has bought back the attention you arrived with. There are no investors, so no quarterly target decides what runs. There are no trackers, no cookies, no analytics, and no comment section to be policed into a shouting match. What is left is the piece, and the evidence underneath it.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t012">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 012 recorded"></button><span class="tn">012</span></div>
+      <div class="body">
+        <p class="line">Most of what you read is built to be scrolled past. This is built to be kept.</p>
+        <p class="line">That is a design decision before it is a moral one. A page built to be scrolled past is allowed to be vague, because vagueness costs nothing at speed. A page built to be kept is not. If somebody is going to come back to a chart four months from now to settle an argument, the chart has to still be right, still be legible, and still say exactly where it got its numbers.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t013">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 013 recorded"></button><span class="tn">013</span></div>
+      <div class="body">
+        <p class="line">So the standard is reference value. Not reach, not engagement, not time on page. Reference value — the odds that somebody comes back to this page deliberately, months later, because it is the place where the thing is explained properly.</p>
+        <p class="line">That standard is demanding in a way that turns out to be clarifying. It throws out most of what a publication normally does. No live blog, because a live blog is worthless within a week. No reaction piece, because the reaction is the least durable part of any event. No breaking coverage, because breaking coverage is a promise to be wrong quickly.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t049">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">Who is it for? Not everybody, and saying so out loud is a relief rather than an admission.</p>
+        <p class="line">It is for the person who reads one thing properly and remembers it. The person who, when a number turns up in an argument, wants to know what it is a number of. Teachers borrow from it. Students cite it. People send a single issue to one specific person rather than posting it to everybody they know.</p>
+        <p class="line">That is a much smaller audience than a publication is conventionally supposed to want. The traffic that comes from being briefly furious about something arrives in a day, leaves in a day, and never comes back. The traffic that comes from being the page where a thing is explained properly arrives slowly, for years. The second kind is harder to get and very nearly impossible to lose.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t014">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 014 recorded"></button><span class="tn">014</span></div>
+      <div class="body">
+        <p class="line">What it leaves is narrow and deep. One topic. One issue. Rebuilt until the shape of it is visible on the page, and then left alone.</p>
+        <p class="line">The name does double duty, as it happens. The publication is Parallax. The company behind it is Parallax Lens, registered in India, and the longer name is the one that appears in the small print — the page title, the feed, the copyright line at the foot of every page. The short name is for readers. The long one is for lawyers. Both of them mean the same thing. Look again, from somewhere else, and measure the difference.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 02 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p02">
+    <header class="part">
+      <span class="part__no">Part 02</span>
+      <h2 class="part__t">Six worlds</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t015">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 015 recorded"></button><span class="tn">015</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Read the six names as a list, with real gaps between them. Then drop straight back into the ordinary register.</div>
+        <p class="line">There are six topics, and they rotate.</p>
+        <p class="line">Politics. Space. Earth. Tech. Travel. Sports.</p>
+        <p class="line">Each one is its own world. Its own colour, its own masthead, its own house style for how evidence gets put on the page — because a parliamentary vote and a spacecraft trajectory do not want to be drawn the same way, and pretending otherwise is how explainers end up looking like slide decks.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t050">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">Six is a deliberate number, and it was arrived at by subtraction rather than ambition.</p>
+        <p class="line">Fewer than six and the publication becomes a single-subject one, which is a perfectly good thing to be and a completely different thing to be. More than six and no world gets enough issues to develop a house style. The palette never settles, the reader never learns the visual grammar, and every issue turns up as a stranger.</p>
+        <p class="line">Six also happens to be about the number of distinct ways of looking that one editorial operation can hold in its head at once. A parliamentary vote. An orbital insertion. An ice core. A release note. A border crossing. A league table. Those ask for genuinely different habits of mind, and the rotation is the thing that stops any one of them hardening into a reflex.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t016">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 016 recorded"></button><span class="tn">016</span></div>
+      <div class="body">
+        <p class="line">Politics is set as a broadsheet. Bills, votes, coalitions, read from the floor rather than from the press gallery.</p>
+        <p class="line">The instinct there is to distrust the summary. A bill has a number, a text, a set of amendments and a division list, and almost none of that survives the journey into a headline. So the issue goes and gets the division list. Who voted, which way, and against what whip. What the clause actually says, as opposed to what it was briefed as saying. Where the money in it goes, in the order the money moves. It is slower than commentary and it is much harder to argue with.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t017">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 017 recorded"></button><span class="tn">017</span></div>
+      <div class="body">
+        <p class="line">Space is mission control. Orbits, missions, and the telemetry behind them.</p>
+        <p class="line">This is the world where the numbers are strange enough to be worth drawing. A transfer window that opens for eleven days every twenty-six months. A burn measured in metres per second that decides whether a spacecraft arrives or sails past. A signal that takes twenty-two minutes to cross the distance and cannot be corrected on the way. None of that is complicated, exactly. It is just unfamiliar, and unfamiliar is what a diagram is for.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t018">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 018 recorded"></button><span class="tn">018</span></div>
+      <div class="body">
+        <p class="line">Earth is an atlas. Climate, oceans, deep time.</p>
+        <p class="line">Deep time is the hard part, and the reason is arithmetic. Human attention runs on a scale of days. Ice cores run on a scale of hundreds of thousands of years. Between those two there is a gap that no amount of urgent language can close, and quite a lot of climate writing consists of shouting across it. Drawing it works better. A hundred and fifty years of temperature laid out as a hundred and fifty coloured stripes, side by side, is a graphic a child can read and an adult cannot argue with.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t019">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 019 recorded"></button><span class="tn">019</span></div>
+      <div class="body">
+        <p class="line">Tech is a changelog. Models, systems, and what actually ships.</p>
+        <p class="line">That last phrase is the whole editorial position. There is an enormous distance between what a technology is announced as doing, what it can be demonstrated doing under favourable conditions, and what it does on a Tuesday for somebody who did not read the release notes. The changelog register keeps the issue honest about which of the three it is describing. Version numbers, dates, benchmarks with their conditions attached, and a clear line between the claim and the measurement.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t020">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 020 recorded"></button><span class="tn">020</span></div>
+      <div class="body">
+        <p class="line">Travel is a field journal. Cities, crossings, quiet rooms.</p>
+        <p class="line">It is the least statistical of the six and the most structural. A border is a piece of infrastructure with a queue attached. A night train is a timetable, a gauge, and a set of political decisions made eighty years ago that nobody has revisited. A city that everybody describes as ancient is usually a city that was rebuilt three times, and the interesting question is which of the three you are standing in. The field journal register lets an issue hold a map and a sentence about the weather in the same hand.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t021">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 021 recorded"></button><span class="tn">021</span></div>
+      <div class="body">
+        <p class="line">Sports is a match programme. Tactics, expected goals, the shape of the table.</p>
+        <p class="line">Sport is the easiest of the six to explain and the hardest to explain honestly, because everybody already has a model in their head and most of those models are made of highlights. Expected goals is a good example. It is not a verdict on whether a team deserved to win. It is a count of chances weighted by how often shots from those positions go in, which is a much smaller and much more useful claim. Half the arguments about the number are arguments with a definition nobody looked up.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t022">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 022 recorded"></button><span class="tn">022</span></div>
+      <div class="body">
+        <p class="line">Six worlds, and one brand sitting above them holding the whole thing together.</p>
+        <p class="line">They differ by colour and by treatment — the weight of a heading, whether a word is set in italic, the ornament that marks a section break. They never differ by typeface. That distinction sounds small and it is the reason the six do not drift apart into six separate magazines.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 03 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p03">
+    <header class="part">
+      <span class="part__no">Part 03</span>
+      <h2 class="part__t">How an issue gets built</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t023">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 023 recorded"></button><span class="tn">023</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Process section. Slightly brisker, slightly more matter-of-fact. This is you describing a workflow you know well.</div>
+        <p class="line">Every issue starts as a question that cannot be answered yet.</p>
+        <p class="line">Not a topic — a question. Topics are infinite and mostly useless. A topic is "the water crisis". A question is "when a city says it has ninety days of water left, what is the ninety counting, and who decided". The first produces a thousand words of concern. The second produces a piece with a shape, because the answer either exists or it does not, and finding out which is the work.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t024">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 024 recorded"></button><span class="tn">024</span></div>
+      <div class="body">
+        <p class="line">Each of the six topics keeps a written list of the sources it is allowed to draw from. Statistical agencies, court records, primary filings, mission logs, peer-reviewed papers, the institutions that hold the underlying numbers rather than the outlets that report on them.</p>
+        <p class="line">Discovery only reads from that list. It comes back with five to ten candidate questions, each one with a note on why it might be worth doing and what would have to be true for it to work. Then a human picks exactly one and the rest are thrown away. That is the first of two places where a person, not a process, makes the decision.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t051">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">Most candidate questions die at that first gate, and it is worth being precise about why, because the reasons are not interchangeable.</p>
+        <p class="line">A question dies if the answer is already well explained somewhere else. There is no point being the second-best page on a subject. It dies if the evidence is not public, because an explainer built on a briefing that nobody can check is a rumour with a chart on it. It dies if the honest answer turns out to be that nobody knows — that can make a very good piece, but a different one, and it has to be commissioned as such rather than discovered halfway through.</p>
+        <p class="line">And it dies if the only genuinely interesting thing about it is that it would make people angry. Anger is cheap to generate, and it is not a finding.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t025">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 025 recorded"></button><span class="tn">025</span></div>
+      <div class="body">
+        <p class="line">Then comes the dossier, which is the least glamorous document in the process and the one that decides whether the issue is any good.</p>
+        <p class="line">It is a research file. Every fact that might end up in the issue, with the primary source next to it, the date it was published, and the exact figure rather than a rounded one. Every quotation with its context. Every number that a chart will eventually be drawn from, written out as a table before anybody draws anything.</p>
+        <p class="line">Anything that could not be confirmed against a primary source gets bracketed and marked unverified. The bracket is not a formality. It is a standing instruction that this claim does not go in the issue until somebody has actually looked.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t026">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 026 recorded"></button><span class="tn">026</span></div>
+      <div class="body">
+        <p class="line">Only then does anybody write.</p>
+        <p class="line">Drafting means choosing the shape as much as the sentences. There is a catalogue of ways to put evidence on a page — ninety-seven of them at the last count — and picking the right one is most of the job. A timeline. A vote tally. A comparison. A breakdown. A map. A scaling plot. A thing that only makes sense once you can drag a control along it and watch it change. The prose is there to carry you between them, not to restate them.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t027">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 027 recorded"></button><span class="tn">027</span></div>
+      <div class="body">
+        <p class="line">After the draft, a pass over the prose alone. Every section gets one dominant register and no more, chosen from a small set — the explanatory one, the forensic one, the dry one, the one you use for scale and deep time, the one you use once at the end and never twice.</p>
+        <p class="line">There are hard limits on that. At most one satirical section per issue. At most two genuinely lyrical paragraphs in the whole thing. Four to six registers across a full issue, never eight and never one. An issue written entirely in a single voice reads like a manual. An issue written in all eight reads like somebody showing off.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t052">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">There is also a written list of things the prose is simply not allowed to do, and it exists because the same small handful of habits keep coming back.</p>
+        <p class="line">No sentence that sets up a contrast and then never pays it off. No paragraph that opens by announcing what it is about to do instead of doing it. No three-part list where the third item is only there for the rhythm. No adjective doing the job a number should be doing — significant, dramatic, staggering. If it is staggering, say by how much, and let the reader stagger on their own time.</p>
+        <p class="line">That list is not a style guide. It is a catalogue of ways that writing can sound confident while carrying no information at all, and the reason it is written down is that every single one of them is invisible to the person committing it.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t028">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 028 recorded"></button><span class="tn">028</span></div>
+      <div class="body">
+        <p class="line">Then verification, which reads the draft against the dossier line by line and treats every number in every chart as a claim that has to trace back to something.</p>
+        <p class="line">It produces a report rather than a verdict, and the report is often unflattering. A figure that drifted between the dossier and the draft. A caption that states something the chart does not actually show. A source that has been cited for a claim it does not quite make. A date rounded into being wrong.</p>
+        <p class="line">A human reads that report, fixes what it found, and flips the status to published by hand. That is the second gate, and there is no version of this where a piece publishes itself.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t029">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 029 recorded"></button><span class="tn">029</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> End of Part 03. Stop the recorder, stand up, drink some water, walk around. Come back before your voice cools. Do not change the gain.</div>
+        <p class="line">The whole sequence has one rule underneath it, and it is short. A claim without a source is not a claim. It is a sentence that sounds like one, which is worse, because it borrows the authority of everything around it while contributing nothing to it.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 04 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p04">
+    <header class="part">
+      <span class="part__no">Part 04</span>
+      <h2 class="part__t">The rules of the page</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t030">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 030 recorded"></button><span class="tn">030</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Technical, but not dry. Read it the way a good craftsperson describes their own constraints — with interest, not with reverence.</div>
+        <p class="line">Three typefaces, and only three, across the whole publication.</p>
+        <p class="line">A serif called Fraunces carries the voice — headlines, opening paragraphs, nameplates, and the single italic word that some titles are allowed to lean on. A sans called Schibsted Grotesk does everything structural: body text, interface, the headings that organise rather than announce. A monospace called JetBrains Mono handles labels, eyebrows and numerals, because numbers want to sit in a column and line up.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t031">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 031 recorded"></button><span class="tn">031</span></div>
+      <div class="body">
+        <p class="line">There used to be a different display face for each of the six worlds. It was retired, and the reason is worth stating plainly, because it was a good idea that did not survive contact with the product.</p>
+        <p class="line">Six typefaces made six magazines. Every issue looked like it came from somewhere else, which is fine if you only ever read one, and corrosive if you read four. The brand lived in the typography, so when the typography changed the brand changed with it. Now the type is fixed and the worlds differentiate by colour and by treatment. The six still feel distinct. They just no longer feel unrelated.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t032">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 032 recorded"></button><span class="tn">032</span></div>
+      <div class="body">
+        <p class="line">Surfaces are flat. No rounded corners on a figure, no drop shadows, no cards floating half a centimetre above the paper.</p>
+        <p class="line">What a figure gets instead is a three-pixel rule along its top edge. Dark ink on the pale worlds, the world's own accent colour on the dark ones. That single line does the work the shadow used to do — it says this block is a separate object, look at it as one thing — and it does it without pretending the screen has depth it does not have.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t033">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 033 recorded"></button><span class="tn">033</span></div>
+      <div class="body">
+        <p class="line">There are no photographs. Not one, anywhere in the publication.</p>
+        <p class="line">A photograph on an explainer is almost always decoration wearing the costume of evidence. It fills the space at the top where a reader expects an image, it sets a mood, and it tells you nothing you could not have been told in the caption. Everything visual here has to be carrying information. If it cannot, it does not get made.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t034">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 034 recorded"></button><span class="tn">034</span></div>
+      <div class="body">
+        <p class="line">Every figure carries four separate pieces of writing, and keeping them separate is one of the fussier rules in the whole system.</p>
+        <p class="line">The plain line says what kind of drawing this is. Bars, one per year, tallest is largest. The caption states the finding — the actual claim the data supports, and the only one that gets traced during verification. The how-to-read panel tells you how to use the thing: what the axis means, what happens if you drag the control. And the source line names where the numbers came from, with a date.</p>
+        <p class="line">Confuse any two of those and the checks reject it. A plain line that smuggles in a claim. A caption that describes the shape of the chart instead of the finding in it. A how-to-read that just repeats the caption in longer words. All three are common, all three are lazy, and all three get caught.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t035">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 035 recorded"></button><span class="tn">035</span></div>
+      <div class="body">
+        <p class="line">Numbering uses an em dash and two digits. Dash, zero, one. Dash, zero, two. Issues and sections both.</p>
+        <p class="line">It is a tiny thing that turns out to matter, because it is the same everywhere and it comes from one place in the code. The moment two parts of a publication disagree about how to write a number, a reader stops trusting the small stuff, and the small stuff is most of what a reader is actually reading.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t036">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 036 recorded"></button><span class="tn">036</span></div>
+      <div class="body">
+        <p class="line">Colour has one law that overrides taste. Small text on a pale ground never uses the vivid version of a world's accent. It uses the deepened variant, because the vivid one fails contrast against paper — one of the six sits at three point nine to one, and the floor is four and a half.</p>
+        <p class="line">The same applies to any filled shape that has words sitting on top of it. Deep variant, every time. It is the difference between a colour that looks correct on a designer's screen at midday and one that a person can actually read on a phone, outdoors, on a bright afternoon.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t037">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 037 recorded"></button><span class="tn">037</span></div>
+      <div class="body">
+        <p class="line">The pages are built ahead of time and served as plain files. No framework, no application shell, nothing that has to boot before the words arrive.</p>
+        <p class="line">Where a graphic does move — a thing you can scrub, a globe you can turn — the rule is absolute. It has to have already painted its final, complete state before any of that loads. Switch off scripting and you get the finished picture. Ask the operating system to reduce motion and you get the finished picture, held still. Sit on a train with no signal and you get the finished picture. Motion is allowed to be an improvement. It is never allowed to be the thing that makes the page make sense.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t053">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">There are two ways to read a page, and the reader picks.</p>
+        <p class="line">There is the full read, which is the piece as written. And there is a skim, which strips the whole thing back to its structure — the headings, the figures, and one line under each saying what it shows. The skim exists because somebody with ten minutes should get something coherent rather than the first third of something long.</p>
+        <p class="line">Any figure can also be opened on its own, filling the screen, away from the text around it. That is the one real concession to the fact that a chart designed at a desk has to survive being read on a phone on a moving train. The honest answer to small type is not to shrink the chart further. It is to give the reader a way to make it big.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t054">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">Which is worth being blunt about, since blunt is cheaper than embarrassed later. On a phone, some of the fine print inside a fixed drawing comes out at four or five pixels, and no amount of clever scaling fixes that without redrawing every graphic from the ground up.</p>
+        <p class="line">So it is written down as a known cost rather than quietly hoped away. The information a reader actually needs is carried by the text layer, which reflows properly at any size. The drawing is there to show the shape. If you need the exact value, the expanded view has it.</p>
+        <p class="line">A limitation that has been recorded is a task. An unacknowledged one is a defect, and it will be rediscovered as a fresh surprise every six months by somebody new.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t055">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">Everything ever published stays up, at the address it was published at, in the archive, in order.</p>
+        <p class="line">There is a feed, and the feed is a list. It is not ranked, not personalised, and not adjusted according to what you read last time. Whatever is newest sits at the top. That is the entire algorithm, and it fits in about nine lines.</p>
+        <p class="line">This is much less clever than the alternative and considerably more trustworthy. Somebody coming back after two months can see exactly what has appeared since they left, in the order it appeared, with nothing withheld because a system decided they would not be interested. Being able to trust that a list is complete turns out to be worth more than being shown a better list.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 05 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p05">
+    <header class="part">
+      <span class="part__no">Part 05</span>
+      <h2 class="part__t">Why any of it</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t038">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 038 recorded"></button><span class="tn">038</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Slow down about ten per cent from here to the end of the part. Not solemn. Just less hurried, the way you talk when you have arrived at the thing you actually meant.</div>
+        <p class="line">Somewhere between the push notification and the third hot take of the morning, understanding quietly went missing.</p>
+        <p class="line">Nobody decided that. It was not a conspiracy and it was not even really a mistake. It is just what happens when a very large number of clever people are paid, for twenty years, to optimise for a metric that has nothing to do with whether you understood anything.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t039">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 039 recorded"></button><span class="tn">039</span></div>
+      <div class="body">
+        <p class="line">The strange part is how well informed the whole arrangement feels from the inside. You read for hours. You could name every major story of the week. You have opinions, and they are not stupid ones. And then somebody asks you to explain one of them from first principles — actually explain it, the mechanism, not the position — and the floor is not there.</p>
+        <p class="line">That is not a failure of attention. It is a category error about what reading was doing. You were being kept current. Current is not the same as informed, and it has a much shorter shelf life.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t040">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 040 recorded"></button><span class="tn">040</span></div>
+      <div class="body">
+        <p class="line">So the wager here is a simple one, and it may well be wrong.</p>
+        <p class="line">The wager is that a reasonable number of people would rather understand six things properly this year than have heard about six hundred. That they will give a piece six minutes if the six minutes are honest about what they cost. That the thing which makes something worth keeping is not how strongly it made you feel on the day, but whether it is still standing the third time you come back to check.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t056">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <p class="line">There is an objection to all of this, and it is a fair one, so it may as well be said here rather than left for somebody else to say.</p>
+        <p class="line">The objection is that depth is a luxury. That most people do not have six uninterrupted minutes. That the format is a personal preference dressed up as a principle. And that a publication with no advertising and no investors can afford opinions about attention precisely because it is not competing for very much of it.</p>
+        <p class="line">Some of that is true. What can be said in reply is only this. The six minutes are not being asked for on top of everything else. They are being offered instead of forty minutes of scrolling that will leave nothing behind. The claim is not that this is more virtuous. The claim is that it is a better trade.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t041">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 041 recorded"></button><span class="tn">041</span></div>
+      <div class="body">
+        <p class="line">Which brings it back to the finger and the wall.</p>
+        <p class="line">One eye gives you a picture. It is a perfectly good picture. It is sharp, it is convincing, and it contains no information whatsoever about distance. You need the second eye, and the small honest gap between them, before anything in the room acquires depth.</p>
+        <p class="line">That is all this is. A second angle on something you have already looked at, and the patience to measure the difference.</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- ══ PART 06 ═══════════════════════════════════════════════════════════ -->
+  <section class="part-wrap" id="p06">
+    <header class="part">
+      <span class="part__no">Part 06</span>
+      <h2 class="part__t">Range &mdash; optional</h2>
+      <span class="part__meta" data-part-meta></span>
+    </header>
+
+    <section class="take" id="t042">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 042 recorded"></button><span class="tn">042</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> <b>Decide before recording this part.</b> Everything above sits in one steady register, which is what you want if the clone should sound like a consistent narrator. Part 06 deliberately widens the range — useful if you want the voice to handle questions, emphasis and quiet passages, but it will pull the average away from the neutral read. If in doubt, record it as a separate file and clone twice.</div>
+        <p class="line">Six shapes of speech, one after another. Same voice, different jobs.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t043">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 043 recorded"></button><span class="tn">043</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Questions. Let the intonation genuinely rise. Real curiosity, not interrogation.</div>
+        <p class="line">So what is actually being counted here? Who decided the threshold, and when? Is that the figure for the whole year, or only the part of the year they measured? And if the number moved by four points, does anybody know whether the thing it describes moved at all — or only the way we count it?</p>
+        <p class="line">Does it hold up? Where did it come from? Compared to what?</p>
+      </div>
+    </section>
+
+    <section class="take" id="t044">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 044 recorded"></button><span class="tn">044</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> A list, read as a list. Even weight on each item, a real gap between them, and let the last one drop.</div>
+        <p class="line">Six worlds. Politics, space, earth, tech, travel, sports.</p>
+        <p class="line">Four fields under every figure: the plain line, the caption, the how-to-read, the source.</p>
+        <p class="line">Three typefaces: Fraunces, Schibsted Grotesk, JetBrains Mono.</p>
+        <p class="line">Two gates, both of them human: pick the question, approve the publish.</p>
+        <p class="line">One rule underneath all of it. A claim without a source is not a claim.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t057">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Proper nouns, at your natural pace. Do not over-enunciate and do not slow down for the unfamiliar ones &mdash; say them the way you would say them to somebody who asked where a place was.</div>
+        <p class="line">Delhi. Bengaluru. Chennai. Ahmedabad. Kolkata. Thiruvananthapuram.</p>
+        <p class="line">Reykjavik. Ljubljana. Marseille. Gothenburg. Valparaiso. Ouagadougou.</p>
+        <p class="line">Sriharikota. Baikonur. Kourou. Cape Canaveral. Tanegashima.</p>
+        <p class="line">Antarctica. The Bay of Bengal. The Strait of Malacca. The Rift Valley. The Deccan Plateau.</p>
+        <p class="line">Spectrometer. Interferometer. Magnetometer. Altimeter. Seismograph. Radiosonde.</p>
+        <p class="line">None of those are difficult. They are only unfamiliar, and unfamiliar words are exactly where a voice gives itself away — the small hesitation before a name, the extra care that makes one syllable land heavier than it should.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t045">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 045 recorded"></button><span class="tn">045</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Emphatic. More energy, more forward lean. Still you &mdash; do not shout, and do not slip into a presenter voice.</div>
+        <p class="line">Look at the actual document. Not the summary of the document, not the thread about the summary, not the argument about the thread. The document. It is usually public, it is usually free, and it is almost always shorter than the commentary written about it.</p>
+        <p class="line">And when somebody hands you a number, ask the only question that matters. Compared to what?</p>
+      </div>
+    </section>
+
+    <section class="take" id="t058">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false"></button><span class="tn">000</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Mixed rhythm. One long sentence, then a short one, with the aside in the middle held wide enough for the reader to breathe. Do not rush the semicolon.</div>
+        <p class="line">Punctuation carries rhythm, and the rhythm is half of the meaning.</p>
+        <p class="line">The paper was published in March; almost nobody noticed, because it ran to eleven pages and the interesting part was in a footnote. The footnote said — and this is the entire story — that the measurement had been taken twice, four years apart, by two teams who did not know about each other, and that the two numbers agreed to within one per cent.</p>
+        <p class="line">That is not a headline. It is better than a headline. Two strangers, four years apart, arriving at the same answer: that is what evidence looks like when nobody is performing.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t046">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 046 recorded"></button><span class="tn">046</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Quiet. Nearly confidential, but keep the same distance from the microphone &mdash; drop the energy, not the volume.</div>
+        <p class="line">There is a particular pleasure in understanding something properly. It arrives late and it arrives quietly. Nothing about it is shareable. You cannot post it, and it does not make you interesting at dinner.</p>
+        <p class="line">It just means that the next time the subject comes up, you are not guessing. That is a smaller feeling than being right on the internet, and it lasts considerably longer.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t047">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 047 recorded"></button><span class="tn">047</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Dry. Deadpan, no wink, no smile in the voice. The joke lands because you did not signal it.</div>
+        <p class="line">The publication has no comment section, which means it has never had to employ anybody to read one.</p>
+        <p class="line">It carries no advertising, so there is no meeting at which somebody explains that the piece about supply chains would perform better with a shorter chart. It collects no analytics, which means nobody can prove that any of this is working, and everybody has to fall back on the older method of just reading it and deciding.</p>
+      </div>
+    </section>
+
+    <section class="take" id="t048">
+      <div class="rail"><button class="mark" type="button" aria-pressed="false" aria-label="Mark take 048 recorded"></button><span class="tn">048</span></div>
+      <div class="body">
+        <div class="cue"><span class="cue__tag">Cue</span> Sign-off, then five more seconds of room tone before you stop the recorder. Do not clip the last breath.</div>
+        <p class="line">That is the end of the session. Parallax. Stories you think you already understand.</p>
+      </div>
+    </section>
+  </section>
+
+  <p class="endnote"><b>After the session.</b> Deliver the audio dry — no compression, no equalisation, no noise reduction, no normalisation. Keep the room tone as its own file. Trim only the dead air at the very top and the very tail, and leave every breath in between exactly where it fell.</p>
+
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var S = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  /* ── theme ─────────────────────────────────────────────────────────────── */
+  var themeBtn = document.getElementById('theme');
+  var savedTheme = S.get('pvs.theme');
+  if (savedTheme === 'light' || savedTheme === 'dark') root.setAttribute('data-theme', savedTheme);
+  function currentTheme() {
+    var t = root.getAttribute('data-theme');
+    if (t === 'light' || t === 'dark') return t;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  function syncTheme() { themeBtn.textContent = currentTheme() === 'dark' ? 'Light' : 'Dark'; }
+  syncTheme();
+  themeBtn.addEventListener('click', function () {
+    var next = currentTheme() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    S.set('pvs.theme', next);
+    syncTheme();
+  });
+
+  /* ── text size ─────────────────────────────────────────────────────────── */
+  var size = parseInt(S.get('pvs.size') || '30', 10);
+  if (isNaN(size)) size = 30;
+  var sizeVal = document.getElementById('sizeVal');
+  function applySize() {
+    root.style.setProperty('--read', size + 'px');
+    sizeVal.textContent = size;
+  }
+  applySize();
+  document.getElementById('inc').addEventListener('click', function () {
+    size = Math.min(46, size + 2); S.set('pvs.size', size); applySize();
+  });
+  document.getElementById('dec').addEventListener('click', function () {
+    size = Math.max(20, size - 2); S.set('pvs.size', size); applySize();
+  });
+
+  /* ── cues ──────────────────────────────────────────────────────────────── */
+  var cuesOn = S.get('pvs.cues') !== '0';
+  var cueBtn = document.getElementById('cues');
+  function applyCues() {
+    document.body.classList.toggle('no-cues', !cuesOn);
+    cueBtn.setAttribute('aria-pressed', String(cuesOn));
+    cueBtn.textContent = cuesOn ? 'Cues on' : 'Cues off';
+  }
+  applyCues();
+  cueBtn.addEventListener('click', function () {
+    cuesOn = !cuesOn; S.set('pvs.cues', cuesOn ? '1' : '0'); applyCues();
+  });
+
+  /* ── word counts ───────────────────────────────────────────────────────── */
+  var takes = [].slice.call(document.querySelectorAll('.take'));
+  var totalWords = 0;
+  takes.forEach(function (t, i) {
+    var no = String(i + 1);
+    while (no.length < 3) no = '0' + no;
+    var tn = t.querySelector('.tn');
+    if (tn) tn.textContent = no;
+    var mk = t.querySelector('.mark');
+    if (mk) mk.setAttribute('aria-label', 'Mark take ' + no + ' recorded');
+    var w = 0;
+    [].slice.call(t.querySelectorAll('.line')).forEach(function (p) {
+      var s = (p.textContent || '').trim();
+      if (s) w += s.split(/\s+/).length;
+    });
+    t.setAttribute('data-words', w);
+    totalWords += w;
+  });
+
+  var parts = [].slice.call(document.querySelectorAll('.part-wrap'));
+  parts.forEach(function (pw) {
+    var w = 0;
+    [].slice.call(pw.querySelectorAll('.take')).forEach(function (t) {
+      w += parseInt(t.getAttribute('data-words'), 10) || 0;
+    });
+    pw.setAttribute('data-words', w);
+  });
+
+  /* ── pace ──────────────────────────────────────────────────────────────── */
+  var wpm = parseInt(S.get('pvs.wpm') || '138', 10);
+  if (isNaN(wpm)) wpm = 138;
+  var wpmBtns = [].slice.call(document.querySelectorAll('.wpm'));
+  wpmBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      wpm = parseInt(b.getAttribute('data-wpm'), 10);
+      S.set('pvs.wpm', wpm); render();
+    });
+  });
+
+  /* ── take marks ────────────────────────────────────────────────────────── */
+  var done = {};
+  try { done = JSON.parse(S.get('pvs.done') || '{}') || {}; } catch (e) { done = {}; }
+
+  takes.forEach(function (t) {
+    var btn = t.querySelector('.mark');
+    function sync() {
+      var on = !!done[t.id];
+      t.classList.toggle('is-done', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
+    sync();
+    btn.addEventListener('click', function () {
+      if (done[t.id]) { delete done[t.id]; } else { done[t.id] = 1; }
+      S.set('pvs.done', JSON.stringify(done));
+      sync(); render();
+      if (done[t.id]) {
+        var next = takes[takes.indexOf(t) + 1];
+        if (next) next.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+      }
+    });
+  });
+
+  /* ── render ────────────────────────────────────────────────────────────── */
+  var progTxt = document.getElementById('progTxt');
+  var totTxt = document.getElementById('totTxt');
+  var progFill = document.getElementById('progFill');
+
+  function mins(w) { return Math.max(1, Math.round(w / wpm)); }
+
+  function render() {
+    parts.forEach(function (pw) {
+      var w = parseInt(pw.getAttribute('data-words'), 10) || 0;
+      var el = pw.querySelector('[data-part-meta]');
+      if (el) el.textContent = w.toLocaleString() + ' words · ~' + mins(w) + ' min';
+    });
+
+    var nDone = 0, wDone = 0;
+    takes.forEach(function (t) {
+      if (done[t.id]) { nDone++; wDone += parseInt(t.getAttribute('data-words'), 10) || 0; }
+    });
+
+    progTxt.innerHTML = '<b>' + nDone + '</b> of ' + takes.length + ' takes';
+    totTxt.innerHTML = '~<b>' + Math.round(wDone / wpm) + '</b> of ~' + mins(totalWords) +
+      ' min banked · ' + totalWords.toLocaleString() + ' words at ' + wpm + ' wpm';
+    progFill.style.width = (takes.length ? (nDone / takes.length) * 100 : 0) + '%';
+
+    wpmBtns.forEach(function (b) {
+      b.setAttribute('aria-pressed', String(parseInt(b.getAttribute('data-wpm'), 10) === wpm));
+    });
+  }
+
+  render();
+})();
+</script>

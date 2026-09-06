@@ -14,6 +14,7 @@ import { readdirSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { Resvg } from '@resvg/resvg-js';
 import { TOPICS, type Topic } from '../lib/social.js';
+import { markBody } from '../../src/lib/mark';
 
 // ── theme ──────────────────────────────────────────────────────────────────
 export interface Theme {
@@ -91,12 +92,23 @@ function starfield(w: number, h: number): string {
   return s;
 }
 
-function mark(t: Theme, cx: number, cy: number): string {
-  return (
-    `<circle cx="${cx - 15}" cy="${cy}" r="26" fill="none" stroke="${t.ring}" stroke-width="3"/>` +
-    `<circle cx="${cx + 15}" cy="${cy}" r="26" fill="none" stroke="${t.ring}" stroke-width="3"/>` +
-    `<circle cx="${cx}" cy="${cy}" r="10" fill="url(#mhero)"/>`
-  );
+/* The medallion (RD-10 step 3), replacing the two-ring lens that used to sit
+   here. Two reasons it had to change, not one: the old mark filled its centre
+   dot with `url(#mhero)`, a GRADIENT, which RD-10's misuse list forbids
+   outright; and a card renderer resolves neither CSS variables nor fonts, so
+   the P must be an outlined path. Geometry comes from src/lib/mark.ts, the
+   same source the in-page component uses, with literal colours supplied here.
+   The mark is drawn on a 300-unit box, so it is scaled and translated into the
+   card's coordinate space rather than redrawn at card scale. */
+function mark(t: Theme, cx: number, cy: number, r = 30): string {
+  const scale = (r * 2) / 300;
+  const body = markBody({
+    desk: 'politics',
+    size: r * 2,
+    cut: 'mark',
+    colors: { accent: t.accent, ground: t.bg1, ink: t.ring, paper: t.bg1 },
+  });
+  return `<g transform="translate(${cx - r} ${cy - r}) scale(${scale.toFixed(4)})">${body}</g>`;
 }
 
 // ── card data shapes ─────────────────────────────────────────────────────────
