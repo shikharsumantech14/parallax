@@ -311,17 +311,22 @@ Live examples of all 7 new kinds: the six `2026-06-03-<world>-showcase` issues
 ## 9. Verification commands
 
 ```bash
-npm run build            # 44 pages. prebuild is FOUR steps, in order:
+npm run build            # 45 static pages + 24 SSR routes.
+                         # prebuild is FOUR steps, in order:
                          #   design-sync --check
                          #   check-catalog
                          #   project-graph --check      ← the one that bites
                          #   tsx scripts/story/og.ts    ← writes 10 tracked PNGs
+                         # postbuild is ONE step:
+                         #   vercel-runtime             ← corrects the fn runtime
 npm run check:catalog    # 97 ↔ 97, order, EXPLAIN + KIND_PRIORITY coverage
 npm run design:check     # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check      # the derived graph matches the repo
 npm run hooks:test       # the enforcement hooks still decide correctly
-cd app && npm run build  # the ONLY local gate for app work
 ```
+
+The old `cd app && npm run build` line retired with the merge — there is one
+project and one build now.
 
 **`npx astro build` skips the prebuild — all four steps of it.** It is still the
 right way to iterate (the real build rewrites ten tracked OG PNGs on every run),
@@ -338,6 +343,32 @@ was never regenerated, and **Vercel failed the deploy at `20d66b9`** on a STALE
 graph while every hand-run gate had been green. Fixed in `ab59353`. If you
 cited a decision anywhere, run `node scripts/project-graph.mjs` and commit the
 result with the work.
+
+**`npx astro build` also skips the POSTBUILD, and that one decides whether the
+deploy is accepted at all.** `@astrojs/vercel@7.8.2` picks the serverless
+function's Node runtime from the version of Node the *build* runs on, against a
+hardcoded table that stops at 20 — anything else falls back to `nodejs18.x`,
+which Vercel no longer accepts. **Vercel failed the deploy a second time on
+this**, at the merge commit: the build was clean, 45 pages and all four gates
+green, and the deploy was rejected afterwards with
+
+```
+The following Serverless Functions contain an invalid "runtime":
+  - _render (nodejs18.x)
+```
+
+The cause was `engines.node: ">=20.0.0"` — an open range, which Vercel's own
+version table resolves to the *latest* major (24). `scripts/vercel-runtime.mjs`
+runs as `postbuild` and rewrites the `runtime` key in every function's
+`.vc-config.json`, deriving the target from `engines.node` so the build image
+and the function runtime cannot drift. It refuses to run if that field is ever
+loosened back to a range. **A green `npx astro build` says nothing about
+either.**
+
+The real ceiling is the adapter: 7.8.2 can emit nothing above `nodejs20.x`, and
+Vercel deprecates Node 20 on **2026-10-01**. Adapter v8 fixes this properly but
+requires Astro 5 (Content Layer API — reaches all 97 kinds and every issue).
+The script is a bridge to that upgrade and should be deleted with it.
 
 Standing greps (all must return zero):
 

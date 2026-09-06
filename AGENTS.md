@@ -491,6 +491,14 @@ with the full canon in `research/_voice/mode-library.md`.
   ("app before publication") cannot be violated. It existed because
   `NewsletterForm` posts to `/api/join` across two independently-deployed
   Vercel projects; both now live in the same build.
+- **`engines.node` must stay a PINNED major (`22.x`), never a range.**
+  `@astrojs/vercel@7.8.2` derives the serverless function's runtime from the
+  Node version the build runs on, against a hardcoded table that stops at 20;
+  anything else silently falls back to `nodejs18.x`, which Vercel rejects at
+  deploy time *after* a clean build. `>=20.0.0` resolves to the latest major
+  and cost one failed deploy. `scripts/vercel-runtime.mjs` (`postbuild`)
+  corrects the emitted runtime and refuses to run against a range. Both retire
+  when Astro 5 + adapter v8 land. See `docs/STATE-OF-PLAY.md` §9.
 - **Migrations are the operator's to apply.** Adding a `.sql` file under
   `supabase/migrations/` does not apply it. Write them idempotent
   (`ADD COLUMN IF NOT EXISTS`), state clearly that they are unapplied, and
