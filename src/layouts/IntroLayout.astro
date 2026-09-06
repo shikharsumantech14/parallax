@@ -8,6 +8,7 @@
  */
 import { stripEmphasis } from '../lib/text';
 import '../styles/intro.css';
+import PwaMeta from '../components/core/PwaMeta.astro';
 
 interface Props {
   title: string;
@@ -27,6 +28,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <PwaMeta themeColor="#07090f" />
     <meta property="og:title" content={stripEmphasis(title)} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />

@@ -1,6 +1,7 @@
 ---
 import type { Topic } from '../content/config';
 import { stripEmphasis } from '../lib/text';
+import PwaMeta from '../components/core/PwaMeta.astro';
 import '../styles/tokens-v2.css';
 import '../styles/base.css';
 import '../styles/meta.css';
@@ -55,6 +56,7 @@ const ogImage = slug ? `${siteUrl}/og/story/${slug}.png` : undefined;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <PwaMeta />
 
     <meta property="og:type" content="article" />
     <meta property="og:title" content={stripEmphasis(title)} />

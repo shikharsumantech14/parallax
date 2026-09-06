@@ -1,0 +1,30 @@
+---
+/**
+ * The PWA head block — everything a browser needs to offer "Install", in one
+ * place so five layouts cannot drift apart.
+ *
+ * `themeColor` tints the browser and status-bar chrome, so it has to match the
+ * ground of the page it sits on, NOT the brand. Most surfaces are warm paper;
+ * `IntroLayout` is deliberately near-black in both colour schemes, and paper
+ * chrome above near-black reads as a rendering fault rather than a choice.
+ *
+ * iOS reads none of this from the manifest — not the icon, not the name — so
+ * the apple-prefixed tags are not redundancy, they are the only thing that
+ * works there.
+ *
+ * Emits <head> children only, so it owns no CSS prefix.
+ */
+interface Props {
+  /** Must match the page's own ground. Defaults to the meta palette's paper. */
+  themeColor?: string;
+}
+
+const { themeColor = '#faf7f0' } = Astro.props;
+---
+
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content={themeColor} />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="Parallax" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />

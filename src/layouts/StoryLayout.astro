@@ -25,6 +25,7 @@ import '../styles/dataviz-v2.css';
 import '../styles/viz-type.css';
 import '../styles/components-3d.css';
 import '../styles/story.css';
+import PwaMeta from '../components/core/PwaMeta.astro';
 
 import Reveal from '../components/core/Reveal.astro';
 import VizMotion from '../components/core/VizMotion.astro';
@@ -62,6 +63,8 @@ const cleanTitle = stripEmphasis(title);
     {ogImage && <meta property="og:image:width" content="1200" />}
     {ogImage && <meta property="og:image:height" content="630" />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <PwaMeta />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
