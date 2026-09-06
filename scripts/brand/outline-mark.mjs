@@ -37,6 +37,19 @@
  * wrapper around SFNT — decompressible with node:zlib in ~60 lines. See
  * `woff2ttf` below.
  *
+ * TWO TIERS — operator ruling 2026-09-06. A display cut is high-contrast, and
+ * its hairlines do not survive small sizes: filled as a path, the opsz@72 glyph
+ * carries 3.6% less ink than its own text rendering at 96px and 14.6% less at
+ * 40px, while the opsz@14 cut matches its own to 0.15%. So the mark ships TWO
+ * outlines and picks by size, the same way the ring stroke already steps
+ * 7/10/14 units:
+ *
+ *   display  opsz 72   the large mark — About's 168px, covers, banners
+ *   text     opsz 14   favicon, app icon, masthead, anywhere small
+ *
+ *   node scripts/brand/outline-mark.mjs <woff> display
+ *   node scripts/brand/outline-mark.mjs <woff> text
+ *
  * PLACEMENT IS EXACT, NOT EYEBALLED. The delivered SVGs set the glyph with
  * `<text x="150" y="207" font-size="160" text-anchor="middle">`, i.e. centred
  * on x=150 with its baseline at y=207. A capital P has no descender, so the
@@ -123,9 +136,14 @@ if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`
     console.error('usage: node scripts/brand/outline-mark.mjs <literata-700.woff|ttf> [--write]');
     process.exit(1);
   }
+  const tier = process.argv[3] || 'display';
+  if (!['display', 'text'].includes(tier)) {
+    console.error('tier must be "display" (opsz 72) or "text" (opsz 14)');
+    process.exit(1);
+  }
   const ttf = woff2ttf(readFileSync(src));
   const d = await outlineGlyph(ttf);
-  const outPath = 'scripts/brand/p-outline.path';
+  const outPath = `scripts/brand/p-outline-${tier}.path`;
   writeFileSync(outPath, d);
-  console.log(`glyph outlined · ${d.length} chars · wrote ${outPath}`);
+  console.log(`glyph outlined · tier=${tier} · ${d.length} chars · wrote ${outPath}`);
 }
