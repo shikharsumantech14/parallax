@@ -1,0 +1,142 @@
+---
+/**
+ * /offline — the service worker's navigation fallback.
+ *
+ * SELF-CONTAINED ON PURPOSE. This page is shown precisely when the network is
+ * unreachable, so it may not assume a single external byte: no stylesheet, no
+ * webfont, no script. Styles are inline and font stacks are LITERAL (the same
+ * reasoning as RD-01b's in-SVG rule — the token layer may simply not be there).
+ * If it ever grows a dependency, it will look broken exactly when it is needed.
+ *
+ * The mark comes from `markSVG` with LITERAL colours rather than from
+ * `core/Mark.astro`, which fills with `var(--ink)` / `var(--topic-*)` /
+ * `var(--bg)`. Those tokens live in stylesheets this page does not load, so
+ * the component rendered here as a solid black disc — caught by looking at
+ * the page, not by the build, which had no way to know. Same reasoning as
+ * `scripts/brand/build-assets.ts`: geometry shared, colour stated.
+ *
+ * No-JS: the retry control is an <a> to the current page, not a button calling
+ * location.reload(), so it works with the fallback contract intact.
+ *
+ * Prefix: px-off.
+ */
+import { markSVG } from '../lib/mark';
+
+/* src/styles/meta.css :root, stated because no stylesheet is loaded here. */
+const mark = markSVG({
+  desk: 'politics',
+  size: 56,
+  box: 56,
+  colors: { accent: '#b8341f', ground: '#faf7f0', ink: '#161412', paper: '#faf7f0' },
+});
+
+const title = 'Offline · Parallax Lens';
+---
+
+<html lang="en" data-topic="politics">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#faf7f0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #faf7f0;
+        color: #161412;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      .px-off {
+        max-width: 32rem;
+        text-align: left;
+        border-top: 4px solid #161412;
+        padding-top: 22px;
+      }
+      .px-off__eyebrow {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #6f665c;
+        margin: 0 0 18px;
+      }
+      .px-off__mark {
+        display: block;
+        margin: 0 0 20px;
+      }
+      .px-off__title {
+        font-family: Fraunces, Georgia, 'Times New Roman', serif;
+        font-size: clamp(28px, 6vw, 40px);
+        font-weight: 600;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin: 0 0 14px;
+      }
+      .px-off__title em {
+        font-style: italic;
+        color: #b8341f;
+      }
+      .px-off__body {
+        font-size: 17.5px;
+        line-height: 1.6;
+        color: #3c352e;
+        margin: 0 0 26px;
+      }
+      .px-off__retry {
+        display: inline-block;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: #faf7f0;
+        background: #161412;
+        padding: 13px 20px;
+      }
+      .px-off__retry:hover {
+        background: #b8341f;
+      }
+      .px-off__retry:focus-visible {
+        outline: 2px solid #b8341f;
+        outline-offset: 3px;
+      }
+      .px-off__note {
+        font-size: 14px;
+        line-height: 1.55;
+        color: #6f665c;
+        margin: 26px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="px-off">
+      <p class="px-off__eyebrow">Parallax · No connection</p>
+      <span class="px-off__mark" role="img" aria-label="Parallax" set:html={mark} />
+      <h1 class="px-off__title">You're <em>offline</em>.</h1>
+      <p class="px-off__body">
+        This page hasn't been read on this device yet, so there's no copy of it here. Anything you
+        have already opened is still available — it was kept as you read it.
+      </p>
+      <a class="px-off__retry" href="/">Back to the front page</a>
+      <p class="px-off__note">
+        When the connection returns, everything works as before. Nothing you saved is lost.
+      </p>
+    </main>
+  </body>
+</html>

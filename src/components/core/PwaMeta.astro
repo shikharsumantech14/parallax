@@ -20,6 +20,24 @@ interface Props {
 }
 
 const { themeColor = '#faf7f0' } = Astro.props;
+
+/**
+ * Service worker registration. Deferred to `load` so it never competes with
+ * first paint, and failures are swallowed: an unregistered worker costs the
+ * reader an offline copy, never the page.
+ *
+ * `updateViaCache: 'none'` is the escape hatch, not an optimisation — it keeps
+ * /sw.js out of the HTTP cache, so a replacement worker is always found. A
+ * broken worker that could itself be served from cache would be very hard to
+ * recall from readers' browsers.
+ *
+ * Held as a string so the brace-heavy body needs no JSX escaping.
+ */
+const REGISTER_SW = `if ('serviceWorker' in navigator) {
+  addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function () {});
+  });
+}`;
 ---
 
 <link rel="manifest" href="/manifest.webmanifest" />
@@ -28,3 +46,13 @@ const { themeColor = '#faf7f0' } = Astro.props;
 <meta name="apple-mobile-web-app-title" content="Parallax" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+
+{/*
+  PRODUCTION ONLY, and not for tidiness: under `astro dev` the worker cached
+  Astro's dev-toolbar modules and Vite's dep-optimiser output from
+  /node_modules/, and a caching layer under HMR turns every stale-asset
+  question into "is it the worker?". `import.meta.env.PROD` is inlined as the
+  literal `false` by `astro dev`, so this is eliminated rather than skipped.
+  Test the worker against `npm run preview`, which serves a real build.
+*/}
+{import.meta.env.PROD && <script is:inline set:html={REGISTER_SW} />}

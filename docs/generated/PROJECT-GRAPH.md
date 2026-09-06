@@ -163,7 +163,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-12** | 9 files | 2 |
 | **RD-01** | 9 files | 3 |
 | **RD-01a** | 7 files | 5 |
-| **RD-01b** | 35 files | 3 |
+| **RD-01b** | 36 files | 4 |
 | **RD-02** | 4 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 3 files | 0 — _dangling_ |
