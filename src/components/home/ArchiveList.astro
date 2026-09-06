@@ -1,6 +1,6 @@
 ---
 import type { Topic } from '../../content/config';
-import { renderEmphasis, formatIssueNumber } from '../../lib/text';
+import { renderEmphasis, formatIssueNumber, stripEmphasis } from '../../lib/text';
 
 interface Entry {
   slug: string;
@@ -13,8 +13,21 @@ interface Entry {
 
 interface Props {
   items: Entry[];
+  /** Section heading. `/archive` passes its own; home keeps the default. */
+  heading?: string;
+  /** Emit `data-topic` + `data-search` per row so a filter island can hide
+   *  rows without re-implementing the row markup. Off by default. */
+  filterable?: boolean;
+  /** Shown when `items` is empty. `/archive` names the six desks here, per
+   *  the README's empty-state rule. */
+  emptyText?: string;
 }
-const { items } = Astro.props;
+const {
+  items,
+  heading = 'Earlier Issues',
+  filterable = false,
+  emptyText = 'No earlier issues yet — the archive begins with — 01.',
+} = Astro.props;
 
 /* Same stamp as Banner and CategoryCard use — one date format on the site. */
 const fmtDate = (d: Date) =>
@@ -31,13 +44,19 @@ const topicLabels: Record<string, string> = {
 ---
 
 <section class="px-archive">
-  <div class="px-archive__title">Earlier Issues</div>
+  <div class="px-archive__title">{heading}</div>
   {items.length === 0 ? (
-    <div class="px-archive__empty">No earlier issues yet — the archive begins with — 01.</div>
+    <div class="px-archive__empty">{emptyText}</div>
   ) : (
     <ul class="px-archive__list" data-reveal>
       {items.map((entry) => (
-        <li class="px-archive__row">
+        <li
+          class="px-archive__row"
+          data-topic={filterable ? entry.topic : undefined}
+          data-search={filterable
+            ? `${stripEmphasis(entry.title)} ${topicLabels[entry.topic]}`.toLowerCase()
+            : undefined}
+        >
           <a class="px-archive__item" data-topic={entry.topic} href={`/issues/${entry.slug}/`}>
             <span class="px-archive__no">{formatIssueNumber(entry.issueNumber)}</span>
             <span class="px-archive__dot" aria-hidden="true"></span>
@@ -51,5 +70,10 @@ const topicLabels: Record<string, string> = {
         </li>
       ))}
     </ul>
+  )}
+  {filterable && (
+    <div class="px-archive__none" hidden>
+      Nothing matches. Clear the search, or pick another desk.
+    </div>
   )}
 </section>

@@ -1,0 +1,144 @@
+---
+/**
+ * /archive — every published issue, filterable by desk and by a live search.
+ *
+ * Built against the TEN REAL ISSUES. The handoff prototype's backlist carries
+ * 24 rows of which 14 are fiction; §4-v3 says explicitly that they must not
+ * shape this page, so nothing here is sized or worded around a backlist we do
+ * not have. The empty state names the six desks rather than apologising for a
+ * thin archive.
+ *
+ * FALLBACK CONTRACT. Every row is server-rendered and visible. The search box
+ * and the chips ship `hidden` and are revealed by the island below, so a
+ * reader without JS gets the complete archive and never meets a control that
+ * cannot work. Same pattern as the Phase 6.2 instruments.
+ */
+import { getCollection } from 'astro:content';
+import HomeLayout from '../layouts/HomeLayout.astro';
+import Masthead from '../components/core/Masthead.astro';
+import ArchiveList from '../components/home/ArchiveList.astro';
+import { TOPICS, type Topic } from '../content/config';
+
+const published = (await getCollection('issues', (e) => e.data.status !== 'draft'));
+const oldestFirst = [...published].sort(
+  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime()
+);
+const issueNumberFor = (slug: string) => oldestFirst.findIndex((i) => i.slug === slug) + 1;
+
+const items = [...published]
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime())
+  .map((issue) => ({
+    slug: issue.slug,
+    topic: issue.data.topic,
+    title: issue.data.title,
+    issueNumber: issueNumberFor(issue.slug),
+    publishedAt: issue.data.publishedAt,
+    readTimeMinutes: issue.data.readTimeMinutes,
+  }));
+
+const topicLabels: Record<Topic, string> = {
+  politics: 'Politics',
+  space: 'Space',
+  earth: 'Earth',
+  tech: 'Tech',
+  travel: 'Travel',
+  sports: 'Sports',
+};
+
+/* Desks with at least one published issue get a chip. A chip that filters to
+   nothing is a dead control, and the count beside it would be a lie. */
+const desksWithIssues = TOPICS.filter((t) => items.some((i) => i.topic === t));
+
+const countLabel = `${items.length} ${items.length === 1 ? 'issue' : 'issues'} · every one still readable`;
+---
+
+<HomeLayout
+  title="The archive · Parallax Lens"
+  description="Every published Parallax issue, by desk and by date."
+>
+  <Masthead variant="meta" issueNumber={String(items.length).padStart(2, '0')} />
+
+  <header class="px-arch-head">
+    <p class="px-arch-head__count">{countLabel}</p>
+    <h1 class="px-arch-head__t">The archive</h1>
+  </header>
+
+  <div class="px-arch-filter" id="px-arch-filter" hidden>
+    <label class="px-arch-filter__search">
+      <span class="px-arch-filter__label">Search</span>
+      <input
+        type="search"
+        id="px-arch-q"
+        placeholder="Title or desk…"
+        autocomplete="off"
+        aria-describedby="px-arch-status"
+      />
+    </label>
+    <div class="px-arch-chips" role="group" aria-label="Filter by desk">
+      <button class="px-arch-chip" type="button" data-desk="" aria-pressed="true">All</button>
+      {desksWithIssues.map((t) => (
+        <button class="px-arch-chip" type="button" data-desk={t} aria-pressed="false">
+          <span class="px-arch-chip__dot" data-topic={t} aria-hidden="true"></span>
+          {topicLabels[t]}
+        </button>
+      ))}
+    </div>
+    <p class="px-arch-filter__status" id="px-arch-status" role="status" aria-live="polite"></p>
+  </div>
+
+  <ArchiveList
+    items={items}
+    heading=""
+    filterable
+    emptyText={`Nothing published yet. The desks are ${TOPICS.map((t) => topicLabels[t]).join(', ')} — the first issue will open one of them.`}
+  />
+</HomeLayout>
+
+<script is:inline>
+  (function () {
+    var panel = document.getElementById('px-arch-filter');
+    var q = document.getElementById('px-arch-q');
+    var status = document.getElementById('px-arch-status');
+    var list = document.querySelector('.px-archive__list');
+    if (!panel || !q || !list) return;
+
+    var rows = Array.prototype.slice.call(list.querySelectorAll('.px-archive__row'));
+    var none = document.querySelector('.px-archive__none');
+    var chips = Array.prototype.slice.call(panel.querySelectorAll('.px-arch-chip'));
+    var desk = '';
+
+    /* Reveal only now: the controls were shipped hidden so a no-JS reader
+       never meets a dead input. */
+    panel.hidden = false;
+
+    function apply() {
+      var term = (q.value || '').trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (row) {
+        var okDesk = !desk || row.getAttribute('data-topic') === desk;
+        var okTerm = !term || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
+        var show = okDesk && okTerm;           /* chip AND search, per README §353 */
+        row.hidden = !show;
+        if (show) shown++;
+      });
+      if (none) none.hidden = shown !== 0;
+      if (status) {
+        /* The noun agrees with the TOTAL, not the match: "1 of 10 issues". */
+        status.textContent = shown === rows.length
+          ? ''
+          : shown + ' of ' + rows.length + (rows.length === 1 ? ' issue' : ' issues');
+      }
+    }
+
+    q.addEventListener('input', apply);
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        desk = chip.getAttribute('data-desk') || '';
+        chips.forEach(function (c) {
+          c.setAttribute('aria-pressed', String(c === chip));
+        });
+        apply();
+      });
+    });
+  })();
+</script>

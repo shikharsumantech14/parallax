@@ -167,7 +167,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **RD-02** | 4 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 3 files | 0 — _dangling_ |
-| **RD-05** | 31 files | 22 |
+| **RD-05** | 32 files | 23 |
 | **RD-06** | 7 files | 1 |
 | **RD-07** | 3 files | 1 |
 | **RD-08** | 8 files | 4 |
@@ -181,7 +181,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **TD-03** | 31 files | 2 |
 | **TD-04** | 9 files | 8 |
 | **TD-05** | 1 files | 0 — _dangling_ |
-| **TD-06** | 10 files | 2 |
+| **TD-06** | 11 files | 3 |
 | **TD-07** | 1 files | 0 — _dangling_ |
 | **TD-08** | 1 files | 0 — _dangling_ |
 

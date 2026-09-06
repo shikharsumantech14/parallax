@@ -564,3 +564,125 @@ html.js .px-archive__list:not(.is-in) .px-archive__row {
   .px-topic-list__date { grid-column: 1; }
   .px-topic-empty { padding: 40px 24px; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   /archive (Phase 7) — head, search and desk chips.
+   Rows reuse .px-archive__* so there is ONE row implementation for the home
+   page and this one. Prefix px-arch (checked against meta.css for collisions).
+   ══════════════════════════════════════════════════════════════════════════ */
+.px-arch-head { padding: 8px 0 22px; border-bottom: 1px solid var(--rule); }
+.px-arch-head__count {
+  margin: 0 0 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-arch-head__t {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 6vw, 68px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.032em;
+  color: var(--ink);
+}
+
+.px-arch-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.px-arch-filter__search { display: flex; align-items: center; gap: 10px; }
+.px-arch-filter__label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-arch-filter__search input {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0;                      /* RD-05: flat */
+  padding: 9px 12px;
+  min-width: 220px;
+  min-height: 44px;                      /* CANON accessibility floor */
+  box-sizing: border-box;
+}
+.px-arch-filter__search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.px-arch-filter__status {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.px-arch-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.px-arch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0;                      /* RD-05: flat */
+  padding: 8px 12px;
+  min-height: 44px;                      /* CANON accessibility floor */
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
+}
+.px-arch-chip:hover { border-color: var(--ink); }
+/* Selected = accent tint + accent border + accent text (README §292). The text
+   sits on --accent-deep, not --accent: small text on light paper (TD-06). */
+.px-arch-chip[aria-pressed='true'] {
+  color: var(--accent-deep);
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+}
+.px-arch-chip__dot { width: 7px; height: 7px; border-radius: 50%; }
+.px-arch-chip__dot[data-topic='politics'] { background: var(--topic-politics); }
+.px-arch-chip__dot[data-topic='space']    { background: var(--topic-space); }
+.px-arch-chip__dot[data-topic='earth']    { background: var(--topic-earth); }
+.px-arch-chip__dot[data-topic='tech']     { background: var(--topic-tech); }
+.px-arch-chip__dot[data-topic='travel']   { background: var(--topic-travel); }
+.px-arch-chip__dot[data-topic='sports']   { background: var(--topic-sports); }
+
+/* The archive page's list carries its own head, so the shared section title
+   collapses when /archive passes an empty heading. */
+.px-archive__title:empty { display: none; }
+
+.px-archive__none {
+  padding: 40px 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .px-arch-filter { gap: 12px 16px; }
+  .px-arch-filter__search input { min-width: 0; width: 100%; }
+  .px-arch-filter__search { width: 100%; }
+}
