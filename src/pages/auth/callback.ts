@@ -54,10 +54,12 @@ export const GET: APIRoute = async (ctx) => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // First sign-in gate: send readers who haven't been welcomed to /welcome
+  // First sign-in gate: send readers who haven't been welcomed to
+  // /account/welcome — NOT /welcome, which is the publication's intro story
+  // ("The Second Angle"). The two collided when app/ merged in on 2026-09-06.
   // (JOURNEY-SPEC §1 fix #7). Any read hiccup falls through to `next` — the
   // gate is a nicety, never a barrier to getting in, so a transient profiles
-  // read error must NOT bounce an already-welcomed reader back to /welcome.
+  // read error must NOT bounce an already-welcomed reader back to the plate.
   if (user) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -71,7 +73,7 @@ export const GET: APIRoute = async (ctx) => {
       const worldRaw = (ctx.url.searchParams.get('world') ?? '').toLowerCase();
       const world = WORLDS.includes(worldRaw) ? worldRaw : null;
       return ctx.redirect(
-        `/welcome?next=${encodeURIComponent(next)}` +
+        `/account/welcome?next=${encodeURIComponent(next)}` +
           (world ? `&world=${world}` : ''),
       );
     }

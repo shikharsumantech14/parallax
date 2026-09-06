@@ -7,7 +7,7 @@ import type { APIRoute } from 'astro';
 import { requireUser, safeNextPath } from '../../lib/auth';
 
 /**
- * Complete (or skip) the one-time app /welcome. POST from welcome.astro.
+ * Complete (or skip) the one-time /account/welcome. POST from its form.
  *
  * Body (HTML form encoding):
  *   intent=save|skip            which button was pressed
@@ -72,7 +72,7 @@ export const POST: APIRoute = async (ctx) => {
   if (error) {
     // Best-effort: never trap the reader on the welcome screen over a write
     // hiccup. Log it and send them on; welcomed_at simply stays NULL and
-    // they'll see /welcome once more on their next sign-in.
+    // they'll see /account/welcome once more on their next sign-in.
     console.error('[api/onboarding] update failed:', error.message);
   } else if (!updated || updated.length === 0) {
     console.warn('[api/onboarding] no profile row for user; answers not saved:', user.id);

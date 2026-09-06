@@ -19,7 +19,7 @@ import { safeNextPath } from '../lib/auth';
  * accent — tint only, never the full world palette.
  *
  * Supabase flows are untouched from v1: browser client, PKCE, `next`
- * round-trip through /auth/callback. `world` rides along for /welcome.
+ * round-trip through /auth/callback. `world` rides along for /account/welcome.
  */
 
 const { user } = Astro.locals;
@@ -145,7 +145,7 @@ const noticeParam = Astro.url.searchParams.get('notice');
   const world = meta?.dataset.world ?? '';
   const carriedNotice = meta?.dataset.notice ?? '';
 
-  // world rides along so /auth/callback → /welcome can preselect the desk
+  // world rides along so /auth/callback → /account/welcome preselects the desk
   const callbackUrl =
     `${appUrl}/auth/callback?next=${encodeURIComponent(next)}` +
     (world ? `&world=${encodeURIComponent(world)}` : '');

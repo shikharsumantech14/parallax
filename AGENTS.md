@@ -491,6 +491,20 @@ with the full canon in `research/_voice/mode-library.md`.
   ("app before publication") cannot be violated. It existed because
   `NewsletterForm` posts to `/api/join` across two independently-deployed
   Vercel projects; both now live in the same build.
+- **The apex is canonical; never put a redirect between the reader and the
+  API.** Production serves `parallaxlens.com`; `www` 308s to it. That
+  direction is load-bearing, not cosmetic: all 17 reader islands bake
+  `PUBLIC_APP_URL` as an ABSOLUTE origin at build time, so if the served
+  host ever differs from that value, every `fetch` island becomes
+  cross-origin — and the redirect answers preflight with a 307 carrying no
+  CORS headers, which browsers refuse to follow. Save, reactions, reading
+  tracker, annotations, letters, newsletter and account-entry all failed
+  silently this way on 2026-09-06 while every page returned 200 and the
+  build was green. `canonical`, RSS and OG already declare the apex — the
+  redirect was pointing the wrong way, not the code. Flipping it in Vercel
+  fixed all seven at once. Repointing the islands at RELATIVE paths would
+  retire the whole class; until then, treat the redirect direction as
+  part of the contract.
 - **`engines.node` must stay a PINNED major (`22.x`), never a range.**
   `@astrojs/vercel@7.8.2` derives the serverless function's runtime from the
   Node version the build runs on, against a hardcoded table that stops at 20;

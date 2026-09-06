@@ -67,9 +67,16 @@ it carries more JS: the `intro/IntroStory.astro` 5-scene player and
 `?intro=1` replays). **It still honours the fallback contract** — no-JS stacks
 the scenes and shows nothing for the overlay; reduced-motion drops auto-advance.
 
-> Two different pages answer to `/welcome`: the publication's intro story at
-> `src/pages/welcome.astro`, and the app's post-signup plate at
-> `app/src/pages/welcome.astro`. Unrelated — check which project you are in.
+> **`/welcome` is the intro story, and nothing else.** Before the merge two
+> projects each owned a `/welcome`: this one, and the app's post-signup
+> plate. One namespace has room for one, so the plate moved to
+> `src/pages/account/welcome.astro` — served at **`/account/welcome`**.
+>
+> `auth/callback.ts` was not repointed with it, so every first-time reader
+> landed on the cinematic intro instead of name-and-worlds setup, and the
+> plate sat orphaned with zero inbound links. Caught by walking the signup
+> flow on 2026-09-06, not by any gate — a redirect to a route that exists
+> and returns 200 is invisible to every check this repo has.
 
 ## The metered gate
 
