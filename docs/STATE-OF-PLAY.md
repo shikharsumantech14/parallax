@@ -311,13 +311,33 @@ Live examples of all 7 new kinds: the six `2026-06-03-<world>-showcase` issues
 ## 9. Verification commands
 
 ```bash
-npm run build            # 44 pages. prebuild runs design-sync --check +
-                         # check-catalog BEFORE og.ts writes anything.
-                         # Use `npx astro build` to skip the hook while iterating.
+npm run build            # 44 pages. prebuild is FOUR steps, in order:
+                         #   design-sync --check
+                         #   check-catalog
+                         #   project-graph --check      ← the one that bites
+                         #   tsx scripts/story/og.ts    ← writes 10 tracked PNGs
 npm run check:catalog    # 97 ↔ 97, order, EXPLAIN + KIND_PRIORITY coverage
 npm run design:check     # 30 mirrors + 6 in-world deeps + 18 record tokens
+npm run graph:check      # the derived graph matches the repo
+npm run hooks:test       # the enforcement hooks still decide correctly
 cd app && npm run build  # the ONLY local gate for app work
 ```
+
+**`npx astro build` skips the prebuild — all four steps of it.** It is still the
+right way to iterate (the real build rewrites ten tracked OG PNGs on every run),
+but it proves only that the pages compile. It proves nothing about the gates
+that guard CI. **Run the full `npm run build` before calling work done, and
+certainly before the operator pushes.**
+
+`graph:check` is the gate this matters most for, because ordinary good practice
+invalidates it: §1 asks you to cite decision IDs in the files that implement
+them, and every such citation changes the graph's `citedIn` and `implementedBy`
+counts. Phase 7 added RD-12 and TD-06 citations to `layout-v2.css`,
+`issues/[slug].astro`, `ReadingGate.astro` and `FeaturedPlate.astro`, the graph
+was never regenerated, and **Vercel failed the deploy at `20d66b9`** on a STALE
+graph while every hand-run gate had been green. Fixed in `ab59353`. If you
+cited a decision anywhere, run `node scripts/project-graph.mjs` and commit the
+result with the work.
 
 Standing greps (all must return zero):
 
