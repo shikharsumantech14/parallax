@@ -48,8 +48,8 @@ export interface MarkColors {
 
 /** The mark's inner shapes, colour-agnostic. Consumers wrap in their own <svg>. */
 export function markBody(
-  { desk = 'politics', size = 40, cut, colors }:
-  { desk?: Desk; size?: number; cut?: Cut; colors: MarkColors }
+  { desk = 'politics', size = 40, cut, colors, glyph: withGlyph = true }:
+  { desk?: Desk; size?: number; cut?: Cut; colors: MarkColors; glyph?: boolean }
 ): string {
   const [ox, oy] = dialAt(DIAL[desk]);
   const ring = ringFor(size);
@@ -67,10 +67,13 @@ export function markBody(
          + `<circle cx="${ox}" cy="${oy}" r="113" fill="${ink}"/>`
          + `<path d="${glyph}" fill="${paper}"/>`;
   }
+  /* `glyph: false` is the PHASE mark — crescent and ring only. About's dial
+     row uses it: six marks side by side, where the letter would be noise and
+     the point is the station each desk sits at. */
   return `<circle cx="150" cy="150" r="110" fill="${accent}"/>`
        + `<circle cx="${ox}" cy="${oy}" r="113" fill="${ground}"/>`
        + `<circle cx="150" cy="150" r="118" fill="none" stroke="${ink}" stroke-width="${ring}"/>`
-       + `<path d="${glyph}" fill="${ink}"/>`;
+       + (withGlyph ? `<path d="${glyph}" fill="${ink}"/>` : '');
 }
 
 /** A standalone SVG document — for generated files and satori/resvg. */

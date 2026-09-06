@@ -723,3 +723,87 @@ html.js .px-archive__list:not(.is-in) .px-archive__row {
 @media (max-width: 640px) {
   .px-abt-voices { grid-template-columns: 1fr; }
 }
+
+
+/* ── About · the mark, explained + the six drafts (RD-10 step 4) ───────────── */
+.px-abt-mark {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 44px;
+  align-items: center;
+  margin-top: 28px;
+}
+.px-abt-mark__art { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+/* The dial row: six phase marks, no letter — the point is WHERE each crescent
+   sits, and a P in each would be six copies of the same noise. */
+.px-abt-mark__dial { display: flex; gap: 9px; }
+.px-abt-mark__lead {
+  margin: 0 0 14px;
+  font-family: var(--font-body);
+  font-size: 19px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 52ch;
+}
+.px-abt-mark__body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 56ch;
+}
+
+.px-abt-lore { list-style: none; margin: 28px 0 0; padding: 0; }
+.px-abt-lore__row {
+  display: grid;
+  grid-template-columns: 46px 40px 1fr;
+  gap: 20px;
+  align-items: start;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.px-abt-lore__row:first-child { border-top: 1px solid var(--rule); }
+.px-abt-lore__no {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--viz-ls-mono);
+  color: var(--muted);
+  padding-top: 4px;
+}
+.px-abt-lore__text { display: flex; flex-direction: column; gap: 7px; }
+.px-abt-lore__t {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+}
+.px-abt-lore__b {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+.px-abt-lore__v {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 62ch;
+}
+/* The verdict is the row's whole point, so it carries the only colour. Adopted
+   sits on the accent; the rest stay quiet rather than being marked as failures
+   — four of these six were right about something. */
+.px-abt-lore__v b { color: var(--ink); font-weight: 600; }
+.px-abt-lore__v[data-verdict='Adopted'] b { color: var(--accent-deep, var(--accent)); }
+
+@media (max-width: 760px) {
+  .px-abt-mark { grid-template-columns: 1fr; gap: 26px; }
+  .px-abt-lore__row { grid-template-columns: 46px 1fr; row-gap: 10px; }
+  .px-abt-lore__no { grid-column: 2; padding-top: 0; }
+  .px-abt-lore__text { grid-column: 2; }
+}

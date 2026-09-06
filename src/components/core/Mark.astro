@@ -54,12 +54,14 @@ interface Props {
   /** Rendered px. Drives the ring stroke, the glyph tier and the auto-reverse. */
   size?: number;
   cut?: Cut;
+  /** `false` draws the phase only — crescent and ring, no letter. */
+  glyph?: boolean;
   /** Accessible name. Omit for a decorative mark beside a wordmark. */
   title?: string;
   class?: string;
 }
 
-const { desk = 'politics', size = 40, cut, title, class: extra } = Astro.props;
+const { desk = 'politics', size = 40, cut, glyph = true, title, class: extra } = Astro.props;
 
 /* Geometry lives in src/lib/mark.ts — one definition for this component, the
    favicon writer and the OG cards, which cannot share CSS with anything. */
@@ -67,6 +69,7 @@ const body = markBody({
   desk: desk as Desk,
   size,
   cut,
+  glyph,
   /* Tokens, so the mark rethemes with its world and the six desk cuts need no
      separate files. `--topic-*` is defined on meta pages too (meta.css), so
      the house cut works off-world. */

@@ -4,7 +4,55 @@ import Masthead from '../components/core/Masthead.astro';
 import ManifestoStrip from '../components/home/ManifestoStrip.astro';
 import RegistrationMark from '../components/welcome/RegistrationMark.astro';
 import { renderEmphasis } from '../lib/text';
+import Mark from '../components/core/Mark.astro';
+import { MARK_GLYPH } from '../lib/mark-glyph';
+import { TOPICS, type Topic } from '../content/config';
 import '../styles/welcome.css';
+
+/* THE SIX DRAFTS (RD-10 step 4). Copy and shapes are the handoff's own. The art
+   was authored as React.createElement calls (Web.dc.html:665-698) rather than
+   as SVG files, which §3 correction 5 flagged as needing re-drawing — but the
+   primitives are fully specified there, so these are TRANSCRIBED, not
+   reinvented. Only the two that drew their P as live `<text>` needed a real
+   decision, and they take the outlined glyph for the same reason the mark
+   does: a thumbnail that falls back to Georgia misrepresents the draft it is
+   illustrating. */
+const LORE_INK = 'var(--ink)';
+const LORE_ACC = 'var(--topic-politics)';
+const LORE_BG = 'var(--bg)';
+
+const drafts = [
+  { no: '01', title: 'Two offset squares', verdict: 'Discarded',
+    body: 'The first draft said displacement with two rectangles, one outlined and one filled. It was legible at any size and completely anonymous — a hundred other publications own that shape.',
+    note: 'Too generic to defend. A mark has to be ours before it is anything else.',
+    art: `<rect x="114" y="114" width="144" height="144" fill="${LORE_ACC}"/><rect x="42" y="42" width="144" height="144" fill="none" stroke="${LORE_INK}" stroke-width="18"/>` },
+  { no: '02', title: 'The observatory seal', verdict: 'Discarded',
+    body: 'A full stellar-parallax diagram inside a ring of type: an orbit, two observer positions, two sightlines crossing at the object, the six desks standing in for fixed stars.',
+    note: 'Correct and unreadable. A reader should not have to be taught a diagram to recognise a publication.',
+    art: `<circle cx="150" cy="150" r="132" fill="none" stroke="${LORE_INK}" stroke-width="12"/><line x1="72" y1="214" x2="228" y2="92" stroke="${LORE_INK}" stroke-width="10"/><line x1="228" y1="214" x2="72" y2="92" stroke="${LORE_INK}" stroke-width="10"/><circle cx="150" cy="150" r="26" fill="${LORE_ACC}"/>` },
+  { no: '03', title: 'The lens assembly', verdict: 'Kept, reassigned',
+    body: 'The name taken at its word, drawn as a plate from an optics catalogue: parallel light in, two ground elements, and two focal points on the plate because the subject was seen from two positions.',
+    note: 'Kept, but not as a logo. It is the illustration on this page and the first onboarding screen.',
+    art: `<path d="M 150 40 A 150 150 0 0 1 150 260 A 150 150 0 0 1 150 40 Z" fill="none" stroke="${LORE_INK}" stroke-width="16"/><circle cx="150" cy="150" r="30" fill="${LORE_ACC}"/>` },
+  { no: '04', title: 'The eclipse', verdict: 'Kept, reassigned',
+    body: 'Two discs of the same size, one behind the other, moved apart by a single step. What you see is the crescent — the part the front disc was hiding until something moved.',
+    note: 'The idea was right and the disc was empty. It needed the name in it.',
+    art: `<circle cx="132" cy="168" r="118" fill="${LORE_ACC}"/><circle cx="168" cy="132" r="118" fill="${LORE_BG}"/><circle cx="168" cy="132" r="118" fill="none" stroke="${LORE_INK}" stroke-width="14"/>` },
+  { no: '05', title: 'The letter, four ways', verdict: 'Discarded',
+    body: 'A P set into the disc, cut out of it, made into it, and stood in front of it. The version where the ring became the bowl of the letter was clever and unreadable at a glance.',
+    note: 'Clever lost to legible. The letter belongs in the calm middle, not fused to the frame.',
+    art: `<circle cx="150" cy="150" r="118" fill="${LORE_INK}"/><path d="${MARK_GLYPH.display}" fill="${LORE_BG}"/>` },
+  { no: '06', title: 'The phase medallion', verdict: 'Adopted',
+    body: 'The crescent moves inside the ring and becomes a band of light riding the rim, so the mark closes into a roundel and the letter sits in the calm middle. One dial position per desk, 60° apart.',
+    note: 'Adopted. It survives every circular crop, and the six desks read as one family.',
+    /* No transcription: row six IS the mark, so it renders the component. */
+    art: null },
+];
+
+const deskLabels: Record<Topic, string> = {
+  politics: 'Politics', space: 'Space', earth: 'Earth',
+  tech: 'Tech', travel: 'Travel', sports: 'Sports',
+};
 
 // Six worlds, as a type-and-accent specimen — the only place on About where
 // all six accents coexist.
@@ -66,6 +114,37 @@ const worlds = [
 
   <section class="px-section" data-reveal>
     <div class="px-section__num">— 02</div>
+    <h2 class="px-section__title">The <em>mark</em>, explained.</h2>
+
+    <div class="px-abt-mark">
+      <div class="px-abt-mark__art">
+        <Mark size={168} title="The Parallax medallion" />
+        <div class="px-abt-mark__dial">
+          {TOPICS.map((t) => (
+            <span class="px-abt-mark__phase" title={deskLabels[t]}>
+              <Mark desk={t} size={30} glyph={false} />
+            </span>
+          ))}
+        </div>
+      </div>
+      <div class="px-abt-mark__copy">
+        <p class="px-abt-mark__lead">
+          A star's distance is measured by looking at it twice, six months
+          apart, from opposite ends of Earth's orbit. Depth is what patience and
+          displacement buy you.
+        </p>
+        <p class="px-abt-mark__body">
+          So the mark is a disc lit from one side. The crescent is the part that
+          was hidden until something moved, and it sits at a different hour for
+          each of the six desks — 60° apart, one full turn of the dial across
+          the publication.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 03</div>
     <h2 class="px-section__title">What we <em>refuse</em>.</h2>
     <p class="px-section__intro">
       No advertising, so no one buys back the attention you arrived with. No investors,
@@ -80,7 +159,7 @@ const worlds = [
   </section>
 
   <section class="px-section" data-reveal>
-    <div class="px-section__num">— 03</div>
+    <div class="px-section__num">— 04</div>
     <h2 class="px-section__title">How we work.</h2>
     <p class="px-section__intro">
       Every issue starts as a question we can't answer yet. We read the primary sources,
@@ -90,7 +169,7 @@ const worlds = [
   </section>
 
   <section class="px-section" data-reveal>
-    <div class="px-section__num">— 04</div>
+    <div class="px-section__num">— 05</div>
     <h2 class="px-section__title">Six worlds, six <em>lights</em>.</h2>
     <p class="px-section__intro">
       Each topic is its own aesthetic world — its own type, its own colour, its own way
@@ -107,7 +186,7 @@ const worlds = [
   </section>
 
   <section class="px-section" data-reveal>
-    <div class="px-section__num">— 05</div>
+    <div class="px-section__num">— 06</div>
     <h2 class="px-section__title">The eight <em>voices</em>.</h2>
     <p class="px-section__intro">
       Every section of every issue is written in one of eight rhetorical modes,
@@ -126,7 +205,36 @@ const worlds = [
   </section>
 
   <section class="px-section" data-reveal>
-    <div class="px-section__num">— 06</div>
+    <div class="px-section__num">— 07</div>
+    <h2 class="px-section__title">Six drafts, and the <em>one</em>.</h2>
+    <p class="px-section__intro">
+      A mark is chosen by discarding, and the rejected drafts say more about the
+      reasoning than the survivor does. These are the six, in order, with the
+      verdict each earned.
+    </p>
+    <ol class="px-abt-lore">
+      {drafts.map((d) => (
+        <li class="px-abt-lore__row">
+          <span class="px-abt-lore__art" aria-hidden="true">
+            {d.art
+              ? <svg viewBox="0 0 300 300" width="46" height="46"><Fragment set:html={d.art} /></svg>
+              : <Mark size={46} />}
+          </span>
+          <span class="px-abt-lore__no">{d.no}</span>
+          <span class="px-abt-lore__text">
+            <span class="px-abt-lore__t">{d.title}</span>
+            <span class="px-abt-lore__b">{d.body}</span>
+            <span class="px-abt-lore__v" data-verdict={d.verdict}>
+              <b>{d.verdict}</b> — {d.note}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 08</div>
     <h2 class="px-section__title">Colophon.</h2>
     <p class="px-section__intro">
       Parallax is published by <strong>Parallax Lens</strong>™. Set in Fraunces,
