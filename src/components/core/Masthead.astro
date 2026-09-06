@@ -32,10 +32,19 @@ interface Props {
   statusLabel?: string;
   statusSub?: string;
 }
-const { issueNumber, date, status = 'live', statusLabel, statusSub } = Astro.props;
+const { variant, issueNumber, date, status = 'live', statusLabel, statusSub } = Astro.props;
+
+/* The desk register — the world's own name for what it publishes. Derived from
+   `variant`, which every call site already passes, so no page changed. On the
+   meta surfaces (home, about, archive) there IS no desk, so the line is
+   omitted rather than filled with a stand-in. */
+const deskRegister =
+  variant && variant !== 'meta' ? DESK_REGISTER[variant as Topic] : undefined;
 
 import AccountEntry from './AccountEntry.astro';
 import Mark from './Mark.astro';
+import { DESK_REGISTER } from '../../lib/desks';
+import type { Topic } from '../../content/config';
 
 const stateWord = status === 'draft' ? 'Draft' : 'Live';
 const topLine =
@@ -48,7 +57,7 @@ const subLine = statusSub ?? date ?? 'Est. 2026';
     <Mark size={28} class="mh__mark" />
     <span class="mh__type">
       <span class="mh__name">Paral<span class="mh__name-tail">lax</span></span>
-      <span class="mh__tagline">Visual Explainers · Est. 2026</span>
+      {deskRegister && <span class="mh__desk">{deskRegister}</span>}
     </span>
   </a>
 

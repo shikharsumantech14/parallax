@@ -87,12 +87,16 @@ body {
   50% { opacity: 0.55; transform: translate(-50%, -50%) scale(1.35); }
 }
 .mh__type { display: inline-flex; flex-direction: column; line-height: 1; }
+/* The wordmark is the TEXT HALF OF A LOCKUP (RD-10) — the handoff never draws
+   this treatment without the medallion beside it, which is why it waited for
+   the mark. Tight, mixed-case, in the display face: a signature, where the old
+   wide-tracked mono caps read as a label. */
 .mh__name {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 16px;
+  letter-spacing: -0.032em;
+  text-transform: none;
   color: var(--ink);
 }
 .mh__name-tail {
@@ -100,15 +104,18 @@ body {
   transition: transform var(--t-soft) var(--ease);
 }
 .mh__brand:hover .mh__name-tail { transform: translateX(2px); }
-.mh__tagline {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 12px;
+/* The desk register, in the masthead's own 11/600/.17em mono register. It
+   replaced a standing italic tagline — "Visual Explainers · Est. 2026" — which
+   said the same thing on every page and, at 153px, was the widest thing in the
+   brand column. The register names where you actually are. */
+.mh__desk {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
   color: var(--muted);
   margin-top: 4px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 /* Plain text and a dot, as the prototype draws it -- no border, no padding, no
