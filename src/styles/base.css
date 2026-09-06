@@ -194,35 +194,39 @@ body {
    duplicate links never reach the accessibility tree. See Masthead.astro. */
 .mh__menu { display: none; }
 
-/* Phone-nav threshold. The Phase 7 spec says 768px. It stays at 900, and this
-   is the FIFTH measurement of it, so the numbers are recorded to stop a sixth.
+/* THE LIVE BADGE LEAVES THE DESKTOP NAV BELOW 900px (operator ruling
+   2026-09-06), and this is what finally lets the drawer sit at the spec's
+   768px. The badge was already hidden under 900 — but inside the SAME query
+   that swapped in the drawer, so lowering the threshold would have handed the
+   nav back its widest single item (144px + a 16px gap) exactly where there was
+   no room for it. Splitting the two queries is the whole fix.
 
-   Three changes did move it, a long way:
-     the two-group flex   stopped the brand column being crushed
-     the desk register    killed a 153px tagline that said the same thing on
-                          every page and was the widest object in the column
-   Requirement went 816 -> 744 -> 718 on the widest desks.
+   Above 900 the badge stays: `№ NN · live` is in the Phase 7 spec and there is
+   room for it there. Between 769 and 900 it is absent, which is the trade the
+   ruling makes — the issue page's Banner already carries number, date and read
+   time, so nothing is only knowable from the badge. Below 768 the drawer
+   carries it, as it always did.
 
-   WHAT DOES NOT WORK, tried and measured 2026-09-06: moving Sign in into the
-   drawer. It frees 74px, but only BELOW the threshold — and the band that
-   fails is 769-890, where the drawer is hidden and the desktop nav is what
-   must fit. Hiding Sign in there would delete a funnel entry with nowhere to
-   put it, which is the same mistake the drawer's own comment warns about for
-   the live badge and Subscribe.
-
-   WHAT WOULD WORK, and why it still is not worth it: tightening the three row
-   gaps (24/16/16 -> 16/12/12) gets 718 -> 690 exactly, and trimming the
-   Subscribe padding as well reaches 684. Six pixels of headroom at the single
-   tightest viewport, on a masthead the README wants to ADD an Archive link to
-   — which is ~70px and would break it again immediately.
-
-   The prototype's masthead has no account entry and a shorter nav. Ours
-   carries more, so it turns to the drawer sooner. That is the honest reason.
-   Measured on space/sports ("MISSION CONTROL", "MATCH PROGRAMME"), the widest
-   registers and therefore the deciding case. */
+   Arithmetic on the widest desks (space, sports):
+     with badge     169 + 24 + 525 = 718  against 690   ✗
+     without        169 + 24 + 365 = 558  against 690   ✓ 132px spare
+   That headroom also survives the Archive link the README wants to add
+   (~70px), which six pixels of gap-tightening would not have. */
 @media (max-width: 900px) {
-  .mh { gap: 16px; }
   .mh__status { display: none; }
+}
+
+/* Phone-nav threshold, at the Phase 7 spec's 768px. It took four changes, none
+   of them a trick, and the requirement fell 816 -> 744 -> 718 -> 558:
+     the two-group flex     stopped the brand column being crushed
+     the desk register      killed a 153px tagline that said the same thing on
+                            every page and was the widest object in the column
+     the badge split above  freed the nav's widest item in the tight band
+   One thing that did NOT work, so it is not retried: moving Sign in into the
+   drawer frees 74px but only BELOW the threshold, and the failing band is
+   769-890, where the drawer is hidden. */
+@media (max-width: 768px) {
+  .mh { gap: 16px; }
   .mh__links { display: none; }
 
   /* `flex: 1 0 100%` is the flex spelling of the old `grid-column: 1 / -1` —
