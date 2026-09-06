@@ -338,6 +338,8 @@ Known reservations (still-live `px-` prefixes):
 | `px-fplate` | home featured plate (scoped in `home/FeaturedPlate.astro`) | |
 | `px-wb` | WelcomeBack post-auth toast (scoped in `core/WelcomeBack.astro`) | mounted in `[slug].astro`; fires on `?welcome=1` |
 | `px-nnote` | NewsletterNotice home ribbon (scoped in `core/NewsletterNotice.astro`) | mounted above `<Masthead>` in `index.astro`; fires on `/?newsletter=confirmed` |
+| `px-mark` | the Parallax medallion (scoped in `core/Mark.astro`, RD-10 step 2) | inline SVG; `desk` picks the fixed dial station, `size` drives ring 7/10/14 AND the glyph tier, `cut` is mark/seal/reversed (auto-reversed below 24px). The P is an OUTLINE from `src/lib/mark-glyph.ts`, never live text. **Not mounted yet** — the swap is RD-10 step 3, which retires `.mh__lens` |
+| `px-arch` | `/archive` head, search and desk chips (in `meta.css`) | rows reuse `.px-archive__*`, so home and `/archive` share ONE row implementation; the filter island reveals the controls, which ship `hidden` |
 | `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | `story/StoryCard.astro` composes `SectionBody` **except** for `kind: 'prose'`, which it skips entirely and renders as a pure-text card (`.pxs-card--text`) |
 | `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
 
