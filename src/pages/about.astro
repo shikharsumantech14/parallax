@@ -8,6 +8,26 @@ import '../styles/welcome.css';
 
 // Six worlds, as a type-and-accent specimen — the only place on About where
 // all six accents coexist.
+/* The eight rhetorical modes an issue can use (AGENTS §6; the working canon is
+   research/_voice/mode-library.md). The NAMES are the schema's `voice` enum
+   verbatim -- src/content/config.ts -- so this page and the issue fact rail can
+   never drift into disagreeing about what the eight are.
+
+   The descriptions are reader-facing on purpose. The internal canon pins each
+   mode to a register by naming real broadcasters and writers; those belong in
+   the stylist's brief, not on a public page, where naming them reads as a claim
+   of endorsement. EDITORIAL COPY -- operator to review the wording. */
+const voices = [
+  { n: 'AWE', d: 'Scale and deep time, handled plainly. Used when the honest reaction to a mechanism is that it is astonishing.' },
+  { n: 'CONVERSATIONAL EXPLAINER', d: 'One step, then the next. The register for a mechanism that only makes sense in order.' },
+  { n: 'CALM-STRUCTURAL', d: 'Naming a structural cost without raising its voice — the pivot from one scene to what it implies.' },
+  { n: 'SATIRICAL EXPOSURE', d: 'An institution held against its own published numbers. At most once per issue.' },
+  { n: 'DRY WIT', d: 'Bureaucratic precision played straight, and funnier for it.' },
+  { n: 'INVESTIGATION', d: 'Start at the anomaly, assemble the evidence, let the reader arrive first.' },
+  { n: 'FORENSIC', d: 'Mechanism with the human stakes left in. Short sentences, no adjectives doing the work.' },
+  { n: 'LYRICAL COMPRESSION', d: 'The landing. One paragraph, rationed to two an issue.' },
+];
+
 const worlds = [
   { topic: 'politics', word: 'Politics', tag: 'Broadsheet' },
   { topic: 'space', word: 'Space', tag: 'Mission control' },
@@ -88,6 +108,25 @@ const worlds = [
 
   <section class="px-section" data-reveal>
     <div class="px-section__num">— 05</div>
+    <h2 class="px-section__title">The eight <em>voices</em>.</h2>
+    <p class="px-section__intro">
+      Every section of every issue is written in one of eight rhetorical modes,
+      assigned deliberately rather than drifted into. Four to six of them appear
+      across a single issue — enough range to hold a long read, few enough that
+      it still sounds like one publication.
+    </p>
+    <ul class="px-abt-voices">
+      {voices.map((v) => (
+        <li class="px-abt-voice">
+          <p class="px-abt-voice__n">{v.n}</p>
+          <p class="px-abt-voice__d">{v.d}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="px-section" data-reveal>
+    <div class="px-section__num">— 06</div>
     <h2 class="px-section__title">Colophon.</h2>
     <p class="px-section__intro">
       Parallax is published by <strong>Parallax Lens</strong>™. Set in Fraunces,
