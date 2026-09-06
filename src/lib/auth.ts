@@ -1,23 +1,35 @@
 /**
  * Auth helpers for app subdomain routes.
  *
- * Use `requireUser(Astro)` in any page or API route that must have an
- * authenticated user. It either returns the user or throws a Response
- * (redirect to /login) which Astro turns into the actual redirect.
+ * `requireUser(Astro)` narrows `locals.user` in any page or API route that
+ * must have one. Enforcement is NOT here — it is the AUTH_ROUTES /
+ * ADMIN_ROUTES guard in `src/middleware.ts`, which is the only place that can
+ * return a Response Astro honours.
  */
 import type { APIContext } from 'astro';
 import type { User } from '@supabase/supabase-js';
 
 /**
- * Require an authenticated user. Returns the user or throws a redirect.
+ * Narrow `locals.user` to a non-null `User`.
  *
  *   const user = requireUser(Astro);   // user is non-null on this line
+ *
+ * It does NOT enforce auth — `src/middleware.ts` does, via AUTH_ROUTES /
+ * ADMIN_ROUTES, because only middleware can return a Response that Astro
+ * honours. This used to throw a redirect Response; Astro turned that into a
+ * blank 500 for both pages and endpoints, which is exactly the bug the
+ * middleware guard fixed.
+ *
+ * So reaching the throw below means a route was wired without being listed in
+ * that guard. Say so, rather than 500ing with an empty body again.
  */
 export function requireUser(ctx: APIContext): User {
   const user = ctx.locals.user;
   if (!user) {
-    const here = ctx.url.pathname + ctx.url.search;
-    throw ctx.redirect(`/login?next=${encodeURIComponent(here)}`);
+    throw new Error(
+      `requireUser: no session at ${ctx.url.pathname}. That route is missing from ` +
+        'AUTH_ROUTES / ADMIN_ROUTES in src/middleware.ts, which is what enforces auth.',
+    );
   }
   return user;
 }

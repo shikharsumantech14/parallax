@@ -13,10 +13,10 @@
  * No third-party JS. Vanilla fetch from a small <script>.
  */
 
-// Where to POST. In production this is the app subdomain; in dev (running both
-// servers locally) it's localhost:4322.
-const apiUrl =
-  (import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com') + '/api/join';
+// Where to POST. Same-origin since the merge, so a relative path — it follows
+// the reader to whatever host served the page and no redirect can make it
+// cross-origin (which is what silently broke this form on 2026-09-06).
+const apiUrl = '/api/join';
 ---
 
 <section class="px-newsletter" data-api-url={apiUrl} aria-labelledby="px-newsletter-title">
@@ -55,9 +55,7 @@ const apiUrl =
     while (root && !(root.classList && root.classList.contains('px-newsletter'))) {
       root = root.previousElementSibling;
     }
-    const apiUrl =
-      (root && root.dataset && root.dataset.apiUrl) ||
-      'https://app.parallaxlens.com/api/join';
+    const apiUrl = (root && root.dataset && root.dataset.apiUrl) || '/api/join';
     const form = document.getElementById('px-newsletter-form');
     const input = document.getElementById('px-newsletter-email');
     const button = form?.querySelector('button[type="submit"]');

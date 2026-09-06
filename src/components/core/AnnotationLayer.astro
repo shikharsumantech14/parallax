@@ -26,10 +26,11 @@ interface Props {
 }
 const { issueId } = Astro.props;
 
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+/* Same-origin since the merge — relative paths follow the reader to whatever
+   host served the page, so no redirect can turn these cross-origin. */
 ---
 
-<section class="px-annot" data-issue-id={issueId} data-app-url={appUrl} aria-labelledby="px-annot-title">
+<section class="px-annot" data-issue-id={issueId} aria-labelledby="px-annot-title">
   {/* Selection popover — moved into view by JS when text is selected */}
   <div class="px-annot__pop" id="px-annot-pop" role="dialog" aria-hidden="true">
     <button class="px-annot__pop-btn" type="button" id="px-annot-pop-btn">
@@ -83,10 +84,9 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     if (!root) return;
 
     var issueId = root.dataset.issueId;
-    var appUrl = root.dataset.appUrl;
-    if (!issueId || !appUrl) return;
+    if (!issueId) return;
 
-    var apiUrl = appUrl + '/api/annotations/' + encodeURIComponent(issueId);
+    var apiUrl = '/api/annotations/' + encodeURIComponent(issueId);
     var article = document.getElementById('px-article');
     if (!article) return;
 
@@ -225,7 +225,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
 
       if (signedOut) {
         var nextUrl = window.location.href;
-        window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+        window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
         return;
       }
 
@@ -262,7 +262,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
           if (res.status === 401) {
             signedOut = true;
             var nextUrl = window.location.href;
-            window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+            window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
             return null;
           }
           return res.json();

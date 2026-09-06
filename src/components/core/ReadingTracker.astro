@@ -9,7 +9,7 @@
  *   - source_click          (when the reader clicks any link in .px-sources)
  *   - share                 (when navigator.share is invoked OR a share button is clicked)
  *
- * Each event posts to `app.parallaxlens.com/api/events`. Authenticated
+ * Each event posts to `/api/events` (same origin). Authenticated
  * sessions are tracked via cookie (credentials: 'include'). Anonymous
  * sessions are tracked via a 90-day cookie `px_anon_id` scoped to
  * .parallaxlens.com (set by this script on first visit).
@@ -29,10 +29,11 @@ interface Props {
 }
 const { issueId } = Astro.props;
 
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+/* Same-origin since the merge — relative paths follow the reader to whatever
+   host served the page, so no redirect can turn these cross-origin. */
 ---
 
-<span class="px-reading-tracker" data-issue-id={issueId} data-app-url={appUrl} hidden></span>
+<span class="px-reading-tracker" data-issue-id={issueId} hidden></span>
 
 <script is:inline>
   (function () {
@@ -43,10 +44,9 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     if (!root) return;
 
     var issueId = root.dataset.issueId;
-    var appUrl = root.dataset.appUrl;
-    if (!issueId || !appUrl) return;
+    if (!issueId) return;
 
-    var apiUrl = appUrl + '/api/events';
+    var apiUrl = '/api/events';
     var COOKIE_NAME = 'px_anon_id';
     var COOKIE_DAYS = 90;
     var fired = {}; // event kind → true, dedup

@@ -15,7 +15,8 @@ interface Props {
 }
 const { issueId } = Astro.props;
 
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+/* Same-origin since the merge — relative paths follow the reader to whatever
+   host served the page, so no redirect can turn these cross-origin. */
 
 /**
  * Kind descriptors. The label is the user-facing word; the help line is
@@ -29,7 +30,7 @@ const KINDS = [
 ];
 ---
 
-<section class="px-reactions" data-issue-id={issueId} data-app-url={appUrl} aria-labelledby="px-reactions-title">
+<section class="px-reactions" data-issue-id={issueId} aria-labelledby="px-reactions-title">
   <h2 class="px-reactions__title" id="px-reactions-title">How did this land?</h2>
   <p class="px-reactions__dek">
     A small private signal back to the editor. Multiple can apply.
@@ -63,8 +64,7 @@ const KINDS = [
     if (!root) return;
 
     var issueId = root.dataset.issueId;
-    var appUrl = root.dataset.appUrl;
-    var apiUrl = appUrl + '/api/reactions/' + encodeURIComponent(issueId);
+    var apiUrl = '/api/reactions/' + encodeURIComponent(issueId);
     var btns = root.querySelectorAll('.px-reactions__btn');
     var statusEl = root.querySelector('.px-reactions__status');
 
@@ -119,7 +119,7 @@ const KINDS = [
 
         if (state.signedOut) {
           var nextUrl = window.location.href;
-          window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+          window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
           return;
         }
 
@@ -143,7 +143,7 @@ const KINDS = [
             if (res.status === 401) {
               state.signedOut = true;
               var nextUrl = window.location.href;
-              window.location.href = appUrl + '/login?next=' + encodeURIComponent(nextUrl);
+              window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
               return null;
             }
             return res.json();

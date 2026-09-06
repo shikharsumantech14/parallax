@@ -38,21 +38,22 @@ export function isAdmin(user: User | null | undefined): boolean {
 }
 
 /**
- * Throws a 403 Response if the current user is not an admin.
- * Use in API routes: `requireAdmin(ctx.locals.user)`.
+ * Narrow `locals.user` to a non-null admin `User`.
+ *
+ * Like `requireUser`, this no longer enforces anything: `src/middleware.ts`
+ * refuses non-admins on ADMIN_ROUTES before rendering, with a real 401/403 for
+ * API callers. The thrown Responses this used to raise never reached the
+ * client — Astro turned them into blank 500s — so a signed-in non-admin hit a
+ * 500 where they should have seen a 403.
+ *
+ * Reaching a throw below means the route is missing from ADMIN_ROUTES.
  */
 export function requireAdmin(user: User | null | undefined): User {
-  if (!user) {
-    throw new Response(JSON.stringify({ ok: false, signedOut: true }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  if (!isAdmin(user)) {
-    throw new Response(JSON.stringify({ ok: false, error: 'Admin access required.' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (!user || !isAdmin(user)) {
+    throw new Error(
+      'requireAdmin: no admin session. That route is missing from ADMIN_ROUTES in ' +
+        'src/middleware.ts, which is what enforces admin access.',
+    );
   }
   return user;
 }

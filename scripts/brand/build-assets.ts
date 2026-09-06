@@ -29,14 +29,15 @@ const META = {
 
 /* Only what is actually referenced. The publication ships no webmanifest and
    links exactly one icon, so inventing icon-192/512 would have added files
-   nothing loads. Both projects get the same favicon — one brand, two hosts. */
+   nothing loads. There is ONE target since the merge (2026-09-06): app/public/
+   went with the app/ tree, and writing it back would recreate a stray
+   directory holding a favicon no page links. When the PWA lands and a
+   webmanifest exists, the icon set belongs here. */
 const targets: Array<{ path: string; cut: 'mark' | 'seal' | 'reversed'; size: number; box: number }> = [
   { path: 'public/favicon.svg', cut: 'reversed', size: 32, box: 32 },
-  { path: 'app/public/favicon.svg', cut: 'reversed', size: 32, box: 32 },
 ];
 
 mkdirSync('public', { recursive: true });
-mkdirSync('app/public', { recursive: true });
 for (const t of targets) {
   const svg = markSVG({ desk: 'politics', size: t.size, cut: t.cut, box: t.box, colors: META });
   writeFileSync(t.path, svg + '\n');

@@ -4,7 +4,7 @@
  *
  * The publication is static, so we don't know the user's auth state at
  * render time. The button starts in a "loading" state, then on mount
- * fetches the current save status from `app.parallaxlens.com/api/save/<id>`.
+ * fetches the current save status from `/api/save/<id>` (same origin).
  *
  * States:
  *   loading    → small spinner, no text yet
@@ -24,10 +24,11 @@ interface Props {
 }
 const { issueId } = Astro.props;
 
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+/* Same-origin since the merge — relative paths follow the reader to whatever
+   host served the page, so no redirect can turn these cross-origin. */
 ---
 
-<div class="px-save" data-issue-id={issueId} data-app-url={appUrl}>
+<div class="px-save" data-issue-id={issueId}>
   <button
     class="px-save__btn"
     type="button"
@@ -52,19 +53,18 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
     if (!root) return;
 
     var issueId = root.dataset.issueId;
-    var appUrl = root.dataset.appUrl;
     var btn = root.querySelector('.px-save__btn');
     var label = root.querySelector('.px-save__label');
-    if (!btn || !label || !issueId || !appUrl) return;
+    if (!btn || !label || !issueId) return;
 
-    var apiUrl = appUrl + '/api/save/' + encodeURIComponent(issueId);
+    var apiUrl = '/api/save/' + encodeURIComponent(issueId);
 
     // First-save microline ("On your shelf →") — a quiet, once-per-page
     // confirmation that fades after 4s (JOURNEY-SPEC §2 Save · §4 celebration).
     var micro = root.querySelector('[data-save-micro]');
     var microShown = false;
     var microTimer = 0;
-    if (micro) micro.setAttribute('href', appUrl + '/dashboard');
+    if (micro) micro.setAttribute('href', '/dashboard');
     var reduceMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function flashMicro() {
@@ -127,7 +127,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
         var nextUrl = window.location.href;
         var topic = document.documentElement.getAttribute('data-topic') || '';
         window.location.href =
-          appUrl + '/login?next=' + encodeURIComponent(nextUrl) +
+          '/login?next=' + encodeURIComponent(nextUrl) +
           (topic ? '&world=' + encodeURIComponent(topic) : '');
         return;
       }

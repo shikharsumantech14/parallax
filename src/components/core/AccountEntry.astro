@@ -10,15 +10,14 @@
  * only (never a gatekeeper; fails silent). No layout shift: fixed slot.
  * Prefix: px-acct.
  */
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
-const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
-const next = `${siteUrl}${Astro.url.pathname}`;
-const loginHref = `${appUrl}/login?next=${encodeURIComponent(next)}`;
+/* Same-origin since the merge — relative paths follow the reader to whatever
+   host served the page, so no redirect can turn these cross-origin. */
+const loginHref = `/login?next=${encodeURIComponent(Astro.url.pathname)}`;
 ---
 
-<div class="px-acct" data-app-url={appUrl}>
+<div class="px-acct">
   <a class="px-acct__link" href={loginHref} data-acct-anon>Sign in</a>
-  <a class="px-acct__link px-acct__link--shelf" href={`${appUrl}/dashboard`} data-acct-authed hidden>
+  <a class="px-acct__link px-acct__link--shelf" href="/dashboard" data-acct-authed hidden>
     <span class="px-acct__dot" aria-hidden="true"></span>Shelf
   </a>
 </div>
@@ -42,7 +41,7 @@ const loginHref = `${appUrl}/login?next=${encodeURIComponent(next)}`;
     if (anon) anon.hidden = true;
     if (shelf) shelf.hidden = false;
     try {
-      fetch(root.dataset.appUrl + '/api/me', { credentials: 'include' })
+      fetch('/api/me', { credentials: 'include' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (j) {
           if (j && j.authed === false) {

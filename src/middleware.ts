@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import type { User } from '@supabase/supabase-js';
 import { serverClient } from './lib/supabase';
+import { isAdmin } from './lib/admin';
 
 /**
  * Session middleware.
@@ -23,8 +24,36 @@ import { serverClient } from './lib/supabase';
  * never touch Supabase.
  */
 const APP_ROUTES = ['/login', '/dashboard', '/admin', '/auth', '/api', '/account'];
-const isAppRoute = (pathname: string) =>
-  APP_ROUTES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+
+/** Path-prefix match on segment boundaries, so `/accounts` never matches `/account`. */
+const under = (pathname: string, p: string) => pathname === p || pathname.startsWith(p + '/');
+
+const isAppRoute = (pathname: string) => APP_ROUTES.some((p) => under(pathname, p));
+
+/**
+ * Which app routes need what.
+ *
+ * Everything else under APP_ROUTES is deliberately open: `/login` and
+ * `/auth/callback` are how you sign IN, `/api/join` and `/api/subscribe` serve
+ * anonymous readers, and `/api/me` is auth-OPTIONAL — it reports
+ * `{authed:false}` rather than refusing, which is what lets the masthead and
+ * the reading gate ask "is anyone there?" without gatekeeping. Save,
+ * reactions, letters and annotations decide per request.
+ */
+const AUTH_ROUTES = ['/dashboard', '/account', '/api/account', '/api/onboarding'];
+const ADMIN_ROUTES = ['/admin', '/api/admin'];
+
+function routeGuard(pathname: string): 'auth' | 'admin' | null {
+  if (ADMIN_ROUTES.some((p) => under(pathname, p))) return 'admin';
+  if (AUTH_ROUTES.some((p) => under(pathname, p))) return 'auth';
+  return null;
+}
+
+const deny = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' },
+  });
 
 export const onRequest = defineMiddleware(async (context, next) => {
   if (!isAppRoute(context.url.pathname)) return next();
@@ -66,6 +95,34 @@ export const onRequest = defineMiddleware(async (context, next) => {
       user_metadata: { name: 'Local Dev Admin' },
       created_at: '2026-01-01T00:00:00.000Z',
     } as unknown as User;
+  }
+
+  // ── The auth guard ────────────────────────────────────────────────────────
+  // This lives here because `requireUser` / `requireAdmin` CANNOT enforce it.
+  // They throw a Response, and this Astro version converts that into a blank
+  // 500 for both pages and endpoints rather than honouring it — so a
+  // signed-out reader opening a bookmarked /dashboard got a 500 instead of the
+  // sign-in page. Verified against production and against the pre-merge
+  // deployment on 2026-09-06: long-standing, not a merge regression.
+  //
+  // Deciding here also means no page body is rendered for a request that is
+  // about to be refused. Runs after the DEV bypass on purpose, so a local
+  // session still reaches admin surfaces.
+  const guard = routeGuard(context.url.pathname);
+  if (guard) {
+    const isApi = under(context.url.pathname, '/api');
+    if (!context.locals.user) {
+      // A redirect to an HTML sign-in page is useless to `fetch`, so the API
+      // surface gets a status its callers can act on.
+      return isApi
+        ? deny(401, { ok: false, signedOut: true, error: 'Not signed in.' })
+        : context.redirect(
+            `/login?next=${encodeURIComponent(context.url.pathname + context.url.search)}`,
+          );
+    }
+    if (guard === 'admin' && !isAdmin(context.locals.user)) {
+      return isApi ? deny(403, { ok: false, error: 'Admin access required.' }) : context.redirect('/dashboard');
+    }
   }
 
   const response = await next();
