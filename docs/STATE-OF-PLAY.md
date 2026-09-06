@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-05.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-06.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -281,6 +281,48 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
   (below) for every kind, and the `:has()` rule in `dataviz-v2.css` hides
   Section's panel when a slotted VizCard already carries one. A component that
   grows its own emitter for any of the three re-opens the double render.
+
+- **A green build is not a deploy.** Vercel accepted 45 pages and rejected the
+  deployment afterwards: `_render (nodejs18.x)` is an invalid runtime.
+  `@astrojs/vercel@7.8.2` picks the function runtime from the Node version the
+  **build** runs on, against a hardcoded `{18, 20}` table, and falls back to
+  `nodejs18.x` for anything else — and `engines.node: ">=20.0.0"` resolves to
+  the *latest* major (Vercel's own version table lists `>=20.0.0` in the
+  **24.x** row), so the build machine ran 24. No override exists: `getRuntime()`
+  reads `process.version`, and the adapter exposes no option, env var or config
+  field. Fixed 2026-09-06 (`24f83b9`) by pinning `engines.node: "22.x"` and
+  correcting the emitted runtime in `postbuild` (`scripts/vercel-runtime.mjs`,
+  which refuses to run against a range). **The adapter is the ceiling, not
+  Node** — 7.8.2 can emit nothing above `nodejs20.x`, which Vercel deprecates
+  2026-10-01; the script is the bridge to Astro 5 + adapter v8 and should be
+  deleted with it. The shape recurs: a build tool that infers a deploy target
+  from the *builder's* environment is wrong the moment the builder is upgraded
+  under you.
+- **Every page returned 200 while seven features were dead.** Production served
+  `www`, but all 17 reader islands bake `PUBLIC_APP_URL` (the apex) as an
+  **absolute** origin at build time — so every island `fetch` was cross-origin,
+  and the apex→www redirect answered CORS preflight with a **307 carrying no
+  CORS headers**, which browsers refuse to follow. Save, reactions, reading
+  tracker, annotations, letters, newsletter and account-entry all failed
+  silently; no gate, log or status code showed it. The code was never wrong —
+  `canonical`, RSS and OG all already declared the apex. **The redirect pointed
+  the wrong way.** Fixed 2026-09-06 by flipping it in Vercel (apex →
+  Production, `www` → 308 → apex); all seven recovered at once, with no deploy.
+  Until the islands use RELATIVE paths, the redirect direction is part of the
+  contract (`AGENTS.md` §7). The shape: an absolute origin baked at build time
+  turns any hosting-layer redirect into a silent cross-origin failure.
+- **A redirect to a route that exists and returns 200 is invisible to every
+  check this repo has.** The merge gave one namespace two `/welcome` pages —
+  the publication's intro story and the app's post-signup plate. The plate
+  moved to `/account/welcome`; `auth/callback.ts` kept pointing at `/welcome`.
+  So every first-time reader watched the cinematic intro instead of
+  name-and-worlds setup, `profiles.welcomed_at` stayed NULL so they were
+  re-offered onboarding forever without ever reaching it, and the plate sat
+  orphaned with **zero inbound links** in `src/`. Build green, gates green, 200
+  on the redirect target. Found by walking the signup flow on the live deploy;
+  fixed `cf0c0b6`. **After any merge that unions two route namespaces, walk
+  every redirect target** — a collision resolves silently in favour of
+  whichever page the router finds first, and nothing reports it.
 
 
 ## 8. Where to find things
