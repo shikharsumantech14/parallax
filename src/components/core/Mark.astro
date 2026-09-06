@@ -1,0 +1,132 @@
+---
+/**
+ * Mark — the Parallax medallion, inline SVG (RD-10 step 2).
+ *
+ * ANATOMY, taken from the delivered brand SVGs rather than invented:
+ *   accent disc   r 110 at centre
+ *   offset disc   r 113, ground-coloured, pushed 15 units along the desk's
+ *                 DIAL angle — this is the parallax shift, and the crescent it
+ *                 leaves is the mark
+ *   ring          r 118, ink, stroke stepping 7/10/14 by size
+ *   the P         outlined from Literata, never live text (src/lib/mark-glyph)
+ *
+ * THE DIAL IS FIXED (RD-10). Each desk sits at its own station and nowhere
+ * else: politics 325 · space 25 · earth 85 · tech 145 · travel 205 · sports
+ * 265. `dialAt` is the prototype's own formula, verified against the delivered
+ * files — space at 25° gives 136.4/143.7, which is exactly mark-space.svg.
+ * No rotation, no interpolation, no "nearly right" angle.
+ *
+ * THREE CUTS, all delivered, none improvised:
+ *   mark      open — accent crescent + ink ring. The default.
+ *   seal      filled — ink disc behind the crescent, paper P.
+ *   reversed  ink disc + paper P, no accent at all. Below 24px this is
+ *             SELECTED AUTOMATICALLY: it is a declared tier, not a
+ *             degradation (RD-10). At that size the crescent and the ring
+ *             mush together, which is why the delivered favicon is this cut.
+ *
+ * TWO GLYPH TIERS (operator ruling 2026-09-06). Measured: filled as a path,
+ * the display cut loses 14% of its ink at 40px where the text cut loses 2.9%,
+ * because a display cut is high-contrast and its hairlines fall below coverage.
+ * `glyphTier` flips at the same 96/40/24 steps the ring uses.
+ *
+ * RD-10's misuse list, enforced by construction: no gradient or sphere shading,
+ * no off-station dial, no rotation, no second accent, no substitute letter, no
+ * drop shadow.
+ *
+ * WHY THE OUTLINE AT ALL, measured rather than asserted: rasterise the
+ * delivered mark.svg the way a favicon renderer does and it does NOT fail
+ * loudly — it renders a P in Georgia off the font-family fallback stack, 21%
+ * heavier than Literata's and a different letterform (504 ink pixels against
+ * 417 at 96px). A wrong mark that looks fine is worse than a missing one.
+ *
+ * ONE DISCREPANCY FOR STEP 3: RD-10 says auto-reverse "below 24px", which is
+ * what this implements, but the delivered favicon.svg is the reversed cut at
+ * 32px. The spec threshold and the shipped asset disagree. Pass `cut`
+ * explicitly when generating files rather than leaning on the default.
+ */
+import { MARK_GLYPH, glyphTier } from '../../lib/mark-glyph';
+import type { Topic } from '../../content/config';
+
+type Cut = 'mark' | 'seal' | 'reversed';
+
+interface Props {
+  /** Desk station + accent. Omitted = the house cut, which the delivered
+   *  mark.svg draws at the politics station in the politics accent. */
+  desk?: Topic;
+  /** Rendered px. Drives the ring stroke, the glyph tier and the auto-reverse. */
+  size?: number;
+  cut?: Cut;
+  /** Accessible name. Omit for a decorative mark beside a wordmark. */
+  title?: string;
+  class?: string;
+}
+
+const { desk = 'politics', size = 40, cut, title, class: extra } = Astro.props;
+
+/* The stations, fixed by RD-10. */
+const DIAL: Record<Topic, number> = {
+  politics: 325, space: 25, earth: 85, tech: 145, travel: 205, sports: 265,
+};
+/* The prototype's formula (Web.dc.html:914), r = 15. */
+const dialAt = (deg: number, r = 15) => [
+  +(150 - r * Math.cos((deg * Math.PI) / 180)).toFixed(1),
+  +(150 - r * Math.sin((deg * Math.PI) / 180)).toFixed(1),
+];
+const [ox, oy] = dialAt(DIAL[desk]);
+
+/* Ring weight steps so the mark survives being small — thicker as it shrinks. */
+const ring = size >= 96 ? 7 : size >= 40 ? 10 : 14;
+
+/* Below 24px the reversed cut is the declared tier. An explicit `cut` still
+   wins: the rule is a default, not a lock. */
+const resolved: Cut = cut ?? (size < 24 ? 'reversed' : 'mark');
+
+const glyph = MARK_GLYPH[glyphTier(size)];
+
+/* Colour comes from tokens, so the mark rethemes with its world and the six
+   desk cuts need no separate files. `--topic-*` is defined on meta pages too
+   (meta.css), so the house cut works off-world. */
+const accent = `var(--topic-${desk})`;
+const ground = 'var(--bg)';
+const ink = 'var(--ink)';
+const paper = 'var(--bg)';
+
+const labelled = Boolean(title);
+---
+
+<svg
+  class:list={['px-mark', extra]}
+  viewBox="0 0 300 300"
+  width={size}
+  height={size}
+  role={labelled ? 'img' : undefined}
+  aria-hidden={labelled ? undefined : 'true'}
+  focusable="false"
+>
+  {title && <title>{title}</title>}
+
+  {resolved === 'reversed' ? (
+    <>
+      <circle cx="150" cy="150" r="118" fill={ink} />
+      <path d={glyph} fill={paper} />
+    </>
+  ) : resolved === 'seal' ? (
+    <>
+      <circle cx="150" cy="150" r="118" fill={ink} />
+      <circle cx="150" cy="150" r="110" fill={accent} />
+      <circle cx={ox} cy={oy} r="113" fill={ink} />
+      <path d={glyph} fill={paper} />
+    </>
+  ) : (
+    <>
+      <circle cx="150" cy="150" r="110" fill={accent} />
+      <circle cx={ox} cy={oy} r="113" fill={ground} />
+      <circle cx="150" cy="150" r="118" fill="none" stroke={ink} stroke-width={ring} />
+      <path d={glyph} fill={ink} />
+    </>
+  )}
+</svg>
+
+<style>
+  .px-mark { display: block; flex: 0 0 auto; }
+</style>
