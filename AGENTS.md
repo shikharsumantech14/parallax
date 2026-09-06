@@ -486,12 +486,13 @@ with the full canon in `research/_voice/mode-library.md`.
   `git push`. Never `git checkout` / `reset` / `stash` / `restore` a file to
   "undo" something — an agent once wiped hours of uncommitted wiring that way,
   and most of this repo's work sits uncommitted for long stretches.
-- **Deploy order: `app/` before the publication.** The publication's
-  `NewsletterForm` posts to the app's `/api/join`; ship the publication first
-  and every subscribe attempt hits a 404. Same rule for any future
-  publication island that calls a new app endpoint.
+- **Deploy order is moot since the merge (2026-09-06).** ONE project, one
+  deploy: the publication and its API routes ship together, so the old rule
+  ("app before publication") cannot be violated. It existed because
+  `NewsletterForm` posts to `/api/join` across two independently-deployed
+  Vercel projects; both now live in the same build.
 - **Migrations are the operator's to apply.** Adding a `.sql` file under
-  `app/supabase/migrations/` does not apply it. Write them idempotent
+  `supabase/migrations/` does not apply it. Write them idempotent
   (`ADD COLUMN IF NOT EXISTS`), state clearly that they are unapplied, and
   never assume a column exists because you wrote the migration for it.
 - **No Claude attribution anywhere, ever** — no `Co-Authored-By` trailer on a
@@ -514,7 +515,8 @@ npm run check:catalog # SECTION_KINDS <-> catalog, order, EXPLAIN + KIND_PRIORIT
 npm run design:check  # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check   # the derived project graph is in sync
 npm run hooks:test    # the enforcement hooks still decide correctly
-cd app; npm run build # the ONLY local gate for app work
+# app/ is gone (merged 2026-09-06) — `npm run build` now covers everything,
+# including the SSR reader-account routes.
 ```
 
 Both standing greps must return **zero** (scoped to code extensions on

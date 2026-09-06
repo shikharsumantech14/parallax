@@ -1,0 +1,116 @@
+---
+/**
+ * Shared layout for the app subdomain — design language v2.
+ *
+ * Implements APP-DESIGN-SPEC §1/§2: the html.js head guard (publication
+ * contract — hidden states only exist when JS is live), the glass `.appbar`
+ * masthead (the medallion + mono brand line + session slot), the two-tier shell
+ * (`width` prop → data-width on the shell AND the appbar so both track the
+ * same column), and the tiny `.reveal` IntersectionObserver bootstrap.
+ *
+ * The masthead links back to the publication; the footer keeps the legal line.
+ */
+import '../styles/app.css';
+import Mark from '../components/core/Mark.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Mono brand line in the appbar; defaults to "PARALLAX · YOUR SHELF". */
+  eyebrow?: string;
+  /** Shell tier: narrow (480px — auth, welcome) | shelf (960px — dashboard, admin). */
+  width?: 'narrow' | 'shelf';
+}
+
+const {
+  title,
+  description = 'The reader account layer for Parallax Lens.',
+  eyebrow = 'PARALLAX · YOUR SHELF',
+  width = 'narrow',
+} = Astro.props;
+
+const user = Astro.locals.user;
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script is:inline>document.documentElement.classList.add('js');</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Parallax Lens</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <header class="appbar" data-width={width}>
+      <div class="appbar__inner">
+        <a class="appbar__brand" href={siteUrl}>
+          <Mark size={20} />
+          <span class="appbar__wordmark">{eyebrow}</span>
+        </a>
+        {
+          user?.email && (
+            <div class="appbar__session">
+              <span class="appbar__email">{user.email}</span>
+              <form method="post" action="/api/auth/signout">
+                <button class="btn btn--ghost appbar__signout" type="submit">
+                  Sign out
+                </button>
+              </form>
+            </div>
+          )
+        }
+      </div>
+    </header>
+
+    <main class="app-shell" data-width={width}>
+      <slot />
+
+      <footer class="app-footer">
+        © {year} PARALLAX LENS™ &middot;
+        <a href={`${siteUrl}/about/privacy/`} style="color: inherit; text-decoration: underline; text-underline-offset: 2px;">Privacy</a> &middot;
+        <a href={`${siteUrl}/about/terms/`} style="color: inherit; text-decoration: underline; text-underline-offset: 2px;">Terms</a>
+      </footer>
+    </main>
+
+    <script is:inline>
+      /* .reveal bootstrap — motion.md `reveal`, IO island pattern ported from
+         the publication: add .is-in once on scroll-in, then unobserve (one
+         entrance per element). Reduced motion ⇒ mark everything in (the CSS
+         reset also paints final state without this). */
+      (function () {
+        var els = document.querySelectorAll('.reveal');
+        if (!els.length) return;
+        var reduce =
+          window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce || !('IntersectionObserver' in window)) {
+          els.forEach(function (el) { el.classList.add('is-in'); });
+          return;
+        }
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-in');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.1 }
+        );
+        els.forEach(function (el) { io.observe(el); });
+      })();
+    </script>
+  </body>
+</html>

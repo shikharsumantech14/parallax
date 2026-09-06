@@ -6,7 +6,11 @@
  *   node scripts/design-sync.mjs --check  # diff only; exit 1 on drift
  *
  * Canonical sources:  shared/design/{tokens,worlds}.css
- * Generated copies:   src/styles/shared/*  +  app/src/styles/shared/*
+ * Generated copies:   src/styles/shared/*
+ *
+ * The app/ mirror retired with the merge (2026-09-06): there is one project
+ * now, so there is one copy to keep in step instead of two. Half of what this
+ * gate existed to prevent cannot happen any more.
  * Contract: edit the canonical files, never the copies (see shared/design/README.md).
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -15,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = ['tokens.css', 'worlds.css'];
-const TARGETS = ['src/styles/shared', 'app/src/styles/shared'];
+const TARGETS = ['src/styles/shared'];
 
 const HEADER = (name) =>
   `/* GENERATED from shared/design/${name} — DO NOT EDIT.\n` +
