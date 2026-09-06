@@ -54,7 +54,13 @@ const subLine = statusSub ?? date ?? 'Est. 2026';
 
 <header class="mh">
   <a class="mh__brand" href="/" aria-label="Parallax — home">
-    <Mark size={28} class="mh__mark" />
+    {/* RD-10 step 5 — the PER-DESK CUT. The mark carries the station and the
+        accent of the world it is standing in, so a space page shows space's
+        crescent at 25° and politics' at 325°. On the meta surfaces there is no
+        desk, so it falls back to the house cut, which the delivered mark.svg
+        draws at the politics station. */}
+    <Mark desk={variant && variant !== 'meta' ? (variant as Topic) : undefined}
+          size={28} class="mh__mark" />
     <span class="mh__type">
       <span class="mh__name">Paral<span class="mh__name-tail">lax</span></span>
       {deskRegister && <span class="mh__desk">{deskRegister}</span>}

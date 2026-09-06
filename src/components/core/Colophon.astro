@@ -13,14 +13,18 @@
    own island). */
 import NewsletterForm from './NewsletterForm.astro';
 import Mark from './Mark.astro';
+import type { Topic } from '../../content/config';
 
 interface Props {
+  /* The desk this page belongs to, so the foot mark matches the masthead's
+     rather than showing the house cut under a space article. */
+  desk?: Topic;
   /* Render the newsletter signup above the colophon. Default on, matching the
      previous Footer behaviour. The home page sets this false (its
      SubscribeStrip already provides the form). */
   newsletter?: boolean;
 }
-const { newsletter = true } = Astro.props;
+const { newsletter = true, desk } = Astro.props;
 
 const year = new Date().getFullYear();
 const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
@@ -42,7 +46,11 @@ const desks: { label: string; href: string }[] = [
 <footer class="px-col">
   <div class="px-col__head">
     <a class="px-col__brand" href="/">
-      <Mark size={22} class="px-col__mark" />
+      {/* 24px, not 22: below 24 the component switches to the reversed cut,
+          which carries no accent, and the desk cut would be silently inert
+          here. Two pixels buy the crescent and make the foot mark agree with
+          the masthead's. */}
+      <Mark desk={desk} size={24} class="px-col__mark" />
       <span class="px-col__name">Parallax</span>
     </a>
     <p class="px-col__manifesto">
