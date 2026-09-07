@@ -175,11 +175,33 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    revertible commit. The 22 missing *captions* are **deliberate**: all 22
    carry an `intro` that already states the finding; adding captions would trip
    the verifier's new REDUNDANT rule. Recorded in `37a6f7d`.
-9. **Still rejected/deferred**: photography and the lens (five grounds);
-   `/subscribe` + pricing.
-10. **Operator-optional, still open**: apex-vs-`www` primary domain in Vercel
-    (canonical + og:image take a 307 today); OG filename fingerprinting
-    (cheapest at 10 published issues).
+9. **TWA (Android) — BLOCKED on the operator, not on the repo.** The PWA is
+   live and installable from the browser today; a Trusted Web Activity is the
+   Play-Store wrapper on top of it. `scripts/twa-assetlinks.mjs` writes and
+   validates `/.well-known/assetlinks.json` (verified: a dot-folder under
+   `public/` does survive the build, and no APP_ROUTES prefix intercepts the
+   path). The file is deliberately **not committed** — it cannot be written
+   without the app's signing-key fingerprint, and a wrong one is worse than an
+   absent one, because Android caches a failed verification until the app is
+   reinstalled.
+
+   Needs two values, both of which only exist once a Play Console app does:
+   the reverse-DNS package id (**permanent once published**) and the SHA-256
+   **App signing key** fingerprint — *not* the upload key, because Play App
+   Signing re-signs with a key the operator never holds. Pass the upload key
+   as well so locally-signed test builds verify too.
+
+   Also gating: Play charges a one-time $25 registration, and a new personal
+   developer account needs 12 testers on a closed test for 14 days before
+   production access.
+10. **Still rejected/deferred**: photography and the lens (five grounds);
+    `/subscribe` + pricing.
+11. **Operator-optional, still open**: OG filename fingerprinting (cheapest
+    at 10 published issues). The apex-vs-`www` item that sat here is
+    **settled** — the apex is Production and `www` 308s to it since
+    2026-09-06. It was never merely cosmetic: `canonical`, RSS and OG all
+    declared the apex while Vercel served `www`, and the redirect between them
+    silently killed all seven reader islands (§7).
 
 ## 6. Known residuals — deliberate, do not "discover"
 
