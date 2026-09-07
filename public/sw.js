@@ -32,11 +32,17 @@
  * lighter tool: it orphans every old cache and activate() deletes them.
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `px-shell-${VERSION}`;
 const PAGES = `px-pages-${VERSION}`;
 const ASSETS = `px-assets-${VERSION}`;
-const KEEP = new Set([SHELL, PAGES, ASSETS]);
+const FONTS = `px-fonts-${VERSION}`;
+const KEEP = new Set([SHELL, PAGES, ASSETS, FONTS]);
+
+/* The only cross-origin hosts this worker will touch. Both send
+   `Access-Control-Allow-Origin: *`, which is what makes them safe to keep —
+   see fontFirst(). */
+const FONT_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
 
 /* Deliberately tiny. Everything else arrives by being read. */
 const PRECACHE = ['/', '/offline/'];
@@ -90,12 +96,52 @@ async function cacheFirst(req, cacheName) {
   return put(cacheName, req, await fetch(req));
 }
 
-/** Pages: fresh when online, cached when not, branded page when neither. */
+/**
+ * Pages: fresh when online, cached when not, branded page when neither.
+ *
+ * The PAGES lookup is explicit and FIRST on purpose. `caches.match()` searches
+ * caches in CREATION order, and SHELL is created during install — so a bare
+ * `caches.match('/')` returns the install-time home page forever, ignoring the
+ * fresher copy every online visit writes to PAGES. `/` is `start_url`, i.e.
+ * exactly what an installed app opens to offline, so that staleness would be
+ * the most visible thing the worker does. Shipped wrong in v1.
+ */
 async function networkFirst(req) {
   try {
     return await put(PAGES, req, await fetch(req));
   } catch {
-    return (await caches.match(req)) || (await caches.match('/offline/')) || Response.error();
+    const pages = await caches.open(PAGES);
+    return (
+      (await pages.match(req)) ||        // last online read — freshest
+      (await caches.match(req)) ||       // the precached shell copy
+      (await caches.match('/offline/')) ||
+      Response.error()
+    );
+  }
+}
+
+/**
+ * Google Fonts, kept so an offline read still has the publication's type
+ * rather than the system stack.
+ *
+ * The page requests these `no-cors`, which yields an OPAQUE response: status
+ * 0, body unreadable. Caching one is a trap — an opaque 404 is
+ * indistinguishable from an opaque 200, so a transient CDN error would poison
+ * the cache and break that face until the version is bumped. Both hosts send
+ * `Access-Control-Allow-Origin: *`, so re-requesting with `mode: 'cors'`
+ * returns a real, inspectable response that can be validated before storing.
+ * If that fetch fails for any reason we pass the original through UNCACHED —
+ * degrading to the fallback stacks, never to nothing.
+ */
+async function fontFirst(req) {
+  const hit = await caches.match(req);
+  if (hit) return hit;
+  try {
+    const res = await fetch(req.url, { mode: 'cors', credentials: 'omit' });
+    if (res.status === 200) (await caches.open(FONTS)).put(req, res.clone());
+    return res;
+  } catch {
+    return fetch(req);
   }
 }
 
@@ -121,10 +167,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // v1 is same-origin only. Google Fonts would survive offline if cached, but
-  // they arrive opaque and cannot be validated — and every face already ships
-  // with a real fallback stack, so an offline read degrades to system type
-  // rather than to nothing. Revisit with the font question, not before.
+  // The one sanctioned cross-origin exception (see fontFirst).
+  if (FONT_HOSTS.has(url.hostname)) {
+    event.respondWith(fontFirst(req));
+    return;
+  }
+
   if (url.origin !== self.location.origin) return;
 
   // Sessions never touch the cache.
