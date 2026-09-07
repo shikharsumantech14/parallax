@@ -57,6 +57,39 @@ AccountEntry degrades to a static sign-in link; the other two occupy no space
 and reveal nothing without JS — a post-action confirmation is a nicety, never
 content.
 
+## The service worker
+
+`public/sw.js` (PWA, 2026-09-06) is the one piece of JavaScript that is not an
+island and does not run in the page. It is hand-written and deliberately small:
+no Workbox, no build step, no generated precache manifest.
+
+- **Cache-on-read.** Precache is exactly `['/', '/offline/']`; everything else
+  is kept because a reader opened it. Nothing is hoarded.
+- **It never touches a session.** `APP_ROUTES` mirrors `src/middleware.ts`, and
+  `storable()` independently refuses any response carrying `no-store`. A cached
+  Shelf served to a second reader is a data leak, not a stale page.
+- **It changes nothing about the fallback contract.** No JS ⇒ no worker ⇒ the
+  site behaves exactly as it always did. The worker is additive by
+  construction, which is why it needs no no-JS story of its own.
+- **The reading gate is unaffected** — it runs client-side on every load, and
+  the full article is in the page source either way, so cached HTML is gated
+  exactly like fresh HTML.
+- **Registration is production-only** (`import.meta.env.PROD` in
+  `core/PwaMeta.astro`). Under `astro dev` the worker cached Astro's dev-toolbar
+  and Vite dep-optimiser modules from `/node_modules/`, and a caching layer
+  under HMR turns every stale-asset question into "is it the worker?". Exercise
+  it with `npm run preview`, which serves a real build.
+- **Google Fonts are the one cross-origin exception**, re-requested with
+  `mode: 'cors'` so the response can be validated before storing — an opaque
+  404 is indistinguishable from an opaque 200, and caching one would break a
+  face until the version is bumped.
+
+`/offline` is its navigation fallback and is **self-contained on purpose**: no
+stylesheet, no webfont, no script, and the mark comes from `markSVG` with
+literal colours rather than `core/Mark.astro`, whose `var(--ink)` fills resolve
+to nothing there. It first shipped rendering a solid black disc for exactly
+that reason.
+
 ## The one exception
 
 **The onboarding surface** — `/welcome` plus the home first-visit overlay
