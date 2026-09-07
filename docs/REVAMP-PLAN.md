@@ -26,7 +26,7 @@
 
 ---
 
-## 0. Execution state (2026-09-04)
+## 0. Execution state (2026-09-07)
 
 | Phase | Status |
 |---|---|
@@ -35,13 +35,14 @@
 | 1 · Guardrails + WCAG + phone nav | ✅ deployed (`92870b7`…`7c553a2`) |
 | 2 · Chrome primitives (TOKEN-RECORD, schema, VizCard, px-inst) | ✅ (`6f6ca2a`) |
 | 3 · The 28 kinds | Wave 0 ✅ (`d86673a`, `afcb49b`) · Wave 1 ✅ (`266734b`) — **library 97/118**; Waves 2–4 remain, **now sequenced last (RD-13)** |
-| 4 · Editorial floor | agent-facing half ✅ (`c0887a3`); **source backfill 21→0** ✅ (`37a6f7d`); captions deliberately declined (all 22 carry an `intro` stating the finding); schema tightening pending |
-| 5 · Mobile legibility | not started; measured on three files (`ScalingPlot.astro` carries the numbers and why a plain bump fails) |
+| 4 · Editorial floor | agent-facing half ✅ (`c0887a3`); **source backfill 21→0** ✅ (`37a6f7d`); captions deliberately declined (all 22 carry an `intro` stating the finding); **schema tightening still pending** (make `source` required now the gap is 0), and the catalog-driven pipeline **has still never been run end to end** — that is the demonstration half of this phase and it is untouched |
+| 5 · Mobile legibility | **step 1 done 2026-09-07 (`f76fa8c`) — and the plan above is wrong about the cause.** It is not a font-size problem: those SVGs are `width: 100%` over a fixed viewBox, so text renders at `authored × (cardWidth / viewBoxWidth)` and an authored 9.5px lands at 3.6px on a 720-unit chart at 375px. `throughput-dial` uses the SAME 9.5px on a 280-unit viewBox and measures 9.3px — it was never broken. PowerFlow was not an exemplar to generalise either: it measures **7.0px**, short of the floor it was written to hold, so copying it ~40 times would have produced 40 components that were better and still wrong. Fixed instead with one block in `dataviz-v2.css`: each chart gets `min-width` = its own coordinate width and the CARD scrolls, so the scale factor is 1. **23 charts, 3.1px → 9–12.5px**, measured across the six showcase issues. **Exit NOT met:** the sweep covered 6 issues, not 23; clipping was not explicitly tested; and four are still short by design (`region-map` authored at 7.5px — a type call; `flight-of-the-ball`, whose mount pins an aspect-ratio so a min-width cannot help; the WebGL fallbacks, which carry no class; `climate-spiral`, a square radial that wants a redraw). The `.px-viz` 30px padding item appears **stale** — no such rule exists in `base.css` |
 | 6.1 · Shell adoption | **done bar the signature** — flat viz card + `--viz-edge` world rule (`b74815d`); RD-05 shadow sweep 115→64 + the toolbar's flat skin (`943fe09`); ⤢ 44px on touch, SeatChart source naming, story depth-1 hiding; the `Source ·` fold **landed as-is** — `core/Section.astro` renders `Source · …` as the plain paragraph's second line for every kind (`8eea66f`), and the seventy per-component `.px-viz__src` emitters are gone, the class has zero emitters and zero rules (`b0260b2`); the `EXPLAIN.how` flip is **on** for every kind — Section renders the panel above the graphic, VizCard inside the card for its ten, one panel per section by `:has()` (`bdbfea8`; the review tabled at `9851c9a` counted 90 strings, not 81); the CANON/motion edits are drafted and committed as a **marked draft** (`dc6a28c`). **`CANON.md` is SIGNED, 2026-09-05** — the operator removed its DRAFT block, so §1 (flat surfaces), §7 (source renders once), §10 (the four-layer stack), §11 (glass modal-only), §13 items 5 and 9 and the new §14 are **law**, not draft, and §13's two new checks are now a live acceptance floor for every component built from here. **Still not done:** `motion.md` keeps its DRAFT line, because signing it means answering the question inside it — whether `--t-page` stays at the shipped 600ms or is retimed toward the handoff's ~300/340ms. That is a decision, not a countersignature. The ⤢ modal shows no source — the design's own consequence; a modal source line is a separate, later call |
 | 6.2 · B1 best-first | ✅ all three — `scaling-plot` log⇄linear (`e5fd2f1`), `xg-race` scrub (`d304c2d`), `climate-spiral` scrub (`714d1ac`); `px-inst` readout reserve generalised (`328395d`); `howToRead` ×4 + the live caption fix (`81cc2da`) |
 | 6.3 · Type harvest | ✅ **complete 2026-09-05**. Binaries measured: Schibsted's x-height is the LARGER (0.530/em vs Literata's 0.515), so the prototype's 18px Literata is **17.5px** of Schibsted and RD-08's literal 18px overshoots by 3% — body register at 17.5/1.68, space's 15.5px override folded in, travel's 19px Fraunces body kept by ruling (`0894af8`); standfirst 18.5→20px, closing an inversion where the serif lead rendered a smaller x-height than the body it introduces; eyebrow at 9.5/600/.16em across 29 rules, tracking through the `--viz-ls-mono` token that already existed (`d2b6cd3`), with the display-face eyebrows of sports and travel pinned at 11px and three exclusions ruled (the `Source ·` line, the world signature ornaments, the control chips). **`h3` closed 2026-09-05, and the investigation is the finding.** RD-08 describes the prototype's per-figure `vizTitle` — eyebrow row, then `<h3>`, then how-to-read, then the graphic — a FIELD the schema does not have. Repo-wide there are two `<h3>` elements and zero `h3` selectors. The publication titles a figure from ABOVE the card with `.px-section__title` (clamp 28–44px), because one section is one kind is one figure; the prototype's issue body carries no section headings at all, so its `h3` is the only heading there. That is an article-structure difference — Phase 7 / RD-12's block order — not a type one. Mapping the `h3` onto `caption` was REJECTED on measurement: `caption` is the verifier-traced data claim, its lengths run 28–174 chars (median 57, n=110) which at 22/700 collides with the section title above it, and published captions are often all-caps dataset labels (`UBER · AI CODING SPEND · 2026`) that would read as shouting. Also unrecorded until now: the Components gallery sets this h3 at **22px**, the issue page at **21px**; RD-08 took the gallery's number. The spec therefore lands on `.px-bills__title` alone (politics.css, already 22px display, now 700 and −.024em) — one rule, one kind, live on two published issues. **COMPLETE.** The one open item was the drop cap, and it was a conflict between two signed decisions rather than a scheduling question: RD-08 listed the three-line Fraunces drop cap under this phase, RD-12 said the issue furniture — naming the drop cap — lands in the same commit as the 3-column grid. **Ruled to Phase 7 by the operator, 2026-09-05**, so RD-12 governs the furniture entire and a drop cap is never designed apart from the column it caps. Measure was NOT touched: 720px stays, and the column is what dominates CPL (95.9→84.8 at 1280), so RD-12 should take it once. |
-| 7 · Web pages | not started — after 6.3 (RD-13) |
-| Brand · the mark | **un-parked** (RD-10); scoping first, see §4-v3 |
+| 7 · Web pages | ✅ **complete** — masthead to the 768px spec, home, desk (topic index reskinned, ruled), the issue floor plan with the RD-12 gate rework in one commit, `/archive` against the 10 real issues, About with the mark and lore. `/subscribe` stays deferred behind pricing |
+| 8 · B2 app | ⛔ **SUPERSEDED 2026-09-06** — see §4. Not built, and should not be |
+| Brand · the mark | ✅ **complete** (RD-10, all five steps) — the P outlined from Literata at two optical tiers (`src/lib/mark-glyph.ts`, proven on `mark.svg` before estimating), `src/lib/mark.ts` as the single geometry source, `core/Mark.astro`, the masthead/wordmark swap, About's "the mark, explained" + six lore rows, and the per-desk dial cuts. The same geometry now also renders the favicon and the PWA icon set |
 | 8 · App | not started |
 
 Execution corrections folded into the docs this cycle (do not rediscover): the
@@ -367,7 +368,37 @@ furniture now has one owner. **The 3-column grid
 decision point sits here**, designed with the `ReadingGate` rework it requires.
 The About lore section and `/subscribe` stay deferred (RD-03; pricing).
 
-### Phase 8 — B2 app · ~22 days · compile-verified only on this box
+### Phase 8 — B2 app · ~22 days · ⛔ SUPERSEDED 2026-09-06
+
+> **Do not build this.** It planned a separate mobile app against a separate
+> `app/` project. Both premises are gone: `app/` was merged into the
+> publication on 2026-09-06, and the reader-facing answer is a **PWA** —
+> shipped 2026-09-07 (`f1c336c`, `a1485f9`, `bd72092`), installable, with
+> cache-on-read offline reading. A Play-Store TWA wraps that same PWA when the
+> operator has a Play Console app; `scripts/twa-assetlinks.mjs` is ready and
+> `docs/STATE-OF-PLAY.md` §5 item 9 records what it is waiting on.
+>
+> **Why the route changed.** A service worker's scope is per-ORIGIN and a TWA
+> points at ONE `start_url`, so neither was reachable while the product lived
+> on two origins. That is what made the merge worth its cost, and it is the
+> reason this phase is superseded rather than merely deferred — the thing it
+> would have built is now the thing that would have to be thrown away.
+>
+> **What survives from it and still applies:**
+> - The **issue-manifest bridge** (§8.1) is still the blocker for a real Feed,
+>   Archive and Shelf titles. Same work, one project, no cross-project hop.
+> - The **auth ruling** (keep Google + magic link; the "magic link only" reading
+>   described the prototype's runtime, not a decision) — already live.
+> - The **light-world rule for feed cards** (accent at 9%, a recorded deviation
+>   from the spec's dark-ground cards) still stands, and still needs labelling
+>   wherever those cards land, or the next agent restores `wd.bg` and is right to.
+> - The Worlds/You `reader_prefs` migration and the knowledge-check
+>   `quiz_answers` migration are unwritten and unapplied.
+>
+> Everything below is kept verbatim as the record of what was planned. It is
+> history, not a work item.
+
+**Original plan, for the record:**
 
 1. **The issue-manifest bridge first** — `src/pages/issues-manifest.json.ts` + `app/src/lib/issues.ts`, 14h. It blocks Feed, Archive, real Shelf titles and any in-app issue; nothing else in B2 can start.
 2. Then: tab bar + 393px shell → auth conformance (**keep Google + magic link** — the Google-primary hierarchy is the built fix to a diagnosed journey break, and a `.dc.html` prototype cannot perform an OAuth redirect, so "magic link only" describes the prototype's runtime; adopt the field metrics and copy, add the Link-expired and Sign-out screens) → Worlds + You (one migration: `reader_prefs` + the followed-worlds decision) → Feed + Archive → 60-second cards reusing `story.ts` → knowledge check (needs a `quiz_answers` migration plus per-issue editorial authoring).
