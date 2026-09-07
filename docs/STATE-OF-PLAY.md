@@ -199,12 +199,71 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 
 ## 6. Known residuals — deliberate, do not "discover"
 
-- **In-SVG fine print ~3.4–7px at 375px** on fixed-viewBox cards. Phase 5 is the
-  fix; the per-component bump pattern exists in 4 components.
-- **Phase 5's bump is owed on `ScalingPlot`, `XgRace`, `ClimateSpiral`** —
-  `ScalingPlot.astro` carries the measurements and why a plain bump fails
-  (23 SVG units needed at 375px; y-ticks at that size run off the canvas into
-  the rotated axis title; the de-clutter constants are build-time).
+**Ranked by what leaving them actually costs** (audited 2026-09-07). The short
+version: nothing on this list needs doing this week, and only one item is worth
+doing soon.
+
+**1 · Social art is on the RETIRED brand.** `assets/brand/*.png` are dated
+2026-06-22 — the pre-RD-10 two-lens mark, not the medallion. `npm run
+brand:assets` (`scripts/brand-assets.ts`) still renders that mark, so re-running
+it reproduces the old identity. If those files are deployed as the actual
+avatars and banners, the site and the social presence are on two different
+brands. **The only visible-to-everyone item here, and the cheapest to fix** —
+but it is a re-authoring against `src/lib/mark.ts`, a design act, not a sweep.
+
+**2 · Nothing enforces "no source, no section."** `source` is `.optional()` in
+`config.ts`, so a future issue can publish a figure with none and no gate
+catches it. Against a brand promise of *fully-sourced issues* that is a
+credibility hit rather than a bug. **Low probability today** — the verifier
+traces claims and `published` is flipped by hand — **and it gets worse exactly
+as publishing volume rises**, which is when eyeballs stop catching it. Audited:
+all 10 published issues are clean; 6 sourceless sections exist, all in two
+drafts (4 in `seven-appeals-rupee-pressure`, needing real sourcing; 2 in
+`politics-showcase`, where synthetic demo data makes "source" a different
+question).
+
+**3 · `shot-map` renders at 7.6px** in the published
+`2026-06-04-arsenal-set-piece-title`. The ONLY Phase 5 residual a reader meets
+today — its 360-unit viewBox already fits, so forcing a scroll would cost the
+pitch's shape for 2px. Cosmetic; the ⤢ study view is adjacent.
+
+**4 · 120 sections carry `source` under `data:` instead of at the top level.**
+Renderers read `section.source ?? data.source`, so this costs a reader nothing
+and changes no output. It is purely the blocker to item 2: Zod can only require
+the top-level field, so flipping `.optional()` off today fails 120 sections.
+Only 28 are already promoted. Mechanical to migrate, and worth doing as its own
+commit rather than smuggled into a schema change.
+
+**5 · The rest of Phase 5 is draft-only.** `flight-of-the-ball` (3.6px — its
+mount pins an aspect-ratio, so a min-width cannot help), `climate-spiral`,
+`region-map` (authored at 7.5px — a type call), the WebGL fallbacks, and the
+narrow-viewBox forms left by ruling. **No published issue uses any of them**,
+and the WebGL ones only render without WebGL. Fix one the week you publish an
+issue that uses it, not before.
+
+**6 · No breakage at all:** Waves 2–4 (21 kinds), TWA, the vestigial RD-05
+radius override in `base.css`, `APP-SURFACES.md` §§3–10's pre-merge paths (the
+header now warns), and the 23-issue Phase 5 sweep the plan asked for (6 showcase
+issues were swept, and they carry every kind by design, so kind coverage is
+likely complete and instance coverage is not).
+
+> **Corrected while auditing.** The three-list rule for auth routes (§7,
+> `AGENTS.md`) was written as if missing `APP_ROUTES` in `sw.js` could leak a
+> session. It cannot, and the overstatement is worth retracting: middleware
+> stamps `Cache-Control: private, no-store` on everything matching its own
+> list, and `storable()` refuses anything carrying it. A leak needs a route in
+> NEITHER list — but middleware then attaches no session, so there is nothing
+> per-reader to leak. Keep the rule for consistency; it is not a live hazard.
+
+---
+
+- **In-SVG fine print is FIXED for the scaling charts** (`f76fa8c`, §4) — and
+  the bump pattern those two entries described was the wrong fix. It is a
+  viewBox-width problem, not a type one; `PowerFlow`, the exemplar they said to
+  generalise, measured 7.0px and never held the floor it was written for. The
+  per-component bumps on `PowerFlow`, `CarbonLoop`, `EloRiver` and `PaceRidge`
+  were RETIRED with the fix: at natural scale they would render their 21px
+  SVG-unit sizes at a literal 21px. What remains is item 5 above.
 - **The ⤢ modal shows no source since `8eea66f`.** It portals the card; the
   source lives with the section now. Landed as-is by ruling; a modal source
   line is a separate, later call.
@@ -212,13 +271,14 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 - **29 draft-only `EXPLAIN.how` cues still read as modal controls** ("Drag to
   spin…") — left for a bulk pass by ruling; none renders on a published page
   (`tactics-pitch` was the one live cue and is rewritten in `bdbfea8`).
-- **`CANON.md` and `motion.md` carry a DRAFT line at the top** (`dc6a28c`) —
-  the shell-adoption passages (CANON §1/§7/§10/§11/§13/§14; motion's
-  `cardLift`/`pageEnter`/`worldFade` rows and hard rule 7) are the agent's draft
-  until the operator removes that line. Cite them as draft, not law.
-- **`--t-page` stays 600ms.** `pageEnter`/`worldFade` are named in `motion.md`
-  against the existing CSS view transition; the handoff's ~300/340ms is
-  unadopted — a token decision the operator still owes.
+- **Both canon files are SIGNED and cite as law** — `CANON.md` 2026-09-05
+  (`0104915`), `motion.md` 2026-09-07 (`b06caec`). Neither carries a DRAFT line.
+- **`--t-page` is RULED (`b06caec`): navigation split off it.** The token was
+  never a page-transition token — 12 sites, exactly one of them a navigation —
+  so retiming it would have made every scroll reveal snappier to buy a faster
+  click. `@view-transition` moved to `--t-slow` (420ms) because it answers a
+  CLICK and a waiting reader budgets motion differently; in-page settling keeps
+  600ms. No token VALUE changed.
 
 - **`.px-viz__src` is gone** — zero emitters, zero rules since `b0260b2`; the
   source line is `.px-plain__src`, rendered once by `core/Section.astro`.
@@ -240,7 +300,10 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 - **`state-timeline` carries 3 raw hexes** — a DECLARED fixed encoding
   (green/amber/red service status), single declaration, never colour-alone.
 - **Text-heavy story beats scroll** (sanctioned); **dashboard tiles title-case
-  slugs** (issues-manifest bridge unbuilt — first move of Phase 8).
+  slugs** — the issues-manifest bridge is still unbuilt and still the blocker
+  for real Shelf titles, Feed and Archive. It was the first move of Phase 8;
+  **Phase 8 is superseded** (REVAMP-PLAN §4), but this piece of it survives and
+  is now simpler — one project, no cross-project hop.
 - **`finish-interval` rows are 34px with a mouse, 44px on touch** — deliberate
   (`@media (pointer: coarse)`).
 
