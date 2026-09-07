@@ -344,17 +344,11 @@ const nodeList = Array.from(placed.values());
     to { stroke-dashoffset: -8; }
   }
 
-  /* mobile: bump SVG-unit sizes so rendered text holds the 9.5px floor */
-  @media (max-width: 680px) {
-    .px-pflow__lbl { font-size: 16px; }
-    .px-pflow__val, .px-pflow__stub text { font-size: 14px; }
-    .px-pflow__note { font-size: 13px; }
-  }
-  @media (max-width: 440px) {
-    .px-pflow__lbl { font-size: 21px; }
-    .px-pflow__val, .px-pflow__stub text { font-size: 21px; }
-    .px-pflow__note { font-size: 20px; }
-  }
+  /* Mobile legibility is the min-width rule in dataviz-v2.css (Phase 5): the
+     chart renders at its own 720-unit width and the card scrolls, so labels
+     land at their authored size. The SVG-unit bump that used to live here
+     reached only ~7px of the 9.5px floor it was written for, and at natural
+     scale it would now render 21px text at 21px. */
 
   /* reduced motion: full diagram, dashes as static directional stipple */
   @media (prefers-reduced-motion: reduce) {

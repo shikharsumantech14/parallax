@@ -426,6 +426,11 @@ const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
     <svg
       class="px-cval__svg"
       viewBox={`0 0 ${W} ${H}`}
+      style={`--vbw:${W}px`}
+      {/* --vbw feeds the Phase 5 mobile min-width in dataviz-v2.css. It is set
+          here rather than in the stylesheet because this component's viewBox
+          is per-SURFACE (a pitch and a court are different widths), so no
+          single literal would be right. */}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={ariaLabel}

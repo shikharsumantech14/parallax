@@ -744,3 +744,100 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
      sideways. overflow-x:clip leaves overflow-y visible (reveal transforms). */
   .px-ireel { overflow-x: clip; }
 }
+
+/* ============================================================================
+   PHASE 5 · MOBILE LEGIBILITY — the scaling SVG charts
+   ----------------------------------------------------------------------------
+   THE DIAGNOSIS, because the obvious reading is wrong. This was recorded for a
+   year as a font-size problem; it is not. The authored sizes are already
+   correct — 9 and 9.5px, exactly the type scale. It is a viewBox-WIDTH problem.
+
+   These SVGs are `width: 100%; height: auto` over a fixed viewBox, so text
+   renders at `authored x (cardWidth / viewBoxWidth)`. At 375px the card is
+   273px, so a 720-unit chart scales by 0.379 and 9.5px lands at 3.6px —
+   not small, unreadable. Measured across all six showcase issues 2026-09-07.
+
+   The proof it is geometry and not type: `throughput-dial` is authored at the
+   SAME 9.5px on a 280-unit viewBox, renders at 273px, and measures 9.3px. It
+   was never broken. Nothing about its type differs.
+
+   THE FIX. Give each chart a min-width equal to its own coordinate width and
+   let the CARD scroll. Then the scale factor is 1 and every label lands at the
+   size it was drawn at — not approximately, exactly. The values below ARE the
+   viewBox widths; that is the whole rule, and it is why this needs no
+   per-component tuning and no judgment about which labels to shrink.
+
+   WHAT IT COSTS: a wide chart is no longer wholly visible at a glance on a
+   phone. That is a real loss and it was ruled on deliberately — an unreadable
+   axis is worse than a scrollable one, and the HTML layer (how-to-read, the
+   plain line, the data table) already carries the finding at full size.
+
+   NOT TREATED, deliberately:
+     - viewBox < 560 (throughput-dial, player-radar, channel-ternary,
+       swing-dial, shot-map, city-grid, carbon-gauge, solar-system) — they fit,
+       and they measure 6.3-10.2px. Forcing a scroll would cost shape for
+       nothing.
+     - the WebGL fallback SVGs (neural-flow, chamber, terminator-globe,
+       plate-motion, storm-track, terrain-relief, constellation-swarm) — their
+       <svg> carries no class to target and their viewBox widths differ, so a
+       blanket `.viz3d__fallback > svg` rule would blow up the narrow ones.
+       They are only ever seen without WebGL. Left for a pass that can address
+       them individually.
+     - flight-of-the-ball, which DOES have a class and was treated in the first
+       pass — and did not move, still measuring 3.6px at a full 720px width.
+       `.viz3d--fball` pins `aspect-ratio: 720 / 380` on the MOUNT, so the box
+       keeps the height its 273px column implies while the min-width widens it;
+       `preserveAspectRatio="xMidYMid meet"` then scales the drawing back down
+       to fit that height. A min-width cannot fix a component whose height is
+       pinned to the container. It needs the aspect-ratio handled, which is a
+       WebGL-mount change, not a type one.
+     - climate-spiral, a square radial: forcing it to its own ~600px width
+       makes a 600px-tall block for a figure whose whole point is one legible
+       ring. Radial forms want a redraw, not a scroll.
+
+   ALSO FOUND, and NOT a geometry problem: region-map renders at 7.5px even at
+   scale 1, because its labels are AUTHORED at 7.5px — below the 9.5px floor
+   the type harvest set. That is a type-scale fix in the component, and it is
+   the operator's call, not this rule's.
+   ========================================================================== */
+@media (max-width: 900px) {
+  /* The CARD scrolls, so the page never does. */
+  .px-viz {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .px-map__svg { min-width: 800px; }
+
+  .px-eriv__svg { min-width: 760px; }
+
+  .px-bflow__svg,
+  .px-cloop__svg,
+  .px-eclp__svg,
+  .px-etrek__svg,
+  .px-fterr__svg,
+  .px-lagr__svg,
+  .px-mldr__svg,
+  .px-mom__svg,
+  .px-pflow__svg,
+  .px-pkt__bar,
+  .px-prdg__svg,
+  .px-qc__svg,
+  .px-quake__svg,
+  .px-vflow__svg,
+  .px-xgr__svg { min-width: 720px; }
+
+  .px-altox__svg { min-width: 668px; }
+
+  .ac__svg,
+  .adc__svg,
+  .px-desc__svg,
+  .px-scale__svg,
+  .px-traj__svg { min-width: 640px; }
+
+  .px-atmc__svg { min-width: 560px; }
+
+  /* court-value carries its own width: its viewBox is per-surface. */
+  .px-cval__svg { min-width: var(--vbw); }
+}
+

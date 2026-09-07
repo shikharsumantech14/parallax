@@ -524,28 +524,10 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
 
   /* ── 375px: shorten tags to [SHORT] only, thin rail labels, bump SVG-unit
         type so rendered mono holds ≥ 9.5px (the power-flow approach) ── */
-  /* 441–640px band: worst case ≈441px container (scale ≈0.58); floor 18px so
-     18×0.58 ≈ 10.4px rendered — clears the 9.5px floor across the band. */
-  @media (max-width: 640px) {
-    .px-eriv__rail-lbl { font-size: 18px; }
-    .px-eriv__tag-tag, .px-eriv__tag-min, .px-eriv__tag-min tspan { font-size: 18px; }
-    .px-eriv__tag-num { font-size: 18px; }
-    .px-eriv__legtxt { font-size: 18px; }
-    .px-eriv__legtag { font-size: 18px; }
-    .px-eriv__legavg { font-size: 18px; }
-  }
-  /* ≤440px band: worst case 375px viewport (scale ≈0.49); floor 21px (the
-     PowerFlow bump) so 21×0.49 ≈ 10.4px rendered — never below 9.5px even
-     after card padding. */
-  @media (max-width: 440px) {
-    .px-eriv__rail-lbl { font-size: 21px; }
-    .px-eriv__rail-lbl--dk { display: none; }
-    .px-eriv__tag-full { display: none; }
-    .px-eriv__tag-min { display: inline; font-size: 21px; }
-    .px-eriv__legtxt { font-size: 21px; }
-    .px-eriv__legtag { font-size: 21px; }
-    .px-eriv__legavg { font-size: 21px; }
-  }
+  /* Mobile legibility: the min-width rule in dataviz-v2.css (Phase 5). The
+     bump that used to live here also swapped in abbreviated tag labels, which
+     the min-width makes unnecessary — at natural scale the full labels fit in
+     the space they were drawn for. */
 
   /* reduced motion / no-JS: full braided plate, no sweep, subject pre-stamped */
   @media (prefers-reduced-motion: reduce) {
