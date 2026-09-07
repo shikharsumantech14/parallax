@@ -493,10 +493,24 @@ with the full canon in `research/_voice/mode-library.md`.
   overlay chrome, modal / popover / toast chrome and the onboarding surface.
   The reading toolbar is flat (paper + 2px ink rule); glass is modal-only.
 
-- **Mobile: page overflow is fixed; in-SVG fine print is not.** Fixed-`viewBox`
-  cards still render fine print at ~3.4–7px at 375px. **Deliberate residual** —
-  Phase 5 of the revamp. Legibility is carried by the HTML layer and the ⤢
-  study view. Do not rediscover it as a bug.
+- **Mobile in-SVG legibility is FIXED for the scaling charts (2026-09-07).**
+  It was never a font-size problem, which is why it survived a year of being
+  described as one. Those SVGs are `width: 100%` over a fixed viewBox, so text
+  renders at `authored x (cardWidth / viewBoxWidth)` — at 375px a 720-unit
+  chart scales by 0.379 and an authored 9.5px lands at 3.6px. The fix is one
+  block in `dataviz-v2.css`: each chart gets a `min-width` equal to its own
+  coordinate width and the CARD scrolls, so the scale factor is 1 and every
+  label lands at the size it was drawn at. 23 charts, 3.1px → 9–12.5px,
+  measured across all six showcase issues.
+
+  **Read that block before touching any of it** — it records the exclusions and
+  why each one is not a bug: narrow-viewBox forms (dials, radars, ternary,
+  shot-map) already fit; the WebGL fallback SVGs carry no class to target;
+  `climate-spiral` is a square radial that wants a redraw, not a scroll;
+  `flight-of-the-ball` cannot be fixed this way at all because
+  `.viz3d--fball` pins an aspect-ratio on the mount; and `region-map` is short
+  of the floor because its labels are AUTHORED at 7.5px, which is a type-scale
+  call, not geometry.
 - **No sitemap integration.** `@astrojs/sitemap` was tried and removed — it
   errored on the collection shape. Verify before re-adding.
 
@@ -626,9 +640,12 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 - **Current state (read first):** `docs/STATE-OF-PLAY.md` — what is built,
   what is uncommitted, what is compile-verified only, what is still open.
-- **Design canon:** `docs/design/` — `CANON.md` (master rules — its 2026-09-04 amendments are a MARKED DRAFT
-  awaiting the operator's signature; build to them, but do not cite them as
-  signed), `catalog.md`
+- **Design canon:** `docs/design/` — `CANON.md` (master rules; the 2026-09-04
+  shell-adoption amendments were **signed 2026-09-05**, `0104915` — §13's two
+  universal acceptance checks are a live floor a reviewer can reject on).
+  `motion.md` was signed 2026-09-07 (`b06caec`) together with the `--t-page`
+  ruling it was waiting on: navigation split off to `--t-slow` (420ms) because
+  it answers a click, while in-page settling keeps 600ms. `catalog.md`
   (the 97-kind component palette), `motion.md`, the `*-SPEC.md` set,
   `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
