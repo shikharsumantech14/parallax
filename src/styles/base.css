@@ -999,9 +999,17 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 
 /* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */
+/* `--t-slow` (420ms), NOT `--t-page` (600ms), and the difference is the point.
+   This is the only motion on the site that answers a CLICK: the reader is
+   waiting on it, so 600ms reads as latency rather than as settling. Every
+   other `--t-page` use is scroll- or load-triggered, where nobody is blocked
+   and the slower tier is exactly the register the canon asks for.
+   The tokens are a magnitude ladder, so navigation sitting on the slow tier
+   is a statement about its scale, not a downgrade. Operator ruling
+   2026-09-07; motion.md `pageEnter` / `worldFade`. */
 @view-transition { navigation: auto; }
 ::view-transition-old(root), ::view-transition-new(root) {
-  animation-duration: var(--t-page);
+  animation-duration: var(--t-slow);
   animation-timing-function: var(--ease);
 }
 

@@ -1,19 +1,14 @@
 # Parallax motion vocabulary
 
-> **DRAFT AMENDMENTS AWAITING SIGNATURE (2026-09-04).** The `cardLift`,
-> `pageEnter` and `worldFade` rows, the `hoverLift` scope note, hard rule 7 and
-> the reduced-motion line for the two page motions were drafted at shell
-> adoption against the shipped CSS. Until this line is removed they are the
-> agent's draft, not law (REVAMP-PLAN §6). Open with them: whether `--t-page`
-> stays 600ms or is retimed toward the handoff's ~300/340ms.
->
 > The complete, closed set of motions used across the publication, the app, and
 > story mode. Blueprints and specs reference these **by name** — "markers use
 > `settle`, orbits use `orbitIdle`" — instead of restating curves. If a design
 > needs a motion not on this list, that is a canon change: flag it, don't invent it.
 >
 > Timing tokens come from `shared/design/tokens.css` (`--t-instant` 80ms ·
-> `--t-quick` 140ms · `--t-soft` 220ms · `--t-slow` 420ms · `--t-page` 600ms ·
+> `--t-quick` 140ms · `--t-soft` 220ms · `--t-slow` 420ms (also navigation —
+> see `pageEnter`) · `--t-page` 600ms (page-SCALE settling, not page
+> transitions) ·
 > `--ease` cubic-bezier(0.22,1,0.36,1) · `--ease-snap` cubic-bezier(0.16,1,0.3,1)).
 
 ## The register
@@ -64,8 +59,8 @@ live pulses) and must be slow enough to read as ambient, not busy.
 | `plateIn` | opacity 0→1 + translateY 10px→0 · 420ms `--ease` | app plates/cards on load, one stagger level max |
 | `lensSettle` | the two brand rings translate from ±6px overlap into registration + red sphere opacity 0→1 · 600ms `--ease-snap` · ONCE per surface | brand moment (login, welcome) — the only sanctioned flourish |
 | `toastIn` | translateY 12px→0 + opacity · 220ms `--ease` · auto-dismiss 8s · leave 160ms | WelcomeBack toast, save confirmations |
-| `pageEnter` | the CSS-native cross-document view transition (`@view-transition { navigation: auto }`, `base.css`) · `--t-page` **600ms** `--ease` · root crossfade, no transform | every navigation on the publication. **Named 2026-09-04; not retimed.** The handoff specifies ~300ms; `--t-page` is shared by five other transitions (welcome, dataviz), so retuning it is a token decision for the operator, recorded in REVAMP-PLAN §6, not made here |
-| `worldFade` | **the same view transition**, when the navigation also changes `data-topic` — the whole palette crossfades with the root. No separate implementation exists or is needed | desk → desk, issue → home. The handoff's 340ms is likewise unadopted pending the `--t-page` decision |
+| `pageEnter` | the CSS-native cross-document view transition (`@view-transition { navigation: auto }`, `base.css`) · `--t-slow` **420ms** `--ease` · root crossfade, no transform | every navigation on the publication. **Retimed 2026-09-07 by operator ruling.** It was on `--t-page` (600ms), but that token has 11 other sites — the section-number rise-in, the vote bar, SwingDial, MomentumWave, three in `app.css`, four in `welcome.css` — all of them scroll- or load-triggered. This is the only one answering a CLICK, and a waiting reader budgets motion differently, so it split off rather than dragging the settling register down with it |
+| `worldFade` | **the same view transition**, when the navigation also changes `data-topic` — the whole palette crossfades with the root. No separate implementation exists or is needed | desk → desk, issue → home. Retimed with `pageEnter` to 420ms — the handoff's ~300/340ms figures were about navigation specifically, which is what this now is |
 
 ## Hard rules
 
