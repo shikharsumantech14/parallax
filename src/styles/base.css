@@ -135,7 +135,7 @@ body {
      state costs no height and the open panel pushes the page down. */
   .mh__menu { display: block; flex: 1 0 100%; }
   .mh__menu-btn {
-    position: absolute; right: 20px; top: 4px;
+    position: absolute; right: 20px; top: 7px;   /* centred on the lockup: (63 − 5 − 44) / 2 − 4 border = 7 */
     display: inline-flex; align-items: center; gap: 6px;
     min-height: 44px;                    /* the touch floor */
     font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
@@ -841,6 +841,10 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   }
   .px-col li a { min-height: 36px; }
   .px-rows__row { min-height: 44px; }
+  /* Square buttons and the masthead lockup measured 33–34px on the phone
+     audit; the button grows in place, the lockup's tap band is invisible. */
+  .px-btn { min-height: 44px; }
+  .mh__brand { min-height: 44px; margin-block: -5px; } /* the band, not the row: the lockup was 34px, so the masthead stays 63px */
 }
 
 /* ── JUSTIFIED COPY (operator ruling 2026-09-08) ─────────────────────────────
