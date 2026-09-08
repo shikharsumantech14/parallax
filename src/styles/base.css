@@ -344,7 +344,9 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 /* PROSE — 18px/1.72 Literata, ragged right, the handoff's body register.
    (17.5px was the Schibsted equivalent of this; with one face the design's
    own number applies.) The drop cap is three lines of the accent on the
-   issue's FIRST prose paragraph — Phase 7's furniture, now in the language. */
+   issue's FIRST prose paragraph — Phase 7's furniture, now in the language.
+   `> p:first-child`, not `.px-prose__p:first-of-type`: a block that opens with
+   a lead paragraph would otherwise cap its SECOND paragraph (measured). */
 .px-prose { max-width: var(--col-prose); }
 .px-prose__lead {
   font-family: var(--font-display);
@@ -367,7 +369,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-prose__p:last-child { margin-bottom: 0; }
 .px-prose strong { color: var(--ink); font-weight: 700; }
 .px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; }
-#px-article > .px-prose-full:first-of-type .px-prose__p:first-of-type::first-letter {
+.px-prose-full--cap .px-prose > p:first-child::first-letter {
   float: left;
   font-size: 74px;
   font-weight: 700;

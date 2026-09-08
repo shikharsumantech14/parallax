@@ -18,9 +18,11 @@ import ActBreak from './core/ActBreak.astro';
 interface Props {
   section: Section;
   index: number;
+  /** The issue's first prose section carries the three-line drop cap. */
+  dropCap?: boolean;
 }
 
-const { section, index } = Astro.props;
+const { section, index, dropCap = false } = Astro.props;
 const data: any = section.data ?? {};
 
 const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`;
@@ -32,7 +34,7 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
 
 {section.kind === 'prose' && (
   <Fragment>
-    <div class="px-prose-full">
+    <div class:list={['px-prose-full', dropCap && 'px-prose-full--cap']}>
       <CoreSection
         number={autoNumber}
         eyebrow={section.eyebrow}

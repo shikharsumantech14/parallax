@@ -73,6 +73,10 @@ const toolbarTheme: 'light' | 'dark' = darkTopics.includes(data.topic) ? 'dark' 
    consume a number. The aside's contents list uses the same index. */
 let numbered = 0;
 const numberIndex = data.sections.map((s) => (s.kind === 'act-break' ? -1 : numbered++));
+/* The drop cap belongs to the issue's FIRST prose paragraph. Named here, not
+   by a :first-of-type selector: the reading gate inserts its own <div> ahead
+   of that block for signed-out readers, which used to steal "first". */
+const firstProse = data.sections.findIndex((s) => s.kind === 'prose');
 const contents = data.sections
   .map((s, i) => ({ s, n: numberIndex[i] }))
   .filter(({ s, n }) => n >= 0 && s.kind !== 'hero' && s.title)
@@ -129,7 +133,7 @@ const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 
     <article id="px-article" data-mode="full">
       {data.sections.map((section, i) => (
-        <SectionRenderer section={section} index={numberIndex[i]} />
+        <SectionRenderer section={section} index={numberIndex[i]} dropCap={i === firstProse} />
       ))}
       <span id="px-finish-sentinel" aria-hidden="true"></span>
     </article>
