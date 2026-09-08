@@ -838,3 +838,16 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   .px-h1 { font-size: 40px; }
   .px-lede { font-size: 17px; }
 }
+
+/* ── TOUCH FLOORS (launch audit, 2026-09-08) ──────────────────────────────────
+   Text links that are the only control in their row — the meta strip's
+   "← desk", the desk / next-issue nav, the gate's sign-in line, the footer
+   columns, the subscribe page's sign-in — measured 15–23px tall on a phone.
+   On a coarse pointer they get a tap band; with a mouse nothing moves. */
+@media (pointer: coarse) {
+  .px-ihead__back, .px-ihead__no, .px-inav a, .px-gate__alt, .px-subs__signin a {
+    display: inline-flex; align-items: center; min-height: 44px;
+  }
+  .px-col li a { min-height: 36px; }
+  .px-rows__row { min-height: 44px; }
+}

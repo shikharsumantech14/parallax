@@ -136,4 +136,10 @@ const { readTime = 7, issueId, theme = 'light' } = Astro.props;
     .rtb__meta { display: none; }
     .rtb :global(.px-save__btn) { padding: 7px 10px; font-size: 10px; letter-spacing: 0.12em; }
   }
+  /* The 44px touch floor for the strip's controls (launch audit: they measured
+     32px). The strip's own padding tightens so it grows by 6px, not 12. */
+  @media (pointer: coarse) {
+    .rtb__seg-btn, .rtb :global(.px-save__btn) { min-height: 44px; }
+    :global(html.js) .rtb { padding-top: 6px; }
+  }
 </style>
