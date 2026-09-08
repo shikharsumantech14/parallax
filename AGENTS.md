@@ -715,7 +715,11 @@ by that ruling — **do not "restore" them**:
   `core/ReactionsBar` (four hairline cells) → `core/LettersBlock` (rows + a
   square form) → `core/Sources` (260px label column) → desk / next-issue nav.
   Phones fold the rails into a 2×2 facts grid. `core/ReadingToolbar` is a
-  pinned flat strip with a 2px ink rule. **Margin notes are gone**
+  pinned flat strip with a 2px ink rule. **One body register:** prose and
+  section intros are both 18px/1.72 Literata in ink, JUSTIFIED with
+  hyphenation from 640px up (every flowing paragraph in the product is —
+  ledes, titles, captions and rows stay ragged); the drop cap was retired the
+  same day by ruling, "simple and consistent across all sections". **Margin notes are gone**
   (`AnnotationLayer` deleted; its API and moderation queue remain for
   letters). `Hero`, `Banner`, `Primer`, `Footer` deleted.
 - **One desk template** (`desk/DeskIndex.astro`); the six bespoke fronts are
