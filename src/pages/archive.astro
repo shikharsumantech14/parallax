@@ -2,6 +2,12 @@
 /**
  * /archive — every published issue, filterable by desk and by a live search.
  *
+ * Restyled to the launch design (2026-09-08): a head band, a filter band on
+ * the same 40px gutter, then the ONE row implementation (home/IssueRows) so a
+ * row on the archive and a row on the home page are the same object. The
+ * class hooks the island reads (`.px-archive__list` / `__row` / `__none`) come
+ * from IssueRows, which is why the script below needs no edit.
+ *
  * Built against the TEN REAL ISSUES. The handoff prototype's backlist carries
  * 24 rows of which 14 are fiction; §4-v3 says explicitly that they must not
  * shape this page, so nothing here is sized or worded around a backlist we do
@@ -16,7 +22,7 @@
 import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
-import ArchiveList from '../components/home/ArchiveList.astro';
+import IssueRows from '../components/home/IssueRows.astro';
 import { TOPICS, type Topic } from '../content/config';
 
 const published = (await getCollection('issues', (e) => e.data.status !== 'draft'));
@@ -31,6 +37,7 @@ const items = [...published]
     slug: issue.slug,
     topic: issue.data.topic,
     title: issue.data.title,
+    hook: issue.data.hook,
     issueNumber: issueNumberFor(issue.slug),
     publishedAt: issue.data.publishedAt,
     readTimeMinutes: issue.data.readTimeMinutes,
@@ -56,17 +63,22 @@ const countLabel = `${items.length} ${items.length === 1 ? 'issue' : 'issues'} �
   title="The archive · Parallax Lens"
   description="Every published Parallax issue, by desk and by date."
 >
-  <Masthead variant="meta" issueNumber={String(items.length).padStart(2, '0')} />
+  <Masthead
+    variant="meta"
+    current="archive"
+    issueNumber={String(items.length).padStart(2, '0')}
+  />
 
-  <header class="px-arch-head">
-    <p class="px-arch-head__count">{countLabel}</p>
-    <h1 class="px-arch-head__t">The archive</h1>
+  <header class="px-band px-arch__head">
+    <p class="px-meta px-arch__count">{countLabel}</p>
+    <h1 class="px-h1">The archive</h1>
   </header>
 
-  <div class="px-arch-filter" id="px-arch-filter" hidden>
-    <label class="px-arch-filter__search">
-      <span class="px-arch-filter__label">Search</span>
+  <div class="px-arch__filter" id="px-arch-filter" hidden>
+    <label class="px-arch__search">
+      <span class="px-meta px-arch__label">Search</span>
       <input
+        class="px-input px-arch__q"
         type="search"
         id="px-arch-q"
         placeholder="Title or desk…"
@@ -74,25 +86,77 @@ const countLabel = `${items.length} ${items.length === 1 ? 'issue' : 'issues'} �
         aria-describedby="px-arch-status"
       />
     </label>
-    <div class="px-arch-chips" role="group" aria-label="Filter by desk">
-      <button class="px-arch-chip" type="button" data-desk="" aria-pressed="true">All</button>
+    <div class="px-arch__chips" role="group" aria-label="Filter by desk">
+      <button class="px-chip px-arch-chip" type="button" data-desk="" aria-pressed="true">All</button>
       {desksWithIssues.map((t) => (
-        <button class="px-arch-chip" type="button" data-desk={t} aria-pressed="false">
-          <span class="px-arch-chip__dot" data-topic={t} aria-hidden="true"></span>
+        <button class="px-chip px-arch-chip" type="button" data-desk={t} aria-pressed="false">
+          <span class="px-arch__dot" style={`background: var(--topic-${t})`} aria-hidden="true"></span>
           {topicLabels[t]}
         </button>
       ))}
     </div>
-    <p class="px-arch-filter__status" id="px-arch-status" role="status" aria-live="polite"></p>
+    <p class="px-meta px-arch__status" id="px-arch-status" role="status" aria-live="polite"></p>
   </div>
 
-  <ArchiveList
-    items={items}
-    heading=""
+  <IssueRows
+    variant="home"
     filterable
+    items={items}
     emptyText={`Nothing published yet. The desks are ${TOPICS.map((t) => topicLabels[t]).join(', ')} — the first issue will open one of them.`}
   />
 </HomeLayout>
+
+<style>
+  /* The head band: the count in the meta voice, then the headline. Nothing
+     follows the h1 inside the band, so its own bottom margin is dropped and
+     the band's 40px does the spacing. */
+  .px-arch__count { margin: 0 0 14px; }
+  .px-arch__head .px-h1 { margin-bottom: 0; }
+
+  /* The filter band sits on the same 40px gutter as every other band, at the
+     tighter 16px rhythm the controls want. It ships `hidden`, so the display
+     rule has to yield to the attribute — the island unhides it. */
+  .px-arch__filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
+    padding: 16px 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .px-arch__filter[hidden] { display: none; }
+
+  .px-arch__search { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; }
+  .px-arch__label { flex: 0 0 auto; }
+  .px-arch__q { flex: 1 1 auto; min-width: 0; max-width: 320px; min-height: 44px; }
+
+  .px-arch__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* The chips are the shared .px-chip. meta.css still carries the Phase-7
+     .px-arch-chip skin (paper fill, rule border, accent-tinted pressed
+     state) and the class has to stay for the island's querySelector, so the
+     launch look is restated here — a scoped rule outranks the global one. */
+  .px-arch-chip {
+    background: transparent;
+    border-color: color-mix(in oklab, var(--ink) 22%, transparent);
+    color: var(--ink);
+  }
+  .px-arch-chip:hover { border-color: var(--ink); }
+  .px-arch-chip[aria-pressed='true'] {
+    border-color: var(--ink);
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    color: var(--ink);
+  }
+  .px-arch__dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+
+  .px-arch__status { margin: 0; flex: 0 0 auto; }
+
+  @media (max-width: 768px) {
+    .px-arch__filter { gap: 12px 16px; padding: 14px 20px; }
+    .px-arch__search { width: 100%; }
+    .px-arch__q { max-width: none; }
+  }
+</style>
 
 <script is:inline>
   (function () {

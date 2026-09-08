@@ -1,4 +1,15 @@
 ---
+/**
+ * Sources — the end-matter block (launch design, 2026-09-08).
+ *
+ * A band with the canvas's 260px label column ("Sources" eyebrow, "N cited.",
+ * one line of dek) beside the rows: number · title with a ↗ · publisher and
+ * the source's kind. Every row is a real link; the count is the array length,
+ * never a stated number.
+ *
+ * Root class stays `px-sources`: core/ReadingGate.astro hides it by that name
+ * for readers who have not passed the wall.
+ */
 import type { Source } from '../../content/config';
 
 interface Props {
@@ -10,21 +21,71 @@ function hostname(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ''); }
   catch { return url; }
 }
+const n = sources.length;
 ---
 
-<section class="px-sources">
-  <h2 class="px-sources__title">Sources &amp; further reading</h2>
-  <ol>
-    {sources.map((s) => (
-      <li>
-        <strong>{s.title}</strong> — {s.publisher}.
-        {' '}
-        <a href={s.url} target="_blank" rel="noopener noreferrer">{hostname(s.url)}</a>
-        {' · '}
-        <span style="text-transform: uppercase; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted);">
-          {s.kind}
-        </span>
-      </li>
-    ))}
-  </ol>
+<section class="px-sources px-band" id="sources" aria-labelledby="px-sources-title">
+  <div class="px-sources__grid">
+    <div class="px-sources__label">
+      <p class="px-eyebrow">Sources</p>
+      <h2 class="px-sources__title" id="px-sources-title">{n} cited.</h2>
+      <p class="px-sources__dek">Every number above traces to one of these. Primary sources first.</p>
+    </div>
+    <ol class="px-sources__list">
+      {sources.map((s, i) => (
+        <li class="px-sources__row">
+          <span class="px-sources__no">{String(i + 1).padStart(2, '0')}</span>
+          <span class="px-sources__t">
+            <a href={s.url} target="_blank" rel="noopener noreferrer">{s.title} <span class="px-sources__arrow" aria-hidden="true">↗</span></a>
+            <span class="px-sources__host">{hostname(s.url)}</span>
+          </span>
+          <span class="px-sources__meta">{s.publisher} · {s.kind}</span>
+        </li>
+      ))}
+    </ol>
+  </div>
 </section>
+
+<style>
+  .px-sources__grid { display: grid; grid-template-columns: 260px 1fr; gap: 34px; align-items: start; }
+  .px-sources__title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    color: var(--ink);
+  }
+  .px-sources__dek { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 34ch; }
+  .px-sources__list { list-style: none; margin: 0; padding: 0; }
+  .px-sources__row {
+    display: grid;
+    grid-template-columns: 48px 1fr 240px;
+    gap: 14px;
+    align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .px-sources__row:last-child { border-bottom: 1px solid var(--rule); }
+  .px-sources__no,
+  .px-sources__meta {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-sources__meta { text-align: right; }
+  .px-sources__t { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .px-sources__t a { font-size: 15px; line-height: 1.5; color: var(--ink); text-decoration: none; }
+  .px-sources__t a:hover { color: var(--accent-deep, var(--accent)); }
+  .px-sources__arrow { color: var(--accent-deep, var(--accent)); }
+  .px-sources__host { font-size: 11px; letter-spacing: 0.04em; color: var(--muted); }
+  @media (max-width: 1100px) {
+    .px-sources__grid { grid-template-columns: 1fr; gap: 22px; }
+  }
+  @media (max-width: 768px) {
+    .px-sources__title { font-size: 28px; }
+    .px-sources__row { grid-template-columns: 40px 1fr; }
+    .px-sources__meta { grid-column: 2 / 3; text-align: left; }
+  }
+</style>

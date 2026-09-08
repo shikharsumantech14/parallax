@@ -37,8 +37,10 @@ interface Props {
    *  render theirs inside the card; dataviz-v2.css hides this copy when the
    *  slotted card already carries one, so a section shows exactly one. */
   howToRead?: string;
+  /** Anchor for the aside's contents list (launch design). */
+  id?: string;
 }
-const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead } = Astro.props;
+const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead, id } = Astro.props;
 
 const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
 const howText = howToRead ?? (kind ? EXPLAIN[kind]?.how : undefined);
@@ -53,7 +55,7 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
 ---
 
 {isSplit ? (
-  <section class="px-section" data-reveal data-kind={kind} data-layout={layoutAttr}>
+  <section class="px-section" id={id} data-reveal data-kind={kind} data-layout={layoutAttr}>
     <div class="px-section__copy">
       {number && <div class="px-section__num" data-n={number}>{number}</div>}
       {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
@@ -74,7 +76,7 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
     </div>
   </section>
 ) : (
-  <section class="px-section" data-reveal data-kind={kind} data-layout={layoutAttr}>
+  <section class="px-section" id={id} data-reveal data-kind={kind} data-layout={layoutAttr}>
     {number && <div class="px-section__num" data-n={number}>{number}</div>}
     {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
     {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}

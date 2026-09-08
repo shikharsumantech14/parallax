@@ -530,3 +530,22 @@ in `src/components/AGENTS.md` §10.
 ### 2026-05-20 — File created
 Initial version. Captures schema, primer + skimCaption rules, source
 constraints, common build errors, EDITOR-flag convention.
+
+## `plate` — a framed photograph (launch design, 2026-09-08)
+
+```yaml
+- kind: plate
+  data:
+    src: /plates/2026-04-24-delimitation/chamber.jpg   # under public/; required — no src, no section
+    alt: The Lok Sabha chamber, empty, from the press gallery
+    caption: the chamber, empty
+    credit: PIB
+    number: 1            # optional → "Plate 01 · the chamber, empty"
+    fit: cover           # or contain
+    height: 300          # px, optional
+```
+
+One per issue, after the opening prose and before the first figure. The
+credit is the plate's own caption row — do not also set `source`. The
+component renders nothing without `src`, so a plate can be authored ahead
+of the photograph without leaving an empty frame on the page.

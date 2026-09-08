@@ -13,6 +13,7 @@ import type { Section } from '../content/config';
 import Quote from './core/Quote.astro';
 import BeatSheet from './core/BeatSheet.astro';
 import Prose from './core/Prose.astro';
+import Plate from './core/Plate.astro';
 import Comparison from './core/Comparison.astro';
 import DataReadout from './core/DataReadout.astro';
 
@@ -192,6 +193,10 @@ const data: any = {
 
     {section.kind === 'prose' && (
       <Prose lead={data.lead} paragraphs={data.paragraphs ?? []} />
+    )}
+
+    {section.kind === 'plate' && (
+      <Plate src={data.src} alt={data.alt} caption={section.caption ?? data.caption} credit={data.credit} number={data.number} fit={data.fit} height={data.height} />
     )}
 
     {section.kind === 'comparison' && (

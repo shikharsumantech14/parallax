@@ -29,22 +29,18 @@
  * because a display cut is high-contrast and its hairlines fall below coverage.
  * `glyphTier` flips at the same 96/40/24 steps the ring uses.
  *
+ * TIGHT (launch design, 2026-09-08). The brand SVGs carry 15 units of clear
+ * space on every side; in a LOCKUP that space is invisible air the gap gets
+ * measured from, which is why the masthead's mark looked loosely placed. With
+ * `tight` the viewBox is trimmed to the ring's outer edge and `size` is the
+ * visible disc — a 12px gap then means 12px from the ring. Standalone marks
+ * (About's 168px, the icon set) keep the full box.
+ *
  * RD-10's misuse list, enforced by construction: no gradient or sphere shading,
  * no off-station dial, no rotation, no second accent, no substitute letter, no
  * drop shadow.
- *
- * WHY THE OUTLINE AT ALL, measured rather than asserted: rasterise the
- * delivered mark.svg the way a favicon renderer does and it does NOT fail
- * loudly — it renders a P in Georgia off the font-family fallback stack, 21%
- * heavier than Literata's and a different letterform (504 ink pixels against
- * 417 at 96px). A wrong mark that looks fine is worse than a missing one.
- *
- * ONE DISCREPANCY FOR STEP 3: RD-10 says auto-reverse "below 24px", which is
- * what this implements, but the delivered favicon.svg is the reversed cut at
- * 32px. The spec threshold and the shipped asset disagree. Pass `cut`
- * explicitly when generating files rather than leaning on the default.
  */
-import { markBody, type Cut, type Desk } from '../../lib/mark';
+import { markBody, ringFor, viewBoxFor, type Cut, type Desk } from '../../lib/mark';
 import type { Topic } from '../../content/config';
 
 interface Props {
@@ -56,12 +52,20 @@ interface Props {
   cut?: Cut;
   /** `false` draws the phase only — crescent and ring, no letter. */
   glyph?: boolean;
+  /** Trim the clear space: `size` becomes the visible disc (lockups). */
+  tight?: boolean;
+  /** Pin the ring weight (SVG units) instead of the size ladder. */
+  ring?: number;
   /** Accessible name. Omit for a decorative mark beside a wordmark. */
   title?: string;
   class?: string;
 }
 
-const { desk = 'politics', size = 40, cut, glyph = true, title, class: extra } = Astro.props;
+const {
+  desk = 'politics', size = 40, cut, glyph = true, tight = false, ring: ringProp, title, class: extra,
+} = Astro.props;
+
+const ring = ringProp ?? ringFor(size);
 
 /* Geometry lives in src/lib/mark.ts — one definition for this component, the
    favicon writer and the OG cards, which cannot share CSS with anything. */
@@ -70,6 +74,7 @@ const body = markBody({
   size,
   cut,
   glyph,
+  ring,
   /* Tokens, so the mark rethemes with its world and the six desk cuts need no
      separate files. `--topic-*` is defined on meta pages too (meta.css), so
      the house cut works off-world. */
@@ -86,7 +91,7 @@ const labelled = Boolean(title);
 
 <svg
   class:list={['px-mark', extra]}
-  viewBox="0 0 300 300"
+  viewBox={viewBoxFor(ring, tight)}
   width={size}
   height={size}
   role={labelled ? 'img' : undefined}

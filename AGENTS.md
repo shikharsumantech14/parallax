@@ -53,14 +53,14 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts — unified trio: **Fraunces** (serif voice: headlines, leads, nameplates, the one italic accent word), **Schibsted Grotesk** (the single sans: body, UI, structural headings — replaced Inter Tight as `--font-body`), **JetBrains Mono** (labels, eyebrows, numerals). The old per-world display faces (Space Grotesk, Cormorant Garamond, Oswald, Inter Tight, IBM Plex) are retired; see §3 / §7. |
+| Fonts        | Google Fonts — **ONE family, Literata** (launch design, 2026-09-08). The three ROLE tokens `--font-display` / `--font-body` / `--font-mono` survive so 98 kinds keep compiling, but all resolve to Literata; roles differ by size / weight / case / tracking (display 700 tight, body 400, labels 600 small capitals tracked .14–.20em). Tabular figures on `<body>`. The trio (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces before it are retired; the share cards render on static Literata Bold / Medium from `assets/fonts/`. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **97 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
+| Section library | **98 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -102,9 +102,13 @@ Each topic has full tokens, masthead variant, topic-index page template,
 and signature section kinds.
 
 Worlds: **politics · space · earth · tech · travel · sports**. They differ by
-**accent colour + treatment** (case / weight / italic / ornament / motif),
-**never by typeface** — the type trio is unified product-wide (§7). Older docs
-carry a per-world "Display font" column; it is historical, do not restore it.
+**colour** — ground, ink, rule, accent — and by their register line ("Politics
+desk", "Mission control"). Since the launch design (2026-09-08) they share ONE
+typeface (Literata) AND one type language: the per-world eyebrow / numeral /
+prose treatments that the themes used to carry were removed. Older docs carry
+a per-world "Display font" column and "treatment" notes; both are historical.
+The HOUSE (home, about, archive, subscribe) is the politics record — same
+ground, ink and oxide-red accent — set in `src/styles/meta.css`.
 
 → Palette values, the `-deep` variants, colour law and the type trio:
   **`.claude/rules/design-tokens.md`** (loads on `src/styles|shared/design|components/topic/**`).
@@ -156,8 +160,10 @@ src/
 │   │                            Also resolves `howToRead ?? EXPLAIN[kind].how`
 │   │                            for the ten VizCard kinds so the panel renders
 │   │                            inside the card (Section's copy hides via :has()).
-│   ├── core/                  ← topic-agnostic (Masthead, Banner, Hero,
-│   │                            Primer, Section [owns ALL explainability chrome for
+│   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
+│   │                            IssueHead [meta strip · head · primer], Plate
+│   │                            [a framed photograph — renders only with an
+│   │                            image], Section [owns ALL explainability chrome for
 │   │                            every kind: how-to-read panel ABOVE the graphic,
 │   │                            plain line + `Source · …` second line BELOW —
 │   │                            components render none of it], VizCard [the
@@ -177,10 +183,13 @@ src/
 │   │                            (5-scene player), IntroExperience (home
 │   │                            first-visit overlay + spotlight tour),
 │   │                            WorldViz (per-category mini data-viz)
-│   ├── home/                  ← meta-brand pieces (TypographicChord,
-│   │                            TopicStrip, CategoryCard, CategoryGrid,
-│   │                            ArchiveList, FeaturedIssue)
-│   └── topic/<topic>/         ← per-topic signature components + <Topic>Index
+│   ├── home/                  ← IssueRows — the ONE list-row implementation
+│   │                            (home, archive, desks). The old home pieces
+│   │                            (cards, plate, wire, chord, strips) retired
+│   │                            2026-09-08; the home page is scoped styles
+│   ├── desk/                  ← DeskIndex — one template for all six desks
+│   │                            (the six bespoke <Topic>Index fronts retired)
+│   └── topic/<topic>/         ← per-topic signature components
 ├── styles/
 │   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode + `.mh` masthead
 │   │                            + the RD-05 radius flip (`--r-card: 0; --r-tile: 0`
@@ -430,7 +439,8 @@ with the full canon in `research/_voice/mode-library.md`.
   word in titles, e.g. `The *Architecture* of Every Crisis`). `**text**` →
   `<strong>`. See `src/lib/text.ts` for the renderers.
 - **Topic-index dispatch.** `src/pages/topics/[topic].astro` is a slim
-  dispatcher — actual composition lives in `src/components/topic/<topic>/<Topic>Index.astro`.
+  dispatcher — actual composition lives in `src/components/desk/DeskIndex.astro`,
+  ONE template for all six desks (the bespoke fronts retired 2026-09-08).
   Do not add per-topic logic back to the route.
 - **Status flag pipeline.** `draft` → `review` → `published`. Only
   `status: 'published'` (actually `!== 'draft'`) shows up on public pages.
@@ -457,9 +467,21 @@ with the full canon in `research/_voice/mode-library.md`.
 
 ### Visual rules
 
-- **One type trio product-wide** — Fraunces / Schibsted Grotesk / JetBrains
-  Mono. Worlds differ by accent + treatment, **never typeface**. Single lever:
-  `src/styles/type-v2.css`, imported last. Do not reintroduce per-world faces.
+- **One typeface product-wide — Literata** (launch design, 2026-09-08). The
+  three role tokens all resolve to it; roles differ by size / weight / case /
+  tracking. Worlds differ by colour, **never typeface, never treatment**.
+  Single lever: `src/styles/type-v2.css`, imported last. Do not reintroduce
+  per-world faces or per-world eyebrow / numeral / prose cuts in the themes.
+- **The frame is 1280 with no side padding** (`.px-wrap`); every page is a
+  stack of full-width bands (`.px-band`, 46/40px → 24/20px on phones) split by
+  hairlines, built from the launch primitives at the end of `base.css`
+  (`.px-h1`, `.px-lede`, `.px-eyebrow`, `.px-meta`, `.px-btn`, `.px-cells`,
+  `.px-chip`, `.px-input`). Page styles are SCOPED to their page; `meta.css`
+  is tokens only. The issue floor plan is 170 / 1fr / 250 on that frame, which
+  is what makes the prose column exactly 720 — the old 980 cap left it 436.
+- **Zero rounded corners.** `--r-card`, `--r-tile` AND `--r-pill` are all 0
+  in `base.css :root` (the pill joined on 2026-09-08 by operator ruling on the
+  canvas). Only colour dots and the medallion are round.
 - **In-SVG `<text>` uses a literal font stack, never `var()`** (RD-01b).
 - **Small text on a light ground uses `--accent-deep`**; TD-06: any fill that
   carries text uses `--accent-deep` (the vivid accent fails travel at 3.91:1).
@@ -487,8 +509,8 @@ with the full canon in `research/_voice/mode-library.md`.
   `src/styles/base.css` `:root`, NOT in `shared/design/tokens.css`. That split
   existed because app/ read those tokens; the merge removed the reason, so the
   override is vestigial — moving it is an RD-05 call, not a cleanup.
-  `--r-pill` is deliberately
-  untouched (43 sites of UI chrome). Shadows survive only on focus rings, inset
+  `--r-pill` was flipped to 0 with the launch design (2026-09-08) — chips,
+  CTAs and the reading strip are square. Shadows survive only on focus rings, inset
   hairlines, data-mark halos, slider thumbs, CSS-3D scene depth (RD-06), viz3d
   overlay chrome, modal / popover / toast chrome and the onboarding surface.
   The reading toolbar is flat (paper + 2px ink rule); glass is modal-only.
@@ -658,6 +680,62 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-08 — The launch design (public launch 19 September)
+
+The operator reviewed the live product against the Claude Design handoff and
+ruled that its loose adoption was the problem, not the handoff: the reading
+column was 436px because the handoff's three-column issue grid had been put
+into a 980px frame; the product ran three typefaces where the design runs one;
+the brand lockup was placed by its file's clear space, not its ring. A canvas
+prototype (twelve artboards, desktop + phone) was drawn from the handoff's own
+`Parallax Web.dc.html`, approved, and then implemented. Standing rules changed
+by that ruling — **do not "restore" them**:
+
+- **Literata everywhere** (§2, §7). The three role tokens survive as names
+  only. `type-v2.css` is the lever; the share cards use static Literata Bold /
+  Medium (`scripts/social/cards.ts`, `scripts/fetch-fonts.mjs`).
+- **1280 frame, hairline bands, scoped page styles** (§4, §7). `.px-wrap` has
+  no padding; `meta.css` is tokens only (816 → 60 lines); the launch
+  primitives live at the end of `base.css`; the six themes lost their
+  per-world type overrides of the section chrome.
+- **`--r-pill: 0`** (§7) — the RD-05 carve-out is closed.
+- **The house is the politics record** (§3, `meta.css`) — the canvas was
+  approved in it, and the mark's house cut already sat at 325°.
+- **The masthead lockup** (`core/Masthead.astro`, `.mh`): the medallion drawn
+  TIGHT (`Mark tight` — the ring is the edge), a 25px/700 wordmark with its cap
+  centre on the disc centre (measured −1.5px nudge; −2px at 21px), the desk
+  register centred on the same axis; nav Home · Desks · Archive · About; the
+  live badge; the account slot; a square Subscribe. Below 768px a native
+  `<details>` Menu. The footer (`core/Colophon.astro`) uses the same lockup.
+- **The issue page** (`pages/issues/[slug].astro`): `core/IssueHead.astro`
+  (meta strip · eyebrow · headline · hook · primer on a 4px accent rule) →
+  the floor plan with a 720 measure, the facts rail (№ · published · reading
+  time · sources · voice) and an aside (the dek, a contents list, share) →
+  `core/ReactionsBar` (four hairline cells) → `core/LettersBlock` (rows + a
+  square form) → `core/Sources` (260px label column) → desk / next-issue nav.
+  Phones fold the rails into a 2×2 facts grid. `core/ReadingToolbar` is a
+  pinned flat strip with a 2px ink rule. **Margin notes are gone**
+  (`AnnotationLayer` deleted; its API and moderation queue remain for
+  letters). `Hero`, `Banner`, `Primer`, `Footer` deleted.
+- **One desk template** (`desk/DeskIndex.astro`); the six bespoke fronts are
+  deleted. Desk copy is `src/lib/desks.ts` (`DESK_COPY`), shared with the home
+  cards so the two can never disagree.
+- **Home, About, Archive rebuilt; `/subscribe` added** (free dispatch on the
+  left, membership on the right with ₹149/mo struck through to ₹0 for the
+  beta — the operator's ruling; "Become a member" opens a free account). All
+  numbers on the home page are derived from the published collection.
+- **New kind `plate`** (`core/Plate.astro`, 98 kinds): a framed photograph
+  with caption and credit that renders NOTHING without an image — no empty
+  frames on launch day. Narrative for every gate (no plain line, no how-to-
+  read, not the reading gate's free graphic, never a story card).
+- `IssueRows` (`home/IssueRows.astro`) is the one row implementation; its
+  `.px-archive__*` hooks keep the archive's filter island unchanged.
+- Measured, not assumed: 720px measure at 1280; masthead one row at 1280
+  with ~230px spare; lockup centres within 0.2px; 412px pages pass the
+  honest overflow test; every menu link is 44px; the full gated build,
+  `check:catalog` (98 ↔ 98), `design:check` and `hooks:test` are green.
+
 
 ### 2026-09-04 — Shell adoption (Phase 6.1) lands; REVAMP-PLAN v3 signed
 

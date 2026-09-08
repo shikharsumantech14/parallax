@@ -32,7 +32,12 @@
   .px-vexp { width: 44px; height: 44px; font-size: 17px; }
 }
 /* roots that aren't already positioned (px-viz/.vb/.tl/.tel are, defensively) */
-.vb, .tl, .tel { position: relative; }
+.vb, .tl, .tel, [data-viz-root] { position: relative; }
+/* `[data-viz-root]` joined the list 2026-09-08: the bespoke roots (`.px-bills`,
+   `.px-seats`, …) were static, so until their scroll-in transform created a
+   containing block the ⤢ button resolved to the PAGE's top-right corner — and
+   under prefers-reduced-motion, which neutralises that transform, it stayed
+   there, floating over the masthead on phones. */
 
 /* ── the modal ─────────────────────────────────────────────────────────── */
 .px-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }

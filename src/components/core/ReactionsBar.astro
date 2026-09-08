@@ -1,27 +1,22 @@
 ---
 /**
- * ReactionsBar — client island that lets readers mark how an issue landed.
+ * ReactionsBar — "How did this land?" (launch design, 2026-09-08).
  *
- * Four kinds, multi-select. Counts visible only after ≥3 reactions issue-wide
- * (avoid "0 likes" loneliness). Anonymous users see the buttons but get
- * redirected to login on click.
+ * Four square cells in a 1px hairline grid, each a button: the label in small
+ * capitals over its help line. A chosen cell takes the accent tint and a 4px
+ * accent edge on the leading side — the handoff's "selected" state. Multi-
+ * select; counts appear only after three reactions issue-wide (no "0 likes"
+ * loneliness). Anonymous readers see the cells and are sent to sign in on
+ * the first click.
  *
- * Placement: end of issue body, before the bottom back-to-desk link.
- * Restrained editorial register — no emoji floods, no animation flourish.
+ * Root class stays `px-reactions`: core/ReadingGate.astro hides it by name
+ * until the wall is passed. Same API as before (`/api/reactions/<id>`).
  */
-
 interface Props {
   issueId: string;
 }
 const { issueId } = Astro.props;
 
-/* Same-origin since the merge — relative paths follow the reader to whatever
-   host served the page, so no redirect can turn these cross-origin. */
-
-/**
- * Kind descriptors. The label is the user-facing word; the help line is
- * shown as the title attribute. Keep these editorial, not gamified.
- */
 const KINDS = [
   { id: 'think',     label: 'Made me think',  help: 'This sparked thought I want to sit with.' },
   { id: 'agree',     label: 'Resonates',      help: 'This matches how I read the issue.' },
@@ -30,29 +25,29 @@ const KINDS = [
 ];
 ---
 
-<section class="px-reactions" data-issue-id={issueId} aria-labelledby="px-reactions-title">
-  <h2 class="px-reactions__title" id="px-reactions-title">How did this land?</h2>
-  <p class="px-reactions__dek">
-    A small private signal back to the editor. Multiple can apply.
-  </p>
-
-  <div class="px-reactions__row" role="group" aria-label="Reaction options">
-    {KINDS.map((k) => (
-      <button
-        type="button"
-        class="px-reactions__btn"
-        data-kind={k.id}
-        data-active="false"
-        title={k.help}
-        aria-pressed="false"
-      >
-        <span class="px-reactions__label">{k.label}</span>
-        <span class="px-reactions__count" aria-hidden="true"></span>
-      </button>
-    ))}
+<section class="px-reactions px-band" data-issue-id={issueId} aria-labelledby="px-reactions-title">
+  <div class="px-reactions__grid">
+    <div class="px-reactions__label">
+      <p class="px-eyebrow">Reader signal</p>
+      <h2 class="px-reactions__title" id="px-reactions-title">How did this <em>land</em>?</h2>
+      <p class="px-reactions__dek">A private signal to the editor. Pick as many as apply — nobody else sees it, and it shapes what runs next.</p>
+      <p class="px-reactions__status" aria-live="polite"></p>
+    </div>
+    <div class="px-reactions__row px-cells" role="group" aria-label="Reaction options">
+      {KINDS.map((k) => (
+        <button
+          type="button"
+          class="px-reactions__btn"
+          data-kind={k.id}
+          data-active="false"
+          aria-pressed="false"
+        >
+          <span class="px-reactions__label-t"><span class="px-reactions__tick" aria-hidden="true">✓ </span>{k.label}<span class="px-reactions__count" aria-hidden="true"></span></span>
+          <span class="px-reactions__help">{k.help}</span>
+        </button>
+      ))}
+    </div>
   </div>
-
-  <p class="px-reactions__status" aria-live="polite"></p>
 </section>
 
 <script is:inline>
@@ -68,11 +63,7 @@ const KINDS = [
     var btns = root.querySelectorAll('.px-reactions__btn');
     var statusEl = root.querySelector('.px-reactions__status');
 
-    var state = {
-      userKinds: [],   // kinds the current user has applied
-      counts: null,    // null if total < threshold; else { kind: n }
-      signedOut: true,
-    };
+    var state = { userKinds: [], counts: null, signedOut: true };
 
     function applyState() {
       btns.forEach(function (btn) {
@@ -83,23 +74,18 @@ const KINDS = [
         var countEl = btn.querySelector('.px-reactions__count');
         if (countEl) {
           var n = state.counts && state.counts[kind] ? state.counts[kind] : 0;
-          countEl.textContent = state.counts && n > 0 ? String(n) : '';
+          countEl.textContent = state.counts && n > 0 ? ' · ' + n : '';
         }
       });
     }
 
     function setStatus(text, kind) {
       statusEl.textContent = text || '';
-      statusEl.className = 'px-reactions__status' +
-        (kind === 'err' ? ' px-reactions__status--err' : '');
+      statusEl.className = 'px-reactions__status' + (kind === 'err' ? ' px-reactions__status--err' : '');
     }
 
-    // Initial load
     fetch(apiUrl, { method: 'GET', credentials: 'include' })
-      .then(function (res) {
-        state.signedOut = res.status === 401;
-        return res.ok ? res.json() : null;
-      })
+      .then(function (res) { state.signedOut = res.status === 401; return res.ok ? res.json() : null; })
       .then(function (data) {
         if (data && data.ok) {
           state.userKinds = Array.isArray(data.userKinds) ? data.userKinds : [];
@@ -107,29 +93,19 @@ const KINDS = [
         }
         applyState();
       })
-      .catch(function () {
-        // Network failure — leave UI in default state, buttons remain interactive
-        applyState();
-      });
+      .catch(function () { applyState(); });
 
     btns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var kind = btn.dataset.kind;
         if (!kind) return;
-
         if (state.signedOut) {
-          var nextUrl = window.location.href;
-          window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
+          window.location.href = '/login?next=' + encodeURIComponent(window.location.href);
           return;
         }
-
-        // Optimistic toggle
         var wasActive = state.userKinds.indexOf(kind) !== -1;
-        if (wasActive) {
-          state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
-        } else {
-          state.userKinds.push(kind);
-        }
+        if (wasActive) state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
+        else state.userKinds.push(kind);
         applyState();
 
         btn.disabled = true;
@@ -142,8 +118,7 @@ const KINDS = [
           .then(function (res) {
             if (res.status === 401) {
               state.signedOut = true;
-              var nextUrl = window.location.href;
-              window.location.href = '/login?next=' + encodeURIComponent(nextUrl);
+              window.location.href = '/login?next=' + encodeURIComponent(window.location.href);
               return null;
             }
             return res.json();
@@ -155,130 +130,76 @@ const KINDS = [
               state.counts = data.counts || null;
               applyState();
             } else {
-              // Revert
               if (wasActive) state.userKinds.push(kind);
               else state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
               applyState();
-              setStatus(data.error || 'Couldn’t save reaction. Try again.', 'err');
+              setStatus(data.error || 'Couldn’t save that. Try again.', 'err');
             }
           })
           .catch(function () {
-            // Revert
             if (wasActive) state.userKinds.push(kind);
             else state.userKinds = state.userKinds.filter(function (k) { return k !== kind; });
             applyState();
             setStatus('Network error. Try again.', 'err');
           })
-          .finally(function () {
-            btn.disabled = false;
-          });
+          .finally(function () { btn.disabled = false; });
       });
     });
   })();
 </script>
 
 <style>
-  .px-reactions {
-    margin: 56px 0 32px;
-    padding: 32px 0;
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-  }
+  .px-reactions__grid { display: grid; grid-template-columns: 260px 1fr; gap: 34px; align-items: start; }
   .px-reactions__title {
+    margin: 0 0 10px;
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 22px;
-    line-height: 1.25;
-    letter-spacing: -0.005em;
-    margin: 0 0 8px;
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
     color: var(--ink);
   }
-  .px-reactions__dek {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 300;
-    font-size: 15px;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0 0 20px;
-    max-width: 54ch;
-  }
-
-  .px-reactions__row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
+  .px-reactions__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-reactions__dek { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 34ch; }
+  .px-reactions__row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .px-reactions__btn {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid var(--rule);
-    color: var(--ink-soft);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    padding: 10px 14px;
-    cursor: pointer;
-    border-radius: var(--r-pill);
-    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
-    line-height: 1;
-  }
-  .px-reactions__btn:hover:not(:disabled) {
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 132px;
+    padding: 18px 16px;
+    border: 0;
+    border-left: 4px solid transparent;
+    background: var(--bg);
     color: var(--ink);
-    border-color: var(--ink);
-    transform: translateY(-1px);
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
   }
-  .px-reactions__btn:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-
+  .px-reactions__btn:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 4%, var(--bg)); }
+  .px-reactions__btn:focus-visible { outline: 2px solid var(--accent-deep, var(--accent)); outline-offset: -2px; }
+  .px-reactions__btn:disabled { cursor: default; opacity: 0.7; }
   .px-reactions__btn[data-active="true"] {
-    color: var(--accent-deep, var(--accent));
-    border-color: var(--accent-deep, var(--accent));
-    background: color-mix(in oklab, var(--accent) 8%, transparent);
+    background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+    border-left-color: var(--accent);
   }
+  .px-reactions__label-t {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink);
+  }
+  .px-reactions__btn[data-active="true"] .px-reactions__label-t { color: var(--accent-deep, var(--accent)); }
+  .px-reactions__tick { display: none; }
+  .px-reactions__btn[data-active="true"] .px-reactions__tick { display: inline; }
+  .px-reactions__count { font-variant-numeric: tabular-nums; }
+  .px-reactions__help { font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+  .px-reactions__status { margin: 12px 0 0; font-size: 12px; color: var(--muted); min-height: 1.2em; }
+  .px-reactions__status--err { color: var(--accent-deep, var(--accent)); }
 
-  .px-reactions__label {
-    /* nothing extra */
+  @media (max-width: 1100px) {
+    .px-reactions__grid { grid-template-columns: 1fr; gap: 22px; }
   }
-
-  .px-reactions__count {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    /* Empty count → invisible; non-empty → small chip after the label */
-  }
-  .px-reactions__count:empty {
-    display: none;
-  }
-  .px-reactions__btn[data-active="true"] .px-reactions__count {
-    color: var(--accent-deep, var(--accent));
-  }
-
-  .px-reactions__status {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin: 14px 0 0;
-    min-height: 1em;
-  }
-  .px-reactions__status--err {
-    color: #c0392b;
-  }
-
-  @media (max-width: 480px) {
-    .px-reactions { margin: 40px 0 24px; padding: 24px 0; }
-    .px-reactions__title { font-size: 19px; }
-    .px-reactions__btn {
-      flex: 1 1 calc(50% - 5px);
-      justify-content: center;
-    }
+  @media (max-width: 768px) {
+    .px-reactions__title { font-size: 28px; }
+    .px-reactions__row { grid-template-columns: 1fr 1fr; }
+    .px-reactions__btn { min-height: 112px; padding: 16px 14px; }
   }
 </style>

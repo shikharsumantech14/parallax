@@ -1,21 +1,34 @@
 ---
+/**
+ * /issues/<slug> — the issue page (launch design, 2026-09-08).
+ *
+ * Block order, per the handoff and the approved canvas:
+ *   meta strip → head (eyebrow · headline · hook · primer)
+ *   → the floor plan: 170px facts rail · the 720px prose column · 250px aside
+ *   → the reading strip (fixed, JS-only)
+ *   → reader signal → letters → sources → desk / next-issue nav → footer.
+ *
+ * The rails are SIBLINGS of #px-article, and the article's child list stays
+ * flat: ReadingGate counts `.px-section` among `#px-article.children`, so
+ * anything that nests the sections one level deeper hands the whole issue
+ * away for free. Below 1100px the rails go and the facts become a 2×2 grid
+ * under the head (the aside's dek joins it), so a tablet never gets a 440px
+ * column.
+ */
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { Topic } from '../../content/config';
 import IssueLayout from '../../layouts/IssueLayout.astro';
-import Hero from '../../components/core/Hero.astro';
-import Banner from '../../components/core/Banner.astro';
-import Primer from '../../components/core/Primer.astro';
+import IssueHead from '../../components/core/IssueHead.astro';
 import ReadingToolbar from '../../components/core/ReadingToolbar.astro';
 import ReactionsBar from '../../components/core/ReactionsBar.astro';
 import ReadingTracker from '../../components/core/ReadingTracker.astro';
-import AnnotationLayer from '../../components/core/AnnotationLayer.astro';
 import LettersBlock from '../../components/core/LettersBlock.astro';
 import SectionRenderer from '../../components/SectionRenderer.astro';
 import Sources from '../../components/core/Sources.astro';
 import ReadingGate from '../../components/core/ReadingGate.astro';
 import WelcomeBack from '../../components/core/WelcomeBack.astro';
-import { formatIssueNumber } from '../../lib/text';
-import TopicStrip from '../../components/home/TopicStrip.astro';
+import { DESK_REGISTER } from '../../lib/desks';
+import { stripEmphasis } from '../../lib/text';
 
 export async function getStaticPaths() {
   const issues = await getCollection('issues');
@@ -32,42 +45,42 @@ interface Props {
 const { issue } = Astro.props;
 const { data } = issue;
 
+/* Numbering runs over the PUBLISHED issues, oldest first (ties by slug, the
+   order getCollection returns), which is the number the home rows, the desks
+   and the archive show. A draft has no number yet and previews as 00. */
 const allIssues = await getCollection('issues');
-const sorted = allIssues.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
-const issueIndex = sorted.findIndex((i) => i.slug === issue.slug);
+const published = allIssues
+  .filter((i) => i.data.status !== 'draft')
+  .sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime() || a.slug.localeCompare(b.slug));
+const issueIndex = published.findIndex((i) => i.slug === issue.slug);
 const issueNumber = String(issueIndex + 1).padStart(2, '0');
+const pad = (n: number) => String(n).padStart(2, '0');
 
-/* The fact rail's date. Same stamp as Banner, CategoryCard and the home
-   rows -- one date format across the site. */
-const factDate = data.publishedAt
-  .toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })
-  .toUpperCase();
+/* The next issue on this desk (newer), else the next newer issue on any desk. */
+const newerOnDesk = published.slice(issueIndex + 1).find((i) => i.data.topic === data.topic);
+const newerAny = published[issueIndex + 1];
+const next = issueIndex >= 0 ? (newerOnDesk ?? newerAny) : undefined;
+const nextNumber = next ? pad(published.findIndex((i) => i.slug === next.slug) + 1) : undefined;
 
-// Per-topic "back to the desk" wording — matches the voice of each
-// topic-index page so the navigation reads as "back to where this
-// dispatch came from" in the topic's own register.
-const backToDeskCopy: Record<Topic, string> = {
-  politics: '← Back to The Parliamentary Desk',
-  space: '← Back to Mission Control',
-  earth: '← Back to the Field Atlas',
-  tech: '← cd ../tech',
-  travel: '← Back to the Field Bureau',
-  sports: '← Back to the Matchday Programme'
-};
+const factDate = data.publishedAt.toLocaleDateString('en-US', {
+  year: 'numeric', month: 'long', day: '2-digit', timeZone: 'UTC',
+});
 
-// Dark worlds get the glass toolbar's dark variant.
 const darkTopics: Topic[] = ['space', 'tech', 'sports'];
 const toolbarTheme: 'light' | 'dark' = darkTopics.includes(data.topic) ? 'dark' : 'light';
 
-// Section numbering — act-break dividers are air, not sections: they don't
-// consume a number. (Identical to the raw index for issues without them.)
+/* Section numbering — act-break dividers are air, not sections: they don't
+   consume a number. The aside's contents list uses the same index. */
 let numbered = 0;
 const numberIndex = data.sections.map((s) => (s.kind === 'act-break' ? -1 : numbered++));
-// OG cards are generated by `scripts/story/og.ts` for non-draft issues only,
-// so passing a draft's slug would emit an <og:image> pointing at a 404. Drafts
-// still build and stay reachable by URL for review — they just share without a
-// card, and IssueLayout falls back to twitter:card=summary.
+const contents = data.sections
+  .map((s, i) => ({ s, n: numberIndex[i] }))
+  .filter(({ s, n }) => n >= 0 && s.kind !== 'hero' && s.title)
+  .map(({ s, n }) => ({ id: `sec-${n + 1}`, no: pad(n + 1), title: stripEmphasis(s.title!) }));
+
+// OG cards are generated for non-draft issues only.
 const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
+const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 ---
 
 <IssueLayout
@@ -78,42 +91,37 @@ const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
   publishedAt={data.publishedAt}
   slug={ogSlug}
 >
-  <TopicStrip compact current={data.topic} />
-
-  <a class="px-back-to-desk" href={`/topics/${data.topic}/`} data-topic={data.topic}>
-    {backToDeskCopy[data.topic]}
-  </a>
-
-  <Banner
+  <IssueHead
     topic={data.topic}
     issueNumber={issueNumber}
     publishedAt={data.publishedAt}
-    readTime={data.readTimeMinutes}
-  />
-
-  <Hero
-    eyebrow={data.tags[0]?.toUpperCase().replace(/-/g, ' ')}
+    eyebrow={eyebrow}
     title={data.title}
-    dek={data.hook}
-    author={data.author}
-    readTimeMinutes={data.readTimeMinutes}
-    publishedAt={data.publishedAt}
+    hook={data.hook}
+    primer={data.primer}
   />
 
-  {data.primer && <Primer text={data.primer} />}
+  {/* Phone / tablet: the rail's cells as a grid under the head. */}
+  <div class="px-floor__facts-grid px-cells px-cells--open" aria-label="Issue facts">
+    <div class="px-ifact"><span class="px-ifact__l">Published</span><b>{factDate}</b></div>
+    <div class="px-ifact"><span class="px-ifact__l">Reading time</span><b>{data.readTimeMinutes ? `${data.readTimeMinutes} min` : '—'}</b></div>
+    <div class="px-ifact"><span class="px-ifact__l">Sources</span><b>{data.sources.length} cited</b></div>
+    {data.voice
+      ? <div class="px-ifact"><span class="px-ifact__l">Voice</span><b class="px-ifact__voice">{data.voice}</b></div>
+      : <div class="px-ifact"><span class="px-ifact__l">Desk</span><b class="px-ifact__voice">{DESK_REGISTER[data.topic]}</b></div>}
+    <div class="px-ifact px-ifact--dek"><span class="px-ifact__l">The dek</span><i>{data.dek}</i></div>
+  </div>
 
   <div class="px-floor">
     <aside class="px-floor__facts" aria-label="Issue facts">
-      <span class="px-floor__no">{formatIssueNumber(issueNumber)}</span>
+      <span class="px-floor__no">№ {issueNumber}</span>
       <span class="px-floor__fact">Published<b>{factDate}</b></span>
       {data.readTimeMinutes && (
         <span class="px-floor__fact">Reading time<b>{data.readTimeMinutes} min</b></span>
       )}
-      <span class="px-floor__fact">Sources<b>{data.sources.length}</b></span>
-      {/* Fourth cell is VOICE, not "Mode" — the standing ruling: "Mode"
-          collides fatally with the Full/Skim `mode` state the toolbar owns.
-          Renders only when the stylist authored one; the rail drops to three
-          cells otherwise, never an invented value. */}
+      <span class="px-floor__fact">Sources<b>{data.sources.length} cited</b></span>
+      {/* VOICE, not "Mode" — the standing ruling: "Mode" collides with the
+          Full/Skim state the toolbar owns. Renders only when authored. */}
       {data.voice && (
         <span class="px-floor__fact px-floor__fact--voice">Voice<b>{data.voice}</b></span>
       )}
@@ -127,9 +135,26 @@ const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
     </article>
 
     <aside class="px-floor__aside" aria-label="About this issue">
-      <div class="px-floor__dek">
+      <div class="px-floor__block">
         <p class="px-floor__aside-l">The dek</p>
-        <p class="px-floor__dek-t">{data.hook}</p>
+        <p class="px-floor__dek-t">{data.dek}</p>
+      </div>
+      {contents.length > 1 && (
+        <div class="px-floor__block">
+          <p class="px-floor__aside-l">In this issue</p>
+          <nav class="px-floor__toc" aria-label="Sections">
+            {contents.map((c) => (
+              <a href={`#${c.id}`}><span>{c.no}</span><span>{c.title}</span></a>
+            ))}
+          </nav>
+        </div>
+      )}
+      <div class="px-floor__block">
+        <p class="px-floor__aside-l">Share</p>
+        <div class="px-floor__share">
+          <button type="button" class="px-btn px-btn--ghost" data-copy-link hidden>Copy link</button>
+          <a class="px-btn px-btn--ghost" href={`/s/${issue.slug}/`}>60-second version</a>
+        </div>
       </div>
     </aside>
   </div>
@@ -138,94 +163,79 @@ const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
 
   <ReadingTracker issueId={issue.slug} />
 
-  <AnnotationLayer issueId={issue.slug} />
-
   <ReactionsBar issueId={issue.slug} />
 
   <LettersBlock issueId={issue.slug} />
 
-  <a class="px-back-to-desk px-back-to-desk--bottom" href={`/topics/${data.topic}/`} data-topic={data.topic}>
-    {backToDeskCopy[data.topic]}
-  </a>
-
   <Sources sources={data.sources} />
+
+  <nav class="px-inav" aria-label="Issue navigation">
+    <a class="px-inav__back" href={`/topics/${data.topic}/`}>← {DESK_REGISTER[data.topic]}</a>
+    {next ? (
+      <a class="px-inav__next" href={`/issues/${next.slug}/`}>Next · № {nextNumber} {stripEmphasis(next.data.title)} →</a>
+    ) : (
+      <a class="px-inav__next" href="/archive/">The archive →</a>
+    )}
+  </nav>
 
   <ReadingToolbar readTime={data.readTimeMinutes} issueId={issue.slug} theme={toolbarTheme} />
 
   <WelcomeBack />
 </IssueLayout>
 
+<script is:inline>
+  /* Copy link — shown only when the clipboard API exists (no-JS readers get
+     the share row without a dead control). */
+  (function () {
+    var btn = document.querySelector('[data-copy-link]');
+    if (!btn || !navigator.clipboard) return;
+    btn.hidden = false;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(location.href).then(function () {
+        var was = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = was; }, 1800);
+      }).catch(function () {});
+    });
+  })();
+</script>
+
 <style>
-  /* Reader controls row: skim-toggle on the left, save-for-later on the right.
-     On narrow viewports they wrap; the toggle keeps its full size while save
-     drops below it. */
-  .px-reader-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px 24px;
-    margin-bottom: 28px;
-  }
-  @media (max-width: 480px) {
-    .px-reader-controls {
-      justify-content: flex-start;
-    }
-  }
-
-  /* Topic-voice back-to-the-desk link, placed under the topic strip
-     above the hero and again above the sources block at the bottom of
-     the article. Inherits the topic's accent via tokens. */
-  .px-back-to-desk {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+  /* The phone facts grid (display is switched in layout-v2.css). */
+  .px-ifact {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 12px 40px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--muted);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    padding-bottom: 2px;
-    margin: 0 0 28px;
-    transition: color 0.15s ease, border-color 0.15s ease;
   }
-  .px-back-to-desk:hover {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
+  .px-ifact b {
+    font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
+    color: var(--ink);
   }
-  .px-back-to-desk--bottom {
-    margin-top: 48px;
-    margin-bottom: 36px;
+  .px-ifact__voice { color: var(--accent-deep, var(--accent)); }
+  .px-ifact--dek { grid-column: 1 / -1; }
+  .px-ifact--dek i {
+    font-family: var(--font-display);
+    font-size: 15px; font-style: italic; font-weight: 400; line-height: 1.5;
+    letter-spacing: 0; text-transform: none;
+    color: var(--ink-soft);
+  }
+  @media (max-width: 768px) {
+    .px-ifact { padding: 12px 20px; }
   }
 
-  /* Per-topic typographic flavour matching each desk's register. */
-  .px-back-to-desk[data-topic="politics"] {
-    font-family: var(--font-mono);
-    letter-spacing: 0.16em;
+  /* Desk / next-issue navigation. */
+  .px-inav {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 18px 40px 96px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   }
-  .px-back-to-desk[data-topic="travel"] {
-    font-family: var(--font-display);
-    font-style: italic;
-    text-transform: none;
-    letter-spacing: 0.02em;
-    font-size: 14px;
-  }
-  .px-back-to-desk[data-topic="sports"] {
-    font-family: var(--font-display);
-    font-size: 12px;
-  }
-  .px-back-to-desk[data-topic="tech"] {
-    text-transform: none;
-    letter-spacing: 0.02em;
-    font-size: 12px;
-  }
-  .px-back-to-desk[data-topic="earth"] {
-    font-family: var(--font-mono);
-    letter-spacing: 0.14em;
-  }
-  .px-back-to-desk[data-topic="space"] {
-    color: var(--accent);
-    font-family: var(--font-mono);
-    letter-spacing: 0.12em;
+  .px-inav a { text-decoration: none; transition: color var(--t-quick) var(--ease); }
+  .px-inav__back { color: var(--ink); }
+  .px-inav__back:hover { color: var(--accent-deep, var(--accent)); }
+  .px-inav__next { color: var(--accent-deep, var(--accent)); text-align: right; }
+  .px-inav__next:hover { color: var(--ink); }
+  @media (max-width: 768px) {
+    .px-inav { padding: 18px 20px 96px; }
   }
 </style>

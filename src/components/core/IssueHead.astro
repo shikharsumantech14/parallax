@@ -1,0 +1,69 @@
+---
+/**
+ * IssueHead — the top of an issue (launch design, 2026-09-08).
+ *
+ * In order, as the handoff and the canvas draw it: a meta strip ("← Politics
+ * desk" on the left, "№ 03 · April 24, 2026" on the right), then the band
+ * with the eyebrow, the 68px headline carrying its one italic accent word,
+ * the hook as a 21px/300 lede, and the primer on a 4px accent rule.
+ *
+ * Replaces core/Hero.astro + core/Banner.astro + the two per-desk
+ * "back to the desk" links, which said the same things in four registers.
+ * Prefix: px-ihead. No JS.
+ */
+import { renderEmphasis } from '../../lib/text';
+import { DESK_REGISTER } from '../../lib/desks';
+import type { Topic } from '../../content/config';
+
+interface Props {
+  topic: Topic;
+  issueNumber: string;
+  publishedAt: Date;
+  eyebrow?: string;
+  title: string;
+  hook: string;
+  primer?: string;
+}
+const { topic, issueNumber, publishedAt, eyebrow, title, hook, primer } = Astro.props;
+
+const dateLong = publishedAt.toLocaleDateString('en-US', {
+  year: 'numeric', month: 'long', day: '2-digit', timeZone: 'UTC',
+});
+---
+
+<div class="px-ihead">
+  <div class="px-ihead__strip">
+    <a class="px-ihead__back" href={`/topics/${topic}/`}>← {DESK_REGISTER[topic]}</a>
+    <span class="px-ihead__no">№ {issueNumber} · {dateLong}</span>
+  </div>
+  <div class="px-band px-ihead__band">
+    {eyebrow && <p class="px-eyebrow">{eyebrow}</p>}
+    <h1 class="px-h1" set:html={renderEmphasis(title)} />
+    <p class="px-lede">{hook}</p>
+    {primer && (
+      <div class="px-primer">
+        <div class="px-primer__eyebrow">The primer</div>
+        <p class="px-primer__text">{primer}</p>
+      </div>
+    )}
+  </div>
+</div>
+
+<style>
+  .px-ihead__strip {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    padding: 10px 40px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-ihead__back { color: var(--muted); text-decoration: none; transition: color var(--t-quick) var(--ease); }
+  .px-ihead__back:hover { color: var(--ink); }
+  .px-ihead__band .px-h1 { margin-bottom: 18px; }
+  .px-ihead__band .px-eyebrow { margin-bottom: 16px; }
+  @media (max-width: 768px) {
+    .px-ihead__strip { padding: 10px 20px; }
+    .px-ihead__no { text-align: right; }
+  }
+</style>

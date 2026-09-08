@@ -1,7 +1,7 @@
 /**
  * Parallax social card system (Phase B workhorse) — bespoke, data-driven card
  * archetypes redesigned for the feed. Raw SVG → PNG via resvg, reusing the brand
- * mark + Fraunces/JetBrains. Themed per topic (the six worlds). The locked
+ * mark + Literata. Themed per topic (the six worlds). The locked
  * aesthetic: dimensional, bold-payoff, clean type, footer lockup.
  *
  * Archetypes (this file): hero · data-readout. (comparison is the space-signature
@@ -50,8 +50,12 @@ function findFont(label: string, match: (f: string) => boolean): string {
   return hit;
 }
 
-const frauncesFile = findFont('Fraunces', (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && !/italic/i.test(f));
-const monoFile = findFont('JetBrains Mono', (f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f));
+/* One family on the cards as on the site (launch design, 2026-09-08): Literata
+   Bold carries the display role, Literata Medium the tracked small-capital
+   labels that used to be JetBrains Mono. Both are STATIC instances from the
+   googlefonts/literata repo — resvg matches them by family + weight. */
+const displayFile = findFont('Literata Bold', (f) => /literata-bold/i.test(f) && /\.ttf$/i.test(f));
+const labelFile = findFont('Literata Medium', (f) => /literata-medium/i.test(f) && /\.ttf$/i.test(f));
 
 // ── sizes ──────────────────────────────────────────────────────────────────
 export type Size = 'wide' | 'square' | 'og';
@@ -64,9 +68,9 @@ const DIMS: Record<Size, { w: number; h: number }> = {
 // ── text helpers ─────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mono = (t: string, x: number, y: number, size: number, color: string, ls = 3, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="JetBrains Mono" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
+  `<text x="${x}" y="${y}" font-family="Literata" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 const serif = (t: string, x: number, y: number, size: number, color: string, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="Fraunces" font-weight="600" font-size="${size}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
+  `<text x="${x}" y="${y}" font-family="Literata" font-weight="700" font-size="${size}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 
 // crude word-wrap (raw SVG has no auto-wrap): break into lines of ~maxChars
 function wrapWords(text: string, maxChars: number): string[] {
@@ -293,7 +297,7 @@ export function quoteCard(d: QuoteData, topic: Topic, size: Size = 'wide'): stri
   const quote = lines.map((ln, i) => serif(ln, 124, first + i * lineH, qSize, t.ink)).join('');
   const inner =
     (d.eyebrow ? mono(d.eyebrow.toUpperCase(), 124, 112, 24, t.accent, 5) : '') +
-    `<text x="86" y="${first - 26}" font-family="Fraunces" font-weight="600" font-size="190" fill="${t.accent}" opacity="0.85">“</text>` +
+    `<text x="86" y="${first - 26}" font-family="Literata" font-weight="700" font-size="190" fill="${t.accent}" opacity="0.85">“</text>` +
     quote +
     mono(`— ${d.attribution}`, 124, first + (lines.length - 1) * lineH + 72, 24, t.inkSoft, 2);
   void w;
@@ -305,7 +309,7 @@ export function toPng(svg: string, size: Size): Buffer {
   const { w } = DIMS[size];
   return Buffer.from(new Resvg(svg, {
     fitTo: { mode: 'width', value: w },
-    font: { fontFiles: [join(fontDir, frauncesFile), join(fontDir, monoFile)], loadSystemFonts: false, defaultFontFamily: 'Fraunces' },
+    font: { fontFiles: [join(fontDir, displayFile), join(fontDir, labelFile)], loadSystemFonts: false, defaultFontFamily: 'Literata' },
   }).render().asPng());
 }
 

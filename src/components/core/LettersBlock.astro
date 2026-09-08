@@ -1,64 +1,70 @@
 ---
 /**
- * LettersBlock — end-of-issue reader letters (Phase B-6).
+ * LettersBlock — "Sixty days of argument." (launch design, 2026-09-08).
  *
- * A signed-in reader writes a longer reflection ("letter") on the issue;
- * approved letters render publicly here. Letters reuse the `comments` table
- * with a NULL anchor and flow through the same moderation queue as
- * annotations (`/admin/comments`). Author attribution uses the denormalised
- * `author_name` captured at submit (profiles are RLS-private, so a name can't
- * be joined at display time).
+ * The canvas's end-matter band: a 260px label column (eyebrow, title, dek)
+ * beside the letters as hairline rows — signer and date in small capitals on
+ * the left, the letter on the right — then the form under a 2px ink rule:
+ * name and email side by side, the letter, the count, a square ink button.
  *
- * Flow mirrors AnnotationLayer: GET on load (approved + own pending), POST to
- * submit, 401 → login redirect. Pure `is:inline` IIFE, no framework. Talks to
- * the app subdomain via CORS with credentials.
+ * Letters reuse the `comments` table with a NULL anchor and flow through the
+ * same moderation queue as before (`/admin/comments`). Flow: GET on load
+ * (approved + own pending), POST to submit, 401 → login redirect. Pure
+ * `is:inline` IIFE, no framework, same-origin API.
+ *
+ * Root class stays `px-letter`: core/ReadingGate.astro hides it by name.
  */
 interface Props {
   issueId: string;
 }
 const { issueId } = Astro.props;
-/* Same-origin since the merge — relative paths follow the reader to whatever
-   host served the page, so no redirect can turn these cross-origin. */
 ---
 
-<section class="px-letter" data-issue-id={issueId} aria-labelledby="px-letter-title">
-  <h2 class="px-letter__title" id="px-letter-title">Letters</h2>
-  <p class="px-letter__dek">
-    Longer responses from readers. Write one below — the editor reviews each
-    before it appears here.
-  </p>
+<section class="px-letter px-band" data-issue-id={issueId} aria-labelledby="px-letter-title">
+  <div class="px-letter__grid">
+    <div class="px-letter__label">
+      <p class="px-eyebrow">Letters</p>
+      <h2 class="px-letter__title" id="px-letter-title">Sixty days of <em>argument</em>.</h2>
+      <p class="px-letter__dek">Longer responses from readers. The editor reads each one before it appears here.</p>
+    </div>
 
-  <div class="px-letter__list" id="px-letter-list">
-    <p class="px-letter__empty" id="px-letter-empty">
-      <em>No letters yet. Be the first to write one.</em>
-    </p>
+    <div class="px-letter__body">
+      <div class="px-letter__head">
+        <span class="px-meta px-letter__count-line" id="px-letter-count-line">No letters yet</span>
+        <span class="px-meta">Newest first</span>
+      </div>
+
+      <div class="px-letter__list" id="px-letter-list">
+        <p class="px-letter__empty" id="px-letter-empty">Be the first to write one. Letters open for sixty days after an issue is published.</p>
+      </div>
+
+      <form class="px-letter__form" id="px-letter-form">
+        <p class="px-eyebrow px-letter__form-eyebrow">Write a letter</p>
+        <div class="px-letter__fields">
+          <input
+            class="px-input"
+            id="px-letter-name"
+            type="text"
+            maxlength="80"
+            placeholder="Sign as — your name (optional)"
+            autocomplete="name"
+          />
+        </div>
+        <textarea
+          class="px-input px-letter__input"
+          id="px-letter-input"
+          placeholder="Your response to this issue…"
+          maxlength="2000"
+          rows="6"
+        ></textarea>
+        <div class="px-letter__actions">
+          <span class="px-meta"><span id="px-letter-count">0 / 2000</span> · reviewed before it appears</span>
+          <button type="submit" class="px-btn" id="px-letter-submit">Send letter →</button>
+        </div>
+        <p class="px-letter__status" id="px-letter-status" aria-live="polite"></p>
+      </form>
+    </div>
   </div>
-
-  <form class="px-letter__form" id="px-letter-form">
-    <div class="px-letter__form-eyebrow">Write a letter</div>
-    <input
-      class="px-letter__name"
-      id="px-letter-name"
-      type="text"
-      maxlength="80"
-      placeholder="Sign as — your name (optional)"
-      autocomplete="name"
-    />
-    <textarea
-      class="px-letter__input"
-      id="px-letter-input"
-      placeholder="Your response to this issue…"
-      maxlength="2000"
-      rows="5"
-    ></textarea>
-    <div class="px-letter__meta">
-      <span class="px-letter__count" id="px-letter-count">0 / 2000</span>
-    </div>
-    <div class="px-letter__actions">
-      <button type="submit" class="px-letter__submit" id="px-letter-submit">Send letter</button>
-    </div>
-    <p class="px-letter__status" id="px-letter-status" aria-live="polite"></p>
-  </form>
 </section>
 
 <script is:inline>
@@ -75,6 +81,7 @@ const { issueId } = Astro.props;
 
     var list = document.getElementById('px-letter-list');
     var empty = document.getElementById('px-letter-empty');
+    var countLine = document.getElementById('px-letter-count-line');
     var form = document.getElementById('px-letter-form');
     var nameInput = document.getElementById('px-letter-name');
     var input = document.getElementById('px-letter-input');
@@ -83,6 +90,7 @@ const { issueId } = Astro.props;
     var statusEl = document.getElementById('px-letter-status');
 
     var signedIn = false;
+    var approved = 0, pending = 0;
 
     function goLogin() {
       window.location.href = '/login?next=' + encodeURIComponent(window.location.href);
@@ -95,9 +103,19 @@ const { issueId } = Astro.props;
       } catch (_) { return ''; }
     }
 
+    function updateCount() {
+      if (!countLine) return;
+      var parts = [];
+      if (approved) parts.push(approved + (approved === 1 ? ' letter' : ' letters'));
+      if (pending) parts.push(pending + ' in review');
+      countLine.textContent = parts.length ? parts.join(' · ') : 'No letters yet';
+    }
+
     function renderLetter(l, prepend) {
       if (!l || !l.body_md) return;
       if (empty) empty.style.display = 'none';
+      var isApproved = l.status === 'approved';
+      if (isApproved) approved++; else pending++;
 
       var item = document.createElement('article');
       item.className = 'px-letter__item';
@@ -107,8 +125,10 @@ const { issueId } = Astro.props;
       meta.className = 'px-letter__item-meta';
       var who = (l.author_name && String(l.author_name).trim()) ? String(l.author_name) : 'A reader';
       var when = fmtDate(l.created_at);
-      var prefix = l.status === 'approved' ? '' : 'In review · ';
-      meta.textContent = prefix + who + (when ? ' · ' + when : '');
+      var whoEl = document.createElement('span'); whoEl.className = 'px-letter__who'; whoEl.textContent = who;
+      var whenEl = document.createElement('span'); whenEl.textContent = when;
+      meta.appendChild(whoEl); meta.appendChild(whenEl);
+      if (!isApproved) { var rv = document.createElement('span'); rv.textContent = 'In review'; meta.appendChild(rv); }
       item.appendChild(meta);
 
       var bodyEl = document.createElement('p');
@@ -116,11 +136,9 @@ const { issueId } = Astro.props;
       bodyEl.textContent = l.body_md; // textContent = escaped; no HTML injection
       item.appendChild(bodyEl);
 
-      if (prepend && list.firstChild) {
-        list.insertBefore(item, list.firstChild);
-      } else {
-        list.appendChild(item);
-      }
+      if (prepend && list.firstChild) list.insertBefore(item, list.firstChild);
+      else list.appendChild(item);
+      updateCount();
     }
 
     function setStatus(msg, kind) {
@@ -134,19 +152,9 @@ const { issueId } = Astro.props;
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-
-      // Not signed in → send them to login (don't make them lose typed text to
-      // a 401 round-trip; the button label already signals this).
-      if (!signedIn) {
-        goLogin();
-        return;
-      }
-
+      if (!signedIn) { goLogin(); return; }
       var text = input.value.trim();
-      if (!text) {
-        setStatus('Your letter needs some text.', 'err');
-        return;
-      }
+      if (!text) { setStatus('Your letter needs some text.', 'err'); return; }
 
       submit.disabled = true;
       setStatus('Sending…', null);
@@ -172,16 +180,12 @@ const { issueId } = Astro.props;
             setStatus(data.error || 'Could not send your letter.', 'err');
           }
         })
-        .catch(function () {
-          setStatus('Network error. Try again.', 'err');
-        })
-        .finally(function () {
-          submit.disabled = false;
-        });
+        .catch(function () { setStatus('Network error. Try again.', 'err'); })
+        .finally(function () { submit.disabled = false; });
     });
 
     function applyAuthState() {
-      submit.textContent = signedIn ? 'Send letter' : 'Sign in to write a letter';
+      submit.textContent = signedIn ? 'Send letter →' : 'Sign in to write a letter →';
     }
 
     fetch(apiUrl, { method: 'GET', credentials: 'include' })
@@ -190,11 +194,10 @@ const { issueId } = Astro.props;
         if (!data || !data.ok) { applyAuthState(); return; }
         signedIn = !!data.signedIn;
         applyAuthState();
-        if (signedIn && data.defaultName && !nameInput.value) {
-          nameInput.value = data.defaultName;
-        }
+        if (signedIn && data.defaultName && !nameInput.value) nameInput.value = data.defaultName;
         var all = [].concat(data.approved || []).concat(data.mine || []);
-        all.sort(function (a, b) { return (a.created_at || '').localeCompare(b.created_at || ''); });
+        // newest first
+        all.sort(function (a, b) { return (b.created_at || '').localeCompare(a.created_at || ''); });
         all.forEach(function (l) { renderLetter(l, false); });
       })
       .catch(function () { applyAuthState(); });
@@ -202,154 +205,65 @@ const { issueId } = Astro.props;
 </script>
 
 <style>
-  .px-letter {
-    margin: 8px 0 32px;
-    padding-top: 32px;
+  .px-letter__grid { display: grid; grid-template-columns: 260px 1fr; gap: 34px; align-items: start; }
+  .px-letter__title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    color: var(--ink);
+  }
+  .px-letter__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-letter__dek { margin: 0; font-size: 15px; line-height: 1.6; color: var(--ink-soft); max-width: 34ch; }
+
+  .px-letter__head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .px-letter__count-line { color: var(--ink); }
+  .px-letter__empty { margin: 0; padding: 18px 0; font-size: 15px; line-height: 1.6; color: var(--muted); }
+  .px-letter__item {
+    display: grid; grid-template-columns: 170px 1fr; gap: 24px;
+    padding: 20px 0;
     border-top: 1px solid var(--rule);
   }
-  .px-letter__title {
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 22px;
-    line-height: 1.25;
-    letter-spacing: -0.005em;
-    margin: 0 0 8px;
-    color: var(--ink);
-  }
-  .px-letter__dek {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 300;
-    font-size: 15px;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    margin: 0 0 24px;
-    max-width: 54ch;
-  }
-
-  /* ── Letters list ─────────────────────────────────────────────────── */
-  .px-letter__list {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    margin-bottom: 36px;
-  }
-  .px-letter__empty {
-    color: var(--muted);
-    margin: 0;
-    font-size: 15px;
-  }
-  .px-letter__item {
-    padding: 18px 20px;
-    border: 1px solid var(--rule);
-    border-radius: var(--r-tile);
-    background: var(--paper);
-    /* RD-05: flat; hover is border-colour only. */
-    transition: border-color var(--t-quick) var(--ease);
-  }
-  .px-letter__item:hover {
-    border-color: color-mix(in oklab, var(--ink) 26%, transparent);
-  }
+  .px-letter__item:first-child { border-top: 0; }
   .px-letter__item-meta {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    display: flex; flex-direction: column; gap: 5px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 10px;
   }
-  .px-letter__item[data-status="approved"] .px-letter__item-meta { color: var(--accent-deep, var(--accent)); }
+  .px-letter__item[data-status="approved"] .px-letter__who { color: var(--accent-deep, var(--accent)); }
   .px-letter__item-body {
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.65;
-    color: var(--ink);
     margin: 0;
-    max-width: 60ch;
+    font-size: 16px;
+    line-height: 1.68;
+    color: var(--ink-soft);
+    max-width: 62ch;
     white-space: pre-wrap;
   }
 
-  /* ── Submission form ──────────────────────────────────────────────── */
-  .px-letter__form {
-    border-top: 1px solid var(--rule);
-    padding-top: 24px;
-  }
-  .px-letter__form-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-  .px-letter__name,
-  .px-letter__input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--font-body);
-    color: var(--ink);
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    border-radius: var(--r-card);
-    outline: none;
-    transition: border-color var(--t-quick) var(--ease);
-  }
-  .px-letter__name {
-    font-size: 14px;
-    padding: 11px 14px;
-    margin-bottom: 10px;
-  }
-  .px-letter__input {
-    font-size: 15px;
-    line-height: 1.55;
-    padding: 12px 14px;
-    resize: vertical;
-    min-height: 110px;
-  }
-  .px-letter__name:focus,
-  .px-letter__input:focus { border-color: var(--accent); }
-  .px-letter__meta {
-    display: flex;
-    justify-content: flex-end;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin: 6px 0 14px;
-  }
+  .px-letter__form { border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 22px; }
+  .px-letter__form-eyebrow { color: var(--muted); margin-bottom: 14px; }
+  .px-letter__fields { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; max-width: 460px; }
+  .px-letter__input { min-height: 150px; line-height: 1.55; resize: vertical; }
   .px-letter__actions {
-    display: flex;
-    justify-content: flex-end;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 12px;
   }
-  .px-letter__submit {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 11px 22px;
-    border-radius: var(--r-pill);
-    cursor: pointer;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: var(--paper);
-    transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
-  }
-  .px-letter__submit:hover {
-    background: var(--accent-deep, var(--accent));
-    border-color: var(--accent-deep, var(--accent));
-  }
-  .px-letter__submit:disabled { opacity: 0.6; cursor: not-allowed; }
-  .px-letter__status {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--muted);
-    margin: 12px 0 0;
-    min-height: 1.2em;
-  }
-  .px-letter__status--ok { color: var(--accent); }
-  .px-letter__status--err { color: #c0392b; }
+  .px-letter__status { margin: 12px 0 0; font-size: 12px; color: var(--muted); min-height: 1.2em; }
+  .px-letter__status--ok { color: var(--accent-deep, var(--accent)); }
+  .px-letter__status--err { color: var(--accent-deep, var(--accent)); }
 
-  @media (max-width: 480px) {
-    .px-letter { margin: 8px 0 24px; padding-top: 24px; }
-    .px-letter__title { font-size: 19px; }
+  @media (max-width: 1100px) {
+    .px-letter__grid { grid-template-columns: 1fr; gap: 22px; }
+  }
+  @media (max-width: 768px) {
+    .px-letter__title { font-size: 28px; }
+    .px-letter__item { grid-template-columns: 1fr; gap: 8px; }
+    .px-letter__item-meta { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; }
   }
 </style>

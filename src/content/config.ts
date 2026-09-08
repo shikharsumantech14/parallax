@@ -17,6 +17,7 @@ export const SECTION_KINDS = [
   'quote',
   'beat-sheet',
   'prose',
+  'plate',                // core — a framed photograph; renders only when an image is supplied
   'data-readout',
   'orbital-shells',
   'commit-grid',           // tech signature

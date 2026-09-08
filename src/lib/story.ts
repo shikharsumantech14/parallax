@@ -74,6 +74,8 @@ export const KIND_PRIORITY: Record<string, number> = {
   'prose': 10,
   // never cards
   'hero': -1, 'act-break': -1,
+  // a photograph is not a beat without its picture; the story builder skips it
+  'plate': -1,
 };
 
 /* ── per-kind data trimming (spec §4) — clone, cap, never mutate input ── */

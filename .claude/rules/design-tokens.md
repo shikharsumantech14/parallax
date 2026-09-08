@@ -49,19 +49,21 @@ Full token law with rationale: `docs/design/TOKEN-RECORD.md` (TD-01…TD-06). Th
   chrome. The reading toolbar `.rtb` is flat — opaque `var(--paper)`, a 2px ink
   rule, no backdrop-filter; glass survives on modal chrome only. Where a shadow
   was a surface's only edge, a 1px hairline replaced it.
-- **`--r-pill` is deliberately NOT flipped.** It carries status chips, CTAs, the
-  toolbar and progress caps — 43 sites of UI chrome, not reading surfaces.
-  Squaring every chip in the product is a separate decision; do not fold it into
-  the RD-05 flip.
+- **`--r-pill` IS flipped now (2026-09-08).** The launch design has zero rounded
+  corners, so chips, CTAs, the reading strip and progress caps are square. Only
+  colour dots and the medallion are round.
 
 
 ## Type
 
-One trio product-wide: **Fraunces** (serif voice), **Schibsted Grotesk**
-(`--font-body`, the single sans), **JetBrains Mono** (labels/numerals). The six
-worlds differ by **accent colour + treatment**, never typeface. Do not
-reintroduce per-world display faces — the §3 "Display font" column in
-`AGENTS.md` is historical. Single lever: `src/styles/type-v2.css`, imported last.
+ONE family product-wide since the launch design (2026-09-08): **Literata**.
+`--font-display` / `--font-body` / `--font-mono` all resolve to it; roles differ
+by size, weight, case and tracking (display 700 tight; body 400 at 18px/1.72;
+labels 600 small capitals, .14–.20em). Worlds differ by **colour only** — the
+per-world eyebrow / numeral / prose cuts were removed from the themes. Do not
+reintroduce per-world faces or treatments. Single lever: `src/styles/type-v2.css`,
+imported last. The house pages (home, about, archive, subscribe) run the
+politics record from `src/styles/meta.css`, which is tokens only.
 
 ## In-SVG text (RD-01b)
 

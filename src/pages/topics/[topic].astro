@@ -1,17 +1,20 @@
 ---
+/**
+ * /topics/<desk>/ — one template, six worlds (launch design, 2026-09-08).
+ *
+ * This route is a slim data derivation plus <DeskIndex>. The six bespoke
+ * <World>Index components it used to dispatch to are retired: the worlds
+ * differ by accent and register, not by structure, and HomeLayout's `topic`
+ * prop puts `data-topic` on <html>, which is what paints the page in the
+ * world's colours.
+ */
 import { getCollection } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
 import { TOPICS, type Topic } from '../../content/config';
 import HomeLayout from '../../layouts/HomeLayout.astro';
 import Masthead from '../../components/core/Masthead.astro';
-import TopicStrip from '../../components/home/TopicStrip.astro';
-
-import PoliticsIndex from '../../components/topic/politics/PoliticsIndex.astro';
-import SpaceIndex from '../../components/topic/space/SpaceIndex.astro';
-import EarthIndex from '../../components/topic/earth/EarthIndex.astro';
-import TechIndex from '../../components/topic/tech/TechIndex.astro';
-import TravelIndex from '../../components/topic/travel/TravelIndex.astro';
-import SportsIndex from '../../components/topic/sports/SportsIndex.astro';
+import DeskIndex from '../../components/desk/DeskIndex.astro';
+import { DESK_COPY } from '../../lib/desks';
 
 export const getStaticPaths: GetStaticPaths = () =>
   TOPICS.map((topic) => ({ params: { topic } }));
@@ -19,51 +22,48 @@ export const getStaticPaths: GetStaticPaths = () =>
 const { topic } = Astro.params as { topic: Topic };
 
 const allIssues = await getCollection('issues', (entry) => entry.data.status !== 'draft');
+
+/* Issue numbers are publication-wide and permanent: the 1-based position in
+   publishedAt order across every published issue, ties broken by slug so the
+   number never depends on collection read order. */
 const sortedOldestFirst = [...allIssues].sort(
-  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime()
+  (a, b) =>
+    a.data.publishedAt.getTime() - b.data.publishedAt.getTime() ||
+    a.slug.localeCompare(b.slug)
 );
 const issueNumberFor = (slug: string) =>
   sortedOldestFirst.findIndex((i) => i.slug === slug) + 1;
 
-const topicIssues = allIssues
+const deskIssues = allIssues
   .filter((issue) => issue.data.topic === topic)
-  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+  .sort(
+    (a, b) =>
+      b.data.publishedAt.getTime() - a.data.publishedAt.getTime() ||
+      b.slug.localeCompare(a.slug)
+  );
 
-const topicLabelMap: Record<Topic, string> = {
-  politics: 'Politics',
-  space: 'Space',
-  earth: 'Earth',
-  tech: 'Tech',
-  travel: 'Travel',
-  sports: 'Sports'
-};
+const items = deskIssues.map((issue) => ({
+  slug: issue.slug,
+  topic,
+  title: issue.data.title,
+  hook: issue.data.hook,
+  issueNumber: issueNumberFor(issue.slug),
+  publishedAt: issue.data.publishedAt,
+  readTimeMinutes: issue.data.readTimeMinutes,
+}));
 
-// Topic-specific empty-state copy used by each TopicIndex component
-const emptyCopy: Record<Topic, { label: string; tagline: string }> = {
-  politics: { label: 'Issue 01 filing soon', tagline: 'The first politics dispatch is *being filed*. Subscribe to the feed or come back shortly.' },
-  space: { label: 'T− awaiting launch', tagline: 'The first transmission is *pre-flight*. Cleared for publish soon.' },
-  earth: { label: 'Sheet 01 · in survey', tagline: 'The first field survey is *being mapped*. Sheet pending publication.' },
-  tech: { label: 'v0.1.0 · unreleased', tagline: 'The first changelog entry is *in review*. Merge incoming.' },
-  travel: { label: 'En route', tagline: 'The first field notes are *in transit*. Expected soon.' },
-  sports: { label: 'KO delayed', tagline: 'The first matchday report is *in the dressing room*. Kickoff imminent.' }
-};
-
-const empty = emptyCopy[topic];
+/* The masthead badge reads this desk's newest issue; a desk that has yet to
+   file borrows the publication's newest, so the header never claims 00. */
+const badgeNumber = items[0]?.issueNumber ?? sortedOldestFirst.length;
+const issueNumber = String(badgeNumber || 1).padStart(2, '0');
 ---
 
 <HomeLayout
-  title={`${topicLabelMap[topic]} · Parallax Lens`}
-  description={`Parallax Lens dispatches from the ${topicLabelMap[topic].toLowerCase()} desk. One topic per issue — cited, structured, and told from a different angle.`}
+  title={`${DESK_COPY[topic].name} · Parallax Lens`}
+  description={DESK_COPY[topic].blurb}
   topic={topic}
 >
-  <Masthead variant={topic} issueNumber={topicIssues[0] ? String(issueNumberFor(topicIssues[0].slug)).padStart(2, '0') : '01'} />
+  <Masthead variant={topic} issueNumber={issueNumber} current="desks" />
 
-  {topic === 'politics' && <PoliticsIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-  {topic === 'space' && <SpaceIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-  {topic === 'earth' && <EarthIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-  {topic === 'tech' && <TechIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-  {topic === 'travel' && <TravelIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-  {topic === 'sports' && <SportsIndex issues={topicIssues} issueNumberFor={issueNumberFor} empty={empty} />}
-
-  <TopicStrip compact current={topic} />
+  <DeskIndex topic={topic} items={items} />
 </HomeLayout>

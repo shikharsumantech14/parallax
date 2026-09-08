@@ -1,77 +1,112 @@
 ---
+/**
+ * Home — the launch design (2026-09-08), built from the approved artboards
+ * (Main.dc.html 1280 / HomePhone.dc.html 412).
+ *
+ * The page is a stack of full-width bands inside HomeLayout's 1280 frame:
+ *
+ *   wire → lead issue + counters → six desks → latest dispatches → promises
+ *
+ * Every figure on it is DERIVED from the published collection — the issue
+ * numbers, the counters, the per-desk dispatch counts and each desk's ghost
+ * numeral. Nothing here is authored copy except the three promises, which are
+ * the publication's standing editorial line.
+ *
+ * The six desk cards are the ONE place on this page that carries literal
+ * hexes: a dark desk's ground (space / tech / sports) has no token on the
+ * house page, and the card has to stand in its world's colour, not the
+ * house's. Everything else maps to tokens.
+ */
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
 import NewsletterNotice from '../components/core/NewsletterNotice.astro';
-import WireStrip from '../components/home/WireStrip.astro';
-import FeaturedPlate from '../components/home/FeaturedPlate.astro';
-import ManifestoStrip from '../components/home/ManifestoStrip.astro';
-import CategoryGrid from '../components/home/CategoryGrid.astro';
-import ArchiveList from '../components/home/ArchiveList.astro';
-import SubscribeStrip from '../components/home/SubscribeStrip.astro';
-import AccountLine from '../components/welcome/AccountLine.astro';
 import IntroExperience from '../components/intro/IntroExperience.astro';
+import IssueRows from '../components/home/IssueRows.astro';
 import { TOPICS, type Topic } from '../content/config';
-import type { CollectionEntry } from 'astro:content';
-import '../styles/welcome.css';
-
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
+import { DESK_REGISTER, DESK_COPY, DARK_DESKS } from '../lib/desks';
+import { renderEmphasis, stripEmphasis } from '../lib/text';
 
 const allIssues = await getCollection('issues', (entry) => entry.data.status !== 'draft');
-const issuesByDate = allIssues.sort(
-  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime()
+
+/* Ties on a date break by slug both ways, so "the latest" is always the
+   HIGHEST-numbered issue — the badge, the lead and the rows agree. */
+const issuesByDate = [...allIssues].sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug)
 );
 const sortedOldestFirst = [...allIssues].sort(
-  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime()
+  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime() || a.slug.localeCompare(b.slug)
 );
 const issueNumberFor = (slug: string) =>
   sortedOldestFirst.findIndex((i) => i.slug === slug) + 1;
 
-// Latest issue per topic, for the category grid
-const issuesByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>> = {};
-for (const topic of TOPICS) {
-  const entry = issuesByDate.find((i) => i.data.topic === topic);
-  if (entry) issuesByTopic[topic] = entry;
-}
+const no = (n: number) => String(n).padStart(2, '0');
 
-// Most recent issue overall — drives the chord accent and masthead number
+/* The lead — the most recent issue overall. */
 const featured = issuesByDate[0];
 
-// Archive list — every published issue
-const archive = issuesByDate.map((issue) => ({
-  slug: issue.slug,
-  topic: issue.data.topic,
-  title: issue.data.title,
-  issueNumber: issueNumberFor(issue.slug),
-  publishedAt: issue.data.publishedAt,
-  readTimeMinutes: issue.data.readTimeMinutes
-}));
-
-/* The lead issue's fact rail (Phase 7). Every figure is DERIVED -- issues and
-   sources are counted from the published collection, desks from TOPICS -- so
-   the rail cannot drift from the archive the way a hardcoded number would.
-   The prototype's own counters are 'Issues / Sources cited / Desks'; its
-   values (24 issues, 1,412 sources) are its fiction, not ours. */
+/* The counters. Issues and sources are counted off the published collection,
+   desks off TOPICS, so the rail cannot drift from the archive. */
 const sourcesCited = allIssues.reduce((n, i) => n + (i.data.sources?.length ?? 0), 0);
-const homeFacts = [
+const counters: { label: string; value: string; accent?: boolean }[] = [
   { label: 'Issues', value: String(allIssues.length) },
   { label: 'Sources cited', value: sourcesCited.toLocaleString('en-US') },
   { label: 'Desks', value: String(TOPICS.length), accent: true },
 ];
 
-// The wire — 3 latest dispatches (HOME-SPEC §3)
-const wireItems = issuesByDate.slice(0, 3).map((issue) => ({
+/* The wire — every published issue, oldest first, as the artboard runs it. */
+const wire = sortedOldestFirst.map((issue) => ({
   slug: issue.slug,
-  title: issue.data.title,
-  topic: issue.data.topic,
-  issueNumber: issueNumberFor(issue.slug)
+  title: stripEmphasis(issue.data.title),
+  issueNumber: issueNumberFor(issue.slug),
 }));
 
-// Dispatch counts per desk (HOME-SPEC §4 portal meta line)
-const countsByTopic: Partial<Record<Topic, number>> = {};
-for (const issue of allIssues) {
-  countsByTopic[issue.data.topic] = (countsByTopic[issue.data.topic] ?? 0) + 1;
+/* Per-desk dispatch counts + each desk's latest issue (the ghost numeral). */
+const countsByTopic: Record<Topic, number> = {
+  politics: 0, space: 0, earth: 0, tech: 0, travel: 0, sports: 0,
+};
+for (const issue of allIssues) countsByTopic[issue.data.topic] += 1;
+
+const latestByTopic: Partial<Record<Topic, CollectionEntry<'issues'>>> = {};
+for (const topic of TOPICS) {
+  const entry = issuesByDate.find((i) => i.data.topic === topic);
+  if (entry) latestByTopic[topic] = entry;
 }
+
+const desks = TOPICS.map((topic) => {
+  const latest = latestByTopic[topic];
+  const count = countsByTopic[topic];
+  return {
+    topic,
+    register: DESK_REGISTER[topic],
+    copy: DESK_COPY[topic],
+    dark: DARK_DESKS.has(topic),
+    count,
+    dispatches: `${count} ${count === 1 ? 'dispatch' : 'dispatches'}`,
+    ghost: latest ? `№ ${no(issueNumberFor(latest.slug))}` : '—',
+  };
+});
+
+/* Latest dispatches — the six newest, through the shared row implementation. */
+const rows = issuesByDate.slice(0, 6).map((issue) => ({
+  slug: issue.slug,
+  topic: issue.data.topic,
+  title: issue.data.title,
+  hook: issue.data.hook,
+  issueNumber: issueNumberFor(issue.slug),
+  publishedAt: issue.data.publishedAt,
+  readTimeMinutes: issue.data.readTimeMinutes,
+}));
+
+const longDate = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit', timeZone: 'UTC' });
+
+const promises = [
+  { n: '01', title: 'Independent', body: 'Not for profit. No investors. No advertisers.' },
+  { n: '02', title: 'Sourced', body: 'Every claim cites a primary source. Every dataset linked.' },
+  { n: '03', title: 'Slow', body: 'Read in six minutes. Argued in sixty days.' },
+];
 ---
 
 <HomeLayout
@@ -81,21 +116,321 @@ for (const issue of allIssues) {
 >
   <NewsletterNotice />
 
-  <Masthead variant="meta" issueNumber={featured ? String(issueNumberFor(featured.slug)).padStart(2, '0') : '01'} />
+  <Masthead
+    variant="meta"
+    issueNumber={featured ? no(issueNumberFor(featured.slug)) : '01'}
+    current="home"
+  />
 
+  {wire.length > 0 && (
+    <div class="px-band px-band--flush px-home__wire">
+      <div class="px-home__wire-row">
+        {wire.map((w) => (
+          <a class="px-home__wire-item" href={`/issues/${w.slug}/`}>№ {no(w.issueNumber)} {w.title}</a>
+        ))}
+      </div>
+    </div>
+  )}
 
-  {wireItems.length > 0 && featured && <WireStrip items={wireItems} latestSlug={featured.slug} />}
+  {featured && (
+    <div class="px-band px-home__lead">
+      <a class="px-home__lead-copy" href={`/issues/${featured.slug}/`}>
+        <p class="px-eyebrow px-home__eyebrow">
+          {DESK_REGISTER[featured.data.topic]} · № {no(issueNumberFor(featured.slug))}
+        </p>
+        <h1 class="px-h1 px-home__h1" set:html={renderEmphasis(featured.data.title)} />
+        <p class="px-lede px-home__lede">{featured.data.hook}</p>
+        <div class="px-home__leadmeta">
+          <span>{longDate(featured.data.publishedAt)}</span>
+          {featured.data.readTimeMinutes && <span>{featured.data.readTimeMinutes} min</span>}
+          <span class="px-home__leadmeta-cta">Read the issue →</span>
+        </div>
+      </a>
 
-  {featured && <FeaturedPlate issue={featured} issueNumber={issueNumberFor(featured.slug)} facts={homeFacts} />}
+      <div class="px-home__facts">
+        {counters.map((c) => (
+          <span class="px-home__fact">
+            {c.label}
+            <b class="px-home__fact-v" data-accent={c.accent ? '' : undefined}>{c.value}</b>
+          </span>
+        ))}
+      </div>
+    </div>
+  )}
 
-  <CategoryGrid issuesByTopic={issuesByTopic} issueNumberFor={issueNumberFor} countsByTopic={countsByTopic} cols={2} />
+  <div class="px-band" id="desks">
+    <p class="px-home__deskhead">Six worlds, one publication</p>
+    <div class="px-cells px-home__deskgrid">
+      {desks.map((d) => (
+        <a class="px-desk__card" href={`/topics/${d.topic}/`} data-desk={d.topic} data-dark={d.dark ? '' : undefined}>
+          <span class="px-desk__ghost" aria-hidden="true">{d.ghost}</span>
+          <span class="px-desk__meta">
+            <span class="px-dot" aria-hidden="true"></span>{d.register} · {d.dispatches}
+          </span>
+          <span class="px-desk__name">{d.copy.name}</span>
+          <p class="px-desk__tag">{d.copy.tag}</p>
+          <span class="px-desk__cta">{d.copy.cta}</span>
+        </a>
+      ))}
+    </div>
+  </div>
 
-  <ManifestoStrip />
+  <div class="px-band px-band--head">
+    <p class="px-meta px-home__seclabel">Latest dispatches</p>
+  </div>
 
-  <ArchiveList items={archive} />
+  <IssueRows variant="home" items={rows} emptyText="No dispatches yet." />
 
-  <SubscribeStrip />
-  <AccountLine appUrl={appUrl} nextPath="/" />
+  <div class="px-cells px-cells--open px-home__promises">
+    {promises.map((p) => (
+      <div class="px-home__promise">
+        <span class="px-home__promise-n">{p.n}</span>
+        <p class="px-home__promise-t">{p.title}</p>
+        <p class="px-home__promise-b">{p.body}</p>
+      </div>
+    ))}
+  </div>
 
   <IntroExperience />
 </HomeLayout>
+
+<style>
+  /* ── The wire ─────────────────────────────────────────────────────────── */
+  .px-home__wire {
+    padding: 9px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .px-home__wire::-webkit-scrollbar { display: none; }
+  .px-home__wire-row {
+    display: flex;
+    gap: 32px;
+    padding-left: 32px;
+    width: max-content;
+    white-space: nowrap;
+  }
+  .px-home__wire-item {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+    transition: color var(--t-quick) var(--ease);
+  }
+  .px-home__wire-item:hover { color: var(--ink); }
+
+  /* ── The lead issue ───────────────────────────────────────────────────── */
+  .px-home__lead {
+    display: grid;
+    grid-template-columns: 1.4fr 0.6fr;
+    gap: 34px;
+  }
+  .px-home__lead-copy { display: block; color: inherit; text-decoration: none; }
+  .px-home__eyebrow { margin: 0 0 18px; letter-spacing: 0.2em; }
+  .px-home__h1 { line-height: 0.99; max-width: 17ch; }
+  .px-home__lede { margin: 0 0 22px; max-width: 46ch; }
+  .px-home__leadmeta {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-home__leadmeta-cta { color: var(--accent-deep, var(--accent)); }
+
+  .px-home__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    align-self: end;
+  }
+  .px-home__fact {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-home__fact-v {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-home__fact-v[data-accent] { color: var(--accent); }
+
+  /* ── Six desks ────────────────────────────────────────────────────────── */
+  .px-home__deskhead {
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .px-home__deskgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .px-desk__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 196px;
+    padding: 22px 20px;
+    overflow: hidden;
+    text-decoration: none;
+  }
+  .px-desk__ghost {
+    position: absolute;
+    right: 12px;
+    bottom: -12px;
+    font-size: 74px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-desk__meta {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+  }
+  .px-desk__name {
+    position: relative;
+    margin: 14px 0 8px;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 1;
+  }
+  .px-desk__tag {
+    position: relative;
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 30ch;
+  }
+  .px-desk__cta {
+    position: relative;
+    margin-top: auto;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* The one sanctioned literal-hex block on this page: each card stands in
+     its own world's ground, and three of those grounds are dark — there is no
+     token for them on the house page. Light desks tint the house paper with
+     the desk accent at 7%; dark desks take their ground outright. */
+  .px-desk__card[data-desk="politics"] {
+    background: color-mix(in oklab, #b8341f 7%, var(--bg));
+    color: #161412;
+  }
+  .px-desk__card[data-desk="politics"] .px-dot { background: #b8341f; }
+  .px-desk__card[data-desk="politics"] .px-desk__ghost { color: rgb(184 52 31 / 0.13); }
+  .px-desk__card[data-desk="politics"] .px-desk__meta { color: rgb(22 20 18 / 0.72); }
+  .px-desk__card[data-desk="politics"] .px-desk__tag { color: rgb(22 20 18 / 0.78); }
+  .px-desk__card[data-desk="politics"] .px-desk__cta { color: #b8341f; }
+
+  .px-desk__card[data-desk="space"] {
+    background: #0a1628;
+    color: #e8eef7;
+  }
+  .px-desk__card[data-desk="space"] .px-dot { background: #00d4ff; }
+  .px-desk__card[data-desk="space"] .px-desk__ghost { color: rgb(0 212 255 / 0.17); }
+  .px-desk__card[data-desk="space"] .px-desk__meta { color: rgb(232 238 247 / 0.62); }
+  .px-desk__card[data-desk="space"] .px-desk__tag { color: rgb(232 238 247 / 0.74); }
+  .px-desk__card[data-desk="space"] .px-desk__cta { color: #00d4ff; }
+
+  .px-desk__card[data-desk="earth"] {
+    background: color-mix(in oklab, #2d6a4f 7%, var(--bg));
+    color: #1f2a1c;
+  }
+  .px-desk__card[data-desk="earth"] .px-dot { background: #2d6a4f; }
+  .px-desk__card[data-desk="earth"] .px-desk__ghost { color: rgb(45 106 79 / 0.13); }
+  .px-desk__card[data-desk="earth"] .px-desk__meta { color: rgb(31 42 28 / 0.72); }
+  .px-desk__card[data-desk="earth"] .px-desk__tag { color: rgb(31 42 28 / 0.78); }
+  .px-desk__card[data-desk="earth"] .px-desk__cta { color: #2d6a4f; }
+
+  .px-desk__card[data-desk="tech"] {
+    background: #0a0a0a;
+    color: #fafafa;
+  }
+  .px-desk__card[data-desk="tech"] .px-dot { background: #c6f432; }
+  .px-desk__card[data-desk="tech"] .px-desk__ghost { color: rgb(198 244 50 / 0.17); }
+  .px-desk__card[data-desk="tech"] .px-desk__meta { color: rgb(250 250 250 / 0.62); }
+  .px-desk__card[data-desk="tech"] .px-desk__tag { color: rgb(250 250 250 / 0.74); }
+  .px-desk__card[data-desk="tech"] .px-desk__cta { color: #c6f432; }
+
+  .px-desk__card[data-desk="travel"] {
+    background: color-mix(in oklab, #c85a3c 7%, var(--bg));
+    color: #2a1f15;
+  }
+  .px-desk__card[data-desk="travel"] .px-dot { background: #c85a3c; }
+  .px-desk__card[data-desk="travel"] .px-desk__ghost { color: rgb(200 90 60 / 0.13); }
+  .px-desk__card[data-desk="travel"] .px-desk__meta { color: rgb(42 31 21 / 0.72); }
+  .px-desk__card[data-desk="travel"] .px-desk__tag { color: rgb(42 31 21 / 0.78); }
+  .px-desk__card[data-desk="travel"] .px-desk__cta { color: #c85a3c; }
+
+  .px-desk__card[data-desk="sports"] {
+    background: #0f2820;
+    color: #f5f5f0;
+  }
+  .px-desk__card[data-desk="sports"] .px-dot { background: #e8f048; }
+  .px-desk__card[data-desk="sports"] .px-desk__ghost { color: rgb(232 240 72 / 0.17); }
+  .px-desk__card[data-desk="sports"] .px-desk__meta { color: rgb(245 245 240 / 0.62); }
+  .px-desk__card[data-desk="sports"] .px-desk__tag { color: rgb(245 245 240 / 0.74); }
+  .px-desk__card[data-desk="sports"] .px-desk__cta { color: #e8f048; }
+
+  /* ── Latest dispatches head ───────────────────────────────────────────── */
+  .px-home__seclabel { font-size: 11px; letter-spacing: 0.2em; margin: 0; }
+
+  /* ── The promises ─────────────────────────────────────────────────────── */
+  .px-home__promises { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .px-home__promise { padding: 24px; }
+  .px-home__promise-n {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-home__promise-t {
+    margin: 8px 0 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .px-home__promise-b {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 768px) {
+    .px-home__lead { grid-template-columns: 1fr; gap: 22px; }
+    .px-home__deskgrid { grid-template-columns: 1fr; }
+    .px-home__promises { grid-template-columns: 1fr; }
+  }
+</style>

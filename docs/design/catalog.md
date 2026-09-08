@@ -141,6 +141,14 @@
 - **PLAIN:** — (narrative kind; no plain line)
 - **NOTES:** quiet section (act rhythm); the ONLY kind that reads `skimCaption` — in skim mode the prose hides and the caption shows.
 
+
+## plate
+- **World/Tier:** universal · core · `src/components/core/Plate.astro`
+- **USE WHEN:** a photograph establishes the scene before the graphic argues about it — one per issue, after the opening prose, before the first figure (handoff §"The plate").
+- **DON'T USE:** as decoration; as a stand-in for a chart; without a real image — the component renders NOTHING when `src` is absent (operator ruling 2026-09-08: no empty frames).
+- **DATA:** `{ src, alt, caption, credit, number?, fit?: "cover" | "contain", height? }` — `credit` is the plate's own caption-row source; do not also set `source` or it renders twice.
+- **PLAIN:** — (narrative kind; no plain line, no how-to-read)
+- **NOTES:** hairline frame, 8px inset, 300px tall (200 on phones), fades in with a 22px rise once; never bleeds past the reading column. Not counted as the free graphic by the reading gate; never a story card.
 ## data-readout
 - **World/Tier:** universal · v2 kit `.tel` (telemetry tiles) · `src/components/core/DataReadout.astro`
 - **USE WHEN:** 3–6 headline numbers that set scale before the argument — values with short labels, one worth accenting.

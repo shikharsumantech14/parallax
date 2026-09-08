@@ -1,19 +1,16 @@
 ---
 /**
- * ReadingToolbar — the v2 floating glass reading bar (kit Components.jsx
- * <ReadingToolbar>). Replaces the inline SkimToggle. Two pieces:
- *   • a hairline reading-progress bar pinned to the top of the viewport, and
- *   • a bottom-centered glass pill that fades in after you start scrolling,
- *     carrying the Full/Skim segmented toggle, the live progress %, a keyboard
- *     hint, and the Save-for-later control.
+ * ReadingToolbar — the reading strip (launch design, 2026-09-08).
  *
- * The Full/Skim toggle drives `#px-article[data-mode]` (same mechanism the old
- * SkimToggle used, so the existing skim CSS keeps working). Pressing "S"
- * toggles it too. All of this is progressive enhancement — with no JS the pill
- * never appears and the reader gets the full article (skim was always JS-only).
+ * The handoff's toolbar, pinned: a flat bar on the paper with a 2px ink rule
+ * on top, carrying the progress hairline (accent fill), "42% · 4 min left",
+ * the square Full ⇄ Skim toggle and Save. It slides up once the reader has
+ * scrolled a little, and sits above the phone's home bar (safe-area inset).
  *
- * Scoped styles (Astro-hashed) — no global class collisions. Uses the v2 glass
- * + motion tokens from tokens-v2.css, themed by `data-theme` (dark worlds).
+ * The Full/Skim toggle drives `#px-article[data-mode]` (the skim CSS in
+ * base.css is unchanged). Pressing "S" toggles it too. Progressive
+ * enhancement: with no JS the bar never appears and the reader gets the full
+ * article (skim was always JS-only).
  */
 import SaveButton from './SaveButton.astro';
 
@@ -25,31 +22,28 @@ interface Props {
 const { readTime = 7, issueId, theme = 'light' } = Astro.props;
 ---
 
-<div class="rtb-rp" aria-hidden="true"><span class="rtb-rp__fill"></span></div>
-
-<div class="rtb" data-theme={theme} role="group" aria-label="Reading controls">
+<div class="rtb" data-theme={theme} role="group" aria-label="Reading controls" data-read={readTime}>
+  <span class="rtb__track" aria-hidden="true"><span class="rtb__fill"></span></span>
+  <span class="rtb__meta"><b class="rtb__pct">0%</b> · <span class="rtb__left">{readTime} min left</span></span>
   <div class="rtb__seg" data-mode="full">
-    <span class="rtb__thumb" aria-hidden="true"></span>
     <button class="rtb__seg-btn is-active" type="button" data-mode="full" aria-pressed="true">Full</button>
     <button class="rtb__seg-btn" type="button" data-mode="skim" aria-pressed="false">Skim</button>
   </div>
-  <span class="rtb__sep" aria-hidden="true"></span>
-  <span class="rtb__meta"><b class="rtb__pct">0%</b> · {readTime} min</span>
-  <span class="rtb__sep rtb__sep--hide" aria-hidden="true"></span>
-  <span class="rtb__meta rtb__meta--hide">Press <b>S</b></span>
-  <span class="rtb__sep" aria-hidden="true"></span>
+  <span class="rtb__hint">Press <b>S</b></span>
   <SaveButton issueId={issueId} />
 </div>
 
 <script is:inline>
   (function () {
-    var rp = document.querySelector('.rtb-rp__fill');
     var bar = document.querySelector('.rtb');
     if (!bar) return;
+    var fill = bar.querySelector('.rtb__fill');
     var seg = bar.querySelector('.rtb__seg');
     var pctEl = bar.querySelector('.rtb__pct');
+    var leftEl = bar.querySelector('.rtb__left');
     var article = document.getElementById('px-article');
     var btns = bar.querySelectorAll('.rtb__seg-btn');
+    var total = parseInt(bar.getAttribute('data-read') || '7', 10) || 7;
 
     function setMode(mode) {
       if (article) article.setAttribute('data-mode', mode);
@@ -76,8 +70,12 @@ const { readTime = 7, issueId, theme = 'light' } = Astro.props;
     function onScroll() {
       var max = document.documentElement.scrollHeight - window.innerHeight;
       var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-      if (rp) rp.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+      if (fill) fill.style.width = (p * 100).toFixed(2) + '%';
       if (pctEl) pctEl.textContent = Math.round(p * 100) + '%';
+      if (leftEl) {
+        var left = Math.max(0, Math.round(total * (1 - p)));
+        leftEl.textContent = left <= 0 ? 'done' : left + ' min left';
+      }
       bar.classList.toggle('is-shown', p > 0.04);
     }
     onScroll();
@@ -87,83 +85,55 @@ const { readTime = 7, issueId, theme = 'light' } = Astro.props;
 </script>
 
 <style>
-  /* Reading progress — hairline accent across the very top */
-  .rtb-rp {
-    position: fixed; top: 0; left: 0; right: 0; height: 2px;
-    background: transparent; z-index: 100; pointer-events: none;
-  }
-  .rtb-rp__fill {
-    display: block; height: 100%;
-    background: var(--accent);
-    transform: scaleX(0); transform-origin: 0 0;
-    transition: transform 80ms linear;
-  }
-
-  /* Bottom-floating pill — the flat 2px-ink-rule skin (Phase 6, standing
-     ruling in REVAMP-PLAN §1). Fixed position and live progress are kept;
-     only the glass goes: opaque paper, a 2px ink rule, no blur, no shadow.
-     Ink and paper already flip per world, so the dark-theme override below
-     no longer needs its own colours. The pill radius stays — --r-pill is UI
-     chrome and is deliberately outside the RD-05 radius flip. */
-  .rtb {
-    position: fixed; left: 50%; bottom: 24px;
-    transform: translate(-50%, 12px);
+  /* Only JS shows it: html.js is the head guard every hidden state is gated on. */
+  .rtb { display: none; }
+  :global(html.js) .rtb {
+    position: fixed; left: 0; right: 0; bottom: 0;
     z-index: 90;
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px;
-    background: var(--paper);
-    border: 2px solid var(--ink);
-    border-radius: var(--r-pill);
-    opacity: 0; pointer-events: none;
-    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 40px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    border-top: 2px solid var(--ink);
+    transform: translateY(100%);
+    transition: transform var(--t-soft) var(--ease);
   }
-  .rtb.is-shown { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-  .rtb[data-theme="dark"] {
-    background: var(--paper);
-    border-color: var(--ink);
-  }
+  :global(html.js) .rtb.is-shown { transform: translateY(0); }
 
-  .rtb__seg {
-    position: relative; display: inline-flex; padding: 2px;
-    background: color-mix(in oklab, var(--ink) 6%, transparent);
-    border-radius: var(--r-pill);
-  }
-  .rtb__thumb {
-    position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px);
-    background: var(--paper); border-radius: var(--r-pill);
-    /* RD-05: the thumb's 1px shadow retired; paper on the 6%-ink track reads. */
-    border: 1px solid var(--rule);
-    transition: left var(--t-soft) var(--ease-snap);
-  }
-  .rtb__seg[data-mode="skim"] .rtb__thumb { left: 50%; }
-  .rtb__seg-btn {
-    position: relative; z-index: 1;
-    padding: 6px 14px;
-    font-family: var(--font-mono); font-size: 10px;
-    letter-spacing: 0.18em; text-transform: uppercase;
+  .rtb__track { flex: 1; height: 2px; background: var(--rule); display: block; min-width: 40px; }
+  .rtb__fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width 80ms linear; }
+  .rtb__meta, .rtb__hint {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
     color: var(--muted);
-    background: none; border: 0; cursor: pointer;
-    border-radius: var(--r-pill);
-    transition: color var(--t-quick) var(--ease);
-  }
-  .rtb__seg-btn.is-active { color: var(--accent); }
-  .rtb__sep { width: 1px; height: 18px; background: var(--rule); flex: 0 0 1px; }
-  .rtb__meta {
-    font-family: var(--font-mono); font-size: 10px;
-    letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted); padding: 0 4px; white-space: nowrap;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-  .rtb__meta b { color: var(--ink); }
+  .rtb__meta b, .rtb__hint b { color: var(--ink); font-weight: 600; }
 
-  /* Save control reads as a pill inside the bar */
-  .rtb :global(.px-save__btn) { border-radius: var(--r-pill); padding: 7px 14px; }
-
-  @media (max-width: 600px) {
-    .rtb__meta--hide, .rtb__sep--hide { display: none; }
+  .rtb__seg { display: inline-flex; border: 1px solid var(--ink); }
+  .rtb__seg-btn {
+    font-family: inherit;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 7px 12px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    min-height: 32px;
+    transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
   }
-  @media (max-width: 420px) {
-    .rtb { gap: 8px; padding: 8px 10px; }
+  .rtb__seg-btn.is-active { background: var(--ink); color: var(--bg); }
+  .rtb__seg-btn:focus-visible { outline: 2px solid var(--accent-deep, var(--accent)); outline-offset: -2px; }
+
+  /* Save reads as one more square control in the strip. */
+  .rtb :global(.px-save__btn) { border-radius: 0; padding: 7px 12px; white-space: nowrap; min-height: 32px; }
+
+  @media (max-width: 768px) {
+    :global(html.js) .rtb { padding: 8px 20px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+    .rtb__hint { display: none; }
+    .rtb__track { min-width: 24px; }
+  }
+  @media (max-width: 480px) {
     .rtb__meta { display: none; }
+    .rtb :global(.px-save__btn) { padding: 7px 10px; font-size: 10px; letter-spacing: 0.12em; }
   }
 </style>

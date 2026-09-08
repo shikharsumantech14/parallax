@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-06.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-08.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -124,6 +124,7 @@ citations resolve. Highlights of what shipped:
 | **Brand (RD-10)** | **All five steps.** The P outlined from Literata at two optical tiers — proven on `mark.svg` first (0.15% ink delta against its source), and the 11.5% discrepancy that looked like an error turned out to be a DIFFERENT Literata instance: Google's CSS2 API serves static slices when an axis is pinned. Two tiers kept because the display cut loses 14% of its ink at 40px where the text cut loses 2.9%. `src/lib/mark.ts` is the single geometry source (`DIAL`, `ringFor`, `cutFor`, `markBody`, `markSVG`); `core/Mark.astro` renders it; the masthead/wordmark swap, About's mark + lore, and the per-desk cuts all draw from it — as do the favicon and the PWA icons. |
 | **The merge** | **One project since 2026-09-06.** `app/` folded into the publication: `output: 'hybrid'`, 45 pages prerendered, 24 SSR routes opting out. `app.parallaxlens.com` survives as an alias only. Design notes moved to `docs/APP-SURFACES.md`. It cost two failed deploys and one silent outage — all three are §7 entries — and it bought the thing Phase 8 could not have: one origin, which is what a service worker and a TWA both require. |
 | **PWA** | **Installable, and offline reading works.** Manifest + icon set generated from the medallion (`f1c336c`); the service worker cache-on-read, sessions never cached, Google Fonts kept as validated CORS responses rather than opaque ones (`a1485f9`, `bd72092`). Verified against a real build with the server stopped: a read issue renders complete with its own CSS and all three faces. `npm run preview` was rebuilt to make that testable at all — `astro preview` cannot run under the Vercel adapter (`11e1aac`). |
+| **Launch design (2026-09-08)** | **The public launch is 19 September, and the operator ruled the product's adoption of the handoff too loose to ship.** A twelve-artboard canvas prototype was drawn from `Parallax Web.dc.html`, approved, and implemented in one pass: Literata everywhere; a 1280 frame of hairline bands with scoped page styles (`meta.css` is tokens only); zero radii; the masthead lockup measured onto one axis; the issue page rebuilt (IssueHead, the 720 measure inside 170/1fr/250, facts rail + aside, reactions / letters / sources as bands, a pinned reading strip, margin notes removed); one desk template; home, about, archive rebuilt; `/subscribe` with the beta pricing (₹149 → ₹0); kind `plate` (98). Full build, all gates, 412px overflow and the menu's 44px targets verified. Details: `AGENTS.md` §10, `src/components/AGENTS.md` change log. |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
 not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
@@ -148,6 +149,12 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 
 1. **Operator: `git push`** when ready — the count is in the session brief,
    deliberately not written here (CD-11). Vercel deploys on push.
+   **Launch follow-ups (19 September):** supply the About portrait
+   (`EDITOR_PORTRAIT` in `about.astro`) and any issue plates (`kind: plate`
+   needs an image under `public/`); the reader-account pages (login, shelf,
+   admin) still run `app.css` and were only re-fonted, not redesigned; the
+   design rules in `docs/design/CANON.md` describe the pre-launch look and are
+   to be re-hardened after launch (operator's stated intent).
 2. **Phase 5 — finish it.** Step 1 landed (`f76fa8c`, §4). What is left is the
    stated exit and the four exclusions: sweep all 23 issues at 375px rather
    than the 6 showcases, test for new clipping, decide `region-map`'s authored

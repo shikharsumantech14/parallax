@@ -39,7 +39,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
           <path d="M4 16.5l2.5-.7 8-8-1.8-1.8-8 8zM12.2 5.5l1.8 1.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
           <path d="M4 19h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <span>Annotate the margins — the editors read every note.</span>
+        <span>Write a letter — the editor reads every one before it runs.</span>
       </li>
       <li class="px-gate__benefit">
         <svg class="px-gate__glyph" viewBox="0 0 20 20" aria-hidden="true">
@@ -84,7 +84,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
        the thing Parallax is for. `data-kind` is on every .px-section already
        (core/Section.astro), and the narrative set is the same seven kinds
        check-catalog treats as EXPLAIN-exempt. Keep the two lists in step. */
-    var NARRATIVE = ['hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison'];
+    var NARRATIVE = ['hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison', 'plate'];
     function isGraphic(el) {
       if (!el.classList.contains('px-section')) return false;
       var k = el.getAttribute('data-kind') || '';
@@ -162,7 +162,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
   }
   .px-gate__card {
     background: var(--paper); border: 1px solid var(--rule);
-    border-radius: var(--r-tile, 14px); padding: 38px 32px; text-align: center;
+    border-radius: 0; border-top: 3px solid var(--ink); padding: 38px 32px; text-align: center;
     /* RD-05: flat; the 1px rule is the edge. */
   }
   .px-gate__eyebrow {
@@ -202,12 +202,11 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
   .px-gate__cta {
     font-family: var(--font-body); font-weight: 500; font-size: 15px;
     padding: 14px 28px; background: var(--ink); color: var(--paper);
-    border: 1px solid var(--ink); border-radius: var(--r-pill, 999px); text-decoration: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    border: 1px solid var(--ink); border-radius: 0; text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
   .px-gate__cta:hover {
     background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent));
-    transform: translateY(-1px);
   }
   .px-gate__alt { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--muted); text-decoration: none; }
   .px-gate__alt:hover { color: var(--accent-deep, var(--accent)); }

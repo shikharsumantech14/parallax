@@ -1,112 +1,98 @@
 ---
 /**
- * Masthead — the single, unified v2 press header for every page.
+ * Masthead — the launch lockup (2026-09-08), one header for every page.
  *
- * Replaces the six per-topic `.px-masthead--<topic>` variants with one
- * token-driven three-zone press header (`.mh`): brand + lens mark · status
- * pill · nav + Subscribe CTA. The world still shifts entirely via
- * `data-topic` on <html> (accent, paper, signature faces). Each world's
- * register microcopy (telemetry T+, atlas coordinates, build hash, matchday,
- * dateline) now reads in the per-issue <Banner> that sits just below.
+ * Left: the lockup — the medallion drawn TIGHT (the ring is the edge, so the
+ * 12px gap is measured from the ring, not from the brand file's clear space),
+ * the wordmark at 25px/700 with its cap centre on the disc centre, and the
+ * register on the same axis: the desk's own name on a desk page ("Politics
+ * desk", "Mission control"), "Visual explainers" on the house pages. A long
+ * house line is what once pushed Sign in and Subscribe onto a second row.
  *
- * Markup is ported faithfully from the v2 kit (publication-v2/Sections.jsx +
- * styles.css `.mh*`). Styling lives in base.css (global, shared with the
- * Colophon lens). The only motion is the lens/status pulse, which
- * prefers-reduced-motion disables globally (motion-v2.css).
+ * Right: Home · Desks · Archive · About (the current one underlined in the
+ * accent), the pulsing live badge, the account slot, and a square ink
+ * Subscribe. Below 768px the right side folds into a native <details> Menu —
+ * it opens, closes and announces itself with zero JavaScript, and only one of
+ * the two navs is ever in the accessibility tree.
  *
- * Brand naming: the public brand "Parallax" is the wordmark (per the
- * brand-vs-legal split); the legal "Parallax Lens™" stays in <title>, RSS,
- * and the colophon.
+ * Styling lives in base.css (`.mh`). Brand naming: the public brand
+ * "Parallax" is the wordmark; the legal "Parallax Lens™" stays in <title>,
+ * RSS and the footer's legal line.
  */
-type Variant = 'meta' | 'politics' | 'space' | 'earth' | 'tech' | 'travel' | 'sports';
-
-interface Props {
-  /** Accepted for call-site compatibility; no longer switches markup —
-   *  the active world is set by `data-topic` on <html>. */
-  variant?: Variant;
-  issueNumber?: string;
-  date?: string;
-  /** Status dot + label state. Published issues and meta pages are 'live'. */
-  status?: 'live' | 'draft';
-  /** Optional overrides for the status-pill text. */
-  statusLabel?: string;
-  statusSub?: string;
-}
-const { variant, issueNumber, date, status = 'live', statusLabel, statusSub } = Astro.props;
-
-/* The desk register — the world's own name for what it publishes. Derived from
-   `variant`, which every call site already passes, so no page changed. On the
-   meta surfaces (home, about, archive) there IS no desk, so the line is
-   omitted rather than filled with a stand-in. */
-const deskRegister =
-  variant && variant !== 'meta' ? DESK_REGISTER[variant as Topic] : undefined;
-
 import AccountEntry from './AccountEntry.astro';
 import Mark from './Mark.astro';
 import { DESK_REGISTER } from '../../lib/desks';
 import type { Topic } from '../../content/config';
 
-const stateWord = status === 'draft' ? 'Draft' : 'Live';
-const topLine =
-  statusLabel ?? (issueNumber ? `Issue ${issueNumber} · ${stateWord}` : 'Parallax');
-const subLine = statusSub ?? date ?? 'Est. 2026';
+type Variant = 'meta' | Topic;
+type Current = 'home' | 'desks' | 'archive' | 'about' | 'subscribe';
+
+interface Props {
+  /** The world this page stands in; 'meta' (or omitted) = the house pages. */
+  variant?: Variant;
+  /** The badge: "Issue NN · live". */
+  issueNumber?: string;
+  /** Accepted for call-site compatibility; the date now reads in the fact
+   *  rail, not here. */
+  date?: string;
+  status?: 'live' | 'draft';
+  /** Which nav item is the current page. */
+  current?: Current;
+}
+const { variant, issueNumber, status = 'live', current } = Astro.props;
+
+const desk = variant && variant !== 'meta' ? (variant as Topic) : undefined;
+const register = desk ? DESK_REGISTER[desk] : 'Visual explainers';
+const stateWord = status === 'draft' ? 'draft' : 'live';
+const badge = issueNumber ? `Issue ${issueNumber} · ${stateWord}` : 'Est. 2026';
+
+const nav: { key: Current; label: string; href: string }[] = [
+  { key: 'home', label: 'Home', href: '/' },
+  { key: 'desks', label: 'Desks', href: '/#desks' },
+  { key: 'archive', label: 'Archive', href: '/archive/' },
+  { key: 'about', label: 'About', href: '/about/' },
+];
 ---
 
 <header class="mh">
   <a class="mh__brand" href="/" aria-label="Parallax — home">
-    {/* RD-10 step 5 — the PER-DESK CUT. The mark carries the station and the
-        accent of the world it is standing in, so a space page shows space's
-        crescent at 25° and politics' at 325°. On the meta surfaces there is no
-        desk, so it falls back to the house cut, which the delivered mark.svg
-        draws at the politics station. */}
-    <Mark desk={variant && variant !== 'meta' ? (variant as Topic) : undefined}
-          size={28} class="mh__mark" />
+    {/* RD-10 step 5 — the PER-DESK CUT: the mark carries the station and the
+        accent of the world it stands in. House pages take the house cut. */}
+    <Mark desk={desk} size={34} ring={9} tight class="mh__mark" />
     <span class="mh__type">
-      <span class="mh__name">Paral<span class="mh__name-tail">lax</span></span>
-      {deskRegister && <span class="mh__desk">{deskRegister}</span>}
+      <span class="mh__name">Parallax</span>
+      <span class="mh__desk">{register}</span>
     </span>
   </a>
 
   <div class="mh__r">
     <nav class="mh__links" aria-label="Primary">
-      <a href="/#desks">Desks</a>
-      <a href="/about/">About</a>
-      <a href="/rss.xml">Feed</a>
+      {nav.map((n) => (
+        <a href={n.href} aria-current={current === n.key ? 'page' : undefined}>{n.label}</a>
+      ))}
     </nav>
-    <AccountEntry />
-    <div class="mh__status">
+    <span class="mh__status">
       <span class="mh__status-dot" data-state={status}></span>
-      <span class="mh__status-tx">
-        <b>{topLine}</b>
-        <span>{subLine}</span>
-      </span>
-    </div>
-    <a href="/#subscribe" class="mh__cta">Subscribe<span aria-hidden="true">→</span></a>
+      {badge}
+    </span>
+    <AccountEntry />
+    <a href="/subscribe/" class="mh__cta" aria-current={current === 'subscribe' ? 'page' : undefined}>
+      Subscribe<span aria-hidden="true">→</span>
+    </a>
   </div>
 
-  {/*
-    Phone navigation. Below 900px the desktop nav and status pill are hidden,
-    which until now left the site with NO primary navigation at all on a phone.
-
-    Built on <details>/<summary> rather than an island: it is a native
-    disclosure, so it opens, closes and announces its state with ZERO
-    JavaScript and is keyboard-operable for free. That satisfies the fallback
-    contract by construction instead of by a no-JS branch.
-
-    Only one of the two navs is ever in the accessibility tree — the other is
-    display:none at every width — so the duplicate links never double up for
-    screen readers.
-  */}
   <details class="mh__menu">
     <summary class="mh__menu-btn">Menu</summary>
     <nav class="mh__menu-panel" aria-label="Primary (compact)">
-      <a href="/#desks">Desks</a>
-      <a href="/about/">About</a>
-      <a href="/rss.xml">Feed</a>
+      {nav.map((n) => (
+        <a href={n.href} aria-current={current === n.key ? 'page' : undefined}>{n.label}</a>
+      ))}
+      <a href="/subscribe/">Subscribe</a>
       <span class="mh__menu-status">
         <span class="mh__status-dot" data-state={status}></span>
-        <b>{topLine}</b><span>{subLine}</span>
+        {badge}
       </span>
+      <span class="mh__menu-cta"><AccountEntry /></span>
     </nav>
   </details>
 </header>

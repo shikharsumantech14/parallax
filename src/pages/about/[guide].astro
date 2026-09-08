@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import HomeLayout from '../../layouts/HomeLayout.astro';
+import Masthead from '../../components/core/Masthead.astro';
 
 export async function getStaticPaths() {
   const guides = await getCollection('guides');
@@ -25,6 +26,8 @@ const updatedLabel = updated.toLocaleDateString('en-US', {
   title={title}
   description={summary ?? dek ?? `${title} for Parallax Lens.`}
 >
+  <Masthead variant="meta" current="about" />
+
   <article class="px-guide">
     {eyebrow && <p class="px-guide__eyebrow">{eyebrow}</p>}
     <h1 class="px-guide__title">{title}</h1>

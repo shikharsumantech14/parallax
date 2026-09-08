@@ -1,13 +1,37 @@
 ---
+/**
+ * /about — "How Parallax works" (launch design, 2026-09-08).
+ *
+ * Built to the approved artboards (About.dc.html at 1280, AboutPhone.dc.html
+ * at 412): a stack of full-width hairline BANDS inside the 1280 frame, with
+ * two `.px-cells` strips (the three steps, the three promises) breaking the
+ * rhythm as edge-to-edge grids. Every shared value comes from the launch
+ * primitives in base.css — `.px-band`, `.px-h1`, `.px-lede`, `.px-eyebrow`,
+ * `.px-cells` — so this page re-declares only what is genuinely local to it.
+ *
+ * The two `.px-cells--open` strips drop their own `border-top`: the band above
+ * already draws that hairline, and the artboards show one rule there, not two.
+ *
+ * No JavaScript. Everything paints in its final state on first render.
+ */
+import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
-import ManifestoStrip from '../components/home/ManifestoStrip.astro';
-import RegistrationMark from '../components/welcome/RegistrationMark.astro';
-import { renderEmphasis } from '../lib/text';
 import Mark from '../components/core/Mark.astro';
+import { renderEmphasis } from '../lib/text';
 import { MARK_GLYPH } from '../lib/mark-glyph';
 import { TOPICS, type Topic } from '../content/config';
-import '../styles/welcome.css';
+
+/* The badge reads the real backlist, like /archive and /. */
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const issueNumber = String(published.length).padStart(2, '0');
+
+/* THE EDITOR'S PORTRAIT. The band renders only when this is filled in —
+   OPERATOR: supply the image (drop it in public/, then set src/alt/caption/
+   date here). While it is null the whole band is omitted rather than shipping
+   a placeholder frame, because an empty hairline box on a live page reads as
+   a broken image, not as a promise. */
+const EDITOR_PORTRAIT: { src: string; alt: string; caption: string; date: string } | null = null;
 
 /* THE SIX DRAFTS (RD-10 step 4). Copy and shapes are the handoff's own. The art
    was authored as React.createElement calls (Web.dc.html:665-698) rather than
@@ -54,192 +78,399 @@ const deskLabels: Record<Topic, string> = {
   tech: 'Tech', travel: 'Travel', sports: 'Sports',
 };
 
-// Six worlds, as a type-and-accent specimen — the only place on About where
-// all six accents coexist.
-/* The eight rhetorical modes an issue can use (AGENTS §6; the working canon is
-   research/_voice/mode-library.md). The NAMES are the schema's `voice` enum
-   verbatim -- src/content/config.ts -- so this page and the issue fact rail can
-   never drift into disagreeing about what the eight are.
-
-   The descriptions are reader-facing on purpose. The internal canon pins each
-   mode to a register by naming real broadcasters and writers; those belong in
-   the stylist's brief, not on a public page, where naming them reads as a claim
-   of endorsement. EDITORIAL COPY -- operator to review the wording. */
-const voices = [
-  { n: 'AWE', d: 'Scale and deep time, handled plainly. Used when the honest reaction to a mechanism is that it is astonishing.' },
-  { n: 'CONVERSATIONAL EXPLAINER', d: 'One step, then the next. The register for a mechanism that only makes sense in order.' },
-  { n: 'CALM-STRUCTURAL', d: 'Naming a structural cost without raising its voice — the pivot from one scene to what it implies.' },
-  { n: 'SATIRICAL EXPOSURE', d: 'An institution held against its own published numbers. At most once per issue.' },
-  { n: 'DRY WIT', d: 'Bureaucratic precision played straight, and funnier for it.' },
-  { n: 'INVESTIGATION', d: 'Start at the anomaly, assemble the evidence, let the reader arrive first.' },
-  { n: 'FORENSIC', d: 'Mechanism with the human stakes left in. Short sentences, no adjectives doing the work.' },
-  { n: 'LYRICAL COMPRESSION', d: 'The landing. One paragraph, rationed to two an issue.' },
+/* The three steps an issue walks the reader through. */
+const steps = [
+  { no: '01', title: 'Start with what you know',
+    body: 'A headline you have already scrolled past. We assume you know the summary and skip it.' },
+  { no: '02', title: 'Move the viewpoint',
+    body: 'The structure underneath — the procedure, the arithmetic, the incentive — rebuilt as something you can operate.' },
+  { no: '03', title: 'Keep the argument',
+    body: 'Sources under every number, a skim mode for the hurry, and sixty days of letters.' },
 ];
 
-const worlds = [
-  { topic: 'politics', word: 'Politics', tag: 'Broadsheet' },
-  { topic: 'space', word: 'Space', tag: 'Mission control' },
-  { topic: 'earth', word: 'Earth', tag: 'Atlas' },
-  { topic: 'tech', word: 'tech', tag: 'Changelog' },
-  { topic: 'travel', word: 'Travel', tag: 'Field journal' },
-  { topic: 'sports', word: 'Sports', tag: 'Match programme' },
+/* The eight rhetorical modes an issue can use (AGENTS §6; the working canon is
+   research/_voice/mode-library.md). The internal canon pins each mode to a
+   register by naming real broadcasters and writers; those belong in the
+   stylist's brief, not on a public page, where naming them reads as a claim of
+   endorsement. These are the artboard's reader-facing one-liners. */
+const voices = [
+  { n: 'Awe', d: 'Scale, deep time, mechanism marvel.' },
+  { n: 'Conversational', d: 'Step-by-step mechanism.' },
+  { n: 'Calm-structural', d: 'Naming structural cost.' },
+  { n: 'Satirical exposure', d: 'Contradiction by its own data.' },
+  { n: 'Dry wit', d: 'Bureaucratic precision as deadpan.' },
+  { n: 'Investigation', d: 'Anomaly, then evidence.' },
+  { n: 'Forensic', d: 'Mechanism with human stakes.' },
+  { n: 'Lyrical compression', d: 'One emotional landing.' },
+];
+
+const promises = [
+  { no: '01', title: 'Independent', body: 'Not for profit. No investors. No advertisers.' },
+  { no: '02', title: 'Sourced', body: 'Every claim cites a primary source. Every dataset linked.' },
+  { no: '03', title: 'Slow', body: 'Read in six minutes. Argued in sixty days.' },
 ];
 ---
 
 <HomeLayout
   title="About · Parallax Lens"
-  description="Parallax Lens — a visual explainer publication. One topic per issue. Cited, structured, built for reference value."
+  description="How Parallax works — the second angle, the mark, the eight voices, and what the publication refuses to do."
 >
-  <Masthead variant="meta" />
+  <Masthead variant="meta" current="about" issueNumber={issueNumber} />
 
-  <section class="px-hero px-abt-hero" data-reveal>
-    <RegistrationMark num="00" />
-    <div class="px-eyebrow">About</div>
-    <h1 class="px-home__title" set:html={renderEmphasis('A different *angle*.')} />
-    <p class="px-home__tagline">
-      Most of what you read is built to be scrolled past. This is built to be kept.
-    </p>
-    <a class="px-abt__more" href="/welcome/">See the idea in motion →</a>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 01</div>
-    <h2 class="px-section__title">Why this exists.</h2>
-    <p class="px-section__intro">
-      Somewhere between the push notification and the third hot take of the morning,
-      understanding quietly went missing. Parallax is where we keep it: one topic per
-      issue, rebuilt from the structure up until you can see its shape.
+  <!-- 1 · Hero -->
+  <section class="px-band px-abt__hero">
+    <p class="px-eyebrow">How Parallax works</p>
+    <h1 class="px-h1" set:html={renderEmphasis('Two eyes, one object, a *second* angle.')} />
+    <p class="px-lede">
+      Parallax is the shift you get when you move your viewpoint. We do it to one
+      story at a time — the object stays put, the angle changes, and the depth
+      appears.
     </p>
   </section>
 
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 02</div>
-    <h2 class="px-section__title">The <em>mark</em>, explained.</h2>
-
-    <div class="px-abt-mark">
-      <div class="px-abt-mark__art">
-        <Mark size={168} title="The Parallax medallion" />
-        <div class="px-abt-mark__dial">
-          {TOPICS.map((t) => (
-            <span class="px-abt-mark__phase" title={deskLabels[t]}>
-              <Mark desk={t} size={30} glyph={false} />
-            </span>
-          ))}
-        </div>
-      </div>
-      <div class="px-abt-mark__copy">
-        <p class="px-abt-mark__lead">
-          A star's distance is measured by looking at it twice, six months
-          apart, from opposite ends of Earth's orbit. Depth is what patience and
-          displacement buy you.
-        </p>
-        <p class="px-abt-mark__body">
-          So the mark is a disc lit from one side. The crescent is the part that
-          was hidden until something moved, and it sits at a different hour for
-          each of the six desks — 60° apart, one full turn of the dial across
-          the publication.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 03</div>
-    <h2 class="px-section__title">What we <em>refuse</em>.</h2>
-    <p class="px-section__intro">
-      No advertising, so no one buys back the attention you arrived with. No investors,
-      so no quarterly target decides what runs. No trackers, no cookies, no comment
-      section to police into a shouting match. What's left is the piece, and the sources
-      under it.
-    </p>
-    <div class="px-wj-refuse__strip" data-reveal>
-      <ManifestoStrip />
-    </div>
-    <span class="px-wj-refuse__badge">No analytics · no cookies · no trackers · no ads</span>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 04</div>
-    <h2 class="px-section__title">How we work.</h2>
-    <p class="px-section__intro">
-      Every issue starts as a question we can't answer yet. We read the primary sources,
-      link every one, and rebuild the topic until its shape is visible on the page. Six
-      minutes to read. Sixty days to argue.
-    </p>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 05</div>
-    <h2 class="px-section__title">Six worlds, six <em>lights</em>.</h2>
-    <p class="px-section__intro">
-      Each topic is its own aesthetic world — its own type, its own colour, its own way
-      of reading the evidence.
-    </p>
-    <div class="px-abt-specimen">
-      {worlds.map((w) => (
-        <div class={`px-abt-tile px-abt-tile--${w.topic}`} data-accent={w.topic}>
-          <span class="px-abt-tile__word">{w.word}</span>
-          <span class="px-abt-tile__tag">{w.tag}</span>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 06</div>
-    <h2 class="px-section__title">The eight <em>voices</em>.</h2>
-    <p class="px-section__intro">
-      Every section of every issue is written in one of eight rhetorical modes,
-      assigned deliberately rather than drifted into. Four to six of them appear
-      across a single issue — enough range to hold a long read, few enough that
-      it still sounds like one publication.
-    </p>
-    <ul class="px-abt-voices">
-      {voices.map((v) => (
-        <li class="px-abt-voice">
-          <p class="px-abt-voice__n">{v.n}</p>
-          <p class="px-abt-voice__d">{v.d}</p>
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 07</div>
-    <h2 class="px-section__title">Six drafts, and the <em>one</em>.</h2>
-    <p class="px-section__intro">
-      A mark is chosen by discarding, and the rejected drafts say more about the
-      reasoning than the survivor does. These are the six, in order, with the
-      verdict each earned.
-    </p>
-    <ol class="px-abt-lore">
-      {drafts.map((d) => (
-        <li class="px-abt-lore__row">
-          <span class="px-abt-lore__art" aria-hidden="true">
-            {d.art
-              ? <svg viewBox="0 0 300 300" width="46" height="46"><Fragment set:html={d.art} /></svg>
-              : <Mark size={46} />}
+  <!-- 2 · The mark -->
+  <section class="px-band px-abt__markband">
+    <div class="px-abt__markart">
+      <Mark size={168} title="The Parallax medallion" />
+      <div class="px-abt__dial">
+        {TOPICS.map((t) => (
+          <span class="px-abt__phase" title={deskLabels[t]}>
+            <Mark desk={t} size={30} glyph={false} ring={13} />
           </span>
-          <span class="px-abt-lore__no">{d.no}</span>
-          <span class="px-abt-lore__text">
-            <span class="px-abt-lore__t">{d.title}</span>
-            <span class="px-abt-lore__b">{d.body}</span>
-            <span class="px-abt-lore__v" data-verdict={d.verdict}>
-              <b>{d.verdict}</b> — {d.note}
+        ))}
+      </div>
+    </div>
+    <div class="px-abt__markcopy">
+      <p class="px-eyebrow">The mark</p>
+      <p class="px-abt__marklead">
+        A star's distance is measured by looking at it twice, six months apart,
+        from opposite ends of Earth's orbit. Depth is what patience and
+        displacement buy you.
+      </p>
+      <p class="px-abt__markbody">
+        So the mark is a disc lit from one side. The crescent is the part that
+        was hidden until something moved, and it sits at a different hour for
+        each of the six desks — 60° apart, one full turn of the dial across the
+        publication.
+      </p>
+    </div>
+  </section>
+
+  <!-- 3 · The three steps -->
+  <div class="px-cells px-cells--open px-abt__steps">
+    {steps.map((s) => (
+      <div class="px-abt__step">
+        <span class="px-abt__stepno">{s.no}</span>
+        <p class="px-abt__stept">{s.title}</p>
+        <p class="px-abt__stepb">{s.body}</p>
+      </div>
+    ))}
+  </div>
+
+  <!-- 4 · The editor — omitted entirely until the portrait exists -->
+  {EDITOR_PORTRAIT && (
+    <section class="px-band px-abt__editor">
+      <p class="px-eyebrow">The editor</p>
+      <p class="px-abt__edcopy">
+        Parallax is written, designed and built by one person. The portrait is
+        shot in the field rather than at a desk, and the caption gives the date,
+        because a portrait is evidence of when someone was there.
+      </p>
+      <div class="px-abt__figs">
+        <figure class="px-abt__fig">
+          <div class="px-abt__frame">
+            <img class="px-abt__img" src={EDITOR_PORTRAIT.src} alt={EDITOR_PORTRAIT.alt} />
+          </div>
+          <figcaption class="px-abt__figcap">
+            <span>{EDITOR_PORTRAIT.caption}</span>
+            <span>{EDITOR_PORTRAIT.date}</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  )}
+
+  <!-- 5 · The eight voices -->
+  <section class="px-band px-abt__voices">
+    <p class="px-eyebrow">The eight voices an issue can use</p>
+    <div class="px-cells px-abt__voicegrid">
+      {voices.map((v) => (
+        <div class="px-abt__voice">
+          <p class="px-abt__voicen">{v.n}</p>
+          <p class="px-abt__voiced">{v.d}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 6 · The promises -->
+  <div class="px-cells px-cells--open px-abt__promises">
+    {promises.map((p) => (
+      <div class="px-abt__promise">
+        <span class="px-abt__promno">{p.no}</span>
+        <p class="px-abt__promt">{p.title}</p>
+        <p class="px-abt__promb">{p.body}</p>
+      </div>
+    ))}
+  </div>
+
+  <!-- 7 · The making of the mark -->
+  <section class="px-band px-abt__making">
+    <p class="px-eyebrow">The making of the mark</p>
+    <h2 class="px-abt__h2" set:html={renderEmphasis('Six drafts, and the one *survivor*.')} />
+    <p class="px-abt__intro">
+      The mark took six rounds to find. Every discarded draft was discarded for a
+      reason, and the reasons are the argument for what survived.
+    </p>
+
+    <ol class="px-abt__lore">
+      {drafts.map((d) => (
+        <li class="px-abt__row">
+          <span class="px-abt__rowlead">
+            <span class="px-abt__no">{d.no}</span>
+            <span class="px-abt__art" aria-hidden="true">
+              {d.art
+                ? <svg viewBox="0 0 300 300" width="46" height="46"><Fragment set:html={d.art} /></svg>
+                : <Mark size={46} />}
             </span>
+          </span>
+          <span class="px-abt__rowtext">
+            <b class="px-abt__t">{d.title}</b>
+            <span class="px-abt__b">{d.body}</span>
+          </span>
+          <span class="px-abt__rowverdict">
+            <span class="px-abt__v" data-verdict={d.verdict}>{d.verdict}</span>
+            <span class="px-abt__note">{d.note}</span>
           </span>
         </li>
       ))}
     </ol>
+
+    <p class="px-abt__close">
+      What survived is four concentric circles, one dial position and one letter.
+      Nothing in it is decoration, and nothing in it needs the story above in
+      order to be read — which is the only test a mark has to pass.
+    </p>
   </section>
 
-  <section class="px-section" data-reveal>
-    <div class="px-section__num">— 08</div>
-    <h2 class="px-section__title">Colophon.</h2>
-    <p class="px-section__intro">
-      Parallax is published by <strong>Parallax Lens</strong>™. Set in Fraunces,
-      Schibsted Grotesk, and JetBrains Mono. Built with Astro on a static stack —
-      no trackers, no JavaScript bloat, no cookies.
+  <!-- 8 · Colophon -->
+  <section class="px-band px-band--last px-abt__colophon" id="colophon">
+    <p class="px-eyebrow">Colophon</p>
+    <p class="px-abt__cop">
+      Parallax is published by <b>Parallax Lens</b>™, registered in India. Set in
+      Literata. Built as a static site with no analytics, no cookies and no
+      trackers.
     </p>
   </section>
 </HomeLayout>
+
+<style>
+  /* ── 1 · Hero ─────────────────────────────────────────────────────────────
+     The primitives carry 68→40px, the italic accent word and the 300-weight
+     lede; only the two measures are the artboard's own. */
+  .px-abt__hero .px-h1 { max-width: 20ch; }
+  .px-abt__hero .px-lede { max-width: 54ch; line-height: 1.5; }
+
+  /* ── 2 · The mark ──────────────────────────────────────────────────────── */
+  .px-abt__markband {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 34px;
+    align-items: center;
+  }
+  .px-abt__markband .px-eyebrow { color: var(--muted); margin-bottom: 14px; }
+  .px-abt__markart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .px-abt__dial { display: flex; gap: 9px; }
+  .px-abt__phase { display: flex; }
+  .px-abt__marklead {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 300;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 52ch;
+  }
+  .px-abt__markbody {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 56ch;
+  }
+
+  /* ── 3 · The three steps ───────────────────────────────────────────────── */
+  .px-abt__steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* The band above already draws this hairline. */
+    border-top: 0;
+  }
+  .px-abt__step { padding: 26px 24px; }
+  .px-abt__stepno {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .px-abt__stept {
+    margin: 10px 0 7px;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+  }
+  .px-abt__stepb { margin: 0; font-size: 15px; line-height: 1.62; color: var(--ink-soft); }
+
+  /* ── 4 · The editor ────────────────────────────────────────────────────── */
+  .px-abt__editor .px-eyebrow { color: var(--muted); margin-bottom: 6px; }
+  .px-abt__edcopy {
+    margin: 0 0 20px;
+    font-size: 15px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+  .px-abt__figs { display: flex; flex-wrap: wrap; gap: 20px; }
+  .px-abt__fig { flex: 0 1 300px; margin: 0; }
+  .px-abt__frame { border: 1px solid var(--rule); padding: 7px; }
+  .px-abt__img { display: block; width: 100%; height: 232px; object-fit: cover; }
+  .px-abt__figcap {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── 5 · The eight voices ──────────────────────────────────────────────── */
+  .px-abt__voices .px-eyebrow { color: var(--muted); margin-bottom: 18px; }
+  .px-abt__voicegrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .px-abt__voice { padding: 15px 16px; }
+  .px-abt__voicen {
+    margin: 0 0 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+  }
+  .px-abt__voiced { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+
+  /* ── 6 · The promises ──────────────────────────────────────────────────── */
+  .px-abt__promises {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 0;
+  }
+  .px-abt__promise { padding: 24px; }
+  .px-abt__promno { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .px-abt__promt {
+    margin: 8px 0 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .px-abt__promb { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
+
+  /* ── 7 · The making of the mark ────────────────────────────────────────── */
+  .px-abt__making .px-eyebrow { margin-bottom: 14px; }
+  .px-abt__h2 {
+    margin: 0 0 16px;
+    font-family: var(--font-display);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    color: var(--ink);
+    max-width: 22ch;
+  }
+  /* :global — the <em> arrives through set:html, so it carries no scope. */
+  .px-abt__h2 :global(em) { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-abt__intro {
+    margin: 0 0 26px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+
+  .px-abt__lore { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .px-abt__row {
+    display: grid;
+    grid-template-columns: 150px 1fr 260px;
+    gap: 34px;
+    align-items: start;
+    padding: 22px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .px-abt__rowlead { display: flex; align-items: center; gap: 16px; }
+  .px-abt__no {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--muted);
+  }
+  .px-abt__art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border: 1px solid var(--rule);
+    flex: 0 0 auto;
+  }
+  .px-abt__rowtext { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .px-abt__t { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+  .px-abt__b { font-size: 15px; line-height: 1.62; color: var(--ink-soft); max-width: 58ch; }
+  .px-abt__rowverdict { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .px-abt__v {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+  }
+  .px-abt__v[data-verdict='Discarded'] { color: var(--muted); }
+  .px-abt__note { font-size: 14px; line-height: 1.58; color: var(--ink-soft); max-width: 34ch; }
+
+  .px-abt__close {
+    margin: 26px 0 0;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+
+  /* ── 8 · Colophon ──────────────────────────────────────────────────────── */
+  .px-abt__colophon .px-eyebrow { color: var(--muted); margin-bottom: 10px; }
+  .px-abt__cop {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    max-width: 62ch;
+  }
+  .px-abt__cop b { color: var(--ink); font-weight: 700; }
+
+  /* ── Phone (the 412 artboard) ──────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .px-abt__markband { grid-template-columns: 1fr; gap: 22px; }
+    .px-abt__steps { grid-template-columns: 1fr; }
+    .px-abt__voicegrid { grid-template-columns: 1fr 1fr; }
+    .px-abt__promises { grid-template-columns: 1fr; }
+    .px-abt__h2 { font-size: 28px; }
+    .px-abt__row { grid-template-columns: 1fr; gap: 22px; }
+  }
+</style>

@@ -121,6 +121,11 @@ const apiUrl = '/api/join';
 </script>
 
 <style>
+  /* Launch design (2026-09-08): the row IS the form — a transparent field on a
+     rule-2 hairline with no right border, butted against a square ink button.
+     No radius, no shadow, one inherited typeface. The title and dek below are
+     for the mounts that need a heading of their own (the colophon, the home
+     strip); /subscribe hides them because its own h1 already says it. */
   .px-newsletter {
     margin: 72px 0 48px;
     padding: 36px 0;
@@ -134,21 +139,18 @@ const apiUrl = '/api/join';
   }
   .px-newsletter__title {
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 28px;
+    font-weight: 700;
+    font-size: 21px;
     line-height: 1.2;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     color: var(--ink);
     margin: 0 0 8px;
   }
   .px-newsletter__dek {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-weight: 300;
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
     color: var(--ink-soft);
-    margin: 0 0 24px;
+    margin: 0 0 20px;
     max-width: 52ch;
   }
 
@@ -157,70 +159,71 @@ const apiUrl = '/api/join';
   }
   .px-newsletter__label {
     display: block;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.22em;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 8px;
   }
   .px-newsletter__row {
     display: flex;
-    gap: 0;
+    max-width: 460px;
   }
   .px-newsletter__input {
     flex: 1;
-    font-family: var(--font-body);
+    min-width: 0;
+    font-family: inherit;
     font-size: 15px;
-    padding: 13px 16px;
-    border: 1px solid var(--rule);
-    border-right: none;
-    background: var(--paper);
+    padding: 14px;
+    border: 1px solid color-mix(in oklab, var(--ink) 26%, transparent);
+    border-right: 0;
+    background: transparent;
     color: var(--ink);
     border-radius: 0;
-    min-width: 0;
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: border-color var(--t-quick) var(--ease);
   }
+  .px-newsletter__input::placeholder { color: var(--muted); }
   .px-newsletter__input:focus {
     border-color: var(--ink);
   }
   .px-newsletter__input:disabled {
-    background: var(--bg);
     color: var(--muted);
   }
   .px-newsletter__submit {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 13px 22px;
-    border: 1px solid var(--ink);
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 14px 20px;
+    border: 0;
+    border-radius: 0;
     background: var(--ink);
-    color: var(--paper);
+    color: var(--bg);
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
     white-space: nowrap;
+    transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
   }
   .px-newsletter__submit:hover {
-    background: var(--accent-deep, #8b2416);
-    border-color: var(--accent-deep, #8b2416);
+    background: var(--accent-deep, var(--accent));
+    color: var(--on-accent, var(--bg));
   }
   .px-newsletter__submit:disabled {
     background: var(--muted);
-    border-color: var(--muted);
     cursor: not-allowed;
   }
 
   .px-newsletter__status {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--muted);
     margin: 12px 0 0;
     min-height: 1.2em;
   }
-  .px-newsletter__status--ok { color: var(--accent-deep, #8b2416); }
-  .px-newsletter__status--err { color: #c0392b; }
+  .px-newsletter__status--ok { color: var(--accent-deep, var(--accent)); }
+  .px-newsletter__status--err { color: var(--danger, #c0392b); }
 
   /* The form does a fetch(), so it's useless — and misleading (a native GET
      would reload with the email in the URL) — without JS. Under no-JS, hide
@@ -228,19 +231,18 @@ const apiUrl = '/api/join';
      head guard before this renders, so there's no flash for JS users. */
   .px-newsletter__nojs {
     display: none;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--muted);
     margin: 12px 0 0;
   }
   :global(html:not(.js)) .px-newsletter__form { display: none; }
   :global(html:not(.js)) .px-newsletter__nojs { display: block; }
 
-  @media (max-width: 480px) {
+  /* The row stays a row on phones — both artboards draw it that way, and the
+     field shrinks (min-width: 0) rather than the button wrapping. */
+  @media (max-width: 768px) {
     .px-newsletter { margin: 56px 0 32px; padding: 28px 0; }
-    .px-newsletter__title { font-size: 24px; }
-    .px-newsletter__row { flex-direction: column; gap: 8px; }
-    .px-newsletter__input { border-right: 1px solid var(--rule); }
+    .px-newsletter__submit { padding: 14px 16px; }
   }
 </style>

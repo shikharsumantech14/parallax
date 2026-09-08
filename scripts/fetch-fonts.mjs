@@ -8,9 +8,8 @@
  *
  * Best-effort: if Google's response shape changes or the network is blocked,
  * download the TTFs manually and drop them in assets/fonts/ with these names:
- *   - Fraunces-SemiBold.ttf   (Fraunces, weight 600)
- *   - Fraunces-Italic.ttf     (Fraunces, weight 600, italic)  [optional]
- *   - JetBrainsMono-Medium.ttf (JetBrains Mono, weight 500)
+ *   - Literata-Bold.ttf     (Literata, weight 700 — display)
+ *   - Literata-Medium.ttf   (Literata, weight 500 — labels)
  *
  * Committing these TTFs is fine and makes CI deterministic (no network fetch).
  */
@@ -32,23 +31,20 @@ const UA = 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefo
 // literal `file` would re-download a second Fraunces under a different name and
 // leave the card renderer picking between them by readdir order.
 const TARGETS = [
+  // Launch design (2026-09-08): one family. Static instances from the
+  // googlefonts/literata repo — Google's CSS2 endpoint serves the VARIABLE
+  // font for Literata, which satori/resvg cannot parse, so the repo is primary.
   {
-    file: 'Fraunces-SemiBold.ttf',
-    satisfied: (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && !/italic/i.test(f),
-    css: 'https://fonts.googleapis.com/css2?family=Fraunces:wght@600',
-    fallback: 'https://cdn.jsdelivr.net/npm/@fontsource/fraunces/files/fraunces-latin-600-normal.ttf',
+    file: 'Literata-Bold.ttf',
+    satisfied: (f) => /literata-bold/i.test(f) && /\.ttf$/i.test(f),
+    css: null,
+    fallback: 'https://raw.githubusercontent.com/googlefonts/literata/main/fonts/ttf/Literata-Bold.ttf',
   },
   {
-    file: 'Fraunces-Italic.ttf',
-    satisfied: (f) => /fraunces/i.test(f) && /\.ttf$/i.test(f) && /italic/i.test(f),
-    css: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600',
-    fallback: 'https://cdn.jsdelivr.net/npm/@fontsource/fraunces/files/fraunces-latin-600-italic.ttf',
-  },
-  {
-    file: 'JetBrainsMono-Medium.ttf',
-    satisfied: (f) => /jetbrains/i.test(f) && /\.ttf$/i.test(f),
-    css: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500',
-    fallback: 'https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Medium.ttf',
+    file: 'Literata-Medium.ttf',
+    satisfied: (f) => /literata-medium/i.test(f) && /\.ttf$/i.test(f),
+    css: null,
+    fallback: 'https://raw.githubusercontent.com/googlefonts/literata/main/fonts/ttf/Literata-Medium.ttf',
   },
 ];
 
@@ -83,7 +79,7 @@ for (const t of TARGETS) {
   if (already) { console.log(`✓ ${t.file} (satisfied by ${already})`); ok++; continue; }
   let buf = null;
   try {
-    const url = await ttfUrlFrom(t.css);
+    const url = t.css ? await ttfUrlFrom(t.css) : null;
     if (url) buf = await download(url);
   } catch { /* fall through to fallback */ }
   if (!buf) {
@@ -97,4 +93,4 @@ for (const t of TARGETS) {
   ok++;
 }
 console.log(`\n${ok}/${TARGETS.length} fonts in ${OUT}.`);
-if (ok < 2) process.exit(1); // need at least Fraunces + Mono
+if (ok < 2) process.exit(1); // both Literata weights are required

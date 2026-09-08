@@ -16,326 +16,177 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.px-wrap { max-width: 980px; margin: 0 auto; padding: 48px 32px 120px; }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   MASTHEAD — unified v2 press header (ported from publication-v2 styles.css).
-   Three zones on a `1fr auto 1fr` grid: brand+lens · status pill · nav+CTA.
-   ONE header for every world; the accent/paper/face shift via `data-topic`.
-   `.mh` class names are a deliberate v2 adoption (documented in
-   src/components/AGENTS.md) — the lens-mark + status CSS is tightly coupled.
-   ────────────────────────────────────────────────────────────────────────── */
-/* Two groups, not three columns (Phase 7, per Web.dc.html:74). The old
-   `1fr auto 1fr` gave the centre status pill a whole column and squeezed the
-   brand between two flexible tracks -- which is what broke the 769-900 band
-   when the drawer moved to 768. Brand left, everything else right. */
-.mh {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding: 20px 0 16px;
-  /* Phase 7: 4px, per the prototype's masthead wrapper. The figure rule is a
-     separate 3px (--viz-edge, §14) — they are not the same rule. */
-  border-top: 4px solid var(--ink);
-  border-bottom: 1px solid var(--ink);
-  margin-bottom: 36px;
-  position: relative;
-}
-.mh::before {
-  /* hairline accent below the bottom rule */
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: -4px;
-  height: 1px; background: var(--accent); opacity: 0.5;
-}
-.mh__brand {
-  display: inline-flex; align-items: center; gap: 14px;
-  color: var(--ink);
-  text-decoration: none;
-  transition: opacity var(--t-quick) var(--ease);
-}
-.mh__brand:hover { opacity: 0.78; }
-.mh__brand:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-.mh__lens {
-  position: relative;
-  width: 28px; height: 28px;
-  display: inline-block; flex: 0 0 28px;
-}
-.mh__lens::before, .mh__lens::after {
-  content: ''; position: absolute; inset: 0;
-  border-radius: 50%;
-  border: 1.5px solid var(--ink);
-  transition: transform var(--t-soft) var(--ease);
-}
-.mh__lens::after {
-  border-color: var(--accent);
-  transform: translate(2px, 0);
-}
-.mh__lens-dot {
-  position: absolute; left: 50%; top: 50%;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent);
-  transform: translate(-50%, -50%);
-  animation: lensPulse 2.4s ease-in-out infinite;
-}
-.mh__brand:hover .mh__lens::after { transform: translate(4px, 0); }
-@keyframes lensPulse {
-  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 0.55; transform: translate(-50%, -50%) scale(1.35); }
-}
-.mh__type { display: inline-flex; flex-direction: column; line-height: 1; }
-/* The wordmark is the TEXT HALF OF A LOCKUP (RD-10) — the handoff never draws
-   this treatment without the medallion beside it, which is why it waited for
-   the mark. Tight, mixed-case, in the display face: a signature, where the old
-   wide-tracked mono caps read as a label. */
-.mh__name {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.032em;
-  text-transform: none;
-  color: var(--ink);
-}
-.mh__name-tail {
-  display: inline-block;
-  transition: transform var(--t-soft) var(--ease);
-}
-.mh__brand:hover .mh__name-tail { transform: translateX(2px); }
-/* The desk register, in the masthead's own 11/600/.17em mono register. It
-   replaced a standing italic tagline — "Visual Explainers · Est. 2026" — which
-   said the same thing on every page and, at 153px, was the widest thing in the
-   brand column. The register names where you actually are. */
-.mh__desk {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-/* Plain text and a dot, as the prototype draws it -- no border, no padding, no
-   ground. It reads as part of the nav row rather than a component parked in
-   it, and a bordered pill inside an otherwise flat masthead was the last
-   raised object up here (§14). */
-.mh__status {
-  display: inline-flex; align-items: center; gap: 10px;
-}
-.mh__status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent);
-  animation: lensPulse 1.6s ease-in-out infinite;
-  flex: 0 0 7px;
-}
-.mh__status-dot[data-state="draft"] { background: var(--muted); animation: none; }
-.mh__status-tx { display: inline-flex; flex-direction: column; line-height: 1.1; }
-.mh__status-tx b {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--ink);
-  font-weight: 600;
-}
-.mh__status-tx span {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin-top: 3px;
+  /* One family product-wide (type-v2.css); tabular figures everywhere so a
+     readout never jitters as a value changes. */
   font-variant-numeric: tabular-nums;
 }
 
-.mh__r { display: inline-flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.mh__links { display: inline-flex; gap: 16px; }
-.mh__links a {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
+/* THE FRAME (launch design, 2026-09-08). 1280 wide — the handoff's own width —
+   and NO side padding: every page is a stack of full-width bands separated by
+   hairlines (`.px-band`), and each band carries the 46/40px (24/20 on phones)
+   padding itself. The old 980px cap is what squeezed the issue's three-column
+   floor plan into a 440px reading column. */
+.px-wrap { max-width: 1280px; margin: 0 auto; padding: 0; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   MASTHEAD — the launch lockup (2026-09-08), from the canvas prototype.
+   4px ink rule above, a hairline below. Left, the LOCKUP: a 34px disc with the
+   ring as its edge (Mark `tight`), a 12px gap, the wordmark at 25px/700 with
+   its CAP centre on the disc centre (measured: the line box centres 1.5px
+   lower, hence the nudge), and the desk register centred on the same axis.
+   Right: Home · Desks · Archive · About, the live badge, the account slot and
+   a square ink Subscribe. Below 768px everything on the right folds into a
+   native <details> Menu — zero JS, keyboard-operable by construction.
+   ────────────────────────────────────────────────────────────────────────── */
+.mh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 20px;
+  row-gap: 0;
+  padding: 14px 40px;
+  border-top: 4px solid var(--ink);
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.mh__brand {
+  display: inline-flex; align-items: center; gap: 12px;
   color: var(--ink);
   text-decoration: none;
-  position: relative; padding-bottom: 4px;
-  transition: color var(--t-quick) var(--ease);
 }
-.mh__links a::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
-  height: 1px; background: var(--accent);
-  transform: scaleX(0); transform-origin: 0 0;
-  transition: transform var(--t-soft) var(--ease);
+.mh__brand:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.mh__type { display: inline-flex; align-items: center; gap: 12px; line-height: 1; }
+.mh__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 25px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  position: relative; top: -1.5px;   /* cap centre onto the disc centre (measured) */
 }
-.mh__links a:hover { color: var(--accent); }
-.mh__links a:hover::after { transform: scaleX(1); }
-.mh__cta {
-  font-family: var(--font-mono);
+.mh__desk {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.17em;
   text-transform: uppercase;
-  color: var(--paper);
+  color: var(--muted);
+  white-space: nowrap;
+  line-height: 1;
+  position: relative; top: -0.5px;   /* its own cap centre, same axis */
+}
+.mh__r { display: inline-flex; align-items: center; gap: 22px; white-space: nowrap; }
+.mh__links { display: inline-flex; gap: 22px; }
+.mh__links a {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  padding-bottom: 3px;
+  border-bottom: 1px solid transparent;
+  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+}
+.mh__links a:hover { color: var(--ink); }
+.mh__links a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.mh__status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+  color: var(--muted);
+}
+.mh__status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 8px;
+  animation: mhPulse 2s ease-in-out infinite;
+}
+.mh__status-dot[data-state="draft"] { background: var(--muted); animation: none; }
+@keyframes mhPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.mh__cta {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+  color: var(--bg);
   background: var(--ink);
   border: 1px solid var(--ink);
   padding: 9px 15px;
-  border-radius: var(--r-pill);
   text-decoration: none;
   display: inline-flex; align-items: center; gap: 8px;
-  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
 }
-/* No hover lift: CANON §14 retires the gesture on chrome. Colour carries it. */
-.mh__cta:hover { background: var(--accent); border-color: var(--accent); }
-
-/* Phone nav — a native <details> disclosure, hidden entirely on desktop so the
-   duplicate links never reach the accessibility tree. See Masthead.astro. */
+.mh__cta:hover {
+  background: var(--accent-deep, var(--accent));
+  border-color: var(--accent-deep, var(--accent));
+  color: var(--on-accent, var(--bg));
+}
 .mh__menu { display: none; }
 
-/* THE LIVE BADGE LEAVES THE DESKTOP NAV BELOW 900px (operator ruling
-   2026-09-06), and this is what finally lets the drawer sit at the spec's
-   768px. The badge was already hidden under 900 — but inside the SAME query
-   that swapped in the drawer, so lowering the threshold would have handed the
-   nav back its widest single item (144px + a 16px gap) exactly where there was
-   no room for it. Splitting the two queries is the whole fix.
+/* The live badge is the widest single item; it leaves first. */
+@media (max-width: 1040px) { .mh__status { display: none; } }
 
-   Above 900 the badge stays: `№ NN · live` is in the Phase 7 spec and there is
-   room for it there. Between 769 and 900 it is absent, which is the trade the
-   ruling makes — the issue page's Banner already carries number, date and read
-   time, so nothing is only knowable from the badge. Below 768 the drawer
-   carries it, as it always did.
-
-   Arithmetic on the widest desks (space, sports):
-     with badge     169 + 24 + 525 = 718  against 690   ✗
-     without        169 + 24 + 365 = 558  against 690   ✓ 132px spare
-   That headroom also survives the Archive link the README wants to add
-   (~70px), which six pixels of gap-tightening would not have. */
-@media (max-width: 900px) {
-  .mh__status { display: none; }
-}
-
-/* Phone-nav threshold, at the Phase 7 spec's 768px. It took four changes, none
-   of them a trick, and the requirement fell 816 -> 744 -> 718 -> 558:
-     the two-group flex     stopped the brand column being crushed
-     the desk register      killed a 153px tagline that said the same thing on
-                            every page and was the widest object in the column
-     the badge split above  freed the nav's widest item in the tight band
-   One thing that did NOT work, so it is not retried: moving Sign in into the
-   drawer frees 74px but only BELOW the threshold, and the failing band is
-   769-890, where the drawer is hidden. */
 @media (max-width: 768px) {
-  .mh { gap: 16px; }
-  .mh__links { display: none; }
+  .mh { padding: 12px 20px; flex-wrap: wrap; column-gap: 16px; }
+  .mh__brand { gap: 10px; }
+  .mh__name { font-size: 21px; top: -2px; }
+  .mh__desk { display: none; }
+  .mh__r { display: none; }
 
-  /* `flex: 1 0 100%` is the flex spelling of the old `grid-column: 1 / -1` —
-     the drawer takes a row of its own under the brand. */
-  .mh__menu { display: block; flex: 1 0 100%; margin-top: 4px; }
-
+  /* The details takes a row of its own under the brand; its summary is
+     lifted out of flow to sit at the right of the brand row, so the closed
+     state costs no height and the open panel pushes the page down. */
+  .mh__menu { display: block; flex: 1 0 100%; }
   .mh__menu-btn {
+    position: absolute; right: 20px; top: 4px;
     display: inline-flex; align-items: center; gap: 6px;
-    width: max-content;
-    font-family: var(--font-mono);
-    font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
-    text-transform: uppercase;
+    min-height: 44px;                    /* the touch floor */
+    font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
     color: var(--ink);
-    border: 1px solid var(--rule);
-    padding: 8px 12px;
+    border: 1px solid var(--ink);
+    padding: 0 12px;
     cursor: pointer;
-    list-style: none;                    /* kill the default disclosure marker */
-    min-height: 44px;                    /* CANON accessibility floor */
+    list-style: none;
     box-sizing: border-box;
+    background: var(--bg);
   }
   .mh__menu-btn::-webkit-details-marker { display: none; }
   .mh__menu-btn::after { content: '+'; font-size: 13px; line-height: 1; }
   .mh__menu[open] .mh__menu-btn::after { content: '−'; }
-  .mh__menu-btn:hover,
-  .mh__menu[open] .mh__menu-btn { border-color: var(--ink); }
-  .mh__menu-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+  .mh__menu-btn:focus-visible { outline: 2px solid var(--accent-deep, var(--accent)); outline-offset: 2px; }
 
-  /* In-flow accordion: no scrim, no overlay, no transition — it pushes the
-     page down rather than covering it, so nothing traps focus.
-
-     MUST be gated on [open]. Setting `display` on a <details> child overrides
-     the browser's own hiding of the closed state, which leaves the drawer
-     permanently expanded — measured, not assumed. `open` is toggled natively,
-     so this still needs no JavaScript. */
-  .mh__menu-panel { display: none; flex-direction: column; border-top: 1px solid var(--rule); margin-top: 12px; }
+  /* MUST be gated on [open]: setting display on a <details> child overrides
+     the browser's own hiding of the closed state (measured, not assumed). */
+  .mh__menu-panel { display: none; flex-direction: column; margin-top: 12px; border-top: 1px solid var(--rule); }
   .mh__menu[open] .mh__menu-panel { display: flex; }
   .mh__menu-panel a {
-    padding: 14px 2px;
+    display: flex; align-items: center;
+    min-height: 44px;
+    padding: 12px 2px;
     border-bottom: 1px solid var(--rule);
-    font-family: var(--font-mono);
-    font-size: 11px; font-weight: 600; letter-spacing: 0.17em;
-    text-transform: uppercase;
-    color: var(--ink); text-decoration: none;
-    display: flex; align-items: center; min-height: 44px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
     box-sizing: border-box;
   }
-  .mh__menu-panel a:hover { color: var(--accent-deep); }
-
-  /* The live badge, which the hidden status pill would otherwise take with it. */
+  .mh__menu-panel a[aria-current="page"] { color: var(--accent-deep, var(--accent)); }
   .mh__menu-status {
-    display: flex; align-items: baseline; gap: 8px;
-    padding: 12px 2px 2px;
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 2px 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
   }
-  .mh__menu-status b { font-weight: 600; color: var(--ink-soft); }
+  .mh__menu-cta { margin: 10px 0 8px; }
 }
 
-/* HERO (v2 — issue-face headline, larger scale, balanced wrap) */
-.px-hero { margin: 0 0 72px; }
-/* The eyebrow, to RD-08's spec: 9.5px / 600 / .16em (Phase 6.3, 2026-09-05).
-   Was 11px/.22em. 9.5px is the repo's text floor, so it is a floor value on
-   purpose, not a size to trim further; the weight carries what the size gives
-   up. Three worlds used to re-letter-space this — earth and tech folded in
-   here; SPORTS DELIBERATELY OPTS OUT in themes/sports.css. */
+/* THE EYEBROW — 11px/600/.18em small capitals in the deep accent (the vivid
+   one fails AA as type on the light worlds; the themes' -deep is the
+   type-safe sibling, and the LIGHTER sibling on the dark worlds). */
 .px-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent-deep); /* accent-deep, not accent: CANON §6 — small text on a light ground. */
-  margin-bottom: 24px;
+  color: var(--accent-deep, var(--accent));
+  margin-bottom: 16px;
 }
-.px-hero h1 {
-  font-family: var(--issue-face, var(--font-display));
-  font-weight: 600;
-  font-size: clamp(52px, 7.5vw, 104px);
-  line-height: 0.97;
-  letter-spacing: -0.035em;
-  color: var(--ink);
-  margin-bottom: 26px;
-  text-wrap: balance;
-}
-.px-hero h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
-.px-hero__dek {
-  font-family: var(--font-display);
-  font-size: clamp(19px, 2vw, 25px);
-  line-height: 1.4;
-  color: var(--ink-soft);
-  max-width: 36ch;
-  font-weight: 300;
-}
-.px-hero__byline {
-  margin-top: 32px;
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  text-transform: uppercase;
-  color: var(--muted);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  padding: 14px 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.px-hero__byline strong { color: var(--ink); font-weight: 700; }
 
 /* SKIM TOGGLE */
 .px-skim-toggle {
@@ -374,36 +225,28 @@ body {
   color: var(--muted);
 }
 
-/* PRIMER — an editorial BRIEF, not a card (design review R1, 2026-07-05).
-   Tone-on-tone plate that sits IN the paper: document rules top+bottom, a
-   serif standfirst, no radius, no shadow, no floating white box. */
+/* PRIMER — a 4px accent rule on the leading edge, label, 17px/1.7 text (the
+   handoff's block, verbatim geometry). Sits inside the issue head band. */
 .px-primer {
-  background: color-mix(in oklab, var(--paper) 45%, var(--bg));
-  border-top: 2px solid var(--accent-deep, var(--accent));
-  border-bottom: 1px solid var(--rule);
-  padding: 20px 28px 24px;
-  margin: 16px 0 72px;
-  max-width: var(--col-prose);
-  position: relative;
+  border-left: 4px solid var(--accent);
+  padding: 3px 0 3px 20px;
+  margin: 26px 0 0;
+  max-width: 72ch;
 }
 .px-primer__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.24em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent-deep, var(--accent));
-  margin-bottom: 10px;
+  color: var(--muted);
+  margin-bottom: 9px;
 }
 .px-primer__text {
-  font-family: var(--font-display);
-  font-size: 16.5px;
-  line-height: 1.65;
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.7;
   color: var(--ink);
-  max-width: 58ch;
   text-wrap: pretty;
-}
-@media (min-width: 640px) {
-  .px-primer__text { text-align: justify; hyphens: auto; }
 }
 
 /* SKIM MODE */
@@ -425,77 +268,53 @@ body {
 #px-article[data-mode="skim"] .px-prose-full { display: none; }
 #px-article[data-mode="skim"] .px-skim-caption-block { display: block; }
 
-/* SECTION (v2 — confident display numeral + gradient rule under the head) */
-.px-section { margin-bottom: 84px; }
+/* SECTION — a calm 22px ornament, the eyebrow, a 34px/700 title and an
+   18px/300 lead: the prototype's section head. The 64px ghost numeral and the
+   gradient rule under the title retired with the launch design. */
+.px-section { margin-bottom: 56px; }
 .px-section__num {
-  font-family: var(--issue-face, var(--font-display));
-  font-weight: 600;
-  font-size: clamp(40px, 5vw, 64px);
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 22px;
   line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--accent);
-  margin-bottom: 4px;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  margin-bottom: 10px;
   font-variant-numeric: tabular-nums;
-  /* v2 — ghost-numeral depth echo + rise-in on scroll */
-  position: relative;
-  display: inline-block;
   transition: opacity var(--t-page) var(--ease), transform var(--t-page) var(--ease);
 }
-.px-section__num::after {
-  content: attr(data-n);
-  position: absolute; left: 0; top: 0;
-  color: var(--accent); opacity: 0.1;
-  transform: scale(1.3); transform-origin: top left;
-  z-index: -1; pointer-events: none;
-}
-html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: translateY(12px); }
+html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: translateY(8px); }
 @media (prefers-reduced-motion: reduce) {
   html.js .px-section:not(.is-in) .px-section__num { opacity: 1; transform: none; }
 }
+.px-section .px-eyebrow { margin-bottom: 12px; }
 .px-section__title {
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 700;
+  font-size: 34px;
   line-height: 1.05;
-  letter-spacing: -0.025em;
-  margin-bottom: 28px;
+  letter-spacing: -0.028em;
+  margin-bottom: 14px;
   color: var(--ink);
-  position: relative;
-  padding-bottom: 18px;
-}
-.px-section__title::after {
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  background: linear-gradient(90deg,
-    var(--accent) 0%,
-    color-mix(in oklab, var(--accent) 30%, transparent) 30%,
-    var(--rule) 30%, var(--rule) 100%);
+  max-width: 24ch;
+  text-wrap: balance;
 }
 .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
-/* Standfirst — the lead-in voice. Serif at a confident regular weight
-   (review R2: the old 20px/300 read spindly and "like a fourth font");
-   clearly THE LEAD against the unified 16px sans body below it. */
-/* The standfirst rides with the body register. 20px, not the 21.3px that
-   would give exact x-height parity with a 17.5px Schibsted body: Fraunces
-   has the smallest x-height of the trio (0.435 per em against Schibsted's
-   0.530), so a serif lead set to match the body optically has to be set
-   very large. 20px closes most of the inversion — the lead had been reading
-   SMALLER than the prose it introduces — while keeping the lead a lead.
-   Ruled 2026-09-05, Phase 6.3. The `breath` layout keeps its own display
-   scale (layout-v2.css, clamp 19-24px). */
 .px-section__intro {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-weight: 300;
+  font-size: 18px;
   line-height: 1.55;
   color: var(--ink-soft);
-  max-width: 62ch;
-  margin-bottom: 32px;
-  font-weight: 400;
+  max-width: 60ch;
+  margin-bottom: 26px;
   text-wrap: pretty;
 }
-@media (min-width: 640px) {
-  .px-section__intro { text-align: justify; hyphens: auto; }
+@media (max-width: 768px) {
+  .px-section { margin-bottom: 44px; }
+  .px-section__title { font-size: 28px; }
+  .px-section__intro { font-size: 16px; }
 }
 
 /* QUOTE (v2 — accent edge, soft tint, rounded trailing corners) */
@@ -522,50 +341,40 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   color: var(--muted);
 }
 
-/* PROSE (shared — layout only; colors overridden per topic) */
-.px-prose { max-width: 720px; }
+/* PROSE — 18px/1.72 Literata, ragged right, the handoff's body register.
+   (17.5px was the Schibsted equivalent of this; with one face the design's
+   own number applies.) The drop cap is three lines of the accent on the
+   issue's FIRST prose paragraph — Phase 7's furniture, now in the language. */
+.px-prose { max-width: var(--col-prose); }
 .px-prose__lead {
   font-family: var(--font-display);
-  font-size: 22px;
-  line-height: 1.45;
+  font-size: 21px;
+  font-weight: 300;
+  line-height: 1.5;
   color: var(--ink);
-  margin-bottom: 22px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
+  margin-bottom: 20px;
 }
-/* THE body register (review R2: ONE size/leading for all flow text —
-   prose paragraphs, quote/vote followups — CANON §5 rhythm rule). Justified
-   with hyphenation ≥640px (review R4: the print brand earns aligned edges).
-
-   17.5px, not the 18px RD-08 names, and not by taste — by measurement
-   (2026-09-05, Phase 6.3). The prototype's body is 18px/1.72 Literata, and
-   Schibsted's x-height is the LARGER of the two (0.530 vs 0.515 per em). So
-   18px Literata's 9.27px x-height is 9.27/0.530 = 17.5px of Schibsted; a
-   literal 18px would overshoot the design's own optical intent by 3%.
-   Leading stays 1.68: Schibsted's line box is 1.235em against Literata's
-   1.485em, so copying the prototype's 1.72 would over-lead.
-
-   Five worlds share this now — space's 15.5px/1.72 override was folded in
-   here. TRAVEL DELIBERATELY OPTS OUT (19px Fraunces, themes/travel.css) by
-   ruling 2026-09-05; its body therefore runs ~11% smaller in x-height than
-   the other five. Do not "fix" that as drift. */
 .px-prose__p,
 .px-followup {
   font-family: var(--font-body);
-  font-size: 17.5px;
-  line-height: 1.68;
-  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1.72;
+  color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
 }
-@media (min-width: 640px) {
-  .px-prose__p,
-  .px-followup { text-align: justify; hyphens: auto; }
-}
-.px-followup { margin-top: 28px; max-width: 680px; }
+.px-followup { margin-top: 24px; max-width: 680px; }
 .px-prose__p:last-child { margin-bottom: 0; }
-.px-prose strong { color: var(--ink); font-weight: 600; }
-.px-prose em { color: var(--accent); font-style: italic; }
+.px-prose strong { color: var(--ink); font-weight: 700; }
+.px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; }
+#px-article > .px-prose-full:first-of-type .px-prose__p:first-of-type::first-letter {
+  float: left;
+  font-size: 74px;
+  font-weight: 700;
+  line-height: 0.78;
+  padding: 6px 12px 0 0;
+  color: var(--accent);
+}
 
 /* COMPARISON (shared — layout only; colors overridden per topic) */
 .px-compare {
@@ -743,61 +552,6 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   text-transform: uppercase;
 }
 
-/* SOURCES (v2 — pill-numbered, hairline rows) */
-.px-sources { margin-top: 64px; border-top: 2px solid var(--ink); padding-top: 24px; max-width: var(--col-prose); }
-.px-sources__title {
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  text-transform: uppercase;
-  margin-bottom: 18px;
-  color: var(--ink);
-}
-.px-sources ol { list-style: none; counter-reset: src; }
-.px-sources li {
-  counter-increment: src;
-  padding: 12px 0 12px 48px;
-  border-bottom: 1px dashed var(--rule);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-  position: relative;
-}
-.px-sources li::before {
-  content: counter(src, decimal-leading-zero);
-  position: absolute;
-  left: 0; top: 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--accent) 10%, transparent);
-}
-.px-sources li strong { color: var(--ink); font-weight: 600; }
-.px-sources li a { color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ text-decoration: none; border-bottom: 1px solid transparent; }
-.px-sources li a:hover { border-bottom-color: var(--accent); }
-
-/* FOOTER */
-.px-foot {
-  margin-top: 80px;
-  padding-top: 32px;
-  border-top: 3px solid var(--ink);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.px-foot a { color: var(--muted); text-decoration: none; border-bottom: 1px solid transparent; }
-.px-foot a:hover { color: var(--ink); border-bottom-color: var(--rule); }
-
 /* HOME (issue index) */
 .px-home__title {
   font-family: var(--font-display);
@@ -867,10 +621,6 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 
 /* RESPONSIVE */
 @media (max-width: 720px) {
-  .px-wrap { padding: 28px 20px 80px; }
-  .px-hero h1 { font-size: 40px; }
-  .px-hero__dek { font-size: 17px; }
-  .px-section__title { font-size: 28px; }
   .px-home__issue { grid-template-columns: 1fr; gap: 6px; }
   .px-home__topic { justify-self: start; }
 
@@ -897,59 +647,6 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
    Topic-agnostic structure (consumes tokens from tokens-v2.css).
    ============================================================================ */
 
-/* ── ISSUE BANNER (v2 — per-world standing plate above the hero) ──────── */
-.px-bnr {
-  position: relative;
-  margin: 0 0 8px;
-  padding: 22px 0;
-  border-top: 3px solid var(--ink);
-  border-bottom: 1px solid var(--ink);
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 20px;
-  align-items: center;
-  overflow: hidden;
-}
-.px-bnr::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -4px;
-  height: 1px; background: var(--accent); opacity: 0.55;
-}
-.px-bnr__plate { display: flex; flex-direction: column; gap: 6px; }
-.px-bnr__name {
-  font-family: var(--issue-face, var(--font-display));
-  font-weight: 700;
-  font-size: clamp(22px, 3vw, 34px);
-  letter-spacing: -0.01em;
-  line-height: 1;
-  color: var(--ink);
-  display: inline-flex; align-items: baseline; gap: 12px;
-}
-.px-bnr__name .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); align-self: center; }
-.px-bnr__sub {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.px-bnr__readout {
-  display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end;
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.px-bnr__stat { display: inline-flex; flex-direction: column; gap: 4px; text-align: right; }
-.px-bnr__stat b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-/* The world's signature register reads in the accent (contrast-safe deep on light paper). */
-.px-bnr__stat--reg b { color: var(--accent-deep, var(--accent)); }
-@media (max-width: 720px) {
-  .px-bnr { grid-template-columns: 1fr; }
-  .px-bnr__readout { justify-content: flex-start; }
-  .px-bnr__stat { text-align: left; }
-}
-
 /* ── READING-SURFACE FLATNESS (RD-05, Phase 6 shell adoption) ──────────────
    Reading surfaces and home go radius-0 / shadow-none / hairline-elevation.
    The boundary is a SURFACE CLASS, never per-component: home cards flatten
@@ -971,6 +668,9 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 :root {
   --r-card: 0;
   --r-tile: 0;
+  /* Launch design (2026-09-08): the handoff has zero rounded corners, so the
+     pill goes too — chips, CTAs, the toolbar. Operator ruling on the canvas. */
+  --r-pill: 0;
 }
 
 /* ── VIZ CARD SHELL (flat: a world rule on top, a hairline around) ─────────
@@ -983,20 +683,16 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
    edgeless. */
 .px-viz {
   position: relative;
-  background: var(--paper);
-  border: 1px solid var(--rule);
+  background: transparent;
+  border: 0;
   border-top: 3px solid var(--viz-edge, var(--ink));
   border-radius: 0;
-  padding: 28px 30px;
-  transition: border-color var(--t-quick) var(--ease);
+  padding: 14px 0 0;
 }
 /* RD-05 hover split: lift on a DATA MARK survives (it is CANON §9's inspect
    verb); lift on cards retires to border-colour only. The top rule re-asserts
    itself so the world signature does not flicker on hover. */
-.px-viz:hover {
-  border-color: color-mix(in oklab, var(--ink) 26%, transparent);
-  border-top-color: var(--viz-edge, var(--ink));
-}
+.px-viz:hover { border-top-color: var(--viz-edge, var(--ink)); }
 
 /* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */
 /* `--t-slow` (420ms), NOT `--t-page` (600ms), and the difference is the point.
@@ -1024,3 +720,119 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   transition: border-color var(--t-quick) var(--ease);
 }
 .px-compare:hover { border-color: color-mix(in oklab, var(--ink) 26%, transparent); }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LAUNCH PRIMITIVES (2026-09-08) — the hairline grid every page is built from.
+   Pages are stacks of full-width BANDS inside the 1280 frame; cells are 1px
+   grids on the rule colour; buttons are square; small capitals are the meta
+   voice. Values are the canvas prototype's (scratch gen.mjs → artboards).
+   ════════════════════════════════════════════════════════════════════════════ */
+.px-band { padding: 46px 40px 40px; border-bottom: 1px solid var(--rule); }
+.px-band--head { padding: 30px 40px 8px; border-bottom: 0; }
+.px-band--flush { padding: 0; }
+.px-band--last { border-bottom: 0; }
+
+.px-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 68px;
+  line-height: 1;
+  letter-spacing: -0.032em;
+  color: var(--ink);
+  text-wrap: balance;
+  max-width: 18ch;
+  margin: 0 0 20px;
+}
+.px-h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-lede {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 21px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 48ch;
+  text-wrap: pretty;
+  margin: 0;
+}
+.px-meta {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+.px-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: inherit;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+  line-height: 1.2;
+  padding: 9px 15px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
+}
+.px-btn:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); color: var(--on-accent, var(--bg)); }
+.px-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.px-btn--acc { background: var(--accent); border-color: var(--accent); color: var(--on-accent, var(--bg)); }
+.px-btn--acc:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
+.px-btn--ghost { background: transparent; border-color: color-mix(in oklab, var(--ink) 26%, transparent); color: var(--ink-soft); }
+.px-btn--ghost:hover { background: transparent; border-color: var(--ink); color: var(--ink); }
+.px-btn--outline { background: transparent; border-color: var(--accent-deep, var(--accent)); color: var(--accent-deep, var(--accent)); }
+.px-btn--outline:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); color: var(--accent-deep, var(--accent)); }
+.px-btn--block { width: 100%; padding: 15px; }
+
+.px-cells { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.px-cells > * { background: var(--bg); min-width: 0; }
+.px-cells--open { border-inline: 0; }
+
+.px-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in oklab, var(--ink) 22%, transparent);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
+}
+.px-chip:hover { border-color: var(--ink); }
+.px-chip[aria-pressed="true"], .px-chip--on { border-color: var(--ink); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+
+/* Text inputs: transparent, a 1px rule-2 border, square. */
+.px-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--ink) 26%, transparent);
+  border-radius: 0;
+  padding: 13px 14px;
+  outline: none;
+  transition: border-color var(--t-quick) var(--ease);
+}
+.px-input::placeholder { color: var(--muted); }
+.px-input:focus { border-color: var(--ink); }
+
+@media (max-width: 768px) {
+  .px-band { padding: 24px 20px 28px; }
+  .px-band--head { padding: 24px 20px 6px; }
+  .px-band--flush { padding: 0; }
+  .px-h1 { font-size: 40px; }
+  .px-lede { font-size: 17px; }
+}

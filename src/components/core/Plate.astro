@@ -1,0 +1,82 @@
+---
+/**
+ * Plate — a framed photograph in the reading column (launch design, 2026-09-08).
+ *
+ * The handoff's default image treatment: prose width, a 1px hairline frame
+ * with 8px of inset, the picture 300px tall (200 on phones) at object-fit
+ * cover, and a caption row underneath — plate number and subject on the left,
+ * the credit on the right, both small capitals in muted. It fades in with a
+ * 22px rise the first time it scrolls into view, once, never on the way back
+ * up (the Reveal island adds `.is-in`; no JS ⇒ it simply paints).
+ *
+ * RENDERS NOTHING WITHOUT AN IMAGE. Operator ruling 2026-09-08: no empty
+ * frames on launch day. An issue that supplies `src` gets the plate; one that
+ * does not gets no section at all — no ornament, no number consumed on the
+ * page (the section chrome still wraps it, so keep plates last in an act or
+ * give them a title if you want them to read as a numbered stop).
+ *
+ * `plate` is a NARRATIVE kind for the gates: it carries no data claim, so it
+ * has no `plain` line and no how-to-read, and the reading gate does not count
+ * it as the free graphic. The credit is the plate's own caption row, not
+ * Section's `Source ·` line — pass `credit`, not `source`, so it renders once.
+ *
+ * data: { src, alt, caption, credit, number?, fit?: 'cover' | 'contain', height? }
+ * Prefix: px-plate.
+ */
+interface Props {
+  src?: string;
+  alt?: string;
+  caption?: string;
+  credit?: string;
+  number?: string | number;
+  fit?: 'cover' | 'contain';
+  /** Frame height in px (desktop). Default 300; phones scale to two thirds. */
+  height?: number;
+}
+const { src, alt = '', caption, credit, number, fit = 'cover', height = 300 } = Astro.props;
+
+const label = number !== undefined
+  ? `Plate ${String(number).padStart(2, '0')}${caption ? ` · ${caption}` : ''}`
+  : caption;
+---
+
+{src && (
+  <figure class="px-plate" data-reveal style={`--plate-h: ${height}px; --plate-fit: ${fit};`}>
+    <div class="px-plate__frame">
+      <img class="px-plate__img" src={src} alt={alt} loading="lazy" decoding="async" />
+    </div>
+    {(label || credit) && (
+      <figcaption class="px-plate__cap">
+        <span>{label}</span>
+        {credit && <span>{credit}</span>}
+      </figcaption>
+    )}
+  </figure>
+)}
+
+<style>
+  .px-plate { margin: 0; max-width: var(--col-prose); }
+  .px-plate__frame { border: 1px solid var(--rule); padding: 8px; }
+  .px-plate__img {
+    display: block;
+    width: 100%;
+    height: var(--plate-h, 300px);
+    object-fit: var(--plate-fit, cover);
+    background: color-mix(in oklab, var(--ink) 5%, transparent);
+  }
+  .px-plate__cap {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding-top: 9px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* The reveal: 22px rise + fade, once. Gated on html.js so no-JS paints it. */
+  :global(html.js) .px-plate:not(.is-in) { opacity: 0; transform: translateY(22px); }
+  :global(html.js) .px-plate { transition: opacity 320ms ease-out, transform 320ms ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js) .px-plate:not(.is-in) { opacity: 1; transform: none; }
+  }
+  @media (max-width: 768px) {
+    .px-plate__img { height: calc(var(--plate-h, 300px) * 0.667); }
+  }
+</style>

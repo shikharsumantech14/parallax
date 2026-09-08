@@ -43,6 +43,11 @@ Components split into:
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
+**One typeface — Literata — since the launch design (2026-09-08).** The role
+tokens (`--font-display` / `--font-body` / `--font-mono`) all resolve to it; a
+component differentiates roles by size, weight, case and tracking, never by
+family. The paragraph below is the 2026-06-21 history of the trio it replaced.
+
 **One 3-font type system (2026-06-21, supersedes per-topic display fonts).**
 The product now uses a single trio everywhere — **Fraunces** (serif: headlines,
 leads, nameplates, the one italic accent word), **Schibsted Grotesk** (sans:
@@ -528,17 +533,15 @@ These render directly in templates, not via the dispatcher:
 
 | Component | Rendered by |
 |---|---|
-| `core/Hero.astro` | inline in `src/pages/issues/[slug].astro` |
-| `core/Primer.astro` | inline in `src/pages/issues/[slug].astro` |
-| `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` (floating flat pill — opaque `var(--paper)`, `border: 2px solid var(--ink)`, no backdrop-filter or shadow, pill radius kept; glass is modal-only since 2026-09-04: reading-progress bar + Full/Skim toggle + live % + read time + Save). Replaced the old `.px-reader-controls` row. |
+| `core/IssueHead.astro` | inline in `src/pages/issues/[slug].astro` — the meta strip (← desk register · № · date), eyebrow, `.px-h1`, the hook as `.px-lede`, the primer on a 4px accent rule. Replaced `core/Hero.astro`, `core/Banner.astro` and `core/Primer.astro` (all deleted 2026-09-08). `px-ihead`. |
+| `core/Plate.astro` | via `SectionBody` (`kind: plate`) — a framed photograph with caption + credit; renders NOTHING without `src`. Narrative for every gate. `px-plate`. |
+| `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` — since 2026-09-08 a PINNED flat strip on the paper with a 2px ink rule on top: progress hairline, `NN% · N min left`, the square Full ⇄ Skim toggle, Save; slides up after the first scroll; sits above the phone home bar (`env(safe-area-inset-bottom)`). JS-only (`html.js`). |
 | `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`** — not mounted on the issue page directly. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
-| `core/AnnotationLayer.astro` | inline in `[slug].astro`, between article and ReactionsBar |
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
 | `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
 | `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) — the **single** source every mount embeds (SubscribeStrip / Colophon / Footer / BeatJoin), so a change here covers all of them. POSTs to the app's `/api/join` (repointed from `/api/subscribe` on 2026-07-14) and handles the degraded `{ok:true, account:false}` response. **No-JS-gated:** the form is hidden behind `html:not(.js)` with an "Enable JavaScript to subscribe." line, because a no-JS submit used to do a native GET that put the reader's email in the URL, history and server logs. |
 | `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
-| `core/Banner.astro` | inline in `[slug].astro` (per-issue standing plate; carries the per-world register readout — telemetry orbit / atlas coords / build hash / vol-no / matchday — that the unified masthead no longer shows) |
 | `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
 | `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre glass toast fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
 | `core/NewsletterNotice.astro` | inline in `index.astro`, **above `<Masthead>`** — in-flow ribbon fired by `/?newsletter=confirmed`. Occupies no space until revealed, so no-JS / crawlers see nothing. Dismissible; cleans the URL. `px-nnote`. |
@@ -552,8 +555,8 @@ These render directly in templates, not via the dispatcher:
 | `intro/IntroStory.astro` | `welcome.astro` (and inside `IntroExperience`) — the 5-scene "The Second Angle" onboarding player. Vanilla `is:inline` player (auto/manual, prev/next/dots/skip/keyboard); no-JS scenes stack + scroll. `px-intro`. |
 | `intro/IntroExperience.astro` | `index.astro`, once — home first-visit overlay. Auto-plays the story, then an optional spotlight tour of the real home. Gated by localStorage `px_intro_seen_v1`; `?intro=1` force-replays; `[hidden]` by default (no-JS shows nothing). `px-xp`. |
 | `intro/WorldViz.astro` | inside `IntroStory` — per-category mini data-viz on the six worlds cards (vote split / orbit / stripes / commit grid / route / momentum wave) |
-| `home/*` | in home + topic-index templates |
-| `topic/<topic>/<Topic>Index.astro` | dispatched from `src/pages/topics/[topic].astro` |
+| `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. `px-rows`. |
+| `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). `px-desk__`. |
 
 ---
 
@@ -905,6 +908,41 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-09-08 — The launch design
+
+- **Literata only** (§1). The trio's role tokens survive as names.
+- **Masthead** (`core/Masthead.astro`, `.mh` in base.css): the lockup — `Mark`
+  gained `tight` (viewBox trimmed to the ring) and `ring` (pin the stroke) —
+  wordmark 25px/700 nudged −1.5px so its cap centre sits on the disc centre,
+  the register on the same axis; Home · Desks · Archive · About with
+  `aria-current`, the live badge, `AccountEntry`, a square Subscribe to
+  `/subscribe/`; a `<details>` Menu under 768px. `core/Colophon.astro` is the
+  four-column footer with the same lockup and the legal line.
+- **Issue page** rebuilt around `core/IssueHead.astro`; the floor plan is
+  170 / 1fr / 250 on the 1280 frame with a 720 measure (layout-v2.css);
+  `core/Section.astro` takes an `id` (`sec-N`, from `SectionRenderer`) for the
+  aside's contents list; `ReactionsBar`, `LettersBlock`, `Sources` are hairline
+  bands with a 260px label column; `ReadingGate` is square and lists letters,
+  not margin notes, as the second benefit.
+- **Deleted:** `AnnotationLayer`, `Banner`, `Hero`, `Primer`, `Footer`,
+  `TopicManifesto`, the six `<Topic>Index` fronts, and the old home set
+  (`WireStrip`, `FeaturedPlate`, `HeroLens`, `ManifestoStrip`, `CategoryGrid`,
+  `CategoryCard`, `TypographicChord`, `SubscribeStrip`, `ArchiveList`,
+  `TopicStrip`) plus the orphaned `welcome/*` beats. `meta.css` is tokens only.
+- **New:** `core/IssueHead`, `core/Plate` (kind `plate`, 98 kinds),
+  `home/IssueRows`, `desk/DeskIndex`; `src/lib/desks.ts` carries `DESK_COPY`
+  and `DARK_DESKS`.
+- **Prefixes added (§4):** `px-ihead`, `px-plate`, `px-rows`, `px-desk__`
+  (both the home cards and the desk template, each scoped), `px-home__`,
+  `px-abt__`, `px-subs__`, `px-arch__`, `px-ifact`, `px-inav`, `px-col` (kept),
+  `px-floor` (kept). `.px-vexp` roots: `[data-viz-root]` is now positioned in
+  `modal.css`, so the ⤢ no longer floats to the page corner under
+  reduced-motion.
+- **Per-world type overrides of the section chrome** (`.px-eyebrow`,
+  `.px-section__num`, `.px-prose__*`, `.px-hero*`) were stripped from the six
+  themes: worlds differ by colour.
+
 
 
 ### 2026-09-04 — Phase 6.1 shell adoption + 6.2 best-first; REVAMP-PLAN v3 signed

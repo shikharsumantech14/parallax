@@ -13,7 +13,7 @@
  *
  * New kinds MUST add an entry here (blueprint §9 supplies the wording; see
  * docs/design/blueprints/_TEMPLATE.md). Narrative kinds (hero, act-break,
- * prose, quote, beat-sheet, analogy, comparison) deliberately have none —
+ * prose, quote, beat-sheet, analogy, comparison, plate) deliberately have none —
  * they explain themselves.
  */
 export interface Explainer {

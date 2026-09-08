@@ -47,8 +47,10 @@ Any new interactivity must honour this and be justified.
 - `core/Tilt.astro` — CSS-3D pointer-tilt + flip
 - `core/ExpandModal.astro` — ⤢ portals a viz card into a modal study view
 - `core/ReadingGate.astro` — the metered soft signup wall
-- Phase-B reader islands — Save, Reactions, ReadingTracker, AnnotationLayer,
-  Letters, NewsletterForm
+- Phase-B reader islands — Save, Reactions, ReadingTracker,
+  Letters, NewsletterForm (AnnotationLayer — margin notes — was removed with
+  the launch design on 2026-09-08; its API route and moderation queue stay for
+  letters)
 - Funnel islands — `AccountEntry` (masthead slot; `/api/me` confirms, never
   gatekeeps), `WelcomeBack` (`?welcome=1` toast offering the `px_resume`
   scroll position), `NewsletterNotice` (`?newsletter=confirmed` ribbon)

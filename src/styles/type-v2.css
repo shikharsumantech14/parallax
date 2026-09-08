@@ -1,33 +1,32 @@
 /* ============================================================================
-   PARALLAX — UNIFIED TYPE SYSTEM (3 fonts, product-wide)
+   PARALLAX — UNIFIED TYPE SYSTEM (ONE family, product-wide)
    ----------------------------------------------------------------------------
-   ONE system everywhere. Differentiation between the six worlds comes from
-   ACCENT COLOUR + treatment (weight / case / italic / ornament), NOT from a
-   per-world typeface. Locked 2026-06-20.
+   Literata everywhere — the launch design (2026-09-08, operator ruling after
+   the canvas review). The three ROLE tokens survive so 97 section kinds keep
+   compiling; they now resolve to one face. Differentiation between roles is
+   size / weight / case / tracking, exactly as the handoff sets it:
 
-     • Fraunces           — the serif voice: headlines, nameplates, the one
-                            italic accent word. (--font-display, --issue-face)
-     • Schibsted Grotesk  — the single sans: body, UI, structural text.
-                            (--font-body)
-     • JetBrains Mono     — labels, eyebrows, numerals. (--font-mono)
+     display  headlines, nameplates, the one italic accent word   700, tight
+     body     prose, UI, structural text                           400
+     mono     eyebrows, labels, numerals — small caps, tracked     600, .14–.20em
 
-   Imported LAST (after the six theme files) so this normalisation wins the
-   :root[data-topic] specificity contest without !important — the theme files'
-   per-topic --font-display is intentionally overridden here.
+   Numerals are tabular everywhere (base.css sets it on <body>), which is what
+   the old mono role was buying: readouts do not jitter when values change.
+
+   Imported LAST (after the six theme files) so this wins the
+   :root[data-topic] specificity contest without !important.
    ============================================================================ */
 
-/* Signature face = Fraunces for every world (worlds differ by colour, not font). */
 :root {
-  --face-meta:     'Fraunces', Georgia, serif;
-  --face-politics: 'Fraunces', Georgia, serif;
-  --face-space:    'Fraunces', Georgia, serif;
-  --face-earth:    'Fraunces', Georgia, serif;
-  --face-tech:     'Fraunces', Georgia, serif;
-  --face-travel:   'Fraunces', Georgia, serif;
-  --face-sports:   'Fraunces', Georgia, serif;
+  --face-meta:     'Literata', Georgia, serif;
+  --face-politics: 'Literata', Georgia, serif;
+  --face-space:    'Literata', Georgia, serif;
+  --face-earth:    'Literata', Georgia, serif;
+  --face-tech:     'Literata', Georgia, serif;
+  --face-travel:   'Literata', Georgia, serif;
+  --face-sports:   'Literata', Georgia, serif;
 }
 
-/* The three families, normalised across meta + all six topics. */
 :root,
 :root[data-topic="politics"],
 :root[data-topic="space"],
@@ -35,12 +34,11 @@
 :root[data-topic="tech"],
 :root[data-topic="travel"],
 :root[data-topic="sports"] {
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Literata', Georgia, serif;
+  --font-body: 'Literata', Georgia, serif;
+  --font-mono: 'Literata', Georgia, serif;
 }
 
-/* Per-issue signature face — all resolve to Fraunces now (kept for the token API). */
 :root { --issue-face: var(--face-meta); }
 :root[data-topic="politics"] { --issue-face: var(--face-politics); }
 :root[data-topic="space"]    { --issue-face: var(--face-space); }

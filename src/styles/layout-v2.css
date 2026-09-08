@@ -90,9 +90,12 @@
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   THE ISSUE FLOOR PLAN (RD-12, Phase 7)
-   170px fact rail · 1fr prose · 250px dek — the prototype's `issueCols`
-   (Web.dc.html:980), which collapses to a single column on phones.
+   THE ISSUE FLOOR PLAN (RD-12; launch geometry 2026-09-08)
+   170px fact rail · 1fr prose · 250px aside on the 1280 frame. The rails
+   INCLUDE the page's 40px outer padding, and the prose column carries 70px of
+   its own on each side, so the measure is exactly 720 — the width every figure
+   in the library is drawn for (M in the size system). The old 980px frame put
+   this same grid into 916px and left the prose 436px wide.
 
    The rails are SIBLINGS of #px-article, never wrappers around it. That is
    deliberate and load-bearing: ReadingGate walks `#px-article`.children to
@@ -102,13 +105,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 .px-floor {
   display: grid;
-  grid-template-columns: 170px 1fr 250px;
+  grid-template-columns: 170px minmax(0, 1fr) 250px;
   align-items: start;
   column-gap: 0;
+  border-bottom: 1px solid var(--rule);
 }
 .px-floor > #px-article {
-  min-width: 0;                      /* let the prose column shrink, not overflow */
-  padding-inline: 30px;
+  min-width: 0;
+  padding: 26px 70px 30px;
   border-inline: 1px solid var(--rule);
 }
 
@@ -118,15 +122,14 @@
   flex-direction: column;
   gap: 18px;
   padding-block: 26px;
-  font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.px-floor__facts { padding-right: 16px; }
-.px-floor__aside { padding-left: 18px; }
+.px-floor__facts { padding-inline: 40px 16px; }
+.px-floor__aside { padding-inline: 18px 40px; }
 
 .px-floor__no {
   font-family: var(--font-display);
@@ -146,12 +149,9 @@
   color: var(--ink);
 }
 /* The Voice cell is the one that carries the world (standing ruling). */
-.px-floor__fact--voice b { color: var(--accent-deep); }
+.px-floor__fact--voice b { color: var(--accent-deep, var(--accent)); }
 
-.px-floor__aside-l {
-  margin: 0 0 8px;
-  letter-spacing: 0.17em;
-}
+.px-floor__aside-l { margin: 0 0 8px; letter-spacing: 0.17em; }
 .px-floor__dek-t {
   margin: 0;
   font-family: var(--font-display);
@@ -163,14 +163,48 @@
   text-transform: none;
   color: var(--ink-soft);
 }
+.px-floor__block { padding-top: 16px; border-top: 1px solid var(--rule); }
+.px-floor__block:first-child { padding-top: 0; border-top: 0; }
+.px-floor__toc { display: flex; flex-direction: column; gap: 7px; }
+.px-floor__toc a {
+  display: grid; grid-template-columns: 30px 1fr; gap: 6px;
+  font-family: var(--font-body);
+  font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1.4;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.px-floor__toc a:hover { color: var(--ink); }
+.px-floor__toc a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+.px-floor__share { display: flex; flex-direction: column; gap: 7px; }
 
-/* Phones get one column and no rails, as the prototype does (`marginShow`).
-   The facts are NOT dropped — Banner already carries date, read time and the
-   issue number above the article, so hiding the rail loses nothing but the
-   Voice cell, which is decoration at this width. */
-@media (max-width: 900px) {
+/* The phone facts — the rail's four cells as a 2×2 grid under the head, with
+   the dek in a strip beside the issue number. The rails themselves are gone
+   below 1100px: a 170/250 rail pair on a 1000px screen leaves 440px of
+   prose, which is the exact defect the launch design exists to remove. */
+.px-floor__facts-grid { display: none; }
+@media (max-width: 1100px) {
   .px-floor { grid-template-columns: 1fr; }
-  .px-floor__facts,
-  .px-floor__aside { display: none; }
-  .px-floor > #px-article { padding-inline: 0; border-inline: 0; }
+  .px-floor__facts, .px-floor__aside { display: none; }
+  .px-floor > #px-article { padding-inline: 40px; border-inline: 0; }
+  .px-floor__facts-grid { display: grid; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .px-floor > #px-article { padding: 22px 20px 26px; }
+}
+
+/* Breakouts inside the prose column. `wide` fills the column to its rules
+   (720 + 70 each side); `bleed` is the size system's L — 1080, breaking the
+   column symmetrically 180px each side. Both collapse to the column below the
+   rail breakpoint, where there is nothing to break out of. */
+@media (min-width: 1101px) {
+  .px-floor .px-section[data-layout='wide'] { width: calc(100% + 140px); margin-inline: -70px; }
+  .px-floor .px-section[data-layout='bleed'] { width: calc(100% + 360px); margin-inline: -180px; margin-top: 24px; margin-bottom: 72px; }
+  .px-floor .px-section[data-layout='split'],
+  .px-floor .px-section[data-layout='split-flip'] { width: calc(100% + 360px); margin-inline: -180px; }
+}
+@media (max-width: 1100px) {
+  .px-floor .px-section[data-layout='wide'],
+  .px-floor .px-section[data-layout='bleed'],
+  .px-floor .px-section[data-layout='split'],
+  .px-floor .px-section[data-layout='split-flip'] { width: auto; margin-inline: 0; }
 }

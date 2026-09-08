@@ -1,0 +1,130 @@
+---
+/**
+ * DeskIndex — the ONE desk-page template (launch design, 2026-09-08).
+ *
+ * Six bespoke <World>Index components collapse into this: the worlds differ by
+ * accent and register, never by structure, so the page is the same three bands
+ * everywhere and `data-topic` on <html> (set by HomeLayout) does the theming.
+ *
+ *   1. head band       dot + register · N dispatches / headline / lede
+ *   2. the rows        <IssueRows variant="desk"> — the shared row implementation
+ *   3. the other desks a head band + a chip row to the five siblings
+ *
+ * Copy comes from `src/lib/desks.ts` (DESK_REGISTER / DESK_COPY), which the
+ * home page's six cards read too — so a desk's tagline can never disagree
+ * between the card and the page it opens.
+ *
+ * The two small-capital lines here are deliberately NOT `.px-eyebrow`: the
+ * travel and sports themes re-cut that class (italic serif, lowercase) and the
+ * artboard wants the mono register on every desk.
+ */
+import IssueRows from '../home/IssueRows.astro';
+import { DESK_COPY, DESK_REGISTER } from '../../lib/desks';
+import { renderEmphasis } from '../../lib/text';
+import { TOPICS, type Topic } from '../../content/config';
+
+export interface DeskItem {
+  slug: string;
+  topic: Topic;
+  title: string;
+  hook?: string;
+  issueNumber: number;
+  publishedAt: Date;
+  readTimeMinutes?: number;
+}
+
+interface Props {
+  topic: Topic;
+  /** This desk's published issues, newest first. */
+  items: DeskItem[];
+}
+const { topic, items } = Astro.props;
+
+const copy = DESK_COPY[topic];
+const count = items.length;
+const others = TOPICS.filter((t) => t !== topic);
+---
+
+<section class="px-band px-desk__head">
+  <p class="px-desk__reg">
+    <span class="px-dot px-desk__dot" aria-hidden="true"></span>
+    {DESK_REGISTER[topic]} · {count} {count === 1 ? 'dispatch' : 'dispatches'}
+  </p>
+  <h1 class="px-h1" set:html={renderEmphasis(copy.title)} />
+  <p class="px-lede px-desk__lede">{copy.blurb}</p>
+</section>
+
+<IssueRows
+  variant="desk"
+  items={items}
+  emptyText="No dispatches yet. The first will open this desk."
+/>
+
+<div class="px-band px-band--head px-desk__oh">
+  <p class="px-desk__label">The other desks</p>
+  <span class="px-meta">Six worlds, one publication</span>
+</div>
+
+<nav class="px-desk__chips" aria-label="The other desks">
+  {others.map((t) => (
+    <a class="px-chip" href={`/topics/${t}/`}>
+      <span class="px-desk__cdot" style={`background: var(--topic-${t})`} aria-hidden="true"></span>
+      {DESK_COPY[t].name}
+    </a>
+  ))}
+</nav>
+
+<style>
+  /* The register line — 11px/600/.2em small capitals in muted, with the
+     world's 9px accent dot leading it. */
+  .px-desk__reg {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 0 0 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-desk__dot { width: 9px; height: 9px; }
+
+  /* 56ch, four wider than the primitive's default: the desk lede is the one
+     paragraph on the page and it wants the full measure. */
+  .px-desk__lede { max-width: 56ch; }
+
+  .px-desk__oh {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .px-desk__label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .px-desk__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 40px 34px;
+  }
+  .px-desk__cdot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    .px-desk__chips { padding: 8px 20px 28px; }
+  }
+</style>

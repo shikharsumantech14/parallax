@@ -1,0 +1,124 @@
+---
+/**
+ * IssueRows — the one list-row implementation (launch design, 2026-09-08).
+ *
+ * Home's "Latest dispatches", the archive and every desk page list issues as
+ * hairline rows on the canvas's grid:
+ *   home / archive   110px 1fr 170px — dot + № · title 21px + hook · date · read
+ *   desk              92px 1fr 170px — № 22px · title 25px + hook · date · read
+ * Phones drop the right column under the title.
+ *
+ * The class names `.px-archive__list` / `.px-archive__row` / `.px-archive__none`
+ * and the `data-topic` / `data-search` hooks are what the /archive filter island
+ * queries, so the archive keeps working without touching its script.
+ */
+import { renderEmphasis, stripEmphasis } from '../../lib/text';
+import type { Topic } from '../../content/config';
+
+export interface RowItem {
+  slug: string;
+  topic: Topic;
+  title: string;
+  hook?: string;
+  issueNumber: number;
+  publishedAt: Date;
+  readTimeMinutes?: number;
+}
+
+interface Props {
+  items: RowItem[];
+  variant?: 'home' | 'desk';
+  /** Shown when `items` is empty. */
+  emptyText?: string;
+  /** Adds the search hook the /archive island reads. */
+  filterable?: boolean;
+}
+const { items, variant = 'home', emptyText, filterable = false } = Astro.props;
+
+const deskName: Record<Topic, string> = {
+  politics: 'Politics', space: 'Space', earth: 'Earth', tech: 'Tech', travel: 'Travel', sports: 'Sports',
+};
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
+const no = (n: number) => String(n).padStart(2, '0');
+---
+
+<div class="px-rows px-archive__list" data-variant={variant}>
+  {items.map((i) => (
+    <a
+      class="px-rows__row px-archive__row"
+      href={`/issues/${i.slug}/`}
+      data-topic={i.topic}
+      data-search={filterable ? `${stripEmphasis(i.title)} ${deskName[i.topic]}`.toLowerCase() : undefined}
+    >
+      {variant === 'desk' ? (
+        <span class="px-rows__no px-rows__no--big">№ {no(i.issueNumber)}</span>
+      ) : (
+        <span class="px-rows__no"><span class="px-rows__dot" style={`background: var(--topic-${i.topic})`} aria-hidden="true"></span>№ {no(i.issueNumber)}</span>
+      )}
+      <span class="px-rows__body">
+        <span class="px-rows__t" set:html={renderEmphasis(i.title)} />
+        {i.hook && <span class="px-rows__hook">{i.hook}</span>}
+      </span>
+      <span class="px-rows__meta">{fmt(i.publishedAt)}{i.readTimeMinutes ? ` · ${i.readTimeMinutes} min` : ''}</span>
+    </a>
+  ))}
+  <p class="px-rows__none px-archive__none" hidden={items.length !== 0}>{emptyText ?? 'Nothing here yet.'}</p>
+</div>
+
+<style>
+  .px-rows { display: flex; flex-direction: column; }
+  .px-rows__row {
+    display: grid;
+    grid-template-columns: 110px 1fr 170px;
+    gap: 18px;
+    align-items: baseline;
+    padding: 15px 40px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--ink);
+    text-decoration: none;
+    transition: background var(--t-quick) var(--ease);
+  }
+  .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 92px 1fr 170px; gap: 20px; padding: 20px 40px; }
+  .px-rows__row:hover { background: color-mix(in oklab, var(--accent) 4%, var(--bg)); }
+  .px-rows__row[hidden] { display: none; }
+  .px-rows__no {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .px-rows__no--big {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 700; letter-spacing: -0.02em; text-transform: none;
+  }
+  .px-rows__dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+  .px-rows__body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .px-rows__t {
+    font-family: var(--font-display);
+    font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.18;
+    color: var(--ink);
+  }
+  .px-rows[data-variant="desk"] .px-rows__t { font-size: 25px; letter-spacing: -0.022em; line-height: 1.14; }
+  .px-rows__t :global(em) { font-style: italic; font-weight: 400; color: var(--accent); }
+  .px-rows__hook { font-size: 14px; line-height: 1.5; color: var(--ink-soft); max-width: 60ch; }
+  .px-rows[data-variant="desk"] .px-rows__hook { font-size: 15px; line-height: 1.55; }
+  .px-rows__meta {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-rows__none { margin: 0; padding: 22px 40px; font-size: 15px; line-height: 1.6; color: var(--muted); border-bottom: 1px solid var(--rule); }
+  .px-rows__none[hidden] { display: none; }
+
+  @media (max-width: 768px) {
+    .px-rows__row,
+    .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 84px 1fr; gap: 14px; padding: 15px 20px; }
+    .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 64px 1fr; }
+    .px-rows__meta { grid-column: 2 / 3; text-align: left; margin-top: 4px; }
+    .px-rows__none { padding: 20px; }
+  }
+</style>

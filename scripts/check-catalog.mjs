@@ -34,6 +34,7 @@ const read = (p) => readFileSync(join(root, p), 'utf-8');
    src/lib/explainers.ts, which states the same list. */
 const NARRATIVE = new Set([
   'hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
+  'plate', // a photograph: caption + credit, no data claim (launch design 2026-09-08)
 ]);
 
 /* hero and act-break are deliberately scored <= 0 in KIND_PRIORITY so the story

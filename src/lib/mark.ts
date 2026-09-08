@@ -39,6 +39,20 @@ export function cutFor(size: number): Cut {
   return size < 24 ? 'reversed' : 'mark';
 }
 
+/**
+ * The viewBox. The file assets keep the brand book's 15-unit clear space on a
+ * 300 box; a LOCKUP does not — there the gap to the wordmark is measured from
+ * the ring's edge, so `tight` trims the box to the ring (outer edge = 118 +
+ * half the stroke) and `size` becomes the visible disc. Launch design,
+ * 2026-09-08, measured on the canvas prototype.
+ */
+export function viewBoxFor(ring: number, tight = false): string {
+  if (!tight) return '0 0 300 300';
+  const half = 118 + ring / 2;
+  const o = +(150 - half).toFixed(1);
+  return `${o} ${o} ${+(half * 2).toFixed(1)} ${+(half * 2).toFixed(1)}`;
+}
+
 export interface MarkColors {
   accent: string;
   ground: string;
@@ -48,11 +62,13 @@ export interface MarkColors {
 
 /** The mark's inner shapes, colour-agnostic. Consumers wrap in their own <svg>. */
 export function markBody(
-  { desk = 'politics', size = 40, cut, colors, glyph: withGlyph = true }:
-  { desk?: Desk; size?: number; cut?: Cut; colors: MarkColors; glyph?: boolean }
+  { desk = 'politics', size = 40, cut, colors, glyph: withGlyph = true, ring: ringOverride }:
+  { desk?: Desk; size?: number; cut?: Cut; colors: MarkColors; glyph?: boolean; ring?: number }
 ): string {
   const [ox, oy] = dialAt(DIAL[desk]);
-  const ring = ringFor(size);
+  /* `ring` may be pinned by a lockup (the masthead draws 9 at a 34px disc, as
+     the approved canvas does); the size ladder is the default everywhere else. */
+  const ring = ringOverride ?? ringFor(size);
   const c = cut ?? cutFor(size);
   const glyph = MARK_GLYPH[glyphTier(size)];
   const { accent, ground, ink, paper } = colors;
