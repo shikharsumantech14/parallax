@@ -36,8 +36,11 @@ The caller gives you:
 - **`intended_mode`** (optional) — the mode the caller was writing in. If absent,
   infer the best-fit mode from the decision tree and say which you assumed.
 - **`length_class`** (optional) — `issue-section` | `thread` | `single-post` |
-  `caption`. If absent, infer it. For short forms, judge against §3 short-form
-  compression, not the full section cadence.
+  `caption`. If absent, infer it. For short forms, judge against §5 short-form
+  compression, not the full section cadence. (Section numbers are v2's,
+  2026-09-13: §2 register and the four Hindi tests, §3 the fifteen rules, §4
+  the jobs, §5 short-form, §6 the seventeen AI tells, §7 blending, §8 the
+  decision tree.)
 
 ### Step 3 — Judge mode fit
 
@@ -54,8 +57,9 @@ Name the specific card element that is met or missed. Also flag the mode's own
 
 ### Step 4 — Run the AI-tell catalog (the hard gate)
 
-Check the text against every rule in `_voice-core.md` §4. For each hit, record the
-rule number, the offending span (quote it), and the prescribed rewrite move:
+Check the text against every rule in `_voice-core.md` §6 — all seventeen. For
+each hit, record the rule number, the offending span (quote it), and the
+prescribed rewrite move:
 
 1. Em-dash overload (max 1 per paragraph / per post)
 2. Binary reframe as default closer ("It is not X. It is Y.")
@@ -63,6 +67,18 @@ rule number, the offending span (quote it), and the prescribed rewrite move:
 4. Abstract-noun jargon ("the mechanism", "structural argument" as labels)
 5. Numbered-manifesto rhythm ("First… Second… Third…")
 6. Stacked binary reframes
+7. The title formula ("The ‹Noun› That ‹Verb›s")
+8. The antithesis dek beside a reversing hook
+9. The stacked citation
+10. The staccato run (three sentences under eight words)
+11. The once-used name
+12–17. The Hinglish tells: the YouTube intro; salt in every sentence or in a
+precision field; *yaar/bhai/bro* on politics or earth; italicised or
+Devanagari Hindi; the literal idiom; the condescending tag
+
+Also run the four Hindi tests from §2 on every Hindi word (skip, natural
+word, wince, precision) and flag **HINDI-LOAD-BEARING** where the English
+alone does not carry the meaning.
 
 Applying a mode never excuses a tell. Count em-dashes literally, per paragraph.
 

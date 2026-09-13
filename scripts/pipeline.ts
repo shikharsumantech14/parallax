@@ -23,20 +23,23 @@ import { loadAgent }                                 from './lib/agent-loader.js
 import {
   buildDiscoverPrompt,
   buildResearchPrompt,
+  buildStoryboardPrompt,
   buildDraftPrompt,
   buildStylePrompt,
+  buildPanelPrompt,
   buildVerifyPrompt,
   findMostRecent,
   findDraftIssue,
   findIssueByTopic,
+  readStatus,
 }                                                    from './lib/prompts.js';
 import { runAgent }                                  from './lib/runner.js';
 import { ragMcpServer }                              from './lib/rag-mcp.js';
-import { CONFIG }                                    from './pipeline.config.js';
+import { CONFIG, GATES }                             from './pipeline.config.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const VALID_PHASES     = ['discover', 'research', 'draft', 'stylist', 'verify'] as const;
+const VALID_PHASES     = ['discover', 'research', 'storyboard', 'draft', 'stylist', 'panel', 'verify'] as const;
 const VALID_CATEGORIES = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 
 type Phase    = typeof VALID_PHASES[number];
@@ -45,8 +48,10 @@ type Category = typeof VALID_CATEGORIES[number];
 const PHASE_TO_AGENT: Record<Phase, keyof typeof CONFIG.models> = {
   discover:    'discovery',
   research:    'researcher',
+  storyboard:  'composer',
   draft:       'drafter',
   stylist:     'stylist',
+  panel:       'reader-panel',
   verify:      'verifier',
 };
 
@@ -66,7 +71,9 @@ function printUsage(): void {
   Examples:
     npm run pipeline:discover    earth
     npm run pipeline:research    earth
+    npm run pipeline:storyboard  earth      # then flip its Status: approved
     npm run pipeline:draft       earth
+    npm run pipeline:panel       earth      # the comprehension gate (run again after stylist)
     npm run pipeline:stylist     earth
     npm run pipeline:verify      earth
 
@@ -166,6 +173,15 @@ async function main(): Promise<void> {
     }
     prompt = buildResearchPrompt(category, candidatesFile);
 
+  } else if (phase === 'storyboard') {
+    const dossierFile = findMostRecent(join(cwd, 'research', category), '-dossier.md');
+    if (!dossierFile) {
+      console.error(`\x1b[31mError:\x1b[0m No dossier found in research/${category}/`);
+      console.error(`  Run first: npm run pipeline:research ${category}`);
+      process.exit(1);
+    }
+    prompt = buildStoryboardPrompt(category, dossierFile);
+
   } else if (phase === 'draft') {
     const dossierFile = findMostRecent(join(cwd, 'research', category), '-dossier.md');
     if (!dossierFile) {
@@ -173,7 +189,43 @@ async function main(): Promise<void> {
       console.error(`  Run first: npm run pipeline:research ${category}`);
       process.exit(1);
     }
-    prompt = buildDraftPrompt(category, dossierFile);
+    // The storyboard gate (REGISTER-PLAN RG-07). `GATES.storyboard` in
+    // pipeline.config.ts is the one switch, shared with /pipeline-draft.
+    const storyboardFile = findMostRecent(join(cwd, 'research', category), '-storyboard.md');
+    if (!storyboardFile) {
+      console.error(`\x1b[31mError:\x1b[0m No storyboard found in research/${category}/`);
+      console.error(`  Run first: npm run pipeline:storyboard ${category}`);
+      process.exit(1);
+    }
+    const status = readStatus(join(cwd, 'research', category, storyboardFile)) ?? 'draft';
+    if (status === 'hold') {
+      console.error(`\x1b[31mError:\x1b[0m research/${category}/${storyboardFile} is on hold (Status: hold).`);
+      process.exit(1);
+    }
+    if (GATES.storyboard === 'required' && status !== 'approved') {
+      console.error(`\x1b[31mError:\x1b[0m research/${category}/${storyboardFile} has Status: ${status}.`);
+      console.error('  The storyboard gate is "required": read the table, edit rows if needed, and');
+      console.error('  flip it to `Status: approved`. (GATES.storyboard in scripts/pipeline.config.ts')
+      console.error('  switches this to "auto" once the new rules have settled.)');
+      process.exit(1);
+    }
+    prompt = buildDraftPrompt(category, dossierFile, storyboardFile);
+
+  } else if (phase === 'panel') {
+    const draftSlug      = findDraftIssue(cwd, category);
+    const storyboardFile = findMostRecent(join(cwd, 'research', category), '-storyboard.md');
+    if (!draftSlug) {
+      console.error(`\x1b[31mError:\x1b[0m No draft issue found with topic: ${category}`);
+      console.error(`  Run first: npm run pipeline:draft ${category}`);
+      process.exit(1);
+    }
+    if (!storyboardFile) {
+      console.error(`\x1b[31mError:\x1b[0m No storyboard found in research/${category}/ — the panel needs its three questions.`);
+      console.error(`  Run first: npm run pipeline:storyboard ${category}`);
+      process.exit(1);
+    }
+    const priorReport = findMostRecent(join(cwd, 'research', category), `-${draftSlug}-panel.md`);
+    prompt = buildPanelPrompt(category, draftSlug, storyboardFile, priorReport ? 'second' : 'first');
 
   } else if (phase === 'stylist') {
     const issueSlug = findIssueByTopic(cwd, category);

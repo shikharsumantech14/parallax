@@ -29,7 +29,9 @@ editorial verifier already audited.
 1. Read **`research/_voice/_voice-social.md`** (the social register + format + the
    platform/length/emoji/hashtag rules) and **`research/_voice/_voice-social-learned.md`**
    (evidence-based heuristics — apply them on top of the base contract). For the
-   AI-tell catalog, `research/_voice/_voice-core.md` §4 is the canonical list.
+   AI-tell catalog, `research/_voice/_voice-core.md` §6 is the canonical list
+   (v2, 2026-09-13 — seventeen tells, the Hinglish ones included; §2 is the
+   register and the four Hindi tests, and social may go to its L3).
 2. Read the issue MDX fully: `topic`, `title`, `hook`, `dek`, `primer`, and the
    `sections[]` (timeline events, data-readout tiles, paradox sides, quotes,
    comparisons, the closer). Find **the one hard or counter-intuitive idea** the

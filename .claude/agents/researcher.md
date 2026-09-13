@@ -126,6 +126,26 @@ research, propose a section-by-section plan:
   sequence → timeline, two-sided tension → paradox, etc.)
 - Keep it to 6-9 sections — issues run 6-8 minutes
 
+**§7 is now a suggestion the composer refines.** Since 2026-09-13 a
+storyboard step (`composer`) sits between your dossier and the draft and
+picks the kinds by data shape from all 98 (`docs/design/catalog-shapes.md`).
+Your §7 still matters — it tells the composer which shapes the evidence
+supports — but capture the DATA generously: a kind you did not suggest may be
+the one that fits.
+
+**Three things the register needs from you (REGISTER-PLAN §3):**
+- **Names.** In §4, mark the people and organisations that matter with the
+  role phrase that introduces them ("Alan Arnette, who has logged every
+  Everest season for twenty years"). The issue carries at most twelve.
+- **Jargon.** For every term of art the issue will need, add a row to
+  `research/_voice/jargon.md` (append; never rewrite others' rows) with the
+  plainest gloss the sources support.
+- **Indian ground.** Capture the ₹ equivalent for every $ figure (state the
+  rate and its source), and at least one sourced Indian anchor where the
+  topic allows — an Indian instance, comparison, institution or number. If
+  the topic has none, say so in §9 so the composer uses a scale comparison
+  rather than a new claim.
+
 **Capture the DATA each component needs.** For any interactive / 3D / data
 component you propose, open its `## <kind>` block in **`docs/design/catalog.md`**
 and read its **DATA** shape + its **"RESEARCHER MUST CAPTURE"** note. Then

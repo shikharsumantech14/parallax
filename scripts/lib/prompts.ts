@@ -71,14 +71,59 @@ export function buildResearchPrompt(category: string, candidatesFile: string): s
   return `Run research for category **${category}**. The candidates file is at \`research/${category}/${candidatesFile}\`. Find the candidate with \`status: chosen\`, deeply research it using the source allowlist at \`research/_sources/${category}.md\`, and write the dossier to \`research/${category}/${today}-<slug>-dossier.md\` (derive the slug from the chosen candidate title, kebab-case, max 6 words). Follow the template at \`research/_templates/dossier.md\` exactly. Return a one-paragraph summary with: dossier file path, the structural argument in one sentence, 3 strongest verified facts, and any [UNVERIFIED] items to flag for the editor.`;
 }
 
-export function buildDraftPrompt(category: string, dossierFile: string): string {
+/**
+ * Read the `- **Status:** <value>` line of a storyboard (or dossier) file.
+ * Returns the lower-cased value, or null when the line is absent.
+ */
+export function readStatus(filePath: string): string | null {
+  try {
+    const m = readFileSync(filePath, 'utf-8').match(/^\s*-\s*\*\*Status:\*\*\s*([a-z-]+)/im);
+    return m ? m[1].toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildStoryboardPrompt(category: string, dossierFile: string): string {
+  const today = todayIST();
+  return `Write the storyboard for this dossier: \`research/${category}/${dossierFile}\`
+
+Follow all rules in your agent definition exactly. Write the output to \`research/${category}/${today}-<slug>-storyboard.md\` (the slug matches the dossier's), following \`research/_templates/storyboard.md\`, with \`Status: draft\`.
+
+Working directory: ${process.cwd().replace(/\\/g, '/')}
+
+Return: the file path, the hero and why, the spine (kinds in order), the word total budgeted, any kind you wanted and could not use for want of data, and anything the operator should rule on before the draft.`;
+}
+
+export function buildDraftPrompt(category: string, dossierFile: string, storyboardFile: string): string {
   return `Write a complete draft issue from this dossier: \`research/${category}/${dossierFile}\`
+
+Execute this storyboard — it fixes the kinds, the order, the hero, the word budgets and the head: \`research/${category}/${storyboardFile}\`
 
 Follow all rules in your agent definition exactly. Write the output to \`src/content/issues/<id>/index.mdx\` where \`<id>\` matches the dossier slug and today's date (YYYY-MM-DD-slug format).
 
 Working directory: ${process.cwd().replace(/\\/g, '/')}
 
-Return: file path written, issue title + hook, section count + read time estimate, any [UNVERIFIED] items omitted or flagged, any section kind substitutions made.`;
+Return: file path written, issue title + hook, section count + read time estimate, any [UNVERIFIED] items omitted or flagged, any place the draft departs from the storyboard and why.`;
+}
+
+export function buildPanelPrompt(
+  category: string,
+  draftSlug: string,
+  storyboardFile: string,
+  pass: 'first' | 'second',
+): string {
+  const today = todayIST();
+  return `Read this draft as the four reader personas: \`src/content/issues/${draftSlug}/index.mdx\`
+
+The storyboard with the three questions: \`research/${category}/${storyboardFile}\`
+This is the ${pass} pass.
+
+Follow all rules in your agent definition exactly. Write the report to \`research/${category}/${today}-${draftSlug}-panel.md\`.
+
+Working directory: ${process.cwd().replace(/\\/g, '/')}
+
+Return: the verdict, one line per quiz question, the three lowest-scoring sections, and the top three fixes.`;
 }
 
 /**

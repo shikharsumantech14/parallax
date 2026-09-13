@@ -25,8 +25,13 @@ flag, and report.
 1. Read the draft issue: `src/content/issues/<slug>/index.mdx`
 2. Read the research dossier: the most recent
    `research/<category>/*-dossier.md`
-3. Optionally read `src/content/issues/2026-04-24-delimitation/index.mdx`
-   as the canonical voice benchmark
+3. Read the storyboard, if one exists (`research/<category>/*-storyboard.md`,
+   most recent) — the kinds, order, hero, names list and three questions the
+   draft was meant to execute
+4. Read `research/_voice/_voice-core.md` (the runtime contract, v2) and
+   `research/_voice/hinglish-lexicon.md` — the register rules in Step 4b are
+   theirs. (The published issues before 2026-09-13 are the OLD register and
+   are not a benchmark for anything.)
 
 ### Step 2 — Extract all claims from the draft
 
@@ -117,6 +122,47 @@ Check the draft against Parallax voice rules:
 - Does the data-readout tell its story through numbers, not prose?
 - Does the prose section avoid advocacy and stick to documented events?
 
+### Step 4b — Register and composition audit (REGISTER-PLAN §7.3)
+
+Flags added 2026-09-13. Check every prose field against the contract:
+
+- **❌ HINDI-LOAD-BEARING** — a sentence whose meaning is lost when its Hindi
+  words are removed (read it as Karthik, contract §1, who has no Hindi).
+  Blocks publish: it is the rule that makes the Hindi layer safe.
+- **❌ HINDI-FIELD** — any Hindi word in `caption`, `howToRead`, `plain`,
+  `source` or a data label. Blocks publish.
+- **⚠️ HINDI-SPELLING / HINDI-DENSE** — a spelling not in the lexicon; Hindi
+  in two consecutive sentences; more than one phrase in a paragraph;
+  Devanagari or italicised Hindi.
+- **⚠️ JARGON-UNGLOSSED** — a term of art (`research/_voice/jargon.md`, or
+  any term a smart 15-year-old would not know) appears before it is
+  explained in the same or next sentence.
+- **⚠️ BARE-NUMBER** — a figure with no comparison a reader can feel; a `$`
+  figure with no ₹.
+- **⚠️ NO-INDIAN-ANCHOR** — an issue with no ₹ / lakh / crore / Indian place
+  or comparison at all.
+- **⚠️ NAME-THROUGHPUT** — more than 12 distinct named people and
+  organisations; **⚠️ NAME-UNPLACED** — a name with no role phrase, or used
+  once.
+- **⚠️ ANALOGY-CLAIM** — an analogy or worked example that misstates the
+  mechanism the dossier describes. An analogy is form, but a wrong one is a
+  wrong claim.
+- **⚠️ HOOK-ABSTRACT** — a hook with no number and no concrete noun;
+  **⚠️ TITLE-FORMULA** — "The ‹Noun› That ‹Verb›s", or a title that names the
+  subject rather than the finding.
+- **⚠️ TEXT-HEAVY / PROSE-RUN / NO-LEAD-GRAPHIC / HEAD-HEAVY** — fewer than 6
+  in 10 sections visual; two text-only sections adjacent; the first section
+  not a graphic or `data-readout`; more than 80 words before the first
+  graphic; more than 1,100 reader-facing words.
+- **⚠️ STORYBOARD-DRIFT** — kinds, order or hero not as the storyboard has
+  them and the departure not named in the draft's summary.
+- **⚠️ QUESTION-UNANSWERED** — one of the storyboard's three questions cannot
+  be answered from the draft alone.
+
+(Numeral preservation across a rewrite — NUMBER-DRIFT — is the
+`check:prose` gate's job, since it can read the previous committed version;
+you cannot.)
+
 **Source-balance check (per `research/_sources/_TAXONOMY.md` §5).** Using the
 dossier's per-source `tier`/`viewpoint` tags:
 - **Primary anchor present?** The issue's load-bearing facts trace to ≥1
@@ -183,6 +229,15 @@ be published without resolving.
 
 ---
 
+## Register and composition audit
+
+| Flag | Location | Severity | Note |
+|---|---|---|---|
+
+(The Step 4b flags. Empty table = clean.)
+
+---
+
 ## Schema check
 
 | Check | Status | Note |
@@ -222,6 +277,8 @@ Suggestions the editor may choose to act on — not blockers.
 - **❌ ADVOCACY blocks publish.** Parallax is structural, not
   editorial. Any phrase that takes a side beyond what the sources
   establish must be removed or rewritten.
+- **❌ HINDI-LOAD-BEARING and ❌ HINDI-FIELD block publish.** A reader with
+  no Hindi must lose nothing; the precision layer is English only.
 - **Verdict must be one of three states:**
   - **APPROVED** — all claims verified, no ❌ flags, voice clean
   - **NEEDS REVISION** — only ⚠️ flags; issues are fixable without

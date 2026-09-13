@@ -92,7 +92,8 @@ when route is `issue-candidate` or `both`. For `ignore`, omit both.
   specific figure left to the linked issue.
 - **Native-first.** The post `body` carries NO link; the link goes in `link_url`
   (posted as the first reply).
-- **Voice + AI-tells apply** (per `_voice-core.md` §3–§4), even at one post.
+- **Voice + AI-tells apply** (per `_voice-core.md` v2: §2 the register, §5
+  short-form, §6 the AI tells), even at one post.
 - **One JSON object, no surrounding prose** — the caller parses your final message.
 - **Sensitive topics → prefer issue-candidate over social** (slower, human-
   reviewed) and flag the sensitivity in `notes`.

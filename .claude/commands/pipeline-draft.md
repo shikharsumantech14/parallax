@@ -18,31 +18,37 @@ issue MDX file from the research dossier.
 
 Argument is one of: `politics`, `space`, `earth`, `tech`, `travel`, `sports`.
 
-**Prerequisite:** You must have already run `/pipeline-research <category>`
-and confirmed the dossier looks solid (status: ready-for-draft, no
-blocking [UNVERIFIED] items).
+**Prerequisites:** `/pipeline-research <category>` has produced a dossier
+with `Status: ready-for-draft` (no blocking [UNVERIFIED] items), and
+`/pipeline-storyboard <category>` has produced a storyboard. While
+`GATES.storyboard` in `scripts/pipeline.config.ts` is `'required'`, the
+storyboard must say `Status: approved` (REGISTER-PLAN RG-07); when it is
+`'auto'`, `draft` is enough. `hold` always stops the draft.
 
 ## What this does
 
 1. Validates the category argument
-2. Finds the most recent dossier for the category
-3. Confirms the dossier has `status: ready-for-draft`
-4. Spawns the **drafter** subagent with the dossier path
-5. The agent reads the dossier + schema + existing issues for voice,
-   then writes a complete MDX issue file with `status: draft`
+2. Finds the most recent dossier for the category and confirms
+   `Status: ready-for-draft`
+3. Finds the most recent storyboard and checks the gate
+4. Spawns the **drafter** subagent with both paths
+5. The agent reads the dossier, the storyboard, the voice contract and the
+   schema, then writes a complete MDX issue file with `status: draft`,
+   executing the storyboard's kinds, order, hero and word budgets
 6. Returns the file path and a draft summary
 
 ## What you do next
 
-1. Open `src/content/issues/<slug>/index.mdx`
-2. Read it fully — check voice, facts, section flow
-3. Fix anything that feels off — rewrite intros, adjust eyebrows,
-   tweak section order
-4. Resolve any `# EDITOR: verify before publish` comments
-5. Run `/pipeline-verify <category>` (Phase 4) for a claim-by-claim
-   audit before flipping to published
-6. Or flip `status: draft → review` if you want to hold it before
-   the verifier pass
+1. Run `/pipeline-panel <category>` — the comprehension gate (first pass)
+2. Open `src/content/issues/<slug>/index.mdx` and read it with the panel
+   report beside it — apply its fixes (they are directions, not sentences)
+3. Resolve any `# EDITOR: verify before publish` comments
+4. Run the stylist (`npm run pipeline:stylist <category>`, API-CLI only),
+   then `/pipeline-panel <category>` again (second pass)
+5. Run `/pipeline-verify <category>` for the claim-by-claim audit before
+   flipping to published
+6. Or flip `status: draft → review` if you want to hold it before the
+   verifier pass
 
 ## Cost
 
@@ -71,14 +77,27 @@ The user has invoked `/pipeline-draft` with argument: **$ARGUMENTS**
    - If status is not `ready-for-draft`: tell the user to review the
      dossier and confirm it's ready.
 
-3. Extract the dossier file path and spawn the **drafter** subagent
-   with this prompt:
+3. Glob `research/$ARGUMENTS/*-storyboard.md` and read the most recent
+   file's `- **Status:**` line. Read `GATES.storyboard` from
+   `scripts/pipeline.config.ts`.
+   - If no storyboard exists: tell the user to run
+     `/pipeline-storyboard $ARGUMENTS` first.
+   - If the status is `hold`: stop and say the storyboard is on hold.
+   - If the gate is `'required'` and the status is not `approved`: stop and
+     tell the user to read the storyboard and flip `Status: approved`.
+
+4. Spawn the **drafter** subagent — pinned to **Opus** (`model: 'opus'`) per
+   the Claude Code route policy in `CLAUDE.md` — with this prompt:
 
    > You are the Drafter Agent for Parallax. Your full agent definition
    > is at `.claude/agents/drafter.md` — read it first.
    >
    > Write a complete draft issue from this dossier:
    > `research/$ARGUMENTS/<dossier-filename>`
+   >
+   > Execute this storyboard — it fixes the kinds, the order, the hero, the
+   > word budgets and the head:
+   > `research/$ARGUMENTS/<storyboard-filename>`
    >
    > Follow all rules in your agent definition exactly. Write the
    > output to `src/content/issues/<id>/index.mdx` where `<id>`
@@ -87,8 +106,9 @@ The user has invoked `/pipeline-draft` with argument: **$ARGUMENTS**
    > Working directory: D:\SideProjects\parallax
    >
    > Return: file path, issue title + hook, section count + read time,
-   > any [UNVERIFIED] items omitted or flagged, any section kind
-   > substitutions made.
+   > any [UNVERIFIED] items omitted or flagged, any place the draft departs
+   > from the storyboard and why.
 
-4. When the subagent finishes, relay its summary to the user. Include
-   the file path so the user can open it directly.
+5. When the subagent finishes, relay its summary to the user. Include
+   the file path so the user can open it directly, and point them to
+   `/pipeline-panel $ARGUMENTS` as the next step.
