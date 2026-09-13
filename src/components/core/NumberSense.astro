@@ -1,0 +1,138 @@
+---
+/**
+ * NumberSense (`number-sense`) — one figure at the size it deserves and, beside
+ * it, the one to three everyday things that are the same size, so the size is
+ * felt rather than read. Blueprint: docs/design/blueprints/core/number-sense.md
+ * Pure HTML/CSS, zero JS. Universal, so core/. Prefix `px-ns`.
+ *
+ * SHELL. `core/VizCard.astro` owns the caption row, the in-card how-to-read
+ * panel AND the `data-reveal` root — this component adds none of the three and
+ * must not add a second `data-reveal`. The plain line and the `Source · …` on
+ * it are `core/Section.astro`'s, for every kind. `number-sense` is not in
+ * NEEDS_HOW: an authored `howToRead` renders, the per-kind default does not.
+ *
+ * THE VALUE IS STATIC, deliberately — blueprint §5 permits either. The shared
+ * count-up (`[data-countup]` + core/VizMotion.astro) needs no new JS, so the
+ * gate is passed; it is declined because the island finishes by writing
+ * `Number.toLocaleString()` in the READER's locale, and an en-IN browser
+ * regroups 1,500,000 as 15,00,000. This kind carries one published, verified
+ * figure — often an Indian-grouped rupee amount — so it must render exactly as
+ * authored (CANON §7). Nothing moves, so the still IS the component.
+ */
+import VizCard from './VizCard.astro';
+import { renderInline } from '../../lib/text';
+
+interface Equal {
+  /** ≤14 words: the same amount said in a thing the reader already knows. */
+  text: string;
+  /** ≤12 words: the basis. A traced claim in its own right, like `text`. */
+  note?: string;
+}
+interface Props {
+  /** As authored, WITH its formatting ("15,000", "1.47"). Never reformatted. */
+  value: string;
+  unit?: string;
+  label: string;
+  equals: Equal[];
+  note?: string;
+  howToRead?: string;
+  caption?: string;
+  /** Accepted and ignored — Section renders it. Object form per §3's example. */
+  source?: string | { label: string; date?: string };
+}
+const { value, unit, label, equals = [], note, howToRead, caption, source } = Astro.props;
+
+/* Build-time validation (§3). A big number with nothing beside it is a one-tile
+   data-readout, not this kind — the comparison IS the component, so failing
+   loudly beats publishing a figure nobody can feel. */
+if (typeof value !== 'string' || !value.trim())
+  throw new Error('[number-sense] `value` is required, as an authored string carrying its own formatting.');
+if (typeof label !== 'string' || !label.trim())
+  throw new Error('[number-sense] `label` is required — an unlabelled number states nothing.');
+if (equals.length < 1 || equals.length > 3)
+  throw new Error(`[number-sense] needs 1–3 \`equals\` rows, got ${equals.length}. See blueprint §3.`);
+for (const e of equals)
+  if (!e || typeof e.text !== 'string' || !e.text.trim())
+    throw new Error('[number-sense] every `equals` row needs a non-empty `text`.');
+---
+
+<VizCard prefix="px-ns" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-ns__grid">
+    <div class="px-ns__num">
+      <p class="px-ns__k vz-eyebrow">{label}</p>
+      <p class="px-ns__v">{value}{unit && <span class="px-ns__u">{unit}</span>}</p>
+      {note && <p class="px-ns__note"><Fragment set:html={renderInline(note)} /></p>}
+    </div>
+
+    <ul class="px-ns__eq">
+      {equals.map((e) => (
+        <li class="px-ns__row">
+          {/* Decorative: three repetitions of "almost equal to" is noise, and the
+              relation is carried by the label and the how-to-read. */}
+          <span class="px-ns__sign" aria-hidden="true">≈</span>
+          <p class="px-ns__t">
+            <Fragment set:html={renderInline(e.text)} />
+            {e.note && <span class="px-ns__n"><Fragment set:html={renderInline(e.note)} /></span>}
+          </p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</VizCard>
+
+<style>
+  /* Phone first: one column, the number on top. `gap: 0` — the rule between the
+     halves is a border, so the two columns meet on a single hairline. */
+  .px-ns__grid { display: grid; gap: 0; }
+  .px-ns__num, .px-ns__eq { min-width: 0; }
+  .px-ns__num { padding: 16px; }
+  /* .vz-eyebrow (viz-type.css) carries size/case/tracking/colour — CANON §5 says
+     use the role, don't restate it. Only the rhythm belongs here. */
+  .px-ns__k { margin: 0 0 10px; }
+
+  /* Flex so the unit sits on the value's BASELINE, not its box. */
+  .px-ns__v {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(44px, 9vw, 72px); line-height: 1; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--accent-deep);
+  }
+  .px-ns__u {
+    font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+    line-height: 1; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-ns__note {
+    margin: 12px 0 0; font-family: var(--font-body);
+    font-size: 13.5px; line-height: 1.5; color: var(--muted);
+  }
+
+  .px-ns__eq { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+  /* `baseline`, not `start`: the sign's first line must sit on the text's first
+     line, and the two have different line boxes. */
+  .px-ns__row { display: grid; grid-template-columns: 28px 1fr; align-items: baseline; padding: 12px 0; }
+  .px-ns__row + .px-ns__row { border-top: 1px solid var(--rule); }
+  .px-ns__sign {
+    font-family: var(--font-display); font-size: 20px; line-height: 1.5;
+    color: var(--accent-deep);
+  }
+  .px-ns__t {
+    margin: 0; font-family: var(--font-body);
+    font-size: 17.5px; line-height: 1.5; color: var(--ink);
+  }
+  .px-ns__n {
+    display: block; margin-top: 3px;
+    font-size: 13px; line-height: 1.45; color: var(--muted);
+  }
+
+  @media (min-width: 640px) {
+    .px-ns__grid { grid-template-columns: 2fr 3fr; }
+    .px-ns__num { padding: 20px 22px; }
+    .px-ns__eq { border-top: 0; border-left: 1px solid var(--rule); }
+    .px-ns__row { padding: 14px 20px; }
+  }
+
+  /* Under 400px a long value plus its unit crowds the line; the unit takes a
+     line of its own rather than shrinking the figure. */
+  @media (max-width: 400px) { .px-ns__u { flex-basis: 100%; } }
+</style>

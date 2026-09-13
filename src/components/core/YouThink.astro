@@ -1,0 +1,129 @@
+---
+/**
+ * YouThink (`you-think`) — the brand promise as a component: on the left the
+ * belief the reader walked in with, on the right the number that corrects it.
+ *
+ * Blueprint: docs/design/blueprints/core/you-think.md
+ * Pure HTML/CSS — no SVG, no JS, no WebGL. Universal kind (it wears whatever
+ * theme the issue sets). Prefix `px-yt`.
+ *
+ * Shell is core/VizCard.astro: the caption row and the graphic slot, nothing
+ * else. This component renders NO source, NO plain line and NO how-to-read of
+ * its own — core/Section.astro owns all three (CANON §7, §10; blueprint §1).
+ * `source` is accepted and handed on exactly as its siblings do, so the
+ * dispatch line reads the same; VizCard ignores it. VizCard's root already
+ * carries `data-reveal`, so there is no second reveal root here and no motion
+ * of this component's own (blueprint §5).
+ *
+ * Two-panel shape after topic/politics/Paradox.astro; number treatment after
+ * core/DataReadout.astro — both via the shared `.vz-*` roles in viz-type.css
+ * rather than restated sizes (CANON §5).
+ */
+import VizCard from './VizCard.astro';
+import { renderInline } from '../../lib/text';
+
+interface Props {
+  think: { label?: string; text: string };
+  actually: { label?: string; value?: string; unit?: string; text: string };
+  note?: string;
+  caption?: string;
+  /** Accepted and ignored — core/Section.astro prints it. Never a `__src` here. */
+  source?: string | { label: string; date?: string };
+  howToRead?: string;
+}
+
+const { think, actually, note, caption, source, howToRead } = Astro.props;
+
+/* A belief with no correction — or a correction with no belief — is half an
+   argument, and would publish as a full panel beside an empty one. Loud at
+   build time, as the rest of this wave is. */
+if (!think?.text) {
+  throw new Error('[you-think] think.text is required — the belief being corrected is half the component.');
+}
+if (!actually?.text) {
+  throw new Error('[you-think] actually.text is required — a bare figure with no reading is not a correction.');
+}
+---
+
+<VizCard prefix="px-yt" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-yt__grid">
+    <div class="px-yt__panel px-yt__panel--think">
+      <p class="px-yt__k vz-eyebrow">{think.label ?? 'What most people think'}</p>
+      <p class="px-yt__t" set:html={renderInline(think.text)} />
+    </div>
+
+    <div class="px-yt__panel px-yt__panel--act">
+      <p class="px-yt__k vz-eyebrow">{actually.label ?? 'What the data shows'}</p>
+      {/* Value and unit on ONE line on purpose: the 10px gap is the unit's
+          margin, so an authored line break must not add to it. */}
+      {actually.value && <p class="px-yt__v vz-value">{actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}</p>}
+      <p class="px-yt__t" set:html={renderInline(actually.text)} />
+    </div>
+  </div>
+
+  {note && <p class="px-yt__note" set:html={renderInline(note)} />}
+</VizCard>
+
+<style>
+  /* ── the two panels (blueprint §4) ────────────────────────────────────── */
+  .px-yt__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .px-yt__panel { padding: 18px 20px; }
+  /* A hairline separates the two readings; the 3px accent rule marks which one
+     is the evidence. A rule, never a fill — no type sits on the vivid accent
+     (CANON §6, TD-06). */
+  .px-yt__panel--think { border-right: 1px solid var(--rule); }
+  .px-yt__panel--act { border-left: 3px solid var(--accent); }
+
+  /* Size, weight, case and tracking come from `.vz-eyebrow` in viz-type.css;
+     only the colour is this kind's. Think keeps the role's `--muted`. */
+  .px-yt__k { margin: 0 0 10px; }
+  .px-yt__panel--act .px-yt__k { color: var(--accent-deep); }
+
+  /* `.vz-value` carries the display face, 700, ink, tabular figures and the
+     -0.01em tracking; it sets no size, which is this component's to choose. */
+  .px-yt__v {
+    margin: 0 0 12px;
+    font-size: clamp(36px, 6vw, 52px);
+    line-height: 1;
+  }
+  .px-yt__u {
+    margin-left: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: var(--viz-ls-mono);
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .px-yt__t {
+    margin: 0;
+    max-width: 34ch;
+    font-family: var(--font-body);
+    font-size: 17.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .px-yt__panel--act .px-yt__t { color: var(--ink); }
+
+  .px-yt__note {
+    margin: 0;
+    padding: 10px 20px 0;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  /* ── 640px: one column, the evidence panel second (blueprint §4) ──────── */
+  @media (max-width: 640px) {
+    .px-yt__note { padding-inline: 16px; }
+    .px-yt__grid { grid-template-columns: 1fr; }
+    .px-yt__panel { padding: 14px 16px; }
+    .px-yt__panel--think { border-right: 0; }
+    /* The accent rule turns the corner with the stack, so it always sits on
+       the edge the evidence panel is entered from. */
+    .px-yt__panel--act { border-left: 0; border-top: 3px solid var(--accent); }
+  }
+</style>

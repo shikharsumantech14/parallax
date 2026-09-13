@@ -20,9 +20,19 @@
  */
 interface CurvePoint { year: number; pct: number; }
 interface Milestone  { year: number; label: string; pct?: number; }
+/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
+   chart, optional everywhere; absent ⇒ nothing renders. `series` is accepted
+   for contract parity; this chart draws one curve. */
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   points: CurvePoint[];
   milestones?: Milestone[];
+  annotations?: Annotation[];
   xLabel?: string;
   yLabel?: string;
   caption?: string;
@@ -31,6 +41,7 @@ interface Props {
 const {
   points = [],
   milestones = [],
+  annotations = [],
   yLabel = '% Adoption',
   caption,
   source,
@@ -46,6 +57,88 @@ const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.pct)
 const area = n > 1 ? `${line} L${x(n - 1).toFixed(1)} ${padT + ih} L${padL} ${padT + ih} Z` : '';
 const idxForYear = (yr: number) => points.findIndex((p) => p.year === yr);
 const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
+
+// ── Annotations ─────────────────────────────────────────────────────────────
+// `at` is the x value: a point's `year` (number, or the numeric string a YAML
+// author may quote) or a milestone's `label`, resolved to that milestone's
+// year. Anything that matches no point is a silent no-op (spec §2).
+// Placed with the chart's own x() / y(), so the callout tracks the curve.
+const FS   = 11;   // SVG units. ≥10 per spec, and .adc__svg carries min-width:640
+                   // in the dataviz-v2.css natural-scale block — its viewBox width —
+                   // so one unit is one CSS pixel at every viewport, phones included.
+const LEAD = 18;   // leader length in units (spec: 14–22)
+const estW = (s: string) => 0.52 * FS * s.length;   // spec's width estimate
+const annotIdx = (at: string | number): number => {
+  if (typeof at === 'number') return idxForYear(at);
+  const s = String(at ?? '').trim();
+  if (!s) return -1;
+  if (Number.isFinite(Number(s))) {
+    const i = idxForYear(Number(s));
+    if (i >= 0) return i;
+  }
+  const m = milestones.find((ms) => ms.label === s);
+  return m ? idxForYear(m.year) : -1;
+};
+// Two lines maximum, split at the first space past the midpoint, once the
+// estimate passes 40% of the viewBox width.
+const wrapAnnot = (t: string): string[] => {
+  if (estW(t) <= W * 0.4) return [t];
+  const mid = Math.floor(t.length / 2);
+  let cut = t.indexOf(' ', mid);
+  if (cut < 0) cut = t.lastIndexOf(' ', mid);
+  return cut > 0 ? [t.slice(0, cut), t.slice(cut + 1)] : [t];
+};
+interface PlacedAnnot {
+  px: number; py: number; lines: string[]; lh: number;
+  lead: { x1: number; y1: number; x2: number; y2: number };
+  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
+}
+const annots: PlacedAnnot[] = (annotations ?? [])   // `annotations:` with no items parses as null
+  .map((a): PlacedAnnot | null => {
+    if (!a || !a.text) return null;
+    const i = annotIdx(a.at);
+    if (i < 0) return null;
+    const px = x(i), py = y(points[i].pct);
+    const lines = wrapAnnot(a.text);
+    const lh = FS + 2;
+    const blockH = lines.length * lh;
+    const wMax = Math.max(...lines.map(estW));
+
+    // Side is a hint; each axis is clamped back inside the viewBox. FLOOR is
+    // the lowest baseline a callout may take — below it sits the year axis.
+    const FLOOR = H - 16;
+    let side = a.side ?? 'above';
+    if (side === 'above' && py - LEAD - blockH < 2)           side = 'below';
+    else if (side === 'below' && py + LEAD + blockH > FLOOR)  side = 'above';
+    if (side === 'left'  && px - LEAD - 4 - wMax < 2)         side = 'right';
+    else if (side === 'right' && px + LEAD + 4 + wMax > W - 2) side = 'left';
+
+    // Leader: a straight 18-unit line off the mark, in the chosen direction.
+    const lead = side === 'above' ? { x1: px, y1: py - 5, x2: px, y2: py - LEAD }
+      : side === 'below'          ? { x1: px, y1: py + 5, x2: px, y2: py + LEAD }
+      : side === 'left'           ? { x1: px - 5, y1: py, x2: px - LEAD, y2: py }
+      :                             { x1: px + 5, y1: py, x2: px + LEAD, y2: py };
+
+    // Text. Vertical sides centre on the mark and mirror to text-anchor="end"
+    // (or "start") only when the estimated width would leave the viewBox.
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    let tx = px;
+    let ty = py;
+    if (side === 'above' || side === 'below') {
+      ty = side === 'above' ? py - LEAD - 5 - (lines.length - 1) * lh : py + LEAD + FS;
+      ty = Math.min(Math.max(ty, FS), FLOOR - (lines.length - 1) * lh);   // never off the top or into the axis
+      if (px + wMax / 2 > W - 4)      { anchor = 'end';   tx = Math.min(px + wMax / 2, W - 4); }
+      else if (px - wMax / 2 < 4)     { anchor = 'start'; tx = Math.max(px - wMax / 2, 4); }
+    } else {
+      ty = py + FS * 0.34;
+      anchor = side === 'left' ? 'end' : 'start';
+      tx = side === 'left'
+        ? Math.max(px - LEAD - 4, wMax + 2)
+        : Math.min(px + LEAD + 4, W - 2 - wMax);
+    }
+    return { px, py, lines, lead, tx, ty, anchor, lh };
+  })
+  .filter((a): a is PlacedAnnot => a !== null);
 ---
 
 <div class="px-viz" data-reveal>
@@ -81,6 +174,17 @@ const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
     })}
     {xShow.map((i) => (
       <text class="ac__axis" x={x(i)} y={H - 8} text-anchor="middle">{String(points[i].year).slice(2)}</text>
+    ))}
+    {annots.map((a) => (
+      <g class="adc__annot">
+        <line x1={a.lead.x1} y1={a.lead.y1} x2={a.lead.x2} y2={a.lead.y2} stroke="var(--rule)" stroke-width="1" />
+        <circle cx={a.px} cy={a.py} r="3" fill="var(--accent)" />
+        <text
+          x={a.tx} y={a.ty} text-anchor={a.anchor} fill="var(--ink)"
+          paint-order="stroke" stroke="var(--paper)" stroke-width="2.5" stroke-linejoin="round"
+          style={`font-family:'Literata',Georgia,'Times New Roman',serif;font-size:${FS}px;font-style:italic`}
+        >{a.lines.map((ln, k) => <tspan x={a.tx} dy={k === 0 ? 0 : a.lh}>{ln}</tspan>)}</text>
+      </g>
     ))}
   </svg>
 

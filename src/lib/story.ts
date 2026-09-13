@@ -68,12 +68,15 @@ export const KIND_PRIORITY: Record<string, number> = {
   'elevation-profile': 58, 'commit-grid': 58, 'match-stat-line': 58,
   'route-card': 56, 'city-compare': 56, 'journey-map': 56, 'power-matrix': 56,
   'seat-chart': 54, 'bill-breakdown': 52,
+  // the plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13): a big number
+  // and a reframe make strong beats; the two narrative cells rarely do
+  'number-sense': 68, 'you-think': 60, 'three-steps': 44, 'jargon-buster': 30,
   // narrative-adjacent
   'paradox': 50, 'comparison': 48, 'quote': 40, 'beat-sheet': 36, 'analogy': 34,
   // prose only qualifies with a skimCaption (handled in selection), low prio
   'prose': 10,
-  // never cards
-  'hero': -1, 'act-break': -1,
+  // never a card
+  'act-break': -1,
   // a photograph is not a beat without its picture; the story builder skips it
   'plate': -1,
 };
@@ -105,6 +108,10 @@ const TRIM: Record<string, Trim> = {
   'seat-chart': (d) => ({ ...d, rows: cap(d.rows, 4), quote: undefined }),
   'itinerary-reel': (d) => ({ ...d, days: cap(d.days, 4) }),
   'city-grid': (d) => ({ ...d, cities: cap(d.cities, 2) }), // CityGrid hard-caps at 3; 2 roses fit a 375 card
+  // The plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13) — their blueprints' story caps.
+  'jargon-buster': (d) => ({ ...d, terms: cap(d.terms, 4) }),
+  'three-steps': (d) => ({ ...d, steps: cap(d.steps, 3) }), // four stacked steps measure ~800px against a 667 card
+  'number-sense': (d) => ({ ...d, equals: cap(d.equals, 2) }),
 
   'quote': (d) => ({ ...d, followup: undefined }),
   'vote-result': (d) => ({ ...d, followup: undefined }),

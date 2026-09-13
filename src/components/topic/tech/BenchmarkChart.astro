@@ -26,8 +26,19 @@ interface Item {
   highlight?: boolean;
   color?: string;
 }
+/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
+   chart, optional everywhere; absent ⇒ nothing renders. `side` / `series`
+   are accepted for contract parity: the bars are one series, and a callout
+   always attaches to the end of its own bar. */
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   items: Item[];
+  annotations?: Annotation[];
   maxValue?: number;
   unit?: string;
   refValue?: number;
@@ -38,6 +49,7 @@ interface Props {
 }
 const {
   items = [],
+  annotations = [],
   maxValue,
   unit = '',
   refValue,
@@ -53,6 +65,32 @@ const dataMax = Math.max(refValue ?? 0, ...items.map((i) => i.value), 1) * 1.05;
 const max = maxValue ?? dataMax;
 
 const hasRef = refValue != null;
+
+// ── Annotations ─────────────────────────────────────────────────────────────
+// `at` is the item's LABEL (string). A label not in `items` is a silent no-op
+// (spec §2). The callout attaches to the end of that bar, on its own grid line
+// under the row, so it never fights the 150px / 1fr / 52px row geometry.
+const annotFor = new Map<string, string[]>();
+for (const a of annotations ?? []) {   // `annotations:` with no items parses as null
+  if (!a || !a.text) continue;
+  const label = String(a.at ?? '');
+  if (!rows.some((r) => r.label === label)) continue;
+  annotFor.set(label, [...(annotFor.get(label) ?? []), a.text]);
+}
+// The track's own scale — the same expression the reference line is placed by,
+// so the dot lands exactly where `--w` ends.
+const TRACK = '(100% - 150px - 14px - 52px - 14px)';
+const barEnd = (v: number) => `calc(150px + 14px + ${TRACK} * ${(v / max).toFixed(4)})`;
+// Past half the scale the callout mirrors: right-aligned so it ENDS on the mark
+// rather than running off the card (the HTML twin of text-anchor="end"). The
+// min() floor keeps at least 140px of text column on a phone, where the row's
+// fixed 150px label column leaves the track only a sliver.
+const annotPad = (v: number) => {
+  const f = v / max;
+  return f > 0.5
+    ? `padding-right:min(calc(52px + 14px + ${TRACK} * ${(1 - f).toFixed(4)} + 8px), calc(100% - 140px));text-align:right`
+    : `padding-left:min(calc(150px + 14px + ${TRACK} * ${f.toFixed(4)} + 8px), calc(100% - 140px))`;
+};
 ---
 
 <div class="px-viz" data-reveal>
@@ -84,6 +122,13 @@ const hasRef = refValue != null;
           ></span>
         </span>
         <span class="bc__val">{it.value}</span>
+        {(annotFor.get(it.label) ?? []).map((t) => (
+          <span class="bc__annot" style={`grid-column:1/-1;position:relative;display:block;padding-top:6px;${annotPad(it.value)}`}>
+            <span class="bc__annot-d" style={`position:absolute;left:${barEnd(it.value)};top:-17px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)`}></span>
+            <span class="bc__annot-l" style={`position:absolute;left:${barEnd(it.value)};top:-11px;width:1px;height:14px;margin-left:-0.5px;background:var(--rule)`}></span>
+            <span class="bc__annot-t vz-annot" style="display:block">{t}</span>
+          </span>
+        ))}
       </div>
     ))}
   </div>

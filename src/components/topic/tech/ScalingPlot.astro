@@ -28,11 +28,17 @@
  * working — it is comprehension, not decoration — and only drops the tween.
  *
  * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
- *         howToRead?, caption?, source? }
+ *         howToRead?, caption?, source?, annotations? }
  */
 import VizCard from '../../core/VizCard.astro';
 
 interface Point { x: number; y: number; label?: string; }
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   points: Point[];
   xLabel?: string;
@@ -43,6 +49,7 @@ interface Props {
   howToRead?: string;
   caption?: string;
   source?: string | { label: string; date?: string };
+  annotations?: Annotation[];
 }
 const {
   points = [],
@@ -54,6 +61,7 @@ const {
   howToRead,
   caption,
   source,
+  annotations = [],
 } = Astro.props;
 
 const W = 640, H = 340, padL = 60, padR = 22, padT = 22, padB = 46;
@@ -194,6 +202,87 @@ const isLogged = logX || logY;
 const A = project(logX, logY);
 const B = isLogged ? project(false, false) : null;
 const layers = B ? [{ p: A, k: 'a' }, { p: B, k: 'b' }] : [{ p: A, k: 'a' }];
+
+/* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
+   `at` matches a point's `label` exactly, or its raw `x` value; a non-match is
+   a silent no-op. There is no `series` here — a scatter has one.
+
+   BOTH projections get a callout, each inside the same `px-scale__lyr--a/--b`
+   group the existing island cross-fades, so the note follows the active scale
+   with zero new JS and zero new state. Default side is `right`: the point's own
+   label already owns the space directly above the dot. Geometry only — no
+   motion of its own beyond the layer cross-fade it rides. */
+const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 14;     // leading between the two wrapped lines
+const A_LEAD = 16;   // leader length (spec §3: 14–22)
+const A_GAP = 5;     // clearance between the marker dot and the leader
+const A_L = padL, A_R = W - padR, A_T = padT, A_B = padT + ih;
+const aEst = (s: string) => 0.52 * A_FS * s.length;
+// Two lines once the estimate passes 40% of the viewBox, split at the nearest
+// space past the midpoint.
+const aWrap = (s: string): string[] => {
+  if (aEst(s) <= W * 0.4) return [s];
+  const past = s.indexOf(' ', Math.floor(s.length / 2));
+  const cut = past >= 0 ? past : s.lastIndexOf(' ');
+  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+};
+
+interface PlacedAnnot {
+  lines: string[]; cx: number; cy: number;
+  x1: number; y1: number; x2: number; y2: number;
+  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
+}
+function placeAnnot(
+  cx: number,
+  cy: number,
+  hint: 'above' | 'below' | 'left' | 'right',
+  lines: string[],
+): PlacedAnnot {
+  const wEst = Math.max(...lines.map(aEst));
+  const blockH = (lines.length - 1) * A_LH;
+
+  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
+  let side = hint;
+  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
+  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
+
+  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
+  let anchor: 'start' | 'middle' | 'end' = 'middle';
+  if (side === 'left' || side === 'right') {
+    // mirror the leader rather than run the text off the edge
+    let dir = side === 'right' ? 1 : -1;
+    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
+    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
+    x1 = cx + dir * A_GAP;
+    x2 = cx + dir * (A_GAP + A_LEAD);
+    tx = x2 + dir * 3;
+    anchor = dir > 0 ? 'start' : 'end';
+    ty = cy + A_FS * 0.34 - blockH / 2;
+  } else {
+    const dir = side === 'above' ? -1 : 1;
+    y1 = cy + dir * A_GAP;
+    y2 = cy + dir * (A_GAP + A_LEAD);
+    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
+    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
+    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
+  }
+  return { lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor };
+}
+
+const annotAt: Array<{ i: number; lines: string[]; side: 'above' | 'below' | 'left' | 'right' }> = [];
+for (const a of annotations) {
+  if (!a || !a.text) continue;
+  const num = typeof a.at === 'number' ? a.at : Number(String(a.at).trim() || NaN);
+  const i = points.findIndex(
+    (p) => (p.label !== undefined && String(a.at) === p.label) || (Number.isFinite(num) && p.x === num),
+  );
+  if (i < 0) continue;
+  annotAt.push({ i, lines: aWrap(a.text), side: a.side || 'right' });
+}
+const annotLayers = layers.map(({ p, k }) => ({
+  k,
+  items: annotAt.map((a) => placeAnnot(p.plotted[a.i].cx, p.plotted[a.i].cy, a.side, a.lines)),
+}));
 
 /* ── The readout (px-inst contract part 05) ───────────────────────────────
    Derived from the data, never authored beside the chart: a readout that can
@@ -340,6 +429,23 @@ const yTitleLin = yLabel ?? '';
           data-axt data-axt-log={yTitleLog} data-axt-linear={yTitleLin}
         >{yTitleLog}</text>
       )}
+
+      {/* annotations — one set per projection, inside the layer groups the
+          toggle already cross-fades, so the callout follows the active scale */}
+      {annotAt.length > 0 && annotLayers.map(({ k, items }) => (
+        <g class:list={['px-scale__annots', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
+          {items.map((a) => (
+            <g class="px-scale__annot">
+              <circle class="px-scale__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" />
+              <line class="px-scale__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
+              <text
+                class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
+                style="font-family:Literata,Georgia,'Times New Roman',serif"
+              >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+            </g>
+          ))}
+        </g>
+      ))}
     </svg>
 
     {isLogged && (
@@ -441,6 +547,22 @@ const yTitleLin = yLabel ?? '';
     fill: var(--ink-soft);
     font-variant-numeric: tabular-nums;
     /* faint paper halo so a label crossing a gridline / dot stays legible */
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+
+  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ────────────────
+     The literal font stack is on the element (RD-01b); everything else is
+     here. No transition of its own — it rides the layer cross-fade above. */
+  .px-scale__annot-dot { fill: var(--accent); }
+  .px-scale__annot-lead { stroke: var(--rule); stroke-width: 1; }
+  .px-scale__annot-t {
+    font-size: 11px;
+    font-style: italic;
+    fill: var(--ink);
+    /* paper halo: the note crosses gridlines and the fit line */
     paint-order: stroke;
     stroke: var(--paper);
     stroke-width: 2.5px;

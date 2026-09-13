@@ -26,22 +26,26 @@
    at least one kind from outside the six workhorses (`prose`, `data-readout`,
    `timeline`, `paradox`, `quote`, `comparison`) per issue.
 
-## G1 · Narrative — no data shape (7)
+## G1 · Narrative — no data shape (8)
 
 | Kind | One line |
 |---|---|
-| `hero` | **dead** — deleted with the launch design; still registered, never rendered; do not author |
 | `act-break` | a typographic chapter divider between acts; consumes no number |
 | `prose` | the connective argument; ≤ 200 words a section, ≤ 3 sections an issue |
 | `quote` | one verified verbatim quote with an exact attribution |
-| `analogy` | an allocation rule told through named household characters (politics-bespoke today) |
+| `analogy` | a this ↔ that mapping in hairline rows (generalised 2026-09-13; the legacy joint-family shape still renders) |
 | `beat-sheet` | a mechanism compressed into ordered beats with time markers |
 | `plate` | a framed photograph; renders nothing without an image |
+| `jargon-buster` | 2–4 terms of art with a one-line meaning each, in the register |
+| `three-steps` | a mechanism in three numbered cards, one idea each |
 
-## G2 · Two or three peers, attribute by attribute (6)
+(`hero` was retired on 2026-09-13; it had rendered nothing since the launch design.)
+
+## G2 · Two or three peers, attribute by attribute (7)
 
 | Kind | One line |
 |---|---|
+| `you-think` | what most people think / what the data shows, with the one figure that settles it |
 | `comparison` | two or three entities compared row by row; the read-across matters |
 | `paradox` | two facts both true, pulling opposite ways — two blocks of prose, no mark; ≤ 1 per issue |
 | `city-compare` | exactly two places, with a winner per row |
@@ -49,10 +53,11 @@
 | `player-radar` | one player across 5–8 axes as a shape; optional comparison shape |
 | `player-card` [i] | one player as a flip rating card |
 
-## G3 · One number against a threshold, or a few headline numbers (6)
+## G3 · One number against a threshold, or a few headline numbers (7)
 
 | Kind | One line |
 |---|---|
+| `number-sense` | one big number and the everyday things it equals, so the size is felt |
 | `data-readout` | 3–6 headline numbers as instrument tiles, one accented |
 | `vote-result` | one decisive vote against the threshold it needed |
 | `carbon-gauge` | a budget as a gauge: used against remaining |
@@ -184,10 +189,20 @@
 | `shot-map` | shots by location and expected goals, with outcomes |
 | `court-value` | a model-scored value surface over pitch or court space |
 
-## Planned under REGISTER-PLAN RG-09 (not yet registered)
+## The plain-language kinds (REGISTER-PLAN RG-09, built 2026-09-13)
 
-`you-think` (G2: what you think / what the data shows), `jargon-buster` (G1:
-2–4 terms with one-line meanings), `number-sense` (G3: one big number made
-physical), `three-steps` (G1: a mechanism in three cards); `analogy`
-generalised to a universal this ↔ that mapping. Until they land, the nearest
-existing kinds are `paradox`, `comparison`, `data-readout` and `bill-passage`.
+Registered alongside the groups above; listed here too so a composer finds
+them by job. Blueprints: `docs/design/blueprints/core/`.
+
+| Kind | Group | One line |
+|---|---|---|
+| `you-think` | G2 | what most people think / what the data shows, with the one figure that settles it — the brand reframe as a component |
+| `jargon-buster` | G1 (narrative) | 2–4 terms of art with a one-line meaning each, in the register; optional Roman-script Hindi gloss |
+| `number-sense` | G3 | one big number and the everyday things it equals, so the size is felt |
+| `three-steps` | G1 (narrative) | a mechanism in three numbered cards, one idea each |
+| `analogy` (generalised) | G1 (narrative) | a universal this ↔ that mapping in hairline rows; the legacy joint-family shape still renders |
+
+The annotation layer (`data.annotations[]`, `docs/design/blueprints/_ANNOTATIONS.md`)
+is on `timeline`, `climate-strip`, `adoption-curve`, `benchmark-chart`,
+`approval-chart`, `scaling-plot`, `xg-race` and `elo-river`: a ≤ 12-word
+callout on the mark that shows the finding.

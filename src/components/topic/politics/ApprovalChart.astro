@@ -7,15 +7,23 @@
  * core/Reveal.astro toggles .is-in on the .px-viz, gated no-JS-safe).
  *
  * props: points[] { date, approve, disapprove } · subject · caption · source
+ *        · annotations[] (docs/design/blueprints/_ANNOTATIONS.md)
  */
 interface DataPoint { date: string; approve: number; disapprove: number; }
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   points: DataPoint[];
   subject?: string;
   caption?: string;
   source?: string;
+  annotations?: Annotation[];
 }
-const { points = [], subject, caption, source } = Astro.props;
+const { points = [], subject, caption, source, annotations = [] } = Astro.props;
 
 const W = 640, H = 280, padL = 36, padR = 16, padT = 16, padB = 28;
 const iw = W - padL - padR, ih = H - padT - padB;
@@ -30,6 +38,76 @@ const len = 1400;
 const last = points[n - 1];
 const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
 const capText = caption ?? subject ?? 'Approval';
+
+/* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
+   `at` matches a point's `date` exactly, or the short label the x-axis prints
+   for that point (`date.split(' ')[1]`), so `at: 2026` finds the first "… 2026".
+   `series: 'disapprove'` reads off the muted line; anything else — the default
+   — reads off the approve line. A non-matching `at` is a silent no-op.
+
+   All geometry, no state: the callout is part of the composed still, so it
+   paints under no-JS and reduced motion with no motion of its own. Positions
+   come from the chart's own x() / y() scales. */
+const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 14;     // leading between the two wrapped lines
+const A_LEAD = 16;   // leader length (spec §3: 14–22)
+const A_GAP = 5;     // clearance between the marker dot and the leader
+const A_L = padL, A_R = W - padR, A_T = padT, A_B = H - padB;
+const aEst = (s: string) => 0.52 * A_FS * s.length;
+// Two lines once the estimate passes 40% of the viewBox, split at the nearest
+// space past the midpoint.
+const aWrap = (s: string): string[] => {
+  if (aEst(s) <= W * 0.4) return [s];
+  const past = s.indexOf(' ', Math.floor(s.length / 2));
+  const cut = past >= 0 ? past : s.lastIndexOf(' ');
+  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+};
+
+interface PlacedAnnot {
+  lines: string[]; cx: number; cy: number;
+  x1: number; y1: number; x2: number; y2: number;
+  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
+}
+const annots: PlacedAnnot[] = [];
+for (const a of annotations) {
+  if (!a || !a.text) continue;
+  const i = points.findIndex(
+    (p) => String(a.at) === p.date || String(a.at) === (p.date.split(' ')[1] || p.date),
+  );
+  if (i < 0) continue;
+  const cx = x(i);
+  const cy = y(a.series === 'disapprove' ? points[i].disapprove : points[i].approve);
+  const lines = aWrap(a.text);
+  const wEst = Math.max(...lines.map(aEst));
+  const blockH = (lines.length - 1) * A_LH;
+
+  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
+  let side: 'above' | 'below' | 'left' | 'right' = a.side || 'above';
+  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
+  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
+
+  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
+  let anchor: 'start' | 'middle' | 'end' = 'middle';
+  if (side === 'left' || side === 'right') {
+    // mirror the leader rather than run the text off the edge
+    let dir = side === 'right' ? 1 : -1;
+    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
+    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
+    x1 = cx + dir * A_GAP;
+    x2 = cx + dir * (A_GAP + A_LEAD);
+    tx = x2 + dir * 3;
+    anchor = dir > 0 ? 'start' : 'end';
+    ty = cy + A_FS * 0.34 - blockH / 2;
+  } else {
+    const dir = side === 'above' ? -1 : 1;
+    y1 = cy + dir * A_GAP;
+    y2 = cy + dir * (A_GAP + A_LEAD);
+    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
+    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
+    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
+  }
+  annots.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor });
+}
 ---
 
 <div class="px-viz" data-reveal>
@@ -59,6 +137,19 @@ const capText = caption ?? subject ?? 'Approval';
       ))}
       {last && <circle class="ac__dot" cx={x(n - 1)} cy={y(last.approve)} r="4" fill="var(--accent)" />}
       {last && <circle class="ac__dot" cx={x(n - 1)} cy={y(last.disapprove)} r="4" fill="var(--muted)" />}
+      {/* annotations — styled inline on purpose: this component has no scoped
+          style block (its CSS is the kit's `.ac` in dataviz-v2.css), and adding
+          one would stamp Astro's scope attribute on every element in here */}
+      {annots.length > 0 && annots.map((a) => (
+        <g class="ac__annot">
+          <circle class="ac__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" fill="var(--accent)" />
+          <line class="ac__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} stroke="var(--rule)" stroke-width="1" />
+          <text
+            class="ac__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
+            style="font-family:Literata,Georgia,'Times New Roman',serif;font-size:11px;font-style:italic;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:2.5px;stroke-linejoin:round"
+          >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+        </g>
+      ))}
     </svg>
   </div>
   <div class="ac__legend">

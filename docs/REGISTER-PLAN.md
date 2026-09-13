@@ -11,9 +11,13 @@
 > **Progress (2026-09-13):** Phase 1 (the contract, lexicon, jargon list,
 > storyboard template, the composer and reader-panel agents, both routes'
 > wiring, the prompt edits, `catalog-shapes.md`, the mode-library amendments),
-> Phase 2 (`check:prose` in report mode) and RG-19 (how-to-read per kind, the
-> source folded onto the plain line) are built. Next: Phase 3 (the four kinds
-> and the annotation slot), then Phase 4 (the four flagship rewrites).
+> Phase 2 (`check:prose` in report mode), RG-19 (how-to-read per kind, the
+> source folded onto the plain line) and **Phase 3** (RG-09: `you-think`,
+> `jargon-buster`, `number-sense`, `three-steps`, `analogy` generalised,
+> `hero` retired — library 101; RG-20: the annotation slot on the eight
+> workhorse charts, verified on the showcases) are built. Next: Phase 4 (the
+> four flagship rewrites through the new pipeline), then the copy deck and
+> the EXPLAIN batch (8.2, 8.3), the `hi-Latn` span (RG-18), and the readers.
 >
 > **The brief, in one paragraph.** Readers — including heavy readers — say the
 > product is a wall of words, does not grab them, and is written in a language

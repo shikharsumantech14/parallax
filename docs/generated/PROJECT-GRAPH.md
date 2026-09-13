@@ -13,13 +13,13 @@
 
 | | |
 |---|---|
-| kinds | 98 |
+| kinds | 101 |
 | webgl | 14 |
 | issues | 23 |
 | published | 10 |
-| blueprints | 36 |
+| blueprints | 40 |
 | neverUsedAnywhere | 3 |
-| neverInPublished | 78 |
+| neverInPublished | 81 |
 | danglingDecisions | 8 |
 
 ## Section kinds
@@ -29,7 +29,6 @@
 
 | kind | component | catalog | explain | priority | webgl | blueprint | used | published |
 |---|---|---|---|---|---|---|---|---|
-| `hero` | — | ✓ | · | -1 |  |  | ✓ |  |
 | `act-break` | — | ✓ | · | -1 |  |  |  |  |
 | `timeline` | Timeline | ✓ | ✓ | 66 |  |  | ✓ | ✓ |
 | `bill-breakdown` | BillBreakdown | ✓ | ✓ | 52 |  |  | ✓ | ✓ |
@@ -37,12 +36,16 @@
 | `seat-chart` | SeatChart | ✓ | ✓ | 54 |  |  | ✓ | ✓ |
 | `comparison` | Comparison | ✓ | · | 48 |  |  | ✓ | ✓ |
 | `paradox` | Paradox | ✓ | ✓ | 50 |  |  | ✓ | ✓ |
+| `you-think` | YouThink | ✓ | ✓ | 60 |  | ✓ | ✓ |  |
 | `analogy` | BrothersAnalogy | ✓ | · | 34 |  |  | ✓ | ✓ |
 | `quote` | Quote | ✓ | · | 40 |  |  | ✓ | ✓ |
 | `beat-sheet` | BeatSheet | ✓ | · | 36 |  |  |  |  |
+| `jargon-buster` | JargonBuster | ✓ | · | 30 |  | ✓ | ✓ |  |
+| `three-steps` | ThreeSteps | ✓ | · | 44 |  | ✓ | ✓ |  |
 | `prose` | Prose | ✓ | · | 10 |  |  | ✓ | ✓ |
 | `plate` | Plate | ✓ | · | -1 |  |  | ✓ |  |
 | `data-readout` | DataReadout | ✓ | ✓ | 70 |  |  | ✓ | ✓ |
+| `number-sense` | NumberSense | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 | `orbital-shells` | OrbitalShells | ✓ | ✓ | 72 |  |  | ✓ | ✓ |
 | `commit-grid` | CommitGrid | ✓ | ✓ | 58 |  |  | ✓ |  |
 | `journey-map` | JourneyMap | ✓ | ✓ | 56 |  |  | ✓ |  |
@@ -128,12 +131,12 @@
 | `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
 | `finish-interval` | FinishInterval | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 
-## Never in a published issue — 78 of 98
+## Never in a published issue — 81 of 101
 
 The plan's argument for workstream B over Wave 2 rests on this number.
 It is computed here rather than asserted.
 
-`hero` · `act-break` · `beat-sheet` · `plate` · `commit-grid` · `journey-map` · `match-stat-line` · `elevation-profile` · `region-map` · `carbon-gauge` · `approval-chart` · `power-matrix` · `orbit-trace` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `bill-passage` · `vote-flow` · `margin-ladder` · `chamber` · `power-flow` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `delta-v-ladder` · `descent-profile` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `core-sample` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `arch-stack` · `latency-waterfall` · `version-graph` · `throughput-dial` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `attrition-waffle` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `channel-ternary` · `finish-interval`
+`act-break` · `you-think` · `beat-sheet` · `jargon-buster` · `three-steps` · `plate` · `number-sense` · `commit-grid` · `journey-map` · `match-stat-line` · `elevation-profile` · `region-map` · `carbon-gauge` · `approval-chart` · `power-matrix` · `orbit-trace` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `bill-passage` · `vote-flow` · `margin-ladder` · `chamber` · `power-flow` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `delta-v-ladder` · `descent-profile` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `core-sample` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `arch-stack` · `latency-waterfall` · `version-graph` · `throughput-dial` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `attrition-waffle` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `channel-ternary` · `finish-interval`
 
 ## Decisions
 
@@ -164,11 +167,11 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-12** | 10 files | 2 |
 | **RD-01** | 9 files | 3 |
 | **RD-01a** | 7 files | 5 |
-| **RD-01b** | 36 files | 4 |
+| **RD-01b** | 40 files | 7 |
 | **RD-02** | 4 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 3 files | 0 — _dangling_ |
-| **RD-05** | 20 files | 11 |
+| **RD-05** | 21 files | 12 |
 | **RD-06** | 7 files | 1 |
 | **RD-07** | 3 files | 1 |
 | **RD-08** | 7 files | 3 |
@@ -182,7 +185,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **TD-03** | 31 files | 2 |
 | **TD-04** | 9 files | 8 |
 | **TD-05** | 1 files | 0 — _dangling_ |
-| **TD-06** | 9 files | 1 |
+| **TD-06** | 14 files | 4 |
 | **TD-07** | 1 files | 0 — _dangling_ |
 | **TD-08** | 1 files | 0 — _dangling_ |
 
@@ -200,13 +203,13 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-05-03-sports-components` | sports | draft | 3 | 3 | 1 |
 | `2026-05-03-tech-components` | tech | draft | 2 | 2 | 1 |
 | `2026-05-03-travel-components` | travel | draft | 2 | 2 | 1 |
-| `2026-05-15-seven-appeals-rupee-pressure` | politics | draft | 8 | 7 | 11 |
-| `2026-06-03-earth-showcase` | earth | draft | 14 | 14 | 15 |
-| `2026-06-03-politics-showcase` | politics | draft | 19 | 19 | 4 |
+| `2026-05-15-seven-appeals-rupee-pressure` | politics | draft | 8 | 6 | 11 |
+| `2026-06-03-earth-showcase` | earth | draft | 16 | 16 | 15 |
+| `2026-06-03-politics-showcase` | politics | draft | 20 | 20 | 4 |
 | `2026-06-03-space-showcase` | space | draft | 15 | 15 | 4 |
-| `2026-06-03-sports-showcase` | sports | draft | 15 | 15 | 3 |
+| `2026-06-03-sports-showcase` | sports | draft | 16 | 16 | 3 |
 | `2026-06-03-tech-showcase` | tech | draft | 15 | 15 | 4 |
-| `2026-06-03-travel-showcase` | travel | draft | 15 | 15 | 9 |
+| `2026-06-03-travel-showcase` | travel | draft | 16 | 16 | 9 |
 | `2026-06-04-ai-coding-token-bill` | tech | published | 7 | 6 | 7 |
 | `2026-06-04-amazon-tipping-point` | earth | published | 7 | 6 | 8 |
 | `2026-06-04-arsenal-set-piece-title` | sports | published | 7 | 6 | 6 |

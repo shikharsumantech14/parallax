@@ -26,7 +26,7 @@
 > section-level `source`, or `data.source` where a kind still carries one).
 > Which components to pick for which data: `docs/design/catalog-shapes.md`,
 > the twelve data shapes the composer reads. Components render
-> none of source / plain / how themselves; the ten kinds routed through
+> none of source / plain / how themselves; the twelve kinds routed through
 > `core/VizCard.astro` (bill-funnel, age-pyramid, margin-bullets, state-timeline,
 > attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race,
 > climate-spiral) show the how-to-read INSIDE the card instead, and Section's copy
@@ -46,14 +46,6 @@
 > every kind has an EXPLAIN entry and a KIND_PRIORITY score. Note
 > the two move together, per component.
 
-## hero
-- **World/Tier:** universal · narrative · rendered inline in `src/pages/issues/[slug].astro` (via `src/components/core/Hero.astro`)
-- **USE WHEN:** always — every issue opens with exactly one `hero` section at position 0, carrying the section-level `eyebrow`/`title`/`intro`.
-- **DON'T USE:** anywhere after the opening; never a second hero in an issue.
-- **DATA:** none — the hero uses the section's `eyebrow`/`title`/`intro` plus issue frontmatter (`dek`, `readTimeMinutes`, `publishedAt`; `author` only if set).
-- **PLAIN:** — (narrative kind; no plain line)
-- **NOTES:** renders inline in `[slug].astro`, NOT via `SectionRenderer.astro`; one per issue, first section.
-
 ## act-break
 - **World/Tier:** universal · narrative divider · `src/components/core/ActBreak.astro`
 - **USE WHEN:** opening a new act of the issue (CANON.md §3: 2–4 acts, each 2–4 sections) — the argument shifts register or scene.
@@ -66,7 +58,7 @@
 - **World/Tier:** universal (politics-styled) · v2 kit `.tl` · `src/components/topic/politics/Timeline.astro`
 - **USE WHEN:** a dated sequence where order and turning points carry the argument — the dossier has 4+ dated events with one or two hinge moments.
 - **DON'T USE:** a bill's procedural stages (→ `bill-passage`); un-dated steps of a mechanism (→ `beat-sheet`).
-- **DATA:** `{ events: [{date, label (**bold** ok), note, state?: 'default'|'key'|'fail'|'now'}] }`
+- **DATA:** `{ events: [{date, label (**bold** ok), note, state?: 'default'|'key'|'fail'|'now'}] }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the event's `date` string or its 0-based index; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Events stacked in time order down a spine; the highlighted nodes are the turning points."
 - **NOTES:** politics-styled but used across all worlds; standalone `data-reveal` root.
 
@@ -110,13 +102,21 @@
 - **PLAIN:** "Two statements face each other; both are true, and the gap between them is what the section is about."
 - **NOTES:** politics-styled but used across worlds; one per issue is usually enough.
 
+
+## you-think
+- **World/Tier:** universal · HTML, static · `src/components/core/YouThink.astro` · VizCard
+- **USE WHEN:** the dossier's structural argument corrects one specific common belief, and one sourced figure does the correcting — the brand's reframe ("stories you think you already understand") as a component. Usually the first or second section.
+- **DON'T USE:** two legitimate positions in tension (→ `paradox`); a feature-by-feature contrast (→ `comparison`); a correction with no number behind it (→ `prose`). One per issue.
+- **DATA:** `{ think: {label?, text ≤ 30 words}, actually: {label?, value?, unit?, text ≤ 30 words}, note? ≤ 20 words }` + `caption` (the data claim) + `source`
+- **PLAIN:** "Two panels: on the left what most people assume, on the right what the numbers show, with the one figure that settles it."
+- **NOTES:** quiet section; `layout: default`, never `bleed`; not in `NEEDS_HOW`. BLUEPRINT: `docs/design/blueprints/core/you-think.md`. Worked example in `2026-06-03-politics-showcase`.
 ## analogy
-- **World/Tier:** politics · bespoke device (`.px-analogy`) · `src/components/topic/politics/BrothersAnalogy.astro`
-- **USE WHEN:** an allocation/apportionment rule explained through named household characters (the delimitation "brothers" device).
-- **DON'T USE:** general side-by-side contrast (→ `comparison`); any analogy that isn't a person-for-entity mapping — the component is shaped for the brothers device.
-- **DATA:** `{ headline, brothers: [{code, role, desc, kids}], punchline }`
-- **PLAIN:** "Each character stands in for a real actor; their household maths replays the real allocation rule at kitchen scale."
-- **NOTES:** politics world; highly specific — reach for it rarely.
+- **World/Tier:** universal · narrative device (`.px-analogy`) · `src/components/topic/politics/BrothersAnalogy.astro` (generalised 2026-09-13, REGISTER-PLAN RG-09)
+- **USE WHEN:** an unfamiliar mechanism maps one-for-one onto something the reader already handles — 2–5 rows of *the real thing ↔ the everyday thing*, with one number in a note where it keeps the mapping honest.
+- **DON'T USE:** a side-by-side of two real things (→ `comparison`); two legitimate positions in tension (→ `paradox`); a mechanism that runs in order rather than in parallel (→ `three-steps`); one misconception corrected (→ `you-think`).
+- **DATA:** `{ headline?, pairs: [{this ≤ 12 words, that ≤ 12 words, note? ≤ 16 words}] (2–5), punchline? }` — or the politics-bespoke legacy form `{ headline?, brothers: [{code, role, desc, kids}], punchline? }`, which wins when present (the delimitation issue).
+- **PLAIN:** — (narrative kind; no plain line)
+- **NOTES:** quiet section. The pairs branch is a hairline list on the desk's own paper (`px-analogy--pairs` neutralises the legacy ink plate, which `politics.css` applies on every desk); the pivot glyph is `--accent-deep` per TD-06. Worked example in `2026-06-03-earth-showcase`.
 
 ## quote
 - **World/Tier:** universal · core · `src/components/core/Quote.astro`
@@ -134,6 +134,22 @@
 - **PLAIN:** — (narrative kind; no plain line)
 - **NOTES:** quiet section (act rhythm).
 
+
+## jargon-buster
+- **World/Tier:** universal · HTML, static · narrative · `src/components/core/JargonBuster.astro`
+- **USE WHEN:** the issue needs more than one term of art and glossing them in-line would clog a paragraph; the glosses come from `research/_voice/jargon.md`. Sits right before the first section that uses the terms.
+- **DON'T USE:** one term (gloss it in the sentence); a comparison of entities (→ `comparison`); a sequence (→ `three-steps`).
+- **DATA:** `{ terms: [{term, meaning ≤ 25 words, hindi? ≤ 10 words (Roman script, set roman)}] }` — 2–4 entries; story mode trims to 4
+- **PLAIN:** — (narrative kind; no plain line)
+- **NOTES:** quiet section (act rhythm); no VizCard, no caption row. BLUEPRINT: `docs/design/blueprints/core/jargon-buster.md`. Worked example in `2026-06-03-sports-showcase`.
+
+## three-steps
+- **World/Tier:** universal · HTML, static · narrative · `src/components/core/ThreeSteps.astro`
+- **USE WHEN:** the dossier describes a mechanism with a clear order — cause, what it does, what it leaves behind — and no data series to draw. Often right before the chart that shows the mechanism's result.
+- **DON'T USE:** dated events (→ `timeline`); timed beats of an episode (→ `beat-sheet`); a bill's stages (→ `bill-passage`); a mechanism with numbers at each stage (→ `power-flow`, `carbon-loop`).
+- **DATA:** `{ steps: [{title ≤ 6 words, text ≤ 25 words}] }` — 2–4, three is the shape; story mode trims to 4
+- **PLAIN:** — (narrative kind; no plain line)
+- **NOTES:** quiet section; no VizCard. BLUEPRINT: `docs/design/blueprints/core/three-steps.md`. Worked example in `2026-06-03-earth-showcase`.
 ## prose
 - **World/Tier:** universal · core · `src/components/core/Prose.astro`
 - **USE WHEN:** the argument itself — connective narrative between structural sections; the issue's voice lives here.
@@ -158,6 +174,14 @@
 - **PLAIN:** "A grid of instrument tiles; each shows one number and its label, and the accented tile is the headline reading."
 - **NOTES:** standalone `data-reveal` root; count-up tweens to the values already in the HTML.
 
+
+## number-sense
+- **World/Tier:** universal · HTML, static · `src/components/core/NumberSense.astro` · VizCard
+- **USE WHEN:** one number carries the section — a price, a count, a share — and the dossier or the storyboard's Indian-ground list gives its everyday equivalents (the ₹ for a $ figure, "the population of Delhi", "one IPL season"). Often right after a chart, restating its headline figure at human scale.
+- **DON'T USE:** three to six numbers (→ `data-readout`); a number against a threshold (→ `vote-result`, `carbon-gauge`); a series (→ a time-series kind).
+- **DATA:** `{ value, unit?, label ≤ 8 words, equals: [{text ≤ 14 words, note? ≤ 12 words}] (1–3; story mode trims to 2), note? ≤ 20 words }` + `caption` + `source`. Each `equals` line is a claim: the basis goes in its `note` and the verifier traces it.
+- **PLAIN:** "One number, large, and beside it the everyday things it equals, so the size can be felt rather than read."
+- **NOTES:** quiet section; not in `NEEDS_HOW`. BLUEPRINT: `docs/design/blueprints/core/number-sense.md`. Worked example in `2026-06-03-travel-showcase`.
 ## orbital-shells
 - **World/Tier:** space · classic SVG diagram · `src/components/topic/space/OrbitalShells.astro`
 - **USE WHEN:** comparing the occupancy/character of altitude bands (LEO/MEO/GEO) — density, operators, debris persistence per shell.
@@ -210,7 +234,7 @@
 - **World/Tier:** earth · v2 kit `.cs` (warming stripes) · `src/components/topic/earth/ClimateStrip.astro`
 - **USE WHEN:** one annual value per year over decades — a trend told as colour drift, not axis-reading.
 - **DON'T USE:** monthly within-year cycles (→ `climate-spiral`); values the reader must read precisely (→ a charted kind).
-- **DATA:** `{ values: [{year, value}], palette?, baseline?, unit?, showYears?, showLegend?, customMin?, customMax? }`
+- **DATA:** `{ values: [{year, value}], palette?, baseline?, unit?, showYears?, showLegend?, customMin?, customMax? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the `year`; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "One thin stripe per year, coloured by its value; the drift of colour across the strip is the trend."
 - **NOTES:** earth signature; hero-capable; emits the kit's `.cs` inside `.px-viz` — never the `px-strip` namespace (owned by TopicStrip).
 
@@ -226,7 +250,7 @@
 - **World/Tier:** politics · v2 kit `.ac` · `src/components/topic/politics/ApprovalChart.astro`
 - **USE WHEN:** approve vs disapprove over time for one subject — crossovers and widening gaps carry the story.
 - **DON'T USE:** a single point-in-time swing or margin (→ `swing-dial`); non-opinion series (→ the world's chart kind).
-- **DATA:** `{ points: [{date, approve, disapprove}], subject? }`
+- **DATA:** `{ points: [{date, approve, disapprove}], subject? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the point's `date` string (or its printed year label); `series: 'disapprove'` reads the muted line; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Two lines over time, approval and disapproval; where they cross or split is the event."
 - **NOTES:** politics signature; hero-capable; stroke-draw reveal.
 
@@ -258,7 +282,7 @@
 - **World/Tier:** tech · v2 kit `.bc` · `src/components/topic/tech/BenchmarkChart.astro`
 - **USE WHEN:** entities ranked on one metric as horizontal bars — one highlighted, optionally against a reference line.
 - **DON'T USE:** change over time (→ `adoption-curve` / `scaling-plot`); multi-attribute comparison (→ `comparison`).
-- **DATA:** `{ items: [{label, value, sublabel?, highlight?, color?}], maxValue?, unit?, refValue?, refLabel?, sortDesc? }`
+- **DATA:** `{ items: [{label, value, sublabel?, highlight?, color?}], maxValue?, unit?, refValue?, refLabel?, sortDesc? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the item's label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Horizontal bars sorted by value; the highlighted bar is the subject, the reference line the mark to beat."
 - **NOTES:** tech signature; hero-capable.
 
@@ -266,7 +290,7 @@
 - **World/Tier:** tech · v2 kit `.adc` · `src/components/topic/tech/AdoptionCurve.astro`
 - **USE WHEN:** percent adoption over years tracing an S-curve, with milestone moments worth pinning to it.
 - **DON'T USE:** raw scaling relationships (→ `scaling-plot`); activity density (→ `commit-grid`).
-- **DATA:** `{ points: [{year, pct}], milestones?: [{year, label, pct?}], xLabel?, yLabel? }`
+- **DATA:** `{ points: [{year, pct}], milestones?: [{year, label, pct?}], xLabel?, yLabel? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the x value or a milestone label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "One line climbing an S-shape from niche to normal; flags along it mark the moments that bent the curve."
 - **NOTES:** tech signature; hero-capable; overflow-visible milestone labels.
 
@@ -594,7 +618,7 @@
 - **World/Tier:** tech · SVG + one axis-toggle island (routed through `core/VizCard.astro`) · `src/components/topic/tech/ScalingPlot.astro`
 - **USE WHEN:** an x/y scaling relationship — power laws, cost curves — optionally with log axes and a fit line.
 - **DON'T USE:** the adoption S-curve story (→ `adoption-curve`); ranked one-metric bars (→ `benchmark-chart`).
-- **DATA:** `{ points: [{x, y, label?}], xLabel?, yLabel?, logX?, logY?, fit? }`
+- **DATA:** `{ points: [{x, y, label?}], xLabel?, yLabel?, logX?, logY?, fit? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the point's `label` or its raw x; rendered for both projections; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "A scatter of points on (optionally log) axes; the fit line shows the law the points obey."
 - **NOTES:** worked example in `2026-06-03-tech-showcase`; published in `2026-06-04-ai-coding-token-bill` (authored `howToRead`). LOG ⇄ LINEAR axis toggle (B1, Phase 6.2): two `px-inst__chip` buttons (`aria-pressed`) that render ONLY when `logX` or `logY` is authored — a linear payload has nothing to toggle. Both projections are computed in frontmatter and both sit in the DOM; the island swaps one attribute and CSS moves the points, so no scale math ships to the client and no-JS paints the authored projection. The `px-inst__readout` is derived from the data and reserves its worst-case height (`px-inst__readout--sized`) so the card cannot reflow on toggle. Routed through `core/VizCard.astro`. In the `howToRead` the static reading leads and the 'Press Linear' clause trails; never name the scale in the `caption` — the reader can change it, so it is form, not data (CAPTION-FORM).
 
@@ -762,7 +786,7 @@
 - **World/Tier:** sports · SVG + one minute-scrub island (routed through `core/VizCard.astro`) · `src/components/topic/sports/XgRace.astro`
 - **USE WHEN:** a cumulative xG race between two teams — who was creating, and exactly when it flipped.
 - **DON'T USE:** individual shots' detail (→ `shot-map`); a momentum feel without xG data (→ `momentum-wave`).
-- **DATA:** `{ events: [{minute, team: 'home'|'away', xg}], home?, away? }`
+- **DATA:** `{ events: [{minute, team: 'home'|'away', xg}], home?, away? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the minute; `series` 'home' | 'away' (or a team name), default the higher line; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Two step-lines climbing with each chance created; the higher line was creating more, and the steps show when."
 - **NOTES:** worked example in `2026-06-03-sports-showcase`. Minute scrub (B1, Phase 6.2): a native `<input type=range>` (`px-inst__drag`) that ships `hidden` and is unhidden by the island only after the per-minute payload parses, so a broken payload degrades to the static chart. The per-minute table of positions and values is precomputed at build; the island reads one row and assigns coordinates — no scale math on the client. Both step-lines are drawn twice, a dim ghost underneath and the real line clipped to the scrubbed region on top, so at rest the chart is byte-for-byte the finished one and no-JS is the finished answer. The `px-inst__readout` states who was ahead at that minute and reserves its worst-case height (`px-inst__readout--sized`). The clipPath id is derived from a payload hash, so two on one page cannot collide. Routed through `core/VizCard.astro`. In the `howToRead` the static reading leads and the drag clause trails.
 
@@ -794,7 +818,7 @@
 - **World/Tier:** sports · SVG · `src/components/topic/sports/EloRiver.astro`
 - **USE WHEN:** a rating time series — 3–10 teams, each with ≥6 dated Elo / SPI / power values from a NAMED model over one window; the relative rise/fall and the crossovers are the story.
 - **DON'T USE:** current standings as a snapshot (→ `league-table`); one match's momentum (→ `momentum-wave`); two teams' cumulative xG within a match (→ `xg-race`); a single team's multi-axis profile (→ `player-radar`). If there is no *rating* (just points/wins), it is a `league-table`.
-- **DATA:** `{ model, kInfo?, dates: [ISO ascending, 6–40], baseline?, teams: [{name, short?, color?, ratings: [num|null], subject?}], caption?, source? }`
+- **DATA:** `{ model, kInfo?, dates: [ISO ascending, 6–40], baseline?, teams: [{name, short?, color?, ratings: [num|null], subject?}], caption?, source? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the round index (or `dates[i]`); `series` = the team name or short code, default the subject ribbon; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Each coloured ribbon is one team, and how thick it is shows its rating; the ribbons stack and weave, so a team climbing past another crosses over it in the braid."
 - **NOTES:** worked example in `2026-06-03-sports-showcase`. Team `color`s are a blueprint-declared data-encoding exemption (the legend lists every one); omit them and the fallback single-accent-plus-ink cycle is used. `null` ratings render a hollow (0.4× fill) span + the `dashed spans interpolated` chip. At most one `subject` is honoured. BLUEPRINT: `docs/design/blueprints/sports/elo-river.md`.
 

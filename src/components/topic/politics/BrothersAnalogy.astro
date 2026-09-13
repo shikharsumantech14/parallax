@@ -8,21 +8,43 @@ interface Brother {
   kids: string;
 }
 
+/**
+ * The generalised shape (REGISTER-PLAN RG-09): one row of the universal
+ * this ↔ that mapping. `this` is the real thing, `that` the everyday thing it
+ * stands in for — ≤ 12 words each, so the row is read at a glance rather than
+ * studied. `note` (≤ 16 words) carries the one number or caveat that keeps the
+ * mapping honest.
+ */
+interface AnalogyPair {
+  this: string;
+  that: string;
+  note?: string;
+}
+
 interface Props {
   headline?: string;
-  brothers: Brother[];
+  /** Legacy — the politics joint-family device. Renders unchanged when present. */
+  brothers?: Brother[];
+  /** The universal mapping — 2–5 rows. Renders when `brothers` is absent. */
+  pairs?: AnalogyPair[];
   punchline?: string;
 }
 
-const { headline, brothers, punchline } = Astro.props;
+const { headline, brothers = [], pairs, punchline } = Astro.props;
+
+// The joint-family device wins whenever it carries data, so the delimitation
+// issue renders exactly as it always has. The rows render only in its absence.
+const legacy = brothers.length > 0;
+const rows = legacy ? [] : (pairs ?? []);
+const rootClass = legacy ? 'px-analogy' : 'px-analogy px-analogy--pairs';
 ---
 
-<div class="px-analogy" data-reveal>
+<div class={rootClass} data-reveal>
   {headline && (
     <p class="px-analogy__headline" set:html={renderInline(headline)} />
   )}
 
-  <div class="px-analogy__grid">
+  {legacy && <div class="px-analogy__grid">
     {brothers.map((b) => (
       <div class="px-analogy__card" data-role={b.role}>
         <div class="px-analogy__tag">{b.code}</div>
@@ -30,9 +52,135 @@ const { headline, brothers, punchline } = Astro.props;
         <div class="px-analogy__kids">{b.kids}</div>
       </div>
     ))}
-  </div>
+  </div>}
+
+  {rows.length > 0 && (
+    <div class="px-analogy__pairs">
+      {rows.map((p) => (
+        <div class="px-analogy__pair">
+          <p class="px-analogy__this" set:html={renderInline(p.this)} />
+          <span class="px-analogy__pivot" role="img" aria-label="maps to">↔</span>
+          <p class="px-analogy__that" set:html={renderInline(p.that)} />
+          {p.note && (
+            <p class="px-analogy__pnote" set:html={renderInline(p.note)} />
+          )}
+        </div>
+      ))}
+    </div>
+  )}
 
   {punchline && (
     <p class="px-analogy__punchline" set:html={renderInline(punchline)} />
   )}
 </div>
+
+<style is:global>
+  /* ══ The universal this ↔ that mapping (REGISTER-PLAN RG-09) ══════════════
+     Here rather than in themes/politics.css because the generalised kind is
+     desk-agnostic and that file is not.
+
+     `is:global`, not the usual scoped block, and that is deliberate: a scoped
+     <style> makes the compiler stamp its scope token onto EVERY element in
+     this template, including the joint-family branch — verified against
+     @astrojs/compiler, `class="px-analogy__grid astro-<hash>"`. The legacy
+     markup has to stay byte-identical for the delimitation issue, so the
+     rules go out global and every override below carries TWO classes, which
+     beats the single-class rules in themes/politics.css on specificity alone,
+     whatever order the sheets land in. Every selector is guarded by
+     `.px-analogy--pairs`, a class the legacy branch never emits.
+
+     It also has to UNDO the joint-family plate. `.px-analogy` in
+     themes/politics.css is `background: var(--ink); color: #f4f1ea` and is NOT
+     scoped to [data-topic="politics"] — all six theme files load on every page
+     — so an `analogy` on the earth desk inherits the ink plate, and the rows'
+     token colours (--ink on the desk's own ground) would land ink-on-ink. The
+     rows are a hairline list on whatever paper the desk is running; that is
+     what makes the kind portable. The legacy branch never gets these rules.
+
+     Flat throughout: no radius, no shadow, no hover lift (RD-05, CANON §14),
+     and no literal colours (CANON §13.4). */
+
+  .px-analogy.px-analogy--pairs {
+    background: transparent;
+    color: var(--ink);
+    padding: 0;
+    overflow: visible;
+  }
+  .px-analogy.px-analogy--pairs::before { content: none; }
+
+  /* The headline and the punchline keep their cut — display italic, the same
+     sizes and measures. Only the plate's off-white literals become tokens, and
+     the punchline drops its own rule because the list already closes with one. */
+  .px-analogy--pairs .px-analogy__headline { color: var(--ink); }
+  .px-analogy--pairs .px-analogy__punchline {
+    color: var(--ink);
+    border-top: 0;
+  }
+
+  .px-analogy--pairs .px-analogy__pairs {
+    margin: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* Phones stack: real thing, pivot, everyday thing, note. */
+  .px-analogy--pairs .px-analogy__pair {
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+    padding: 14px 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .px-analogy--pairs .px-analogy__this {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16.5px;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  /* The pivot turns with the layout: ↕ stacked, ↔ once the row is a row.
+     --accent-deep, not --accent: this is type on the desk's own ground, and
+     the vivid accent fails AA there on travel (CANON §6, TD-06). */
+  .px-analogy--pairs .px-analogy__pivot {
+    display: block;
+    margin: 2px 0;
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.3;
+    color: var(--accent-deep);
+    text-align: center;
+    transform: rotate(90deg);
+  }
+
+  .px-analogy--pairs .px-analogy__that {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 16.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+
+  .px-analogy--pairs .px-analogy__pnote {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  @media (min-width: 640px) {
+    .px-analogy--pairs .px-analogy__pair {
+      grid-template-columns: 1fr 40px 1fr;
+      align-items: baseline;
+      row-gap: 6px;
+      padding: 15px 0;
+    }
+    .px-analogy--pairs .px-analogy__pivot {
+      margin: 0;
+      transform: none;
+    }
+  }
+</style>

@@ -1,0 +1,101 @@
+---
+/**
+ * JargonBuster — the two to four words the rest of the issue leans on, each
+ * explained the way a friend would (REGISTER-PLAN RG-09; blueprint
+ * docs/design/blueprints/core/jargon-buster.md).
+ *
+ * A NARRATIVE kind: no VizCard, no caption row, no how-to-read, no plain line
+ * and NO source line — `core/Section.astro` owns every piece of explainability
+ * chrome, and this kind carries no data claim to explain. `source` is accepted
+ * so a section may declare one, and deliberately ignored here; Section renders
+ * it once. Never emit a `__cap` / `__src` element (story.css hides those).
+ *
+ * Geometry: a hairline grid in the `.px-cells` manner — one column, two from
+ * 640px, an odd tail spanning both. Static HTML, zero JS; the root is a
+ * `[data-reveal]` target, so motion-v2.css's generic contract handles the
+ * scroll-in (visible without JS, still under reduced motion).
+ *
+ * data: { terms: [{ term, meaning, hindi? }] }  · 2–4 entries · prefix px-jb
+ */
+import { renderInline } from '../../lib/text';
+
+interface Props {
+  terms: Array<{ term: string; meaning: string; hindi?: string }>;
+  /** Accepted for schema symmetry and ignored — Section.astro renders source. */
+  source?: string;
+}
+const { terms = [] } = Astro.props;
+
+const items = terms.filter((t) => t && t.term);
+const n = items.length;
+
+/* From 640px the grid is two columns and an odd tail spans both, so the last
+   row is that spanning cell alone (odd n) or the final pair (even n). Every
+   earlier cell carries the bottom hairline; every left-column cell the right
+   one. Computed here rather than in nth-child rules so any count behaves. */
+const lastRowFrom = n % 2 === 1 ? n - 1 : n - 2;
+const cells = items.map((t, i) => {
+  const span = n % 2 === 1 && i === n - 1;
+  return {
+    ...t,
+    span: span || undefined,
+    right: (!span && i % 2 === 0) || undefined,
+    bottom: (i < lastRowFrom) || undefined,
+  };
+});
+---
+
+{n > 0 && (
+  <div class="px-jb" data-reveal>
+    <dl class="px-jb__grid">
+      {cells.map((c) => (
+        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom}>
+          <dt class="px-jb__term">{c.term}</dt>
+          <dd class="px-jb__m" set:html={renderInline(c.meaning)} />
+          {c.hindi && <dd class="px-jb__h">{c.hindi}</dd>}
+        </div>
+      ))}
+    </dl>
+  </div>
+)}
+
+<style>
+  /* Flat: a hairline top rule and hairline cells. No radius, no shadow. */
+  .px-jb { border-top: 1px solid var(--rule); }
+  .px-jb__grid { display: grid; grid-template-columns: 1fr; margin: 0; }
+  .px-jb__cell { padding: 14px 0; min-width: 0; }
+  .px-jb__cell:not(:last-child) { border-bottom: 1px solid var(--rule); }
+
+  .px-jb__term {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.25;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .px-jb__m {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  /* Hindi is set roman, never italic. */
+  .px-jb__h {
+    margin: 6px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  @media (min-width: 640px) {
+    .px-jb__grid { grid-template-columns: 1fr 1fr; }
+    .px-jb__cell { padding: 16px 18px; }
+    .px-jb__cell:not(:last-child) { border-bottom: 0; }
+    .px-jb__cell[data-b] { border-bottom: 1px solid var(--rule); }
+    .px-jb__cell[data-r] { border-right: 1px solid var(--rule); }
+    .px-jb__cell[data-span] { grid-column: 1 / -1; }
+  }
+</style>

@@ -1,26 +1,15 @@
 {
   "totals": {
-    "kinds": 98,
+    "kinds": 101,
     "webgl": 14,
     "issues": 23,
     "published": 10,
-    "blueprints": 36,
+    "blueprints": 40,
     "neverUsedAnywhere": 3,
-    "neverInPublished": 78,
+    "neverInPublished": 81,
     "danglingDecisions": 8
   },
   "kinds": [
-    {
-      "kind": "hero",
-      "component": null,
-      "inCatalog": true,
-      "hasExplain": false,
-      "priority": -1,
-      "hasTrim": false,
-      "isWebgl": false,
-      "blueprint": null,
-      "world": null
-    },
     {
       "kind": "act-break",
       "component": null,
@@ -99,6 +88,17 @@
       "world": null
     },
     {
+      "kind": "you-think",
+      "component": "YouThink",
+      "inCatalog": true,
+      "hasExplain": true,
+      "priority": 60,
+      "hasTrim": false,
+      "isWebgl": false,
+      "blueprint": "docs/design/blueprints/core/you-think.md",
+      "world": "core"
+    },
+    {
       "kind": "analogy",
       "component": "BrothersAnalogy",
       "inCatalog": true,
@@ -132,6 +132,28 @@
       "world": null
     },
     {
+      "kind": "jargon-buster",
+      "component": "JargonBuster",
+      "inCatalog": true,
+      "hasExplain": false,
+      "priority": 30,
+      "hasTrim": false,
+      "isWebgl": false,
+      "blueprint": "docs/design/blueprints/core/jargon-buster.md",
+      "world": "core"
+    },
+    {
+      "kind": "three-steps",
+      "component": "ThreeSteps",
+      "inCatalog": true,
+      "hasExplain": false,
+      "priority": 44,
+      "hasTrim": false,
+      "isWebgl": false,
+      "blueprint": "docs/design/blueprints/core/three-steps.md",
+      "world": "core"
+    },
+    {
       "kind": "prose",
       "component": "Prose",
       "inCatalog": true,
@@ -163,6 +185,17 @@
       "isWebgl": false,
       "blueprint": null,
       "world": null
+    },
+    {
+      "kind": "number-sense",
+      "component": "NumberSense",
+      "inCatalog": true,
+      "hasExplain": true,
+      "priority": 68,
+      "hasTrim": false,
+      "isWebgl": false,
+      "blueprint": "docs/design/blueprints/core/number-sense.md",
+      "world": "core"
     },
     {
       "kind": "orbital-shells",
@@ -1239,7 +1272,6 @@
       "kinds": [
         "comparison",
         "data-readout",
-        "hero",
         "paradox",
         "prose",
         "quote",
@@ -1254,6 +1286,7 @@
       "status": "draft",
       "title": "The Earth *Instrument Panel*",
       "kinds": [
+        "analogy",
         "atmosphere-column",
         "carbon-gauge",
         "carbon-loop",
@@ -1267,9 +1300,10 @@
         "region-map",
         "sea-level-tank",
         "storm-track",
-        "terrain-relief"
+        "terrain-relief",
+        "three-steps"
       ],
-      "sectionCount": 14,
+      "sectionCount": 16,
       "sourceCount": 15
     },
     {
@@ -1296,9 +1330,10 @@
         "swing-dial",
         "timeline",
         "vote-flow",
-        "vote-result"
+        "vote-result",
+        "you-think"
       ],
-      "sectionCount": 19,
+      "sectionCount": 20,
       "sourceCount": 4
     },
     {
@@ -1337,6 +1372,7 @@
         "elo-river",
         "finish-interval",
         "flight-of-the-ball",
+        "jargon-buster",
         "league-table",
         "match-stat-line",
         "momentum-wave",
@@ -1348,7 +1384,7 @@
         "tactics-pitch",
         "xg-race"
       ],
-      "sectionCount": 15,
+      "sectionCount": 16,
       "sourceCount": 3
     },
     {
@@ -1391,6 +1427,7 @@
         "fare-terrain",
         "itinerary-reel",
         "journey-map",
+        "number-sense",
         "prose",
         "route-card",
         "route-globe",
@@ -1398,7 +1435,7 @@
         "terminator-globe",
         "timezone-arc"
       ],
-      "sectionCount": 15,
+      "sectionCount": 16,
       "sourceCount": 9
     },
     {
@@ -1700,11 +1737,14 @@
     },
     {
       "id": "RD-01b",
-      "citedIn": 36,
+      "citedIn": 40,
       "implementedBy": [
         ".claude/skills/add-section-kind/SKILL.md",
         ".claude/skills/run-wave/SKILL.md",
         "src/components/topic/sports/ChannelTernary.astro",
+        "src/components/topic/sports/EloRiver.astro",
+        "src/components/topic/sports/XgRace.astro",
+        "src/components/topic/tech/ScalingPlot.astro",
         "src/pages/offline.astro"
       ],
       "files": [
@@ -1714,6 +1754,7 @@
         "AGENTS.md",
         "docs/CONTEXT-PLAN.md",
         "docs/REVAMP-PLAN.md",
+        "docs/design/blueprints/_ANNOTATIONS.md",
         "docs/design/blueprints/earth/glacier-dumbbell.md",
         "docs/design/blueprints/earth/heat-uptake.md",
         "docs/design/blueprints/earth/rain-calendar.md",
@@ -1743,6 +1784,9 @@
         "docs/design/blueprints/travel/price-swarm.md",
         "docs/design/blueprints/travel/route-criteria.md",
         "src/components/topic/sports/ChannelTernary.astro",
+        "src/components/topic/sports/EloRiver.astro",
+        "src/components/topic/sports/XgRace.astro",
+        "src/components/topic/tech/ScalingPlot.astro",
         "src/pages/offline.astro"
       ]
     },
@@ -1785,10 +1829,11 @@
     },
     {
       "id": "RD-05",
-      "citedIn": 20,
+      "citedIn": 21,
       "implementedBy": [
         "src/components/AGENTS.md",
         "src/components/core/ReadingGate.astro",
+        "src/components/topic/politics/BrothersAnalogy.astro",
         "src/components/topic/politics/CoalitionCalculus.astro",
         "src/components/topic/travel/SeasonWheel.astro",
         "src/styles/base.css",
@@ -1811,6 +1856,7 @@
         "docs/design/motion.md",
         "src/components/AGENTS.md",
         "src/components/core/ReadingGate.astro",
+        "src/components/topic/politics/BrothersAnalogy.astro",
         "src/components/topic/politics/CoalitionCalculus.astro",
         "src/components/topic/travel/SeasonWheel.astro",
         "src/styles/base.css",
@@ -2149,9 +2195,12 @@
     },
     {
       "id": "TD-06",
-      "citedIn": 9,
+      "citedIn": 14,
       "implementedBy": [
-        ".claude/skills/catch-up/SKILL.md"
+        ".claude/skills/catch-up/SKILL.md",
+        "src/components/AGENTS.md",
+        "src/components/core/YouThink.astro",
+        "src/components/topic/politics/BrothersAnalogy.astro"
       ],
       "files": [
         ".claude/rules/design-tokens.md",
@@ -2162,7 +2211,12 @@
         "docs/PROJECT.md",
         "docs/REVAMP-PLAN.md",
         "docs/STATE-OF-PLAY.md",
-        "docs/design/TOKEN-RECORD.md"
+        "docs/design/TOKEN-RECORD.md",
+        "docs/design/blueprints/core/you-think.md",
+        "docs/design/catalog.md",
+        "src/components/AGENTS.md",
+        "src/components/core/YouThink.astro",
+        "src/components/topic/politics/BrothersAnalogy.astro"
       ]
     },
     {

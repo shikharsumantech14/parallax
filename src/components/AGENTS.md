@@ -21,7 +21,8 @@ Components split into:
 
   **`core/VizCard.astro`** (RD-01a, 2026-08) is the shared shell the revamp-wave
   kinds render inside — and, since Phase 6.2 (2026-09-04), `scaling-plot`,
-  `xg-race` and `climate-spiral` too: ten kinds in all. It renders the caption
+  `xg-race` and `climate-spiral` too, and since 2026-09-13 `you-think` and
+  `number-sense`: twelve kinds in all. It renders the caption
   row (with an optional chip), an optional in-card how-to-read panel, and the
   graphic slot — **not** the source line (it still accepts `source`, ignored).
   Every other piece of explainability chrome — the how-to-read panel for the 88
@@ -44,7 +45,7 @@ Components split into:
   delegates the actual kind dispatch to `SectionBody.astro`.
 - **`SectionBody.astro`** — **the dispatcher** (since 2026-07-05). Reads
   `section.kind`, renders the matching component, and passes through the
-  section's `data` payload (and, for the ten `VizCard` kinds only, resolves `howToReadFor(section.kind, section.howToRead)` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports that helper for this). Shared with story mode, which renders bodies
+  section's `data` payload (and, for the twelve `VizCard` kinds only, resolves `howToReadFor(section.kind, section.howToRead)` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports that helper for this). Shared with story mode, which renders bodies
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
@@ -92,7 +93,7 @@ SectionBody**, not SectionRenderer.
 
 | Kind | Component | Topic-scope |
 |---|---|---|
-| `hero` | inline in `src/pages/issues/[slug].astro` (not via renderer) | universal |
+| ~~`hero`~~ | **retired 2026-09-13** (REGISTER-PLAN RG-09) — it had rendered nothing since the launch design deleted `core/Hero.astro`; removed from `SECTION_KINDS`, the catalog, the template and the one draft that carried it | — |
 | `act-break` | `core/ActBreak.astro` — chapter divider; consumes no section number | universal |
 | `prose` | `core/Prose.astro` | universal |
 | `quote` | `core/Quote.astro` | universal |
@@ -325,6 +326,10 @@ Known reservations (still-live `px-` prefixes):
 | Prefix | Owner | Notes |
 |---|---|---|
 | `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; `data-reveal` root; the ⤢ `.px-vexp` button is 44px on `(pointer: coarse)` |
+| `px-ns` | `number-sense` | core · `NumberSense.astro` |
+| `px-3s` | `three-steps` | core · `ThreeSteps.astro` |
+| `px-yt` | `you-think` | core · `YouThink.astro` |
+| `px-jb` | `jargon-buster` | core · `JargonBuster.astro` |
 | `px-fin` | `finish-interval` | sports · `FinishInterval.astro` |
 | `px-waf` | `attrition-waffle` | travel · `AttritionWaffle.astro` |
 | `px-stl` | `state-timeline` | tech · `StateTimeline.astro` |
@@ -913,6 +918,49 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-09-13 — Phase 3 of the register plan: four plain-language kinds, the annotation slot, `analogy` generalised, `hero` retired
+
+Built under `docs/REGISTER-PLAN.md` RG-09 and RG-20 by one-file-scoped
+component agents against blueprints in `docs/design/blueprints/core/`, wired
+by the orchestrator through `scripts/wire-kind.mjs` (which now emits the
+RG-19 `howToReadFor()` idiom, takes `world: 'core'` for a universal kind, and
+`vizcard: false` / `narrative: true` for a narrative one — note it also skips
+the KIND_PRIORITY step whenever the kind's name already appears in `story.ts`,
+which a TRIM entry triggers; add the score by hand).
+
+- **`you-think`** (`core/YouThink.astro`, `px-yt`, VizCard) and
+  **`number-sense`** (`core/NumberSense.astro`, `px-ns`, VizCard) — the
+  VizCard set is **twelve** kinds now, not ten; neither is in `NEEDS_HOW`, so
+  their panel renders only when authored. `number-sense` renders its value
+  static on purpose: the shared count-up ends in `toLocaleString()`, which
+  regroups an authored `1,500,000` as `15,00,000` in an `en-IN` browser.
+- **`jargon-buster`** (`core/JargonBuster.astro`, `px-jb`) and
+  **`three-steps`** (`core/ThreeSteps.astro`, `px-3s`) — narrative kinds:
+  bare root, no card, no EXPLAIN; in `NARRATIVE` in `check-catalog.mjs`,
+  `project-graph.mjs`, `ReadingGate.astro` and the `explainers.ts` header.
+  Story trims: 4 terms, 3 steps (four stacked steps overflow a 667px card).
+- **`analogy` generalised** — `topic/politics/BrothersAnalogy.astro` takes a
+  universal `pairs[]` (this ↔ that, hairline rows) beside the legacy
+  `brothers[]`, which still renders byte-identically for the delimitation
+  issue. The pairs branch neutralises the legacy ink plate that
+  `politics.css` applies on every desk (`px-analogy--pairs`), and its style
+  block is `is:global` on purpose so the legacy markup keeps its exact
+  classes. Pivot glyph in `--accent-deep` (TD-06).
+- **The annotation slot** — `data.annotations[]` on `timeline`,
+  `climate-strip`, `adoption-curve`, `benchmark-chart`, `approval-chart`,
+  `scaling-plot`, `xg-race`, `elo-river`, per
+  `docs/design/blueprints/_ANNOTATIONS.md`: a ≤ 12-word callout on the mark
+  that shows the finding, in-SVG `<text>` with the literal font stack (an HTML
+  `.tl__annot.vz-annot` on the timeline), byte-identical markup when absent.
+- **`hero` retired** — it had rendered nothing since `core/Hero.astro` was
+  deleted on 2026-09-08. Removed from `SECTION_KINDS`, the catalog, `story.ts`,
+  the narrative sets, the template (which now opens with a real section and
+  a primer placeholder) and the one draft that carried it (its intro survives
+  as a prose lead). Library: 101 kinds.
+- Worked examples in the politics (you-think), sports (jargon-buster),
+  travel (number-sense) and earth (three-steps, analogy pairs) showcases;
+  `docs/design/catalog-shapes.md` lists all five by job.
 
 ### 2026-09-13 — The how-to-read default is per kind (REGISTER-PLAN RG-19)
 

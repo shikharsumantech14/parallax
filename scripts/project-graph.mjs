@@ -62,7 +62,8 @@ function walk(dir, out = []) {
    they are exempt from EXPLAIN. MUST stay in sync with the identical list in
    scripts/check-catalog.mjs and the header of src/lib/explainers.ts. */
 const NARRATIVE = new Set([
-  'hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
+  'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison', 'plate',
+  'jargon-buster', 'three-steps',
 ]);
 
 /* ── 1 · kinds and their nine registry places ──────────────────────────── */

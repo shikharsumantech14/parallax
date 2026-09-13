@@ -12,7 +12,7 @@ allowed-tools: Bash(node scripts/*), Bash(npm run *), Read, Edit, Write, Glob, G
 ## Automated: `node scripts/wire-kind.mjs <config.json>`
 
 1. `SECTION_KINDS` in `src/content/config.ts`
-2. import + dispatch arm in `src/components/SectionBody.astro` — **then check the arm by hand.** A VizCard-routed kind must pass `howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how}` (the in-card fallback, on since Phase 6.1); the script's template still emits the bare `section.howToRead`. Fixing that one prop is the only permitted hand-edit of the six.
+2. import + dispatch arm in `src/components/SectionBody.astro` — the script emits the RG-19 idiom `howToRead={howToReadFor(section.kind, section.howToRead)}` for VizCard kinds (2026-09-13), a bare arm when the config says `vizcard: false`, and a `./core/` import when `world` is `core`. **Then decide `NEEDS_HOW` by hand** in `src/lib/explainers.ts`: add the kind if it has a control, is a WebGL scene, or its form can be misread; leave it out for a form that explains itself. A narrative kind also joins the `NARRATIVE` set in `scripts/check-catalog.mjs` and the header list in `explainers.ts`.
 3. `EXPLAIN` entry in `src/lib/explainers.ts`
 4. `KIND_PRIORITY` score in `src/lib/story.ts`
 5. `## <kind>` block in `docs/design/catalog.md` — **same order** as SECTION_KINDS

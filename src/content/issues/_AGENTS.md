@@ -453,7 +453,7 @@ have no story page.** They are viz reference, not story reference.
 
 | Field | Carries | Renders | Length | Verifier |
 |---|---|---|---|---|
-| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; when omitted, `EXPLAIN[kind].how` renders in its place only for the `NEEDS_HOW` kinds (RG-19, 2026-09-13). The ten VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
+| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; when omitted, `EXPLAIN[kind].how` renders in its place only for the `NEEDS_HOW` kinds (RG-19, 2026-09-13). The twelve VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral, you-think, number-sense) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
 | `plain` | the FORM, one sentence | BELOW the graphic, the "In plain terms" paragraph from `core/Section.astro` | ≤220 | flags data-assertion (PLAIN-CLAIM) |
 | `caption` | **the DATA — the finding** | with the figure (VizCard's caption row, or the component's own `__cap`) | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
 | `source` | the citation | BELOW the graphic as the plain paragraph's SECOND LINE — `.px-plain__src`, literal "Source · …" — from `core/Section.astro` for every kind. Components render none; the ⤢ modal shows none (ruled as-is) | free | CANON §7: no source, no section |
@@ -474,6 +474,47 @@ grid's fourth cell. Omit rather than guess; the grid drops to three cells.
 Do NOT add captions to `paradox`/`timeline` sections whose `intro` already
 states the finding — that duplication is exactly what REDUNDANT flags exist to
 catch (ruled 2026-08-28; see REVAMP-PLAN §0).
+
+## 15. The plain-language kinds and the annotation slot (2026-09-13, REGISTER-PLAN RG-09 / RG-20)
+
+Four universal kinds for the plain register, in `src/components/core/`;
+blueprints in `docs/design/blueprints/core/`. Word caps are the gate's
+(`npm run check:prose`), not Zod's.
+
+- **`you-think`** (VizCard) — `{ think: {label?, text ≤ 30 words}, actually:
+  {label?, value?, unit?, text ≤ 30 words}, note? ≤ 20 words }` + `caption` +
+  `source`. The brand reframe as a component: what most people think on the
+  left, what the data shows on the right, the settling figure large. One per
+  issue, early. Story priority 60.
+- **`jargon-buster`** (narrative — no plain, no how-to-read, no card) —
+  `{ terms: [{term, meaning ≤ 25 words, hindi? ≤ 10 words}] }`, 2–4 terms;
+  story mode trims to 4. `hindi` is Roman script and renders roman, never
+  italic. The glosses come from `research/_voice/jargon.md`.
+- **`number-sense`** (VizCard) — `{ value, unit?, label ≤ 8 words, equals:
+  [{text ≤ 14 words, note? ≤ 12 words}] (1–3), note? ≤ 20 words }` + `caption`
+  + `source`. One big number and what it equals in things the reader owns
+  (the ₹ for a $, "the population of Delhi"). Each `equals` line is a claim:
+  its basis goes in `note`; the verifier traces it. Story trims to 2.
+- **`three-steps`** (narrative) — `{ steps: [{title ≤ 6 words, text ≤ 25
+  words}] }`, 2–4 steps, three is the shape. A mechanism in numbered cards;
+  an analogy is welcome in the text.
+- **`analogy`, generalised** — the legacy `{ headline?, brothers: [{code, role,
+  desc, kids}], punchline? }` still renders (the delimitation issue); the
+  universal shape is `{ headline?, pairs: [{this ≤ 12 words, that ≤ 12
+  words, note? ≤ 16 words}] (2–5), punchline? }` — a this ↔ that mapping in
+  hairline rows.
+
+**Annotations** — `data.annotations?: [{ at, text ≤ 12 words, side?, series? }]`
+(0–3) on `timeline`, `climate-strip`, `adoption-curve`, `benchmark-chart`,
+`approval-chart`, `scaling-plot`, `xg-race`, `elo-river`: a callout on the
+mark that shows the finding. `at` matches the kind's own key (a timeline
+event's `date`, a stripe's `year`, a bar's label, a minute, a round index
+with `series` = the team); a non-match renders nothing. The text is a claim
+in the precision layer: English only, verifier-traced. Contract:
+`docs/design/blueprints/_ANNOTATIONS.md`.
+
+`hero` is no longer a kind (retired 2026-09-13; it had rendered nothing since
+the launch design). The template opens with the first real section.
 
 ## Change log
 

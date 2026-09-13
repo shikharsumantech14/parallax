@@ -30,12 +30,19 @@
  * Reduced-motion keeps the scrub working — it is comprehension, not
  * decoration — and only drops the tween.
  *
- * data: { events[]{ minute, team, xg }, home?, away?, howToRead?, caption?, source? }
+ * data: { events[]{ minute, team, xg }, home?, away?, howToRead?, caption?,
+ *         source?, annotations? }
  */
 import VizCard from '../../core/VizCard.astro';
 
 type Side = 'home' | 'away';
 interface Ev { minute: number; team: Side; xg: number; }
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   events: Ev[];
   home?: string;
@@ -43,8 +50,17 @@ interface Props {
   howToRead?: string;
   caption?: string;
   source?: string | { label: string; date?: string };
+  annotations?: Annotation[];
 }
-const { events = [], home = 'Home', away = 'Away', howToRead, caption, source } = Astro.props;
+const {
+  events = [],
+  home = 'Home',
+  away = 'Away',
+  howToRead,
+  caption,
+  source,
+  annotations = [],
+} = Astro.props;
 
 // ── viewBox + plot box ──────────────────────────────────────────────────────
 const W = 720, H = 320;
@@ -182,6 +198,82 @@ const longestReadout = minuteTable
   .map((r, m) => readoutFor(m, r[3], r[4]))
   .concat(restReadout)
   .reduce((a, b) => (b.length > a.length ? b : a), '');
+
+/* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
+   `at` is the minute; anything outside 0…maxMin is a silent no-op. `series`
+   takes 'home' / 'away' (or either side's name) and DEFAULTS to whichever line
+   is higher at that minute — the one the reader's eye is on.
+
+   It attaches to the FULL-TIME line, off the same per-minute table the scrub
+   reads, and sits outside the clipped group: the note states a fact about the
+   match, so it stays put whatever the playhead is doing. No new JS, no motion
+   of its own, and it paints in the no-JS still like every other mark. */
+const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 14;     // leading between the two wrapped lines
+const A_LEAD = 16;   // leader length (spec §3: 14–22)
+const A_GAP = 5;     // clearance between the marker dot and the leader
+// bounds = the plot box: the far-right gutter belongs to the end-value labels
+const A_L = plotL, A_R = plotR, A_T = plotT, A_B = plotB;
+const aEst = (s: string) => 0.52 * A_FS * s.length;
+// Two lines once the estimate passes 40% of the viewBox, split at the nearest
+// space past the midpoint.
+const aWrap = (s: string): string[] => {
+  if (aEst(s) <= W * 0.4) return [s];
+  const past = s.indexOf(' ', Math.floor(s.length / 2));
+  const cut = past >= 0 ? past : s.lastIndexOf(' ');
+  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+};
+
+interface PlacedAnnot {
+  lines: string[]; cx: number; cy: number;
+  x1: number; y1: number; x2: number; y2: number;
+  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
+}
+const annots: PlacedAnnot[] = [];
+for (const a of annotations) {
+  if (!a || !a.text) continue;
+  const m = Math.round(Number(a.at));
+  if (!Number.isFinite(m) || m < 0 || m > maxMin) continue;
+  const row = minuteTable[m];
+  if (!row) continue;
+  const s = (a.series || '').trim();
+  const team: Side =
+    /^home$/i.test(s) || (!!s && s === home) ? 'home'
+      : /^away$/i.test(s) || (!!s && s === away) ? 'away'
+        : row[3] >= row[4] ? 'home' : 'away';     // default: the higher line
+  const cx = row[0];
+  const cy = team === 'home' ? row[1] : row[2];
+  const lines = aWrap(a.text);
+  const wEst = Math.max(...lines.map(aEst));
+  const blockH = (lines.length - 1) * A_LH;
+
+  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
+  let side: 'above' | 'below' | 'left' | 'right' = a.side || 'above';
+  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
+  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
+
+  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
+  let anchor: 'start' | 'middle' | 'end' = 'middle';
+  if (side === 'left' || side === 'right') {
+    // mirror the leader rather than run the text off the edge
+    let dir = side === 'right' ? 1 : -1;
+    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
+    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
+    x1 = cx + dir * A_GAP;
+    x2 = cx + dir * (A_GAP + A_LEAD);
+    tx = x2 + dir * 3;
+    anchor = dir > 0 ? 'start' : 'end';
+    ty = cy + A_FS * 0.34 - blockH / 2;
+  } else {
+    const dir = side === 'above' ? -1 : 1;
+    y1 = cy + dir * A_GAP;
+    y2 = cy + dir * (A_GAP + A_LEAD);
+    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
+    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
+    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
+  }
+  annots.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor });
+}
 ---
 
 <VizCard
@@ -267,6 +359,19 @@ const longestReadout = minuteTable
         <circle cx={homeEnd.x.toFixed(1)} cy={homeEnd.y.toFixed(1)} r="3.5" />
         <text x={(homeEnd.x + 8).toFixed(1)} y={homeLblY.toFixed(1)} dominant-baseline="middle">{homeFinal.toFixed(2)}</text>
       </g>
+
+      {/* annotations — outside the scrub clip and unaffected by the playhead:
+          the note is a fact about the match, not about where the drag stopped */}
+      {annots.length > 0 && annots.map((a) => (
+        <g class="px-xgr__annot">
+          <circle class="px-xgr__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" />
+          <line class="px-xgr__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
+          <text
+            class="px-xgr__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
+            style="font-family:Literata,Georgia,'Times New Roman',serif"
+          >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+        </g>
+      ))}
     </svg>
 
     <div class="px-xgr__legend">
@@ -418,6 +523,22 @@ const longestReadout = minuteTable
   }
   .px-xgr__end--home { color: var(--accent-deep, var(--accent)); }
   .px-xgr__end--away { color: var(--ink-soft); }
+
+  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ────────────────
+     The literal font stack is on the element (RD-01b); everything else is
+     here. No transition and no scrub state — it is part of the still. */
+  .px-xgr__annot-dot { fill: var(--accent); }
+  .px-xgr__annot-lead { stroke: var(--rule); stroke-width: 1; }
+  .px-xgr__annot-t {
+    font-size: 11px;
+    font-style: italic;
+    fill: var(--ink);
+    /* paper halo: the note crosses gridlines and both step lines */
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
 
   /* end markers fade in after the lines draw */
   .px-xgr__end { opacity: 1; transition: opacity var(--t-soft) var(--ease) 1300ms; }

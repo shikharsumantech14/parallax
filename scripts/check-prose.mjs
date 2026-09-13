@@ -68,7 +68,7 @@ const T = {
 };
 
 // Kinds that carry no graphic. `paradox` is two blocks of prose (REGISTER-PLAN §1.3).
-const TEXT_ONLY = new Set(['hero', 'act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox']);
+const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox']);
 const WORKHORSES = new Set(['prose', 'data-readout', 'timeline', 'paradox', 'quote', 'comparison']);
 // The precision layer: English only (contract §2, precision test).
 const PRECISION_FIELDS = new Set(['caption', 'howToRead', 'plain', 'source', 'label', 'unit', 'attribution']);
@@ -215,7 +215,10 @@ for (const slug of slugs) {
     collectData(s.data ?? {}, 'data', dataStrings);
     for (const d of dataStrings) {
       const key = d.key;
-      strings.push({ sec: i, kind: s.kind, field: d.path, key, text: d.text, precision: PRECISION_FIELDS.has(key) || key === 'caption' || key === 'source', body: ['lead', 'paragraphs', 'followup', 'detail', 'body', 'punchline', 'statement', 'note', 'desc', 'text', 'kicker', 'headline', 'bullets'].includes(key) });
+      // An in-chart callout (`annotations[].text`) is a data label in the precision
+      // layer: English only, word-capped, never sentence-scored as prose.
+      const isAnnot = d.path.includes('annotations');
+      strings.push({ sec: i, kind: s.kind, field: d.path, key, text: d.text, precision: isAnnot || PRECISION_FIELDS.has(key) || key === 'caption' || key === 'source', body: !isAnnot && ['lead', 'paragraphs', 'followup', 'detail', 'body', 'punchline', 'statement', 'note', 'desc', 'text', 'kicker', 'headline', 'bullets'].includes(key) });
     }
   });
 
@@ -233,7 +236,6 @@ for (const slug of slugs) {
   const proseSecs = sectionsArr.filter((s) => s.kind === 'prose');
   if (proseSecs.length > T.proseSections) flag('⚠️', 'PROSE-COUNT', 'sections', `${proseSecs.length} prose sections, cap ${T.proseSections}`);
   if (!kinds.some((k) => !WORKHORSES.has(k) && !TEXT_ONLY.has(k))) flag('⚠️', 'WORKHORSE-ONLY', 'sections', 'no kind from outside prose/data-readout/timeline/paradox/quote/comparison');
-  if (kinds.includes('hero')) flag('⚠️', 'DEAD-KIND', 'sections', '`hero` is dead since 2026-09-08; it renders nothing');
 
   // words before the first graphic: head + everything up to and including the first visual section's intro
   let before = wc(head.title) + wc(head.dek) + wc(head.hook) + wc(head.primer);
@@ -271,6 +273,13 @@ for (const slug of slugs) {
     for (const t of arr(s.data?.tiles)) if (t?.note && wc(t.note) > T.tileNoteWords) flag('⚠️', 'FIELD-OVER-CAP', `${w} tile note`, `${wc(t.note)} words, cap ${T.tileNoteWords}`);
     if (s.kind === 'paradox') for (const sd of arr(s.data?.sides)) if (sd?.detail && wc(sd.detail) > T.paradoxDetailWords) flag('⚠️', 'FIELD-OVER-CAP', `${w} paradox detail`, `${wc(sd.detail)} words, cap ${T.paradoxDetailWords}`);
     for (const a of arr(s.data?.annotations)) if (a?.text && wc(a.text) > T.annotationWords) flag('⚠️', 'FIELD-OVER-CAP', `${w} annotation`, `${wc(a.text)} words, cap ${T.annotationWords}`);
+    // The plain-language kinds' caps (their blueprints' §3, docs/design/blueprints/core/).
+    const capField = (label, text, cap) => { if (text && wc(text) > cap) flag('⚠️', 'FIELD-OVER-CAP', `${w} ${label}`, `${wc(text)} words, cap ${cap}`); };
+    if (s.kind === 'you-think') { capField('think.text', s.data?.think?.text, 30); capField('actually.text', s.data?.actually?.text, 30); capField('note', s.data?.note, 20); }
+    if (s.kind === 'number-sense') { capField('label', s.data?.label, 8); capField('note', s.data?.note, 20); for (const e of arr(s.data?.equals)) { capField('equals.text', e?.text, 14); capField('equals.note', e?.note, 12); } }
+    if (s.kind === 'jargon-buster') for (const t of arr(s.data?.terms)) { capField('meaning', t?.meaning, 25); capField('hindi', t?.hindi, 10); }
+    if (s.kind === 'three-steps') for (const st of arr(s.data?.steps)) { capField('step title', st?.title, 6); capField('step text', st?.text, 25); }
+    if (s.kind === 'analogy') for (const p of arr(s.data?.pairs)) { capField('pair.this', p?.this, 12); capField('pair.that', p?.that, 12); capField('pair.note', p?.note, 16); }
   });
 
   // — Sentences, paragraphs, rhythm, numbers —

@@ -161,7 +161,7 @@ src/
 │   │                            component. Shared with story mode. THIS is
 │   │                            the file a new section kind is wired into.
 │   │                            Also resolves `howToReadFor(kind, howToRead)`
-│   │                            for the ten VizCard kinds so the panel renders
+│   │                            for the twelve VizCard kinds so the panel renders
 │   │                            inside the card (Section's copy hides via :has()).
 │   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
 │   │                            IssueHead [meta strip · head · primer], Plate
@@ -170,7 +170,7 @@ src/
 │   │                            every kind: how-to-read panel ABOVE the graphic,
 │   │                            plain line + `Source · …` second line BELOW —
 │   │                            components render none of it], VizCard [the
-│   │                            shell for ten kinds: caption row + chip +
+│   │                            shell for twelve kinds: caption row + chip +
 │   │                            in-card how-to-read + graphic slot; renders NO
 │   │                            source], Quote, Prose, Comparison,
 │   │                            DataReadout, BeatSheet, Sources, Colophon,
@@ -532,7 +532,7 @@ with the canon in `_voice-core.md` §6.
   sections). The plain line sits BELOW with `Source · …` running inline after
   it (`.px-plain__src`, from `section.source ?? data.source`) — for every kind.
   Components render none of source / plain / how themselves. The one
-  exception: the ten VizCard kinds render their how-to-read INSIDE the card,
+  exception: the twelve VizCard kinds render their how-to-read INSIDE the card,
   and `dataviz-v2.css` hides Section's copy with `:has()` so a section shows at
   most one panel. Do not add a `.px-viz__src` emitter back — the seventy that
   existed were stripped on 2026-09-04.
@@ -761,9 +761,23 @@ sections. Standing rules changed by the signature — **do not restore them**:
 - **The old published issues are not a voice reference.** They are rewritten
   under Phase 4 of the plan (four flagships first), then the rest.
 
-Not yet built from the plan: the four plain-language kinds and the annotation
-slot (Phase 3), the rewrites (4, 6), the copy deck and the EXPLAIN batch (8.2,
-8.3), the real-reader protocol (7.4), `hero`'s retirement, the `hi-Latn`
+**Phase 3 landed the same day** (RG-09, RG-20): four universal plain-language
+kinds in `core/` — `you-think`, `jargon-buster`, `number-sense`,
+`three-steps` — with blueprints in `docs/design/blueprints/core/`; `analogy`
+generalised to a this ↔ that mapping (the legacy joint-family shape still
+renders); `hero` retired from the registry, the template and the one draft
+that carried it (**library 101**); and the annotation slot,
+`data.annotations[]`, on `timeline`, `climate-strip`, `adoption-curve`,
+`benchmark-chart`, `approval-chart`, `scaling-plot`, `xg-race`, `elo-river`
+(`docs/design/blueprints/_ANNOTATIONS.md`) — a ≤ 12-word callout on the mark,
+in the precision layer, verified on the showcases. `wire-kind.mjs` emits the
+RG-19 idiom and takes `world: 'core'` / `vizcard: false` / `narrative: true`;
+it skips the priority score when the kind's name is already in `story.ts`
+(a TRIM entry triggers that) — add the score by hand. The VizCard set is
+twelve kinds.
+
+Not yet built from the plan: the rewrites (4, 6), the copy deck and the
+EXPLAIN batch (8.2, 8.3), the real-reader protocol (7.4), the `hi-Latn`
 span (RG-18).
 
 ### 2026-09-08 — The launch design (public launch 19 September)

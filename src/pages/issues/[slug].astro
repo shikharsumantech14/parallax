@@ -75,7 +75,7 @@ let numbered = 0;
 const numberIndex = data.sections.map((s) => (s.kind === 'act-break' ? -1 : numbered++));
 const contents = data.sections
   .map((s, i) => ({ s, n: numberIndex[i] }))
-  .filter(({ s, n }) => n >= 0 && s.kind !== 'hero' && s.title)
+  .filter(({ s, n }) => n >= 0 && s.title)
   .map(({ s, n }) => ({ id: `sec-${n + 1}`, no: pad(n + 1), title: stripEmphasis(s.title!) }));
 
 // OG cards are generated for non-draft issues only.

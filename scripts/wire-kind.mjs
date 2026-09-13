@@ -32,13 +32,17 @@
  * can be re-run safely. Line endings are matched per file.
 
  *
- * The dispatch arm it emits is the VizCard idiom (shell adoption, 2026-09-04):
- * `howToRead` falls back to EXPLAIN[section.kind]?.how so the card carries the
- * panel itself and Section's copy is hidden by the `:has()` rule in
- * dataviz-v2.css — SectionBody already imports EXPLAIN, nothing to add. `source`
- * is still passed for compatibility but VizCard no longer renders it: the
- * source line is `.px-plain__src`, rendered once by core/Section.astro below
- * the graphic for every kind. A non-VizCard component needs neither prop.
+ * The dispatch arm it emits is the VizCard idiom as of RG-19 (2026-09-13):
+ * `howToRead={howToReadFor(section.kind, section.howToRead)}` — an authored
+ * paragraph always, the per-kind default only for the NEEDS_HOW kinds — so the
+ * card carries the panel itself and Section's copy is hidden by the `:has()`
+ * rule in dataviz-v2.css; SectionBody already imports howToReadFor. `source` is
+ * still passed for compatibility but VizCard no longer renders it: the source
+ * line is `.px-plain__src`, rendered once by core/Section.astro below the
+ * graphic for every kind. Config extras: `world: 'core'` for a universal kind
+ * (imports from ./core/), `vizcard: false` for a narrative kind (a bare arm,
+ * no chrome props). Narrative kinds also need the NARRATIVE set in
+ * scripts/check-catalog.mjs and the header comment in explainers.ts by hand.
 
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -54,7 +58,7 @@ const cfg = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const { kind, world, component, file, afterKind, comment, props,
         explainWhat, explainHow, catalogBlock, priority, prefix } = cfg;
 
-if (explainWhat.length > 220) die(`explainWhat is ${explainWhat.length} chars, over the 220 cap`);
+if (!cfg.narrative && (explainWhat ?? '').length > 220) die(`explainWhat is ${explainWhat.length} chars, over the 220 cap`);
 
 // 1 ── SECTION_KINDS
 let s = rd('src/content/config.ts');
@@ -78,21 +82,32 @@ else {
   const N = eol(s);
   const impRe = /(import [A-Za-z]+ from '\.\/topic\/[a-z]+\/[A-Za-z]+\.astro';\r?\n)(?![\s\S]*import [A-Za-z]+ from '\.\/topic\/)/;
   if (!impRe.test(s)) die('an import anchor in SectionBody');
-  s = s.replace(impRe, `$1import ${component} from './topic/${world}/${file}';${N}`);
+  // `world: 'core'` places a universal kind under src/components/core/.
+  const importPath = world === 'core' ? `./core/${file}` : `./topic/${world}/${file}`;
+  s = s.replace(impRe, `$1import ${component} from '${importPath}';${N}`);
   const armRe = new RegExp(`(\\{section\\.kind === '${esc(afterKind)}' && [\\s\\S]*?\\)\\}\\r?\\n)`);
   if (!armRe.test(s)) die(`dispatch arm for '${afterKind}'`);
-  const arm =
-    `    {section.kind === '${kind}' && (${N}` +
-    `      <${component} ${props} howToRead={section.howToRead ?? EXPLAIN[section.kind]?.how} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
-    `    )}${N}`;
+  // The VizCard idiom since RG-19 (2026-09-13): howToReadFor() resolves an
+  // authored paragraph for any kind and the per-kind default only for the
+  // NEEDS_HOW kinds — add the kind to NEEDS_HOW in explainers.ts by hand if it
+  // has a control or a form that can be misread. `vizcard: false` in the config
+  // emits a plain arm (narrative kinds render no card chrome).
+  const arm = cfg.vizcard === false
+    ? `    {section.kind === '${kind}' && (${N}      <${component} ${props} />${N}    )}${N}`
+    : `    {section.kind === '${kind}' && (${N}` +
+      `      <${component} ${props} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
+      `    )}${N}`;
   s = s.replace(armRe, `$1${arm}`);
   wr('src/components/SectionBody.astro', s);
   console.log('  + SectionBody');
 }
 
-// 3 ── EXPLAIN
+// 3 ── EXPLAIN (skipped for narrative kinds: they render no plain line and no
+// how-to-read; add them to NARRATIVE in check-catalog.mjs and to the header
+// list in explainers.ts by hand instead)
 s = rd('src/lib/explainers.ts');
-if (s.includes(`'${kind}':`)) console.log('  = EXPLAIN');
+if (cfg.narrative) console.log('  - EXPLAIN skipped (narrative kind)');
+else if (s.includes(`'${kind}':`)) console.log('  = EXPLAIN');
 else {
   const N = eol(s);
   const re = /( *'orbital-shells':)/;

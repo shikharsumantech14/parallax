@@ -193,7 +193,7 @@ A small, fixed vocabulary — components compose these, never invent new gesture
      counter-intuitive forms. A timeline or a tile row shows no panel unless
      one is authored (REGISTER-PLAN RG-19, 2026-09-13 — the every-kind
      fallback of 2026-09-04 had put a paragraph on 69 published sections). The
-     ten VizCard kinds render theirs INSIDE the card, where the handoff's shell
+     twelve VizCard kinds render theirs INSIDE the card, where the handoff's shell
      puts it; a `:has()` rule hides Section's copy there, so **a section shows
      at most one**, never two.
   2. The graphic, with its **caption** — the DATA claim, the only field the

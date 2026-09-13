@@ -13,22 +13,50 @@ interface TimelineEvent {
   note?: string;
   state?: 'default' | 'key' | 'fail' | 'now';
 }
+/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
+   chart, optional everywhere; absent ⇒ nothing renders. `side` / `series`
+   are accepted for contract parity and carry no meaning on a vertical rail
+   (there is one series and one place a row's callout can go). */
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
 interface Props {
   events: TimelineEvent[];
+  annotations?: Annotation[];
   /* Optional — promoted onto the section schema in Phase 2 and merged
      down in SectionBody. CANON §7: no source, no section. */
   source?: string;
 }
-const { events = [], source} = Astro.props;
+const { events = [], annotations = [], source} = Astro.props;
+
+/* Resolve each annotation to one row: a number is the 0-based index, a string
+   is the event's `date` — the FIRST row carrying it, since two events may
+   share a date (the showcase has two on "6 May 2025"); index form addresses
+   the second. An `at` that matches nothing is a silent no-op, per spec §2. */
+const annotRows = new Map<number, string[]>();
+for (const a of annotations ?? []) {   // `annotations:` with no items parses as null
+  if (!a || !a.text) continue;
+  const i = typeof a.at === 'number' ? a.at : events.findIndex((e) => e.date === a.at);
+  if (i < 0 || i >= events.length) continue;
+  annotRows.set(i, [...(annotRows.get(i) ?? []), a.text]);
+}
 ---
 
 <div class="tl" data-reveal>
-  {events.map((e) => (
+  {events.map((e, i) => (
     <div class="tl__row" data-state={e.state ?? 'default'}>
       <div class="tl__date">{e.date}</div>
       <div>
         <div class="tl__label" set:html={renderInline(e.label)} />
         {e.note && <div class="tl__note" set:html={renderInline(e.note)} />}
+        {(annotRows.get(i) ?? []).map((t) => (
+          <span class="tl__annot vz-annot" style="display:block;margin-top:6px">
+            <span class="tl__annot-dot" style="display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--accent);vertical-align:middle"></span>{t}
+          </span>
+        ))}
       </div>
     </div>
   ))}

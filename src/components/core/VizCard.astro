@@ -28,8 +28,9 @@
  * `howToRead` it is handed, inside the card, where the handoff's shell puts
  * it — but it never resolves the default itself, because it does not know its
  * kind. SectionBody calls `howToReadFor(kind, section.howToRead)` at the
- * dispatch line for the ten VizCard kinds (all ten are instruments, so all
- * ten are in NEEDS_HOW). For every other kind, core/Section.astro renders the
+ * dispatch line for the twelve VizCard kinds (the ten instruments are in
+ * NEEDS_HOW; you-think and number-sense are not, so their panel renders only
+ * when authored). For every other kind, core/Section.astro renders the
  * same panel ABOVE the graphic through the same function; a `:has()` rule in
  * dataviz-v2.css hides Section's copy when the slotted card carries its own,
  * so a section shows at most one.

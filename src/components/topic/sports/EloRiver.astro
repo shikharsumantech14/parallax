@@ -19,7 +19,7 @@
  * span is drawn hollow AND flagged with the `interpolated` chip.
  *
  * data: { model, kInfo?, dates[], baseline?, teams[]{name, short?, color?,
- *         ratings[], subject?}, caption?, source? }
+ *         ratings[], subject?}, caption?, source?, annotations? }
  */
 interface EloTeam {
   name: string;
@@ -27,6 +27,12 @@ interface EloTeam {
   color?: string;
   ratings: Array<number | null>;
   subject?: boolean;
+}
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
 }
 interface Props {
   model: string;
@@ -36,6 +42,7 @@ interface Props {
   teams: EloTeam[];
   caption?: string;
   source?: string;
+  annotations?: Annotation[];
 }
 const {
   model,
@@ -45,6 +52,7 @@ const {
   teams = [],
   caption,
   source,
+  annotations = [],
 } = Astro.props;
 
 // ── viewBox + plot rect (blueprint §4) ──────────────────────────────────────
@@ -310,6 +318,91 @@ const legendPlaced = legendRows.map((r, k) => {
   };
 });
 
+/* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
+   `at` is the ROUND INDEX into `dates` (0-based); the exact `dates[i]` string
+   also matches, since that is what an author is looking at in the frontmatter.
+   `series` is the team NAME (its `short` code also matches) and defaults to
+   the subject ribbon when one is declared. Anything that does not resolve —
+   an out-of-range round, an unknown team, no series and no subject — renders
+   nothing at all.
+
+   The callout attaches to the ribbon's CENTRE line at that round, which is the
+   one y a braided stack has for a team. Geometry only: no motion, no JS, and
+   it paints in the no-JS plate like the rest of the river. */
+const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 14;     // leading between the two wrapped lines
+const A_LEAD = 16;   // leader length (spec §3: 14–22)
+const A_GAP = 5;     // clearance between the marker dot and the leader
+// bounds: the braid's own box — the right gutter belongs to the end tags
+const A_L = PAD_L, A_R = RIB_END_X, A_T = PAD_T, A_B = PAD_T + h;
+const aEst = (s: string) => 0.52 * A_FS * s.length;
+// Two lines once the estimate passes 40% of the viewBox, split at the nearest
+// space past the midpoint.
+const aWrap = (s: string): string[] => {
+  if (aEst(s) <= W * 0.4) return [s];
+  const past = s.indexOf(' ', Math.floor(s.length / 2));
+  const cut = past >= 0 ? past : s.lastIndexOf(' ');
+  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+};
+
+interface PlacedAnnot {
+  lines: string[]; cx: number; cy: number;
+  x1: number; y1: number; x2: number; y2: number;
+  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
+}
+const annots: PlacedAnnot[] = [];
+if (!degenerate) {
+  for (const a of annotations) {
+    if (!a || !a.text) continue;
+    const num = typeof a.at === 'number' ? a.at : Number(String(a.at).trim() || NaN);
+    const di = Number.isInteger(num) && num >= 0 && num < nDates ? num : dates.indexOf(String(a.at));
+    if (di < 0 || di >= nDates) continue;
+
+    const want = (a.series || '').trim();
+    let ti = -1;
+    if (want) {
+      ti = prepared.findIndex((t) => t.name === want);
+      if (ti < 0) ti = prepared.findIndex((t) => t.short === want.toUpperCase().slice(0, 4));
+    } else {
+      ti = prepared.findIndex((t) => t.isSubject);
+    }
+    if (ti < 0) continue;
+
+    const cx = ptsByTeam[ti][di].x;
+    const cy = ptsByTeam[ti][di].yc;
+    const lines = aWrap(a.text);
+    const wEst = Math.max(...lines.map(aEst));
+    const blockH = (lines.length - 1) * A_LH;
+
+    // `side` is a hint (spec §1) — flip it when the callout would leave the box.
+    let side: 'above' | 'below' | 'left' | 'right' = a.side || 'above';
+    if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
+    else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
+
+    let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    if (side === 'left' || side === 'right') {
+      // mirror the leader rather than run the text off the edge
+      let dir = side === 'right' ? 1 : -1;
+      if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
+      else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
+      x1 = cx + dir * A_GAP;
+      x2 = cx + dir * (A_GAP + A_LEAD);
+      tx = x2 + dir * 3;
+      anchor = dir > 0 ? 'start' : 'end';
+      ty = cy + A_FS * 0.34 - blockH / 2;
+    } else {
+      const dir = side === 'above' ? -1 : 1;
+      y1 = cy + dir * A_GAP;
+      y2 = cy + dir * (A_GAP + A_LEAD);
+      ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
+      if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
+      else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
+    }
+    annots.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor });
+  }
+}
+
 // ── source + aria + chips ───────────────────────────────────────────────────
 const subject = prepared.find((t) => t.isSubject);
 const firstIso = dates[0] || '';
@@ -424,6 +517,18 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
         ))}
         <text class="px-eriv__legavg" x={f1(legX + legPadX)} y={f1(legTop - 6)}>avg {baseline}</text>
       </g>
+
+      {/* annotations — last, so a callout is never buried under a ribbon */}
+      {annots.length > 0 && annots.map((a) => (
+        <g class="px-eriv__annot">
+          <circle class="px-eriv__annot-dot" cx={f1(a.cx)} cy={f1(a.cy)} r="3" />
+          <line class="px-eriv__annot-lead" x1={f1(a.x1)} y1={f1(a.y1)} x2={f1(a.x2)} y2={f1(a.y2)} />
+          <text
+            class="px-eriv__annot-t" x={f1(a.tx)} y={f1(a.ty)} text-anchor={a.anchor}
+            style="font-family:Literata,Georgia,'Times New Roman',serif"
+          >{a.lines.map((ln, li) => <tspan x={f1(a.tx)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+        </g>
+      ))}
     </svg>
   </div>
   )}
@@ -501,6 +606,23 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
   .px-eriv__legavg {
     font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
     text-transform: uppercase; fill: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ────────────────
+     The literal font stack is on the element (RD-01b); everything else is
+     here. No transition of its own — the callout is part of the plate. */
+  .px-eriv__annot-dot { fill: var(--accent); }
+  .px-eriv__annot-lead { stroke: var(--rule); stroke-width: 1; }
+  .px-eriv__annot-t {
+    font-size: 11px;
+    font-style: italic;
+    fill: var(--ink);
+    /* paper halo: the note sits over the braid, which is the busiest fill
+       in the library */
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
   }
 
   /* ── reveal (§5): each ribbon `sweep`s in left→right; tags + rail + legend

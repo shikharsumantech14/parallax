@@ -33,13 +33,14 @@ const read = (p) => readFileSync(join(root, p), 'utf-8');
    they are exempt from EXPLAIN. Keep in sync with the header comment in
    src/lib/explainers.ts, which states the same list. */
 const NARRATIVE = new Set([
-  'hero', 'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
+  'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
   'plate', // a photograph: caption + credit, no data claim (launch design 2026-09-08)
+  'jargon-buster', 'three-steps', // plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13): cells of prose, no graphic
 ]);
 
-/* hero and act-break are deliberately scored <= 0 in KIND_PRIORITY so the story
-   builder filters them out; they are exempt from the "must be scored" rule only
-   in the sense that any explicit entry counts. */
+/* act-break is deliberately scored <= 0 in KIND_PRIORITY so the story builder
+   filters it out; it is exempt from the "must be scored" rule only in the sense
+   that any explicit entry counts. (`hero` was retired 2026-09-13.) */
 const errors = [];
 const fail = (msg) => errors.push(msg);
 

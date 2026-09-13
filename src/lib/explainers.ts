@@ -14,9 +14,9 @@
  * not for every kind, since 2026-09-13 (REGISTER-PLAN RG-19).
  *
  * New kinds MUST add an entry here (blueprint §9 supplies the wording; see
- * docs/design/blueprints/_TEMPLATE.md). Narrative kinds (hero, act-break,
- * prose, quote, beat-sheet, analogy, comparison, plate) deliberately have none —
- * they explain themselves.
+ * docs/design/blueprints/_TEMPLATE.md). Narrative kinds (act-break,
+ * prose, quote, beat-sheet, analogy, comparison, plate, jargon-buster,
+ * three-steps) deliberately have none — they explain themselves.
  */
 export interface Explainer {
   what: string;
@@ -108,6 +108,8 @@ export const EXPLAIN: Record<string, Explainer> = {
   'state-timeline': { what: 'One lane per service across a single day, coloured by state rather than volume: healthy, degraded, or down. The numbered markers are the incident timeline.', how: 'Press a marker for its clock time and what happened. Then compare the lanes vertically to see what was already degraded before the first alert fired.' },
   'attrition-waffle': { what: 'A hundred squares, one per person who started, grouped by where they stopped. Nothing is scaled or estimated — you can count the squares, and each colour block is exactly as many people as it looks like.', how: 'Press a group to isolate it and read why it stopped there. Counting the squares is the point: this is a rate you can audit.' },
   'finish-interval': { what: 'The dot is the most likely finishing position and the bar is the range the model gives nine times out of ten; where two bars overlap, nothing on the pitch has decided the order between those teams yet.', how: 'Press a team to read its range and how many other teams overlap it. The shaded strips are the positions that carry a consequence.' },
+  'you-think': { what: 'Two panels: on the left what most people assume, on the right what the numbers show, with the one figure that settles it.', how: 'Read the left panel first, then the right. The number on the right is the fact the rest of the section rests on.' },
+  'number-sense': { what: 'One number, large, and beside it the everyday things it equals, so the size can be felt rather than read.', how: 'Read the big number first, then each line beside it. Every line is the same amount said in something you already know.' },
   'orbital-shells': { what: 'The layers of space around Earth, from low orbit outward, with what lives at each altitude.', how: 'Read outward from Earth: each shell is a different orbital neighbourhood.' },
   'orbit-trace': { what: 'A flat diagram of Earth ringed by named orbits, each drawn at its own altitude. The rings are spaced on a squeezed scale so the low and the distant fit together, and one satellite rides each ring.', how: 'Compare rings by how far they sit from Earth; the legend names each orbit and how many satellites share it.' },
   'launch-stats': { what: 'One column per year, split into a bar for each operator, so the height of a column is the total and the slices inside it show who flew.', how: 'Read left to right for the trend, and compare the coloured slices within a year to see who carried it.' },

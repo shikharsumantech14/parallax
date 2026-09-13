@@ -5,7 +5,6 @@ export const topicEnum = z.enum(TOPICS);
 export type Topic = z.infer<typeof topicEnum>;
 
 export const SECTION_KINDS = [
-  'hero',
   'act-break',             // typographic chapter divider — CANON.md §3 act structure
   'timeline',
   'bill-breakdown',
@@ -13,12 +12,16 @@ export const SECTION_KINDS = [
   'seat-chart',
   'comparison',
   'paradox',
+  'you-think',             // core — what most people think vs what the data shows, with the settling figure (REGISTER-PLAN RG-09)
   'analogy',
   'quote',
   'beat-sheet',
+  'jargon-buster',         // core — 2–4 terms of art with a one-line meaning each (REGISTER-PLAN RG-09); narrative
+  'three-steps',           // core — a mechanism in three numbered cards, one idea each (REGISTER-PLAN RG-09); narrative
   'prose',
   'plate',                // core — a framed photograph; renders only when an image is supplied
   'data-readout',
+  'number-sense',          // core — one big number and the everyday things it equals (REGISTER-PLAN RG-09)
   'orbital-shells',
   'commit-grid',           // tech signature
   'journey-map',           // travel signature

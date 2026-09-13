@@ -31,8 +31,20 @@ interface DataPoint {
 
 type Palette = 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom';
 
+/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
+   chart, optional everywhere; absent ⇒ nothing renders. `side` / `series`
+   are accepted for contract parity: the strip has one series, and its
+   callouts always sit above the strip with a leader down to the stripe. */
+interface Annotation {
+  at: string | number;
+  text: string;
+  side?: 'above' | 'below' | 'left' | 'right';
+  series?: string;
+}
+
 interface Props {
   values: DataPoint[];
+  annotations?: Annotation[];
   palette?: Palette;
   baseline?: string;
   unit?: string;
@@ -46,6 +58,7 @@ interface Props {
 
 const {
   values = [],
+  annotations = [],
   palette = 'warming',
   baseline,
   unit = '',
@@ -132,6 +145,33 @@ const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + 
 const firstYear = values[0]?.year ?? '';
 const midYear   = n ? values[Math.floor(n / 2)]?.year ?? '' : '';
 const lastYear  = values[n - 1]?.year ?? '';
+
+// ── Annotations ─────────────────────────────────────────────────────────────
+// `at` is the YEAR (number, or the numeric string a YAML author may quote).
+// A year not in the series is a silent no-op (spec §2).
+//
+// The x of a stripe is NOT the anomaly line's x(i) — that runs edge to edge.
+// The stripes are `.cs__bar { flex: 1 }`, so stripe i spans [i/n, (i+1)/n] of
+// the strip and its centre is (i + 0.5)/n. Percent, not SVG units, because the
+// callout is HTML: the one SVG here (.cs__overlay) is stretched by
+// preserveAspectRatio="none", which would distort any <text> inside it, and it
+// is deliberately absent from the dataviz-v2.css natural-scale block, so SVG
+// text would also shrink below the 9.5px floor on a phone. HTML text holds 13px
+// at every width, and the percent mapping is exact under either.
+const annots = (annotations ?? [])   // `annotations:` with no items parses as null
+  .map((a) => {
+    if (!a || !a.text) return null;
+    const i = values.findIndex((s) => String(s.year) === String(a.at));
+    if (i < 0) return null;
+    return { text: a.text, pct: ((i + 0.5) / n) * 100 };
+  })
+  .filter((a): a is { text: string; pct: number } => a !== null);
+// Past the midpoint the callout mirrors — text right-aligned so it ends ON the
+// mark instead of running off the right edge (the HTML twin of text-anchor="end").
+const annotPad = (pct: number) =>
+  pct > 50
+    ? `padding-right:${(100 - pct).toFixed(2)}%;text-align:right`
+    : `padding-left:${pct.toFixed(2)}%`;
 ---
 
 <div class="px-viz" data-reveal>
@@ -139,6 +179,21 @@ const lastYear  = values[n - 1]?.year ?? '';
     <span>{caption}</span>
     {n > 0 && <b>{fmtVal(maxVal)} peak</b>}
   </div>
+
+  {annots.length > 0 && (
+    <div class="cs__annots" style="position:relative;padding-bottom:20px">
+      {annots.map((a) => (
+        <div class="cs__annot" style={annotPad(a.pct)}>
+          <span class="cs__annot-t vz-annot" style="display:block">{a.text}</span>
+          {/* Leader + dot hang off the CONTAINER, not the row, so every dot
+              lands on the strip's top edge at its own stripe even when two
+              or three callouts stack. */}
+          <span class="cs__annot-l" style={`position:absolute;left:${a.pct.toFixed(2)}%;bottom:6px;width:1px;height:14px;margin-left:-0.5px;background:var(--rule)`}></span>
+          <span class="cs__annot-d" style={`position:absolute;left:${a.pct.toFixed(2)}%;bottom:0;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)`}></span>
+        </div>
+      ))}
+    </div>
+  )}
 
   <div class="cs__strip">
     {values.map((s, i) => (
