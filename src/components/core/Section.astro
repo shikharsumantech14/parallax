@@ -11,7 +11,7 @@
  *    `split`/`split-flip` restructure into a copy column + sticky stage — the
  *    scrollytelling primitive. All other layouts keep the flat structure.
  */
-import { renderEmphasis } from '../../lib/text';
+import { renderEmphasis, renderInline } from '../../lib/text';
 import { EXPLAIN, howToReadFor } from '../../lib/explainers';
 
 interface Props {
@@ -39,10 +39,20 @@ interface Props {
    *  copy when the slotted card already carries one, so a section shows at
    *  most one. */
   howToRead?: string;
+  /** The DATA claim (`section.caption ?? data.caption`). Rendered here, directly
+   *  below the graphic, ONLY for kinds whose component carries no caption
+   *  element of its own — timeline, seat-chart, vote-result, bill-breakdown,
+   *  comparison and their like — which until 2026-09-13 silently dropped an
+   *  authored caption (the delimitation rewrite's reader panel found the two
+   *  restatements that answer its quiz were authored and not on the page).
+   *  A `:has()` rule in dataviz-v2.css hides this copy wherever the slotted
+   *  component already shows one (VizCard's caption row, DataReadout's
+   *  `.tel__cap`, any `*__cap`), so a section shows exactly one. */
+  caption?: string;
   /** Anchor for the aside's contents list (launch design). */
   id?: string;
 }
-const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead, id } = Astro.props;
+const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead, caption, id } = Astro.props;
 
 const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
 const howText = howToReadFor(kind, howToRead);
@@ -66,6 +76,7 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
       {howText && (
         <p class="px-viz__how px-viz__how--section"><b>How to read this —</b>{' ' + howText}</p>
       )}
+      {caption && <p class="px-section__claim vz-caption" set:html={renderInline(caption)} />}
       {(plainText || sourceLine) && (
         <p class="px-plain">
           {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}
@@ -87,6 +98,7 @@ const isSplit = layoutAttr === 'split' || layoutAttr === 'split-flip';
       <p class="px-viz__how px-viz__how--section"><b>How to read this —</b>{' ' + howText}</p>
     )}
     <slot />
+    {caption && <p class="px-section__claim vz-caption" set:html={renderInline(caption)} />}
     {(plainText || sourceLine) && (
       <p class="px-plain">
         {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}

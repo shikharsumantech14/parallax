@@ -227,6 +227,18 @@
    happen. Support floor is the same as color-mix(), already relied on. */
 .px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none; }
 
+/* THE CAPTION FALLBACK (2026-09-13). Kinds whose component carries no caption
+   element — timeline, seat-chart, vote-result, bill-breakdown, comparison and
+   their like — dropped an authored `caption` silently; the delimitation
+   rewrite's reader panel found its two quiz answers authored and invisible.
+   core/Section.astro now prints `section.caption ?? data.caption` directly
+   below the graphic as `.px-section__claim`, and this rule hides that copy
+   wherever the slotted component already shows one: VizCard's `.px-viz__cap`,
+   DataReadout's `.tel__cap`, any `*__cap` — except VoteResult's `.vb__cap`,
+   which displays the vote's LABEL, not its caption. One claim per section. */
+.px-section__claim { max-width: var(--col-prose); margin: 12px 0 0; }
+.px-section:has([class$='__cap']:not(.vb__cap)) .px-section__claim { display: none; }
+
 /* Phone: the tint reads as noise at 353px, and the accent edge alone carries
    the block. Mirrors the prototypes' own S-figure treatment, which drops the
    tint at small size. Carried from day one so shell adoption never has to

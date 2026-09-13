@@ -135,7 +135,8 @@ function sentences(s) {
     .filter((x) => wc(x) > 0);
 }
 // A numeral never ends in a comma: "2025," is the numeral 2025 followed by punctuation.
-const numerals = (s) => (String(s).match(/\d(?:[\d,]*\d)?(?:\.\d+)?/g) || []);
+// A clock time ("14:00") is one numeral, not two.
+const numerals = (s) => (String(s).match(/\d(?:[\d,]*\d)?(?:\.\d+)?(?::\d{2})?/g) || []);
 const hindiTokens = (s) => words(String(s)).map((w) => w.toLowerCase().replace(/[^a-z]/g, '')).filter((w) => w && HINDI_ALLOWED.has(w) && !ENGLISH_COLLIDERS.has(w));
 const hindiContent = (s) => hindiTokens(s).filter((w) => !HINDI_PARTICLES.has(w));
 const bannedTokens = (s) => words(String(s)).map((w) => w.toLowerCase().replace(/[^a-z]/g, '')).filter((w) => HINDI_BANNED.has(w));
@@ -145,7 +146,10 @@ const hasDevanagari = (s) => /[ऀ-ॿ]/.test(String(s));
 function collectData(node, path, out) {
   if (node == null) return;
   if (typeof node === 'string') {
-    if (wc(node) >= 2 || /[₹$%]/.test(node)) out.push({ path, text: node, key: path.split('.').pop().replace(/\[\d+\]/, '') });
+    const key = path.split('.').pop().replace(/\[\d+\]/, '');
+    // A jargon-buster `term` is one word by nature; it must enter the walk so the
+    // first-use check sees it glossed. Everything else needs two words or a unit.
+    if (key === 'term' || wc(node) >= 2 || /[₹$%]/.test(node)) out.push({ path, text: node, key });
     return;
   }
   if (Array.isArray(node)) { node.forEach((v, i) => collectData(v, `${path}[${i}]`, out)); return; }
@@ -296,7 +300,8 @@ for (const slug of slugs) {
     ss.forEach((x) => { const n = numerals(x).length; if (n > T.numbersPerSentence) flag('⚠️', 'NUMBER-DENSE', `section ${s.sec + 1} ${s.field}`, `${n} numbers in one sentence: "${x.slice(0, 90)}…"`); });
     const np = numerals(s.text).length; if (np > T.numbersPerParagraph) flag('⚠️', 'NUMBER-DENSE', `section ${s.sec + 1} ${s.field}`, `${np} numbers in one paragraph`);
     if (['lead', 'paragraphs', 'intro', 'primer'].includes(s.key) && ss.length > 1 && wc(s.text) >= 25 && !/\b(because|so|which means|but|that means|matlab|kyunki|lekin)\b/i.test(s.text)) flag('ℹ', 'NO-CONNECTIVE', `section ${s.sec + 1} ${s.field}`, 'no because / so / which means / but');
-    if (/[—–]/.test(s.text) && (s.text.match(/[—–]/g) || []).length > 1) flag('⚠️', 'EM-DASH', `section ${s.sec + 1} ${s.field}`, `${(s.text.match(/[—–]/g) || []).length} dashes in one paragraph`);
+    // A dash between digits ("1–1", "1850–1900") is a range or a score, not a clause joint.
+    { const dashes = (s.text.match(/(?<!\d)[—–](?!\d)/g) || []).length; if (dashes > 1) flag('⚠️', 'EM-DASH', `section ${s.sec + 1} ${s.field}`, `${dashes} dashes in one paragraph`); }
     if (/\bIt is not [^.]+\. It is [^.]+\./.test(s.text) || /\b(is|was) not (an? |the )?[^.]{2,40}\. (It|That|This) (is|was) /.test(s.text)) flag('ℹ', 'BINARY-REFRAME', `section ${s.sec + 1} ${s.field}`, 'max one per issue');
     if (/\bFirst,?\b[\s\S]*\bSecond,?\b[\s\S]*\bThird,?\b/.test(s.text)) flag('⚠️', 'NUMBERED-MANIFESTO', `section ${s.sec + 1} ${s.field}`, 'First… Second… Third…');
   }
@@ -330,6 +335,8 @@ for (const slug of slugs) {
     const m = re.exec(orderedText);
     if (!m) continue;
     const from = m.index;
+    // "Expected goals (xG)" is the gloss-then-abbreviation pattern: glossed.
+    if (/\(\s*$/.test(orderedText.slice(Math.max(0, from - 3), from + m[1].length))) continue;
     const window = orderedText.slice(from, from + 320);
     const twoSentences = sentences(window).slice(0, 2).join(' ');
     if (!GLOSS_MARKERS.test(twoSentences.slice(term.length))) flag('⚠️', 'JARGON-UNGLOSSED', 'first use', `"${term}" — "${twoSentences.slice(0, 110)}…"`);
@@ -364,9 +371,22 @@ for (const slug of slugs) {
   const all = strings.map((s) => s.text).join(' ');
   const hasIndian = /₹|\b(lakh|crore|rupee|rupees|India|Indian|Delhi|Mumbai|Bengaluru|Chennai|Kolkata|Hyderabad|Lok Sabha|Rajya Sabha|IPL)\b/.test(all);
   if (!hasIndian) flag('⚠️', 'NO-INDIAN-ANCHOR', 'issue', 'no ₹ / lakh / crore / Indian place or institution anywhere');
-  for (const s of strings) {
-    if (/\$\s?\d/.test(s.text) && !/₹/.test(s.text)) flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, `$ figure with no ₹: "${s.text.match(/\$\s?[\d,.]+[a-z ]{0,10}/)?.[0]}"`);
-    if (/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/.test(s.text)) flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, s.text.match(/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/)[0]);
+  // A dollar amount is "converted" once any string in the issue pairs it with a ₹
+  // figure; after that, its bare repeats in cells and notes are not foreign anchors.
+  // Flag each distinct unconverted amount once.
+  {
+    const amountsOf = (t) => (t.match(/(?:US)?\$\s?\d[\d,]*(?:\.\d+)?\s?(?:lakh|crore|million|billion|m|bn|k)?/gi) || []).map((a) => a.replace(/\s+/g, ' ').trim());
+    const converted = new Set();
+    for (const s of strings) if (/₹/.test(s.text)) for (const a of amountsOf(s.text)) converted.add(a);
+    const seen = new Set();
+    for (const s of strings) {
+      for (const a of amountsOf(s.text)) {
+        if (converted.has(a) || seen.has(a)) continue;
+        seen.add(a);
+        flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, `${a} is never paired with a ₹ figure anywhere in the issue`);
+      }
+      if (/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/.test(s.text)) flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, s.text.match(/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/)[0]);
+    }
   }
 
   // — ARI, warn-only, English-dominant body sentences only —

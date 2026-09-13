@@ -197,7 +197,12 @@ A small, fixed vocabulary — components compose these, never invent new gesture
      puts it; a `:has()` rule hides Section's copy there, so **a section shows
      at most one**, never two.
   2. The graphic, with its **caption** — the DATA claim, the only field the
-     verifier traces.
+     verifier traces. It renders in VizCard's caption row or the component's
+     own caption element; for kinds that have neither (timeline, seat-chart,
+     vote-result, bill-breakdown, comparison and their like)
+     `core/Section.astro` prints it directly below the graphic
+     (`.px-section__claim`, 2026-09-13), and a `:has()` rule keeps it to one
+     per section.
   3. The **plain line** BELOW the graphic: `IN PLAIN TERMS — <one sentence>`
      (`.px-plain`) explaining the FORM ("Each block is one seat; the dotted arc is
      the majority line"), with `SOURCE · …` running inline after it on the

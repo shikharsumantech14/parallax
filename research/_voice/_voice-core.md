@@ -116,8 +116,12 @@ the reader panel test these; until then, the writer does.
    reader counts in: crore for Indian figures, both for global ones ("1.2
    billion — 120 crore"). Every dollar figure carries its rupee equivalent.
 5. **Restate after every graphic.** The caption carries the data; the next
-   sentence the reader meets — the following intro or the `skimCaption` — says
-   what it showed, in the reader's words.
+   sentence the reader meets — the **following section's intro**, or this
+   section's caption — says what it showed, in the reader's words. Not
+   `skimCaption`: that field renders only in Skim mode (`base.css`, the
+   `.px-skim-caption-block` rule) and a restatement put there is invisible on
+   the normal page. (Corrected 2026-09-13 after the queue rewrite's panel
+   found six restatements hidden this way.)
 6. **Direct address is free.** "You" and "we" in every mode. One question per
    section, as an opener, never as a closer. Never "I".
 7. **Rhythm, not brevity.** The published corpus already has a 12-word median

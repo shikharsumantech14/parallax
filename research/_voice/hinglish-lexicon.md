@@ -44,6 +44,7 @@ then this is the list.
 | kya | what | as a question opener only |
 | kaise | how | |
 | kyun | why | |
+| ka / ki / ke | of, 's — the possessive | only inside a natural phrase ("Everest ka ticket"); it may stand beside a figure but never attaches to one (`_voice-core.md` §2, test 4) |
 
 ## Allowed — nouns the reader owns
 

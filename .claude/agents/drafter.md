@@ -146,9 +146,12 @@ usually should not. **No Hindi.**
 one comprehension field the verifier traces. Never a scale word that a
 control could make false. **No Hindi.**
 
-**`skimCaption`:** every section, ≤ 40 words, in the register: the one thing
-this section proves, said the way the reader would say it. This is the
-story-mode beat; write it as one.
+**`skimCaption`:** on every `prose` section (Skim mode shows it in place of
+the paragraphs), ≤ 40 words, in the register. Optional on other kinds, and
+it counts against the word budget while rendering only in Skim mode — so
+when the `story` block is authored, leave it off the visual kinds. **It is
+never the restatement**: `.px-skim-caption-block` is `display: none` on the
+normal page.
 
 **`source`:** every visual section, string or `{ label, date }`. No source,
 no section.
@@ -156,8 +159,10 @@ no section.
 **`layout`:** default unless the storyboard says otherwise; `split` only on
 the hero.
 
-**Restate after the graphic:** the next section's intro, or this section's
-`skimCaption`, says in the reader's words what the graphic just showed.
+**Restate after the graphic:** the NEXT section's intro opens by saying, in
+the reader's words, what the graphic before it just showed; or this
+section's caption carries it. Never `skimCaption` — it does not render on
+the normal page (contract §3 rule 5).
 
 ### Step 4.5 — The register (the contract's §2–§3, applied as you write)
 
