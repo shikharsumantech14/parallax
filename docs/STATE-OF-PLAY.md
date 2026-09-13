@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-08.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-13.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -14,18 +14,25 @@
 
 ## 1. The one-paragraph version
 
-Parallax is a visual explainer publication (static Astro site at the repo root)
-plus a separate Astro SSR reader-account app (`app/`, Supabase-backed). The
-P0–P8 product-elevation program is **committed, pushed and deployed** (both
-sites live). The current effort is the **design-system revamp** driven by the
-Claude Design handoff — its source of truth is `docs/REVAMP-PLAN.md`, **v3,
-signed 2026-09-04**: decisions RD-01…RD-13 (RD-03/07/09 superseded by
-RD-10/12/13, struck not deleted), and the order is **look first** (RD-13):
-finish 6.1 → 6.3 type → 7 web pages → the brand → 8 app → 5 mobile → Waves
-2–4. Execution stands at: **Phases 0–2 complete, Phase 3 at Wave 1 of 4,
-Phase 4's agent half plus the backfill done, 6.2 done, 6.1 built — only the
-canon signature outstanding.** Alongside it, the **context system** (`docs/CONTEXT-PLAN.md`,
-CD-01…CD-12) is being built out — Phases A–E are in.
+Parallax is a visual explainer publication, one Astro project in
+`output: 'hybrid'` since the 2026-09-06 merge: the publication prerenders,
+the reader-account routes render on demand, Supabase-backed. The launch
+design (2026-09-08) is committed and deployed; the announcement date is open,
+the operator will set one. The current effort is the **register plan**,
+`docs/REGISTER-PLAN.md`, **v1 signed 2026-09-13**, RG-01…RG-22: reader
+feedback was measured rather than assumed, and the fix is a register change
+(plain Indian English, Hindi only where it fits and never load-bearing) plus
+component-first composition, gated. **Phases 1–3 and RG-19 are built** (the
+runtime contract v2 with its lexicon and jargon list; the storyboard step and
+the reader panel on both routes; the prompts re-based; `check:prose` in
+report mode; the how-to-read default per kind; four plain-language kinds; the
+annotation slot on eight charts; `analogy` generalised; `hero` retired).
+**Next is Phase 4: the four flagship rewrites** (delimitation, El Niño,
+Arsenal, the Everest/Fuji queue) through the new pipeline, each tabled for
+the operator's read before it goes live. The design-system revamp
+(`docs/REVAMP-PLAN.md` v3) stands at its Phase 5/7 residuals, with Waves 2–4
+reassessed against usage rather than count; the context system
+(`docs/CONTEXT-PLAN.md`) Phases A–E are in.
 
 For branch, uncommitted and unpushed counts, read the **session brief** printed
 at session start, or run `node scripts/project-graph.mjs --brief`. Those facts
@@ -46,12 +53,12 @@ are deliberately not written down anywhere (CD-11).
 
 | Derived fact | Value |
 |---|---|
-| Section kinds | **97** (14 WebGL) |
-| Blueprinted | 36 of 97 |
+| Section kinds | **101** (14 WebGL) |
+| Blueprinted | 40 of 101 |
 | Issues | 23 (10 published, 13 draft) |
-| Kinds never in a published issue | **77** |
+| Kinds never in a published issue | **81** |
 | Registry gaps | none |
-| Decisions tracked | 35 (12 decided-but-unbuilt) |
+| Decisions tracked | 35 (8 decided-but-unbuilt) |
 
 <!-- END GENERATED -->
 
@@ -125,6 +132,7 @@ citations resolve. Highlights of what shipped:
 | **The merge** | **One project since 2026-09-06.** `app/` folded into the publication: `output: 'hybrid'`, 45 pages prerendered, 24 SSR routes opting out. `app.parallaxlens.com` survives as an alias only. Design notes moved to `docs/APP-SURFACES.md`. It cost two failed deploys and one silent outage — all three are §7 entries — and it bought the thing Phase 8 could not have: one origin, which is what a service worker and a TWA both require. |
 | **PWA** | **Installable, and offline reading works.** Manifest + icon set generated from the medallion (`f1c336c`); the service worker cache-on-read, sessions never cached, Google Fonts kept as validated CORS responses rather than opaque ones (`a1485f9`, `bd72092`). Verified against a real build with the server stopped: a read issue renders complete with its own CSS and all three faces. `npm run preview` was rebuilt to make that testable at all — `astro preview` cannot run under the Vercel adapter (`11e1aac`). |
 | **Launch design (2026-09-08)** | **The public launch is 19 September, and the operator ruled the product's adoption of the handoff too loose to ship.** A twelve-artboard canvas prototype was drawn from `Parallax Web.dc.html`, approved, and implemented in one pass: Literata everywhere; a 1280 frame of hairline bands with scoped page styles (`meta.css` is tokens only); zero radii; the masthead lockup measured onto one axis; the issue page rebuilt (IssueHead, the 720 measure inside 170/1fr/250, facts rail + aside, reactions / letters / sources as bands, a pinned reading strip, margin notes removed); one desk template; home, about, archive rebuilt; `/subscribe` with the beta pricing (₹149 → ₹0); kind `plate` (98). Full build, all gates, 412px overflow and the menu's 44px targets verified. Details: `AGENTS.md` §10, `src/components/AGENTS.md` change log. |
+| **Register plan (2026-09-13)** | Reader feedback measured (REGISTER-PLAN §1): the formulas said the issues were already easier than Finshots; what was missing was hand-holding, the copy was ~40 blocks an issue, ~300 names, and no Indian ground (₹, crore, Hinglish: zero). Signed RG-01…RG-22 with two amendments (Hindi only where it fits; no date). Built: `_voice-core.md` v2, the lexicon, the jargon list; `composer` and `reader-panel` with `/pipeline-storyboard`, `/pipeline-panel` and the API phases behind `GATES.storyboard` (`'required'`); drafter, stylist, verifier and researcher re-based; `check:prose` (report mode: 0 blocking on the backlist, 16–59 warnings per issue); RG-19 (`howToReadFor`, `NEEDS_HOW`, the source inline on the plain line; the delimitation page went from 5 panels to 0); Phase 3 (`you-think`, `jargon-buster`, `number-sense`, `three-steps`, `analogy` pairs, `hero` retired, annotations on eight charts, all verified on the showcases). Five commits, `828f9a5`…`b2e21a5`. |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
 not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
@@ -149,13 +157,22 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
 
 1. **Operator: `git push`** when ready — the count is in the session brief,
    deliberately not written here (CD-11). Vercel deploys on push.
-   **Launch follow-ups (19 September):** supply the About portrait
+   **Launch follow-ups (the date is open since 2026-09-13; the operator sets
+   it):** supply the About portrait
    (`EDITOR_PORTRAIT` in `about.astro`) and any issue plates (`kind: plate`
    needs an image under `public/`); the reader-account pages (login, shelf,
    admin) still run `app.css` and were only re-fonted, not redesigned; the
    design rules in `docs/design/CANON.md` describe the pre-launch look and are
    to be re-hardened after launch (operator's stated intent).
-2. **Phase 5 — finish it.** Step 1 landed (`f76fa8c`, §4). What is left is the
+2. **Register plan, Phase 4: the four flagship rewrites** through the new
+   pipeline, storyboard → draft → panel → stylist → panel → verify →
+   `check:prose`, each tabled for the operator's read because it is
+   published content. Then the other six issues (Phase 6), the copy deck and
+   the EXPLAIN batch (8.2, 8.3), the `hi-Latn` span for justified prose
+   (RG-18), and the readers' test (7.4; the operator supplies five readers,
+   two without Hindi). `check:prose:gate` joins `prebuild` once the backlist
+   passes.
+3. **Phase 5 — finish it.** Step 1 landed (`f76fa8c`, §4). What is left is the
    stated exit and the four exclusions: sweep all 23 issues at 375px rather
    than the 6 showcases, test for new clipping, decide `region-map`'s authored
    7.5px labels (a type-scale call, not geometry), and handle
@@ -163,8 +180,11 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    plan — rebuilding `adoption-curve` and `scaling-plot` as true mobile
    layouts — is **no longer urgent**: both now clear the floor, so it would buy
    back the at-a-glance shape, not legibility.
-3. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
-   days, against 77 of 97 unused. When they run, the build pattern is proven:
+4. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
+   days, against 81 of 101 unused. The register plan's finding was that
+   usage, not count, is the problem, and its four plain-language kinds now
+   exist; reassess after Phase 4 puts kinds into published issues. When they
+   run, the build pattern is proven:
    parallel component agents (component file ONLY), orchestrator wires via
    **`scripts/wire-kind.mjs`** (example config in its header), worked example
    into the world's showcase, browser-verify against the blueprint §11, one
@@ -172,11 +192,11 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    **with a standing corrections header — read it first; it overrides the
    handoff**. The editorial review flagged Wave 4's kinds as the least
    defensible spend.
-4. **Schema tightening** — make `source` required now the gap is 0. Its own
+5. **Schema tightening** — make `source` required now the gap is 0. Its own
    revertible commit. The 22 missing *captions* are **deliberate**: all 22
    carry an `intro` that already states the finding; adding captions would trip
    the verifier's new REDUNDANT rule. Recorded in `37a6f7d`.
-5. **TWA (Android) — BLOCKED on the operator, not on the repo.** The PWA is
+6. **TWA (Android) — BLOCKED on the operator, not on the repo.** The PWA is
    live and installable from the browser today; a Trusted Web Activity is the
    Play-Store wrapper on top of it. `scripts/twa-assetlinks.mjs` writes and
    validates `/.well-known/assetlinks.json` (verified: a dot-folder under
@@ -195,9 +215,10 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    Also gating: Play charges a one-time $25 registration, and a new personal
    developer account needs 12 testers on a closed test for 14 days before
    production access.
-6. **Still rejected/deferred**: photography and the lens (five grounds);
-   `/subscribe` + pricing.
-7. **Operator-optional, still open**: OG filename fingerprinting (cheapest
+7. **Still rejected/deferred**: photography and the lens (five grounds).
+   (`/subscribe` with the ₹149 → ₹0 beta price shipped with the launch design;
+   the line that listed it here was stale and was cut on 2026-09-13.)
+8. **Operator-optional, still open**: OG filename fingerprinting (cheapest
    at 10 published issues). The apex-vs-`www` item that sat here is
    **settled** — the apex is Production and `www` 308s to it since
    2026-09-06. It was never merely cosmetic: `canonical`, RSS and OG all
@@ -247,6 +268,15 @@ mount pins an aspect-ratio, so a min-width cannot help), `climate-spiral`,
 narrow-viewBox forms left by ruling. **No published issue uses any of them**,
 and the WebGL ones only render without WebGL. Fix one the week you publish an
 issue that uses it, not before.
+
+**7 · `check:prose` is report-only, on purpose.** The ten published issues
+are the old register and carry 16–59 warnings each; a gate would block every
+deploy until the Phase 4/6 rewrites land. `check:prose:gate` (blocking flags
+only) joins `prebuild` when the backlist passes.
+
+**8 · The 81 unpublished kinds, the four new ones included, render only in
+the showcase drafts.** Deliberate until Phase 4; the plan's whole point is to
+move kinds into published issues, not to build more.
 
 **6 · No breakage at all:** Waves 2–4 (21 kinds), TWA, the vestigial RD-05
 radius override in `base.css`, `APP-SURFACES.md` §§3–10's pre-merge paths (the
@@ -316,6 +346,15 @@ likely complete and instance coverage is not).
 
 ## 7. Traps that have actually bitten (additions this cycle in bold)
 
+- **`wire-kind.mjs` skips its KIND_PRIORITY step whenever the kind's name
+  already appears anywhere in `story.ts`** — a TRIM entry written before
+  wiring triggers the skip, silently; `check:catalog` caught it as a missing
+  score (2026-09-13). Wire first, or add the score by hand.
+- **One YAML list item at column 0 inside `sections:` takes every issue page
+  down** ("end of the stream or a document separator is expected", 500s on
+  every route for three minutes on 2026-09-13). A scratch inserter had
+  trimmed the leading indent of a block's first line. Anchor inserts at line
+  start with `^` and never trim a block.
 - A subagent once wiped uncommitted work with `git checkout` — **commits only;
   the shared registry files are edited by the orchestrator alone, never by
   parallel agents** (component agents get an explicit one-file scope).
@@ -419,20 +458,25 @@ likely complete and instance coverage is not).
 | Token law incl. TD-06 | `docs/design/TOKEN-RECORD.md` |
 | The 28 blueprints (corrected) | `docs/design/blueprints/<world>/` — header first |
 | The registry wirer | `scripts/wire-kind.mjs` |
+| The register plan and its measurements | `docs/REGISTER-PLAN.md` |
+| The runtime voice contract, the lexicon, the jargon list | `research/_voice/_voice-core.md`, `hinglish-lexicon.md`, `jargon.md` |
+| Kinds by data shape (the composer's lookup) | `docs/design/catalog-shapes.md` |
+| The annotation contract | `docs/design/blueprints/_ANNOTATIONS.md` |
 | The two component exemplars | `topic/politics/BillFunnel.astro` (HTML), `topic/sports/ChannelTernary.astro` (SVG) |
 | The shell + instrument primitives | `core/VizCard.astro`, `px-inst` in `src/styles/dataviz-v2.css` |
 
 | The explainability chrome for every kind (how-to-read above; plain + `Source ·` below) | `core/Section.astro`; `.px-plain__src` in `src/styles/viz-type.css`; the one-panel `:has()` rule in `src/styles/dataviz-v2.css` |
-| The canon, with its unsigned shell-adoption draft | `docs/design/CANON.md`, `docs/design/motion.md` — the DRAFT line at the top says which passages are not yet law |
+| The canon, both files signed (CANON 2026-09-05, motion 2026-09-07) | `docs/design/CANON.md`, `docs/design/motion.md` |
 
 | Section-kind → component map | `src/components/AGENTS.md` |
 | Issue authoring incl. new fields | `src/content/issues/_AGENTS.md` |
 | The design handoff (delivered artifact) | `Parallax Design System Revamp/` — authority: AGENTS → INTEGRATION → blueprints; README is stale background |
-| Standing rules / app / pipeline | `AGENTS.md`, `app/AGENTS.md`, `research/AGENTS.md` |
+| Standing rules / the reader-account surfaces / pipeline | `AGENTS.md`, `docs/APP-SURFACES.md` (formerly `app/AGENTS.md`), `research/AGENTS.md` |
 | How context reaches a session | `docs/CONTEXT-PLAN.md` (CD-01…CD-12 §3; §10 in plain terms) |
 | Frozen history — **not current** | `docs/archive/` — read its README before citing anything there |
 
-Live examples of all 7 new kinds: the six `2026-06-03-<world>-showcase` issues
+Live examples of every unpublished kind, the four plain-language kinds and the
+annotation slot included: the six `2026-06-03-<world>-showcase` issues
 (status draft — unhide gated sections in the console with
 `document.querySelectorAll('.px-gate-hidden').forEach(e => e.classList.remove('px-gate-hidden'))`).
 
@@ -447,7 +491,8 @@ npm run build            # 45 static pages + 24 SSR routes.
                          #   tsx scripts/story/og.ts    ← writes 10 tracked PNGs
                          # postbuild is ONE step:
                          #   vercel-runtime             ← corrects the fn runtime
-npm run check:catalog    # 97 ↔ 97, order, EXPLAIN + KIND_PRIORITY coverage
+npm run check:catalog    # kinds ↔ catalog blocks, order, EXPLAIN + KIND_PRIORITY coverage
+npm run check:prose      # the register + composition report; check:prose:gate is the blocking form
 npm run design:check     # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check      # the derived graph matches the repo
 npm run hooks:test       # the enforcement hooks still decide correctly
@@ -495,7 +540,7 @@ either.**
 
 The real ceiling is the adapter: 7.8.2 can emit nothing above `nodejs20.x`, and
 Vercel deprecates Node 20 on **2026-10-01**. Adapter v8 fixes this properly but
-requires Astro 5 (Content Layer API — reaches all 97 kinds and every issue).
+requires Astro 5 (Content Layer API — reaches every kind and every issue).
 The script is a bridge to that upgrade and should be deleted with it.
 
 Standing greps (all must return zero):
