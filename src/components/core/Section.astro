@@ -12,7 +12,7 @@
  *    scrollytelling primitive. All other layouts keep the flat structure.
  */
 import { renderEmphasis } from '../../lib/text';
-import { EXPLAIN } from '../../lib/explainers';
+import { EXPLAIN, howToReadFor } from '../../lib/explainers';
 
 interface Props {
   number?: string;
@@ -29,13 +29,15 @@ interface Props {
    *  `{ label, date }`; joined the way VizCard used to. */
   source?: string | { label: string; date?: string };
   /** Contract part 02, "how to read this" — a paragraph ABOVE the graphic.
-   *  Authored `howToRead` wins; otherwise EXPLAIN[kind].how, the fallback that
-   *  flipped on at shell adoption after the operator's copy review
-   *  (docs/design/EXPLAIN-HOW-REVIEW.md). Rendered here for EVERY kind because
-   *  87 of 97 do not route through VizCard, and before this an authored
-   *  howToRead on any of them was silently dropped. The ten VizCard kinds also
-   *  render theirs inside the card; dataviz-v2.css hides this copy when the
-   *  slotted card already carries one, so a section shows exactly one. */
+   *  Authored `howToRead` always wins, for every kind. The per-kind default
+   *  (EXPLAIN[kind].how) renders only for the kinds in NEEDS_HOW — instruments,
+   *  WebGL scenes and counter-intuitive forms (REGISTER-PLAN RG-19, ruled
+   *  2026-09-13; the 2026-09-04 every-kind fallback had put a paragraph on 69
+   *  published sections). The resolution lives in ONE function,
+   *  `howToReadFor`, shared with SectionBody's VizCard dispatch. The ten
+   *  VizCard kinds render theirs inside the card; dataviz-v2.css hides this
+   *  copy when the slotted card already carries one, so a section shows at
+   *  most one. */
   howToRead?: string;
   /** Anchor for the aside's contents list (launch design). */
   id?: string;
@@ -43,7 +45,7 @@ interface Props {
 const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead, id } = Astro.props;
 
 const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
-const howText = howToRead ?? (kind ? EXPLAIN[kind]?.how : undefined);
+const howText = howToReadFor(kind, howToRead);
 const sourceLine =
   typeof source === 'string'
     ? source

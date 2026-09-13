@@ -9,7 +9,9 @@
  *
  * `what` explains the FORM of the graphic — how to read it, never the data
  * ("each stripe is one year's temperature", not "2023 was the hottest").
- * `how` is the interactive cue shown in the modal.
+ * `how` is the interactive cue shown in the modal, and the default
+ * how-to-read panel above the graphic for the kinds in NEEDS_HOW (below) —
+ * not for every kind, since 2026-09-13 (REGISTER-PLAN RG-19).
  *
  * New kinds MUST add an entry here (blueprint §9 supplies the wording; see
  * docs/design/blueprints/_TEMPLATE.md). Narrative kinds (hero, act-break,
@@ -116,3 +118,53 @@ export const EXPLAIN: Record<string, Explainer> = {
   'region-map': { what: 'A map with the story’s regions shaded by category and key places pinned.', how: 'The legend decodes the shading; markers pin the named places.' },
   'carbon-gauge': { what: 'How much of the carbon budget is already spent, drawn as a gauge arc.', how: 'The filled arc is what’s used; the remainder is what’s left before the target.' },
 };
+
+/**
+ * Which kinds show the how-to-read panel when the section authors none
+ * (docs/REGISTER-PLAN.md RG-19, ruled 2026-09-13). The 2026-09-04 fallback put
+ * the panel on every kind; measured, that added a paragraph to 69 published
+ * sections and pushed the chrome to 5.7 text blocks per section. The panel
+ * earns its place only where the FORM can be misread or operated:
+ *
+ *   - instruments — any kind with a control (a scrub, a toggle, a flip, a
+ *     chip, a slider), because the paragraph is where the control is named;
+ *   - the WebGL scenes, where the interaction is the point;
+ *   - counter-intuitive forms — an inversion (channel-ternary), a log scale
+ *     (moore-ladder, scaling-plot), a distribution drawn as a shape
+ *     (pace-ridge, finish-interval), a flow diagram, a squeezed scale
+ *     (orbit-trace), a polar histogram (city-grid), a value surface.
+ *
+ * A timeline, a tile row, a bar chart or a two-line comparison explains
+ * itself; its `what` still renders as the plain line, and the ⤢ study view
+ * still carries the full `how`. An AUTHORED `howToRead` always renders, for
+ * every kind — this set only governs the default.
+ */
+export const NEEDS_HOW: ReadonlySet<string> = new Set([
+  // instruments and VizCard kinds
+  'bill-funnel', 'age-pyramid', 'margin-bullets', 'state-timeline',
+  'attrition-waffle', 'finish-interval', 'channel-ternary', 'scaling-plot',
+  'xg-race', 'climate-spiral', 'coalition-calculus', 'transfer-window',
+  'queue-cliff', 'season-wheel', 'tactics-pitch', 'player-card', 'chip-die',
+  'gerrymander-lens', 'ballot-flow',
+  // WebGL scenes
+  'orbit-globe', 'coalition-orbit', 'chamber', 'solar-system',
+  'constellation-swarm', 'terrain-relief', 'plate-motion', 'storm-track',
+  'neural-flow', 'packet-trace', 'terminator-globe', 'flight-of-the-ball',
+  'data-globe', 'route-globe',
+  // counter-intuitive forms
+  'lagrange-map', 'eclipse-cone', 'atmosphere-column', 'carbon-loop',
+  'moore-ladder', 'orbit-trace', 'city-grid', 'fare-terrain', 'court-value',
+  'pace-ridge', 'elo-river', 'player-radar', 'power-flow', 'vote-flow',
+]);
+
+/**
+ * The one resolution rule for the how-to-read panel, used by
+ * core/Section.astro (every kind) and SectionBody.astro (the VizCard kinds):
+ * an authored paragraph always wins; the per-kind default renders only for
+ * the kinds in NEEDS_HOW.
+ */
+export function howToReadFor(kind: string | undefined, authored?: string): string | undefined {
+  if (authored) return authored;
+  if (!kind || !NEEDS_HOW.has(kind)) return undefined;
+  return EXPLAIN[kind]?.how;
+}

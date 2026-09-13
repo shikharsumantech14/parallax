@@ -67,9 +67,10 @@ Every section conforms to:
                               // VizCard kinds render theirs inside the card
                               // instead; a :has() rule in dataviz-v2.css hides
                               // Section's copy there, so a section shows exactly
-                              // one panel. Omit to fall back to EXPLAIN[kind].how
-                              // in src/lib/explainers.ts — the fallback is LIVE,
-                              // so a panel renders either way; author one only
+                              // one panel. Omit and EXPLAIN[kind].how renders in
+                              // its place ONLY for the NEEDS_HOW kinds (instruments,
+                              // WebGL, counter-intuitive forms — RG-19, 2026-09-13);
+                              // a timeline shows none unless authored. Author one
                               // where the default misleads (channel-ternary:
                               // distance FROM a corner = LOW use — readers get
                               // it backwards). Never a longer restatement of
@@ -452,7 +453,7 @@ have no story page.** They are viz reference, not story reference.
 
 | Field | Carries | Renders | Length | Verifier |
 |---|---|---|---|---|
-| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; `EXPLAIN[kind].how` is the LIVE fallback when omitted. The ten VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
+| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; when omitted, `EXPLAIN[kind].how` renders in its place only for the `NEEDS_HOW` kinds (RG-19, 2026-09-13). The ten VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
 | `plain` | the FORM, one sentence | BELOW the graphic, the "In plain terms" paragraph from `core/Section.astro` | ≤220 | flags data-assertion (PLAIN-CLAIM) |
 | `caption` | **the DATA — the finding** | with the figure (VizCard's caption row, or the component's own `__cap`) | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
 | `source` | the citation | BELOW the graphic as the plain paragraph's SECOND LINE — `.px-plain__src`, literal "Source · …" — from `core/Section.astro` for every kind. Components render none; the ⤢ modal shows none (ruled as-is) | free | CANON §7: no source, no section |

@@ -28,8 +28,10 @@ build**:
 - `plain` — max 220 chars. Explains the *form* of the viz ("each block is one
   seat"), never the data
 - `howToRead` — 40–360 chars, renders ABOVE the graphic. Optional: leave it
-  out and `EXPLAIN[kind].how` (`src/lib/explainers.ts`) renders in its place —
-  the fallback is live for every kind (a section shows exactly one panel).
+  out and `EXPLAIN[kind].how` (`src/lib/explainers.ts`) renders in its place
+  **only for the kinds in `NEEDS_HOW`** — instruments, WebGL scenes,
+  counter-intuitive forms (RG-19, 2026-09-13). A timeline, a tile row or a bar
+  chart shows no panel unless one is authored. A section shows at most one.
   **Instruments — any kind with a control (scaling-plot, xg-race,
   climate-spiral, tactics-pitch) — must author one**, and the static reading
   leads, the control clause trails ("…Press Linear for the proportional

@@ -89,12 +89,14 @@
 }
 .px-plain__k::after { content: ' \2014'; }
 
-/* The source is the plain paragraph's SECOND LINE — 9.5px / 600 / .14em small
-   capitals. "Source · " is real text, not ::before, so it is copyable and read
-   by AT. Rendered by core/Section.astro for every kind. */
+/* The source runs ON the plain line — 9.5px / 600 / .14em small capitals,
+   inline after the sentence (REGISTER-PLAN RG-19, 2026-09-13: it was the
+   paragraph's second line; folding it saves one visual block per section on a
+   page that measured 5.7). "Source · " is real text, not ::before, so it is
+   copyable and read by AT. Rendered by core/Section.astro for every kind. */
 .px-plain__src {
-  display: block;
-  margin-top: 6px;
+  display: inline;
+  margin-left: 10px;
   font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.14em;

@@ -24,9 +24,14 @@ Components split into:
   `xg-race` and `climate-spiral` too: ten kinds in all. It renders the caption
   row (with an optional chip), an optional in-card how-to-read panel, and the
   graphic slot — **not** the source line (it still accepts `source`, ignored).
-  Every other piece of explainability chrome — the how-to-read panel for the 87
-  non-VizCard kinds, the `plain` line, the `Source · …` second line — is
-  `core/Section.astro`'s, for every kind. Components render none of it.
+  Every other piece of explainability chrome — the how-to-read panel for the 88
+  non-VizCard kinds, the `plain` line, the inline `Source · …` — is
+  `core/Section.astro`'s, for every kind. Components render none of it. The
+  how-to-read DEFAULT is per kind since 2026-09-13 (REGISTER-PLAN RG-19): one
+  function, `howToReadFor(kind, authored)` in `src/lib/explainers.ts`, renders
+  an authored paragraph for any kind and the `EXPLAIN[kind].how` default only
+  for the kinds in `NEEDS_HOW` — instruments, WebGL scenes, counter-intuitive
+  forms. A timeline shows none unless one is authored.
 
 - **`home/`** — meta-brand pieces used only on `/` and `/topics/*` index
   pages (TypographicChord, TopicStrip, CategoryCard, CategoryGrid,
@@ -35,11 +40,11 @@ Components split into:
   Each topic also has its own `<Topic>Index.astro` that drives
   `/topics/<topic>/`.
 - **`SectionRenderer.astro`** — the article-chrome shell. Wraps a section in
-  `core/Section.astro` (numbering, eyebrow, the how-to-read panel ABOVE the graphic — `section.howToRead ?? EXPLAIN[kind].how` — and, BELOW it, the `plain` line with the `Source · …` second line, plus the skim caption) and
+  `core/Section.astro` (numbering, eyebrow, the how-to-read panel ABOVE the graphic — `howToReadFor(kind, section.howToRead)` — and, BELOW it, the `plain` line with `Source · …` inline after it, plus the skim caption) and
   delegates the actual kind dispatch to `SectionBody.astro`.
 - **`SectionBody.astro`** — **the dispatcher** (since 2026-07-05). Reads
   `section.kind`, renders the matching component, and passes through the
-  section's `data` payload (and, for the ten `VizCard` kinds only, resolves `section.howToRead ?? EXPLAIN[section.kind]?.how` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports `EXPLAIN` for this). Shared with story mode, which renders bodies
+  section's `data` payload (and, for the ten `VizCard` kinds only, resolves `howToReadFor(section.kind, section.howToRead)` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports that helper for this). Shared with story mode, which renders bodies
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
@@ -82,7 +87,7 @@ joined `chamber` + `solar-system`) → the 2026-07-14 **breadth pass** (+22).
 `src/components/SectionBody.astro` (no wrapper — shared with story mode);
 `SectionRenderer.astro` wraps it in the article chrome (`core/Section.astro`
 number/eyebrow/title/intro + the "In plain terms" line + `data-layout` +
-the how-to-read panel ABOVE the graphic (`section.howToRead ?? EXPLAIN[kind].how`, hidden by a `:has()` rule when the slotted `VizCard` renders its own) + the `plain` line with the `Source · …` second line BELOW it + the skim-caption block, which any kind may now carry; SectionRenderer passes `source` and `howToRead` through to CoreSection). **Add new kinds to
+the how-to-read panel ABOVE the graphic (`howToReadFor(kind, section.howToRead)` — authored always, the default only for `NEEDS_HOW` kinds; hidden by a `:has()` rule when the slotted `VizCard` renders its own) + the `plain` line with `Source · …` inline after it BELOW + the skim-caption block, which any kind may now carry; SectionRenderer passes `source` and `howToRead` through to CoreSection). **Add new kinds to
 SectionBody**, not SectionRenderer.
 
 | Kind | Component | Topic-scope |
@@ -245,7 +250,7 @@ every breadth kind in their world.
 ### Revamp-wave kinds (2026-08, docs/REVAMP-PLAN.md Phase 3) — 7 so far, 21 to go
 
 All render through `core/VizCard.astro` (the RD-01a shell seam: caption row,
-optional in-card how-to-read panel, the graphic slot — components never render caption or how-to-read themselves, and since Phase 6.1 nobody renders the source line but `core/Section.astro`, which puts it below the graphic as `.px-plain__src` for every kind; VizCard still accepts `source` but ignores it). Ten kinds render through VizCard today: the seven below plus `scaling-plot`, `xg-race` and `climate-spiral`, re-routed in Phase 6.2 (2026-09-04). For those ten, `SectionBody` resolves `section.howToRead ?? EXPLAIN[kind].how` at the dispatch line so the card carries the panel, and `.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none }` in `dataviz-v2.css` hides Section's copy — exactly one panel per section. All ten
+optional in-card how-to-read panel, the graphic slot — components never render caption or how-to-read themselves, and since Phase 6.1 nobody renders the source line but `core/Section.astro`, which puts it below the graphic as `.px-plain__src` for every kind; VizCard still accepts `source` but ignores it). Ten kinds render through VizCard today: the seven below plus `scaling-plot`, `xg-race` and `climate-spiral`, re-routed in Phase 6.2 (2026-09-04). For those ten, `SectionBody` resolves `howToReadFor(kind, section.howToRead)` at the dispatch line so the card carries the panel (all ten are instruments, so all ten are in `NEEDS_HOW`), and `.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none }` in `dataviz-v2.css` hides Section's copy — exactly one panel per section. All ten
 consume the `px-inst` control/readout/legend primitive in `dataviz-v2.css`. Its readout has an **opt-in** `px-inst__readout--sized` modifier: the component renders its worst-case readout string as a `visibility: hidden` `.px-inst__sizer` twin stacked in the same grid cell, so the box reserves its true height (a `min-height: 3.2em` was not enough — `xg-race` reflowed 15px mid-drag, `scaling-plot` jumped 17px on the live page). Used by `scaling-plot`, `xg-race`, `climate-spiral`. **Keep it opt-in** — `StateTimeline` mixes inline children in its readout and the grid stack would break it.
 Contract per kind: `docs/design/blueprints/<world>/<kind>.md` — **read its
 standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
@@ -283,7 +288,7 @@ eight apply to every kind.
 4. **Add CSS** in the correct theme file (`src/styles/themes/<topic>.css`),
    `base.css` if universal, or a scoped `<style>` (v2-library pattern).
 5. **Add the EXPLAIN entry** in `src/lib/explainers.ts` (what/how — feeds the
-   in-flow "In plain terms" line (`what`) AND — since 2026-09-04 — the live how-to-read panel above the graphic (`how`, the fallback whenever the section has no authored `howToRead`; every kind renders it) AND the expand modal; blueprint §9 wording. Rule for instrument kinds: the static reading leads, the control clause trails — the controls are `html.js`-gated, the paragraph is not).
+   in-flow "In plain terms" line (`what`) AND the how-to-read panel above the graphic (`how` — the default whenever the section has no authored `howToRead`, rendered only if the kind is in `NEEDS_HOW`: add the kind there if it has a control, is a WebGL scene, or its form can be misread — RG-19, 2026-09-13) AND the expand modal; blueprint §9 wording. Rule for instrument kinds: the static reading leads, the control clause trails — the controls are `html.js`-gated, the paragraph is not).
 6. **Add the catalog block** in `docs/design/catalog.md` (same order as
    SECTION_KINDS — `npm run check:catalog` fails otherwise).
 7. **Document it here** — add a row to §2 and any non-obvious rule. New v2
@@ -908,6 +913,24 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-09-13 — The how-to-read default is per kind (REGISTER-PLAN RG-19)
+
+The every-kind `EXPLAIN.how` fallback of 2026-09-04 was measured: a paragraph
+on 69 published sections, 5.7 text blocks per section, and readers calling
+the product a wall of words. Ruled *only where the chart needs it*. One
+function now resolves the panel for every render site —
+`howToReadFor(kind, authored)` in `src/lib/explainers.ts`: an authored
+`howToRead` always renders; the default renders only for the kinds in the new
+`NEEDS_HOW` set (instruments, WebGL scenes, counter-intuitive forms — 45 of
+the 90 explained kinds). `core/Section.astro` and `SectionBody.astro`'s ten
+VizCard dispatch lines both call it; VizCard is unchanged. The source line
+folded onto the plain line (`.px-plain__src` is `display: inline` now, in
+`viz-type.css`) — one block fewer per section. The ⤢ study view still carries
+every `how` string. §1, §2, the VizCard note and step 5 of "how to add a
+component" updated; a new kind with a control or a misreadable form is added
+to `NEEDS_HOW` in the same commit as its EXPLAIN entry. The composer's
+data-shape lookup lives in `docs/design/catalog-shapes.md`.
 
 ### 2026-09-08 — The launch design
 

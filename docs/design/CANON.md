@@ -187,17 +187,21 @@ A small, fixed vocabulary — components compose these, never invent new gesture
 - Every viz section carries a three-part explainability stack, all static HTML,
   all rendered by `core/Section.astro` (shell adoption, 2026-09):
   1. **How to read this** — a paragraph ABOVE the graphic (`.px-viz__how`, the
-     handoff's contract part 02). Authored `section.howToRead` wins; otherwise
-     the per-kind `EXPLAIN[kind].how` from `src/lib/explainers.ts` (the fallback
-     flipped on 2026-09-04 after the copy review in
-     `docs/design/EXPLAIN-HOW-REVIEW.md`). The ten VizCard kinds render theirs
-     INSIDE the card, where the handoff's shell puts it; a `:has()` rule hides
-     Section's copy there, so **a section shows exactly one**, never two.
+     handoff's contract part 02). Authored `section.howToRead` always wins. The
+     per-kind default `EXPLAIN[kind].how` renders **only for the kinds in
+     `NEEDS_HOW`** (`src/lib/explainers.ts`): instruments, WebGL scenes and
+     counter-intuitive forms. A timeline or a tile row shows no panel unless
+     one is authored (REGISTER-PLAN RG-19, 2026-09-13 — the every-kind
+     fallback of 2026-09-04 had put a paragraph on 69 published sections). The
+     ten VizCard kinds render theirs INSIDE the card, where the handoff's shell
+     puts it; a `:has()` rule hides Section's copy there, so **a section shows
+     at most one**, never two.
   2. The graphic, with its **caption** — the DATA claim, the only field the
      verifier traces.
   3. The **plain line** BELOW the graphic: `IN PLAIN TERMS — <one sentence>`
      (`.px-plain`) explaining the FORM ("Each block is one seat; the dotted arc is
-     the majority line"), with `SOURCE · …` as its second line (§7).
+     the majority line"), with `SOURCE · …` running inline after it on the
+     same line (§7; folded from a second line under RG-19).
   The prose makes the ARGUMENT. Four layers, no overlap: how-to-read = usage,
   caption = data, plain = form, prose = argument. Confusing them trips the
   verifier's `PLAIN-CLAIM` / `CAPTION-FORM` / `REDUNDANT-HOWTO` flags.

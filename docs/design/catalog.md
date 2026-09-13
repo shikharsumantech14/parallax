@@ -12,19 +12,20 @@
 >
 > THREE COMPREHENSION FIELDS, three contracts (2026-08-27). `plain` is the FORM
 > in one sentence, below the graphic, 220 chars. `howToRead` is the FORM at
-> paragraph length, ABOVE the graphic, 40–360 chars — author one where the default `EXPLAIN[kind].how` (rendered in its place since 2026-09-04 — an authored one replaces it, never adds a second panel) is not enough and the
-> form can be misread. `caption` is the DATA claim and is the only one of the
+> paragraph length, ABOVE the graphic, 40–360 chars — author one where the form can be misread. The default `EXPLAIN[kind].how` renders in its place only for the kinds in `NEEDS_HOW` (instruments, WebGL scenes, counter-intuitive forms — REGISTER-PLAN RG-19, 2026-09-13); an authored one always renders and never adds a second panel. `caption` is the DATA claim and is the only one of the
 > three a verifier traces to the dossier. Never let `plain` assert data, and
 > never let `caption` merely describe the shape.
 
 >
 > SHELL ADOPTION (2026-09-04, Phase 6.1). Explainability chrome renders ONCE,
 > from `core/Section.astro`, for every kind: the how-to-read panel ABOVE the
-> graphic (authored `howToRead`, else `EXPLAIN[kind].how` from
-> `src/lib/explainers.ts` — so every section shows a panel, and authoring one
+> graphic (authored `howToRead`, else — for the `NEEDS_HOW` kinds only, since
+> 2026-09-13 — `EXPLAIN[kind].how` from `src/lib/explainers.ts`; authoring one
 > replaces the default rather than adding one), and BELOW the graphic the plain
-> line with the source as its second line (`Source · …`, from the section-level
-> `source`, or `data.source` where a kind still carries one). Components render
+> line with the source running inline after it (`Source · …`, from the
+> section-level `source`, or `data.source` where a kind still carries one).
+> Which components to pick for which data: `docs/design/catalog-shapes.md`,
+> the twelve data shapes the composer reads. Components render
 > none of source / plain / how themselves; the ten kinds routed through
 > `core/VizCard.astro` (bill-funnel, age-pyramid, margin-bullets, state-timeline,
 > attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race,

@@ -4,6 +4,8 @@
 >
 > **Verdict column — fill in one of:** `ok` (reads fine in-flow as-is) · `rewrite` (needs an in-flow version; the agent drafts it) · `never` (must not auto-render; stays modal-only). Blank = not yet ruled.
 >
+> **Re-ruled 2026-09-13 (operator, REGISTER-PLAN RG-19):** *only where the chart needs it.* Measured after the flip, the every-kind fallback had added a paragraph to 69 published sections and pushed the chrome to 5.7 text blocks per section. The default now renders only for the kinds in `NEEDS_HOW` (`src/lib/explainers.ts`): instruments, WebGL scenes and counter-intuitive forms — which is, near enough, the CUE column below plus the forms that can be misread. An authored `howToRead` still renders for every kind; the ⤢ study view still carries every `how` string. The 2026-09-04 ruling below is kept as history.
+>
 > **Ruled 2026-09-04 (operator):** *flip it, rewrite `tactics-pitch`, leave the rest.* The fallback is ON — resolved in `SectionBody` for the ten VizCard kinds and rendered by `core/Section.astro` for every other kind (the only place 87 of 97 could get a panel at all). `tactics-pitch` was the one live cue and is rewritten below; every other live string is READ and renders as-is. The draft-only cues are left for a bulk pass and keep a blank verdict. This table regenerates from the registry, so the classification below reflects the strings as they are now.
 
 ## Numbers
