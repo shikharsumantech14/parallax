@@ -68,7 +68,8 @@ const T = {
 };
 
 // Kinds that carry no graphic. `paradox` is two blocks of prose (REGISTER-PLAN §1.3).
-const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox']);
+// The narrative set plus `paradox`; `jargon-buster` and `three-steps` (RG-09) render cells and cards, not a graphic.
+const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox', 'jargon-buster', 'three-steps']);
 const WORKHORSES = new Set(['prose', 'data-readout', 'timeline', 'paradox', 'quote', 'comparison']);
 // The precision layer: English only (contract §2, precision test).
 const PRECISION_FIELDS = new Set(['caption', 'howToRead', 'plain', 'source', 'label', 'unit', 'attribution']);
