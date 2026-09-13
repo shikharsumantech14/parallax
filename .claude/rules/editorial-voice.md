@@ -4,42 +4,66 @@ paths:
   - "src/content/issues/**/*.mdx"
 ---
 
-# Voice — the eight rhetorical modes
+# Voice — the register, then the eight jobs
 
-Full canon: `research/_voice/mode-library.md` (964 lines), read at runtime by
-the stylist. This rule carries only the rules that are violated most often.
+The runtime contract is `research/_voice/_voice-core.md` **v2 (signed
+2026-09-13, `docs/REGISTER-PLAN.md`)**, read by every writing agent every
+run. `mode-library.md` is the deep reference and loses to the contract where
+they disagree. This rule carries only what is violated most often.
 
-| Mode | When |
+## The register outranks the mode (Rule 0)
+
+- **Plain Indian English is the default.** Explicit, concrete, hand-held,
+  placed in India: every term of art glossed the moment it appears; every
+  abstraction given a concrete thing in the same section; every number a
+  comparison the reader can feel (₹ beside $, lakh/crore); "you" and "we"
+  free; one connective sentence per paragraph; no run of three sentences
+  under eight words.
+- **A Hindi word only where it is the natural word — and never load-bearing.**
+  Four tests: delete it and the English still says everything; an Indian
+  would actually say it there; a Lallantop sub-editor would not wince; it is
+  nowhere near a number, a source, a caption or a technical term. Roman, set
+  roman; lexicon spellings (`research/_voice/hinglish-lexicon.md`); ≤ 1
+  phrase per paragraph; none in `caption` / `howToRead` / `plain` / `source` /
+  data labels. When in doubt, leave it out.
+- **Names rationed** (≤ 12 per issue, each with a role). **Titles state the
+  finding** (never "The ‹Noun› That ‹Verb›s"). **Hook** ≤ 25 words with a
+  number, a "you", the twist.
+
+| Job | When |
 |---|---|
-| AWE | Scale, deep time, mechanism marvel |
-| CONVERSATIONAL EXPLAINER | Step-by-step mechanism |
-| CALM-STRUCTURAL | Naming structural cost; scene → civilisation pivot |
-| SATIRICAL EXPOSURE | Institutional contradiction by its own data |
-| DRY WIT | Bureaucratic precision as deadpan |
-| INVESTIGATION | Anomaly, then evidence assembly |
-| FORENSIC | Mechanism with human stakes, staccato |
-| LYRICAL COMPRESSION | Closer, or a single emotional landing |
+| CONVERSATIONAL EXPLAINER | **The default — at least half the sections.** Analogy → number → restatement → question |
+| AWE | Scale, deep time, mechanism marvel — with an Indian-scale conversion |
+| CALM-STRUCTURAL | Naming structural cost, with the connective written |
+| INVESTIGATION | The anomaly as a graphic first, then the evidence |
+| FORENSIC | Mechanism with human stakes, two short sentences at a time, glossed |
+| SATIRICAL EXPOSURE | Contradiction by its own data — ≤ 1, and **0 on the politics desk** |
+| LYRICAL COMPRESSION | One landing — ≤ 1 paragraph |
+| DRY WIT | A device (one deadpan sentence), never a section |
 
 ## Blending — hard limits
 
-- One dominant mode per section.
-- **≤1 SATIRICAL EXPOSURE section per issue.**
-- **≤2 LYRICAL COMPRESSION paragraphs per issue.**
-- **4–6 modes across a full issue.** Not 8, not 1.
+- One dominant job per section; **3–5 jobs across an issue.**
+- Floors (REGISTER-PLAN §5.1): ≥ 6 in 10 sections visual; never two text-only
+  sections adjacent; the first section a graphic; ≤ 3 prose sections of
+  ≤ 200 words; ≤ 1,100 reader-facing words; ≤ 80 words before the first graphic.
 
-## The AI-tell catalog
+## The AI-tell catalog (seventeen — contract §6)
 
 Every prose field passes these before it is written or rewritten. **Applying a
-mode does not excuse a tell** — a FORENSIC paragraph with two em-dashes is
-still broken.
+job does not excuse a tell; being plain does not either.**
 
 | Tell | Rule |
 |---|---|
 | 2+ em-dashes in one paragraph | Max 1 per paragraph |
-| `"It is not X. It is Y."` | Max 1 per issue, and only if it *is* the structural argument |
+| `"It is not X. It is Y."` | Max 1 per issue, and only if it *is* the argument |
 | 3× short sentences closing a section | Max 1 triple-fragment close per issue |
-| `"the mechanism"`, `"structural argument"`, `"rhetorical work"` as abstract-noun labels | Replace with the actual claim |
+| `"the mechanism"`, `"structural argument"` as abstract-noun labels | Replace with the actual claim |
 | `"First… Second… Third…"` | Remove the ordinals, interleave the ideas |
+| "The ‹Noun› That ‹Verb›s" title · antithesis dek beside a reversing hook | State the finding; one reversal per issue |
+| Authors + institutions + outlets stacked in one sentence | The source line carries them |
+| Three sentences under eight words in a row · a name used once | Join two with a connective; cut or describe the name |
+| "Toh dosto" · *yaar/bhai* on politics or earth · italicised or Devanagari Hindi · literal idioms · "samjhe?" | Cut |
 
 ## The three comprehension fields — distinct roles
 

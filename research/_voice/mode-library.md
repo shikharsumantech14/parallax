@@ -1,7 +1,17 @@
 # Parallax Mode Library
 
-> Canonical voice reference. The **stylist** agent reads this at runtime
-> on every issue. Editors maintain it. Last updated 2026-05-04.
+> The deep reference for the eight rhetorical jobs. The **stylist** reads it
+> at runtime, after the runtime contract. Editors maintain it. Last updated
+> 2026-09-13.
+>
+> **v2 amendments are in force (2026-09-13, `docs/REGISTER-PLAN.md` RG-05).**
+> The runtime contract `_voice-core.md` v2 outranks every card below: *the
+> register outranks the mode* (its Rule 0). The section "v2 amendments"
+> right after the introduction lists, per mode, what is struck and what is
+> added; the Quick-Reference Pattern Cards at the bottom are rewritten to v2
+> and are the runtime recipe. The long mode cards in between are kept as the
+> research record — read them with the amendments in hand, and where a card
+> and the contract disagree, the contract wins.
 
 ---
 
@@ -30,6 +40,59 @@ A single Parallax issue might use:
 - **LYRICAL COMPRESSION** for the closer
 
 Five voices, one piece, blended at the seams. That is the goal.
+
+---
+
+## v2 amendments (2026-09-13) — what changed, and why
+
+The published issues were measured against Finshots and against real
+readers (REGISTER-PLAN §1). By every readability formula Parallax was already
+*easier*; what it lacked was hand-holding, and the cards below prescribe the
+absence: "no glossing", "the reader is assumed to know", "juxtaposition
+without the connective". Those devices were harvested from long-form
+magazine craft for a reader who chose to sit down. The reader is on a phone,
+mid-scroll, in India. So:
+
+**Rule 0 — the register outranks the mode.** `_voice-core.md` §2–§3 (plain
+Indian English, every term glossed on first use, every abstraction given a
+concrete thing, every number a comparison, names rationed, "you" and "we"
+free, one connective sentence per paragraph, a Hindi word only where it is
+the natural word and never load-bearing) applies inside every mode. A mode
+shapes rhythm and the opening move; it never suspends the register.
+
+| Mode | Struck | Added |
+|---|---|---|
+| AWE | "awe doesn't ask"; the liturgical closer as the default | scale-anchors in Indian units; one flat factual sentence after the image |
+| CONVERSATIONAL EXPLAINER | "casual + technical, rapid switching" | **the default job — at least half the sections**; the Finshots pattern: analogy → number → restatement → question |
+| CALM-STRUCTURAL | "juxtaposition **without** the connective", "place the two things; leave the verb out" | juxtaposition **with** the connective: place the two things *and* write the sentence that joins them; the conclusion stays unwritten |
+| SATIRICAL EXPOSURE | — | ≤ 1 per issue as before, and **0 on the politics desk by default**; never Hindi inside the joke |
+| DRY WIT | the Latinate stiff-collar vocabulary ("disport, repair to, contrive"); "the reader is assumed to know"; "no explanation of context" | **demoted to a device** — one deadpan sentence inside another mode's section; never a whole section |
+| INVESTIGATION | — | the anomaly is always a graphic the reader can see first; "Look. Notice." kept — it tested best of the v1 modes |
+| FORENSIC | "trust the reader absolutely, no glossing"; the periodic sentence as the judgment vehicle | every technical fact glossed the moment it appears; the mechanism in two short sentences; the stake in the same paragraph; the call-back kept |
+| LYRICAL COMPRESSION | the Ondaatje fracture; "borrow the rhythm" of mannered fragmentation | ≤ 1 paragraph per issue, plain words, one image |
+
+**Anchors.** The reference figures are re-proposed toward Indian
+communicators whose habits fit the register — confirmed by the operator on
+2026-09-13 — and named in the contract's §4 cards: ISRO's mission commentary,
+Jayant Narlikar, Harsha Bhogle (AWE, FORENSIC); Dhruv Rathee, Finshots, Mohak
+Mangal, Think School, Zerodha Varsity (CONVERSATIONAL); Ravish Kumar, Faye
+D'Souza, P. Sainath (CALM-STRUCTURAL); The Lallantop's deadpan, Akash
+Banerjee off the politics desk (SATIRICAL, the DRY WIT device); Johnny Harris,
+Nitish Rajput, Scroll / The Reporters' Collective (INVESTIGATION); Rukmini S.
+(FORENSIC); Gulzar, Ruskin Bond, Javed Akhtar, Sudha Murty (LYRICAL). The
+Western anchors below stay as the research record of where each pattern was
+first extracted; they are no longer what the writer imitates.
+
+**Blending (v2 numbers).** 3–5 jobs across an issue; CONVERSATIONAL carries
+at least half; ≤ 1 SATIRICAL (0 in politics); ≤ 1 LYRICAL paragraph; DRY WIT
+device only; one dominant job per section. Seams: the last sentence of a
+section restates what its graphic showed in the reader's words; the first
+sentence of the next asks the next question or shows the next thing.
+
+**The AI-tell catalog** below is v1's six. The contract's §6 carries
+seventeen — the six, plus the title formula, the antithesis dek, the stacked
+citation, the staccato run, the once-used name, and six Hinglish tells. The
+contract's list is the one the writers and the gate use.
 
 ---
 
@@ -880,73 +943,66 @@ mode of "smug-liberal-pose" would damage the piece.)
 
 ---
 
-# QUICK-REFERENCE PATTERN CARDS
+# QUICK-REFERENCE PATTERN CARDS (v2, 2026-09-13)
 
-For agent runtime use. Each card is a one-page recipe.
+For agent runtime use. Each card is a one-page recipe. They match
+`_voice-core.md` §4; Rule 0 — the register outranks the mode — sits above
+all of them.
 
 ## AWE
-- **Cadence:** long setup → short revelation. Closer 5–8 words landing on a noun.
-- **Open:** inventory + collapse / scale-anchor / "we" frame / "imagine" imperative.
-- **Vocab:** dust, ash, water, ice, light, dark, home, ocean, calendar.
-- **Avoid:** truly, incredibly, mind-blowing, exclamation points, italics on awe-words.
+- **Cadence:** a plain fact stated flat → one sentence converting it to a scale the reader owns → a short landing on a plain noun.
+- **Open:** the number, then the Indian-scale conversion ("Kanyakumari to Kashmir, forty times over") / "imagine" / "picture".
+- **Do:** "we"; one big claim per paragraph; the flat factual downshift after the image.
+- **Avoid:** truly, incredibly, mind-blowing, exclamation marks; a second cosmic claim in the paragraph; awe over a thing the reader cannot picture.
 - **Closer template:** *This is [plain noun].* / *We are [plain noun].*
-- **Calibration:** if the awe lives in the *adjectives*, rewrite. It lives in cadence and fact.
+- **Calibration:** the awe is in the fact and the comparison, never in the adjectives.
 
-## CONVERSATIONAL EXPLAINER
-- **Cadence:** mixed lengths; at least one short reset per paragraph; em-dashes welcome.
-- **Open:** everyday object as portal / lay-question to complicate / "here's the thing."
-- **Vocab:** thing, stuff, basically, anyway, weird, dollop, dot, teaspoon. Contractions OK.
-- **Avoid:** condescension, fake confusion, more than one digression per paragraph.
-- **Closer template:** *And that's why [plain claim].* / *Which is [punchline-shaped sentence].*
-- **Calibration:** read aloud without performance — if it works, it's working.
+## CONVERSATIONAL EXPLAINER — the default job, at least half the sections
+- **Cadence:** analogy → the number → the restatement → the question that opens the next step. One short reset sentence per paragraph.
+- **Open:** an everyday object as the door ("Think of the ocean as a geyser that never switches off") / the question the reader would ask.
+- **Do:** "you"; contractions; *that means / matlab*; one idea per paragraph.
+- **Avoid:** condescension ("simple hai na?"), fake confusion, two digressions in a paragraph, an analogy that needs a second analogy.
+- **Closer template:** *And that's why [plain claim].*
+- **Calibration:** read it aloud to Aarav; anything you would rephrase for him, rephrase on the page.
 
 ## CALM-STRUCTURAL
-- **Cadence:** short-medium clauses, comma-joined, paced for breath.
-- **Open:** specific date/place + ordinary object / named figure + year + gesture / glossy quote next to physical fact.
-- **Vocab:** citizen, lie, voice, neighbour, mask, river, fear, silence.
-- **Avoid:** monstrous, devastating, fascist, neoliberal. No expletive-political adjectives.
-- **Signature:** doubled question / scene-to-civilization pivot / juxtaposition without connective.
-- **Calibration:** at least one image must prove the writer feels what they're describing.
+- **Cadence:** short-to-medium clauses, comma-joined; say it, then say it again with one word changed.
+- **Open:** a date, a place, an ordinary object / the official line beside the physical fact **with the sentence that joins them**.
+- **Do:** the "we" of shared citizenship; the doubled question; one image that proves the writer feels it.
+- **Avoid:** monstrous, devastating, fascist, neoliberal; leaving the connective out; the editorial verb.
+- **Signature:** the doubled question / the written connective / the unwritten conclusion.
+- **Calibration:** restraint reads as a choice; the connective is written, the conclusion is not.
 
-## SATIRICAL EXPOSURE
-- **Cadence:** three-step escalation. Setup → absurd specific → harder fact as punchline.
-- **Open:** quote the official line straight, with feigned credulity.
-- **Voice rules:** faux-credulous deadpan in setup. Bureaucratic precision (full titles, exact figures).
-- **Avoid:** satirizing groups/vibes, visible outrage, punchlines funnier than the underlying fact.
-- **Signature:** specific-data-point as punchline / false concession ("In fairness...") / setup-misdirection-reveal.
-- **Calibration:** the laugh is the reader's recognition of a *real fact*, not appreciation of your line.
+## SATIRICAL EXPOSURE — ≤ 1 per issue, 0 on the politics desk
+- **Cadence:** flat setup → the absurd specific → a *further fact* as the punchline, landing on a title, a figure or a date.
+- **Open:** quote the official line straight.
+- **Do:** full titles, exact figures, deadpan.
+- **Avoid:** visible outrage, satirising groups or vibes, a line funnier than the fact, Hindi inside the joke.
+- **Calibration:** the laugh is the reader recognising a real fact.
 
-## DRY WIT
-- **Cadence:** measured cadence — comma-rich, paratactic — then small needle late.
-- **Open:** mismatch register and subject. Grand for small, or workaday for grand.
-- **Vocab:** stiff-collar formality (*disport, repair to, contrive*) against concrete nouns.
-- **Avoid:** italics on the joke, exclamation marks, "of course," winking.
-- **Signature:** parenthetical aside-as-stiletto / specific detail against grand narrative.
-- **Calibration:** if the reader needs the irony explained, the sentence is broken.
+## DRY WIT — a device, not a mode
+- One deadpan sentence inside another job's section: an accurate small verb placed late, or a parenthesis that carries the judgement while the main clause stays neutral.
+- **Never:** a whole section; Latinate vocabulary; "of course"; explaining the irony. If the reader would need it pointed out, cut it.
 
 ## INVESTIGATION
-- **Cadence:** alternating short curiosity / longer reasoning. ~1:2 ratio.
-- **Open:** anomaly the reader can see (visual / scene / question) before any context.
-- **Voice rules:** curiosity permitted, certainty not yet earned. Implicit narrator stance ("Look. Notice.").
-- **Avoid:** narrator-becoming-the-story, faked discovery, manufactured suspense.
-- **Signature:** "the more I looked, the stranger it got" / wall-of-evidence assembly / questions-that-rephrase.
-- **Calibration:** each section ends on a sharper question; each delivers a partial answer.
+- **Cadence:** a short curiosity jab, then two longer reasoning sentences (about 1:2).
+- **Open:** the anomaly as a graphic, first — "Look at the map. Notice the gap." — before any context.
+- **Do:** the implicit narrator ("Look. Notice."); each section ends on a sharper question and delivers a partial answer.
+- **Avoid:** the narrator becoming the story, faked discovery, questions that never resolve, more than one aside per section.
+- **Calibration:** the reader is brought into the noticing.
 
 ## FORENSIC
-- **Cadence:** symphonic paragraphs. Scene-setting → analysis → landing. Periodic sentences for judgment, short for landings.
-- **Open:** single specific moment that will accrue meaning / general observation then specific case / experience-as-sensation.
-- **Voice rules:** trust reader absolutely. No glossing. Pair technical fact + human stake in same paragraph.
-- **Avoid:** lecture, decoration, showing off, bolted-on stakes paragraph.
-- **Signature:** structural call-back / specific detail as moral stake / footnote-as-counter-narrative.
-- **Calibration:** if you can lift the technical part out without damaging the stakes part, you wrote two paragraphs, not one.
+- **Cadence:** a specific moment → the mechanism in **two short sentences** → the stake in the same paragraph → a short landing; the opening image returns at the close, changed.
+- **Do:** every technical fact glossed the moment it appears; the stake in the same breath as the fact; specific detail as the moral content.
+- **Avoid:** the lecture, the periodic sentence, the bolted-on stakes paragraph, decoration, showing off.
+- **Signature:** the structural call-back / specific detail as moral stake.
+- **Calibration:** lift the technical part out and the stake should collapse with it.
 
-## LYRICAL COMPRESSION
-- **Cadence:** fragment + long breath + fragment. Comma as rest. Volta on the third clause.
-- **Open:** image already in motion / body in specific posture / small journey with implication held back.
-- **Vocab:** moment, lamp, road, shadow, glass, wrist, doorway, comma, breath.
-- **Avoid:** mindful, presence, healing. Adjective stacks. Naming the feeling.
-- **Signature:** image-image-twist / stillness-in-motion paradox / timed silence / paragraph break as volta.
-- **Calibration:** at most one image per paragraph, used precisely. Never argument-bearing.
+## LYRICAL COMPRESSION — ≤ 1 paragraph per issue
+- **Cadence:** a plain image, a long breath, a short line.
+- **Vocab:** road, lamp, doorway, wrist, platform, monsoon, courtyard.
+- **Avoid:** naming the feeling, adjective stacks, fragments for their own sake, spiritual jargon, any argumentative work.
+- **Calibration:** one image, used precisely; it lands the argument, never carries it.
 
 ---
 
@@ -957,6 +1013,15 @@ editor learns from production runs of the stylist agent. Changes:
 
 - 2026-05-04 — Initial library: 8 modes researched and synthesized from
   20+ reference figures across 4 parallel research agent runs.
+- 2026-09-13 — v2 amendments (REGISTER-PLAN RG-05, signed by the operator):
+  Rule 0 (the register outranks the mode); the "no glossing / without the
+  connective / assumed to know" clauses struck from FORENSIC, CALM-STRUCTURAL
+  and DRY WIT; DRY WIT demoted to a device; CONVERSATIONAL made the default
+  job; SATIRICAL barred from the politics desk; LYRICAL capped at one
+  paragraph; anchors re-proposed toward Indian communicators; the
+  Quick-Reference cards rewritten. The runtime contract `_voice-core.md` v2
+  is the operative standard; this file is the deep reference. The long mode
+  cards were left as written, as the research record.
 
 When updating: keep the **pattern** as the unit of analysis. Add new
 reference figures only when they expand the pattern (a new opening move,

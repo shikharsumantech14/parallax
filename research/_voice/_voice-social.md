@@ -1,9 +1,13 @@
 # Parallax — social voice contract (runtime)
 
-> The voice + format contract for **social** posts. Distinct from the
-> publication voice (`_voice-core.md`): the site is literary and compressed for
-> a reader who chose to sit down; **social has to teach a stranger mid-scroll.**
-> Every social-writing agent reads THIS file, plus the evolving
+> The **format** contract for social posts. The voice is `_voice-core.md` v2
+> (2026-09-13), which now governs the site and social alike — one reader,
+> mid-scroll, at two lengths; the old line about a site reader who "chose to
+> sit down" is retired (REGISTER-PLAN RG-01). This file carries what is
+> social-only: thread shape, per-post limits, platform rules, and the one
+> register difference — social may use the contract's L3 (Hindi carrying
+> clauses) where it fits, which the reading page never does. Every
+> social-writing agent reads THIS file, plus the evolving
 > `_voice-social-learned.md` (heuristics learned from real performance), every run.
 >
 > One job: **make a hard thing easy to see.** If a smart 15-year-old wouldn't
@@ -33,7 +37,7 @@
   Statue-of-Liberty tall"). A figure nobody can feel is a figure nobody remembers.
 - **Teach in an arc:** hook → set up the puzzle → walk the steps, one idea at a
   time → the *click* ("oh, THAT's why") → the takeaway → where to read more.
-- Still obey the AI-tell catalog from `_voice-core.md` §4 — **max 1 em-dash per
+- Still obey the AI-tell catalog from `_voice-core.md` §6 — **max 1 em-dash per
   post, no "it is not X, it is Y" reframes, no triple-fragment closes, no
   abstract-noun labels ("the mechanism"), no "First… Second…" rhythm.** Casual ≠
   sloppy. (Contractions and conversational asides are now *encouraged* — that's
