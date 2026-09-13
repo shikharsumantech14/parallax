@@ -1,37 +1,47 @@
 ---
 name: job-fit-judgements
-description: Which of the eight rhetorical jobs each section kind actually lands in practice, from styled issues that held up
+description: Rhetorical-job assignments that held up on Parallax issues, and the arithmetic trap in the "CONVERSATIONAL carries half" rule
 metadata:
   type: project
 ---
 
-Job-fit calls that survived a reader panel and the operator's read. These are
-observations about *kinds*, not about any one issue's facts.
+# Job-fit judgements that held up
 
-- **The four plain-language kinds (`number-sense`, `you-think`, `three-steps`,
-  `jargon-buster`) default to CONVERSATIONAL EXPLAINER.** Their intros do the
-  contract's §3 rule 2 work — gloss a term, hand the reader the number — which
-  is CONVERSATIONAL's cadence exactly. They are the cheapest way to hit the
-  "at least half the sections" floor.
-- **A physical-profile hero (`elevation-trek`, `altitude-oxygen`) reads
-  FORENSIC, not AWE.** The intro glosses the technical fact and fuses the human
-  stake to it in the same breath. AWE wants an Indian-scale conversion the
-  copy does not have when the component is already doing the converting.
-- **`comparison` and `timeline` split on what the intro *does*.** An intro that
-  instructs the reader ("read across a row and ask both mountains the same
-  question") is CONVERSATIONAL. An intro that names a direction without heat
-  ("the four after them tighten, and not one loosens" — say it, then say it
-  again with one word changed) is CALM-STRUCTURAL.
-- **`paradox` as a closer is CALM-STRUCTURAL.** It is the §7 default and the
-  safer failure mode; LYRICAL tempts an adjective stack the section does not
-  need.
-- **Three jobs across eight sections is legal and often honest.** The floor is
-  3. Do not manufacture a fourth job by relabelling a section whose intro does
-  not do that job's move.
+**The "CONVERSATIONAL EXPLAINER carries at least half the sections" rule is
+arithmetic, and storyboards get it wrong.**
 
-**Why:** the mode assignment is the one thing the stylist decides that nothing
-downstream re-checks, so a wrong label quietly licenses the wrong rewrite.
+**Why:** the composer sketches jobs in prose ("INVESTIGATION opens, CONVERSATIONAL
+carries the middle, CALM-STRUCTURAL closes") and does not count. On the
+delimitation rewrite (9 sections) the storyboard's own split was 2 / 4 / 3 and
+claimed 4 of 9 was "over half the sections, as required". It is not.
 
-**How to apply:** assign from what the intro's *opening move* is, not from the
-component's subject matter (contract §7: "jobs follow the rhetorical work, not
-the topic"). See [[recurring-ai-tells]] for what each mislabel tends to invite.
+**How to apply:** count before you accept a storyboard's job sketch. When the
+count is short, the section to re-read is usually the one whose *prose* explains
+a mechanism while its *slot* (a vote, a result, a closer) says CALM-STRUCTURAL.
+A `vote-result` intro that glosses two terms of art in two sentences
+("Changing the Constitution needs two-thirds of those present and voting. In a
+division vote every MP's yes or no is counted") is a walk-through — the
+decision tree (§8) sends it to CONVERSATIONAL, not to the closer's default.
+The contract's hard blending rule outranks the storyboard's sketch; report the
+reallocation as storyboard drift with the reason.
+
+## Reliable slot → job fits so far
+
+- `number-sense` / `data-readout` as section 1, no intro → **INVESTIGATION**
+  ("look at this number"). The numeral and the eyebrow carry the opening move;
+  an intro here also eats the 80-word words-before-first-graphic budget.
+- `timeline` whose intro glosses the issue's one term of art →
+  **INVESTIGATION**. The dates *are* the anomaly.
+- `you-think`, `bill-breakdown`, `analogy`, the hero chart → **CONVERSATIONAL**.
+  These four are the reliable half.
+- `paradox`, `quote` → **CALM-STRUCTURAL**, always. Both are "the official line
+  beside the physical fact with the sentence that joins them".
+
+## `voice:` (the schema's top-level field)
+
+Dominant job by section count. In practice this is **CONVERSATIONAL EXPLAINER**
+for any conforming issue, because the contract mandates it carry half. Set it
+anyway — the fact grid drops to three cells when it is absent. Convention:
+unquoted scalar after `readTimeMinutes`, before `primer`.
+
+See [[parallax-ai-tells]] and [[check-prose-gate-quirks]].
