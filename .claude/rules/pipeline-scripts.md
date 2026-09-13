@@ -14,8 +14,13 @@ paths:
 Never invoke one to "test" something.
 
 Per-run cost, API-CLI route: discover ~$0.30–0.80 · research ~$0.80–2.00 ·
-draft ~$3–7.50 · stylist ~$1.50–2.50 · verify ~$0.40–1.00. **Full pipeline per
-issue: $6–14.** Running one is an editorial decision, never a technical one.
+storyboard ~$0.30–0.60 · draft ~$3–7.50 · panel ~$0.50–1.00 (×2) · stylist
+~$1.50–2.50 · verify ~$0.40–1.00. **Full pipeline per issue: $7–16.** Running
+one is an editorial decision, never a technical one. The draft phase refuses
+an unapproved storyboard while `GATES.storyboard` is `'required'`
+(`pipeline.config.ts`, REGISTER-PLAN RG-07) — that check runs before any
+agent is loaded, so `npx tsx scripts/pipeline.ts draft <cat>` with no
+storyboard is a free smoke test.
 
 `.env.local` is gitignored via `*.local`. Never commit it, never echo its
 contents.

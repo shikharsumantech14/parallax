@@ -38,9 +38,12 @@ npm run pipeline:verify   earth
 |---|---|---|
 | `npm run pipeline:discover <cat>` | 1 | Discovery agent surveys allowlisted sources, writes `research/<cat>/<date>-candidates.md` |
 | `npm run pipeline:research <cat>` | 2 | Researcher agent deep-dives the chosen candidate, writes `research/<cat>/<date>-<slug>-dossier.md` |
-| `npm run pipeline:draft <cat>` | 3 | Drafter agent writes the full MDX issue to `src/content/issues/<date-slug>/index.mdx` with `status: draft` |
-| `npm run pipeline:stylist <cat>` | 3.5 | Stylist agent assigns a rhetorical mode to each section (AWE / FORENSIC / INVESTIGATION / CALM-STRUCTURAL / SATIRICAL / CONVERSATIONAL / DRY WIT / LYRICAL), rewrites intro fields and prose paragraphs in the mode pattern. Facts and structured data untouched. |
-| `npm run pipeline:verify <cat>` | 4 | Verifier agent audits every factual claim against the dossier, writes `research/<cat>/<date>-<slug>-verification.md` |
+| `npm run pipeline:storyboard <cat>` | 2.5 | Composer agent maps every point the reader must get to the component that shows it (from all 98 kinds, by data shape), the word budgets, the head, the Indian ground and the three quiz questions → `research/<cat>/<date>-<slug>-storyboard.md`, `Status: draft`. **You flip it to `approved`** — the gate is `GATES.storyboard` in `pipeline.config.ts` (`'required'` now, `'auto'` later) |
+| `npm run pipeline:draft <cat>` | 3 | Drafter agent executes the storyboard and writes the full MDX issue to `src/content/issues/<date-slug>/index.mdx` with `status: draft`. Refuses an unapproved storyboard while the gate is `'required'` |
+| `npm run pipeline:panel <cat>` | 3.2 / 3.7 | Reader-panel agent reads the draft cold as four Indian reader personas, answers the storyboard's three questions from the draft alone, retells every section, quotes the sentence that lost each reader → `research/<cat>/<date>-<slug>-panel.md` with PASS / REVISE / BLOCK. Run after the draft and again after the stylist |
+| `npm run pipeline:stylist <cat>` | 3.5 | Stylist agent rewrites the prose into the runtime voice contract (`research/_voice/_voice-core.md` v2: plain Indian English, hand-held, a Hindi word only where it is the natural word) and assigns one rhetorical job per section. Facts and structured data untouched |
+| `npm run pipeline:verify <cat>` | 4 | Verifier agent audits every factual claim against the dossier and the register/composition flags, writes `research/<cat>/<date>-<slug>-verification.md` |
+| `npm run check:prose [-- <slug>]` | — | The deterministic register + composition report over every issue (words, blocks, visual share, sentence rhythm, names, unglossed jargon, Hindi rules, Indian ground, numeral drift against HEAD). `check:prose:gate` fails on blocking flags; it joins `prebuild` once the backlist passes |
 
 Valid categories: `politics` · `space` · `earth` · `tech` · `travel` · `sports`
 

@@ -12,8 +12,10 @@
 ## Claude Code specifics
 
 - **Slash commands available:** `/pipeline-discover`, `/pipeline-research`,
-  `/pipeline-draft`, `/pipeline-verify`. The stylist phase is API-CLI only
-  (`npm run pipeline:stylist <category>`).
+  `/pipeline-storyboard`, `/pipeline-draft`, `/pipeline-panel`,
+  `/pipeline-verify`. The stylist phase is API-CLI only
+  (`npm run pipeline:stylist <category>`). The storyboard gate
+  (`GATES.storyboard` in `scripts/pipeline.config.ts`) is read by both routes.
 - **Agent definitions** live in `.claude/agents/<name>.md` (discovery,
   researcher, drafter, stylist, verifier). Spawning an agent in Claude
   Code routes the cost through the Claude Pro/Max budget. To bill the API key

@@ -40,12 +40,24 @@ research/
 2. YOU PICK 1                    ← change one candidate's status: open → chosen
 3. /pipeline-research <cat>     → research/<cat>/<date>-<slug>-dossier.md
 4. YOU REVIEW DOSSIER            ← check [UNVERIFIED], approve
-5. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft)
-6. YOU REVIEW DRAFT              ← fix voice/flow, resolve EDITOR comments
-7. (CLI only) npm run pipeline:stylist <cat>      → rhetorical-mode rewrites
-8. /pipeline-verify <cat>       → research/<cat>/<date>-<slug>-verification.md
-9. YOU AUDIT + PUBLISH          ← read report, fix, flip status, commit
+5. /pipeline-storyboard <cat>   → research/<cat>/<date>-<slug>-storyboard.md (Status: draft)
+6. YOU APPROVE THE STORYBOARD    ← two minutes: move a row, swap a kind, flip Status: approved
+                                    (the gate is GATES.storyboard in scripts/pipeline.config.ts:
+                                    'required' now; 'auto' later — REGISTER-PLAN RG-07)
+7. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft)
+8. /pipeline-panel <cat>        → research/<cat>/<date>-<slug>-panel.md (first pass: PASS/REVISE/BLOCK)
+9. YOU REVIEW DRAFT              ← with the panel report; resolve EDITOR comments
+10. (CLI only) npm run pipeline:stylist <cat>     → register + job rewrites
+11. /pipeline-panel <cat>       → second pass
+12. /pipeline-verify <cat>      → research/<cat>/<date>-<slug>-verification.md
+13. npm run check:prose -- <slug>                → the deterministic register/composition report
+14. YOU AUDIT + PUBLISH         ← read the reports, fix, flip status, commit
 ```
+
+Steps 5, 6, 8, 11 and 13 were added on 2026-09-13 under `docs/REGISTER-PLAN.md`
+(the plain Indian register + component-first composition). The voice
+contract every writing agent loads is `research/_voice/_voice-core.md` v2;
+the lexicon and the jargon list sit beside it.
 
 > **Component palette.** The publication ships **~90 section kinds** — the
 > editorial kinds plus a deep physics / data / geography-grounded interactive +

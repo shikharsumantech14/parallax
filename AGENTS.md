@@ -75,9 +75,12 @@ npm run preview           # serve .vercel/output/static — the 45 prerendered
 npm run new-issue         # scaffold a new issue folder
 npm run pipeline:discover    <category>    # Phase 1 — discovery agent
 npm run pipeline:research    <category>    # Phase 2 — researcher agent
-npm run pipeline:draft       <category>    # Phase 3 — drafter agent
+npm run pipeline:storyboard  <category>    # Phase 2.5 — composer agent (you approve the storyboard)
+npm run pipeline:draft       <category>    # Phase 3 — drafter agent (refuses an unapproved storyboard)
+npm run pipeline:panel       <category>    # Phase 3.2 / 3.7 — reader-panel agent, the comprehension gate
 npm run pipeline:stylist     <category>    # Phase 3.5 — stylist agent
 npm run pipeline:verify      <category>    # Phase 4 — verifier agent
+npm run check:prose          [-- <slug>]   # the register + composition report (gate: check:prose:gate)
 ```
 
 The pipeline scripts bill to your `ANTHROPIC_API_KEY` (loaded from
@@ -157,7 +160,7 @@ src/
 │   ├── SectionBody.astro      ← the actual dispatcher: section.kind →
 │   │                            component. Shared with story mode. THIS is
 │   │                            the file a new section kind is wired into.
-│   │                            Also resolves `howToRead ?? EXPLAIN[kind].how`
+│   │                            Also resolves `howToReadFor(kind, howToRead)`
 │   │                            for the ten VizCard kinds so the panel renders
 │   │                            inside the card (Section's copy hides via :has()).
 │   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
@@ -220,9 +223,11 @@ src/
 │   │                            formatIssueNumber, formatSectionLabel
 │   ├── explainers.ts          ← EXPLAIN: per-kind default `what` (the "in plain
 │   │                            terms" fallback when a section has no `plain`)
-│   │                            and `how` (the LIVE how-to-read fallback when a
-│   │                            section has no `howToRead`, every kind, since
-│   │                            2026-09-04). 90 entries + 7 narrative-exempt kinds;
+│   │                            and `how` (the how-to-read default when a
+│   │                            section has no `howToRead` — for the NEEDS_HOW
+│   │                            kinds only since 2026-09-13, RG-19; every kind
+│   │                            from 2026-09-04 to then). `howToReadFor()` is the
+│   │                            one resolution. 90 entries + 7 narrative-exempt;
 │   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
@@ -339,8 +344,21 @@ holds two control gates; agents do everything else.
                                           flip status to published, commit
 ```
 
+**Since 2026-09-13 (`docs/REGISTER-PLAN.md`) the diagram above has three more
+stops.** Between 4 and 5: `/pipeline-storyboard` writes
+`research/<cat>/<date>-<slug>-storyboard.md` (every point the reader must
+get → the kind that shows it, from all 98 by data shape; the hero; the word
+budgets; the head; the three quiz questions) and **you approve it** — the
+gate is `GATES.storyboard` in `scripts/pipeline.config.ts`, `'required'` for
+the first ten issues, `'auto'` after. After 5 and again after 7:
+`/pipeline-panel` — four Indian reader personas read the draft cold, answer
+the three questions from the draft alone, and return PASS / REVISE / BLOCK.
+Before 9: `npm run check:prose -- <slug>`. The full v2 sequence is in
+`research/AGENTS.md` §2.
+
 Agents live in `.claude/agents/`; slash commands in `.claude/commands/`
-(`/pipeline-discover|research|draft|verify`; the stylist is API-CLI only).
+(`/pipeline-discover|research|storyboard|draft|panel|verify`; the stylist is
+API-CLI only).
 
 **Two hard rules that have been broken before:**
 
@@ -384,11 +402,20 @@ only, and the onboarding migration is **not yet applied**. See §10.
 
 ---
 
-## 6. The voice system (eight rhetorical modes)
+## 6. The voice system — the register, then eight rhetorical jobs
 
-The stylist agent reads `research/_voice/mode-library.md` (964 lines) at
-runtime and assigns one of eight modes to each section. The drafter keeps
-the same library open while writing.
+**The runtime contract is `research/_voice/_voice-core.md` v2, signed
+2026-09-13** (`docs/REGISTER-PLAN.md`, RG-01…RG-05). Every writing agent
+loads it every run. Its Rule 0: **the register outranks the mode.** Plain
+Indian English by default — explicit, concrete, hand-held, placed in India:
+every term glossed the moment it appears, every abstraction given a concrete
+thing, every number a comparison the reader can feel, names rationed to
+twelve, "you" and "we" free. A Hindi word only where it is the natural word,
+and **never load-bearing** (delete it and the English still says everything;
+the lexicon is `hinglish-lexicon.md`; none in the precision layer). The
+published issues before 2026-09-13 are the OLD register and are not a voice
+reference. `mode-library.md` is the deep reference for the eight jobs and
+loses to the contract where they disagree.
 
 | Mode | When |
 |---|---|
@@ -401,16 +428,19 @@ the same library open while writing.
 | FORENSIC | Mechanism with human stakes, staccato precision |
 | LYRICAL COMPRESSION | Closer or single emotional landing — Akhtar / Iyer / Ondaatje |
 
-**Mode-blending rules (hard):**
-- One dominant mode per section.
-- At most 1 SATIRICAL EXPOSURE section per issue.
-- At most 2 LYRICAL COMPRESSION paragraphs per issue.
-- 4–6 modes across the full issue. Not 8, not 1.
+**Blending rules (hard, v2):**
+- One dominant job per section; CONVERSATIONAL EXPLAINER carries at least
+  half the sections.
+- At most 1 SATIRICAL EXPOSURE section per issue, and none on the politics desk.
+- At most 1 LYRICAL COMPRESSION paragraph per issue; DRY WIT is a device, not
+  a section.
+- 3–5 jobs across the full issue.
 
-**The AI-tell catalog** — five tells every prose field must pass, and the rule
-that applying a mode never excuses one — lives in
+**The AI-tell catalog** — seventeen tells every prose field must pass (the
+six of v1, five found in the measured corpus, six for Hinglish), and the rule
+that neither a mode nor plainness excuses one — lives in
 **`.claude/rules/editorial-voice.md`** (loads on `research/**` and `**/*.mdx`),
-with the full canon in `research/_voice/mode-library.md`.
+with the canon in `_voice-core.md` §6.
 
 ---
 
@@ -494,14 +524,18 @@ with the full canon in `research/_voice/mode-library.md`.
   reintroduce it. Graphic containers
   must never end in `__cap`/`__src`; keep that invariant when naming.
 - **Explainability chrome renders once, from `core/Section.astro`.** The
-  how-to-read panel sits ABOVE the graphic (`section.howToRead ??
-  EXPLAIN[kind].how`); the plain line and its `Source · …` second line
-  (`.px-plain__src`, from `section.source ?? data.source`) sit BELOW — for
-  every kind. Components render none of source / plain / how themselves. The
-  one exception: the ten VizCard kinds render their how-to-read INSIDE the
-  card, and `dataviz-v2.css` hides Section's copy with `:has()` so a section
-  shows exactly one panel. Do not add a `.px-viz__src` emitter back — the
-  seventy that existed were stripped on 2026-09-04.
+  how-to-read panel sits ABOVE the graphic, resolved by ONE function,
+  `howToReadFor(kind, authored)`: an authored `howToRead` always renders; the
+  per-kind default renders only for the `NEEDS_HOW` kinds — instruments, WebGL
+  scenes, counter-intuitive forms (REGISTER-PLAN RG-19, 2026-09-13; the
+  every-kind fallback of 2026-09-04 measured a paragraph on 69 published
+  sections). The plain line sits BELOW with `Source · …` running inline after
+  it (`.px-plain__src`, from `section.source ?? data.source`) — for every kind.
+  Components render none of source / plain / how themselves. The one
+  exception: the ten VizCard kinds render their how-to-read INSIDE the card,
+  and `dataviz-v2.css` hides Section's copy with `:has()` so a section shows at
+  most one panel. Do not add a `.px-viz__src` emitter back — the seventy that
+  existed were stripped on 2026-09-04.
 - **Surfaces are flat (RD-05).** `.px-viz` and every reading / home surface:
   `border-radius: 0`, no `box-shadow`, hover changes border-colour only; every
   figure wears a 3px `border-top: var(--viz-edge)` (ink on light desks, accent
@@ -604,6 +638,8 @@ with the full canon in `research/_voice/mode-library.md`.
 ```bash
 npm run build         # 44+ pages; prebuild runs all four gates first
 npm run check:catalog # SECTION_KINDS <-> catalog, order, EXPLAIN + KIND_PRIORITY
+npm run check:prose   # the register + composition report (2026-09-13); the
+                      # gate form joins prebuild once the backlist passes
 npm run design:check  # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check   # the derived project graph is in sync
 npm run hooks:test    # the enforcement hooks still decide correctly
@@ -680,6 +716,55 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-13 — The register plan: plain Indian voice, component-first issues
+
+Reader feedback after the launch design — a wall of words, hard to read,
+language only fluent readers follow — was measured rather than assumed
+(`docs/REGISTER-PLAN.md` §1, **signed 2026-09-13**). The finding inverted the
+obvious fix: by every readability formula the published issues were already
+*easier* than Finshots; what they lacked was hand-holding (zero restatements,
+zero questions, zero analogies per thousand words against Finshots' seven,
+two and a half, and two), the copy was fragmented into ~40 blocks an issue
+(much of it explainer chrome), the reader met ~300 distinct names, and the
+register was unplaced (₹, crore and Hinglish: zero occurrences in ten
+issues). Only 20 of 98 kinds had ever been published; six kinds were 79% of
+sections. Standing rules changed by the signature — **do not restore them**:
+
+- **The runtime contract is `research/_voice/_voice-core.md` v2** (§6): the
+  register outranks the mode; plain Indian English by default; a Hindi word
+  only where it is the natural word, never load-bearing, never in the
+  precision layer; the fifteen rules; seventeen AI tells; CONVERSATIONAL the
+  default job; SATIRICAL barred from politics; DRY WIT a device; LYRICAL ≤ 1
+  paragraph. Lexicon and jargon list beside it; `mode-library.md` amended,
+  not rewritten, and loses to the contract.
+- **The pipeline has a storyboard step and a reader panel** (§5): `composer`
+  writes the storyboard (kinds by data shape, `docs/design/catalog-shapes.md`;
+  the hero; word budgets; the head; the three quiz questions); the operator
+  approves it (`GATES.storyboard` in `scripts/pipeline.config.ts`, read by
+  both routes); the drafter executes it; `reader-panel` reads the draft as
+  four Indian personas and answers the quiz from the draft alone, twice per
+  issue. The drafter's inline eleven-kind list — the cause of the six-kind
+  monoculture — is gone.
+- **Composition floors, not just ceilings** (REGISTER-PLAN §5.1): ≥ 6 in 10
+  sections visual; never two text-only adjacent; the first section a graphic;
+  ≤ 3 prose sections of ≤ 200 words; ≤ 1,100 reader-facing words; ≤ 80 words
+  before the first graphic; ≤ 12 names. `npm run check:prose` reports them
+  (report mode; `check:prose:gate` joins `prebuild` once the backlist passes).
+- **The how-to-read default is per kind (RG-19, re-taking the 2026-09-04
+  ruling with the measurement it lacked):** `howToReadFor()` in
+  `src/lib/explainers.ts` renders an authored paragraph for any kind and the
+  default only for `NEEDS_HOW` kinds — instruments, WebGL scenes,
+  counter-intuitive forms. The source runs inline on the plain line.
+- **Titles state the finding**; the "The ‹Noun› That ‹Verb›s" construction is
+  retired; hooks carry a number, a "you", the twist.
+- **The old published issues are not a voice reference.** They are rewritten
+  under Phase 4 of the plan (four flagships first), then the rest.
+
+Not yet built from the plan: the four plain-language kinds and the annotation
+slot (Phase 3), the rewrites (4, 6), the copy deck and the EXPLAIN batch (8.2,
+8.3), the real-reader protocol (7.4), `hero`'s retirement, the `hi-Latn`
+span (RG-18).
 
 ### 2026-09-08 — The launch design (public launch 19 September)
 
