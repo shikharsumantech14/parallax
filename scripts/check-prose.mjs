@@ -123,7 +123,8 @@ for (const line of jargonMd.split(/\r?\n/)) {
 const GLOSS_MARKERS = /[—–:(]|\bmatlab\b|\bthat means\b|\bwhich means\b|\bwhich is\b|\bin other words\b|\bin plain terms\b|\bthink of it\b|\bthat is\b|\bi\.e\.|\bcalled\b|\bknown as\b/i;
 
 // ── Text helpers ────────────────────────────────────────────────────────────
-const words = (s) => (s.match(/[A-Za-z0-9₹$][\w’'.,%₹$°-]*/g) || []).filter((w) => /[A-Za-z0-9]/.test(w));
+// Unicode-aware: "Niño" and "café" are one word each (an ASCII class split them in two).
+const words = (s) => (s.match(/[\p{L}\p{N}₹$][\p{L}\p{N}’'.,%₹$°-]*/gu) || []).filter((w) => /[\p{L}\p{N}]/u.test(w));
 const wc = (s) => words(String(s)).length;
 function sentences(s) {
   return String(s)
@@ -133,7 +134,8 @@ function sentences(s) {
     .map((x) => x.trim())
     .filter((x) => wc(x) > 0);
 }
-const numerals = (s) => (String(s).match(/\d[\d,]*(?:\.\d+)?/g) || []);
+// A numeral never ends in a comma: "2025," is the numeral 2025 followed by punctuation.
+const numerals = (s) => (String(s).match(/\d(?:[\d,]*\d)?(?:\.\d+)?/g) || []);
 const hindiTokens = (s) => words(String(s)).map((w) => w.toLowerCase().replace(/[^a-z]/g, '')).filter((w) => w && HINDI_ALLOWED.has(w) && !ENGLISH_COLLIDERS.has(w));
 const hindiContent = (s) => hindiTokens(s).filter((w) => !HINDI_PARTICLES.has(w));
 const bannedTokens = (s) => words(String(s)).map((w) => w.toLowerCase().replace(/[^a-z]/g, '')).filter((w) => HINDI_BANNED.has(w));
@@ -336,6 +338,9 @@ for (const slug of slugs) {
   // — Hindi —
   for (const s of strings) {
     if (hasDevanagari(s.text)) flag('❌', 'HINDI-SCRIPT', `section ${s.sec + 1} ${s.field}`, 'Devanagari — Roman script only');
+    // `jargon-buster`'s `hindi` slot is a Hindi-only field by design (its English
+    // meaning sits beside it), so the density and load-bearing rules do not apply.
+    if (s.key === 'hindi') continue;
     const hc = hindiContent(s.text);
     if (s.precision && hc.length) flag('❌', 'HINDI-FIELD', `section ${s.sec + 1} ${s.field}`, `Hindi in the precision layer: ${hc.join(', ')}`);
     const bt = bannedTokens(s.text);
