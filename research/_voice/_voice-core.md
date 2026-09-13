@@ -71,8 +71,13 @@ where it fits — a Hindi word.
    translation of the English word standing next to it.
 3. **The wince test.** A Lallantop sub-editor would not wince. Forced, cute,
    "brand Hinglish" and YouTube-intro Hindi are out.
-4. **The precision test.** It is nowhere near a number, a unit, a source, a
-   caption, a legal or technical term, or a claim it could soften.
+4. **The precision test.** It never modifies, hedges or counts a number, a
+   unit or a term of art — *lagbhag 15,000*, *das lakh*, *shayad* — and it
+   never appears in a caption, a how-to-read, a plain line, a source line or
+   a data label. A possessive or a connective standing beside a figure
+   (*Everest ka ticket: $15,000*) is allowed: the figure itself stays exactly
+   as sourced. (Worded this way on 2026-09-13, when the queue storyboard found
+   the earlier "nowhere near a number" contradicting §9's signed example.)
 
 **When in doubt, leave it out.** Most paragraphs will have no Hindi at all,
 and that is correct. Ceiling: one Hindi phrase per paragraph, never in two

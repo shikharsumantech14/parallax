@@ -5,7 +5,7 @@
 - **Rewrites:** src/content/issues/2026-06-04-arsenal-set-piece-title/index.mdx (published; slug and all six `sources[]` unchanged)
 - **Composed:** 2026-09-13
 - **Composer:** composer-agent
-- **Status:** draft            ← draft | approved | hold  (the gate; see below)
+- **Status:** approved            ← approved by the operator 2026-09-13; rulings in §9
 
 > **This is a REWRITE, not a new issue** (`docs/REGISTER-PLAN.md` §8.1, the
 > flagship set under RG-14). The slug, the six sources and every fact stay; the
@@ -512,3 +512,32 @@ It is the cheapest thing to restore if the operator wants it — swap it for til
 | 7 | **The `tactics-pitch` players lose their names and shirt numbers**, keeping only position and role. | It resolves verification required fix #3 outright and returns nine name slots. The cost is that a reader cannot pick out Rice or Saka on the pitch — the figure becomes a shape, which is what its own caption already called it ("schematic"). Rule it back and the issue is at 19 names, well over the ceiling of 12. |
 | 8 | **Two kinds ship here for the first time in a published issue** — `you-think` and `jargon-buster` (`number-sense` and `three-steps` too, if the showcase drafts do not count), and `benchmark-chart` and `match-stat-line` have never appeared outside a showcase. | Worth eyeballing rows 1, 2, 4, 5, 7 and 9 in the browser before the draft is verified. Row 4 in particular: a four-bar `benchmark-chart` where three bars are near-identical and unlabelled by club name is a layout risk, and the tech-desk styling lands on a sports page. |
 | 9 | **The seven `# EDITOR:` Opta flags are unresolved and ride forward.** | This is the dossier's one structural blocker (§0/§9) and verification required fix #5. It is not a composition question, but the rewrite is the cheapest moment to clear it: read the Guardian's 19 May 2026 wrap (or The Athletic) by hand and re-anchor 27 / 28.5 / 25 / 19 / 238 / 200 / the clinch, **or** consciously accept the Opta attribution and say so. Do not let the flags flip to published a second time by default. |
+
+## 9. Operator rulings (2026-09-13) — binding on the drafter
+
+Approved as composed, with these calls settled (the operator's approval took
+the orchestrator's recommendations on every open item):
+
+1. **The `shot-map` stays the hero**, `layout: wide`, **with the honesty line
+   in the caption itself**, not only the source line — the caption reads the
+   data claim and then "positions are schematic; the totals are real".
+2. **`you-think` opens the issue** and counts as the opening graphic.
+3. **£2.5 million ≈ ₹26 crore at ₹105 to the pound**, labelled a 2017
+   valuation, written as *approximate*, the rate and "September 2026" in the
+   section's source line. The operator confirms before the published flip.
+4. **No `timeline`.** The StatsBomb line is folded into row 5's intro, verbatim.
+5. **The `tactics-pitch` players lose names and shirt numbers.**
+6. **The seven Opta-attributed numbers are re-anchored by a researcher pass
+   BEFORE this draft** — 27 conceded, 28.5 xGA, 25 set-piece goals, 19 corner
+   goals, 238 days top, 200 consecutive, the 19 May clinch. The pass writes
+   `research/sports/2026-09-13-arsenal-re-anchoring.md` (a separate file; the dossier at
+   `research/sports/2026-06-04-arsenal-set-piece-title-dossier.md` is untouched). The
+   drafter reads it and uses its attributions; where a number could not be
+   re-anchored, the drafter keeps the Opta attribution and says so in the
+   source line, and no `# EDITOR:` flag ships as visible copy.
+7. **No `act-break`** (RG-06).
+8. **Write in place.** The rewrite replaces
+   `src/content/issues/2026-06-04-arsenal-set-piece-title/index.mdx` — same
+   `id`, `topic`, `publishedAt`, `status: published`, `tags`;
+   `readTimeMinutes` to 4–5. It is tabled for the operator's read before it is
+   committed.

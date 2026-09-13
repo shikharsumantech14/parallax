@@ -5,7 +5,7 @@
 - **Rewrites:** src/content/issues/2026-05-03-el-nino-new-floor/index.mdx (published; slug and sources unchanged)
 - **Composed:** 2026-09-13
 - **Composer:** composer-agent
-- **Status:** draft            ← draft | approved | hold  (the gate; see below)
+- **Status:** approved            ← approved by the operator 2026-09-13; rulings in §9
 
 > Created under `docs/REGISTER-PLAN.md` §5.2; RG-07 ruled 2026-09-13: a
 > separate composer agent, and the gate is a switch. The storyboard is written
@@ -288,3 +288,27 @@ three of the four ⚠️ IMPRECISE items resolved.
    floor's exclusion list names only `prose`, `quote`, `analogy`, `beat-sheet`,
    `act-break`, `plate` and `paradox` — this storyboard is 8 visual of 9 (89%).
    It passes either way; the strict count is the one in the table.
+
+## 9. Operator rulings (2026-09-13) — binding on the drafter
+
+Approved as composed, with these calls settled (the operator's approval took
+the orchestrator's recommendations on every open item):
+
+1. **`you-think` opens the issue** and counts as the opening graphic.
+2. **The hero takes `layout: wide`**, not `split`.
+3. **The Arctic sea-ice tile may compare to India's land area** — "about 4.3
+   times India's land area" — the way the contract allows "the population of
+   Delhi": a common-knowledge scale constant, not a new claim. The tile `note`
+   states the basis ("India is about 3.3 million km²") so the verifier can
+   check it (ANALOGY-CLAIM).
+4. **No `quote` section is restored.** No person is named; that is fine for
+   this issue.
+5. **`jargon-buster` and `three-steps` count as text-only**, the strict
+   reading; `check:prose` now agrees. The spine passes.
+6. **The ~1.7°C figure for 2027 must not appear** (verification blocker #2).
+   Keep the structural claim only.
+7. **No `act-break`** (RG-06).
+8. **Write in place.** The rewrite replaces
+   `src/content/issues/2026-05-03-el-nino-new-floor/index.mdx` — same `id`,
+   `topic`, `publishedAt`, `status: published`, `tags`; `readTimeMinutes` to 4.
+   It is tabled for the operator's read before it is committed.

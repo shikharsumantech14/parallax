@@ -8,7 +8,7 @@
   number, name or source is added.
 - **Composed:** 2026-09-13
 - **Composer:** composer-agent
-- **Status:** draft            ← draft | approved | hold  (the gate; see below)
+- **Status:** approved            ← approved by the operator 2026-09-13; rulings in §9
 
 > Created under `docs/REGISTER-PLAN.md` §5.2; RG-07 ruled 2026-09-13: a
 > separate composer agent, and the gate is a switch. The storyboard is written
@@ -392,3 +392,26 @@ src-07 (the 850-seat projection) and src-08 (the March 2025 all-party meeting)
 back no section in the current spine. Keep both in `sources[]` — the slug and
 the bibliography stay whole — but neither needs a `sourceRefs[]` entry unless
 the drafter uses them.
+
+## 9. Operator rulings (2026-09-13) — binding on the drafter
+
+Approved as composed, with these calls settled (the operator's approval took
+the orchestrator's recommendations on every open item):
+
+1. **No `act-break`.** RG-06 is signed on its recommended branch; the act rule
+   is dropped.
+2. **The hook drops the second person.** It opens *"An MP in Uttar Pradesh
+   speaks for 30 lakh people. One in Tamil Nadu, 18 lakh. The bill that tried
+   to close that gap lost by 54 votes."* — the "thing they own" carries the
+   hook formula; "your MP" read as northern by default.
+3. **"Credit nahi chahiye" stays as the section title**, set roman, never
+   italic.
+4. **`number-sense` is the opening graphic.** The gate counts every non-narrative
+   kind as visual; the floor is met.
+5. **`analogy` in the `pairs[]` form**, as composed in §8c. **Article 82 is
+   described, not cited.** `bill-breakdown` stays a `bill-breakdown`.
+6. **Sources promoted per §8f**; all ten `sources[]` entries kept.
+7. **Write in place.** The rewrite replaces
+   `src/content/issues/2026-04-24-delimitation/index.mdx` — same `id`, `topic`,
+   `publishedAt`, `status: published`, `tags`; `readTimeMinutes` to 4–5. It is
+   tabled for the operator's read before it is committed.

@@ -4,7 +4,7 @@
 - **Dossier:** research/travel/2026-06-04-queue-is-the-product-dossier.md
 - **Composed:** 2026-09-13
 - **Composer:** composer-agent
-- **Status:** draft            ← draft | approved | hold  (the gate; see below)
+- **Status:** approved            ← approved by the operator 2026-09-13; rulings in §9
 
 > **This is a REWRITE, not a new issue.** The subject is the published
 > `src/content/issues/2026-06-04-queue-is-the-product/index.mdx`
@@ -446,3 +446,33 @@ which the verifier flagged as required fix #3.
 | 8 | **Rs 150,000 for a Nepali citizen is in NEPALI rupees.** | The dossier gives no NPR↔INR rate. It stays unconverted and is never set beside ₹12.5 lakh as a comparison. Confirm the drafter may print it at all. |
 | 9 | **Optional ninth section: `benchmark-chart` of the full Nepal royalty table** (spring / autumn / winter / other 8,000 m peaks), with an annotation on the Everest bar. | +~110 words (total 1,080, still under 1,100) and a second annotated chart. Blocked only by the USD/NPR axis problem: the citizen rate would have to be left off the chart and said in the note. |
 | 10 | **`act-break`.** | Not used, per RG-06's recommended branch. If you enforce the act rule instead, one goes before row 7. |
+
+## 9. Operator rulings (2026-09-13) — binding on the drafter
+
+Approved as composed, with these calls settled (the operator's approval took
+the orchestrator's recommendations on every open item):
+
+1. **Rates: ₹83 to the dollar and ₹0.58 to the yen**, written as *approximate*
+   and quoted in the section's source line as "approximate conversions at ₹83
+   to the dollar and ₹0.58 to the yen, September 2026". The operator confirms
+   the figures before the published flip; the drafter does not invent others.
+2. **The signed Hinglish hook stays** — *"Everest ka ticket: $15,000, about
+   ₹12.5 lakh. Fuji ka ticket: ₹2,300. Both countries are now selling the same
+   thing — your place in the line."* The contract's precision test is
+   re-worded to say what it meant: Hindi never modifies, hedges or counts a
+   figure; a possessive standing beside one is allowed.
+3. **The "≈ 600 Fuji tickets" ratio is dropped**; row 1 runs on two `equals`
+   lines (₹12.5 lakh; 36 percent more than the ₹9.1 lakh of 2024).
+4. **`number-sense` opens the issue** and counts as the opening graphic.
+5. **The $30,000–70,000 body-recovery figure is dropped.**
+6. **The National Geographic quote is cut; no `jargon-buster`.** "Death zone"
+   and "royalty" are glossed where they first appear.
+7. **The dek is plain English.**
+8. **"Rs 150,000 in Nepali rupees"** may be printed, labelled exactly so, never
+   converted and never set beside ₹.
+9. **No ninth section; no `act-break`.**
+10. **Write in place.** The rewrite replaces
+    `src/content/issues/2026-06-04-queue-is-the-product/index.mdx` — same
+    `id`, `topic`, `publishedAt`, `status: published`, `tags`;
+    `readTimeMinutes` to 4. It is tabled for the operator's read before it is
+    committed.
