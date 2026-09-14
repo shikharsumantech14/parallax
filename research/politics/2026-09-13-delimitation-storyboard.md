@@ -415,3 +415,14 @@ the orchestrator's recommendations on every open item):
    `src/content/issues/2026-04-24-delimitation/index.mdx` — same `id`, `topic`,
    `publishedAt`, `status: published`, `tags`; `readTimeMinutes` to 4–5. It is
    tabled for the operator's read before it is committed.
+
+**Amendment to ruling 3 (2026-09-14, after the reader panel and the verifier).**
+The panel's first pass found "Credit nahi chahiye" as a section TITLE was the
+one line its non-Hindi persona could not read, and titles travel alone in the
+contents list. The orchestrator applied the panel's fix — the title is now
+English, *"He said he did not want the credit"*, and the phrase sits inside the
+section's intro beside its gloss — under the operator's standing approval of
+the recommendations. The verifier separately found the phrase is asserted as
+said (sourced to src-03) while the quoted text the issue carries is English;
+the intro now attributes it to the coverage rather than as reported speech.
+The operator confirms both at the read, or reverts the title to the phrase.
