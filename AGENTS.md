@@ -717,6 +717,37 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 ## 10. Change log for this file
 
+### 2026-09-14 — Phase 4 done; two rulings on the register
+
+The four flagship issues (delimitation, El Niño, Arsenal, the Everest/Fuji
+queue) are rewritten in the register and committed under their original
+slugs, each through the full v2 pipeline with zero untraced claims. Two
+published numbers were wrong and are corrected (Arsenal's 28.5 → 28.3 xGA,
+"a quarter" → 35.9%). Standing rules changed by the operator's rulings — **do
+not restore them**:
+
+- **Currency (contract §3 rule 4).** Foreign money is the primary figure. A
+  CURRENT figure gets "(about ₹…)" in brackets after it, the rate and month
+  on the source line; a HISTORICAL figure is never converted at today's rate.
+  Replaces "every dollar figure carries its rupee equivalent". An issue whose
+  only money is historical carries no ₹, and the gate counts an Indian habit
+  (cricket, the monsoon) as Indian ground.
+- **The machine-prose marks (contract §6, tells 1 and 18–22).** No em-dash in
+  reader-facing prose by default and a hard cap of one per issue; no
+  semicolons in prose, captions or notes; colons only before a list, a gloss
+  or a quote; the AI word list (*delve, robust, leverage, testament, pivotal,
+  notably…*) never; "not about X, it's about Y" in any dress counts against
+  the one-reframe cap; no rhythmic triplets, no sentence-opening "Notably",
+  no mirrored close. `check:prose` flags each (EM-DASH, SEMICOLON, AI-WORD,
+  OPENING-ADVERB, NOT-X-BUT-Y). Twenty-two tells.
+- **Captions render for every kind.** `core/Section.astro` prints the
+  section's caption below the graphic where the component has no caption
+  slot of its own (timeline, seat-chart, vote-result, bill-breakdown,
+  comparison); a `:has()` rule keeps it to one per section. Until 2026-09-13
+  an authored caption on those kinds rendered nowhere.
+- **`skimCaption` is not a restatement site**: it renders only in Skim
+  mode. Restate in the next section's intro or the caption.
+
 ### 2026-09-13 — The register plan: plain Indian voice, component-first issues
 
 Reader feedback after the launch design — a wall of words, hard to read,

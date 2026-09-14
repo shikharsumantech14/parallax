@@ -8,6 +8,13 @@
 > `REVAMP-PLAN.md` (RD-nn) and `CONTEXT-PLAN.md` (CD-nn). Every number in §1
 > was measured in this session; the method is stated next to it.
 >
+> **Progress (2026-09-14):** Phase 4 is done. The four flagships are rewritten,
+> verified with zero untraced claims, and committed (`1cb7256`…`55b6aea`).
+> Two rulings landed the same day and are in the contract: the currency rule
+> (foreign money primary, a bracketed ₹ only on current figures, §3.4 rule 8)
+> and the machine-prose marks (no em-dashes, no semicolons in prose, the AI
+> word list; contract §6 tells 18–22). Next is Phase 6.
+>
 > **Progress (2026-09-13):** Phase 1 (the contract, lexicon, jargon list,
 > storyboard template, the composer and reader-panel agents, both routes'
 > wiring, the prompt edits, `catalog-shapes.md`, the mode-library amendments),
