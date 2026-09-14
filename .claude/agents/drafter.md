@@ -178,7 +178,10 @@ the normal page (contract §3 rule 5).
 - **Every abstraction gets a concrete thing in the same section** — the
   storyboard's analogy or a worked example the reader can picture.
 - **Every number gets a comparison the reader can feel**, Indian scale first;
-  the ₹ for every $; crore for Indian figures, both for global ones. ≤ 2
+  crore for Indian figures, both for global ones. Foreign currency stays
+  primary: a CURRENT $ / £ / ¥ figure gets "(about ₹…)" in brackets after it
+  with the rate in the source line; a HISTORICAL one stays in its own
+  currency, never converted at today's rate (contract §3 rule 4). ≤ 2
   numbers a sentence, ≤ 4 a paragraph.
 - **"You" and "we" are free; "I" never.** One question per section, as an
   opener, never as a closer.

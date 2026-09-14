@@ -373,8 +373,11 @@ for (const slug of slugs) {
 
   // — Indian ground and foreign anchors —
   const all = strings.map((s) => s.text).join(' ');
-  const hasIndian = /₹|\b(lakh|crore|rupee|rupees|India|Indian|Delhi|Mumbai|Bengaluru|Chennai|Kolkata|Hyderabad|Lok Sabha|Rajya Sabha|IPL)\b/.test(all);
-  if (!hasIndian) flag('⚠️', 'NO-INDIAN-ANCHOR', 'issue', 'no ₹ / lakh / crore / Indian place or institution anywhere');
+  // Indian ground is money, place, institution OR habit (contract §3.5): a cricket
+  // comparison anchors an issue as surely as a rupee does, and under rule 4 an issue
+  // whose only money is historical carries no ₹ at all.
+  const hasIndian = /₹|\b(lakh|crore|rupee|rupees|India|Indian|Delhi|Mumbai|Bengaluru|Chennai|Kolkata|Hyderabad|Lok Sabha|Rajya Sabha|IPL|cricket|Test match|net practice|penalty corner|hockey|Bollywood|monsoon|kirana|UPI|Aadhaar|Maggi)\b/.test(all);
+  if (!hasIndian) flag('⚠️', 'NO-INDIAN-ANCHOR', 'issue', 'no ₹ / lakh / crore, no Indian place, institution or habit anywhere');
   // A dollar amount is "converted" once any string in the issue pairs it with a ₹
   // figure; after that, its bare repeats in cells and notes are not foreign anchors.
   // Flag each distinct unconverted amount once.
@@ -387,7 +390,9 @@ for (const slug of slugs) {
       for (const a of amountsOf(s.text)) {
         if (converted.has(a) || seen.has(a)) continue;
         seen.add(a);
-        flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, `${a} is never paired with a ₹ figure anywhere in the issue`);
+        // Info, not a warning: a CURRENT figure wants "(about ₹…)", a HISTORICAL one
+        // must stay unconverted (contract §3 rule 4), and only a reader knows which.
+        flag('ℹ', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, `${a} carries no ₹ — right if historical, add "(about ₹…)" if current`);
       }
       if (/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/.test(s.text)) flag('⚠️', 'FOREIGN-ANCHOR', `section ${s.sec + 1} ${s.field}`, s.text.match(/\b(miles?|Fahrenheit|°F|acres?|gallons?)\b/)[0]);
     }

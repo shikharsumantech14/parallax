@@ -501,7 +501,11 @@ maths, and the reasons that decided it before anyone voted."*
    never allowed to stand alone.
 8. **Every number gets a comparison a reader can feel.** Indian scale first:
    ₹, lakh, crore; "the population of Delhi"; "one IPL season"; "a Mumbai local
-   at 9 a.m."; "four Maggi packets". Dollars always carry a rupee conversion.
+   at 9 a.m."; "four Maggi packets". Foreign currency stays primary; a
+   current figure gets "(about ₹…)" after it, a historical one is never
+   converted — *the operator's ruling of 2026-09-14, replacing "dollars always
+   carry a rupee conversion"; converting a 2017 valuation at today's rate
+   invents a number.*
 9. **Direct address is allowed everywhere.** "You" and "we" are how Indians
    explain things to each other. One question per section, as an opener; never
    as a closer (that tell stays).

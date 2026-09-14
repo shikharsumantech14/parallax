@@ -137,8 +137,9 @@ Flags added 2026-09-13. Check every prose field against the contract:
 - **⚠️ JARGON-UNGLOSSED** — a term of art (`research/_voice/jargon.md`, or
   any term a smart 15-year-old would not know) appears before it is
   explained in the same or next sentence.
-- **⚠️ BARE-NUMBER** — a figure with no comparison a reader can feel; a `$`
-  figure with no ₹.
+- **⚠️ BARE-NUMBER** — a figure with no comparison a reader can feel; a
+  CURRENT foreign-currency figure with no bracketed ₹ — and, the reverse
+  defect, a HISTORICAL figure converted at today's rate (contract §3 rule 4).
 - **⚠️ NO-INDIAN-ANCHOR** — an issue with no ₹ / lakh / crore / Indian place
   or comparison at all.
 - **⚠️ NAME-THROUGHPUT** — more than 12 distinct named people and

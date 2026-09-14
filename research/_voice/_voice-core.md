@@ -114,7 +114,14 @@ the reader panel test these; until then, the writer does.
    first: ₹, lakh, crore; the population of Delhi; one IPL season; a Mumbai
    local at nine in the morning; four packets of Maggi. Use the unit the
    reader counts in: crore for Indian figures, both for global ones ("1.2
-   billion — 120 crore"). Every dollar figure carries its rupee equivalent.
+   billion — 120 crore"). **Foreign currency stays in its own currency, as
+   the primary figure.** A CURRENT figure — a price in force, a fee, a
+   valuation from this year or last — gets an approximate rupee equivalent in
+   brackets after it: *$15,000 (about ₹12.5 lakh)*, with the rate and its
+   month in the section's source line. A HISTORICAL figure — a 2017
+   valuation, a 2019 price — stays in dollars or pounds alone: converting it
+   at today's rate invents a number that never existed. (Operator ruling,
+   2026-09-14, replacing "every dollar figure carries its rupee equivalent".)
 5. **Restate after every graphic.** The caption carries the data; the next
    sentence the reader meets — the **following section's intro**, or this
    section's caption — says what it showed, in the reader's words. Not
@@ -138,7 +145,8 @@ the reader panel test these; until then, the writer does.
    years"*. A name used once is a name to cut: say "an Everest chronicler".
    Never stack a citation into a sentence ("the study, led by X of Y and
    reported by Z and W…"); the source line carries that.
-10. **Place the issue in India.** Every issue has Indian ground under it: the ₹
+10. **Place the issue in India.** Every issue has Indian ground under it: a
+    bracketed ₹ beside each current $ (rule 4), the
     for every $, an Indian comparison for every big number, at least one
     Indian place, institution or habit the reader owns. Global references
     only when universal; nothing the reader had to grow up elsewhere to feel.

@@ -541,3 +541,10 @@ the orchestrator's recommendations on every open item):
    `id`, `topic`, `publishedAt`, `status: published`, `tags`;
    `readTimeMinutes` to 4–5. It is tabled for the operator's read before it is
    committed.
+
+**Amendment to ruling 3 (2026-09-14, operator).** A historical figure is never
+converted at today's rate, so the £2.5 million 2017 valuation carries no ₹ —
+and with nothing left to set beside it, the `number-sense` section (row 7) is
+cut. The issue is nine sections, six visual; its Indian ground is the cricket
+and hockey comparisons (the penalty corner, the deep field setting, net
+practice), which the gate now recognises as anchors.

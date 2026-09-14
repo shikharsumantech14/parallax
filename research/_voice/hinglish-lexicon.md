@@ -114,5 +114,6 @@ then this is the list.
 ## Units and numbers (English, always)
 
 ₹, lakh, crore, km, kg, °C. Never a Hindi numeral word (*das, sau, hazaar*)
-beside a figure. Dollar figures carry the rupee equivalent in the same
-sentence.
+beside a figure. A current dollar, pound or yen figure carries "(about ₹…)"
+in brackets after it; a historical one stays in its own currency
+(`_voice-core.md` §3 rule 4).

@@ -140,8 +140,10 @@ the one that fits.
 - **Jargon.** For every term of art the issue will need, add a row to
   `research/_voice/jargon.md` (append; never rewrite others' rows) with the
   plainest gloss the sources support.
-- **Indian ground.** Capture the ₹ equivalent for every $ figure (state the
-  rate and its source), and at least one sourced Indian anchor where the
+- **Indian ground.** For every CURRENT foreign-currency figure (a price in
+  force, this year's or last year's valuation) capture the ₹ equivalent with
+  the rate and its source; historical figures stay unconverted (contract §3
+  rule 4). And at least one sourced Indian anchor where the
   topic allows — an Indian instance, comparison, institution or number. If
   the topic has none, say so in §9 so the composer uses a scale comparison
   rather than a new claim.

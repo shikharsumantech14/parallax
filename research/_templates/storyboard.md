@@ -61,8 +61,9 @@ the first graphic.
 
 ## 5. The Indian ground
 
-Where the issue touches India, with the dossier row that supports each: the ₹
-for every $, the comparison for every big number, the place or habit the
+Where the issue touches India, with the dossier row that supports each: a
+bracketed ₹ for each CURRENT foreign-currency figure (historical ones stay
+unconverted), the comparison for every big number, the place or habit the
 reader owns. If the dossier carries no Indian fact, say so here — a scale
 comparison needs no new fact; a new claim needs a source before the drafter
 may use it.

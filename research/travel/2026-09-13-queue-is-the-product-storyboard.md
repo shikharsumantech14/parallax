@@ -476,3 +476,10 @@ the orchestrator's recommendations on every open item):
     `id`, `topic`, `publishedAt`, `status: published`, `tags`;
     `readTimeMinutes` to 4. It is tabled for the operator's read before it is
     committed.
+
+**Amendment to ruling 1 (2026-09-14, operator).** Foreign currency stays the
+primary figure; a current price gets "(about ₹…)" in brackets after it; a
+historical price is not converted. Applied: the hook and every price now read
+*$15,000 (about ₹12.5 lakh)* and *¥4,000 (about ₹2,300)*; the 2024 permit fee
+is stated as $11,000, its ₹9.1 lakh conversion dropped. The rates stay in the
+source lines as written.

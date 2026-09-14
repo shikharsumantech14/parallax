@@ -96,8 +96,9 @@ words. Primer as three sentences. All from dossier facts.
 ### Step 7 — Indian ground
 
 List where the issue touches India, each with the dossier row that supports
-it: the ₹ for every $, the comparison for every big number, the place or habit
-the reader owns. If the dossier carries no Indian fact, say so — a scale
+it: a bracketed ₹ for each CURRENT foreign-currency figure (historical ones
+stay unconverted — contract §3 rule 4), the comparison for every big number,
+the place or habit the reader owns. If the dossier carries no Indian fact, say so — a scale
 comparison needs no new fact; a new claim needs a source, and you do not add
 sources.
 
