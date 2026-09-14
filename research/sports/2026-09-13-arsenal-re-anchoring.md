@@ -456,3 +456,14 @@ attribution.
    the Season, 25 May 2026), which measures a centre-back pairing over 26 games —
    a different thing entirely. If you restore that tile, it restores an unanchored
    number.
+
+## Operator ruling on the anchor tier (2026-09-14)
+
+The open question above — five of six counting stats resting on **T7** (Opta
+Analyst) rather than the T0/T1/T2 the taxonomy prefers, because the Premier
+League's stat tables are JavaScript the crawler cannot read — is accepted under
+the operator's standing approval of the recommendations: Opta is the league's
+own data collector, two independent Opta pieces agree on every figure, and the
+one T0 anchor (premierleague.com, 19 May 2026) confirms the clinch. The
+rewrite's source lines name Opta Analyst on each tile so the tier is visible to
+the reader. Recorded here so the acceptance outlives the draft's MDX comment.

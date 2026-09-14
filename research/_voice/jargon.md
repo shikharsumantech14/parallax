@@ -86,7 +86,7 @@ plain description.
 | Term | Turns up in | Plain gloss | Comparison |
 |---|---|---|---|
 | xG (expected goals) | arsenal | how many goals those chances usually turn into, from where they were taken | |
-| set piece | arsenal | a corner or free kick; play restarting from a dead ball | |
+| set piece | arsenal | a corner, a free kick or a throw-in; play restarting from a dead ball (Opta counts penalties too, so a set-piece tally says whether they are in) | |
 | open play | arsenal | everything that is not a set piece | |
 | Elo rating | elo-river | a running score of team strength that rises with wins against strong sides | a cricket ranking that updates every match |
 | momentum | momentum-wave | which side is on top, minute by minute | |
