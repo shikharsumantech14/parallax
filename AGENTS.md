@@ -436,7 +436,7 @@ loses to the contract where they disagree.
   a section.
 - 3–5 jobs across the full issue.
 
-**The AI-tell catalog** — seventeen tells every prose field must pass (the
+**The AI-tell catalog** — twenty-two tells every prose field must pass (the
 six of v1, five found in the measured corpus, six for Hinglish), and the rule
 that neither a mode nor plainness excuses one — lives in
 **`.claude/rules/editorial-voice.md`** (loads on `research/**` and `**/*.mdx`),
@@ -734,7 +734,7 @@ sections. Standing rules changed by the signature — **do not restore them**:
 - **The runtime contract is `research/_voice/_voice-core.md` v2** (§6): the
   register outranks the mode; plain Indian English by default; a Hindi word
   only where it is the natural word, never load-bearing, never in the
-  precision layer; the fifteen rules; seventeen AI tells; CONVERSATIONAL the
+  precision layer; the fifteen rules; twenty-two AI tells; CONVERSATIONAL the
   default job; SATIRICAL barred from politics; DRY WIT a device; LYRICAL ≤ 1
   paragraph. Lexicon and jargon list beside it; `mode-library.md` amended,
   not rewritten, and loses to the contract.

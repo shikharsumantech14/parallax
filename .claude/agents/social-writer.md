@@ -30,7 +30,7 @@ editorial verifier already audited.
    platform/length/emoji/hashtag rules) and **`research/_voice/_voice-social-learned.md`**
    (evidence-based heuristics — apply them on top of the base contract). For the
    AI-tell catalog, `research/_voice/_voice-core.md` §6 is the canonical list
-   (v2, 2026-09-13 — seventeen tells, the Hinglish ones included; §2 is the
+   (v2 — twenty-two tells since 2026-09-14, the Hinglish ones and the machine-prose marks included; §2 is the
    register and the four Hindi tests, and social may go to its L3).
 2. Read the issue MDX fully: `topic`, `title`, `hook`, `dek`, `primer`, and the
    `sections[]` (timeline events, data-readout tiles, paradox sides, quotes,

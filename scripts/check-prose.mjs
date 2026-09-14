@@ -304,10 +304,31 @@ for (const slug of slugs) {
     ss.forEach((x) => { const n = numerals(x).length; if (n > T.numbersPerSentence) flag('⚠️', 'NUMBER-DENSE', `section ${s.sec + 1} ${s.field}`, `${n} numbers in one sentence: "${x.slice(0, 90)}…"`); });
     const np = numerals(s.text).length; if (np > T.numbersPerParagraph) flag('⚠️', 'NUMBER-DENSE', `section ${s.sec + 1} ${s.field}`, `${np} numbers in one paragraph`);
     if (['lead', 'paragraphs', 'intro', 'primer'].includes(s.key) && ss.length > 1 && wc(s.text) >= 25 && !/\b(because|so|which means|but|that means|matlab|kyunki|lekin)\b/i.test(s.text)) flag('ℹ', 'NO-CONNECTIVE', `section ${s.sec + 1} ${s.field}`, 'no because / so / which means / but');
-    // A dash between digits ("1–1", "1850–1900") is a range or a score, not a clause joint.
-    { const dashes = (s.text.match(/(?<!\d)[—–](?!\d)/g) || []).length; if (dashes > 1) flag('⚠️', 'EM-DASH', `section ${s.sec + 1} ${s.field}`, `${dashes} dashes in one paragraph`); }
     if (/\bIt is not [^.]+\. It is [^.]+\./.test(s.text) || /\b(is|was) not (an? |the )?[^.]{2,40}\. (It|That|This) (is|was) /.test(s.text)) flag('ℹ', 'BINARY-REFRAME', `section ${s.sec + 1} ${s.field}`, 'max one per issue');
     if (/\bFirst,?\b[\s\S]*\bSecond,?\b[\s\S]*\bThird,?\b/.test(s.text)) flag('⚠️', 'NUMBERED-MANIFESTO', `section ${s.sec + 1} ${s.field}`, 'First… Second… Third…');
+  }
+
+  // — The machine-prose marks (contract §6 tells 1, 18–21; operator ruling 2026-09-14) —
+  // Checked over every reader-facing prose field except the precision layer's
+  // labels and sources: em-dashes (none by default, hard cap one per issue),
+  // semicolons in prose / captions / notes, the AI word list, the opening adverb.
+  {
+    const PROSE_EXEMPT = new Set(['source', 'label', 'unit', 'attribution', 'term', 'kicker', 'stamp', 'tag', 'badge', 'name', 'quote']); // a verbatim quote keeps its own punctuation
+    const AI_WORDS = /\b(delve|delves|delving|tapestry|robust|leverage|leverages|leveraging|seamless|seamlessly|testament|underscores?|underscoring|pivotal|crucially|notably|arguably|nuanced|multifaceted|realm|unlock|unlocks|foster|fosters|harness|harnessing|elevate|elevates|game-changer|ever-evolving|fast-paced|at its core|the reality is|it's worth noting|it is worth noting)\b/i;
+    const AI_FIG = /\b(navigate|navigating) (the|this|a) (landscape|complexit|terrain|challenge)|\b(the|a) landscape of\b|\bjourney (of|to|through|into)\b/i;
+    let issueDashes = 0;
+    for (const s of strings) {
+      if (PROSE_EXEMPT.has(s.key) || s.field.includes('annotations') || s.field.includes('sources')) continue;
+      // An em-dash, or a spaced en-dash used as one; 'May–July' and '1850–1900' are ranges.
+      const dashes = (s.text.match(/—|\s–\s/g) || []).length;
+      if (dashes) { issueDashes += dashes; flag('⚠️', 'EM-DASH', `section ${s.sec + 1} ${s.field}`, `${dashes} — none by default; a comma, a full stop or a new sentence`); }
+      if (/;/.test(s.text)) flag('⚠️', 'SEMICOLON', `section ${s.sec + 1} ${s.field}`, `"${s.text.slice(0, 80)}" — a full stop instead`);
+      const w = s.text.match(AI_WORDS) || s.text.match(AI_FIG);
+      if (w) flag('⚠️', 'AI-WORD', `section ${s.sec + 1} ${s.field}`, `"${w[0]}"`);
+      if (/(^|[.!?]\s+)(Notably|Crucially|Importantly|Interestingly|Ultimately|Essentially),/.test(s.text)) flag('⚠️', 'OPENING-ADVERB', `section ${s.sec + 1} ${s.field}`, s.text.match(/(Notably|Crucially|Importantly|Interestingly|Ultimately|Essentially),/)[0]);
+      if (/\b(it'?s|is|was) not (just |only |merely )?about [^.]+, (it'?s|it is|but) about\b/i.test(s.text) || /\bless (a|an) [^.]+ than (a|an)\b/i.test(s.text)) flag('⚠️', 'NOT-X-BUT-Y', `section ${s.sec + 1} ${s.field}`, 'the reframe in another dress — say Y');
+    }
+    if (issueDashes > 1) flag('⚠️', 'EM-DASH-ISSUE', 'issue', `${issueDashes} em-dashes in prose; the hard cap is one`);
   }
   if (allSent.length) {
     const sorted = [...allSent].sort((a, b) => a - b);

@@ -32,7 +32,7 @@ the contract wins — every "no glossing", "the reader is assumed to know" and
 
 1. `research/_voice/_voice-core.md` — the contract. Read it fully: §1 the
    readers, §2 the register and the four Hindi tests, §3 the fifteen rules,
-   §4 the eight jobs as pattern cards, §6 the AI tells (seventeen), §7 the
+   §4 the eight jobs as pattern cards, §6 the AI tells (twenty-two), §7 the
    blending rules, §8 the decision tree, §9 the worked examples.
 2. `research/_voice/hinglish-lexicon.md` and `research/_voice/jargon.md`.
 3. `research/_voice/mode-library.md` — the deeper reference for the cards,
@@ -106,7 +106,7 @@ the register (contract §2–§3) above it. Rules for every rewrite:
 
 ### Step 4.5 — The AI-tell audit (contract §6, every field, before you save)
 
-The seventeen: em-dash > 1 per paragraph; "It is not X. It is Y." more than
+The twenty-two: any em-dash in prose (none by default, hard cap one per issue) and any semicolon in prose, a caption or a note; the AI word list (delve, robust, leverage, testament, pivotal, notably…) and the sentence-opening adverb of importance; "not about X, it's about Y" in any dress; the rhythmic triplet; the mirrored close; "It is not X. It is Y." more than
 once per issue; triple-fragment close; abstract-noun labels; "First… Second…
 Third…"; stacked reframes; "The ‹Noun› That ‹Verb›s" (titles — flag);
 antithesis dek beside a reversing hook (flag); stacked citation; staccato

@@ -311,8 +311,14 @@ never excuses a tell. Being plain never excuses one either.**
 
 The six from v1, unchanged:
 
-1. **Em-dash overload.** Max **one em-dash per paragraph** (per post). A second →
-   restructure; commas and full stops do the work.
+1. **The em-dash.** None in reader-facing prose by default, and a hard cap of
+   **one per issue** (one per post). It is the single most recognisable mark
+   of machine-written English and it reads as a writer who could not decide
+   how the sentence ends. Commas, full stops and a new sentence do the work.
+   (Tightened from "one per paragraph" on 2026-09-14, operator ruling.)
+   **Semicolons** likewise: not in flowing prose, captions or notes — a full
+   stop is what the reader expects. A **colon** only before a list, a gloss
+   or a quoted line, never as a drum-roll before a punchline.
 2. **Binary reframe as default closer.** *"It is not X. It is Y."* — at most
    **once per issue**, and only when the reversal *is* the argument.
 3. **Triple-fragment closer.** Three consecutive 5–8-word sentences closing a
@@ -339,6 +345,28 @@ Added in v2, from the measured corpus:
 11. **The once-used name.** A named person or body that appears once, with no
     role → cut or describe.
 
+The vocabulary and shapes that mark prose as machine-written (added
+2026-09-14, operator ruling — "it does not look that good"):
+
+18. **The AI word list.** *delve, tapestry, landscape (figurative), navigate
+    (figurative), robust, leverage, seamless, testament, underscore,
+    pivotal, crucial(ly), notably, arguably, nuanced, multifaceted, realm,
+    journey (figurative), unlock, foster, harness, elevate, game-changer,
+    in today's fast-paced, at its core, the reality is, it's worth noting,
+    in the ever-evolving.* Never. Say the plain thing.
+19. **The "not X, but Y" shape** in any of its dresses — "it's not about X,
+    it's about Y", "not because X but because Y", "less a X than a Y". It is
+    tell 2 in a longer coat; the same once-per-issue cap covers all of them.
+20. **The rhythmic triplet.** Three adjectives or three parallel nouns placed
+    for cadence — "the rules, the maths, and the reasons" — when two would
+    say it or one would. Lists of three are fine when there are three things.
+21. **The sentence-opening adverb of importance.** *Notably, Crucially,
+    Importantly, Interestingly, Ultimately, Essentially.* Cut the word; if the
+    sentence was important, it still is.
+22. **The mirrored close.** A closing sentence that repeats the opening
+    sentence's shape with one word swapped, as a bow. Once is a device; as a
+    habit it is a tell.
+
 Hinglish tells (v2):
 
 12. **The YouTube intro.** "Toh dosto…", "Namaskar" — never.
@@ -355,7 +383,10 @@ Hinglish tells (v2):
 
 | Tell found | Rewrite move |
 |---|---|
-| 2+ em-dashes in a paragraph/post | Replace the second with a comma, colon, or full stop |
+| An em-dash anywhere in prose (cap one per issue) | A comma, a full stop, or a new sentence |
+| A semicolon in prose, a caption or a note | A full stop |
+| A word from the AI list, or a sentence-opening "Notably" | The plain word, or nothing |
+| "not about X, it's about Y" | Say Y |
 | "It is not X. It is Y." | Merge into one clause, or cut the first half |
 | 3× short sentences closing a section | Expand one fragment into a full clause |
 | "structural argument" / "the mechanism" as a label | Replace with the actual claim |

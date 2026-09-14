@@ -48,14 +48,17 @@ they disagree. This rule carries only what is violated most often.
   sections adjacent; the first section a graphic; ≤ 3 prose sections of
   ≤ 200 words; ≤ 1,100 reader-facing words; ≤ 80 words before the first graphic.
 
-## The AI-tell catalog (seventeen — contract §6)
+## The AI-tell catalog (twenty-two — contract §6)
 
 Every prose field passes these before it is written or rewritten. **Applying a
 job does not excuse a tell; being plain does not either.**
 
 | Tell | Rule |
 |---|---|
-| 2+ em-dashes in one paragraph | Max 1 per paragraph |
+| An em-dash anywhere in prose | None by default; hard cap one per issue (2026-09-14) |
+| A semicolon in prose, a caption or a note · a colon as drum-roll | A full stop; colons only before a list, a gloss or a quote |
+| *delve, tapestry, landscape, navigate, robust, leverage, testament, underscore, pivotal, crucially, notably, nuanced, journey, unlock, foster, at its core, the reality is* · a sentence opening "Notably" | Never; say the plain thing |
+| "not about X, it's about Y" in any dress · a triplet placed for rhythm · a mirrored close | Say Y; two things or one; once is a device |
 | `"It is not X. It is Y."` | Max 1 per issue, and only if it *is* the argument |
 | 3× short sentences closing a section | Max 1 triple-fragment close per issue |
 | `"the mechanism"`, `"structural argument"` as abstract-noun labels | Replace with the actual claim |
