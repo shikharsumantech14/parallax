@@ -19,7 +19,7 @@
 | published | 10 |
 | blueprints | 40 |
 | neverUsedAnywhere | 3 |
-| neverInPublished | 81 |
+| neverInPublished | 76 |
 | danglingDecisions | 8 |
 
 ## Section kinds
@@ -36,20 +36,20 @@
 | `seat-chart` | SeatChart | ✓ | ✓ | 54 |  |  | ✓ | ✓ |
 | `comparison` | Comparison | ✓ | · | 48 |  |  | ✓ | ✓ |
 | `paradox` | Paradox | ✓ | ✓ | 50 |  |  | ✓ | ✓ |
-| `you-think` | YouThink | ✓ | ✓ | 60 |  | ✓ | ✓ |  |
+| `you-think` | YouThink | ✓ | ✓ | 60 |  | ✓ | ✓ | ✓ |
 | `analogy` | BrothersAnalogy | ✓ | · | 34 |  |  | ✓ | ✓ |
 | `quote` | Quote | ✓ | · | 40 |  |  | ✓ | ✓ |
 | `beat-sheet` | BeatSheet | ✓ | · | 36 |  |  |  |  |
-| `jargon-buster` | JargonBuster | ✓ | · | 30 |  | ✓ | ✓ |  |
-| `three-steps` | ThreeSteps | ✓ | · | 44 |  | ✓ | ✓ |  |
+| `jargon-buster` | JargonBuster | ✓ | · | 30 |  | ✓ | ✓ | ✓ |
+| `three-steps` | ThreeSteps | ✓ | · | 44 |  | ✓ | ✓ | ✓ |
 | `prose` | Prose | ✓ | · | 10 |  |  | ✓ | ✓ |
 | `plate` | Plate | ✓ | · | -1 |  |  | ✓ |  |
 | `data-readout` | DataReadout | ✓ | ✓ | 70 |  |  | ✓ | ✓ |
-| `number-sense` | NumberSense | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
+| `number-sense` | NumberSense | ✓ | ✓ | 68 |  | ✓ | ✓ | ✓ |
 | `orbital-shells` | OrbitalShells | ✓ | ✓ | 72 |  |  | ✓ | ✓ |
 | `commit-grid` | CommitGrid | ✓ | ✓ | 58 |  |  | ✓ |  |
 | `journey-map` | JourneyMap | ✓ | ✓ | 56 |  |  | ✓ |  |
-| `match-stat-line` | MatchStatLine | ✓ | ✓ | 58 |  |  | ✓ |  |
+| `match-stat-line` | MatchStatLine | ✓ | ✓ | 58 |  |  | ✓ | ✓ |
 | `elevation-profile` | ElevationProfile | ✓ | ✓ | 58 |  |  |  |  |
 | `region-map` | RegionMap | ✓ | ✓ | 60 |  |  | ✓ |  |
 | `climate-strip` | ClimateStrip | ✓ | ✓ | 64 |  |  | ✓ | ✓ |
@@ -131,12 +131,12 @@
 | `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
 | `finish-interval` | FinishInterval | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 
-## Never in a published issue — 81 of 101
+## Never in a published issue — 76 of 101
 
 The plan's argument for workstream B over Wave 2 rests on this number.
 It is computed here rather than asserted.
 
-`act-break` · `you-think` · `beat-sheet` · `jargon-buster` · `three-steps` · `plate` · `number-sense` · `commit-grid` · `journey-map` · `match-stat-line` · `elevation-profile` · `region-map` · `carbon-gauge` · `approval-chart` · `power-matrix` · `orbit-trace` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `bill-passage` · `vote-flow` · `margin-ladder` · `chamber` · `power-flow` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `delta-v-ladder` · `descent-profile` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `core-sample` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `arch-stack` · `latency-waterfall` · `version-graph` · `throughput-dial` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `attrition-waffle` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `channel-ternary` · `finish-interval`
+`act-break` · `beat-sheet` · `plate` · `commit-grid` · `journey-map` · `elevation-profile` · `region-map` · `carbon-gauge` · `approval-chart` · `power-matrix` · `orbit-trace` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `bill-passage` · `vote-flow` · `margin-ladder` · `chamber` · `power-flow` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `delta-v-ladder` · `descent-profile` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `core-sample` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `arch-stack` · `latency-waterfall` · `version-graph` · `throughput-dial` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `attrition-waffle` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `channel-ternary` · `finish-interval`
 
 ## Decisions
 
@@ -193,11 +193,11 @@ only see citations. Treat a zero as a question, never as a verdict.
 
 | slug | topic | status | sections | kinds | sources |
 |---|---|---|---|---|---|
-| `2026-04-24-delimitation` | politics | published | 7 | 7 | 10 |
+| `2026-04-24-delimitation` | politics | published | 9 | 9 | 10 |
 | `2026-04-24-kessler-cascade` | space | published | 8 | 7 | 12 |
 | `2026-05-02-transgender-ratchet` | politics | published | 6 | 6 | 15 |
 | `2026-05-03-earth-map-test` | earth | draft | 3 | 3 | 13 |
-| `2026-05-03-el-nino-new-floor` | earth | published | 8 | 6 | 13 |
+| `2026-05-03-el-nino-new-floor` | earth | published | 9 | 8 | 15 |
 | `2026-05-03-politics-components` | politics | draft | 2 | 2 | 1 |
 | `2026-05-03-space-components` | space | draft | 3 | 3 | 1 |
 | `2026-05-03-sports-components` | sports | draft | 3 | 3 | 1 |
@@ -212,8 +212,8 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-06-03-travel-showcase` | travel | draft | 16 | 16 | 9 |
 | `2026-06-04-ai-coding-token-bill` | tech | published | 7 | 6 | 7 |
 | `2026-06-04-amazon-tipping-point` | earth | published | 7 | 6 | 8 |
-| `2026-06-04-arsenal-set-piece-title` | sports | published | 7 | 6 | 6 |
+| `2026-06-04-arsenal-set-piece-title` | sports | published | 9 | 9 | 11 |
 | `2026-06-04-asteroid-2024-yr4` | space | published | 6 | 6 | 8 |
 | `2026-06-04-cockroach-janta-party` | politics | published | 7 | 7 | 10 |
-| `2026-06-04-queue-is-the-product` | travel | published | 7 | 6 | 11 |
+| `2026-06-04-queue-is-the-product` | travel | published | 8 | 8 | 11 |
 
