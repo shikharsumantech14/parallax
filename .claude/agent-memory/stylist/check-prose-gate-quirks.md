@@ -30,6 +30,20 @@ Consequences that bite:
   anything under `annotations` are the **precision layer**: English-only, not
   sentence-scored.
 
+## `readerWords` is EVERY string, not the prose
+
+The 1,100 ceiling counts every collected string: head fields, **every `eyebrow`
+and section `title`**, `caption`, `source`, `plain`, `howToRead`, and every data
+leaf whose key is not in `SKIP_KEYS` (`role, value, unit, x, y, at, side, date,
+accent, emphasis, id, kind, state, layout…`). So a `shot-map`'s twenty
+`outcome` strings cost twenty words, and a section's eyebrow + title cost ten
+before a sentence is written.
+
+Consequence for a light-touch pass: an issue measured at ~1,075 has room for
+roughly one added sentence in the whole issue. Budget the delta before editing,
+not after. `ISSUE-LONG` is ⚠️ (not ❌), so it warns rather than blocks the
+gate — but it is still a finding on a published issue.
+
 ## Three flags that are artifacts, not faults — report, don't chase
 
 1. **`NAME-THROUGHPUT`.** The proper-noun heuristic counts `MP`, `MPs`,

@@ -34,6 +34,26 @@ storyboard now names which section spends it.
 - **Three numerals in one sentence.** Arrives the same way: a panel asked for
   two figures to be separated and the drafter added the third to the same clause.
 
+- **The term of art carried across sections with no gloss.** Not a catalog
+  tell either — contract rule 2. The pattern: a word enters as an ordinary
+  noun in one section's intro, then becomes an `eyebrow`, then a section
+  `title` carrying the finding. By then it is load-bearing and has never been
+  explained. Titles and eyebrows are flag-only, so **the gloss has to go into
+  the earliest prose field the word appears in**. Read the issue's eyebrows and
+  titles as a list first; any repeated noun there is the candidate.
+- **The English false friend across Indian sports.** *Delivery* on a football
+  issue reads as cricket to an Indian reader; so do *over, pitch, boundary,
+  strike*. The reader panel catches these as "lost sentences", not as jargon.
+  Plain-English replacement, not a gloss — the word itself is the defect.
+
+## The panel handoff is a claim, not a state
+
+The launching agent's "the panel's fixes have been applied" usually means the
+*named* ones. Diff the panel's "what would fix it" list against the file item
+by item; on the Arsenal rewrite four of ten were still open, and two were mine
+to fix (the unglossed term, the false friend) while two were in protected
+fields (a tile `note`, a chart's data labels) and could only be flagged.
+
 ## Hinglish, politics desk
 
 The desk carries one Hindi phrase per issue at most, and it survives only as

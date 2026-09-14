@@ -36,6 +36,21 @@ reallocation as storyboard drift with the reason.
   These four are the reliable half.
 - `paradox`, `quote` → **CALM-STRUCTURAL**, always. Both are "the official line
   beside the physical fact with the sentence that joins them".
+- `number-sense` mid-issue (the ₹-conversion card) → **AWE**. Its whole shape is
+  the AWE cadence — a flat fact, then the conversion to a scale the reader owns.
+  It is the one AWE section a non-space issue can carry honestly.
+- `three-steps` → **CONVERSATIONAL** by the decision tree's own words ("a
+  walk-through, one step at a time"). Do not upgrade it to FORENSIC because the
+  mechanism is technical.
+- `tactics-pitch`, `match-stat-line` → **FORENSIC**: a mechanism and the match
+  that tested it. Two FORENSIC sections in a row is fine when they are the
+  mechanism and its proof.
+
+**The intro's opening move decides the job, not the kind.** A
+`benchmark-chart` is an anomaly-as-graphic (INVESTIGATION) *unless* its intro
+opens on an everyday-object analogy — the cricket field setting on the Arsenal
+issue — in which case it is CONVERSATIONAL and the INVESTIGATION slot belongs
+to the hero graphic instead.
 
 ## `voice:` (the schema's top-level field)
 
