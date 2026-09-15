@@ -15,7 +15,13 @@
  * ticket-stub ledger that carries every honest number in words.
  *
  * data: { epoch, from{city,lat,lon,tzOffsetH}, to{...}, flightHours,
- *         arcBulge?, showEoT?, caption?, source? }
+ *         arcBulge?, caption?, source? }
+ *
+ * `showEoT` (an equation-of-time toggle) was declared here and forwarded by
+ * SectionBody, but neither this component nor scenes/terminatorGlobe.ts ever
+ * read it. Struck 2026-09-15 rather than implemented: nothing authored it,
+ * and the terminator is drawn from the mean-solar position that
+ * scripts/viz3d/terminator.ts already computes.
  */
 import { geoOrthographic, geoPath, geoCircle } from 'd3-geo';
 import { mesh as topomesh } from 'topojson-client';
@@ -34,7 +40,6 @@ interface Props {
   to?: City;
   flightHours?: number;
   arcBulge?: number;
-  showEoT?: boolean;
   caption?: string;
   source?: string;
 }

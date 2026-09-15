@@ -919,6 +919,60 @@ for `status !== 'draft'`). Data shapes for every kind are in
 
 ## Change log
 
+### 2026-09-15 — Thirteen documented fields nothing rendered; check:catalog check 5
+
+A sweep of all 101 kinds compared each catalog `DATA:` line against what its
+component actually reads. **A props interface is a DECLARATION, not a reader**
+— that is why every one of these survived: the field was in the interface, in
+the header comment, in the catalog and in issue frontmatter, and reached no
+markup. Astro does not error on an unread prop, so nothing showed in a build,
+a diff or a browser. Full list and reasoning: root `AGENTS.md` §10.
+
+Rendered: `benchmark-chart.items[].sublabel` (new `.bc__sub`, a second line in
+the fixed 150px label column — the track collapses to ~43px on a phone, that
+column does not); `tactics-pitch.players[].role` (the disc takes `num`, else
+`role`; the published Arsenal pitch had eleven blank discs);
+`city-compare.rows[].note` (new `.cc__note`, `grid-column: 1 / -1` so the
+centre column keeps its width); `climate-calendar.months[].note` (new
+`.px-ccal__notes`, a named footnote under the strip); `league-table`'s `gf` /
+`ga`, both `class="hide"` like GD; and `comparison`'s `columns` LIST form,
+which the catalog had documented since the beginning and nothing ever read.
+
+`data-readout`'s `emphasis` is the one that was invisible at the CSS layer
+rather than the component layer: `.tel__tile[data-emphasis]` had no rules,
+because the styling sat on the RETIRED `.px-readout__tile` prefix in the six
+theme files (§4's "inert dead code" list — it was not all inert). 25 flags
+across 8 published issues painted flat. Now one block in `dataviz-v2.css`:
+an inset 2px accent rule plus an accent numeral, the retired intent restored.
+
+Struck (with any authored content moved first): `data-readout.accent` →
+`emphasis`, `city-compare.flag`, `channel-ternary.corners[].id` /
+`entities[].short`, `terminator-globe.showEoT`, `adoption-curve.xLabel`.
+
+`Comparison` also stopped emitting `.px-compare__source`. It was the last
+component-rendered source line in the codebase: the 2026-09-04 sweep matched
+`__src` and this one ends `__source`, so it printed the source twice under any
+comparison that had one, and story.css's `[class$='__src']` rule could not
+hide it in a beat either. Its list form builds each column as ONE block (head
++ its own items) so a phone can stack columns without an item losing its
+heading — the first attempt stacked the two grids independently and put both
+headings above all eight items.
+
+**New: `check:catalog` check 5.** Every field in a catalog DATA line must have
+a reader in the component, its dispatch arm, its direct imports or its WebGL
+scene — 852 fields, and a bare prop forward to the kind's own component does
+NOT count (that is the bug's exact shape). Deliberate exceptions live in
+`ACCEPTED_UNREAD` in `scripts/check-catalog.mjs`, each with a reason; today
+that is the annotation contract's `side` / `series` on single-series kinds
+(`_ANNOTATIONS.md` §1 calls `side` a hint and `series` multi-series only) and
+`chamber`'s `{party: n}`, which is a placeholder for a party name used as a
+key. **Adding a field to a DATA line now fails the build until something
+renders it.**
+
+New prefixes: `.bc__sub`, `.cc__note`, `.px-ccal__notes` / `__noteln`,
+`.px-compare__col` / `__list` / `__item`. None ends in `__cap` or `__src`,
+which story.css hides inside a beat.
+
 ### 2026-09-13 — Phase 3 of the register plan: four plain-language kinds, the annotation slot, `analogy` generalised, `hero` retired
 
 Built under `docs/REGISTER-PLAN.md` RG-09 and RG-20 by one-file-scoped

@@ -342,11 +342,11 @@ a worked section in its world's showcase issue. The other two flagships,
 - **`route-globe`** (WebGL) — `{ stops[]{ city, lat, lon, note? } }`
 - **`elevation-trek`** — `{ points[]{ km, elevM, label? }, unit? }`
 - **`itinerary-reel`** — `{ days[]{ day, place, items?[] } }`
-- **`climate-calendar`** — `{ months[]{ month, temp?, rainfall?, note? }, tempUnit? }`
+- **`climate-calendar`** — `{ months[]{ month, temp?, rainfall?, note? }, tempUnit? }` — a month's `note` prints as a named footnote under the strip, never in its own column (twelve columns are ~22px wide on a phone). Unrendered until 2026-09-15.
 - **`timezone-arc`** — `{ zones[]{ city, offset }, refOffset? }`
 
 ### sports
-- **`tactics-pitch`** — `{ players[]{ x(0-100), y(0-100), num?, name?, role? }, formation?, team? }`
+- **`tactics-pitch`** — `{ players[]{ x(0-100), y(0-100), num?, name?, role? }, formation?, team? }` — the disc prints `num`, or `role` when there is no number, so **author at least one of them** or the disc is blank. `name`'s surname goes in the chip below (hidden under 560px). `role` was unrendered until 2026-09-15.
 - **`shot-map`** — `{ shots[]{ x, y, xg, outcome: 'goal'|'saved'|'miss'|'blocked' } }`
 - **`xg-race`** — `{ events[]{ minute, team: 'home'|'away', xg }, home?, away? }`
 - **`momentum-wave`** — `{ points[]{ minute, value(-100..100) }, events?[]{ minute, label, team? }, home?, away? }`

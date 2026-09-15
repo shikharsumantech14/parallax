@@ -369,7 +369,13 @@ html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
    ────────────────────────────────────────────────────────────────────────── */
 .bc__row { display: grid; grid-template-columns: 150px 1fr 52px; gap: 14px; align-items: center; padding: 5px 0; }
 .bc__label { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); text-align: right; letter-spacing: 0.02em; }
+/* The bar's second line — what is left of that bar's quantity, written on the
+   bar itself. It sits in the 150px label column rather than under the track,
+   because the track collapses to ~43px on a phone while this column does not.
+   Not `__cap`/`__src`: story.css hides those inside a beat (AGENTS.md §7). */
+.bc__sub { display: block; margin-top: 3px; font-size: 9.5px; line-height: 1.35; letter-spacing: 0.02em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bc__row[data-hl="true"] .bc__label { color: var(--accent); font-weight: 700; }
+.bc__row[data-hl="true"] .bc__sub { color: var(--muted); font-weight: 400; }
 .bc__track { position: relative; height: 22px; background: color-mix(in oklab, var(--ink) 5%, var(--bg)); border-radius: 4px; overflow: hidden; }
 .bc__fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--w); background: color-mix(in oklab, var(--ink) 30%, var(--bg)); border-radius: 4px; transition: width 1000ms var(--ease); }
 html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
@@ -427,6 +433,10 @@ html.js .px-viz:not(.is-in) .cc__row { opacity: 0; transform: translateY(6px); }
 .cc__b { text-align: right; }
 .cc__a[data-win="true"], .cc__b[data-win="true"] { color: var(--accent); font-weight: 700; }
 .cc__metric { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); text-align: center; }
+/* A row's footnote — why the winner wins, when the two values alone don't say.
+   Spans the row rather than sitting in the centre column, which is sized to
+   the metric label and would squeeze both values if it grew. */
+.cc__note { grid-column: 1 / -1; margin-top: 8px; font-family: var(--font-display); font-style: italic; font-size: 13px; line-height: 1.5; color: var(--ink-soft); text-align: center; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    LEAGUE TABLE (sports) — standings with qualify/relegation bands, form pills
@@ -622,6 +632,18 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
   overflow: hidden;
 }
 .tel__tile:last-child { border-right: none; }
+/* `emphasis` — the tile the section is actually about. The component has
+   written this attribute since the v2 port, but the CSS for it stayed behind
+   on the RETIRED `.px-readout__tile` prefix in the six theme files, so the
+   attribute painted nothing for anyone. Restored here, once, on the class the
+   component really emits (2026-09-15). An INSET rule, not a border: the tile
+   is `overflow: hidden` with a sweep on ::before, and an inset hairline is
+   what RD-05 leaves standing. The numeral may take the vivid accent because
+   it is 40px — CANON §6's accent-deep rule is about SMALL text. */
+.tel__tile[data-emphasis="key"] { box-shadow: inset 0 2px 0 var(--accent); }
+.tel__tile[data-emphasis="key"] .tel__n { color: var(--accent); }
+.tel__tile[data-emphasis="warn"] { box-shadow: inset 0 2px 0 var(--accent-alt, var(--accent)); }
+.tel__tile[data-emphasis="warn"] .tel__n { color: var(--accent-alt, var(--accent)); }
 .tel__tile::before {
   content: '';
   position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;

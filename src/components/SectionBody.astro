@@ -214,7 +214,7 @@ const data: any = {
     )}
 
     {section.kind === 'comparison' && (
-      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} source={data.source} />
+      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} columns={data.columns ?? []} />
     )}
 
     {section.kind === 'data-readout' && (
@@ -363,7 +363,6 @@ const data: any = {
         points={data.points ?? []}
         annotations={data.annotations}
         milestones={data.milestones ?? []}
-        xLabel={data.xLabel}
         yLabel={data.yLabel}
         caption={data.caption}
         source={data.source}
@@ -547,7 +546,7 @@ const data: any = {
       <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terminator-globe' && (
-      <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} showEoT={data.showEoT} caption={data.caption} source={data.source} />
+      <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'city-grid' && (
       <CityGrid cities={data.cities ?? []} caption={data.caption} source={data.source} />

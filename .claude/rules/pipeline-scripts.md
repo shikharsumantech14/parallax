@@ -35,7 +35,11 @@ Leave `pipeline.config.ts` alone — it is the operator's API config.
 ## Gates live here
 
 - `check-catalog.mjs` — SECTION_KINDS ↔ catalog.md 1:1 and in order, plus
-  EXPLAIN and KIND_PRIORITY coverage. Reports every failure in one run.
+  EXPLAIN and KIND_PRIORITY coverage, plus (2026-09-15) **every field in a
+  catalog DATA line has a reader** in its component / dispatch arm / direct
+  imports / WebGL scene. Reports every failure in one run. A field with no
+  reader fails the build: render it, strike it from the DATA line, or add it
+  to `ACCEPTED_UNREAD` in the script with a reason.
 - `design-sync.mjs --check` — 30 mirrors + 6 in-world deeps + 18 record tokens.
 - `wire-kind.mjs` — wires six of the nine registry places from one config;
   idempotent, handles per-file line endings.

@@ -17,6 +17,10 @@
  * y = pitch LENGTH (0 = own goal-line at the back, 100 = far/attacking line).
  *
  * data: { players[]{ x, y, num?, name?, role? }, formation?, team?, caption?, source? }
+ *   num  — shirt number, shown in the disc
+ *   name — surname shown in the chip below the disc (hidden under 560px)
+ *   role — position code ("GK", "RB"); shown IN the disc when there is no
+ *          `num`, and always in the marker's hover title
  */
 interface Player { x: number; y: number; num?: number | string; name?: string; role?: string; }
 interface Props {
@@ -43,9 +47,14 @@ const surname = (name?: string) => {
   const t = name.trim().split(/\s+/);
   return t[t.length - 1] || name.trim();
 };
+// The disc carries the shirt number when there is one, and otherwise the
+// position code — which for a schematic shape (no squad named) is the ONLY
+// thing identifying a marker. Before 2026-09-15 `role` was declared and never
+// read, so a pitch authored with x/y/role alone painted eleven blank discs.
 const placed = (players || []).map((p, i) => ({
   ...p,
   short: surname(p.name),
+  label: [p.num, p.name, p.role].filter((v) => v != null && v !== '').join(' · ') || undefined,
   left: clamp(p.x, PAD_X, 100 - PAD_X),
   top: clamp(100 - clamp(p.y), PAD_Y, 100 - PAD_Y),
   i,
@@ -84,8 +93,8 @@ const placed = (players || []).map((p, i) => ({
 
         <!-- player markers -->
         {placed.map((p) => (
-          <span class="px-pitch__mk" style={`left:${p.left}%;top:${p.top}%;--i:${p.i}`}>
-            <span class="px-pitch__disc">{p.num ?? ''}</span>
+          <span class="px-pitch__mk" style={`left:${p.left}%;top:${p.top}%;--i:${p.i}`} title={p.label}>
+            <span class="px-pitch__disc" data-role={p.num == null && p.role ? 'true' : 'false'}>{p.num ?? p.role ?? ''}</span>
             {p.short && <span class="px-pitch__name" title={p.name}>{p.short}</span>}
           </span>
         ))}
@@ -185,6 +194,12 @@ const placed = (players || []).map((p, i) => ({
     box-shadow: 0 4px 10px -3px color-mix(in oklab, var(--ink) 70%, transparent);
     font-variant-numeric: tabular-nums;
   }
+  /* A position code is 2–3 letters where a number is 1–2 digits, so it needs
+     the narrower mono cut to sit inside the same 30px disc. */
+  .px-pitch__disc[data-role="true"] {
+    font-family: var(--font-mono);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  }
   .px-pitch__name {
     font-family: var(--font-mono);
     font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
@@ -233,6 +248,7 @@ const placed = (players || []).map((p, i) => ({
   @media (max-width: 560px) {
     .px-pitch { --recline: 40deg; --counter: -40deg; }
     .px-pitch__disc { width: 26px; height: 26px; font-size: 12px; }
+    .px-pitch__disc[data-role="true"] { font-size: 9.5px; }
     .px-pitch__name { display: none; }
     .px-pitch__heat { width: 48px; height: 48px; }
   }

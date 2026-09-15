@@ -717,6 +717,55 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 ## 10. Change log for this file
 
+### 2026-09-15 — The unread-field sweep: thirteen documented fields nothing rendered
+
+All 101 kinds were swept, catalog `DATA:` line against what the component
+actually reads BELOW the frontmatter fence (a props interface is a
+declaration, not a reader — which is exactly what hid every one of these).
+**Thirteen fields were documented, authored against, and never rendered.** The
+three found by accident during the Phase 6 rewrites were the smallest of them:
+
+- **`comparison`'s entire documented shape had never been implemented.** The
+  catalog said `{ columns: [{label, items}] }`; the component has always taken
+  `{ sides, rows }`. A section authored from the catalog rendered an empty
+  card. BOTH shapes render now — `columns` is the list form (parallel columns
+  that do not pair up row by row), `columns` wins when present — because
+  re-pairing eight sourced statements into rows they do not form would have
+  been an editorial rewrite, not a fix.
+- **`tactics-pitch`'s `role` was the worst live case.** The published Arsenal
+  issue authors x / y / role and NO `num` or `name`, so the pitch shipped
+  eleven blank discs under an intro promising "each disc is one player in the
+  position he holds". The disc now shows `num`, falling back to `role`.
+- **`data-readout`'s `emphasis` reached the DOM and painted nothing** — found
+  while migrating the phantom `accent: true` onto it. The component has
+  written `data-emphasis` since the v2 port, but its CSS stayed behind on the
+  RETIRED `.px-readout__tile` prefix in the six theme files. **25 flags across
+  8 published issues** were rendering flat. Restored once, in
+  `dataviz-v2.css`, on the class the component really emits.
+- Also rendered: `benchmark-chart.sublabel` (the Kessler hero, designed around
+  it in the approved storyboard), `city-compare.rows[].note`,
+  `climate-calendar.months[].note`, `league-table`'s `gf` / `ga` (its prop is
+  literally named `showGoals` and only GD was emitted).
+- Struck, with authored content moved or removed: `data-readout.accent` (→
+  `emphasis: "key"`), `city-compare.flag` (emoji — no raster imagery),
+  `channel-ternary.corners[].id` + `entities[].short` (the plot carries no dot
+  labels by design), `terminator-globe.showEoT`, `adoption-curve.xLabel`.
+- **Not a gap, and recorded as such:** the annotation contract's `side` /
+  `series` on single-series kinds. `_ANNOTATIONS.md` §1 calls `side` "a hint
+  only" and `series` a multi-series field; each component already said so in a
+  comment. They sit in `ACCEPTED_UNREAD` now, where a silent drop has to be a
+  stated decision.
+- One adjacent find: `Comparison` was still emitting its own source line, so
+  any comparison with a source printed it twice. It ends `__source`, not
+  `__src`, which is how it survived both the 2026-09-04 sweep and story.css's
+  `[class$='__src']` beat rule.
+
+**`check:catalog` gained check 5, so this class cannot recur:** every field in
+a catalog DATA line must be read by its component, its dispatch arm, its
+direct imports or its WebGL scene. 852 fields checked. A bare prop forward to
+the kind's own component does not count as a reader — that is the bug's exact
+shape. Deliberate exceptions go in `ACCEPTED_UNREAD` with a reason.
+
 ### 2026-09-14 — Phase 4 done; two rulings on the register
 
 The four flagship issues (delimitation, El Niño, Arsenal, the Everest/Fuji

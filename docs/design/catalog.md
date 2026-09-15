@@ -90,7 +90,7 @@
 - **World/Tier:** universal · core · `src/components/core/Comparison.astro`
 - **USE WHEN:** two or three peer entities compared attribute by attribute (systems, bills, eras) — read-across rows matter.
 - **DON'T USE:** two cities' travel stats (→ `city-compare`); a contradiction where the tension is the point (→ `paradox`).
-- **DATA:** `{ columns: [{label, items: [string | {text, strong?: true}]}] }`
+- **DATA:** TWO forms. Matrix (read ACROSS a row): `{ sides: [{label, title (*italic* ok), kicker?, tag?}], rows: [{label, values: [string × sides]}] }`. List (parallel columns that do NOT pair up row by row — a done / not-done ledger): `{ columns: [{label, items: [string | {text, strong?: true}]}] }`; `columns` wins when present. Until 2026-09-15 only the list form was documented and only the matrix form was implemented, so a section authored from this line rendered an empty card.
 - **PLAIN:** "Parallel columns, one per thing compared; read across a row to see the same attribute side by side."
 - **NOTES:** universal; 2–3 columns only.
 
@@ -170,7 +170,7 @@
 - **World/Tier:** universal · v2 kit `.tel` (telemetry tiles) · `src/components/core/DataReadout.astro`
 - **USE WHEN:** 3–6 headline numbers that set scale before the argument — values with short labels, one worth accenting.
 - **DON'T USE:** a series over time (→ the world's time-series kind); ranked values needing bars (→ `benchmark-chart`).
-- **DATA:** `{ tiles: [{value, label, note?, accent?: true}] }`
+- **DATA:** `{ tiles: [{value, label, note?, unit?, emphasis?: 'key'|'warn', color?}], status? }` — `emphasis` is the highlight (`accent: true` was documented until 2026-09-15 and never read by the component; authored tiles migrated to `emphasis: "key"`). A `value` that is a plain integer counts up; anything else renders verbatim.
 - **PLAIN:** "A grid of instrument tiles; each shows one number and its label, and the accented tile is the headline reading."
 - **NOTES:** standalone `data-reveal` root; count-up tweens to the values already in the HTML.
 
@@ -282,7 +282,7 @@
 - **World/Tier:** tech · v2 kit `.bc` · `src/components/topic/tech/BenchmarkChart.astro`
 - **USE WHEN:** entities ranked on one metric as horizontal bars — one highlighted, optionally against a reference line.
 - **DON'T USE:** change over time (→ `adoption-curve` / `scaling-plot`); multi-attribute comparison (→ `comparison`).
-- **DATA:** `{ items: [{label, value, sublabel?, highlight?, color?}], maxValue?, unit?, refValue?, refLabel?, sortDesc? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the item's label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
+- **DATA:** `{ items: [{label, value, sublabel?, highlight?, color?}], maxValue?, unit?, refValue?, refLabel?, sortDesc? }` (`sublabel` is the bar's second line, in the label column — unrendered until 2026-09-15) + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the item's label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "Horizontal bars sorted by value; the highlighted bar is the subject, the reference line the mark to beat."
 - **NOTES:** tech signature; hero-capable.
 
@@ -290,7 +290,7 @@
 - **World/Tier:** tech · v2 kit `.adc` · `src/components/topic/tech/AdoptionCurve.astro`
 - **USE WHEN:** percent adoption over years tracing an S-curve, with milestone moments worth pinning to it.
 - **DON'T USE:** raw scaling relationships (→ `scaling-plot`); activity density (→ `commit-grid`).
-- **DATA:** `{ points: [{year, pct}], milestones?: [{year, label, pct?}], xLabel?, yLabel? }` + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the x value or a milestone label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
+- **DATA:** `{ points: [{year, pct}], milestones?: [{year, label, pct?}], yLabel? }` (yLabel is the caption's unit chip; `xLabel` was documented, never rendered, struck 2026-09-15) + `annotations?: [{at, text ≤ 12 words, side?, series?}]` (0–3; at = the x value or a milestone label; the callout on the mark that shows the finding — docs/design/blueprints/_ANNOTATIONS.md)
 - **PLAIN:** "One line climbing an S-shape from niche to normal; flags along it mark the moments that bent the curve."
 - **NOTES:** tech signature; hero-capable; overflow-visible milestone labels.
 
@@ -306,7 +306,7 @@
 - **World/Tier:** travel · v2 kit `.cc` · `src/components/topic/travel/CityCompare.astro`
 - **USE WHEN:** exactly two places head-to-head on travel-relevant rows, with per-row winners.
 - **DON'T USE:** three or more entities, or non-place subjects (→ `comparison`).
-- **DATA:** `{ cityA: {name, flag?, subtitle?}, cityB: {name, flag?, subtitle?}, rows: [{label, a, b, winner?, note?}] }`
+- **DATA:** `{ cityA: {name, subtitle?}, cityB: {name, subtitle?}, rows: [{label, a, b, winner?: 'a'|'b'|'tie', note?}] }` — `note` renders as a full-width italic line under its row. (`flag` was documented and never rendered; struck 2026-09-15 — the publication carries no emoji or raster imagery.)
 - **PLAIN:** "Two city columns with metric rows between them; the marked side wins that row."
 - **NOTES:** travel signature; hero-capable.
 
@@ -314,7 +314,7 @@
 - **World/Tier:** sports · v2 kit `.lt` · `src/components/topic/sports/LeagueTable.astro`
 - **USE WHEN:** standings — position, points, form over a season or window; movement and gaps tell the story.
 - **DON'T USE:** one match (→ `match-stat-line`); momentum inside a match (→ `momentum-wave`).
-- **DATA:** `{ rows: [{pos, posChange?, team, badge?, played, won, drawn?, lost, gf?, ga?, gd?, points, form?, highlight?}], showDrawn?, showGoals? }`
+- **DATA:** `{ rows: [{pos, posChange?, team, badge?, played, won, drawn?, lost, gf?, ga?, gd?, points, form?: ['W'|'D'|'L'], highlight?: 'top'|'promotion'|'relegation'|'qualified'}], showDrawn?, showGoals? }` — `showGoals` shows GF, GA and GD (only GD was emitted until 2026-09-15); all three drop with Form below 720px.
 - **PLAIN:** "A standings table read top-down; position arrows and the form string show direction, the highlighted row is the subject."
 - **NOTES:** sports signature; hero-capable.
 
@@ -706,7 +706,7 @@
 - **World/Tier:** travel · SVG · `src/components/topic/travel/ClimateCalendar.astro`
 - **USE WHEN:** monthly temperature / rainfall for a "when to go" decision.
 - **DON'T USE:** multi-decade climate records (→ `climate-strip` / `climate-spiral`, earth).
-- **DATA:** `{ months: [{month, temp?, rainfall?, note?}], tempUnit? }`
+- **DATA:** `{ months: [{month, temp?, rainfall?, note?}], tempUnit? }` — a month's `note` renders as a named footnote under the strip, not in its column (twelve columns are ~22px wide on a phone). Unrendered until 2026-09-15.
 - **PLAIN:** "Twelve month cells coloured as a heat ribbon; warm and wet read at a glance, so the good window shows itself."
 - **NOTES:** worked example in `2026-06-03-travel-showcase`.
 
@@ -722,7 +722,7 @@
 - **World/Tier:** travel · WebGL **FLAGSHIP** · `src/components/topic/travel/TerminatorGlobe.astro`
 - **USE WHEN:** a jet-lag / time-zone / red-eye story — two cities, a departure moment, a flight duration.
 - **DON'T USE:** a multi-stop journey arced across the globe (→ `route-globe`); city time-zone offsets as a flat chart (→ `timezone-arc`).
-- **DATA:** `{ epoch, from: {city, lat, lon, tzOffsetH}, to: {city, lat, lon, tzOffsetH}, flightHours, arcBulge?, showEoT? }`
+- **DATA:** `{ epoch, from: {city, lat, lon, tzOffsetH}, to: {city, lat, lon, tzOffsetH}, flightHours, arcBulge? }` — (`showEoT` was documented and read by neither the component nor its scene; struck 2026-09-15.)
 - **PLAIN:** "A real globe lit for one moment — the shaded half is night, the line across it is where day meets dark, and the terracotta arc is your flight crossing from one into the other."
 - **NOTES:** hero-capable (pairs with `layout: split`); extends the shared country globe; setState 'arrival' jumps the sun forward. BLUEPRINT: `docs/design/blueprints/travel/terminator-globe.md`. RESEARCHER MUST CAPTURE: the two airports' coords + tz offsets + the real flight duration.
 
@@ -770,7 +770,7 @@
 - **World/Tier:** sports · CSS-3D/SVG · `src/components/topic/sports/TacticsPitch.astro`
 - **USE WHEN:** player positions / a formation on the pitch — the spatial set-up is the argument.
 - **DON'T USE:** shot locations and quality (→ `shot-map`); match numbers (→ `match-stat-line`).
-- **DATA:** `{ players: [{x (0-100), y (0-100), num?, name?, role?}], formation?, team? }`
+- **DATA:** `{ players: [{x (0-100), y (0-100), num?, name?, role?}], formation?, team? }` — the disc shows `num`, or `role` when there is no number; `name`'s surname sits in the chip below it (hidden under 560px). Author at least one of `num` / `role`, or the disc is blank: `role` was unrendered until 2026-09-15 and the Arsenal issue shipped eleven empty discs.
 - **PLAIN:** "A pitch viewed at a tilt with a marker per player where they actually operate; the shape between markers is the formation."
 - **NOTES:** worked example in `2026-06-03-sports-showcase`.
 
@@ -842,7 +842,7 @@
 - **World/Tier:** sports · SVG ternary · `src/components/topic/sports/ChannelTernary.astro`
 - **USE WHEN:** 4–12 entities split across exactly THREE mutually exclusive shares summing to 100, where the lopsidedness is the argument.
 - **DON'T USE:** more or fewer than three parts (→ `player-radar` for many axes, `comparison` for two); positions on the pitch (→ `tactics-pitch`); a value surface (→ `court-value`); a two-way split of a total (→ `revenue-mosaic`, tech).
-- **DATA:** `{ corners: [{id,label} ×3], entities: [{name, short?, values:[l,t,r], note?}] }`
+- **DATA:** `{ corners: [{label} ×3], entities: [{name, values:[l,t,r] summing to 1.0 ±0.001, note?}] }` — 4–12 entities; anything else fails the build. (`corners[].id` and `entities[].short` were documented and never read; struck 2026-09-15 — the plot carries no dot labels by design, so a short code had nowhere to go.)
 - **PLAIN:** "A triangle, because the three shares must add to a hundred and only two are ever free; distance FROM a corner is how little that channel is used."
 - **NOTES:** build FAILS if any entity's three values do not sum to 1.0 ±0.001, or outside 4–12 entities. The plot carries NO dot labels — eight names cannot be placed in a 300px triangle without collision, so the table is the identity layer, not an optional fallback. Pairs with `default`; never `bleed`.
 

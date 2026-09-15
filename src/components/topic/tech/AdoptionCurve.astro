@@ -13,7 +13,8 @@
  * props:
  *   points[]     — { year: number, pct: number }  (0–100)
  *   milestones[] — { year: number, label: string }
- *   xLabel       — x-axis label (kept for schema parity; not rendered by kit)
+ *   (xLabel was declared and never rendered — the kit draws no x-axis label
+ *    slot. Struck 2026-09-15; nothing authored it.)
  *   yLabel       — caption unit chip (e.g. "% Adoption")
  *   caption
  *   source
@@ -33,7 +34,6 @@ interface Props {
   points: CurvePoint[];
   milestones?: Milestone[];
   annotations?: Annotation[];
-  xLabel?: string;
   yLabel?: string;
   caption?: string;
   source?: string;

@@ -11,6 +11,8 @@
  *
  * props:
  *   items[]   — { label, value, sublabel?, highlight?, color? }
+ *               sublabel renders as a second line under the label, in the
+ *               fixed 150px column (the track collapses on a phone; it does not)
  *   maxValue  — right-end of scale (default: auto from data × 1.05)
  *   unit      — caption unit chip (e.g. "tokens/s", "pts", "%")
  *   refValue  — optional reference line value (e.g. human baseline)
@@ -114,7 +116,10 @@ const annotPad = (v: number) => {
   >
     {rows.map((it, i) => (
       <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'}>
-        <span class="bc__label">{it.label}</span>
+        <span class="bc__label">
+          {it.label}
+          {it.sublabel && <span class="bc__sub">{it.sublabel}</span>}
+        </span>
         <span class="bc__track">
           <span
             class="bc__fill"
