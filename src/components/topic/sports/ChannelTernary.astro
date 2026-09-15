@@ -16,8 +16,13 @@
  */
 import VizCard from '../../core/VizCard.astro';
 
-interface Corner { id: string; label: string }
-interface Entity { name: string; short?: string; values: [number, number, number]; note?: string }
+/* `corners[].id` and `entities[].short` were declared here and never read.
+   Struck 2026-09-15: a corner is identified by its `label`, which is what the
+   axis text and the table headers print; and a `short` code had nowhere to go,
+   because the plot deliberately carries no dot labels (see the table comment
+   below) — so there is no second, narrower slot for a name. */
+interface Corner { label: string }
+interface Entity { name: string; values: [number, number, number]; note?: string }
 interface Props {
   corners?: Corner[];
   entities?: Entity[];

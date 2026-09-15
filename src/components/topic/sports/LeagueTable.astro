@@ -19,7 +19,10 @@
                      form?: string[],     // 'W' | 'D' | 'L'
                      highlight?: 'top' | 'promotion' | 'relegation' | 'qualified' }
     showDrawn    — show Drawn column (default true; set false for cricket)
-    showGoals    — show GF/GA/GD columns (default true)
+    showGoals    — show GF/GA/GD columns (default true). All three carry
+                   `class="hide"`, so they drop below 640px with Form — the
+                   table keeps P/W/D/L/Pts on a phone. Until 2026-09-15 only
+                   GD was emitted, so authored gf/ga went nowhere.
     caption
     source
 */
@@ -77,6 +80,8 @@ const badgeColor = (b?: string): string => {
         <th>W</th>
         {showDrawn && <th>D</th>}
         <th>L</th>
+        {showGoals && <th class="hide">GF</th>}
+        {showGoals && <th class="hide">GA</th>}
         {showGoals && <th class="hide">GD</th>}
         <th>Pts</th>
         <th class="hide">Form</th>
@@ -97,6 +102,8 @@ const badgeColor = (b?: string): string => {
           <td>{r.won}</td>
           {showDrawn && <td>{r.drawn ?? '—'}</td>}
           <td>{r.lost}</td>
+          {showGoals && <td class="hide">{r.gf ?? '—'}</td>}
+          {showGoals && <td class="hide">{r.ga ?? '—'}</td>}
           {showGoals && <td class="hide">{r.gd != null ? (r.gd > 0 ? '+' : '') + r.gd : '—'}</td>}
           <td class="pts">{r.points}</td>
           <td class="hide"><span class="lt__form">{(r.form ?? []).slice(-5).map((f) => <span class={'lt__fp lt__fp--' + f}>{f}</span>)}</span></td>

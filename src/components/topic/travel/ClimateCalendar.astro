@@ -76,6 +76,11 @@ const fmtTemp = (t: number) => (Number.isInteger(t) ? `${t}` : t.toFixed(1));
 const fmtRain = (r: number) => Math.round(r).toLocaleString();
 // Short month label (first 3 chars) for the axis row.
 const shortMonth = (m: string) => m.slice(0, 3);
+
+// A month's `note` cannot go in its own column — twelve columns are ~22px wide
+// on a phone. It reads as a footnote under the strip, named by its month, so
+// the line stands on its own. (Declared and unrendered until 2026-09-15.)
+const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note));
 ---
 
 <div class="px-viz" data-reveal>
@@ -118,6 +123,14 @@ const shortMonth = (m: string) => m.slice(0, 3);
           {rains.length ? <>rainfall · peak {fmtRain(rMax)}</> : <>rainfall</>}
         </span>
       </div>
+
+      {noted.length > 0 && (
+        <ul class="px-ccal__notes">
+          {noted.map((m) => (
+            <li class="px-ccal__noteln"><b>{m.month}</b> — {m.note}</li>
+          ))}
+        </ul>
+      )}
     </div>
   ) : (
     <p class="px-ccal__empty">No climate data.</p>
@@ -226,6 +239,21 @@ const shortMonth = (m: string) => m.slice(0, 3);
     width: 14px; height: 14px; border-radius: 3px;
     background: linear-gradient(180deg,
       color-mix(in oklab, var(--accent) 70%, var(--bg)), var(--accent-deep, var(--accent)));
+  }
+
+  /* Per-month footnotes, under the legend. Not `__cap`/`__src`: story.css
+     hides those inside a beat (root AGENTS.md §7). */
+  .px-ccal__notes {
+    list-style: none; margin: 14px 0 0; padding: 12px 0 0;
+    border-top: 1px solid var(--rule);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .px-ccal__noteln {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 13px; line-height: 1.5; color: var(--ink-soft);
+  }
+  .px-ccal__noteln b {
+    font-style: normal; font-weight: 700; color: var(--ink);
   }
 
   .px-ccal__empty {

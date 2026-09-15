@@ -457,15 +457,54 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-compare__cell:last-child { border-right: none; }
 .px-compare__cell strong { font-weight: 700; color: var(--ink); }
 .px-compare__cell em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
-.px-compare__source {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  padding: 12px 26px;
-  border-top: 1px solid var(--rule);
-  font-style: italic;
-  text-transform: uppercase;
+
+/* The LIST form (`data-form="list"`): parallel columns of items that do not
+   pair up row by row, so there is no 140px label gutter and no read-across.
+   Each column is one self-contained block (head + its items), which is what
+   lets a phone stack them without an item losing its heading.
+   `.px-compare__source` used to sit here; it was the last component-rendered
+   source line, missed by the 2026-09-04 sweep because it ends `__source`
+   rather than `__src`. Section prints it now — for every kind, once. */
+.px-compare__lists {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+.px-compare[data-cols="3"] .px-compare__lists { grid-template-columns: repeat(3, 1fr); }
+.px-compare__col { border-right: 1px solid var(--rule); }
+.px-compare__col:last-child { border-right: none; }
+.px-compare__col .px-compare__col-head {
+  border-right: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 26px;
+}
+.px-compare__list { list-style: none; margin: 0; padding: 0; }
+.px-compare__item {
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+  padding: 15px 26px;
+  border-bottom: 1px dashed var(--rule);
+}
+.px-compare__item:last-child { border-bottom: none; }
+/* `strong: true` — the payload item. An inset left rule, the same idiom the
+   league table uses for its bands; RD-05 keeps shadows to inset hairlines. */
+.px-compare__item[data-strong="true"] {
+  font-weight: 700;
+  padding-left: 24px;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.px-compare__item strong { font-weight: 700; color: var(--ink); }
+.px-compare__item em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
+
+/* Phones: the LIST form stacks to one column so a 15px line keeps its measure.
+   The matrix form is untouched — its head and its rows share a column count,
+   so stacking one without the other would misalign it. */
+@media (max-width: 640px) {
+  .px-compare__lists,
+  .px-compare[data-cols="3"] .px-compare__lists { grid-template-columns: 1fr; }
+  .px-compare__col { border-right: none; border-bottom: 1px solid var(--rule); }
+  .px-compare__col:last-child { border-bottom: none; }
 }
 
 /* DATA READOUT (shared — layout only; colors overridden per topic) */

@@ -9,14 +9,20 @@
   comparisons, infrastructure snapshots.
 
   props:
-    cityA      — { name: string, flag?: string, subtitle?: string }
-    cityB      — { name: string, flag?: string, subtitle?: string }
+    cityA      — { name: string, subtitle?: string }
+    cityB      — { name: string, subtitle?: string }
     rows[]     — { label: string, a: string, b: string,
                    winner?: 'a' | 'b' | 'tie', note?: string }
+                 note renders as a full-width italic line under its row.
+
+    `flag` was declared here and never rendered. Struck 2026-09-15: the
+    authored values were emoji, and the publication carries no raster or
+    emoji imagery (root AGENTS.md §5 — type- and data-viz-led). A city is
+    identified by its name and subtitle.
     caption
     source
 */
-interface City  { name: string; flag?: string; subtitle?: string; }
+interface City  { name: string; subtitle?: string; }
 interface Row   { label: string; a: string; b: string; winner?: 'a' | 'b' | 'tie'; note?: string; }
 interface Props {
   cityA: City;
@@ -48,6 +54,7 @@ const { cityA, cityB, rows = [], caption, source } = Astro.props;
       <span class="cc__a" data-win={r.winner === 'a' ? 'true' : 'false'}>{r.a}</span>
       <span class="cc__metric">{r.label}</span>
       <span class="cc__b" data-win={r.winner === 'b' ? 'true' : 'false'}>{r.b}</span>
+      {r.note && <span class="cc__note">{r.note}</span>}
     </div>
   ))}
 

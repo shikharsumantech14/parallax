@@ -1,4 +1,26 @@
 ---
+/**
+ * Comparison — two or three peer things, side by side.
+ *
+ * TWO authored shapes, and both render (2026-09-15):
+ *
+ *   matrix  { sides: [{label, title, tag?, kicker?}], rows: [{label, values: []}] }
+ *           the original — read ACROSS a row for the same attribute on each side.
+ *
+ *   list    { columns: [{label, items: [string | {text, strong?: true}]}] }
+ *           parallel lists that do NOT pair up row by row (a done / not-done
+ *           ledger, say). `docs/design/catalog.md` documented ONLY this shape
+ *           from the start and nothing ever read it, so a section authored
+ *           against the catalog rendered an empty card. Rather than re-pair
+ *           eight sourced statements into rows they do not actually form, the
+ *           shape is now implemented. `columns` wins when present.
+ *
+ * Renders NO source line: `core/Section.astro` emits it for every kind
+ * (`.px-plain__src`). The old `.px-compare__source` emitter survived the
+ * 2026-09-04 sweep because its class ends in `__source`, not `__src` — so it
+ * printed the source a second time under the card, and story.css's
+ * `[class$='__src']` beat rule could not hide it either.
+ */
 import { renderInline } from '../../lib/text';
 
 interface ComparisonRow {
@@ -13,36 +35,73 @@ interface ComparisonSide {
   kicker?: string;
 }
 
-interface Props {
-  sides: ComparisonSide[];
-  rows: ComparisonRow[];
-  source?: string;
+type ColumnItem = string | { text: string; strong?: boolean };
+
+interface ComparisonColumn {
+  label: string;
+  items: ColumnItem[];
 }
-const { sides, rows, source } = Astro.props;
+
+interface Props {
+  sides?: ComparisonSide[];
+  rows?: ComparisonRow[];
+  columns?: ComparisonColumn[];
+}
+const { sides = [], rows = [], columns = [] } = Astro.props;
+
+const isList = columns.length > 0;
+const cols = isList ? columns.length : sides.length;
+
+// An item is a bare string or { text, strong }. `strong: true` promotes the
+// whole line, which is the list form's equivalent of `highlight` elsewhere.
+const itemText = (it: ColumnItem) => (typeof it === 'string' ? it : it.text);
+const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === true;
 ---
 
-<div class="px-compare" data-cols={sides.length}>
-  <div class="px-compare__head">
-    {sides.map((s) => (
-      <div class="px-compare__col-head">
-        <div class="px-compare__col-label">{s.label}</div>
-        <div class="px-compare__col-title" set:html={renderInline(s.title)} />
-        {s.kicker && <div class="px-compare__col-kicker">{s.kicker}</div>}
-        {s.tag && <div class="px-compare__col-tag">{s.tag}</div>}
-      </div>
-    ))}
-  </div>
-
-  <div class="px-compare__body">
-    {rows.map((row) => (
-      <div class="px-compare__row">
-        <div class="px-compare__row-label">{row.label}</div>
-        {row.values.map((v) => (
-          <div class="px-compare__cell" set:html={renderInline(v)} />
+<div class="px-compare" data-cols={cols} data-form={isList ? 'list' : 'matrix'}>
+  {isList ? (
+    /* Each column is ONE block — its head and its own items together — so a
+       phone can stack the blocks and every item stays under its own heading.
+       The matrix form below cannot do this: its head and its rows share a
+       column count, so they must stay two grids that line up. */
+    <div class="px-compare__lists">
+      {columns.map((c) => (
+        <section class="px-compare__col">
+          <div class="px-compare__col-head">
+            <div class="px-compare__col-title" set:html={renderInline(c.label)} />
+          </div>
+          <ul class="px-compare__list">
+            {c.items.map((it) => (
+              <li class="px-compare__item" data-strong={itemStrong(it) ? 'true' : 'false'}>
+                <span set:html={renderInline(itemText(it))} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  ) : (
+    <>
+      <div class="px-compare__head">
+        {sides.map((s) => (
+          <div class="px-compare__col-head">
+            <div class="px-compare__col-label">{s.label}</div>
+            <div class="px-compare__col-title" set:html={renderInline(s.title)} />
+            {s.kicker && <div class="px-compare__col-kicker">{s.kicker}</div>}
+            {s.tag && <div class="px-compare__col-tag">{s.tag}</div>}
+          </div>
         ))}
       </div>
-    ))}
-  </div>
-
-  {source && <div class="px-compare__source">{source}</div>}
+      <div class="px-compare__body">
+        {rows.map((row) => (
+          <div class="px-compare__row">
+            <div class="px-compare__row-label">{row.label}</div>
+            {row.values.map((v) => (
+              <div class="px-compare__cell" set:html={renderInline(v)} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  )}
 </div>
