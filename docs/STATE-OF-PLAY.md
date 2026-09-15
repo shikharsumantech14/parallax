@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-14.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-15.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -32,8 +32,11 @@ storyboard → draft → panel → stylist → verifier → gate, zero untraced 
 two published numbers corrected on the way. Two rulings landed on 2026-09-14:
 foreign money stays primary with a bracketed ₹ only on current figures, and
 the machine-prose marks (em-dashes, semicolons, the AI word list) are out.
-**Next is Phase 6: the other six published issues** through the same
-pipeline, then the copy deck and the EXPLAIN batch. The design-system revamp
+**Phase 6 closed on 2026-09-15: the other six are rewritten too** (kessler,
+transgender-ratchet, the token bill, amazon, asteroid, cockroach), so **all
+ten published issues are now in the register** and every one clears all four
+composition floors. Next is the copy deck and the EXPLAIN batch. The
+design-system revamp
 (`docs/REVAMP-PLAN.md` v3) stands at its Phase 5/7 residuals, with Waves 2–4
 reassessed against usage rather than count; the context system
 (`docs/CONTEXT-PLAN.md`) Phases A–E are in.
@@ -137,6 +140,7 @@ citations resolve. Highlights of what shipped:
 | **PWA** | **Installable, and offline reading works.** Manifest + icon set generated from the medallion (`f1c336c`); the service worker cache-on-read, sessions never cached, Google Fonts kept as validated CORS responses rather than opaque ones (`a1485f9`, `bd72092`). Verified against a real build with the server stopped: a read issue renders complete with its own CSS and all three faces. `npm run preview` was rebuilt to make that testable at all — `astro preview` cannot run under the Vercel adapter (`11e1aac`). |
 | **Launch design (2026-09-08)** | **The public launch is 19 September, and the operator ruled the product's adoption of the handoff too loose to ship.** A twelve-artboard canvas prototype was drawn from `Parallax Web.dc.html`, approved, and implemented in one pass: Literata everywhere; a 1280 frame of hairline bands with scoped page styles (`meta.css` is tokens only); zero radii; the masthead lockup measured onto one axis; the issue page rebuilt (IssueHead, the 720 measure inside 170/1fr/250, facts rail + aside, reactions / letters / sources as bands, a pinned reading strip, margin notes removed); one desk template; home, about, archive rebuilt; `/subscribe` with the beta pricing (₹149 → ₹0); kind `plate` (98). Full build, all gates, 412px overflow and the menu's 44px targets verified. Details: `AGENTS.md` §10, `src/components/AGENTS.md` change log. |
 | **Register plan, Phase 4 (2026-09-14)** | The four flagships rewritten in place and committed (`1cb7256`…`55b6aea`), same slugs, same status. Each went storyboard (operator-approved) → draft → reader panel → stylist → verifier → `check:prose`; panels all REVISE with every quiz answered, verifiers 41–59 verified and **zero untraced** on each, all fixes applied. Arsenal's seven Opta figures were re-anchored first and two published numbers were wrong (28.5 → 28.3 xGA; "a quarter" → 35.9% of set-piece goals). The pipeline pass fixed the tooling under it: an authored caption on timeline / seat-chart / vote-result had never rendered (`core/Section.astro` now prints `.px-section__claim`, hidden where the component shows its own); `skimCaption` was a restatement site in the contract but renders only in Skim mode; seven gate false flags. Measured on the four: 907–1,774 → 970–1,098 reader-facing words; 137–607 → 77–80 words before the first graphic; 15–24 → 5–12 names; five kinds reached readers for the first time. Two rulings the same day: the currency rule (foreign money primary, bracketed ₹ only on current figures) and the machine-prose marks (no em-dashes, no semicolons in prose, the AI word list; tells 18–22). |
+| **Register plan, Phase 6 (2026-09-15)** | The remaining six rewritten in place and committed (`4122cc9`, `9d23414`), same slugs, same status. Each went storyboard (operator-approved) → draft → panel → stylist → second panel → verifier → `check:prose`. **All six passed the second panel with every quiz question answered by all four personas, and all six verifiers returned zero untraced claims across 303 checked.** Transgender-ratchet took a narrow re-anchoring pass first, which landed the Lok Sabha record at T0 by walking the e-library as a DSpace REST API, and which corrected its own storyboard. **All ten published issues now clear every floor**: ≤1,100 words, ≥60% visual, ≤80 before the first graphic, ≤12 names, against a backlist that averaged 1,573 words at 49% visual with up to 639 words of head and 55 names. Six kinds reached readers for the first time (`power-matrix`, `you-think`, `jargon-buster`, `three-steps`, `number-sense`, `bill-passage`). Five published errors corrected: "Parliament passed three laws" (it passed two, and the 2016 Bill cleared the Lok Sabha before lapsing in the Rajya Sabha, so neither three laws nor lapsed in committee); a minister's sentence presented as his own words from the record, where the record says "biological condition" and the reported English says "gender identity"; a NASA quotation trimmed and recapitalised inside quote marks; "either tipping point ends the same way", which the record splits by branch; and a hero cell giving an account control over copies its readers held. Two standing rules were set: **draw the low end of a published band and put the band in the copy**, and **no rupee bracket inside a dated event or on a per-token rate card**. |
 | **Register plan (2026-09-13)** | Reader feedback measured (REGISTER-PLAN §1): the formulas said the issues were already easier than Finshots; what was missing was hand-holding, the copy was ~40 blocks an issue, ~300 names, and no Indian ground (₹, crore, Hinglish: zero). Signed RG-01…RG-22 with two amendments (Hindi only where it fits; no date). Built: `_voice-core.md` v2, the lexicon, the jargon list; `composer` and `reader-panel` with `/pipeline-storyboard`, `/pipeline-panel` and the API phases behind `GATES.storyboard` (`'required'`); drafter, stylist, verifier and researcher re-based; `check:prose` (report mode: 0 blocking on the backlist, 16–59 warnings per issue); RG-19 (`howToReadFor`, `NEEDS_HOW`, the source inline on the plain line; the delimitation page went from 5 panels to 0); Phase 3 (`you-think`, `jargon-buster`, `number-sense`, `three-steps`, `analogy` pairs, `hero` retired, annotations on eight charts, all verified on the showcases). Five commits, `828f9a5`…`b2e21a5`. |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
@@ -169,16 +173,19 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    admin) still run `app.css` and were only re-fonted, not redesigned; the
    design rules in `docs/design/CANON.md` describe the pre-launch look and are
    to be re-hardened after launch (operator's stated intent).
-2. **Register plan, Phase 6: the other six published issues** (kessler,
-   transgender-ratchet, token-bill, amazon, asteroid, cockroach) through the
-   same pipeline the flagships took: storyboard (approved) → draft → panel →
-   stylist → verifier → `check:prose`, each tabled for the operator's read
-   before commit. Their dossiers are the flagships' vintage: expect the
-   verifier to want a re-anchoring pass where a draft leans on secondary
-   numbers, as Arsenal did. Then the copy deck and the EXPLAIN batch (8.2,
-   8.3), the `hi-Latn` span for justified prose (RG-18), and the readers' test
-   on the four flagships (7.4; the operator supplies five readers, two without
-   Hindi). `check:prose:gate` joins `prebuild` once all ten pass.
+2. **Register plan, what is left after Phase 6.** All ten issues are in the
+   register as of 2026-09-15, so **promote `check:prose:gate` into
+   `prebuild`** — the condition it was waiting on is met. Then the copy deck
+   and the EXPLAIN batch (8.2, 8.3), the `hi-Latn` span for justified prose
+   (RG-18), and the readers' test on the flagships (7.4; the operator supplies
+   five readers, two without Hindi). **Three dossiers are stale about their
+   own allowlists** and should be corrected before any of them is drawn on
+   again: politics writes off India Code and the Supreme Court archive, both
+   listed at T0 (and its §3 puts the 26 Nov 2019 passage in the wrong House);
+   earth predates Global Forest Watch reaching T1. Two research jobs, neither
+   blocking: one published catalogued-object count closes kessler's missing
+   total, and one dated per-million-token price series closes the token bill's
+   evidence gap and unblocks `moore-ladder`.
 3. **Phase 5 — finish it.** Step 1 landed (`f76fa8c`, §4). What is left is the
    stated exit and the four exclusions: sweep all 23 issues at 375px rather
    than the 6 showcases, test for new clipping, decide `region-map`'s authored
@@ -353,6 +360,25 @@ likely complete and instance coverage is not).
   (`@media (pointer: coarse)`).
 
 ## 7. Traps that have actually bitten (additions this cycle in bold)
+
+- **A component can accept a documented field and never draw it.**
+  `benchmark-chart` takes `items[].sublabel` and `data-readout` takes
+  `tiles[].accent`. Both are in their catalog `DATA:` lines, both are declared
+  in the component's props interface, and **neither is ever emitted below the
+  frontmatter fence**. `2026-04-24-kessler-cascade` shipped live with five
+  invisible sublabels and its hero had been *designed* around them;
+  `2026-05-15-seven-appeals-rupee-pressure` is live with three flat tiles.
+  Found by accident, twice, during the Phase 6 rewrites (2026-09-15). **Grep
+  the template, not the interface** — the interface is what made both
+  invisible. A sweep of all 101 kinds is in flight.
+- **A dossier can go stale about its own allowlist, and it fails silently in
+  the direction of weaker sourcing.** Three did. The politics dossier sent a
+  researcher to an unparseable PDF while India Code sat on the allowlist at
+  T0, and wrote off NALSA because *indiankanoon* is off-list while the Supreme
+  Court's own archive is listed twice. Cost: two published claims rested on
+  newspapers for four months, and only a re-anchoring pass found it
+  (2026-09-15). **When a dossier says a source is off-allowlist, check the
+  allowlist, not the dossier.**
 
 - **An authored `caption` on a kind whose component has no caption slot
   rendered nowhere**: timeline, seat-chart, vote-result, bill-breakdown,
