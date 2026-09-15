@@ -104,6 +104,40 @@ checks fire on shapes a careful writer produces by accident.
   the unit AI bills by") or give the dek its own marker. A colon before the
   gloss is the cheapest legal marker and the contract explicitly allows a colon
   there.
+- **A possessive in front of a proper noun mints a THIRD name.** The extender
+  strips `'s` before testing, so `"Brazil's Amazon"` produces the single name
+  **"Brazil Amazon"**, distinct from both "Brazil" and "Amazon", and
+  `"Brazilian Amazon"` produces "Brazilian Amazon" (`NAME_STOP` has `Indian`
+  but no other demonym). Two capitalised words in a row are always one name.
+  Write "clearing in Brazil", or park the possessive form in a `label`, which
+  the name loop skips.
+- **A gloss marker inside the two-sentence window can be a colon you were
+  going to write anyway.** The cheapest legal first use of a term of art is
+  `"…against the tipping point: the state past which the forest cannot recover
+  on its own."` — one character, no extra words, and contract §6 allows a
+  colon before a gloss. Note the window is measured from the term's match
+  index, so the marker must come AFTER the term, not before it.
+- **A bare YEAR can be a jargon term, and the politics desk has one: `2014`.**
+  The jargon loader splits each row's first cell on `(` and `/`, so
+  `NALSA (2014)` becomes TWO terms, `NALSA` **and** `2014`. `2014` is four
+  characters, which puts it on the case-sensitive branch, and the regex
+  `(^|[^A-Za-z])2014(?=[^A-Za-z]|$)` matches the bare numeral anywhere. So
+  "In 2014 the Supreme Court said…" is an unglossed first use of a *term of art*
+  unless a gloss marker falls in the two sentences after it. The repair is one
+  character: put a colon after the clause that names the year
+  ("In 2014 the Supreme Court settled it: you decide your own gender."), and
+  keep the year out of the `dek`, which the head reads two slots before the
+  hook. Avoid the acronym `NALSA` entirely and that half never fires either —
+  an unused term is skipped (`if (!m) continue`). Check any jargon row written
+  as `Name (Year)` for the same split before drafting.
+- **A law-report citation trips NUMBER-DENSE and cannot be repaired.**
+  `(2014) 5 SCC 438` is three numerals, and `sentences()` splits on `v.` +
+  space + capital, so the citation always lands in one sentence with all three.
+  A timeline `note` is a body key, so it is sentence-scored. The flag is
+  cosmetic on a reference string; name it in the summary rather than mangling
+  the citation. Parking the citation in a `label` would dodge it (labels are
+  neither number-scored nor name-scanned), but a raw citation as a bolded
+  timeline label reads badly.
 - **A rewrite that CUTS a section always trips NUMBER-DRIFT**, and on a
   `status: published` file that flag is **❌, not ℹ** (the severity is chosen
   by status). It diffs numerals against `git show HEAD:` for the same path, so

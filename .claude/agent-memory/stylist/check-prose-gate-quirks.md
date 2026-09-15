@@ -90,6 +90,29 @@ without it the primer fix is unfundable and the honest answer is to flag it.
 Where the hook and primer open on the same seven words (they often do — the
 drafter reuses the published line), trimming the hook is free.
 
+## Splitting a sentence can delete a gate marker — check before you split
+
+`NO-RESTATEMENT` and `NO-ANALOGY` fire per **prose section**, on
+`intro + data.lead + data.paragraphs` joined, against two literal word lists
+(`in simple terms | in other words | that means | which means | to put that in
+perspective | put simply | matlab | basically | for context | the point is |
+here's the thing | so why | so what`, and `think of | like a | like an | as if |
+imagine | picture | is like | sort of like | kind of like | the same way | the
+way a | jaise`). A closing `prose` section usually carries **exactly one of
+each**, in one sentence, and nothing else in the section repeats them.
+
+**So the panel's most common ask — "this sentence packs two conditions into one
+clause, split it" — routinely proposes deleting the section's only restatement
+marker,** because the marker is the joint being split (`which means`). Grep the
+section for both lists before rewriting, and when the marker is the joint,
+re-seat it at the head of the second sentence (`X. That means Y.`) rather than
+dissolving it. That splits the conditions, keeps the marker, keeps the logic,
+and usually costs zero words.
+
+The same trap runs the other way on a closer the storyboard has told you not to
+touch: `think of` may be the section's only analogy marker even when a panel
+calls the metaphor "late" or "out of order".
+
 ## The cheap, exact fixes
 
 - **`NUMBER-DENSE`** (>2 numerals in one sentence): swap a semicolon for a full

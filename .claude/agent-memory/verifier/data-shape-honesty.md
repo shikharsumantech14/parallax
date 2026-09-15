@@ -49,6 +49,19 @@ that was not used.
   defect, but both decide which claim the graphic can carry: a *level* claim
   survives, a *rate* claim does not. Say that plainly — it is usually an
   argument FOR the weakened wording, not against it.
+- **Count the STRANDS: how many rendering places does each key fact reach the
+  reader through?** The sibling of the annotation check, and it turns "does this
+  render" into something more useful. On amazon the two published bands were
+  authored into `items[].sublabel` on `benchmark-chart` — a field the component
+  declares in its `Item` interface and **never emits**. The bands still reached
+  the reader, through the `caption`, so nothing was lost and there was no flag to
+  raise. But counting strands showed 3.7–4 arriving three ways (two captions plus
+  a printed `value`), 22–28 two ways (caption plus a `zones[].label` legend chip,
+  which DOES render), and **1.5–1.9 exactly one way** — one caption, with the
+  field that looks like its second carrier rendering nothing. That is a fragility
+  note the operator can act on ("do not trim this caption") and it costs one pass
+  over the file. A one-strand fact whose apparent second strand is a dead field is
+  the shape to look for.
 - **Story `beats` lose the chrome that carries the caveat.** `story.css` hides
   `[class$='__cap']` inside a beat, and most viz render their caption as
   `.px-viz__cap`. So an honesty line the operator ruled into the *caption*

@@ -44,6 +44,43 @@ shape first); this is what the *argument* wanted once the shape was settled.
   Stripping `name`/`num` and keeping `role` usually also resolves a verifier
   flag about a player not in the source. Name the two the source anchors in the
   intro instead.
+- **One subject, one metric, two conditions → `benchmark-chart` with TWO bars.**
+  Where a published `comparison` says "the same thing breaks at X under
+  condition A and at Y under condition B", the rows are not attributes, they are
+  one axis. Two bars is a thin ranking and still the right call: the swap moves
+  the section out of `TEXT_ONLY` into the visual set, which is a **two-row
+  swing** in the visual share, and the two `annotations[]` carry the "why each
+  number matters" the prose cells used to. `sortDesc: true` puts the tall bar
+  first so the short one lands as the finding; `highlight` goes on the bar the
+  argument is about, not the biggest. (amazon-tipping-point, 2 of 7 visual → 5
+  of 8, where the swap alone accounted for two of the three rows gained.)
+- **A published `paradox` whose side B is a CONSEQUENCE of side A is a
+  `three-steps`.** The catalog's USE WHEN wants two facts pulling in *opposite*
+  directions. "Rain falls because the forest is there" / "so clearing here kills
+  forest never cut" is one mechanism in two paragraphs, and it runs in order,
+  which is `three-steps`' own USE WHEN. Costs a third of the words, leaves the
+  one-`paradox` ration unspent, and is neutral on the visual count (both are
+  text-only) — so only take it when the words are what you need back. Sibling
+  rule to the `you-think` re-kind above: between them they retire most published
+  `paradox` sections.
+- **One reading against a named band → `throughput-dial`.** It is the only kind
+  in the catalog whose DATA carries `zones: [{from, to, label}]`, so it is the
+  only one that can draw "here is the value, and here is the range where the
+  thing breaks". `carbon-gauge` cannot (one fraction, no band);
+  `margin-bullets` throws below four rows and inverts the semantics (a tick you
+  must reach, not a line you must not cross). Two cautions: its fill is
+  `var(--accent)`, so on a light desk the arc that grows as the bad thing grows
+  is drawn in the desk's happiest colour, and its `zones` palette gives the
+  FIRST zone the faintest grey. Offer the operator a `data-readout` fallback in
+  the same row.
+- **A cross-world kind usually needs an authored `plain`.** Several
+  `EXPLAIN[kind].what` defaults are written for the kind's home world and are
+  factually wrong elsewhere: `throughput-dial`'s opens "A speedometer for how
+  many requests a system handles each second", `benchmark-chart`'s promises "a
+  reference line" the chart may not have, `carbon-loop`'s says "Each box is a
+  place carbon is stored" even when the loop is water. Check the default string
+  in `src/lib/explainers.ts`, not the catalog's PLAIN line, before writing
+  "default — do not author" in the beats table.
 - **A prose `comparison` grid re-kinds to `power-matrix` and wins three ways.**
   Whenever the rows are *levers / powers* and the columns are *actors*, and the
   cells are prose verdicts ("Yes — the lever it holds", "No — servers are
@@ -60,6 +97,28 @@ shape first); this is what the *argument* wanted once the shape was settled.
   reframe in row 1's `you-think` and the definition in a `jargon-buster` term,
   and spend the once-per-issue "not X, it is Y" ration *there*. It stops the
   drafter reaching for the reframe in the title and the hook as well.
+- **`power-matrix` as a snapshot of ONE case, not as dated regimes.** Its
+  DON'T USE routes "control changing over time" to `timeline`, so the obvious
+  law-reform framing (2014 · 2019 · 2026 as columns) is a catalog violation.
+  The framing that works on a statute is *the decisions inside one application*
+  down the side and *the people the law puts in charge of each* across the top.
+  The argument then lands on two visible facts the enum cannot fudge: one
+  column with a single filled cell, and one **row that is empty across every
+  column** (here, "appeal a refusal" — neither Act provides one). An empty row
+  is the strongest thing this kind can draw and no other kind can state it.
+- **A statute-dense rewrite has more drawable beats than it looks like.**
+  `bill-breakdown` and `bill-passage` are both visual in the gate and both
+  politics signatures; `bill-passage` had never been published. A law's
+  *contents* and a law's *passage* are two different beats and two different
+  kinds, and splitting them is what lets a spine carry `jargon-buster` AND
+  `three-steps` without failing the 60% floor. Six drawable beats → a nine-row
+  spine (6V + 3T, 67%).
+- **The rhythmic-triplet tell bites hardest on legislative material**, because
+  a bill's provisions genuinely come in threes and fours. "Rewrote the
+  definition, removed one clause, added a medical step" is a functional list
+  read as a rhythm tell. Write the intro as two clauses joined by *and*, and
+  let the cards carry the enumeration — cards are not prose and the tell does
+  not apply to them.
 
 **Fits that did not work**
 
@@ -84,5 +143,14 @@ statute-dense material, but both sit in the gate's text-only set alongside
 no visual share at all**. Plan the visual count first, then spend what is left
 on the plain-language kinds; on an 8-row spine three text-only rows is the
 ceiling, and a fourth fails the 60% floor outright.
+
+**The inverse also misleads, and it changes which sections you cut.** Several
+kinds that *read* like text are visual in the gate: `bill-breakdown`,
+`data-readout`, `timeline`, `you-think`, `power-matrix`, `bill-passage`. Before
+proposing any re-kind on a rewrite, compute the published visual share from
+`TEXT_ONLY` rather than from how the page feels. On the transgender-ratchet
+issue the 3-of-6 share came entirely from `paradox` + `quote` + `prose`, so the
+fix was cutting two sections and adding four, not re-kinding the card stack that
+was already drawing.
 
 See [[dossier-data-gaps]] for the kinds that were wanted and not available.

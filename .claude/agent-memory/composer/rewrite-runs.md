@@ -57,6 +57,20 @@ storyboard that row 1 carries no `intro` — the delimitation storyboard reporte
 75 by counting the head alone, which is the wrong arithmetic even though that
 issue happened to pass.
 
+**A nine-row spine fits, and it is the shape a statute-dense issue wants.**
+Head 69 + nine rows at 70–160 lands near 1,020–1,060 with the `source` labels
+counted. The rows are not equal: the `timeline` (~150) and the card stack
+(~150) carry twice what a `you-think` (~70) or a `three-steps` (~90) does, so
+budget per kind rather than per row. Publish caps that sum ~40 words above the
+composed sketches — the caps are ceilings and the drafter needs the slack more
+than the ledger does.
+
+**Check for a `story:` block before writing the beat-remap table.** Several
+published issues have none (the 2026-05-02 politics issue does not), in which
+case story mode derives from `KIND_PRIORITY`/`TRIM` and the rewrite can reorder
+and re-kind freely. Say so in §8a in one line — it saves the operator looking
+for a table that should not exist.
+
 **`story.beats[].section` is a 0-BASED index into `sections[]`** (the schema
 comment says so, and the published beats confirm it). Any rewrite that reorders
 or re-kinds sections silently repoints every beat, and a beat can end up on a
@@ -90,6 +104,70 @@ these; expect it.
   the published title asserted. Reserve a re-anchoring recommendation for the
   Arsenal condition: a source that was off-allowlist when the dossier was
   written, or a figure the cited source contradicts.
+- **An old verification's VOICE findings can be looser than the contract, not
+  just stricter.** The 2026-05/06 reports mark things ✅ ACCEPTABLE "per
+  benchmark issue" — and the benchmark was the pre-register corpus the plan has
+  since ruled is not a voice reference. Say the split explicitly in §8: the
+  report's *factual* findings are followed to the letter, its *voice* findings
+  followed where stricter and superseded where looser, and nothing factual is
+  overridden. That sentence is what stops an operator reading a cut as the
+  composer disagreeing with the verifier.
+
+**A published issue can assert beyond its sources in a way a claim-by-claim
+verification cannot catch, and hunting for it is part of the job.** The
+verifier traces each row; an error that lives in the *count* or the *verb*
+across rows survives. Two classes found so far, both on the transgender-ratchet
+rewrite:
+
+- **A tally nobody checked.** The primer said "Parliament has passed three laws
+  all called 'Protection'" where the record shows two enacted statutes plus a
+  Bill that was never passed. No single verification row is about the number
+  three, so it passed clean. Check every "three X", "every Y", "all Z" in the
+  head against the dossier's own timeline.
+- **A verb that names an effect the sources never measured.** "Erases",
+  "failed", "overruled", "from legal existence" — each is a consequence or a
+  legal conclusion sitting where a description belongs, and on a legal story
+  the worst of them assert the answer to a question that is literally still
+  before a court. List them in a dedicated §8 subsection with the sourced form
+  beside each, and say which composition decision retires each one. On
+  sensitive material this subsection is the part of the storyboard that earns
+  its approval.
+
+**`NUMBER-DRIFT` is ❌ BLOCKING on a published rewrite, ℹ only on a draft**
+(`check-prose.mjs`, the last block: it diffs every numeral against
+`git show HEAD:` and picks the severity off `status`). Every rewrite cuts
+sections, so every rewrite fires it. **Put a number ledger in §8** — removed,
+with the one-line reason each; added, with the ruling that allows it; and a
+short "these survive only if the drafter keeps this exact clause" list, because
+the obvious paraphrase silently drops a numeral ("up to half" loses the `50`
+that "more than 50%" keeps). It turns a blocking flag into a tick-list the
+operator clears in a minute. Also remember `readTimeMinutes` 7 → 4 is itself a
+drift entry.
+
+**Three gate behaviours that shape the copy, not just the count**
+(`check-prose.mjs` — worth re-reading it each run rather than trusting this):
+
+- **`NUMBER-DENSE` fires at 3 numerals in one sentence**, and it scores only the
+  *body* keys (`note`, `text`, `detail`, `lead`, `paragraphs`, `followup`,
+  `statement`, `kicker`, `headline`). `label`, `sublabel`, `caption`, `plain`,
+  `source` and `annotations[].text` are **not** sentence-scored — so a figure
+  that will not fit a timeline note can often sit in that event's `label`.
+- **`NO-RESTATEMENT` and `NO-ANALOGY` fire on every `prose` section** unless it
+  contains a literal marker from two hard-coded word lists ("that means / which
+  means / the point is / for context / in other words…" and "think of / like a /
+  imagine / the way a / is like…"). Name the requirement in the beats table; a
+  drafter writing good plain prose still fails it by accident.
+- **`STACCATO` fires on three consecutive sentences under eight words**, and the
+  hook is scored as body prose. Build the hook's sentence lengths deliberately
+  (7 / 8 / 6 passes) and say in the storyboard that the middle sentence must not
+  be shortened.
+
+**Audit the published sections for editorial values BEFORE promising the
+rewrite is clean.** Two of the six 2026-06 issues carry one; the other four do
+not, and saying so explicitly is worth a line in the header blockquote. On an
+issue with none, the exposure inverts: the *new* graphics are where an invented
+number would enter, so the drawing rule (see [[dossier-data-gaps]], "a range is
+not a value") becomes the ruling the operator actually has to sign.
 
 ## Sent back by the operator
 

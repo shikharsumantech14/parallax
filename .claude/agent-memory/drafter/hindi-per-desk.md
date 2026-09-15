@@ -57,6 +57,34 @@ answer differs by kind, not only by desk.
   though it is the one Hindi-by-design slot in the schema (see the first note
   above). A Hindi gloss hung on "token" or "per-token price" is a Hindi word
   standing on a term of art, which is exactly test 4. Leave the field off.
+- **Earth can be a ZERO-word desk, and a storyboard may rule it so.** The
+  lexicon lets earth use the awe words (*dharti, samundar, aasmaan*), but on
+  the Amazon rewrite (2026-09-15) every candidate slot sat beside a threshold,
+  a share or a unit, which is test 4, and the composer noted that the desk had
+  spent its one licensed word (*jhoola*, in a dek) two days earlier on the
+  el-niño rewrite. Repeating the device on the same desk inside a week reads
+  as a tic rather than a register. An issue with no Hindi at all is a correct
+  outcome; the Indian ground came from one sourced comparison (Delhi's area)
+  and one habit (the monsoon, borrowed for half an analogy). *yaar / bhai /
+  bro* are barred on earth as well as politics (tell 14).
+- **Politics is a ZERO-word desk whenever the subject is a statute or a
+  minority's legal status, and a storyboard may rule it so.** On the
+  transgender-ratchet rewrite (2026-09-15) every candidate slot sat next to a
+  section number, a date, a count or a legal term, which is test 4; and the
+  register's own answer to a subject that invites heat is flatness, not warmth.
+  A Hindi word there reads as levity about the thing being removed. The Indian
+  ground came instead from the institutions (the district magistrate's office,
+  the two Houses on named dates, the 2011 census) and from `lakh` as the native
+  unit in a tile note and a penalty figure.
+- **A statutory vocabulary list is NOT register Hindi, and it does not fire the
+  check either.** The Act's own category list (*kinner, hijra, aravani, jogta*,
+  plus its term *eunuch*) is a verbatim quotation of the law: set roman, never
+  italic, never glossed warmly, and the offensive statutory term used exactly
+  once, only because the statute uses it. A storyboard may warn of a Hindi false
+  positive on such a card; there is none, because `check-prose` only counts
+  tokens that are IN `hinglish-lexicon.md` or its always-on list, and none of
+  those four words is. Verified 2026-09-15. Write the card so the sentence says
+  the law *names* them, so the reader knows it is the statute talking.
 - **The slot that keeps failing is the one that looks safest:** a tile `note`
   or a chart `caption` reads like prose but is the precision layer. Keep the
   whole `data-readout`, `benchmark-chart` and `match-stat-line` blocks

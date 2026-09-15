@@ -37,6 +37,13 @@ A reader panel finds this from the other side ("the fall has a start point and
 no end point") — if a panel says a half of the argument is asserted but not
 shown, the cause is usually a removal, not a drafting choice.
 
+**A CLEAN panel diff is itself a finding, so run it even when the operator has
+already declared the edits.** On amazon the brief named two late edits and asked
+me to audit them. Diffing every string panel 2 quotes against the file confirmed
+those two and found **no third** — which is the sentence the operator actually
+needs ("there is no undeclared edit"), and which nobody can assert without doing
+the diff. It takes two minutes and it converts an act of trust into a check.
+
 **Report both as ⚠️, never ❌.** The direction is dossier-backed; only the
 wording outruns it, and the fix is inside the existing words.
 

@@ -54,6 +54,21 @@ of dates the published issue deliberately never asserted — a rewrite adds no
 sources, so importing four cross-checked-but-off-allowlist dates is the wrong
 trade even though the data "exists".
 
+**And the mirror of it: a dossier's own "not on the allowlist" note is a claim
+to CHECK, not a fact.** Pre-storyboard dossiers repeatedly wrote off a whole
+class of primary because one well-known aggregator was off-list — e.g. "NALSA
+is not on an allowlist domain (indiankanoon.org is not on the allowlist)" while
+`sci.gov.in` sat on `research/_sources/politics.md` at T0 *twice*, and
+"the Bill PDF would not parse" while `indiacode.nic.in` (bare acts and
+amendments, T0) was never tried. Open the category's `_sources/<cat>.md` and
+grep it against every §9 note that claims unavailability. On statute-dense
+politics the four to check are `indiacode.nic.in`, `sci.gov.in`, `sansad.in`
+and `prsindia.org`. When one is available and unfetched, that is the Arsenal
+re-anchoring condition in its first form, and it is a **research ruling for the
+operator** (it adds sources, which a rewrite may not) — so compose the spine so
+that every claim depending on the unfetched primary is removed or bounded, then
+state that the issue ships either way.
+
 **A third: on-allowlist, in the bibliography, and still never put on the page.**
 A rewrite's dossier §4 routinely carries a sourced comparison the published
 issue chose not to assert — on the cockroach issue, "~2.5× the BJP's official
@@ -63,6 +78,49 @@ bare "past the BJP's own Instagram handle". That figure is exactly what
 It is **not** a data gap and **not** a research job: it is an operator ruling
 about whether a rewrite may promote a bibliography fact to page copy. Compose
 the spine without it, cost the row that would carry it, and make it ruling 1.
+
+**A fourth: two figures from different dates are not a funnel.** The recurring
+temptation on any application/approval/rejection record is `attrition-waffle`
+or a derived rate. Check the *as-of* date on each figure before proposing
+either: a numerator from one year over a denominator from another manufactures
+a rate the record does not contain, and `attrition-waffle` additionally needs
+groups summing to exactly 100 and throws at build time on a bad sum. Where the
+record already carries somebody else's version of that comparison (an
+activists' estimate, an analyst's share), **use the attributed one and compute
+nothing** — it is weaker-looking and stronger. Name the forbidden arithmetic
+explicitly in the storyboard's §5 so the drafter does not rediscover it.
+
+**A fifth: a vote that produced no numbers blocks the whole G3/G7 vote family.**
+A voice vote with a walkout gives `vote-result` no `for`/`against`/`required`
+and `vote-flow` no per-bloc seats. That is the *event* producing no data, not
+the research missing it, so no pass unblocks it and the honest form is
+`bill-passage` (stages with a status) plus a caption that says "voice vote". Do
+not let the storyboard assert the *absence* of a division either, unless the
+House record was actually fetched.
+
+**`carbon-loop` has now been wanted and blocked twice, both times on earth, and
+the blocker is always the same.** REGISTER-PLAN §8.1 names it for two different
+issues, so expect to be asked. Its DATA needs ≥3 reservoirs with a **stock** and
+≥4 **fluxes** in one conserved unit; dossiers carry *shares* of a flow (91/5/3/1
+of the year's extra heat; "up to half the rainfall is recycled") and no
+reservoir sizes at all. The clinching argument for the operator is the build:
+`CarbonLoop.astro` conservation-checks every `role: 'store'` reservoir at build
+and throws unless the imbalance is flagged as the point, so an invented payload
+either fails the build or, worse, passes because the invented numbers happen to
+balance. Say what would unblock it — a published balance table in one unit (for
+a water cycle: ocean inflow, evapotranspiration, precipitation, runoff, plus
+three stocks) — and move the beat to `three-steps`, which needs no number.
+
+**A range is not a value, and the honest fix is a stated drawing rule.** Reported
+science comes as bands ("17–18% cleared", "1.5–1.9°C", "3.7–4°C"). Text kinds
+carry a band fine; every *drawn* kind wants a scalar. Do not take the midpoint —
+that is a number nobody published, and on a hedged figure it is the exact error
+class the operator watches for. Take **one edge, apply it to every mark in the
+chart, and say so on the page** (the `sublabel` carries the band, the `plain`
+line states the rule), choosing the edge that makes the issue's own claim
+*weaker*. Where two allowlisted sources round differently, draw the figure they
+both support and put the wider one in the `howToRead`. Make it an operator
+ruling, because it is the one place a rewrite puts a new number on a page.
 
 **A ratio is not a value.** Where the record gives "2.5× X" but never X, the
 ranked-bar kinds (`benchmark-chart`, `league-table`) stay unavailable even

@@ -52,6 +52,22 @@ needed roughly 100 words cut from the approved plan to land at ~1,087.
   rather than authoring a `howToRead` on a kind outside `NEEDS_HOW`, which
   saves a whole block as well as the words. The Kessler rewrite landed at ~938
   against a plan of ~1,043 on those three alone.
+- **A three-voice `quote` row is the single most under-budgeted row a
+  storyboard writes.** Its verbatim words are unpayable by rule, and the plan
+  usually budgets intro + quote + attribution + the followup's framing while the
+  gate also bills the eyebrow, the section title, the `source` label and every
+  framing word needed to introduce a second and third speaker *with their roles*
+  (rule 9). On the transgender rewrite a row budgeted at 115 landed at ~136 and
+  could not honestly go lower. Budget a three-voice quote at **row + 20**, and
+  take the overage out of a visual row's notes, never out of a quotation.
+- **An attribution fix costs names as well as words.** When a quotation has to
+  be attributed to the outlet that reported it rather than to the speaker, the
+  outlet's name enters `attribution` — which is in `PRECISION_FIELDS` and is
+  therefore *not* name-scanned by the gate, but still counts against the
+  contract's twelve. Keep the outlet out of the `followup` (a body key) and let
+  the section `intro` say once that all the lines come from press reports: one
+  sentence buys the honesty for every quote in the section and spends one name
+  instead of three.
 - A `skimCaption` on all ten sections costs ~200 words, which no issue at the
   ceiling can afford. It only *renders* for `prose` in skim mode (other kinds
   keep their graphic), so author it on the prose section, and on one or two

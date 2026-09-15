@@ -22,6 +22,21 @@ is frozen at its research date; the allowlist is not. The fix to recommend is a
 dossier line, not a draft change — and say so, because it is not actionable
 inside a rewrite that may not add sources.
 
+**It paid a second time on earth (amazon, 2026-09-15), with two refinements.**
+(a) **Grep the WebFetch domain block at the bottom, not just the tiered
+entries.** `nature.com` sits in that block while the only named journal entries
+are *Nature Climate Change* and *Nature Geoscience* — sister titles, not the
+flagship the dossier needed. A domain can be reachable while the exact journal is
+unlisted, and the honest report says which. (b) **The tier answers "is it
+reachable", `ingest:` answers "may I quote it".** Every journal entry that opened
+up there is T2 `ingest: metadata` — GUIDE-ONLY, so a new fetch pins a figure and
+still cannot be quoted. Say both in one line or the editor reads "now
+allowlisted" as "now quotable". The finding worth leading with is usually not the
+paywalled paper but a **T1 data publisher for a figure the issue currently
+carries second-hand** (here Global Forest Watch, publisher of the 36% the issue
+sources through a Mongabay interview) — that one would close ⚠️ NO PRIMARY
+ANCHOR, which the paper's abstract would not.
+
 **2. An all-T4 issue is a flag, and the taxonomy says so for you.**
 `_TAXONOMY.md` §1 describes T4 as "Framing, reporting, leads. **Not the primary
 anchor.**" That sentence is the citable basis for ⚠️ NO PRIMARY ANCHOR — quote

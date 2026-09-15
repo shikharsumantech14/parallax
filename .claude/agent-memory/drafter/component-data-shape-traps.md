@@ -114,6 +114,55 @@ produces a field that silently does not render.
   `at` is that milestone's label is a silent no-op. Deleting interpolated points
   from a series therefore un-pins every milestone that sat between the survivors
   — anchor the annotation to a surviving point's numeric year instead, and say so.
+- **`benchmark-chart` declares `items[].sublabel` and NEVER RENDERS IT.**
+  Verified 2026-09-15 in `topic/tech/BenchmarkChart.astro`: the row emits
+  `bc__label`, `bc__track`, `bc__fill`, `bc__val` and the annotation block, and
+  nothing reads `sublabel` — it is in the Props interface and in the catalog's
+  DATA line, so a storyboard will keep assigning it. The published
+  `2026-04-24-kessler-cascade` carries five of them. Consequence for authoring:
+  a band, a condition or a caveat parked in `sublabel` is invisible to the
+  reader AND still billed to `readerWords` (`sublabel` is not in `SKIP_KEYS`,
+  ~8 words a bar). When a storyboard's drawing rule says "the band goes in the
+  sublabel", author it for payload completeness if you like, but put the band
+  in the `caption` and the `plain` line too, and say so in the return — the
+  bar's own `label` is the only string beside a bar that a reader actually
+  sees.
+- **`throughput-dial` is NOT in `NEEDS_HOW`** (checked against
+  `src/lib/explainers.ts`, 2026-09-15), even though a briefing may say it is
+  and even though it is a gauge. Practically this changes nothing — an
+  authored `howToRead` renders for any kind — but it means the honest reading
+  has to be authored or the section ships with no panel at all. Two more
+  things about the kind: its `EXPLAIN.what` is a req/s string about server
+  capacity, so any non-tech use MUST author `plain`; and `zones[0]` renders in
+  `color-mix(--muted 55%, --paper)`, a soft grey, while the fill arc is
+  `var(--accent)` — on a light desk the arc that grows as the thing gets worse
+  is the cheerful colour and the danger band is the quiet one. Say which is
+  which in the `plain` line.
+- **`bill-passage` has no `status` value that means "introduced".** The enum is
+  `passed | failed | pending | current`, and the component prints the raw status
+  word under every card. A first stage labelled "Introduced" with a date of its
+  own therefore reads "13 MAR 2026 / Introduced / … / PASSED", which a reader can
+  take as "it passed on the 13th". The showcase (`2026-06-03-politics-showcase`)
+  sets the precedent that `passed` means *this stage was cleared*
+  (`Cabinet draft — passed`), so the value is right; the reading is the problem.
+  Author a `plain` line saying the word under each card is whether the bill
+  cleared that stage, even though the catalog and `EXPLAIN['bill-passage'].what`
+  say a default fits. Costs ~18 reader words a storyboard will not have budgeted.
+  Everything else about the kind fills cleanly from a legislative record:
+  `label`, `status`, `date` and `note` are all present on the component, `date`
+  and `status` are in the gate's `SKIP_KEYS` (free), and a one-word `label`
+  ("Introduced", "Assent") falls under the two-word floor and is free too — a
+  four-stage passage can cost as little as its four notes.
+- **`power-matrix` renders a FIXED legend the author cannot reach:**
+  `● Full control · ◐ Partial / contested · ○ None`, hard-coded in
+  `PowerMatrix.astro`. The kind is catalogued as institutions × parties, but it
+  works for any who-holds-what grid (five decisions × four actors in one
+  application). The constraint is that the legend's word is **control**, so the
+  column heads must be people or bodies that can *hold* a decision — never a
+  date, a regime or an outcome. Also: `colorOf` falls back to `var(--muted)`, a
+  soft grey, for any party with no `color`, so a non-party grid needs an explicit
+  `color` on every party or its filled cells read as absent. `var(--accent-deep)`
+  on all of them is the TD-06-safe choice, since the cell carries a glyph.
 - **`match-stat-line` rows take numeric `home`/`away`** and split each row as a
   share of the row total, so a 1–1 scoreline with a penalty shoot-out needs the
   outcome stated in a row `note` or the intro; `outcome: "win"` on one side is

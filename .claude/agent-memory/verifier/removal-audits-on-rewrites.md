@@ -48,4 +48,21 @@ fiction. Only the dossier can, and only if you look up the removed numeral too.
   heavily-sourced original usually already lists the ids that back the new
   sentence. Here the one new clause needed nothing added.
 
+- **The ledger's blind spot is the removal that is WORDS, not digits.** A §8e
+  number ledger and `check:prose`'s NUMBER-DRIFT both work on numerals, so a
+  removal written in words passes through both invisibly. On amazon the published
+  2024 timeline note carried "six times more forest than the year before" — a
+  dossier-sourced magnitude comparison — and the rewrite traded it for a unit
+  warning ("a wider count than clearing") under a ≤14-word note cap. No numeral
+  moved, so nothing flagged. **And it was the cause of the run's ⚠️ BARE-NUMBER:**
+  the figure survived and the only thing giving it a feel left. The general shape:
+  *a number that loses its comparison has not lost a fact, it has lost its
+  felt-ness*, and that is a composition flag nobody attributes to a removal.
+  **How to apply:** after the numeral diff, re-read each surviving big number and
+  ask what used to sit next to it. Spelled-out multipliers ("six times", "twice",
+  "a third"), "than the year before", "enough to fill" and unit conversions are
+  where this hides. The recommendation is usually to spend headroom restoring it,
+  and it is a strong one because the words are already in the dossier — no new
+  research, no new numeral.
+
 See [[binding-file-precedence]], [[inherited-data-blindspot]].

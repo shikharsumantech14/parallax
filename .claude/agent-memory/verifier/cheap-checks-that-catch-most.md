@@ -72,10 +72,43 @@ Measured across runs. Do these first; they find real defects in minutes.
    one grep, it ships inside the committed MDX, and it is the thing the next reader
    will act on.
 
+9. **The ref that must NOT be there.** Where an attribution has been deliberately
+   *downgraded* ("as reported by X" instead of the primary), check that the
+   stronger source is **absent** from that section's `sourceRefs`, and say so as a
+   finding. On transgender-ratchet the minister's English was re-attributed to a
+   newspaper because the House record says something else at the key word, and the
+   T0 House record was cited on two neighbouring sections and correctly **not** on
+   the quote. Citing it there would have re-asserted, through the source line, the
+   exact authority the operator had just ruled out — and it would have passed every
+   trace check, because the id resolves and the section is about that debate.
+   **How to apply:** whenever a ruling weakens a claim's provenance, grep the id of
+   the source that ruling set aside and confirm it appears nowhere on that section.
+   This is the only check that reads an absence as the finding, and it is the one
+   worth leading the report with on a sensitive issue.
+
+10. **Cap-margin arithmetic: a panel that says "one word of slack" has counted a
+    different budget than the one the fix spends.** Panel 2 ranked a title rewrite
+    third and costed it at "the one word of head slack". True of the 80-word
+    words-before-first-graphic floor (79 of 80). False of the field the fix
+    touches: `titleWords` is 8 and the title was **8 of 8**, so any added word
+    trips FIELD-OVER-CAP. `dekWords` 14 sat at 14 too.
+    **How to apply:** for every fix a panel recommends, name the cap the fix
+    actually spends from, not the one the panel cited, and say whether it must be
+    a substitution or can be an addition. Three head fields at or one under their
+    caps is the normal state of a composed issue, so this recurs.
+
 **Reliably empty, so do them last:** the advocacy/wire-tone sweep (the drafter
 under the v2 contract does not produce these any more), and the quotability
 gate on issues whose `quote` section was cut — no verbatim quote means no
 copyright exposure to assess, so say so in one line and move on.
+
+**Also reliably clean, and worth one line rather than a paragraph:** every
+verbatim quote on an Indian politics issue traces to The Print or The Wire, both
+**T4 · open · `ingest: live`**, which per `_TAXONOMY.md` §1 means no corpus chunk
+exists, the RAG trace is moot and the quotation is from a legally accessed
+original by construction. Check the `ingest:` value once, state the conclusion,
+move on — and note that the RAG tool has not been available in recent sessions,
+which the agent definition already provides for.
 
 **Do not flag as defects:** `status: published` on a Phase-4 in-place rewrite
 (operator-ruled); Hindi in a `jargon-buster.hindi` slot (a purpose-built field,

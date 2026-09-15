@@ -84,7 +84,56 @@ softened quantifier narrows what is asserted; it never sources the figure it sit
 on. Trace the number and the label separately from the hedge, and say which of the
 three the fix belongs to.
 
+**9. The BRANCH ERROR — a sourced figure attached to the wrong arm of a
+two-arm finding.** The sharpest defect found on the amazon rewrite, and a
+different animal from pattern 1: nothing is compressed and no qualifier is
+dropped. The record splits an outcome across two scenarios (heat alone → "up to
+35% / around one-third"; heat plus clearing → "two-thirds to three-quarters")
+and the draft attaches the *larger* outcome to **both** ("Either point ends the
+same way, because two-thirds to three-quarters could turn to savanna"). Every
+number traces. The conjunction does not.
+**Why it survives every prior gate:** the earlier verification's claim row reads
+"Collapse = two-thirds to three-quarters ✅ — dossier §4", which checks the
+*figure* and never asks which branch owns it. A reader panel cannot catch it
+either: it makes the issue simpler, not harder.
+**How to apply:** whenever a dossier bullet is headed by a CONDITION ("with both
+dials turned", "without additional deforestation", "under the amended rule"),
+write the conditions down as a two-column list before reading the draft, then
+find every sentence that states the outcome and check which column it is in. The
+tell is a sentence containing "either", "both", "same", "in every case" beside a
+figure the record conditions. **And check the draft against itself** — here the
+contradiction sat one section earlier in the issue's own `note`, which is what
+made it provable rather than arguable (see [[cheap-checks-that-catch-most]] 1).
+Report ⚠️, not ❌: the figures are sourced and the fix is a clause.
+
 **6. Analogies are claims when they describe a mechanism.** An analogy that
 maps a booked, dated, pre-paid slot to a timed temple entry is fine; one that
 implies priority or queue-skipping where none exists would be an invented
 product. Check the mapping against the dossier's mechanism, not its vibe.
+
+**10. The ENTAILMENT stated as though it were quoted.** A later research pass
+quotes its sources verbatim, which makes it easy to check what is *in* the quote
+and easy to miss what the draft added around it. On transgender-ratchet the pass
+quoted PRS saying the 2016 Bill "lapsed with the dissolution of the 16th Lok
+Sabha"; the draft wrote "**Still pending in the Rajya Sabha**, it died when that
+Lok Sabha ended." The added clause is true and follows necessarily (Art. 107(5):
+only a Bill *passed by the Lok Sabha and pending in the Rajya Sabha* lapses that
+way), but no cited source states it. **How to apply:** for each claim traced to a
+verbatim block, read the block and the draft sentence side by side and underline
+the words the block does not contain. Report ⚠️ at the lowest severity with the
+reasoning written out, both because it is usually right and because the operator
+needs to know which words are quoted and which are reasoned. Do not ask for a
+rewrite.
+
+**11. The dossier is stale in more places than the brief names — and the date
+that betrays it is the one the draft got RIGHT.** The brief said three; a fourth
+surfaced from a row the draft had quietly sidestepped. Dossier §3 put the 2019
+Act's 26 November passage in the **Lok Sabha**; the later pass's PRS table has
+LS 5 Aug and **RS 26 Nov**. The draft's label named no chamber, so nothing on the
+page was wrong and no flag fired anywhere in the pipeline. **How to apply:** when
+a later pass supplies a table of the same events the dossier timelines, diff the
+two tables row by row even where the draft is clean. A draft that dodges an error
+leaves no trace of the dodge, so the error survives in the dossier for the next
+rewrite. The fix is always a dossier line, never a draft change — say so, because
+a rewrite is usually barred from editing the dossier and the recommendation will
+otherwise read as unactionable.

@@ -11,3 +11,6 @@ issue's facts.
 - [Where a panel fix may land](panel-fix-field-boundaries.md) — most fixes sit in "do not touch" data copy, and sourceRefs decide where a restored fact goes
 - [The Hindi skip-test paradox](hindi-skip-test-paradox.md) — cutting the English redundancy makes the Hindi word load-bearing, so that option does not exist
 - [The asserted half and the drawn half](asserted-vs-drawn-halves.md) — scope the drawn half, promote the "nothing changed" figure, and never report the evidence gap as closed
+- [Where a caveat renders](where-a-caveat-renders.md) — instruction above the graphic, caveat below it; a caveat's scope; the label that is also a join key or a claim about who acts
+- [Fairness-critical noun binding](fairness-critical-noun-binding.md) — name the victim, give the penalty its unit; scroll-speed binding is a fairness defect
+- [Glossing inside protected data copy](glossing-inside-protected-data-copy.md) — three moves when the term of art sits in a label, a note or a locked quote; and why the title pays, not the eyebrow
