@@ -1,9 +1,9 @@
 ---
 id: "2026-06-04-ai-coding-token-bill"
 topic: tech
-title: "The Bill Came Due in *April*"
-hook: "AI keeps getting cheaper per token, and that is exactly why the bill goes up. The price per unit fell, the units per task exploded, and Uber burned its whole 2026 AI budget in four months."
-dek: "Cheaper is a per-unit word. The invoice is a per-task number."
+title: "Uber's year of AI money lasted *four* months"
+dek: "The price per unit fell. The units per job exploded."
+hook: "You keep hearing AI is getting cheaper. Uber burned its whole 2026 AI budget in four months, and capped every engineer."
 publishedAt: 2026-06-04
 status: published
 tags:
@@ -13,157 +13,198 @@ tags:
   - uber
   - ai-spend
   - claude-code
-readTimeMinutes: 7
-primer: "Every headline says artificial intelligence is getting cheaper, and the price of running it has fallen sharply for three years. But the newest coding tools do not chat, they work: they read whole codebases, loop, and reason, burning far more of the billable units called tokens per task. So the price per unit fell while the bill went up. Here is how the math broke."
+readTimeMinutes: 4
+primer: "A token is the unit AI bills by: a piece of a word. Its price keeps falling, but coding tools now burn millions of tokens per task. Here is where the money went."
 
 sections:
-  - kind: paradox
-    eyebrow: "THE SCISSOR"
-    title: "Two blades, *closing*."
-    intro: "Everyone agrees on the sentence: AI is getting cheaper. Look closer and it is true at the unit level and false at the invoice level, and that gap is the whole story. A scissor has two blades. Watch both."
+  - kind: you-think
+    eyebrow: "THE ARITHMETIC"
+    title: "Cheaper tokens, bigger bills"
+    caption: "Uber exhausted its entire 2026 AI budget in four months and capped each engineer."
+    source:
+      label: "Bloomberg (Natalie Lung) via Simon Willison's Weblog"
+      date: "3 June 2026"
+    sourceRefs: ["src-01", "src-04"]
+    data:
+      think:
+        text: "AI gets cheaper every year, so a company's AI bill in 2026 should be smaller than its bill in 2025."
+      actually:
+        value: "4"
+        unit: "months"
+        text: "Uber set aside a whole year of AI money for 2026 and ran through all of it by April, then capped every engineer's spending."
+      note: "Cheaper per unit, many more units per job. That hisaab only goes one way."
+
+  - kind: jargon-buster
+    eyebrow: "THREE WORDS"
+    title: "Only one of these is your bill"
+    intro: "Look at your electricity bill. There is a rate per unit, and there are units used."
     source:
       label: "Simon Willison's Weblog"
+      date: "4 June 2026"
+    sourceRefs: ["src-04"]
     data:
-      sides:
-        - label: "The blade everyone watches"
-          statement: "*Price per token keeps falling.*"
-          detail: "Frontier capability that cost dollars per million tokens in 2023 now costs cents. Claude 3 Haiku launched at **$0.25 / $1.25** per million input/output tokens; today's small models sit lower still — GPT-5-mini at **$0.05 / $0.40**, Grok 4 Fast at **$0.20 / $0.50**. The rate card has fallen more than an order of magnitude in three years. The corollary feels obvious: an AI budget should be shrinking."
-        - label: "The blade that cuts the budget"
-          statement: "*Tokens consumed per task climb faster.*"
-          detail: "The tools stopped being things you talk to and became things that work for you. A coding agent re-reads the whole codebase on every step, calls tools, and runs reasoning loops, so one task can burn well over a million tokens where a chat reply burns a few thousand. Multiply a unit price that halves each year by a unit count that climbs an order of magnitude, and the product, the actual invoice, goes up. Uber budgeted 2026 against last year's cheaper-per-token mental model and exhausted the entire annual figure in four months."
-
-  - kind: prose
-    eyebrow: "THE CROSSOVER"
-    title: "The month the chatbot started *working*."
-    skimCaption: "Around November 2025, coding agents crossed from often-work to mostly-work and became daily drivers for highly paid engineers. The shift from a tool you talk to into a worker that runs for you is what changed the token math, because an agent that works autonomously burns vastly more tokens than a chat that answers a question."
-    data:
-      lead: "Here's the thing the bill doesn't tell you: nobody raised prices. The token bill climbed because, around November 2025, the software quietly changed jobs."
-      paragraphs:
-        - "For most of 2025, OpenAI and Anthropic were running what Simon Willison sums up as *\"Reinforcement Learning from Verifiable Rewards to increase the quality of code written by their models.\"* Basically: teaching the models to write code that passes the tests. The payoff landed in a single fortnight. GPT-5.1 Codex Max shipped on 19 November 2025, Claude Opus 4.5 on 24 November, and paired with their coding harnesses, Willison dates this to the moment coding agents went *\"from often-work to mostly-work, crossing a quality barrier where you could use them as a daily-driver to get real work done.\"*"
-        - "A chatbot answers and stops. An agent keeps going. It reads the repository, plans, edits, runs the tests, reads the failures, and tries again. And here's the part that costs money: to hold its place, it replays the entire conversation back to the model on every single step. Willison's own guide puts the mechanics plainly. Coding agents *\"maintain state by replaying entire conversations with each new prompt,\"* so *\"as a conversation gets longer, each prompt becomes more expensive since the number of input tokens grows every time.\"* The work that used to be a question is now a loop, and the loop is metered."
-        - "And that's the part the cheaper-per-token headlines skip right over. The price of generating a line of code fell to almost nothing. The cost of getting an agent to deliver *good* code, across a long autonomous run, didn't fall with it. The tools the labs finally found a market for, Willison writes, are exactly the ones that *\"burn vastly more tokens, but are also quickly becoming daily drivers for the work carried out by extremely well-compensated professionals.\"* The capability showed up, and the consumption showed up welded to it."
+      terms:
+        - term: "token"
+          meaning: "A piece of a word. It is the unit AI companies price their work by."
+        - term: "per-token price"
+          meaning: "What one of those pieces costs. In 2023 the cheap models started at $0.25 per million, and capability that cost dollars then now costs cents."
+        - term: "cost per task"
+          meaning: "The price of one piece times how many pieces the job used. On your electricity bill, this is the bottom line."
 
   - kind: scaling-plot
     eyebrow: "TOKENS PER TASK"
-    title: "Why *more tokens* beats cheaper tokens."
-    intro: "The other blade, plotted. One of Willison's GPT-5 Codex tasks consumed 169,818 input, 17,112 output, and 1,176,320 cached tokens: well over a million for a single task, and the only verified point on this chart, sitting at the top. The vertical axis is logarithmic because that anchor sits three orders of magnitude above the bottom. The lower points trace the shape from a single chat turn upward and are illustrative of task class, not measured."
-    howToRead: "The five points climb in an even line because each step up this axis is a multiplication rather than an addition. Press Linear for the proportional view, where the lower four crowd into the bottom fifth while the measured task stands far above them; both plot the same five numbers."
+    title: "One job, over a million tokens"
+    intro: "So how many of those pieces does one job use? A chat reply is a few thousand of them. One measured coding job used over a million."
+    howToRead: "Each step up the side is ten times the step below it, so a small-looking gap on this chart is a large one. Read the height of each dot. Press Linear for the evenly spaced view."
+    plain: "Each dot is one kind of task, placed by the number of tokens it used."
+    caption: "One measured coding task used 1,363,250 tokens. A chat reply uses a few thousand."
+    source:
+      label: "Simon Willison's Weblog, llm-pricing. Lower point illustrative, not measured"
+      date: "4 June 2026"
+    sourceRefs: ["src-04"]
     data:
       xLabel: "task autonomy →"
       yLabel: "tokens consumed (one task)"
       logY: true
-      caption: "Tokens per task · chat turn → agentic session"
-      source: "Top point: real GPT-5 Codex task (Willison, llm-pricing). Lower points illustrative of task class, not measured."
       points:
         - { x: 1, y: 5000, label: "one chat reply*" }
-        - { x: 2, y: 22000, label: "short Q&A thread*" }
-        - { x: 3, y: 90000, label: "single-file edit*" }
-        - { x: 4, y: 320000, label: "multi-step refactor*" }
-        - { x: 5, y: 1363250, label: "GPT-5 Codex task (measured)" }
+        - { x: 2, y: 1363250, label: "GPT-5 Codex task (measured)" }
+      annotations:
+        - at: "GPT-5 Codex task (measured)"
+          text: "The only measured point here. One task, 1.36 million tokens."
 
-  - kind: timeline
-    eyebrow: "HOW THE BILL CAME DUE"
-    title: "The chronology *is* the argument."
-    intro: "Read top to bottom, the sequence explains itself. The tools got good, so the pricing flipped to metered usage; once usage was metered, the frontier price started rising; and an enterprise budget set against the old mental model ran out a third of the way into the year."
+  - kind: three-steps
+    eyebrow: "WHAT CHANGED"
+    title: "The software changed *jobs*"
+    intro: "In November 2025 the software stopped answering questions and started doing whole jobs. A job is a loop."
     source:
       label: "Simon Willison's Weblog"
+      date: "19 and 27 May 2026"
+    sourceRefs: ["src-02", "src-03", "src-06"]
+    data:
+      steps:
+        - title: "The tools got good"
+          text: "In November 2025, two coding models shipped a week apart. Coding agents went from often working to mostly working."
+        - title: "A job is a loop"
+          text: "The agent reads your code, tries a change, runs the tests, reads the failure, and tries again."
+        - title: "It re-sends everything"
+          text: 'The developer Simon Willison, who tracks AI pricing, writes that agents "maintain state by replaying entire conversations with each new prompt".'
+
+  - kind: benchmark-chart
+    eyebrow: "INSIDE ONE TASK"
+    title: "Most of it was *re-reading*"
+    intro: "So the loop re-sends everything it already has, on every step. Here is one real coding task, split three ways. Cached means the pieces the agent had already sent once."
+    plain: "Each bar is one slice of a single task's token bill, longest first."
+    caption: "One measured task used 1,363,250 tokens. Of those, 1,176,320 were cached and 17,112 were new code."
+    layout: wide
+    source:
+      label: "Simon Willison's Weblog, llm-pricing"
+      date: "4 June 2026"
+    sourceRefs: ["src-04", "src-06"]
+    data:
+      unit: "tokens · one task"
+      sortDesc: true
+      items:
+        - { label: "cached tokens", value: 1176320, highlight: true }
+        - { label: "input sent", value: 169818 }
+        - { label: "output written", value: 17112 }
+      annotations:
+        - at: "cached tokens"
+          text: "Most of the task was context re-sent, not new code."
+
+  - kind: timeline
+    eyebrow: "HOW IT HAPPENED"
+    title: "Billing changed, prices rose, budget *gone*"
+    intro: "Almost all of that task was context the agent re-sent. Now watch what the billing did next. Frontier means the newest and most capable model on sale."
+    source:
+      label: "Simon Willison's Weblog"
+      date: "19 May to 3 June 2026"
+    sourceRefs: ["src-01", "src-02", "src-03"]
     data:
       events:
-        - date: "Aug 7 2025"
-          state: default
-          label: "**GPT-5 sets the frontier price.**"
-          note: "Ships at $1.25 input / $10 output per million tokens — the price point the coming agent wave is built on."
         - date: "Nov 24 2025"
           state: key
-          label: "**The November inflection.**"
-          note: "GPT-5.1 Codex Max (Nov 19) and Claude Opus 4.5 (Nov 24), plus their harnesses, take coding agents from often-work to mostly-work. The daily-driver era begins."
+          label: "**Coding agents start mostly working.**"
         - date: "Apr 2 2026"
           state: default
-          label: "**OpenAI moves Codex to token metering.**"
-          note: 'Codex pricing realigned "to align with API token usage, instead of per-message pricing." The flat-rate mental model is retired.'
+          label: "**OpenAI starts billing Codex by the token.**"
+          note: "Priced on token usage now, not per message."
         - date: "Apr 14 2026"
           state: default
-          label: "**Anthropic meters the enterprise seat.**"
-          note: "Enterprise terms change to roughly $20 per seat per month plus API pricing. Usage is now billed, not bundled."
-        - date: "Apr 16 2026"
-          state: default
-          label: "**Opus 4.7 ships — same rate card, more tokens.**"
-          note: "At an unchanged $5 / $25 price card, the tokenizer counts more tokens for identical input. Effective cost rises about 1.4× versus Opus 4.6."
+          label: "**Anthropic starts billing the seat by usage.**"
+          note: "A seat is one person's licence. About $20 a month, plus what you use."
         - date: "Apr 23 2026"
           state: fail
-          label: "**GPT-5.5 ships at 2× the price of GPT-5.4.**"
-          note: "At the frontier, the per-token price is now rising, not falling. The cheaper-AI corollary fails exactly where the heaviest work happens."
+          label: "**New frontier model, twice the price.**"
         - date: "~Apr 2026"
           state: fail
           label: "**Uber's 2026 AI budget is exhausted.**"
-          note: "Four months into the year, the entire annual figure is gone, set against a cheaper-per-token reality that no longer exists."
+          note: "Four months in, the whole year's money is gone."
         - date: "Jun 2 2026"
           state: now
-          label: "**Uber caps every engineer at $1,500 / month per tool.**"
-          note: "Bloomberg reports separate monthly token budgets per agentic tool. Willison calls the cap a rational policy response to over-spending."
+          label: "**Uber caps engineers at $1,500 per tool.**"
+      annotations:
+        - at: "Nov 24 2025"
+          text: "Nothing got more expensive here. The tools just started working."
+        - at: "Apr 23 2026"
+          text: "At the frontier, the per-token price is now rising."
 
-  - kind: benchmark-chart
-    eyebrow: "THE REAL PRICE OF A SESSION"
-    title: "Sticker price versus *what it actually rang up*."
-    intro: "The rate card is one number; the realised cost is another. Over thirty days, at standard interface rates, Willison ran up more than two thousand dollars of tokens. He paid two hundred. That gap is what keeps the true cost off the individual's own statement, which is precisely why finance is the last to find out. The dashed line marks what he actually paid."
+  - kind: number-sense
+    eyebrow: "THE CAP"
+    title: "One engineer, one tool, one *month*"
+    intro: "So the cap arrived on 2 June. It covers only the tools that write and run code on their own."
+    caption: "The cap covers agent tools like Cursor and Claude Code, not chat assistants."
+    source:
+      label: "Bloomberg (Natalie Lung) via Simon Willison's Weblog. Levels.fyi for the pay estimate. Converted at about ₹95 to the dollar, September 2026"
+      date: "3 June 2026"
+    sourceRefs: ["src-01"]
     data:
-      unit: "USD · 30 days"
-      refValue: 200
-      refLabel: "what he actually paid (subscriptions)"
-      sortDesc: true
-      caption: "One heavy user · 30-day token cost at API rates vs. subscription price paid"
-      source: "Simon Willison, 27 May 2026 — self-reported 30-day usage"
-      items:
-        - { label: "Tokens billed at API rates (total)", value: 2180.16, highlight: true }
-        - { label: "Anthropic Claude Code", value: 1199.79 }
-        - { label: "OpenAI Codex", value: 980.37 }
-        - { label: "Actually paid (Max + Pro)", value: 200 }
+      value: "$1,500"
+      unit: "/month"
+      label: "Per engineer, per tool"
+      note: "A median Uber US engineer's total pay is around $330,000 (about ₹3.1 crore), an outside estimate, not a company figure."
+      equals:
+        - text: "About ₹1.4 lakh a month, for one person and one tool."
+        - text: "A year of that cap, on two tools, is roughly $36,000."
+          note: "Assuming an engineer uses two tools."
 
   - kind: data-readout
-    eyebrow: "$1,500 / MONTH"
-    title: "The first institution to *hit the wall*."
-    intro: "Uber is the first named company to run into the scissor in public. The cap is a ceiling, drawn around a line item that, left uncapped, ate a year's budget by April. The figures, set side by side."
+    eyebrow: "THE BILL ELSEWHERE"
+    title: "Where else the money *moved*"
+    intro: "So one engineer with two tools can spend $36,000 a year. Here are four more readings, taken off other meters."
+    source:
+      label: "Simon Willison's Weblog. Levels.fyi for the pay estimate"
+      date: "20 April to 3 June 2026"
+    sourceRefs: ["src-01", "src-02", "src-05"]
     data:
-      caption: "UBER · AI CODING SPEND · 2026"
+      caption: "The token bill, four readings"
       tiles:
-        - value: "$1,500"
-          unit: "/mo"
-          label: "Per engineer, per agentic tool"
-          note: "Separate budgets per tool. Applies to Cursor and Claude Code — agents, not chat assistants."
-          emphasis: "key"
-        - value: "4"
-          unit: "months"
-          label: "To exhaust the entire 2026 AI budget"
-          note: "Set against last year's cheaper-per-token, lighter-usage reality."
-          emphasis: "warn"
-        - value: "~11"
-          unit: "%"
-          label: "Of a median engineer's total comp"
-          note: "Two tools ≈ $36,000/yr against ~$330,000 comp. Willison's arithmetic on Levels.fyi data, not an Uber disclosure."
-          emphasis: "warn"
         - value: "$2,180"
           label: "Tokens one heavy user burned in 30 days"
-          note: "At API rates, for a $200 subscription. The cost the individual never feels."
+          note: "Valued at the advertised price. The subscriptions behind it cost $200."
           emphasis: "key"
         - value: "2×"
-          label: "GPT-5.5 API price vs. GPT-5.4"
-          note: "Shipped 23 Apr 2026 — a price increase at the frontier."
+          label: "Newest top model's price against the last one"
+          note: "Shipped 23 April 2026. At the top end, prices are rising."
           emphasis: "key"
         - value: "~1.4×"
-          label: "Effective cost rise, Opus 4.7 vs 4.6"
-          note: "Same $5 / $25 rate card; the tokenizer counts more tokens for the same input."
-      source: "Bloomberg (Natalie Lung) via Simon Willison, 2–3 Jun 2026 · Willison, 27 May & 20 Apr 2026"
+          label: "Cost rise with the price per piece unchanged"
+          note: "The April update counts the same text as more pieces."
+        - value: "~11"
+          unit: "%"
+          label: "Of a median engineer's estimated total pay"
+          note: "Two tools a year, against an outside estimate, not Uber's figure."
+          emphasis: "warn"
 
   - kind: prose
-    eyebrow: "THE WALL EVERYONE'S WALKING TOWARD"
-    title: "The cost didn't fall. It *moved*."
-    skimCaption: "Uber is the first named company to hit the wall, not the last. The cheaper-AI story was true about the price of talking to a model and silent about the price of one working for you, and the business pays per task, not per token."
+    eyebrow: "WHAT ACTUALLY MOVED"
+    title: "The work changed shape"
+    source:
+      label: "Simon Willison's Weblog"
+    sourceRefs: ["src-02", "src-07"]
     data:
-      lead: "The mistake was never in the rate card, but in reading a per-unit price as if it were the bill."
       paragraphs:
-        - "Every blade of the scissor is real. The price of a token did fall, by more than an order of magnitude, and it is still the headline. What the headline leaves out is that the work changed shape underneath it. A chatbot was something you priced like a phone call; an agent is something you meter like electricity, and it runs for hours. The cheaper-AI story was true about the cost of talking to a model, and silent about the cost of one working for you."
-        - "Uber is the first named company to say the number out loud, and the unit economics suggest it will not be the last. The work only grows more token-hungry as agents take on more of it, and the budgets are still being drawn from the old reading of the price."
-        - "So the cap at Uber is the first visible price of a quiet substitution. We stopped buying answers and started renting workers, and the meter that used to tick in thousands now turns in millions. The bill came due in April because that is when the arithmetic finally caught up with the language."
+        - "Those four numbers point the same way. One price rose in April, at the top of the market. Where the price per piece held still, the bill rose, because the work changed shape, and a business pays for work. Think of it like your electricity bill again. The rate per unit fell, which means very little when one job went from a few thousand units to over a million. Writing new code is close to free now. Getting good code is still expensive, and that is what the meter counts."
 
 sources:
   - id: "src-01"
@@ -219,22 +260,39 @@ sources:
   This MDX body is reserved for supplementary prose, footnotes, or embedded
   media. Keep it empty unless a section can't express what you need.
 
-  ── EDITOR NOTES (resolve before flipping status → published) ──
-  1. Goldman 24×-by-2030 figure + src-08 were REMOVED in revision
-     (goldmansachs.com is off the tech allowlist; the page was JS-gated).
-     The issue now rests entirely on allowlisted Willison facts.
-  2. scaling-plot: only the top point (1,363,250 = 169,818 input + 17,112
-     output + 1,176,320 cached, Willison's measured GPT-5 Codex task) is
-     verified. The lower four points are labelled illustrative (asterisk on
-     each label + the caption + the source line). The direction of the
-     ~5–30× chat-vs-agent multiplier is verified; the exact band is not, so it
-     is never stated as a figure — only the verified order-of-magnitude framing.
-  3. Bloomberg original (Natalie Lung, 2 Jun) is paywalled; every load-bearing
-     fact is carried via Willison's relay (src-01) and quoted verbatim there.
-     Confirm the cap wording + the "four months" claim against Bloomberg if
-     access exists.
-  4. DROPPED per dossier guardrails: the $18.40 → $6.07/M blended-cost-of-
-     intelligence figure (found in no allowlisted source); the Microsoft /
-     Claude-Code-license-cancellation story (non-allowlisted only). Neither
-     appears anywhere in this draft.
+  ── EDITOR NOTES (standing guardrails, all six survive this rewrite) ──
+  1. The Goldman 24x-by-2030 projection and src-08 stay OUT. goldmansachs.com
+     is off the tech allowlist and the page was JS-gated. The issue rests
+     entirely on allowlisted Willison facts, and the closer no longer carries
+     a forward-looking clause that would need them.
+  2. The 5-30x chat-versus-agent multiplier is NEVER stated as a figure, and
+     neither is any ratio derived from the illustrative 5,000 floor (so: no
+     "about 270x"). Only the verified order-of-magnitude framing is used,
+     "a few thousand" against "over a million". The scaling-plot now carries
+     two points: the asterisked 5,000 floor (illustrative, flagged in the
+     source line) and the measured 1,363,250. The three invented interior
+     points (22,000 / 90,000 / 320,000) were deleted in this rewrite.
+  3. The Bloomberg original (Natalie Lung, 2 June 2026) is PAYWALLED and was
+     never directly accessed. Every load-bearing Uber fact, the $1,500 cap,
+     the four-month burn, the ~$330,000 comp and the ~11% ratio, reaches this
+     page through Willison's relay (src-01), which quotes the cap verbatim.
+     The title, the hook and the third quiz question all rest on that relay.
+     If Bloomberg access exists, confirm the cap wording and the "four
+     months" claim against the original.
+  4. DROPPED per dossier guardrails: the $18.40 to $6.07/M blended
+     cost-of-intelligence figure (found in no allowlisted source), and the
+     Microsoft / Claude-Code-licence-cancellation story (non-allowlisted
+     aggregators only). Neither appears anywhere in this issue.
+  5. The comp figure always travels with its caveat. "~$330,000" and "~11%"
+     are Levels.fyi data quoted by Willison plus Willison's own arithmetic
+     assuming two tools, NOT an Uber disclosure. The caveat sits in the
+     number-sense note and the readout tile note. The outlet name sits on the
+     source lines of sections 7 and 8.
+  6. Currency (operator ruling, 2026-09-15). Rate: about Rs 95 to the dollar,
+     September 2026. The rupee appears in exactly TWO places, both in
+     section 7, both on figures still in force ($1,500 gives about Rs 1.4
+     lakh, ~$330,000 gives about Rs 3.1 crore). No rupee bracket inside any dated
+     timeline event, and none on a per-token rate card, because a September
+     rate must never read as the date of a June event. Section 7's source
+     line names the rate and its month explicitly. The dollar always leads.
 */}

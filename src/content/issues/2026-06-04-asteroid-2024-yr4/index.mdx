@@ -1,9 +1,9 @@
 ---
 id: "2026-06-04-asteroid-2024-yr4"
 topic: space
-title: "The Asteroid We *Talked* Down"
-hook: "The impact odds for asteroid 2024 YR4 climbed to a record, then collapsed to zero — not because the rock moved, but because the uncertainty around it did."
-dek: "The number went up before it went down. That was the system working."
+title: "The odds *moved*. The asteroid did not."
+hook: "An asteroid's chance of hitting Earth once read 1 in 32. Six days later, 1 in 25,000. The rock you were watching never moved."
+dek: "The number rose before it fell. That was the system working."
 publishedAt: 2026-06-04
 status: published
 tags:
@@ -12,157 +12,193 @@ tags:
   - near-earth-object
   - james-webb-space-telescope
   - impact-probability
-readTimeMinutes: 7
-primer: "In December 2024 a telescope in Chile found a 50-to-70-metre asteroid, 2024 YR4, on a path that brought it close to Earth and the Moon in December 2032. For a few weeks its chance of hitting Earth was the highest astronomers had ever logged for a rock that size. Then the odds vanished. This is the story of why the number rose before it fell."
+readTimeMinutes: 4
+voice: "CONVERSATIONAL EXPLAINER"
+primer: "In December 2024 a telescope in Chile found this rock. For fifteen months its odds of a hit rose, then fell to zero. Here is what actually changed."
 
-# Story mode (/s/) — the flagship worked example (docs/design/STORY-MODE-SPEC.md §6).
-# Beats in the SOCIAL voice; every claim traces to this issue's own verified sections.
+# Story mode (/s/). Beats point at sections[] by 0-BASED INDEX (src/lib/story.ts
+# reads them in authored order and drops any index that no longer exists).
+# Order ascending: 0, 1, 4, 5.
 story:
   beats:
+    - section: 0
+      text: "Same rock, same orbit, the whole time. In February 2025 the odds of it hitting Earth read about 1 in 32. Six days later, 1 in 25,000. Nothing moved out there. What changed was how well anyone knew where it would be."
+      kicker: "Same rock, different number"
     - section: 1
-      text: "Fifteen months, one rock. Spotted December 2024, panic-peak in February 2025, quietly cleared by June. The strangest part: the scariest number arrived while the asteroid itself was doing absolutely nothing new."
-      kicker: "The 15-month arc"
-    - section: 3
-      text: "The numbers that moved: impact odds climbed to about 1-in-32 — the highest ever logged for a rock this size — then collapsed to effectively zero. Same asteroid, same orbit, the whole time."
-      kicker: "What actually changed"
+      text: "Spotted in December 2024. Peak Earth odds in February 2025. Ruled out six days later, and then the risk shifts to the Moon and climbs through 2025. Cleared on 5 March 2026. Read the dates and one thing holds under all of them. The orbit never changed."
+      kicker: "The fifteen-month arc"
     - section: 4
-      text: "Where the rock actually goes: its orbit crosses Earth's neighbourhood on a schedule, which sounds terrifying — until you see that crossing a road is not the same thing as standing in traffic."
-      kicker: "The geometry"
+      text: "Six figures from the whole episode. Peak Earth odds 3.1%, about 1 in 32. Peak lunar odds 4.3%. Size 53 to 67 metres. Miss distance more than 20,000 km. Only the size belongs to the rock. Same asteroid, same orbit, the whole time."
+      kicker: "What actually changed"
     - section: 5
-      text: "Here's the paradox that fooled almost everyone: MORE telescope time made the odds go UP before they hit zero. A shrinking circle of uncertainty has to sweep across Earth before it sweeps past it."
-      kicker: "Why up came before down"
-  cta: "That's the short version — the full issue rebuilds the whole odds machine."
+      text: "The agency that published every one of those numbers explained the last update in one sentence. The change reflected improved precision about where the asteroid would be in 2032, rather than a shift in its orbital path."
+      kicker: "NASA's own words"
+  cta: "That's the short version. The full issue rebuilds the whole odds machine."
 
 sections:
-  - kind: prose
-    eyebrow: "THE STORY EVERYONE HEARD"
-    title: "A percentage that *lurched*, then disappeared."
-    skimCaption: "The public memory of 2024 YR4 is a number that scientists kept revising: a few percent chance of impact, briefly a record high, then quietly walked back to nothing. Read that way, it looks like a system that overreacted and then corrected itself. The rest of this issue argues it was the reverse — the asteroid never changed course; only how well we knew its course did."
+  - kind: you-think
+    eyebrow: "ONE COMMON MISREAD"
+    title: "One rock, two very different numbers"
+    caption: "The odds of hitting Earth fell from 3.1% to 0.004% between 18 and 24 February 2025."
+    source: "NASA Planetary Defense blog"
+    sourceRefs:
+      - "src-03"
+      - "src-04"
     data:
-      lead: "Start with the thing people remember: a number that would not sit still. A few percent chance of hitting Earth. Then briefly higher — the worst NASA had ever logged for a rock this size. Then, inside a week, almost nothing. The risk slid across to the Moon, climbed back toward four percent, and in March 2026 went to zero there as well. Six readings of one threat, and not one of them held."
-      paragraphs:
-        - "Read as a headline, it looks like indecision. An alarm raised, then a run of quiet corrections, then a shrug. A scare scientists kept walking back until there was nothing left to walk back from. By the time the all-clear arrived, the rock had become a punchline about overreaction."
-        - "Look closer and the rock did none of it. Across the full fifteen months, 2024 YR4 stayed on exactly the orbit it was already flying. Nothing about the asteroid lurched. What lurched was the size of the box astronomers had drawn around where it would be on **22 December 2032**, and a probability is only a reading off the size of that box. Watch the box, and the whole scare reorganises itself."
-        - "Everything below takes that same sequence the public read as a walk-back and runs it the other way: a measurement getting sharper on a schedule, one telescope pass at a time. **The scariest moment was not the moment of greatest danger. It was the moment of least light.**"
+      think:
+        text: "The odds kept getting revised down, so the whole thing must have been an overreaction that scientists quietly walked back."
+      actually:
+        value: "3.1% → 0.004%"
+        unit: "in six days"
+        text: "Those are the odds of an Earth impact, six days apart in February 2025. The asteroid flew the same orbit through both readings, so only the measurement changed: how well anyone knew where it would be."
+      note: "The risk then moved to the Moon and rose there, before going to zero as well."
 
   - kind: timeline
     eyebrow: "A FIFTEEN-MONTH ARC"
-    title: "The number rises, *migrates*, then snaps to zero."
-    intro: "From a December 2024 discovery to a March 2026 all-clear, the recorded odds climb to a record on Earth, fall, jump to the Moon, climb again, and stop at nil. Read down the dates and one fact holds under all of them: the orbit is the same at every entry. Only the precision changes."
+    title: "Up on Earth, across to the Moon, zero"
+    intro: "That six-day drop was one step in a longer sequence. Read the dates downward and the same orbit sits under every reading."
+    layout: wide
+    plain: "Each entry is one dated update to the odds. The highlighted nodes are the turning points, and the last is where it stands now."
+    caption: "Six dated updates for 2024 YR4. The arc runs from the December 2024 discovery to the March 2026 all-clear."
     source:
-      label: "NASA Planetary Defense blog, with ESA"
+      label: "NASA Planetary Defense and Webb blogs, with ESA"
+    sourceRefs:
+      - "src-01"
+      - "src-02"
+      - "src-03"
+      - "src-04"
+      - "src-06"
+      - "src-07"
+      - "src-08"
     data:
+      annotations:
+        - at: "Feb 18 2025"
+          text: "Peak odds. The orbit was at its least known."
+        - at: "Jun 3 2025"
+          text: "The risk moves to the Moon. The rock does not."
       events:
         - date: "Dec 27 2024"
           state: default
-          label: "**Discovery — ATLAS, Río Hurtado, Chile.**"
-          note: "The NASA-funded Asteroid Terrestrial-impact Last Alert System first reports 2024 YR4 to the Minor Planet Center. NASA places the station 'in Chile'; ESA names it Río Hurtado."
+          label: "**Found by ATLAS, in Chile.**"
+          note: "The first report of this rock, from a survey telescope NASA funds."
         - date: "Feb 18 2025"
           state: key
           label: "**Earth-impact odds peak at 3.1%.**"
-          note: "For 22 Dec 2032 — 'the highest impact probability NASA has ever recorded for an object of this size or larger.' This is the high-water mark, set when the orbit was least constrained."
-        - date: "Feb 19 2025"
-          state: default
-          label: "**Dark-skies observations cut the odds to 1.5%.**"
-          note: "A single night of fainter-sky tracking nearly halves the Earth figure. The rock has not moved; the error box has shrunk."
         - date: "Feb 24 2025"
           state: default
-          label: "**Earth ruled out — odds fall to 0.004%.**"
-          note: "NASA concludes 2024 YR4 poses no significant threat to Earth in 2032 and beyond. A residual 1.7% chance of hitting the Moon remains."
-        - date: "Apr 2 2025"
-          state: fail
-          label: "**Lunar-impact odds rise to 3.8%.**"
-          note: "JWST thermal data also pins the size at 53–67 m. The Moon now sits well inside the shrinking box, so the lunar figure climbs as Earth's falls."
+          label: "**Earth ruled out. Odds 0.004%.**"
+          note: "The odds are split across whatever is still inside the range of possible positions. Earth now falls outside it. The Moon is still inside, at 1.7%."
         - date: "Jun 3 2025"
           state: fail
-          label: "**Lunar odds climb to 4.3%, then go dark.**"
-          note: "The orbit is refined further and the Moon figure keeps rising. Soon after, the asteroid fades beyond reach of every telescope until a 2026 Webb window."
+          label: "**Lunar odds climb to 4.3%.**"
+          note: "The range keeps shrinking with the Moon inside it, so the Moon's share of that smaller space rises. Then the rock fades from view."
         - date: "Feb 18 & 26 2026"
           state: key
-          label: "**JWST makes two decisive faint detections.**"
-          note: "Among the faintest observations of an asteroid ever made, tracked against star positions fixed by ESA's Gaia mission. These pin the 2032 position two years before any ground telescope could."
+          label: "**Webb makes two faint detections.**"
+          note: "Webb, a space telescope, made these two detections. The astronomers who led them said it reflects 'about as much light as an almond at the distance of the Moon.'"
         - date: "Mar 5 2026"
           state: now
-          label: "**Lunar impact ruled out — odds to zero.**"
-          note: "NASA and ESA announce 2024 YR4 will miss the Moon, passing more than 20,000 km beyond it on 22 Dec 2032."
+          label: "**Lunar impact ruled out. Zero.**"
+          note: "Two nights of Webb put the Moon outside that range too, two years before any ground telescope could have. It passes more than 20,000 km clear."
 
-  - kind: signal-readout
-    eyebrow: "THE OBSERVATION CAMPAIGN"
-    title: "Each pass buys *precision*, not a new orbit."
-    intro: "Here's the thing each observation actually did: it added photons against a known background, and every batch of photons pulled the box around the 2032 position a little tighter. So this panel just ranks that tightening, pass by key pass. It's an illustrative schematic, not data. The bars say how much each pass narrowed the orbit, not any published signal value."
+  - kind: jargon-buster
+    eyebrow: "THREE WORDS FIRST"
+    title: "What these percentages were actually measuring"
+    intro: "The sequence you just read is six readings of one orbit. Three terms explain why the readings moved."
+    source: "NASA Planetary Defense blog"
+    sourceRefs:
+      - "src-01"
+      - "src-04"
     data:
-      caption: "SCHEMATIC — relative orbit-precision gained per observation pass, not published measurements"
-      source: "Qualitative basis: NASA Webb blog (6 Mar 2026); ESA on the Gaia reference frame (5 Mar 2026). Bar values are editorial."
-      bands:
-        - { label: "ATLAS optical discovery · Dec 2024", freq: "ground · visible", value: 22, max: 100, color: "#7a8a92" }
-        - { label: "JWST thermal (size) · Mar 2025", freq: "space · mid-IR", value: 54, max: 100, color: "#4dffb0" }
-        - { label: "JWST faint detections · Feb 2026", freq: "space · near-IR", value: 94, max: 100, color: "#00d4ff" }
-        - { label: "Gaia star catalogue · reference frame", freq: "astrometric anchor", value: 88, max: 100, color: "#b47dff" }
+      terms:
+        - term: "The error box"
+          meaning: "The stretch of space the asteroid could be in on the day. Every fresh sighting shrinks it, and the odds are split across what is left inside."
+        - term: "Impact probability"
+          meaning: "The odds that the rock hits us, written as a percentage. It tracks the size of that box, so sharper measurements move the number while the rock stays put."
+        - term: "The 1% line"
+          meaning: "Crossing one percent starts the international planetary-defence notification process. It is a procedure that switches on, nothing more."
+
+  - kind: number-sense
+    eyebrow: "SAID OUT LOUD"
+    title: "3.1% is about one chance in thirty-two"
+    intro: "A percentage is hard to feel. Here is the peak Earth figure, said the way odds usually are."
+    caption: "The peak Earth reading of 3.1% is about one chance in thirty-two."
+    source: "NASA Planetary Defense blog"
+    sourceRefs:
+      - "src-03"
+      - "src-04"
+    data:
+      value: "3.1"
+      unit: "%"
+      label: "Peak Earth-impact odds, 18 February 2025"
+      equals:
+        - text: "About one chance in thirty-two."
+          note: "3.1 out of every 100."
+        - text: "The same figure turned around: thirty-one chances in thirty-two that nothing happens."
+          note: "The other side of the same figure."
+        - text: "Six days later, the reading was about one chance in 25,000."
+          note: "From the 0.004% reading in February 2025."
+      note: "NASA has never recorded a higher impact probability for an object this size or larger."
 
   - kind: data-readout
-    eyebrow: "THE NUMBERS THAT MOVED"
-    title: "Six figures, and *one* of them is the rock."
-    intro: "Five of these tiles are probabilities, dates, and distances that moved as the orbit sharpened around the rock. Only the size belongs to the rock itself. Every note carries the date and source it came from."
+    eyebrow: "EVERY NUMBER AT ONCE"
+    title: "Only one of six belongs to the rock"
+    intro: "Those odds describe how well we knew the orbit, so they moved. The size is the one figure here that belongs to the rock itself. The date and the distance belong to the close approach."
+    source:
+      label: "NASA Planetary Defense blogs and 2024 YR4 Facts, with ESA Planetary Defence"
+    sourceRefs:
+      - "src-01"
+      - "src-02"
+      - "src-03"
+      - "src-04"
+      - "src-05"
+      - "src-06"
+      - "src-07"
+      - "src-08"
     data:
-      caption: "ASTEROID 2024 YR4 · KEY FIGURES, DEC 2024 – MAR 2026"
-      source: "NASA Planetary Defense blogs (19 & 24 Feb, 2 Apr, 5 Jun 2025; 5 Mar 2026) · ESA Planetary Defence (5 Mar 2026) · NASA 2024 YR4 Facts"
+      caption: "Asteroid 2024 YR4 · key figures, Dec 2024 to Mar 2026"
       tiles:
         - value: "3.1"
           unit: "%"
           label: "Peak Earth-impact odds"
-          note: "18 Feb 2025 — 'the highest impact probability NASA has ever recorded for an object of this size or larger.' (NASA, 19 Feb 2025)"
+          note: "Set on 18 February 2025, when the orbit was known least well."
           emphasis: "key"
         - value: "0.004"
           unit: "%"
           label: "Earth odds after resolution"
-          note: "24 Feb 2025 — NASA concludes no significant Earth-impact threat in 2032 and beyond. (NASA, 24 Feb 2025)"
+          note: "Six days later. Earth is out, for 2032 and beyond."
         - value: "4.3"
           unit: "%"
           label: "Peak lunar-impact odds"
-          note: "3 Jun 2025 — the high point of the lunar figure; ESA later described it as 'around 4%.' (NASA, 5 Jun 2025; ESA, 5 Mar 2026)"
+          note: "3 June 2025, the high point. Europe's space agency later called it around 4%."
           emphasis: "key"
         - value: "53–67"
           unit: " m"
           label: "Estimated diameter"
-          note: "From JWST mid-infrared thermal data, 26 Mar 2025. The one figure here that describes the rock, not our knowledge of it. (NASA, 2 Apr 2025)"
+          note: "The miss distance is three to four lakh times this width."
         - value: ">20,000"
           unit: " km"
           label: "Miss distance from the Moon"
-          note: "ESA: more than 20,000 km. NASA: 13,200 mi (21,200 km) above the lunar surface. (ESA & NASA, 5 Mar 2026)"
+          note: "The other published figure puts it 21,200 km above the lunar surface."
           emphasis: "warn"
         - value: "Dec 22"
           unit: " 2032"
           label: "Close-approach date"
-          note: "The single date every probability above was a reading for. (NASA 2024 YR4 Facts; ESA, 5 Mar 2026)"
+          note: "The single date every probability above was a reading for."
 
-  - kind: trajectory-arc
-    eyebrow: "WHERE THE ROCK ACTUALLY GOES"
-    title: "The 2032 pass, drawn to *clear* the Moon."
-    intro: "On 22 December 2032, 2024 YR4 crosses the Earth-Moon system and clears the Moon by more than 20,000 km. The diagram below sketches that geometry so the clearance is visible. It is a schematic, not to scale. The only published quantity is the miss distance; the axis values are illustrative."
-    data:
-      caption: "SCHEMATIC, not to scale — approach geometry for 22 Dec 2032. The sourced quantity is the >20,000 km lunar miss; coordinates are illustrative."
-      source: "Geometry illustrative. Miss distance: ESA ('more than 20,000 km') & NASA ('13,200 mi / 21,200 km above the lunar surface'), 5 Mar 2026."
-      apoapsisKm: 60000
-      phases:
-        - { label: "Inbound", altKm: 60000, downrangeKm: 0, note: "2024 YR4 approaches the Earth-Moon system along the orbit it has flown since discovery." }
-        - { label: "Lunar plane", altKm: 38000, downrangeKm: 90, note: "The asteroid crosses the Moon's orbital distance — the moment the 4.3% figure was once a reading for." }
-        - { label: "Closest to Moon", altKm: 21200, downrangeKm: 150, note: "Nearest approach: more than 20,000 km clear of the lunar surface. NASA states 21,200 km. No impact." }
-        - { label: "Outbound", altKm: 40000, downrangeKm: 220, note: "The rock continues past the system and back into the inner solar system, unobservable again until 2028." }
-
-  - kind: paradox
-    eyebrow: "WHY THE NUMBER WENT UP FIRST"
-    title: "The same sequence, read *two* ways."
-    intro: "A probability that climbs to a record and then craters can look like a system failing to make up its mind, when it is the ordinary signature of one doing its job. The whole difference is what you take the reading to be about: the rock, or the box drawn around it."
+  - kind: quote
+    eyebrow: "IN THEIR OWN WORDS"
+    title: "NASA's own sentence for what changed"
+    intro: "Six numbers, and only the size was about the rock. Here is how the agency put it."
     source:
       label: "NASA Planetary Defense blog"
+      date: "5 March 2026"
+    sourceRefs:
+      - "src-01"
     data:
-      sides:
-        - label: "The Surface Read"
-          statement: "*The odds went up, then vanished — so the warning was overblown.*"
-          detail: "On its face, the arc is a walk-back. The Earth figure hit a record 3.1%, the risk crossed to the Moon and climbed past 4%, and then all of it evaporated. If the danger were real, the thinking goes, the number would not have collapsed. So the peak reads as an alarm, and the all-clear as a quiet retraction of it."
-        - label: "The Structural Read"
-          statement: "*The rock never moved. The uncertainty around it shrank.*"
-          detail: "Right after discovery, the asteroid's 2032 position was a long error ellipse, and the Moon sat inside it, so the odds were a few percent. Each observation narrowed that ellipse, until the Moon fell outside it and the odds snapped to zero. The number peaked when the orbit was least constrained. The orbit was least constrained when the asteroid was faintest. The peak measured how little light we had, not how close the rock was coming. NASA put it plainly: the update 'reflects improved precision in our understanding of where the asteroid is expected to be in 2032 rather than a shift in its orbital path.'"
+      quote: "This update reflects improved precision in our understanding of where the asteroid is expected to be in 2032 rather than a shift in its orbital path."
+      attribution: "Molly Wasser, NASA Science"
+      followup: "'Improved precision' means the range of possible positions kept shrinking, so the Moon ended up outside it. The rock is still up there, in the same aasmaan, on the same path it has always flown. On 22 December 2032 it arrives, and it misses."
 
 sources:
   - id: "src-01"
@@ -223,4 +259,32 @@ sources:
   This MDX body is reserved for supplementary prose, footnotes, or embedded
   media in future issues. Keep it empty unless a section can't express what
   you need.
+
+  # EDITOR NOTES — Phase 6 rewrite, 2026-09-15 (REGISTER-PLAN Phase 6)
+  Storyboard: research/space/2026-09-14-asteroid-2024-yr4-storyboard.md (approved).
+  Panels: -panel.md (REVISE) and -panel-2.md (PASS). Verification: -verification.md.
+  Standing decisions. Do not undo these without re-reading the storyboard:
+
+  - `signal-readout` and `trajectory-arc` were CUT by operator ruling: their
+    drawn values were editorial ("Bar values are editorial"; seven of eight
+    trajectory coordinates invented). Do not restore either without a published
+    per-band uncertainty table or the object's orbital elements.
+  - GAIA IS DELIBERATELY ABSENT. The Feb 2026 note credited Gaia's star map for
+    the astrometric reference frame; it was cut on reader-panel-2's direction to
+    pay a word budget, and the verifier ruled it not load-bearing (nothing the
+    issue asserts rests on the frame). Storyboard §7 still lists Gaia among its
+    seven names — that list is stale on this point. Do not re-add Gaia to
+    satisfy it.
+  - The size figure is 53-67 m (JWST, src-05/src-08), NOT the pre-JWST
+    "50-to-70 m" of the published primer. The older pair appears nowhere in the
+    dossier; the surviving one is the traceable member.
+  - The almond quote's two co-principal investigators are DESCRIBED, NOT NAMED,
+    by operator ruling (contract rule 9). src-07 carries the attribution.
+  - `number-sense`'s note states NASA's record claim WITHOUT quote marks on
+    purpose. The verbatim sentence ("This is the highest impact probability...")
+    lives in sources[].quote on src-03; quoting a trimmed, recapitalised form in
+    the body was a verbatim breach and was removed 2026-09-15.
+  - story.beats index sections[] by 0-BASED array position, in authored order,
+    unsorted. A beat pointing at a missing index is dropped silently by
+    src/lib/story.ts with no build error. Current: 0, 1, 4, 5.
 */}
