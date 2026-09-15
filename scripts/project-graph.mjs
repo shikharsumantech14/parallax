@@ -47,12 +47,22 @@ const git = (args, fallback = '') => {
 
 /* ── walk ──────────────────────────────────────────────────────────────── */
 const SKIP = new Set(['node_modules', '.git', 'dist', '.astro', '.vercel', 'coverage']);
+/* Git worktrees live under .claude/worktrees/ and each is a FULL second copy
+   of the repo. They are gitignored, so git never surfaces them, but a
+   filesystem walk does not read .gitignore. On 2026-09-15 a worktree that was
+   still open during a merge put 380 phantom paths into the graph. The
+   committed output then passed `--check` locally, because the walk saw the
+   same phantom tree both times, and FAILED on Vercel's clean checkout, where
+   the worktree does not exist. Skip by path, not by name, so a legitimate
+   directory called "worktrees" elsewhere is unaffected. */
+const SKIP_PATHS = new Set(['.claude/worktrees']);
 function walk(dir, out = []) {
   let entries;
   try { entries = readdirSync(R(dir), { withFileTypes: true }); } catch { return out; }
   for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     if (SKIP.has(e.name)) continue;
     const p = `${dir}/${e.name}`.replace(/^\.\//, '');
+    if (SKIP_PATHS.has(p)) continue;
     if (e.isDirectory()) walk(p, out); else out.push(p);
   }
   return out;
