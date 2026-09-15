@@ -17,6 +17,23 @@ before trusting it — grep for a phrase the rewrite removed (old title, a cut
 section). Then extract text nodes with Grep in `-o` mode on `[^<>]{20,400}`,
 paging with `offset`/`head_limit`.
 
+**It fails in BOTH directions, and the second one bit on kessler-cascade
+(2026-09-15).** Somebody had built since the draft landed, so the HTML was the
+**pre-stylist draft** — newer than the published file, older than the file on
+disk. Test for that too (grep a phrase the *stylist* introduced), because a build
+that is neither the published version nor the current one is the worst of the
+three: it looks authoritative and it is a third generation nobody asked about.
+When it happens there is **no route to the published record without git**. Say so
+in the report's first section rather than bluffing a diff — then trace against
+the storyboard's transcription of the published rows (a Phase-6 storyboard carries
+§2/§5/§6/§8a tables of the published values precisely so this is possible) and
+hand the real numeral diff to `check:prose`, which can read the committed version.
+
+**A stale-or-not build is still worth opening for a different job:** it proves
+which authored fields actually reach a reader. Grep it for each `caption`, each
+annotation `text`, `px-section__claim` and `Source ·`. That check does not care
+which generation the build is, and it is the one that has silently failed before.
+
 **Why:** the rendered HTML carries everything a dossier §3–§6 would: section
 intros, timeline labels and notes, both verbatim quotes, the source list with
 URLs. It is a *better* verbatim target than the MDX for quote comparison,

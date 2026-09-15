@@ -29,6 +29,26 @@ that was not used.
   `data-readout` takes `accent?: true`; the component's real field is
   `emphasis?: 'default' | 'key' | 'warn'`. The draft was right and the catalog
   stale — flagging the draft there would have been wrong.
+- **An annotation that traces can still render NOTHING.** `annotations[].at`
+  resolves through the series: `AdoptionCurve` maps a milestone *label* → its
+  `year` → `points.findIndex(p => p.year === …)`, and a miss is a **silent
+  no-op** by spec. So a storyboard that trims the series *and* names an `at`
+  anchor in the same row can mandate an impossible pairing — on the cockroach
+  rewrite, deleting the 521 point made the storyboard's "match the 21 May
+  milestone label verbatim" unrenderable, and the drafter's departure to a
+  numeric `at` was forced, not sloppy. **Verify every annotation RESOLVES, not
+  just that it traces**, and check the auto-flip/clamp logic too (a `side:
+  above` on a 100% mark flips to `below`). `Timeline` uses a different rule —
+  exact string match on the event's `date` — so the same `at` idiom is not
+  portable between kinds.
+- **A deleted point also changes the geometry, not just the claim.**
+  `AdoptionCurve` positions by **array index**, not by x value, so trimming six
+  points to three makes a six-day gap and a one-day gap render the same width,
+  and its axis labels (`String(year).slice(2)`, written for four-digit years)
+  read as single digits under a month-day encoding. Neither is an authoring
+  defect, but both decide which claim the graphic can carry: a *level* claim
+  survives, a *rate* claim does not. Say that plainly — it is usually an
+  argument FOR the weakened wording, not against it.
 - **Story `beats` lose the chrome that carries the caveat.** `story.css` hides
   `[class$='__cap']` inside a beat, and most viz render their caption as
   `.px-viz__cap`. So an honesty line the operator ruled into the *caption*

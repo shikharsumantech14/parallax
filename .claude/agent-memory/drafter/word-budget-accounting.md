@@ -32,6 +32,26 @@ needed roughly 100 words cut from the approved plan to land at ~1,087.
   chrome, which is one eyebrow and one title and nothing else. The practical
   move is to omit section 1's `intro` — the opening kinds (`you-think`,
   `data-readout`) carry their own labels and caption, so nothing is lost.
+- **A grid kind can cost more than its whole storyboard row.** A storyboard
+  budgets `power-matrix` as "5 institutions + 4 party labels + caption + plain";
+  the gate also counts every `cells[].institution` repeat (see
+  [[component-data-shape-traps]]), which on a full 5×4 grid is ~100 words — most
+  of a row's budget again. Check any kind whose data repeats a label to address a
+  cell before you trust the plan's total.
+- **A `source` written as `{ label, date }` costs only the label.** The gate
+  reads `s.source.label` and ignores the date, so every dateline, every "2–3
+  June 2026" and every accessed-on is free the moment it moves out of the
+  string form. On a nine-section issue that is 30–50 words back for no loss of
+  information, and it also keeps an en dash out of a counted string.
+- **Three cheap ways to come in under a storyboard's own row budget**, each
+  worth 5–20 words and none of them a loss to the reader: omit `you-think`'s
+  two panel labels (the defaults "What most people think" / "What the data
+  shows" are usually right, and an authored label is not free); drop the `note`
+  on the one or two timeline events that carry an `annotation`, since the
+  callout IS that node's note; and let the hero's `plain` carry the reading
+  rather than authoring a `howToRead` on a kind outside `NEEDS_HOW`, which
+  saves a whole block as well as the words. The Kessler rewrite landed at ~938
+  against a plan of ~1,043 on those three alone.
 - A `skimCaption` on all ten sections costs ~200 words, which no issue at the
   ceiling can afford. It only *renders* for `prose` in skim mode (other kinds
   keep their graphic), so author it on the prose section, and on one or two

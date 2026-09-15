@@ -34,11 +34,25 @@ reallocation as storyboard drift with the reason.
   **INVESTIGATION**. The dates *are* the anomaly.
 - `you-think`, `bill-breakdown`, `analogy`, the hero chart → **CONVERSATIONAL**.
   These four are the reliable half.
+- `you-think` as section 1 **with no `intro`** → **INVESTIGATION**. The belief
+  panel is the anomaly held up first, and the missing intro is what keeps the
+  words-before-first-graphic count inside 80. Same slot logic as `number-sense`
+  at 1.
+- `data-readout` → **AWE** only when one tile is a *zero* or another flat
+  landing fact, and then the awe lives in the tile, never in the intro. The
+  intro stays a plain hand-off from the previous section, and that is not a job
+  mismatch: it is AWE's own calibration (the awe is in the fact). If every tile
+  is a rate or a count, the section is CONVERSATIONAL.
 - `paradox`, `quote` → **CALM-STRUCTURAL**, always. Both are "the official line
   beside the physical fact with the sentence that joins them".
 - `number-sense` mid-issue (the ₹-conversion card) → **AWE**. Its whole shape is
   the AWE cadence — a flat fact, then the conversion to a scale the reader owns.
-  It is the one AWE section a non-space issue can carry honestly.
+  It is the one AWE section a non-space issue can carry honestly. **Exception:
+  the politics desk.** Where the number is a following, a turnout or a body
+  count, AWE reads as the writer being impressed by the subject, and restraint
+  is the safer register (§8's tie-break). It goes CONVERSATIONAL there — which
+  is also what keeps the ≥ half count reachable on a nine-section issue, where
+  the arithmetic is 5, not 4.
 - `three-steps` → **CONVERSATIONAL** by the decision tree's own words ("a
   walk-through, one step at a time"). Do not upgrade it to FORENSIC because the
   mechanism is technical.

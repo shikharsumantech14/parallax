@@ -20,6 +20,17 @@ re-run an expensive phase to fix a problem that needs one dossier line.
   non-quotable source (re-source or cut), untraced-but-inherited provenance
   (record the source). Only the first two need the writing agents again.
 
+**Do not let a tell-count delete an accuracy hedge.** The once-per-issue binary
+reframe (tells 2 and 19) targets a *rhetorical reversal used as the
+argumentative move*. It does not target an appositive negation in a `note` doing
+precision work — "A dated range, not a fixed count", "Across all platforms and
+cases, not this one". Counting those as breaches tells the editor to strip the
+qualifiers that keep the issue honest, which is the wrong direction on exactly
+the numbers the dossier was most careful about. Report them as *noted, not a
+defect*, name the one that is pure redundancy (where the positive half already
+implies the negative), and let the operator rule. Same logic for a plain
+negative statement of fact, which is not a reframe at all.
+
 **Sometimes the draft is right and the supporting file is stale.** When a
 draft's Hindi word is absent from `hinglish-lexicon.md` but is the exact phrase
 `_voice-core.md` §9 uses as its signed worked example, the defect is in the

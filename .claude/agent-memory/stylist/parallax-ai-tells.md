@@ -34,6 +34,14 @@ storyboard now names which section spends it.
 - **Three numerals in one sentence.** Arrives the same way: a panel asked for
   two figures to be separated and the drafter added the third to the same clause.
 
+- **The repeated intro opener.** Three or four sections whose `intro` begins on
+  the same pointing construction ("Here is where…", "Here is one company's…",
+  "Here is what the rest…"). No catalog tell names it and no gate flag fires,
+  because each sentence is fine on its own. It is tell 22's habit half, and the
+  way to find it is the same trick as the titles: **read the issue's intros as a
+  list before reading them in place.** Two of the same opener is invisible;
+  three is a tic. The fix is one or two words in the middle instance, so it
+  survives the "do not re-write a strong draft" instruction.
 - **The term of art carried across sections with no gloss.** Not a catalog
   tell either — contract rule 2. The pattern: a word enters as an ordinary
   noun in one section's intro, then becomes an `eyebrow`, then a section
@@ -41,6 +49,30 @@ storyboard now names which section spends it.
   explained. Titles and eyebrows are flag-only, so **the gloss has to go into
   the earliest prose field the word appears in**. Read the issue's eyebrows and
   titles as a list first; any repeated noun there is the candidate.
+- **The gloss that introduces its own unglossed object.** The `jargon-buster`
+  failure mode, and the panel finds it every time: a `meaning` defines the term
+  by ruling out a thing the reader was never shown ("…the 2021 rules everyone
+  argues about are a separate track"), or ends on an object with no sender and
+  no content ("Only a communication was"). **Read each `meaning` as if it were
+  the reader's first sentence on the subject** — a gloss may not spend a clause
+  on a contrast the reader never had, and every noun in it needs a body. The
+  repair is almost always to say what the thing *is* instead of what it is not,
+  which usually costs one or two words, not a sentence.
+- **The section title the section never pays.** A `title` promising a noun
+  ("Where the *name* came from") whose payload sits in a later section's data.
+  Titles are flag-only, so the fix goes in that section's `intro` — and the
+  intro that pays it should make the promised thing the grammatical subject,
+  not a trailing apposition. Read the titles as a list and ask of each: is the
+  thing it names inside this section's own fields?
+
+## "A, not B" is not automatically the binary reframe — but split it anyway
+
+Tell 19 targets reversals ("it's not about X, it's about Y", "less a X than a
+Y"). A flat factual apposition ("the record held a communication, not the
+order") is precision, not rhetoric. When the issue's one reframe is already
+spent and named by the storyboard, **still split it into two sentences** — it
+costs 2–3 words, it removes the argument entirely, and a reader of the summary
+cannot tell the two shapes apart at a glance either.
 - **The English false friend across Indian sports.** *Delivery* on a football
   issue reads as cricket to an Indian reader; so do *over, pitch, boundary,
   strike*. The reader panel catches these as "lost sentences", not as jargon.

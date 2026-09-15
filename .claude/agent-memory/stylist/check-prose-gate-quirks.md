@@ -25,10 +25,25 @@ Consequences that bite:
   `quote.text`, and `analogy` `headline` / `punchline`.
 - **`data.quote` (the quote kind's verbatim text) is NOT scored** — key `quote`
   is not on the list. A verbatim quote therefore cannot break the rhythm caps.
+  It **is** counted in `readerWords`, though (`quote` is not in `SKIP_KEYS`), so
+  an unellipsed 44-word institutional sentence spends 44 of the 1,100 before the
+  section's own copy starts. Budget the quote first, then the words around it.
   Neither are `analogy` `pairs[].this` / `.that` (keys `this` / `that`).
 - `label`, `unit`, `attribution`, `caption`, `plain`, `howToRead`, `source` and
   anything under `annotations` are the **precision layer**: English-only, not
   sentence-scored.
+
+## There are TWO cap layers, and only one of them is law
+
+A storyboard sets its own per-row caps (`tile note ≤ 10 w`, `actually.text ≤ 20 w`,
+`followup ≤ 24 w`, `paradox detail ≤ 36 w`) that are deliberately **tighter than
+the gate's**. `check-prose.mjs` flags on its own numbers: tile note 15, timeline
+note 20, paradox detail 45, intro 45, annotation 12, and the plain-language kinds'
+own caps near the bottom of the section loop (`you-think` think/actually 30,
+note 20). When a panel fix needs words, the gate cap is the ceiling you may
+spend to and the storyboard cap is the budget you report having exceeded. Say
+both numbers in the summary so the operator sees the overrun was priced, not
+missed.
 
 ## `readerWords` is EVERY string, not the prose
 
@@ -58,6 +73,22 @@ gate — but it is still a finding on a published issue.
    the first uncommitted keystroke. It is not a signal about the styling pass —
    but it *is* the reason every styling edit must be punctuation-and-wording
    only, never a retyped figure.
+
+## Words-before-the-first-graphic is a head budget, and it has three levers
+
+The count is **head (title + hook + dek + primer) + section 1's `eyebrow` +
+`title`**, stopping there only because section 1 is visual. Ceiling 80. On a
+tight rewrite that number, not the 1,100, is the binding constraint: a panel
+fix to the primer (naming a platform, restoring "satirical") is +2 and blows it.
+
+Of the six contributors the stylist may touch exactly one by default — the
+`primer`, which is **not** in the do-not-touch list while `title`, `hook`,
+`dek`, `eyebrow` and the section title all are. So **the primer can only be
+paid for out of the hook, and only when the launching agent has authorised a
+hook rewrite.** Ask for that authorisation when a head fix is on the list;
+without it the primer fix is unfundable and the honest answer is to flag it.
+Where the hook and primer open on the same seven words (they often do — the
+drafter reuses the published line), trimming the hook is free.
 
 ## The cheap, exact fixes
 

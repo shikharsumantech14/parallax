@@ -24,6 +24,15 @@ showing the dossier's reading was stricter than the source.
 - Order of precedence on a rewrite: **operator rulings (storyboard §9) →
   the latest commissioned research pass → the storyboard table → the dossier.**
   A storyboard constraint written against a stale dossier reading loses.
+- **A reader-panel report sits below all of those, and still causes departures.**
+  Its second pass post-dates the storyboard and the draft, but it writes
+  "direction only, never the sentence" — so a change made on its recommendation
+  is *advisory in origin and unrecorded by construction*. Read panel-2's "what
+  would fix it" list against the draft: the items that landed are departures
+  whose only paper trail is the panel file. Judge each on its merits, then ask
+  for the provenance note. Twice now the panel's direction has been right and
+  the storyboard's table stale in the same field (a name §7 assigned to a row
+  that the panel proved was carrying no reason for the reader).
 - A departure is legitimate drift-free when it is (a) mandated by the binding
   file and (b) *named* somewhere the editor will see it. An MDX `{/* */}`
   provenance note satisfies (b) and ships nothing to the reader — that is the
