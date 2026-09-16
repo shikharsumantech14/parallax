@@ -53,14 +53,14 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts — **ONE family, Literata** (launch design, 2026-09-08). The three ROLE tokens `--font-display` / `--font-body` / `--font-mono` survive so 98 kinds keep compiling, but all resolve to Literata; roles differ by size / weight / case / tracking (display 700 tight, body 400, labels 600 small capitals tracked .14–.20em). Tabular figures on `<body>`. The trio (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces before it are retired; the share cards render on static Literata Bold / Medium from `assets/fonts/`. |
+| Fonts        | Google Fonts — **ONE family, Literata** (launch design, 2026-09-08). The three ROLE tokens `--font-display` / `--font-body` / `--font-mono` survive so 101 kinds keep compiling, but all resolve to Literata; roles differ by size / weight / case / tracking (display 700 tight, body 400, labels 600 small capitals tracked .14–.20em). Tabular figures on `<body>`. The trio (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces before it are retired; the share cards render on static Literata Bold / Medium from `assets/fonts/`. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **98 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage, and runs in `prebuild` — so a half-wired kind fails the build. |
+| Section library | **101 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15), and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -161,7 +161,7 @@ src/
 │   │                            component. Shared with story mode. THIS is
 │   │                            the file a new section kind is wired into.
 │   │                            Also resolves `howToReadFor(kind, howToRead)`
-│   │                            for the twelve VizCard kinds so the panel renders
+│   │                            for the fourteen VizCard kinds so the panel renders
 │   │                            inside the card (Section's copy hides via :has()).
 │   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
 │   │                            IssueHead [meta strip · head · primer], Plate
@@ -227,7 +227,7 @@ src/
 │   │                            section has no `howToRead` — for the NEEDS_HOW
 │   │                            kinds only since 2026-09-13, RG-19; every kind
 │   │                            from 2026-09-04 to then). `howToReadFor()` is the
-│   │                            one resolution. 90 entries + 7 narrative-exempt;
+│   │                            one resolution. 92 entries + 9 narrative-exempt;
 │   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
@@ -347,7 +347,7 @@ holds two control gates; agents do everything else.
 **Since 2026-09-13 (`docs/REGISTER-PLAN.md`) the diagram above has three more
 stops.** Between 4 and 5: `/pipeline-storyboard` writes
 `research/<cat>/<date>-<slug>-storyboard.md` (every point the reader must
-get → the kind that shows it, from all 98 by data shape; the hero; the word
+get → the kind that shows it, from all 101 by data shape; the hero; the word
 budgets; the head; the three quiz questions) and **you approve it** — the
 gate is `GATES.storyboard` in `scripts/pipeline.config.ts`, `'required'` for
 the first ten issues, `'auto'` after. After 5 and again after 7:
@@ -412,10 +412,12 @@ every term glossed the moment it appears, every abstraction given a concrete
 thing, every number a comparison the reader can feel, names rationed to
 twelve, "you" and "we" free. A Hindi word only where it is the natural word,
 and **never load-bearing** (delete it and the English still says everything;
-the lexicon is `hinglish-lexicon.md`; none in the precision layer). The
-published issues before 2026-09-13 are the OLD register and are not a voice
-reference. `mode-library.md` is the deep reference for the eight jobs and
-loses to the contract where they disagree.
+the lexicon is `hinglish-lexicon.md`; none in the precision layer). **All
+ten published issues were rewritten into this register** (Phases 4 and 6,
+closed 2026-09-15), so the live backlist IS the voice reference now. Only
+`docs/archive/` and pre-2026-09-13 commits carry the old register.
+`mode-library.md` is the deep reference for the eight jobs and loses to the
+contract where they disagree.
 
 | Mode | When |
 |---|---|
@@ -532,7 +534,7 @@ with the canon in `_voice-core.md` §6.
   sections). The plain line sits BELOW with `Source · …` running inline after
   it (`.px-plain__src`, from `section.source ?? data.source`) — for every kind.
   Components render none of source / plain / how themselves. The one
-  exception: the twelve VizCard kinds render their how-to-read INSIDE the card,
+  exception: the fourteen VizCard kinds render their how-to-read INSIDE the card,
   and `dataviz-v2.css` hides Section's copy with `:has()` so a section shows at
   most one panel. Do not add a `.px-viz__src` emitter back — the seventy that
   existed were stripped on 2026-09-04.
@@ -704,7 +706,7 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
   `motion.md` was signed 2026-09-07 (`b06caec`) together with the `--t-page`
   ruling it was waiting on: navigation split off to `--t-slow` (420ms) because
   it answers a click, while in-page settling keeps 600ms. `catalog.md`
-  (the 97-kind component palette), `motion.md`, the `*-SPEC.md` set,
+  (the 101-kind component palette), `motion.md`, the `*-SPEC.md` set,
   `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
   the canonical historical reference).
@@ -765,6 +767,59 @@ a catalog DATA line must be read by its component, its dispatch arm, its
 direct imports or its WebGL scene. 852 fields checked. A bare prop forward to
 the kind's own component does not count as a reader — that is the bug's exact
 shape. Deliberate exceptions go in `ACCEPTED_UNREAD` with a reason.
+
+### 2026-09-15 — Phase 6 closed: all ten published issues are in the register
+
+The remaining six (kessler, transgender-ratchet, the token bill, amazon,
+asteroid, cockroach) were rewritten in place under their own slugs, each
+through storyboard (operator-approved) → draft → panel → stylist → second
+panel → verifier → `check:prose`. All six passed the second panel with every
+quiz question answered by all four personas, and all six verifiers returned
+**zero untraced claims across 303 checked**. **All ten now clear every
+composition floor** (≤ 1,100 reader words, ≥ 60% visual, ≤ 80 words before the
+first graphic, ≤ 12 names), against a backlist that averaged 1,573 words at
+49% visual with up to 639 words of head and 55 names. Six kinds reached
+readers for the first time: `power-matrix`, `you-think`, `jargon-buster`,
+`three-steps`, `number-sense`, `bill-passage`.
+
+**Standing rules set by this phase — do not restore what they replaced:**
+
+- **The drawing rule.** Where a source gives a band, DRAW THE LOW END and put
+  the band in the copy (caption or label), not in the mark. Set on the Amazon
+  rewrite, where the bars sit at 3.7 and 1.5 and the dial needle at 17 with 18
+  named in prose. Both choices weaken the issue's own claim rather than
+  flatter it, and that is the point.
+- **The quote-attribution fallback.** When a quotation cannot be matched to
+  the primary record, keep the reported wording, attribute it to the OUTLET
+  that reported it rather than to the speaker, and reframe any section that
+  claims to be "the record". Ruled on the transgender-ratchet rewrite, where
+  the Lok Sabha record says जैविक स्थिति ("biological condition") at the one
+  word that carries the claim and the reported English says "gender identity"
+  — unresolved rather than disproven. **Do not cite the primary record on that
+  section**: doing so re-asserts the authority the fallback removed, and it
+  passes every automated trace check while doing so.
+- **The currency rule gained two composition clauses** (contract §3 rule 4):
+  **no rupee bracket inside a dated `timeline` event**, because a timeline
+  records what was true on a day, and **none on a per-token rate card**
+  regardless of vintage. The conversion's rate AND its month go on that
+  section's source line, so a later rate can never read as the date of the
+  figure.
+
+**A dossier can go stale about its own allowlist, and it fails silently
+towards weaker sourcing.** Three did. The politics dossier sent a researcher
+to an unparseable PDF while `indiacode.nic.in` sat on the allowlist at T0, and
+wrote off NALSA because *indiankanoon* is off-list while `sci.gov.in` is
+listed twice; earth predates Global Forest Watch reaching T1. Cost: two
+published claims rested on newspapers for four months. **When a dossier says a
+source is off-allowlist, check the allowlist, not the dossier.**
+
+Five published errors were corrected on the way, none of them stylistic: a
+"three laws" count that was two (and the 2016 Bill cleared the Lok Sabha
+before lapsing in the Rajya Sabha, so it is not "lapsed in committee"
+either); the minister's quote above; a NASA sentence trimmed and
+recapitalised inside quote marks; "either tipping point ends the same way",
+which the record splits by branch; and a `power-matrix` cell giving an account
+control over copies its readers held.
 
 ### 2026-09-14 — Phase 4 done; two rulings on the register
 

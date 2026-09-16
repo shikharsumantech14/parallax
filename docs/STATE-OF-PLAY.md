@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-15.** Derived facts below are generated and gated —
+> **Last updated: 2026-09-16.** Derived facts below are generated and gated —
 > if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
 > (branch, unpushed, dirty) are not in this file at all; read the session brief.
 > Refresh the authored sections with `/update-state`.
@@ -35,8 +35,11 @@ the machine-prose marks (em-dashes, semicolons, the AI word list) are out.
 **Phase 6 closed on 2026-09-15: the other six are rewritten too** (kessler,
 transgender-ratchet, the token bill, amazon, asteroid, cockroach), so **all
 ten published issues are now in the register** and every one clears all four
-composition floors. Next is the copy deck and the EXPLAIN batch. The
-design-system revamp
+composition floors. A sweep the same day found **thirteen catalog-documented
+fields that no component rendered**, two of them live, and `check:catalog`
+gained check 5 so the class cannot recur. Next is promoting
+`check:prose:gate` into `prebuild`, whose condition is now met, then the copy
+deck and the EXPLAIN batch. The design-system revamp
 (`docs/REVAMP-PLAN.md` v3) stands at its Phase 5/7 residuals, with Waves 2–4
 reassessed against usage rather than count; the context system
 (`docs/CONTEXT-PLAN.md`) Phases A–E are in.
@@ -141,6 +144,7 @@ citations resolve. Highlights of what shipped:
 | **Launch design (2026-09-08)** | **The public launch is 19 September, and the operator ruled the product's adoption of the handoff too loose to ship.** A twelve-artboard canvas prototype was drawn from `Parallax Web.dc.html`, approved, and implemented in one pass: Literata everywhere; a 1280 frame of hairline bands with scoped page styles (`meta.css` is tokens only); zero radii; the masthead lockup measured onto one axis; the issue page rebuilt (IssueHead, the 720 measure inside 170/1fr/250, facts rail + aside, reactions / letters / sources as bands, a pinned reading strip, margin notes removed); one desk template; home, about, archive rebuilt; `/subscribe` with the beta pricing (₹149 → ₹0); kind `plate` (98). Full build, all gates, 412px overflow and the menu's 44px targets verified. Details: `AGENTS.md` §10, `src/components/AGENTS.md` change log. |
 | **Register plan, Phase 4 (2026-09-14)** | The four flagships rewritten in place and committed (`1cb7256`…`55b6aea`), same slugs, same status. Each went storyboard (operator-approved) → draft → reader panel → stylist → verifier → `check:prose`; panels all REVISE with every quiz answered, verifiers 41–59 verified and **zero untraced** on each, all fixes applied. Arsenal's seven Opta figures were re-anchored first and two published numbers were wrong (28.5 → 28.3 xGA; "a quarter" → 35.9% of set-piece goals). The pipeline pass fixed the tooling under it: an authored caption on timeline / seat-chart / vote-result had never rendered (`core/Section.astro` now prints `.px-section__claim`, hidden where the component shows its own); `skimCaption` was a restatement site in the contract but renders only in Skim mode; seven gate false flags. Measured on the four: 907–1,774 → 970–1,098 reader-facing words; 137–607 → 77–80 words before the first graphic; 15–24 → 5–12 names; five kinds reached readers for the first time. Two rulings the same day: the currency rule (foreign money primary, bracketed ₹ only on current figures) and the machine-prose marks (no em-dashes, no semicolons in prose, the AI word list; tells 18–22). |
 | **Register plan, Phase 6 (2026-09-15)** | The remaining six rewritten in place and committed (`4122cc9`, `9d23414`), same slugs, same status. Each went storyboard (operator-approved) → draft → panel → stylist → second panel → verifier → `check:prose`. **All six passed the second panel with every quiz question answered by all four personas, and all six verifiers returned zero untraced claims across 303 checked.** Transgender-ratchet took a narrow re-anchoring pass first, which landed the Lok Sabha record at T0 by walking the e-library as a DSpace REST API, and which corrected its own storyboard. **All ten published issues now clear every floor**: ≤1,100 words, ≥60% visual, ≤80 before the first graphic, ≤12 names, against a backlist that averaged 1,573 words at 49% visual with up to 639 words of head and 55 names. Six kinds reached readers for the first time (`power-matrix`, `you-think`, `jargon-buster`, `three-steps`, `number-sense`, `bill-passage`). Five published errors corrected: "Parliament passed three laws" (it passed two, and the 2016 Bill cleared the Lok Sabha before lapsing in the Rajya Sabha, so neither three laws nor lapsed in committee); a minister's sentence presented as his own words from the record, where the record says "biological condition" and the reported English says "gender identity"; a NASA quotation trimmed and recapitalised inside quote marks; "either tipping point ends the same way", which the record splits by branch; and a hero cell giving an account control over copies its readers held. Two standing rules were set: **draw the low end of a published band and put the band in the copy**, and **no rupee bracket inside a dated event or on a per-token rate card**. |
+| **The unread-field sweep (2026-09-15)** | All 101 kinds swept, each catalog `DATA:` line against what its component reads BELOW the frontmatter fence. **Thirteen documented fields rendered nothing.** A props interface is a declaration, not a reader, which is why every one survived: each was in the interface, the header comment, the catalog and issue frontmatter, and Astro does not error on an unread prop. Two were live: the Arsenal pitch shipped **eleven blank discs** (`tactics-pitch.role`), and `data-readout`'s `emphasis` reached the DOM and painted nothing because its CSS stayed on the retired `.px-readout__tile` prefix, so **25 flags across 8 published issues** were flat. `comparison`'s entire documented `columns` shape had never been implemented. Rendered rather than struck where authors already used them (`benchmark-chart.sublabel` is the Kessler hero, designed around it); struck with content moved otherwise. `Comparison` also stopped emitting its own source line, the last component-rendered one in the codebase, which printed the source twice and ends `__source` so neither the 2026-09-04 sweep nor story.css's `[class$='__src']` rule caught it. **`check:catalog` gained check 5**: every DATA field needs a reader in the component, its dispatch arm, its imports or its WebGL scene, and a bare prop forward does not count. 852 fields. Exceptions carry a reason in `ACCEPTED_UNREAD`. |
 | **Register plan (2026-09-13)** | Reader feedback measured (REGISTER-PLAN §1): the formulas said the issues were already easier than Finshots; what was missing was hand-holding, the copy was ~40 blocks an issue, ~300 names, and no Indian ground (₹, crore, Hinglish: zero). Signed RG-01…RG-22 with two amendments (Hindi only where it fits; no date). Built: `_voice-core.md` v2, the lexicon, the jargon list; `composer` and `reader-panel` with `/pipeline-storyboard`, `/pipeline-panel` and the API phases behind `GATES.storyboard` (`'required'`); drafter, stylist, verifier and researcher re-based; `check:prose` (report mode: 0 blocking on the backlist, 16–59 warnings per issue); RG-19 (`howToReadFor`, `NEEDS_HOW`, the source inline on the plain line; the delimitation page went from 5 panels to 0); Phase 3 (`you-think`, `jargon-buster`, `number-sense`, `three-steps`, `analogy` pairs, `hero` retired, annotations on eight charts, all verified on the showcases). Five commits, `828f9a5`…`b2e21a5`. |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
@@ -360,6 +364,18 @@ likely complete and instance coverage is not).
   (`@media (pointer: coarse)`).
 
 ## 7. Traps that have actually bitten (additions this cycle in bold)
+
+- **A git worktree poisons any generator that walks the filesystem.**
+  Worktrees live under `.claude/worktrees/` and each is a FULL second copy of
+  the repo. They are gitignored, so git never surfaces them, but a filesystem
+  walk does not read `.gitignore`. On 2026-09-15 `npm run graph` was run
+  during a merge while a sweep's worktree was still on disk: **380 phantom
+  paths** went into the committed graph, `graph:check` PASSED locally because
+  the walk saw the same phantom tree on both the write and the check, and the
+  Vercel build failed on a clean checkout where the worktree does not exist.
+  **A self-consistent generator is not a correct one.** `project-graph.mjs`
+  now skips `.claude/worktrees` by path; if you add another tree-walking
+  generator, give it the same skip.
 
 - **A component can accept a documented field and never draw it.**
   `benchmark-chart` takes `items[].sublabel` and `data-readout` takes
