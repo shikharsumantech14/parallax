@@ -80,5 +80,8 @@ const normalised = rows.map((r) => {
     ))}
   </div>
 
-  {source && <div class="px-msl__source">{source}</div>}
+  {/* No source line here. `core/Section.astro` is the ONE source emitter
+     since 2026-09-04; this component's was a `__source` survivor of that
+     sweep, which matched `__src`, so every section with a source printed
+     it twice (measured live 2026-09-22). Same shape as Comparison's. */}
 </div>

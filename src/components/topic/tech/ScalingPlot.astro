@@ -232,11 +232,21 @@ interface PlacedAnnot {
   x1: number; y1: number; x2: number; y2: number;
   tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
 }
+interface LblBox { l: number; r: number; t: number; b: number; }
+/* The box a point's own label occupies, in viewBox units — the same estimate
+   `aEst` uses, at the label's font size and anchor. */
+const lblBoxOf = (q: { label?: string; lx: number; ly: number; anchor: string }): LblBox => {
+  const w = 0.52 * LBL_FS * String(q.label ?? '').length;
+  const l = q.anchor === 'start' ? q.lx : q.anchor === 'end' ? q.lx - w : q.lx - w / 2;
+  return { l, r: l + w, t: q.ly - LBL_FS * 0.8, b: q.ly + LBL_FS * 0.25 };
+};
+
 function placeAnnot(
   cx: number,
   cy: number,
   hint: 'above' | 'below' | 'left' | 'right',
   lines: string[],
+  others: LblBox[] = [],
 ): PlacedAnnot {
   const wEst = Math.max(...lines.map(aEst));
   const blockH = (lines.length - 1) * A_LH;
@@ -266,6 +276,30 @@ function placeAnnot(
     if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
     else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
   }
+
+  /* Keep the callout off every OTHER point's label. The placement above only
+     asked whether the text stays inside the plot; a sideways note from a high
+     dot runs straight across the label band of the next point along, because
+     every point label sits at `cy − LBL_UP`. On the live sports issue
+     Bournemouth's "Smallest revenue. Highest ratio. Same rule." covered half
+     of West Ham's name (measured 2026-09-22). Shift the text block by the
+     smaller of the two clearances and keep it inside the frame; if neither
+     direction fits, leave it — a legible overlap beats a callout off-canvas. */
+  const boxAt = (y: number): LblBox => {
+    const l = anchor === 'start' ? tx : anchor === 'end' ? tx - wEst : tx - wEst / 2;
+    return { l, r: l + wEst, t: y - A_FS * 0.8, b: y + blockH + A_FS * 0.25 };
+  };
+  for (let pass = 0; pass < others.length; pass++) {
+    const box = boxAt(ty);
+    const hit = others.find((q) => q.l < box.r && q.r > box.l && q.t < box.b && q.b > box.t);
+    if (!hit) break;
+    const down = hit.b - box.t + 2;
+    const up = box.b - hit.t + 2;
+    const tryUp = up <= down && box.t - up >= A_T;
+    const next = tryUp ? ty - up : ty + down;
+    if (next - A_FS * 0.8 < A_T || next + blockH + A_FS * 0.25 > A_B) break;
+    ty = next;
+  }
   return { lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor };
 }
 
@@ -281,7 +315,12 @@ for (const a of annotations) {
 }
 const annotLayers = layers.map(({ p, k }) => ({
   k,
-  items: annotAt.map((a) => placeAnnot(p.plotted[a.i].cx, p.plotted[a.i].cy, a.side, a.lines)),
+  items: annotAt.map((a) =>
+    placeAnnot(
+      p.plotted[a.i].cx, p.plotted[a.i].cy, a.side, a.lines,
+      p.plotted.filter((q) => q.showLabel && q.i !== a.i).map(lblBoxOf),
+    ),
+  ),
 }));
 
 /* ── The readout (px-inst contract part 05) ───────────────────────────────

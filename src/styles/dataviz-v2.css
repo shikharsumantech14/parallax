@@ -28,6 +28,11 @@
 .px-viz__cap {
   display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
   margin-bottom: 22px;
+  /* The ⤢ study button (modal.css `.px-vexp`) sits absolutely at the card's
+     top-right, 30px wide at 10px in. Without this reserve the chip and the
+     button share the same corner and collide on hover — measured live on
+     every card with a chip, 2026-09-22. */
+  padding-right: 44px;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--viz-fs-caption, 15.5px);
@@ -35,18 +40,30 @@
   letter-spacing: -0.005em;
   color: var(--ink-soft);
 }
+.px-viz__cap > span { min-width: 0; }
 .px-viz__cap b {
-  flex: 0 0 auto; align-self: center;
+  flex: 0 1 auto; align-self: center;
   font-family: var(--font-mono);
   font-weight: 600;
   font-size: 9.5px;
+  line-height: 1.45;
   letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--accent-deep, var(--accent));
   background: transparent;
   padding: 0;
   border-radius: 0;
-  white-space: nowrap;
+  /* Chips are authored, not fixed: "% of bills introduced that went to a
+     committee" ran 124px past a phone card as nowrap. They wrap now, held to
+     a share of the row so the caption keeps the majority. */
+  white-space: normal;
+  max-width: 40%;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  /* The reserve stays: the ⤢ button is at the same corner on a phone. */
+  .px-viz__cap { flex-wrap: wrap; }
+  .px-viz__cap b { max-width: 100%; text-align: left; }
 }
 /* ════════════════════════════════════════════════════════════════════════════
    px-inst — THE INSTRUMENT PRIMITIVE
@@ -237,7 +254,16 @@
    DataReadout's `.tel__cap`, any `*__cap` — except VoteResult's `.vb__cap`,
    which displays the vote's LABEL, not its caption. One claim per section. */
 .px-section__claim { max-width: var(--col-prose); margin: 12px 0 0; }
-.px-section:has([class$='__cap']:not(.vb__cap)) .px-section__claim { display: none; }
+/* `__caption` joined `__cap` on 2026-09-22. Six components spell the hook out
+   in full — carbon-gauge, elevation-profile, region-map, orbital-shells,
+   commit-grid, journey-map — so the suffix match missed them and every one
+   printed its caption twice, once inside the figure and once below it
+   (measured live on the earth issue). Exactly the gap that hid Comparison's
+   duplicate source until 2026-09-15. `.px-seats__caption` is excluded for the
+   same reason as `.vb__cap`: it carries seat-chart's SUBTITLE, not its
+   caption, so Section must still print the real one. */
+.px-section:has([class$='__cap']:not(.vb__cap)) .px-section__claim,
+.px-section:has([class$='__caption']:not(.px-seats__caption)) .px-section__claim { display: none; }
 
 /* Phone: the tint reads as noise at 353px, and the accent edge alone carries
    the block. Mirrors the prototypes' own S-figure treatment, which drops the
@@ -384,6 +410,10 @@ html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
 .bc__ref { position: relative; height: 0; }
 .bc__refline { position: absolute; top: -8px; bottom: 0; border-left: 2px dashed var(--accent); }
 .bc__reflabel { position: absolute; top: -20px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+/* A reference line near the right edge pushes its centred label past the
+   card ("Premier League average, 2024/25" measured 12–19px over on a phone,
+   2026-09-22). Past 70% of the track the label hangs to the LEFT of the line. */
+.bc__reflabel[data-side='left'] { transform: translateX(-100%); padding-right: 6px; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    ADOPTION CURVE (tech) — S-curve, animated draw, milestone pins
@@ -835,8 +865,18 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
    the operator's call, not this rule's.
    ========================================================================== */
 @media (max-width: 900px) {
-  /* The CARD scrolls, so the page never does. */
-  .px-viz {
+  /* The CARD scrolls, so the page never does.
+     `[data-viz-root]` joined the selector 2026-09-22. The rule assumed every
+     figure root is `.px-viz`, but eleven kinds carry a bespoke root marked
+     with `[data-viz-root]` instead (the same opt-in modal.css and
+     ExpandModal already use). region-map is one of them, and it is the only
+     bespoke root in the min-width list below — so its 800px SVG had nothing
+     to scroll inside and pushed the PAGE to 820px on a 375px phone, on both
+     the earth and travel issues (measured 2026-09-22). A root with no
+     over-wide child gets no scrollbar, so the widened selector costs the
+     other ten nothing. */
+  .px-viz,
+  [data-viz-root] {
     overflow-x: auto;
     overscroll-behavior-x: contain;
   }

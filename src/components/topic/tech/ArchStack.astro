@@ -162,10 +162,16 @@ const slabs = layers.map((l, i) => {
   }
   .px-viz.is-in .px-arch__slab { transition-delay: calc(var(--i) * 90ms); }
 
-  /* mobile: tighten padding + slab inner spacing so the (perspective-magnified)
-     stack can't push horizontal overflow on a narrow card */
+  /* mobile: tighten the slab's inner spacing, never the stage's SIDE padding.
+     This block used to set `padding: 12px 14px`, claiming it stopped the
+     perspective-magnified stack overflowing — it did the opposite. The 22px
+     above is not decoration: the front slab magnifies ~1.105×, so a 307px
+     stack paints 339px and needs 16px a side. 14px left it 2px over the card
+     on both edges at 375px (measured 2026-09-22). Keeping the 22px reserve
+     puts a 375px stack at 291px and the painted slab at 322px — inside the
+     card with room, and the same rule holds at any width. */
   @media (max-width: 420px) {
-    .px-arch { padding: 12px 14px; }
+    .px-arch { padding-block: 12px; }
     .px-arch__face { padding: 13px 15px; }
     .px-arch__label { font-size: 13px; }
   }

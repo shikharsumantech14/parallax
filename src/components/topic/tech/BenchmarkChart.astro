@@ -104,7 +104,7 @@ const annotPad = (v: number) => {
         class="bc__refline"
         style={`left:calc(150px + 14px + (100% - 150px - 14px - 52px - 14px) * ${refValue! / max})`}
       >
-        <span class="bc__reflabel">{refLabel ? `${refLabel} · ${refValue}` : refValue}</span>
+        <span class="bc__reflabel" data-side={refValue / maxValue > 0.7 ? 'left' : 'center'}>{refLabel ? `${refLabel} · ${refValue}` : refValue}</span>
       </div>
     </div>
   )}

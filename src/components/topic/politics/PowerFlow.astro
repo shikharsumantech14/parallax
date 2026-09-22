@@ -173,6 +173,24 @@ function fmtVal(v: number): string {
   return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 1 });
 }
 const nodeList = Array.from(placed.values());
+
+/* Outward labels live in the 112-unit GUTTER at 13px — about 16 characters.
+   Longer ones ("Everything else the clubs spend or keep") ran 111px past the
+   card, and "Indonesia's cars and power plants" 20px off its left edge
+   (measured live 2026-09-22). They wrap onto up to three tspans here; the
+   first line is lifted so the block stays centred on the node. */
+function wrapLabel(label: string, max = 16): string[] {
+  const words = label.split(/\s+/);
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    if (cur && (cur + ' ' + w).length > max) { lines.push(cur); cur = w; }
+    else cur = cur ? cur + ' ' + w : w;
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > 3) return [lines[0], lines[1], lines.slice(2).join(' ')];
+  return lines;
+}
 ---
 
 <div class="px-viz" data-reveal>
@@ -222,10 +240,18 @@ const nodeList = Array.from(placed.values());
         {nodeList.map((p) =>
           p.col === 0 ? (
             <text class="px-pflow__lbl" x={f1(p.x - 6)} y={f1(p.y + p.h / 2)}
-              text-anchor="end" dominant-baseline="middle">{p.n.label}</text>
+              text-anchor="end" dominant-baseline="middle">
+              {wrapLabel(p.n.label).map((ln, k, arr) => (
+                <tspan x={f1(p.x - 6)} dy={k === 0 ? `${(-(arr.length - 1) * 0.6).toFixed(2)}em` : '1.2em'}>{ln}</tspan>
+              ))}
+            </text>
           ) : p.col === numCols - 1 ? (
             <text class="px-pflow__lbl" x={f1(p.x + NODE_W + 6)} y={f1(p.y + p.h / 2)}
-              text-anchor="start" dominant-baseline="middle">{p.n.label}</text>
+              text-anchor="start" dominant-baseline="middle">
+              {wrapLabel(p.n.label).map((ln, k, arr) => (
+                <tspan x={f1(p.x + NODE_W + 6)} dy={k === 0 ? `${(-(arr.length - 1) * 0.6).toFixed(2)}em` : '1.2em'}>{ln}</tspan>
+              ))}
+            </text>
           ) : (
             <text class="px-pflow__lbl" x={f1(p.x + NODE_W / 2)} y={f1(Math.max(11, p.y - 7))}
               text-anchor="middle">{p.n.label}</text>

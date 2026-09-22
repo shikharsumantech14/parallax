@@ -725,6 +725,94 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 ## 10. Change log for this file
 
+### 2026-09-22 — The visual layer of the six new issues, measured
+
+The operator read the 2026-09-21 issues live and found the visual layer broken
+on every one of them: components spilling their column, a value label reading
+"0.6minutes", caption chips sitting under the ⤢ study button, power-flow
+labels running off the card, justified text rivering in the narrow columns,
+split plates that read as overflow, and the word "subsystem" on a Parliament
+issue. Measured with a text-range probe (every text node and every element box
+against its `.px-section`, skipping the phone charts that scroll inside their
+card by design) at 1280 and 375 on all six, plus an SVG label-overlap pass and
+a chip-versus-button pass. **Every cause was a fixed width meeting text nobody
+had measured**, and each had been correct once:
+
+- **`nowrap` in a fixed cell.** `margin-bullets` gave its value 104px and
+  `white-space: nowrap`; a unit of `"minutes of the scheduled hour"` ran 107px
+  past the card. The cell wraps now. The missing space was the same
+  assumption from the other side — the blueprint asks authors for a leading
+  space and no author has ever written one, so the component supplies it
+  unless the unit is `%`, `°`, `′` or `″`.
+- **Two things owning one corner.** `.px-viz__cap` and `.px-vexp` both live at
+  the card's top-right. The caption row now reserves 44px and the chip wraps.
+- **SVG labels longer than their gutter.** `power-flow` prints outward labels
+  into a 112-unit gutter at 13px — about sixteen characters. They wrap onto up
+  to three tspans.
+- **Justification in a column too narrow for it.** The launch ruling justifies
+  every flowing paragraph from 640px up; at the 38ch split measure and the
+  centred breath intro that rivers. Both go ragged. The 720 measure stays.
+- **Breakouts crossing the rails.** A `split` plate is 1078px on the 1280 floor
+  plan and passes over 109px of the 170px facts rail and 109px of the 250px
+  aside. Left transparent it did not merely cross a rule — the rail's text and
+  the plate's own copy printed **on top of each other**. The plate paints its
+  own ground now, so it occludes cleanly. The occlusion is the size system's
+  L behaving as designed; **do not make the plate transparent again to "show"
+  the rails.**
+- **Desk copy hard-coded in a universal kind.** `margin-bullets` was written
+  for spacecraft and shipped "this subsystem does not close" under eleven
+  bills. Its table copy is desk-neutral.
+
+**Four more found by the probe, none of them in the brief:**
+
+- **`[data-viz-root]` was missing from the phone card-scroll rule.** Eleven
+  kinds carry a bespoke figure root marked with that attribute instead of
+  `.px-viz`; `region-map` is one, and it is the only bespoke root in the
+  min-width list, so its 800px SVG had nothing to scroll inside and pushed the
+  page to 820px on a 375px phone — on the earth and travel issues both. The
+  honest overflow test catches this and nothing else did.
+- **`attrition-waffle` cancelled padding that no longer exists.** Its
+  `margin-inline: -30px` offset `.px-viz`'s side padding; the launch design
+  flattened the card to `padding: 14px 0 0` in 2026-09-08 and from that day the
+  negative margin simply hung the grid 30px over each edge (a 385px page). The
+  card is already the full column: removing the bleed gives a 14.85px cell,
+  better than the 14.7px the bleed was written for.
+- **`arch-stack`'s phone rule caused the overflow its comment claimed to
+  prevent.** The 22px stage padding is a measured reserve for the front slab's
+  ~1.105× perspective magnification; the `max-width: 420px` block cut it to
+  14px and the slab landed 2px over the card on both edges. The phone rule now
+  tightens the vertical only.
+- **Six components spelled the caption hook `__caption` and seven spelled the
+  source hook `__source`**, so `[class$='__cap']` missed them and `core/Section`
+  printed a second copy of both. Every `region-map`, `carbon-gauge`,
+  `elevation-profile`, `orbital-shells`, `commit-grid` and `journey-map`
+  section with a caption printed it twice. This is the **third** time this
+  exact suffix gap has shipped (the 70 `__src` emitters in 2026-09-04,
+  `Comparison.__source` in 2026-09-15). The seven source emitters are gone —
+  `core/Section.astro` is the one source emitter, still — and the caption rule
+  matches both spellings, excluding `.px-seats__caption`, which carries
+  seat-chart's subtitle rather than its caption.
+
+**The standing rule that follows, and it is not negotiable for a new
+component:** a text cell wraps or truncates with an ellipsis, and **never**
+relies on `nowrap` inside a fixed-width cell — the author will one day write a
+unit longer than the cell, and they will be right to. Caption chips wrap.
+An outward SVG label wraps, or is budgeted in characters against the gutter it
+is drawn into. A card's copy is desk-neutral: 101 kinds run under six worlds,
+so no component names a desk's furniture. And a component renders **no**
+caption and **no** source of its own under a spelling the shell cannot see —
+if it carries a caption it uses a `__cap` or `__caption` hook, and the source
+belongs to `core/Section.astro` alone.
+
+**Not fixed, and it needs a ruling.** `region-map` has no projection fitting:
+both `naturalEarth` and `mercator` are hardcoded to a world scale
+(`.scale(140)` / `.scale(128)`), so a regional story draws the whole globe and
+crams its labels into one corner. On the earth issue that is thirteen
+overlapping labels — "INDONESIA" sits on "Jambi" at 95% — and no CSS reaches
+it. The fix is `fitExtent` on the union of the zones and markers, which
+changes every published region-map, so it is a design call, not a bug fix.
+The travel issue's region-map is unaffected (its markers spread).
+
 ### 2026-09-16 — The API route brought current; the diversity floors
 
 The operator's brief for the next round (two new issues per desk, on the

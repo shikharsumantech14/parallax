@@ -201,6 +201,20 @@
   .px-floor .px-section[data-layout='bleed'] { width: calc(100% + 360px); margin-inline: -180px; margin-top: 24px; margin-bottom: 72px; }
   .px-floor .px-section[data-layout='split'],
   .px-floor .px-section[data-layout='split-flip'] { width: calc(100% + 360px); margin-inline: -180px; }
+  /* A breakout crosses the article's inline rules by design (it is the size
+     system's L). Left transparent, the rule ran straight through the stage
+     and the operator read it as a component overflowing its column
+     (2026-09-22). The breakout now paints its own ground, so the rules stop
+     at its edges and it reads as a plate set into the page. */
+  .px-floor .px-section[data-layout='bleed'],
+  .px-floor .px-section[data-layout='split'],
+  .px-floor .px-section[data-layout='split-flip'] {
+    position: relative;
+    z-index: 1;
+    background: var(--bg);
+    padding-inline: 24px;
+    box-sizing: border-box;
+  }
 }
 @media (max-width: 1100px) {
   .px-floor .px-section[data-layout='wide'],

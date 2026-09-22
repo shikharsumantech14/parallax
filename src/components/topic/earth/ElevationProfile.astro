@@ -53,5 +53,8 @@ const max = Astro.props.maxValue ?? Math.max(...bands.map((b) => b.value));
     })}
   </div>
 
-  {source && <div class="px-elev__source">{source}</div>}
+  {/* No source line here. `core/Section.astro` is the ONE source emitter
+     since 2026-09-04; this component's was a `__source` survivor of that
+     sweep, which matched `__src`, so every section with a source printed
+     it twice (measured live 2026-09-22). Same shape as Comparison's. */}
 </div>

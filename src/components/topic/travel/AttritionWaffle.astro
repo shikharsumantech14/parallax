@@ -337,12 +337,16 @@ const chip = trueN !== undefined ? `per hundred · n = ${trueN}` : undefined;
 
   @media (max-width: 640px) {
     /* The grid stays 20 wide — 10 would double the rows and break the five-row
-       silhouette (§4). To keep the cell above the countability floor it takes
-       the card's full width instead: `.px-viz` pads 30px a side (base.css) and
-       that padding alone costs ~3px of every cell. Cancelling exactly that —
-       nothing more, so the page can never overflow — puts a 375px cell at
-       ~14.7px instead of ~11px. Below ~15px the grid stops being countable and
-       becomes a texture, which is the whole kind lost. */
-    .px-waf__grid { margin-inline: -30px; gap: 2px; }
+       silhouette (§4), and the cell has to clear ~15px or the grid stops being
+       countable and becomes a texture.
+
+       The `margin-inline: -30px` that used to sit here cancelled `.px-viz`'s
+       side padding. The launch design (2026-09-08) flattened the card to
+       `padding: 14px 0 0` — no side padding at all — so from that day the
+       negative margin cancelled nothing and simply hung the grid 30px over
+       each edge, pushing a 375px page to 385px (measured 2026-09-22). The
+       card is already the full column now: 335px wide at 375px, which is a
+       14.85px cell at gap 2. The bleed bought nothing and cost the page. */
+    .px-waf__grid { gap: 2px; }
   }
 </style>
