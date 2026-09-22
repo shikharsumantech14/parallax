@@ -39,6 +39,28 @@ A non-match is a silent no-op. Do not duplicate the annotation's claim in the
 same event's `note`: both render, the annotation beside the label and the note
 below it.
 
+**`version-graph`** (first authored 2026-09-21) — its `nodes[]` are `{id,
+parents?, label?, tag?, lane?}` and **`id`, `parents` and `tag` are all
+reader-facing and all billed**. The legend prints `id` at 13px bold, `label` at
+11px **hidden below 480px**, and `tag` as an 8.5px uppercase chip, so the `id`
+is what a phone reader actually reads: it must be a legible short name, not a
+slug, and the `label` must be the expendable half of the pair. Budget ~1.5–2
+words per node beyond the label (`id` + `tag` + each `parents` entry), which on
+ten nodes is ~16 words a storyboard will not have counted. `lane` is the column
+and is free; gaps in the lane numbering are fine (0, 1, 2, 4 renders with an
+empty column, which is a cheap way to separate two families). First node in the
+array sits at the TOP and the graph runs downward, so author oldest-first.
+
+**`arch-stack`** (first authored 2026-09-21) — `{layers: [{label, sublabel?,
+color?}]}`, and the `sublabel` is where the whole section lives: it renders
+uppercase mono muted under the label, and it is the only prose slot the kind
+has. Five layers of ~10-word sublabels is ~60 billed words before the intro.
+The card is capped at 460px wide and tilts on pointer (`data-tilt="7"`), so
+keep each `sublabel` to two short sentences or it wraps to four lines and the
+stack loses its shape. It is NOT in `NEEDS_HOW`, and its `EXPLAIN.what`
+describes a software runtime stack, so any non-runtime use of it — layers of
+a *claim*, layers of a *cost* — must author `plain`.
+
 **`elevation-trek` and `data-readout` read `data.caption` / `data.source` at
 their dispatch line**, not `section.caption ?? data.caption`. That still works
 because `SectionBody` merges the promoted section-level fields down into

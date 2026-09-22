@@ -6,11 +6,12 @@ source allowlists and the agent definition all have better homes.
 
 **Claim tracing**
 
-- [Claim-error patterns](claim-error-patterns.md) — dropped qualifiers, characterisations outrunning events, entailments dressed as quotations, dossiers stale where the draft is clean
+- [Claim-error patterns](claim-error-patterns.md) — dropped qualifiers, hedge reversals ("at least X" → "only to X"), characterisations outrunning events, entailments dressed as quotations, the cut section that leaves its source on a neighbour, `# EDITOR:` notes naming the wrong document
 - [Inherited-data blindspot](inherited-data-blindspot.md) — carried-over `data.values` arrays are the claims nobody has ever traced
 - [Data-shape honesty](data-shape-honesty.md) — a traced fact in the wrong field renders a different claim; read the component, not the catalog
 - [Cheap checks that catch most](cheap-checks-that-catch-most.md) — the highest-yield checks, and the two that reliably find nothing
-- [Source-tier pitfalls](source-tier-pitfalls.md) — stale "off-allowlist" claims, all-T4 issues, and why `ingest: live` moots the RAG gate
+- [Source-tier pitfalls](source-tier-pitfalls.md) — stale "off-allowlist" claims, all-T4 issues, why `ingest: live` moots the RAG gate, `source.date` as access year, and orphan sources propping up the diversity count
+- [Fresh-issue audits](fresh-issue-audits.md) — where defects hide when the dossier is strong: `sourceRefs` completeness, superlatives the dossier refutes one row away, a mean drawn as a line
 
 **Rewrites (Phase 4)**
 

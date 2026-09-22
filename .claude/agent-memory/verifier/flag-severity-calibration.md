@@ -16,9 +16,19 @@ re-run an expensive phase to fix a problem that needs one dossier line.
 - Open the verdict paragraph with what was *resolved*, then name the blocker
   and its cost ("the fix is a dossier addendum plus one `sources[]` entry, not
   a text change"). Do not soften the verdict itself.
-- Distinguish three ❌ species explicitly: invented fact (re-research),
+- Distinguish five ❌ species explicitly: invented fact (re-research),
   non-quotable source (re-source or cut), untraced-but-inherited provenance
-  (record the source). Only the first two need the writing agents again.
+  (record the source), **build-breaking data type** (one MDX edit, but nothing
+  ships until it is made), and **unrenderable claim** — prose asserting
+  something the component does not draw (an MDX edit too, but it needs someone
+  to have read the `.astro`). Only the first two need the writing agents again.
+- **A draft can be BLOCKED with zero accuracy defects, and that is the single
+  most important thing to say first.** On open-models: 51 traced claims, zero
+  invented facts, every dossier landmine respected, every arithmetic check
+  passing — and still BLOCKED, on one numeric literal that throws at build and
+  three sentences describing a graphic the component does not draw. Lead with
+  "the blockers are not accuracy blockers", because that sentence decides
+  whether the operator re-runs a $3–7 phase or spends ten minutes in the MDX.
 
 **Do not let a tell-count delete an accuracy hedge.** The once-per-issue binary
 reframe (tells 2 and 19) targets a *rhetorical reversal used as the

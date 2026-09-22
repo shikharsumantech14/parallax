@@ -14,3 +14,4 @@ issue's facts.
 - [Where a caveat renders](where-a-caveat-renders.md) — instruction above the graphic, caveat below it; a caveat's scope; the label that is also a join key or a claim about who acts
 - [Fairness-critical noun binding](fairness-critical-noun-binding.md) — name the victim, give the penalty its unit; scroll-speed binding is a fairness defect
 - [Glossing inside protected data copy](glossing-inside-protected-data-copy.md) — three moves when the term of art sits in a label, a note or a locked quote; and why the title pays, not the eyebrow
+- [Two units, one gap](two-units-one-gap.md) — when a ruling forbids converting, say the conversion does not exist; the drawing choice goes in `plain`

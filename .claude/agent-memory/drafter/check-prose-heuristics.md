@@ -145,4 +145,47 @@ checks fire on shapes a careful writer produces by accident.
   rules a section out, name the expected drift in the summary — it is not
   avoidable and it is not a defect.
 
+- **A COMMA APPOSITIVE is not a gloss marker, and it is the form a careful
+  writer reaches for first.** `GLOSS_MARKERS` lists `—`, `–`, `:`, `(`, and a
+  set of phrases; the comma is in none of them. So "the deorbit vehicle, the
+  craft that pushes the station down, docks eighteen months before the end"
+  defines the term perfectly and still flags JARGON-UNGLOSSED, while the same
+  sentence with parentheses — "the deorbit vehicle (the craft that pushes the
+  station down) docks…" — passes on one character and reads identically. The
+  appositive is the default English construction for a gloss, so expect to hit
+  this on any issue whose central term is a noun phrase. Convert to parens, not
+  to a dash: contract §6 tell 1 caps em-dashes at one per issue, and the
+  parenthesis costs nothing against that budget.
+- **Fixing an unglossed first use means checking the SECOND use too.** The flag
+  reports only the first occurrence, so repairing it can leave a near-identical
+  phrasing in the next section that would have been the flagged one had the
+  first not existed. When the repair is "gloss it here", also delete or reword
+  the redundant restatement downstream — it is duplicated reader words either
+  way, and it is the string the gate would flag next.
+
+- **The cheapest fix for a scientific abbreviation is to never write it.**
+  A dossier that talks in `MtC` and `MtCO2` tempts you into a
+  `jargon-buster` row for the unit. Don't: JARGON-UNGLOSSED reports only the
+  first hit in `strings` order, so the chart that carries the unit almost
+  always precedes the card that would gloss it, and the gloss row costs ~15
+  billed words on top. Set the component's `unit` to the English
+  ("million tonnes of carbon", "million tonnes of carbon a year") and write
+  "carbon dioxide" in full everywhere else. The unit string is billed but the
+  abbreviation never appears, so there is nothing to gloss and the three
+  `jargon-buster` slots stay available for the terms the argument actually
+  turns on.
+- **STACCATO fires on the data strings too, and a three-beat mechanism card is
+  where it hides.** A `three-steps` text written as "Surface fuel lights
+  first. Then the peat smoulders downward. In October 2015 it took 24.8 cm."
+  is 4 / 5 / 7 words — three consecutive sentences under eight. Joining the
+  first two with a comma and "then" fixes it and adds the connective the
+  register wants anyway. Check every `three-steps` `text` and every
+  `jargon-buster` `meaning` for this shape before shipping.
+- **A `prose` section is scored for NO-RESTATEMENT and NO-ANALOGY even when
+  the restatement properly belongs in the previous section's caption.** Put a
+  literal marker ("which means", "that means", "the point is") inside the
+  prose paragraphs regardless — a gloss works: "50,891 cases of acute
+  respiratory infection, which means an infection of the nose, throat or
+  lungs" satisfies the flag and does real explaining at the same time.
+
 Related: [[word-budget-accounting]], [[component-data-shape-traps]].

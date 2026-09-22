@@ -67,4 +67,42 @@ legally-accessed original by construction — which is exactly what
 retrieve-to-guide/cite-the-original asks for. Check `access:` too (`open` vs
 `paywall`). Say all this in one line and move on.
 
+**4. A section's `source.date` can be the ACCESS year, not the document's
+vintage — and the dossier usually already knows.** The ISS issue's
+`orbit-trace` carried `source: {label: "ISRO and NASA", date: "2026"}` for a
+Gaganyaan page the dossier's §6 explicitly records as "last updated 23 November
+2022". Nothing in the pipeline compares the two: the id resolves, the publisher
+is right, and "2026" reads as currency rather than as a claim. It is the
+sibling of [[cheap-checks-that-catch-most]] 8 (dates against events) on the
+provenance axis — there the date was *earlier* than the section's own content,
+here it is *later* than the source's. **How to apply:** for any `source.date`
+that is a bare year, find that source in the dossier §6 and check for a "last
+updated" note. A bare year with no month is the tell; a properly dated document
+almost always gets a month in the label.
+
+**5. A bibliography can be diverse and still carry orphans.** Fifteen sources,
+nine publishers, comfortably past every §5.1 floor — and two ids
+(`src-08`, `src-10`) referenced by no section at all. Valid per schema, and the
+diversity check passes *because of* them. Worth reporting as an optional fix:
+either the issue rests on them somewhere the refs do not say, or the
+bibliography overstates what the issue actually stands on. Grep each
+`sources[].id` against the union of every `sourceRefs[]` — it is one pass and
+the diversity numbers should be re-read after removing the orphans.
+
+**6. SOURCE-NARROW is sometimes structural, and the right recommendation names
+the ONE source that is load-bearing and thin.** half-indias-arrivals ran 7
+sources / 3 publishers with Skift at 43%, and the draft declared the miss in
+its own `# EDITOR:` block while refusing to pad from the dossier's four unused
+entries. That refusal is correct (padding is pattern 5 above, in reverse), so
+"add one more source" is not an actionable finding. What is actionable: walk
+the bibliography for the single figure whose only backing is the thinnest
+publisher — here the ₹3.5 crore promotion allocation, secondary-only — and
+check the allowlist for a primary that publishes it. One addition can fix the
+publisher count, the concentration ratio and the tier of the issue's weakest
+claim at once. **And run pitfall 1 before you write the line:** the dossier
+said the budget documents were off-allowlist, which was true of
+`indiabudget.gov.in` and `pib.gov.in` and NOT of `tourism.gov.in`, sitting at
+T0 · open · `ingest: full` on the travel list. A dossier's off-allowlist note
+is scoped to the domains it actually names.
+
 See [[cheap-checks-that-catch-most]], [[flag-severity-calibration]].

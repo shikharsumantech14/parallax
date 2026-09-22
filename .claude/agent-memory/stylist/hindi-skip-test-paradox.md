@@ -27,6 +27,28 @@ in (a storyboard §8c ruling), keep it as authored and hand the operator the
 zero-Hindi alternate the storyboard usually carries beside it. `aasmaan` in the
 2024 YR4 closer was kept on exactly this reasoning, 2026-09-15.
 
+## The third shape does exist, but only across two clauses
+
+The "duplicated or load-bearing" dilemma above is stated for **one clause**.
+Across two it has a third exit: **put the English noun in clause one, then let
+the Hindi word re-enter clause two as an anaphor with a demonstrative.**
+
+*"…the rest of the stack stays somebody else's bill, and that kharcha does not
+come with the file."* Delete *kharcha* and "and that does not come with the
+file" is still a complete sentence pointing at "bill" — so the skip test passes
+without the word being a second sky-word in the same breath. It reads as spoken
+rather than duplicated because a demonstrative restatement is what a bilingual
+speaker actually does: say it in English, then say it again in the word they
+feel it in.
+
+Conditions: the Hindi noun must be abstract or mass (*kharcha*, *jugaad*,
+*bhaari*), never a concrete referent the graphic also labels; the demonstrative
+(*that*, *this*) must be present, because it is what carries the anaphora when
+the word is gone; and the English noun must be the one the section's data
+already uses. The failing original on the tech desk was the one-clause form —
+"the rest of the stack is somebody else's kharcha" — where deleting the word
+removes the object outright. A panel reader (Karthik) caught exactly that.
+
 **The corollary for the space desk:** the lexicon licenses *aasmaan* and little
 else there, so a space issue's single Hindi word is nearly always in the closer,
 nearly always beside "up there" or "out there", and nearly always the only one

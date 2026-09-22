@@ -1,0 +1,412 @@
+---
+id: "2026-09-21-premier-league-squad-cost-ratio"
+topic: sports
+title: "Football's new cap is *highest* for the richest"
+hook: 'You hear "cap" and picture one line for everybody. This one is 85% of what each club earns. Manchester City gets £590m, Bournemouth £155m.'
+dek: "The old rule capped a loss. The new one caps a share."
+primer: "A Premier League club may now spend 85% of its own revenue on its squad. So every club has its own ceiling. You will see whose sits highest."
+publishedAt: 2026-09-21
+status: published
+readTimeMinutes: 5
+tags:
+  - premier-league
+  - football-finance
+  - squad-cost-ratio
+  - spending-caps
+  - ipl
+
+sections:
+  - kind: power-flow
+    eyebrow: "THE MONEY"
+    title: "£6.8bn in. £4.4bn out."
+    layout: default
+    plain: "Money flows left to right. Each band is one route, and a thicker band carries more."
+    howToRead: "Follow a band from where the money starts to where it lands."
+    caption: "Matchday passed £1bn for the first time, and wages took £4.4bn of the £6.8bn."
+    source:
+      label: "Deloitte Annual Review of Football Finance 2026"
+      date: "8 July 2026"
+    sourceRefs: ["src-04", "src-05"]
+    data:
+      unit: "£m"
+      nodes:
+        - id: matchday
+          label: "Matchday"
+          group: source
+        - id: broadcast
+          label: "Broadcast"
+          group: source
+        - id: commercial
+          label: "Commercial"
+          group: source
+        - id: revenue
+          label: "Football revenue"
+          group: via
+        - id: wages
+          label: "Wages"
+          group: sink
+        - id: rest
+          label: "Everything else the clubs spend or keep"
+          group: sink
+      links:
+        - from: matchday
+          to: revenue
+          value: 1000
+          note: "first time above £1bn"
+        - from: broadcast
+          to: revenue
+          value: 3400
+          note: "shared nearly equally"
+        - from: commercial
+          to: revenue
+          value: 2400
+          note: "not shared between clubs"
+        - from: revenue
+          to: wages
+          value: 4400
+          note: "65% of revenue"
+        - from: revenue
+          to: rest
+          value: 2400
+          note: "transfer fees and running the club"
+
+  - kind: you-think
+    eyebrow: "WHAT A CAP SOUNDS LIKE"
+    title: "One rule, twenty different ceilings"
+    layout: default
+    intro: "Nearly two thirds of what the clubs earned from football went out as wages. So the new rule caps that spending as a share of what each club earns."
+    caption: "85% of 2024/25 revenue is about £590m at Manchester City and about £155m at Bournemouth. Both real ceilings are higher, because player-sale profit adds to the base."
+    source: "Premier League rules and The Swiss Ramble club accounts, 2024/25"
+    sourceRefs: ["src-01", "src-06", "src-12"]
+    data:
+      think:
+        label: "You think"
+        text: "A spending cap is one line drawn above every club. Nobody may cross it."
+      actually:
+        label: "Actually"
+        value: "85%"
+        unit: "of your own revenue"
+        text: "The line is drawn at 85% of each club's own revenue plus what it makes selling players, so there are twenty lines."
+      note: "Same percentage, different revenue: Manchester City earned £694m, Bournemouth £182m."
+
+  - kind: jargon-buster
+    eyebrow: "THE VOCABULARY"
+    title: "Four terms, plainly"
+    layout: breath
+    intro: "Think of two families told to spend at most 85% of what they earn. Same rule, different amounts."
+    source: "Premier League and The Swiss Ramble"
+    sourceRefs: ["src-01", "src-13"]
+    data:
+      terms:
+        - term: "Football revenue"
+          meaning: "Money a club earns from playing: broadcast, matchday and commercial income. Not owner money, not player sales."
+        - term: "Squad Cost Ratio"
+          meaning: "Squad spending (wages, agents' fees, transfer fees) as a share of revenue plus player-sale profit. Earn £100 that way, and £85 is your ceiling."
+        - term: "Amortisation"
+          meaning: "A transfer fee counted a slice at a time over the contract, not all at once."
+        - term: "PSR"
+          meaning: "The old rule: a club could lose at most £105m over three seasons, whatever its size."
+
+  - kind: channel-ternary
+    eyebrow: "WHERE IT COMES FROM"
+    title: "Bournemouth's money is the shared money"
+    layout: default
+    intro: "The ceiling depends on revenue, so where does it come from? Three streams, and the league shares only one."
+    howToRead: "Each dot is one club. The closer it sits to a corner, the more of that club's money comes from that stream. The table below gives the exact shares, and pressing one picks it out."
+    caption: "Broadcast money, shared nearly equally by the league, is 81.5% of Bournemouth's income and 40.2% of Manchester City's, whose biggest stream is commercial at 49.0%. Shares are of the three named streams."
+    source:
+      label: "The Swiss Ramble, club accounts 2024/25"
+    sourceRefs: ["src-06", "src-07", "src-08", "src-09", "src-10", "src-11", "src-12"]
+    data:
+      corners:
+        - label: "Matchday"
+        - label: "Broadcast"
+        - label: "Commercial"
+      entities:
+        - name: "Manchester City"
+          values: [0.108, 0.402, 0.490]
+        - name: "Liverpool"
+          values: [0.165, 0.376, 0.459]
+        - name: "Arsenal"
+          values: [0.223, 0.396, 0.381]
+        - name: "Manchester United"
+          values: [0.240, 0.260, 0.500]
+        - name: "Aston Villa"
+          values: [0.103, 0.651, 0.246]
+        - name: "West Ham"
+          values: [0.172, 0.581, 0.247]
+        - name: "Bournemouth"
+          values: [0.037, 0.815, 0.148]
+
+  - kind: benchmark-chart
+    eyebrow: "WHAT WAGES TAKE"
+    title: "Wages against revenue, seven clubs"
+    layout: default
+    intro: "So the smallest earner leans hardest on shared money. Now look at what wages alone take from each club."
+    plain: "Each bar is one club, sorted longest first. The reference line is the league average. A longer bar means more income going out."
+    caption: "Bournemouth spent 86.8% of revenue on wages. The league average was 65%."
+    source:
+      label: "The Swiss Ramble and Deloitte"
+      date: "2024/25"
+    sourceRefs: ["src-04", "src-06", "src-07", "src-08", "src-09", "src-10", "src-11", "src-12"]
+    data:
+      unit: "%"
+      maxValue: 100
+      refValue: 65
+      refLabel: "Premier League average, 2024/25"
+      sortDesc: true
+      items:
+        - label: "Bournemouth"
+          value: 86.8
+          highlight: true
+        - label: "West Ham"
+          value: 77.2
+        - label: "Aston Villa"
+          value: 72.2
+        - label: "Liverpool"
+          value: 60.9
+        - label: "Manchester City"
+          value: 58.8
+        - label: "Arsenal"
+          value: 50.3
+        - label: "Manchester United"
+          value: 46.9
+      annotations:
+        - at: "Bournemouth"
+          text: "Highest wage share. Smallest revenue."
+
+  - kind: scaling-plot
+    eyebrow: "THE DENOMINATOR"
+    title: "The line falls as revenue rises"
+    layout: split
+    intro: "Wages are only part of a squad's cost, so add the transfer fees, spread over the contracts. Aston Villa already breaks UEFA's tighter 70% version, on The Swiss Ramble's reading."
+    plain: "Each dot is one club. Across is what it earned, and up is how much of that its squad cost. The rule's own measure also counts agents' fees and player-sale profit. So every official figure sits lower."
+    howToRead: "The fitted line slopes down, so clubs that earn more spend a smaller share. Dots high on the left are already spending more than they earn. The buttons switch the axes."
+    caption: "Each club's wages plus player amortisation, as a share of its 2024/25 revenue, from the accounts."
+    source:
+      label: "The Swiss Ramble, club accounts 2024/25, and UEFA"
+    sourceRefs: ["src-06", "src-07", "src-08", "src-09", "src-10", "src-11", "src-12", "src-17"]
+    data:
+      xLabel: "Revenue, 2024/25 (£m)"
+      yLabel: "Squad cost as a share of revenue (wages plus player amortisation)"
+      fit: true
+      logX: false
+      logY: false
+      points:
+        - x: 703
+          y: 77.5
+          label: "Liverpool"
+        - x: 694
+          y: 83.3
+          label: "Manchester City"
+        - x: 690
+          y: 75.2
+          label: "Arsenal"
+        - x: 667
+          y: 75.9
+          label: "Manchester United"
+        - x: 378
+          y: 98.7
+          label: "Aston Villa"
+        - x: 228
+          y: 120.6
+          label: "West Ham"
+        - x: 182
+          y: 124.7
+          label: "Bournemouth"
+      annotations:
+        - at: "Bournemouth"
+          text: "Smallest revenue. Highest ratio. Same rule."
+
+  - kind: data-readout
+    eyebrow: "WHERE THE LOSSES CAME FROM"
+    title: "Wages barely moved. Losses grew sevenfold."
+    layout: breath
+    intro: "Those dots are already over the line, but the losses came from elsewhere. Aston Villa's £17m profit came from selling its women's team and property rights for £114m, not from football."
+    caption: "Wages went from 64% to 65% while losses rose sevenfold. The accountants Deloitte put much of the £812m rise down to decisions about selling players and club assets."
+    source: "Deloitte Annual Review of Football Finance 2026 and The Swiss Ramble"
+    sourceRefs: ["src-04", "src-05", "src-10"]
+    data:
+      tiles:
+        - value: "£948m"
+          label: "Pre-tax losses, 2024/25"
+          note: "Up from £135m the season before"
+          emphasis: key
+        - value: "65%"
+          label: "Wages as a share of revenue"
+          note: "It was 64% the season before"
+        - value: "8"
+          label: "Clubs in operating profit"
+          note: "Thirteen managed it the year before"
+        - value: "£6.8bn"
+          label: "Total revenue"
+          note: "A record, and up 8%"
+
+  - kind: timeline
+    eyebrow: "HOW IT PASSED"
+    title: "The clubs voted this in themselves"
+    layout: default
+    intro: "Wages were not the problem, yet the new rule targets wages plus transfer fees. Here is how it arrived."
+    caption: "A rule change needs fourteen of the twenty clubs, and this one got them."
+    source: "Premier League, Deloitte, The Swiss Ramble"
+    sourceRefs: ["src-01", "src-02", "src-03", "src-04", "src-14"]
+    data:
+      events:
+        - date: "2024"
+          label: "Clubs agree to **explore** a hard cap"
+          note: "A vote to investigate, not to adopt"
+          state: default
+        - date: "21 Nov 2025"
+          label: "Squad Cost Ratio approved. The hard cap fails"
+          note: "Shareholders backed one rule and not the other"
+          state: key
+        - date: "8 Jul 2026"
+          label: "Deloitte counts £948m of losses"
+          note: "The season these rules answer"
+          state: key
+        - date: "2026/27"
+          label: "The rule binds. PSR is gone"
+          note: "Fines first payable from 2027/28"
+          state: now
+      annotations:
+        - at: "21 Nov 2025"
+          text: "The cap that would have narrowed the gap failed here."
+
+  # EDITOR: published 2026-09-22 with this still unconfirmed — the IPL figures below (₹151 crore cap, ₹125 crore
+  # purse, ₹2.75 crore and ₹64.3 crore left) are [PARTIAL] in the dossier: ESPNcricinfo
+  # returned 403 to the crawler. Confirm them in a browser and note it in dossier §9, or
+  # fall back to the ISL's ₹16.5 crore squad salary cap "in 2021-22".
+  - kind: comparison
+    eyebrow: "AN AMOUNT, NOT A SHARE"
+    title: "The IPL draws one line for ten"
+    layout: breath
+    intro: "Enough clubs chose a share of themselves. A cap can be an amount instead, and you have seen that at a cricket auction."
+    caption: "The IPL cap is one amount for all ten. At the 2026 auction one franchise had ₹2.75 crore left and another ₹64.3 crore."
+    source: "ESPNcricinfo, IPL 2026 auction"
+    sourceRefs: ["src-01", "src-15", "src-16"]
+    data:
+      sides:
+        - label: "England"
+          title: "Premier League, from 2026/27"
+        - label: "India"
+          title: "IPL, 2026"
+      rows:
+        - label: "What the cap is"
+          values:
+            - "85% of the club's own football revenue"
+            - "₹151 crore, with a ₹125 crore auction purse"
+        - label: "Same number for everyone?"
+          values:
+            - "No. Twenty clubs, twenty ceilings"
+            - "Yes. The same for all ten"
+        - label: "When you earn more"
+          values:
+            - "Your ceiling rises with you"
+            - "Nothing. The cap does not move"
+
+sources:
+  - id: "src-01"
+    title: "New Premier League financial system explained"
+    publisher: "Premier League"
+    url: "https://www.premierleague.com/en/news/4467022/new-premier-league-financial-system-explained"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-02"
+    title: "Premier League statement: New financial rules"
+    publisher: "Premier League"
+    url: "https://www.premierleague.com/en/news/4468470/premier-league-statement-new-financial-system"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-03"
+    title: "About the Premier League, governance and voting"
+    publisher: "Premier League"
+    url: "https://www.premierleague.com/en/about"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-04"
+    title: "Annual Review of Football Finance 2026, Premier League clubs"
+    publisher: "Deloitte"
+    url: "https://www.deloitte.com/uk/en/services/consulting/research/annual-review-of-football-finance-premier-league-clubs.html"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-05"
+    title: "European football revenues surpass €40bn for the first time"
+    publisher: "Deloitte"
+    url: "https://www.deloitte.com/uk/en/about/press-room/european-football-revenues-surpass-40bn-for-the-first-time.html"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-06"
+    title: "Manchester City Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/manchester-city-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-07"
+    title: "Liverpool Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/liverpool-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-08"
+    title: "Arsenal Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/arsenal-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-09"
+    title: "Manchester United Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/manchester-united-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-10"
+    title: "Aston Villa Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/aston-villa-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-11"
+    title: "West Ham Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/west-ham-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-12"
+    title: "Bournemouth Finances 2024/25"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/bournemouth-finances-202425"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-13"
+    title: "PSR Is Dead, Long Live SCR"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/psr-is-dead-long-live-scr"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-14"
+    title: "A Spending Cap in the Premier League"
+    publisher: "The Swiss Ramble"
+    url: "https://swissramble.substack.com/p/a-spending-cap-in-the-premier-league"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-15"
+    title: "IPL auction 2026 FAQs, when, where, who and how much"
+    publisher: "ESPNcricinfo"
+    url: "https://www.espncricinfo.com/story/ipl-auction-2026-faqs-when-where-who-and-how-much-1515453"
+    accessedAt: "2026-09-17"
+    kind: secondary
+  - id: "src-16"
+    title: "IPL 2026 auction, KKR spend big, CSK break from tradition"
+    publisher: "ESPNcricinfo"
+    url: "https://www.espncricinfo.com/story/ipl-2026-auction-kkr-spend-big-csk-break-from-tradition-mi-and-pbks-have-a-quiet-time-of-it-1515945"
+    accessedAt: "2026-09-17"
+    kind: secondary
+  - id: "src-17"
+    title: "European Club Finance & Investment Landscape 2025"
+    publisher: "UEFA"
+    url: "https://ecfil.uefa.com/"
+    accessedAt: "2026-09-17"
+    kind: primary
+---
+
+{/* All content lives in the frontmatter `sections` array. */}

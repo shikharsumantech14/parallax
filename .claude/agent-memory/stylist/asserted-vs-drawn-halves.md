@@ -53,4 +53,24 @@ name for a glossed thing ("rate card") is what the panel reads as trade
 language; killing it from the tile removes the need to gloss it in the closer
 as well, so one edit pays twice.
 
+## "Say in a sentence what the two bars already show" — and the ratio trap
+
+The other common panel ask is the inverse: a comparison the reader must do by
+eye ("Indonesia's own fossil emissions are smaller than India's, yet the fire
+alone hits 38%") exists only as two bar widths. Writing it out is squarely a
+prose job.
+
+**The trap is that the dossier usually supplies a ratio word for it, and the
+ratio word usually disagrees with the drawn values.** On the Indonesia issue
+the dossier's prose said Indonesia's fossil emissions are "a fifth" of India's
+while the values the chart draws (221 and 870) are a quarter. Both are sourced;
+picking either publishes a number the page contradicts, and recomputing is
+research, not styling.
+
+**Say the comparison without the ratio** — "India's band is the widest, and
+Indonesia's own is a fraction of it". The reader gets the relation the panel
+asked for, the two widths still supply the size, and nothing on the page
+disagrees with anything else. Flag the dossier/drawn mismatch for the verifier
+rather than resolving it.
+
 See [[panel-fix-field-boundaries]] and [[protected-fields-vs-fix-lists]].

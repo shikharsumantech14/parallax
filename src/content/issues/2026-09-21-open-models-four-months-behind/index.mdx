@@ -1,0 +1,289 @@
+---
+id: "2026-09-21-open-models-four-months-behind"
+topic: tech
+title: "Open models are four months behind, not years"
+hook: "Kimi K3 took 84 days to reach the frontier OpenAI had in April. You can download it free. Almost nobody has."
+dek: "And the four months is the cheap part."
+publishedAt: 2026-09-21
+status: published
+tags: ["open-weights", "ai-models", "benchmarks", "china", "india"]
+readTimeMinutes: 5
+primer: "Epoch AI puts open models four months behind the closed frontier. The gap is small, but it has stopped shrinking. We show what those four months hide."
+sections:
+  - kind: you-think
+    eyebrow: "WHAT YOU ASSUME"
+    title: "Two measurements, one answer"
+    caption: "Four months behind, and the gap has stopped shrinking."
+    source: { label: "Epoch AI, open-closed capability gap", date: "May 2026" }
+    data:
+      think:
+        text: "Open models are hobby projects. The paid ones are a generation ahead, and closing that gap will take years."
+      actually:
+        value: 4
+        unit: "months"
+        text: "Epoch AI, a research group that scores models on hard tests, measures the best open model four months behind the best closed one."
+      note: "A second measure asks which model people prefer. The closed lead there grew from 0.5% to 3.3%."
+
+  - kind: jargon-buster
+    eyebrow: "THREE WORDS FIRST"
+    title: "What the labels actually mean"
+    intro: "Four months, then. Three words decide what those four months are worth, and one of them is doing work you did not agree to."
+    data:
+      terms:
+        - term: "Open weights"
+          meaning: "You get the finished model file to download and run. That is the cake, not the recipe."
+        - term: "Open source"
+          meaning: "Weights plus the code and the data that made them. Almost no large model ships all three."
+        - term: "ECI"
+          meaning: "Epoch AI's capability index. One score from many hard tests, so two models rank on the same scale."
+
+  - kind: timeline
+    eyebrow: "FIVE DATES"
+    title: "Three months behind, then four"
+    intro: "Two readings of the same gap, seven months apart. In between, the day an open model caught April's best closed one."
+    caption: "Three months behind in October 2025. Four months behind in May 2026."
+    source: { label: "Epoch AI data insights and model pages", date: "September 2026" }
+    data:
+      events:
+        - date: "2025-10-30"
+          label: "Epoch AI reads the gap"
+          note: "Three months behind, averaged across nearly three years."
+          state: default
+        - date: "2026-04-23"
+          label: "GPT-5.5 · ECI 158.22"
+          note: "The closed frontier sets a mark."
+          state: default
+        - date: "2026-05-29"
+          label: "Epoch AI reads it again"
+          note: "Four months now. The gap widened, it did not close."
+          state: key
+        - date: "2026-07-16"
+          label: "Kimi K3 · ECI 158"
+          note: "Announced 16 July. Weights released 27 July."
+          state: key
+        - date: "2026-09-03"
+          label: "GPT-6 Astra · ECI 166"
+          note: "Eight points ahead again."
+          state: now
+      annotations:
+        - at: "2026-07-16"
+          text: "April's frontier, reached 84 days later"
+
+  - kind: benchmark-chart
+    eyebrow: "INSIDE THE AVERAGE"
+    title: "Eight points, spread very unevenly"
+    intro: "Eight points ahead on the index, four months ahead in time. Those are two readings of the same gap: the points say how far behind, the months say how long the catch-up took. Only these four tests score both models on the same terms."
+    layout: wide
+    plain: "Each bar is the gap between two scores on one test, the best open model against the best closed one. Longer bar, bigger gap."
+    caption: "Near parity on graduate science. On a puzzle game the open model scores 26% against 84%. Epoch AI warns this reading may understate the gap, because open models are tuned hard on public tests."
+    source: { label: "Epoch AI model pages", date: "September 2026" }
+    data:
+      sortDesc: true
+      unit: "points"
+      items:
+        - label: "Mystery Game Puzzles"
+          value: 58
+          sublabel: "Open 26% · closed 84%"
+        - label: "Chess Puzzles"
+          value: 33
+          sublabel: "Open 39% · closed 72%"
+        - label: "SimpleQA Verified"
+          value: 25
+          sublabel: "Open 51% · closed 76%"
+        - label: "GPQA Diamond"
+          value: 3
+          sublabel: "Open 93% · closed 96%"
+          highlight: true
+      annotations:
+        - at: "GPQA Diamond"
+          text: "Three points apart on graduate science"
+        - at: "Mystery Game Puzzles"
+          text: "Fifty-eight apart on a puzzle game"
+
+  - kind: version-graph
+    eyebrow: "WHO IS ACTUALLY THERE"
+    title: "Not the labs you have heard of"
+    intro: "Those gaps run from three points to fifty-eight. So who releases these open models? Three Chinese labs: DeepSeek, Moonshot, which makes Kimi, and Zhipu, which makes GLM. Each has one column below, and a line joins every model to the one built from it."
+    layout: wide
+    plain: "Each row is one release. A line joins a model to the one built from it, and the colour marks open weights against closed."
+    caption: "Eight of these ten releases are open weights, and the newest landed in July."
+    source: { label: "Epoch AI Benchmarking Hub model pages", date: "September 2026" }
+    data:
+      nodes:
+        - id: "deepseek-v3-2"
+          lane: 0
+          label: "DeepSeek · V3.2"
+          tag: "open"
+        - id: "deepseek-v4-pro"
+          lane: 0
+          parents: ["deepseek-v3-2"]
+          label: "DeepSeek · V4-Pro, MIT licence"
+          tag: "open"
+        - id: "deepseek-v4-flash"
+          lane: 0
+          parents: ["deepseek-v3-2"]
+          label: "DeepSeek · V4-Flash, MIT licence"
+          tag: "open"
+        - id: "kimi-k2-thinking"
+          lane: 1
+          label: "Moonshot · Kimi K2 Thinking"
+          tag: "open"
+        - id: "kimi-k2-6"
+          lane: 1
+          parents: ["kimi-k2-thinking"]
+          label: "Moonshot · Kimi K2.6"
+          tag: "open"
+        - id: "kimi-k3"
+          lane: 1
+          parents: ["kimi-k2-6"]
+          label: "Moonshot · Kimi K3, 2.8T"
+          tag: "open"
+        - id: "glm-5"
+          lane: 2
+          label: "Zhipu · GLM-5"
+          tag: "open"
+        - id: "glm-5-1"
+          lane: 2
+          parents: ["glm-5"]
+          label: "Zhipu · GLM-5.1"
+          tag: "open"
+        - id: "gpt-5-5"
+          lane: 3
+          label: "OpenAI · GPT-5.5"
+          tag: "closed"
+        - id: "gpt-6-astra"
+          lane: 3
+          parents: ["gpt-5-5"]
+          label: "OpenAI · GPT-6 Astra"
+          tag: "closed"
+
+  - kind: arch-stack
+    eyebrow: "THE WHOLE STACK"
+    title: "Free is only the top layer"
+    intro: "Eight of those ten releases are free to download. Nothing under them is, so the rest of the stack stays somebody else's bill, and that kharcha does not come with the file."
+    layout: split
+    plain: "Five slabs, stacked. The top one is what you can download today. Each slab below it is another thing the word open could mean."
+    caption: "Training data is almost never released, and the compute to serve a model is not downloadable at any licence."
+    source: { label: "Stanford HAI, Hugging Face open-model census, AI Now Institute", date: "September 2026" }
+    data:
+      layers:
+        - label: "Weights"
+          sublabel: "Downloadable today. Kimi K3, DeepSeek V4, Qwen. The layer everyone means."
+        - label: "Licence"
+          sublabel: "Permissive for 81% of Chinese releases above 20B. Only 29% of American ones."
+        - label: "Code"
+          sublabel: "Inference code usually. Training code rarely."
+        - label: "Training data"
+          sublabel: "Almost never released. You cannot see what the thing was trained on."
+        - label: "Compute and serving"
+          sublabel: "Not downloadable at any licence. The cluster is the real bill."
+
+  - kind: number-sense
+    eyebrow: "WHAT IT COSTS"
+    title: "Three prices for the same million tokens"
+    intro: "The one layer you can rent has a price. Here it is, per million tokens, which means the small chunks of text a model reads and writes."
+    caption: "A million output tokens costs $50 from the closed frontier and $15 from the best open model."
+    source: { label: "Epoch AI model pages", date: "September 2026" }
+    data:
+      value: "$50"
+      unit: "per million output tokens"
+      label: "GPT-6 Astra, the closed frontier"
+      equals:
+        - text: "The same million from the best open model, $15"
+          note: "Less than a third of the frontier price"
+        - text: "From DeepSeek V4-Flash, $0.28"
+          note: "The cheapest open model on the list"
+      note: "Ask the same question in an Indian language and it costs about five times the English price."
+
+  - kind: prose
+    eyebrow: "WHO TOOK IT"
+    title: "The offer nobody took"
+    skimCaption: "The four months is free. Almost nobody takes it."
+    source: { label: "Rest of World, Hugging Face open-model census", date: "September 2026" }
+    sourceRefs: ["src-07", "src-08", "src-09"]
+    data:
+      paragraphs:
+        - "Renting the open model costs less than a third of renting the closed one, and downloading it costs nothing at all. One count of state-backed AI projects found 139, across 56 countries. About 40% picked Llama, Meta's open-weight model. Not one picked a model from the labs actually at the open frontier. Think of a free textbook nobody opens because the shelf sits in another building."
+        - "That means the four months is not what keeps people away. The bottom slab of that stack does, the compute to run the model, and no licence makes that part free. Of all downloads, 83% go to models under a billion parameters, the smallest on offer. India's pull is different. Sarvam AI adapts open-weight models to Indian languages, work you can only do when you hold the weights instead of renting them by the token."
+sources:
+  - id: "src-01"
+    title: "The gap between open and closed models"
+    publisher: "Epoch AI"
+    url: "https://epoch.ai/data-insights/open-closed-eci-gap"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-02"
+    title: "Epoch Capabilities Index (ECI)"
+    publisher: "Epoch AI"
+    url: "https://epoch.ai/data-insights/eci"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-03"
+    title: "Kimi K3 — model page"
+    publisher: "Epoch AI"
+    url: "https://epoch.ai/models/kimi-k3"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-04"
+    title: "GPT-6 Astra — model page"
+    publisher: "Epoch AI"
+    url: "https://epoch.ai/models/gpt-6-astra"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-05"
+    title: "AI Index Report 2026, Chapter 2: Technical Performance"
+    publisher: "Stanford HAI"
+    url: "https://hai.stanford.edu/ai-index/2026-ai-index-report"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-06"
+    title: "Open-Weight Models Aren't Enough for Open Science"
+    publisher: "Stanford HAI"
+    url: "https://hai.stanford.edu/news/open-weight-models-arent-enough-for-open-science"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-07"
+    title: "The State of Open Models, Summer 2026"
+    publisher: "Hugging Face"
+    url: "https://huggingface.co/blog/state-of-open-models-summer-2026"
+    accessedAt: "2026-09-17"
+    kind: primary
+  - id: "src-08"
+    title: "China's Moonshot gave away Kimi K3. Sovereign AI programmes are not taking it."
+    publisher: "Rest of World"
+    url: "https://restofworld.org/2026/china-moonshot-kimi-k3-free-sovereign-ai/"
+    accessedAt: "2026-09-17"
+    kind: secondary
+  - id: "src-09"
+    title: "India's frugal AI bet: Sarvam, Krutrim and the sovereignty question"
+    publisher: "Rest of World"
+    url: "https://restofworld.org/2026/india-frugal-ai-sarvam-krutrim-sovereign/"
+    accessedAt: "2026-09-17"
+    kind: secondary
+  - id: "src-10"
+    title: "The Openness Imperative"
+    publisher: "AI Now Institute"
+    url: "https://ainowinstitute.org/publications/ix-the-openness-imperative"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-11"
+    title: "DeepSeek V4"
+    publisher: "Simon Willison"
+    url: "https://simonwillison.net/2026/Apr/24/deepseek-v4/"
+    accessedAt: "2026-09-17"
+    kind: secondary
+  - id: "src-12"
+    title: "Kimi K3: the open-weights escalation"
+    publisher: "Interconnects"
+    url: "https://www.interconnects.ai/p/kimi-k3-the-open-weights-escalation"
+    accessedAt: "2026-09-17"
+    kind: analysis
+  - id: "src-13"
+    title: "H.10 Foreign Exchange Rates"
+    publisher: "Federal Reserve"
+    url: "https://www.federalreserve.gov/releases/h10/current/"
+    accessedAt: "2026-09-17"
+    kind: primary
+---
+
+{/* All content lives in the frontmatter `sections` above. */}

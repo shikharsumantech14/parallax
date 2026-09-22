@@ -85,9 +85,35 @@ answer differs by kind, not only by desk.
   tokens that are IN `hinglish-lexicon.md` or its always-on list, and none of
   those four words is. Verified 2026-09-15. Write the card so the sentence says
   the law *names* them, so the reader knows it is the statute talking.
+- **Tech again, 2026-09-21: one word, and the slot was a section `intro`, not a
+  card `note`.** On the open-models issue *kharcha* sat in the hero's intro
+  ("the rest of the stack is somebody else's kharcha"), a sentence with no
+  numeral in it, in a section whose own data block is entirely English. Two
+  things made it pass that the obvious placements did not: it is an
+  **apposition** ("somebody else's kharcha, and it does not come with the
+  file"), so deleting the phrase leaves a complete sentence, and it was moved
+  deliberately AWAY from the neighbouring word "licence" — a Hindi word one
+  clause from a legal term reads as a gloss on the term, which is test 4 even
+  when the numbers are elsewhere. Rejected slots on the same issue, all for
+  test 4: `jargon-buster`'s `hindi` field (the terms are *open weights*,
+  *open source*, *ECI*), the `number-sense` note (rupee figures either side),
+  and the closing prose (four percentages in eight sentences).
 - **The slot that keeps failing is the one that looks safest:** a tile `note`
   or a chart `caption` reads like prose but is the precision layer. Keep the
   whole `data-readout`, `benchmark-chart` and `match-stat-line` blocks
   English-only without thinking about it.
+
+- **A foreign-country earth issue is the clearest zero-Hindi case there is,
+  and that is a finding rather than an omission.** The Indonesia peat draft
+  (2026-09-21) carries no Hindi at all. Every prose slot in it sits within one
+  clause of either a measured depth, a burned-area figure, an Indonesian legal
+  regulation or a carbon conversion, so test 4 disqualifies each one
+  individually. The one slot that could have taken a word — the closing prose
+  paragraph — is where the Indian comparison lands, and a Hindi word beside a
+  ₹-free carbon comparison reads as decoration rather than as the natural
+  word (test 2). **When the Indian ground of an issue is arithmetic rather
+  than a place, a habit or a person, expect zero Hindi and say so in the
+  summary** so the stylist does not read the absence as an oversight and add
+  one.
 
 Related: [[component-data-shape-traps]].

@@ -12,8 +12,15 @@ Measured across runs. Do these first; they find real defects in minutes.
    against the dossier. Examples caught: a primer claiming "every year starts
    hotter than the one before" while the section below it showed 2025 (1.44) <
    2024 (1.55); a worked example ("the El Niño of 1998… the record shows up the
-   year after") that predicted a year the issue's own series shows as a trough.
-   The dossier cannot catch these — only the draft can contradict itself.
+   year after") that predicted a year the issue's own series shows as a trough;
+   **a per-head figure out by a factor of ten** ("₹3.5 crore… divide it by 9.15
+   million foreign tourists, which means about 38 paise each" — it is ₹3.83),
+   which is this check's purest case because both operands and the quotient sit
+   in one sentence. The dossier cannot catch these — only the draft can
+   contradict itself. **Do the sum by hand.** The sandbox rejects `node -e` and
+   any chained `cd … && …`, and a rejected compound call also cancels whatever
+   was batched with it; a division you can do in your head costs less than
+   arguing with the tool.
 2. **Same number, two places.** Grep every figure that appears more than once.
    A value in a chart array and a different value for the same year in a
    timeline note (2016 as 1.29 vs "about 1.25°C") is invisible section by
@@ -96,6 +103,55 @@ Measured across runs. Do these first; they find real defects in minutes.
     actually spends from, not the one the panel cited, and say whether it must be
     a substitution or can be an addition. Three head fields at or one under their
     caps is the normal state of a composed issue, so this recurs.
+
+11. **Build a "which id carries which shape" table ONCE, then read the draft
+    against it.** The single highest-yield check on the ISS issue, and it is
+    mechanical. Before opening the draft, go through the dossier's §4 and write
+    one line per source id naming the *distinctive* figures only that id carries
+    — here `src-09` (Spaceflight Now) was the sole carrier of 330 km, 220 km,
+    the ~18-month build, the 1 May 2029 delivery AND the >30,000 kg mass. Then
+    grep the draft for each figure and check the id is on that section. It found
+    src-09 missing from three of the four sections that use its numbers, plus a
+    source orphaned onto a section that uses none of it. This is checks 5 and 8
+    (outlets, dates) generalised to the third axis — **content** — and it is the
+    one that catches the storyboard-swap residue (claim-error pattern 12).
+
+12. **Every `# EDITOR:` block is itself a claim, and nobody else traces it.**
+    It names a document, a section, a number or a status, it ships inside the
+    committed MDX, and it is the instruction the operator will actually follow
+    at publish time. On the ISS issue it named the wrong document for the three
+    [UNVERIFIED] figures. Trace the document it names exactly as you would trace
+    a figure — does that source contain those values, per the dossier. Costs one
+    minute. Related to check 8 (the stale stylist notes block): both are prose
+    *about* the draft that no gate reads.
+
+13. **State the cap margins at the TOP of the required-fixes list, once.** On a
+    composed issue the head fields sit at or one under their caps by
+    construction (see check 10), so most fixes must be substitutions. Doing this
+    once as a margin note beats repeating "watch the word count" on each fix,
+    and it stops the editor from writing a good fix that trips
+    `words-before-first-graphic`. Quote the two numbers that bind: words before
+    the first graphic, and total reader words.
+
+14. **Does it BUILD? Grep each kind's component for `throw new Error` and check
+    the authored data against every guard.** `data: z.any()` in `config.ts` means
+    Zod validates nothing inside a section's payload, so the only type contract
+    is the component's own constructor. On open-models this turned a "needs
+    revision" into a "does not build": `NumberSense` requires `value` as a
+    **string** and the draft authored `value: 4795`. Several kinds hard-throw by
+    design (`city-grid` 1–3 cities × 36 bins, `season-wheel` exactly 12 months,
+    `altitude-oxygen` 2–8 stops, `fare-terrain` 1–5 routes, `number-sense` 1–3
+    `equals`). Five minutes for a whole issue, and the operator must hear it
+    first — no other gate in the pipeline runs a build.
+
+15. **Read every promissory phrase in an `intro` or `plain` as an assertion
+    about the render.** "below", "each column", "the colour shows", "labelled",
+    "oldest at the top" — then go find the markup that satisfies it. This is the
+    check that caught the worst defect on open-models (an intro naming three labs
+    the component never draws) and it is the one an independent reader panel
+    tends to find *first*, phrased as a comprehension complaint. When a panel
+    says "the intro promises X the section never delivers", treat it as this
+    flag and go to the `.astro`. See [[data-shape-honesty]].
 
 **Reliably empty, so do them last:** the advocacy/wire-tone sweep (the drafter
 under the v2 contract does not produce these any more), and the quotability

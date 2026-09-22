@@ -114,19 +114,25 @@ produces a field that silently does not render.
   `at` is that milestone's label is a silent no-op. Deleting interpolated points
   from a series therefore un-pins every milestone that sat between the survivors
   — anchor the annotation to a surviving point's numeric year instead, and say so.
-- **`benchmark-chart` declares `items[].sublabel` and NEVER RENDERS IT.**
-  Verified 2026-09-15 in `topic/tech/BenchmarkChart.astro`: the row emits
-  `bc__label`, `bc__track`, `bc__fill`, `bc__val` and the annotation block, and
-  nothing reads `sublabel` — it is in the Props interface and in the catalog's
-  DATA line, so a storyboard will keep assigning it. The published
-  `2026-04-24-kessler-cascade` carries five of them. Consequence for authoring:
-  a band, a condition or a caveat parked in `sublabel` is invisible to the
-  reader AND still billed to `readerWords` (`sublabel` is not in `SKIP_KEYS`,
-  ~8 words a bar). When a storyboard's drawing rule says "the band goes in the
-  sublabel", author it for payload completeness if you like, but put the band
-  in the `caption` and the `plain` line too, and say so in the return — the
-  bar's own `label` is the only string beside a bar that a reader actually
-  sees.
+- **`benchmark-chart` RENDERS `items[].sublabel`. This entry previously said it
+  never did; that was wrong and is corrected here (2026-09-21).**
+  `topic/tech/BenchmarkChart.astro` line 121 emits
+  `{it.sublabel && <span class="bc__sub">{it.sublabel}</span>}`, a second line
+  under the bar label. The false claim was written before the 2026-09-15
+  unread-field sweep landed and was never re-checked against the file; a later
+  drafter would have moved a sourced band out of the slot the storyboard chose
+  for it, for no reason. So a storyboard's drawing rule — "draw the low end,
+  put the band in the sublabel" — is safe to execute literally. Two things
+  still hold: `sublabel` is **not** in `check-prose`'s `SKIP_KEYS`, so it is
+  billed to `readerWords` at roughly 3–8 words a bar, and a band the argument
+  depends on still belongs in the `caption` as well, because Skim mode and the
+  story cards drop the bar labels.
+  **Method lesson, restated because this file has now got the same kind wrong
+  twice in opposite directions:** grep the component for the field name before
+  writing a "never renders" rule, and date the check. A remembered absence is
+  not evidence, and the 2026-09-15 sweep rendered thirteen fields that had
+  been documented-but-dead — any pre-sweep memory about a dead field is stale
+  by default.
 - **`throughput-dial` is NOT in `NEEDS_HOW`** (checked against
   `src/lib/explainers.ts`, 2026-09-15), even though a briefing may say it is
   and even though it is a gauge. Practically this changes nothing — an
@@ -167,5 +173,92 @@ produces a field that silently does not render.
   share of the row total, so a 1–1 scoreline with a penalty shoot-out needs the
   outcome stated in a row `note` or the intro; `outcome: "win"` on one side is
   the only signal the sheet itself gives.
+
+- **`descent-profile`'s `points[].t` is signed and counts BACKWARD from the
+  event**, so a plan expressed as "eighteen months before the final burn"
+  authors as `t: -18` through `t: 0`, not as calendar dates. The axis labels
+  itself in months-to-go, and `events[].t` is interpolated onto the polyline,
+  so an event only lands on the curve if its `t` falls inside the plotted
+  range. Two consequences. A final-burn event needs a `t: 0` point authored
+  even when the altitude is unchanged from the previous one, or the flag
+  floats past the end of the line. And `points[].phase` is optional — omit it
+  when the storyboard has not assigned phases, because an authored phase
+  string is billed to `readerWords` once per point.
+- **`orbit-trace` rings are drawn on a COMPRESSED altitude scale against
+  `maxAltKm`, so near-identical orbits collide.** Three rings at 415 / 400 /
+  330 km under `maxAltKm: 500` are legible; adding a fourth at 220 would have
+  put two rings within a few pixels of each other. When a storyboard drops a
+  ring that exists in the dossier, that is usually why — do not add it back
+  for completeness. `inclDeg` is optional per orbit and simply omits the
+  inclination read-out for that ring, which is the right authoring choice when
+  a planned mission's inclination is not sourced. It is also the only
+  `NEEDS_HOW` kind in a typical space spine, and its default panel talks about
+  satellite counts, so a section that carries no counts must author
+  `howToRead` and say so explicitly.
+
+- **`region-map`'s `zones[].value` is a 0–1 interpolation parameter, not a
+  rank.** `RegionMap.astro` builds `fill()` as
+  `colorAt(minColor, maxColor, v)` and `colorAt` passes `v` straight into
+  `lerp` with no clamp, so a "categorical" payload authored as `2` for the
+  source country and `1` for the others extrapolates past `maxColor` and emits
+  out-of-range RGB. Compose a two-value categorical as `1` and about `0.35`,
+  and say in the `plain` line that the shading is a category, not a measured
+  ranking. Two more constraints found the same run: `zones[].id` must be the
+  **zero-padded three-character ISO 3166-1 numeric** code as the topology
+  writes it (`"096"` for Brunei, quoted — YAML would otherwise read `096` as a
+  number and the `String(z.id)` lookup would miss), and Indonesian *provinces*
+  cannot be zones at all, because the topology only has countries. Provinces go
+  in `markers[]`, which carry `label` and `kind` only — no value, so a
+  per-marker figure has to live in the caption. `legend.none` is optional and
+  is a cheap ~3 words to drop when the budget is tight.
+- **`core-sample`'s `EXPLAIN.what` ends "deeper meaning older", which is false
+  for any non-stratigraphic column.** A burn-depth column (ground level, burn
+  depth, legal water table, canal depth) is distance downward *today*, not
+  time, so the kind needs BOTH an authored `plain` ("each mark is a depth
+  below ground, not a layer of time") and an authored `howToRead`. Shape notes:
+  `layers[].depth` is a free **string** and is **not** in `check-prose`'s
+  `SKIP_KEYS`, so "0 cm" / "25 cm" / "40 cm" / "50 cm" bills 8 reader words
+  before a single label — write bare numerals where the `unit` already says
+  cm. `value` and `unit` ARE skipped, so the one measured figure on the column
+  is free. It is the natural `layout: split` hero on an earth issue.
+- **`power-flow`'s conservation check only fires on `via` nodes, so a
+  four-source / one-sink fan is always build-safe.** `PowerFlow.astro` computes
+  `isVia = n.group === 'via' || (si > 0 && so > 0)` and `continue`s on anything
+  else, so a sink with inflow only is never balanced against anything. What
+  DOES throw is `maxDepth < 1` (needs at least two layers) and a `links[].from`
+  or `to` naming an unknown node id. Its `EXPLAIN` default opens "Money flows
+  left to right", which is wrong on every non-money use, so a carbon or energy
+  flow must author `plain`. Billing: `unit` is skipped, node `label` and link
+  `note` are not, so five labels plus four notes cost ~35 reader words on their
+  own. Keep node labels to 4–5 words and notes to 3–5.
+
+- **`bill-funnel` build-fails on a stage LARGER than the one above it, so every
+  stage has to be a subset of the last, not a different question.** Four to ten
+  stages, counts monotonically non-increasing. The trap on a scrutiny story is
+  wanting a final stage like "still awaiting assent", which can legitimately
+  exceed the bar above it; "debated by any MP but the minister" (2 of 11)
+  works because it narrows the same cohort. A stage's `note` is the only place
+  to say *why* a bar dropped, and it is where the exception goes ("the twelfth
+  went to a committee instead"). The catalog says "pairs with `default`; never
+  `split`" — so a `bill-funnel` hero is the one hero that cannot take split.
+- **`margin-bullets` is four independent scales in one graphic, which is
+  exactly why it needs BOTH an authored `plain` and an authored `howToRead`.**
+  Its `EXPLAIN.what` is space-desk copy about decibels and kilograms, so it is
+  wrong on every other desk. Per row `{ label, value, required, max, unit,
+  note? }` with `0 < required <= max` and `0 <= value <= max`. A percentage row
+  and a raw-count row can share the graphic only if each row's `max` is its
+  OWN full range — never normalise them to 100 — and the `howToRead` must say
+  "compare every bar to the tick on its own line, never to another row's",
+  because the default reading of stacked bars is cross-row. When a row's
+  `required` is DERIVED (an older House's referral rate applied to this
+  House's bill count), put the arithmetic on the section source line and mark
+  the row's note "A comparison, not a rule", or the tick reads as a legal
+  threshold that does not exist.
+- **`bill-passage`'s `status` has no value for "this stage never happened".**
+  The enum is `passed | failed | pending | current`. A committee stage that was
+  never entered is not "failed" in any ordinary sense, but `failed` is the
+  nearest mark, so the `note` carries the whole meaning ("Not referred. No
+  committee examined this bill") and is mandatory — without it the graphic
+  asserts the committee looked and said no.
 
 Related: [[word-budget-accounting]], [[hindi-per-desk]].

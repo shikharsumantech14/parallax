@@ -44,6 +44,15 @@ those two and found **no third** — which is the sentence the operator actually
 needs ("there is no undeclared edit"), and which nobody can assert without doing
 the diff. It takes two minutes and it converts an act of trust into a check.
 
+**The diff is not rewrite-only, and not panel-2-only.** It paid again on a
+FRESH issue against a **pass-1** panel (indonesia-fire, 2026-09-22): three
+fields differed from the strings panel 1 quoted. Two were improvements; the
+third, written to answer the panel's own fix, contradicted its own section's
+caption. **A fix authored against a panel note is written in isolation from the
+rest of the section** — so check an edited field against its NEIGHBOURS (the
+caption, the `plain`, the data it sits on) before checking it against the
+dossier. The dossier trace passes; the section disagrees with itself.
+
 **Report both as ⚠️, never ❌.** The direction is dossier-backed; only the
 wording outruns it, and the fix is inside the existing words.
 

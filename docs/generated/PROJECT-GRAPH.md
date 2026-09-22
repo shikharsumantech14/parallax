@@ -15,11 +15,11 @@
 |---|---|
 | kinds | 101 |
 | webgl | 14 |
-| issues | 23 |
-| published | 10 |
+| issues | 29 |
+| published | 16 |
 | blueprints | 40 |
 | neverUsedAnywhere | 4 |
-| neverInPublished | 76 |
+| neverInPublished | 67 |
 | danglingDecisions | 8 |
 
 ## Section kinds
@@ -51,12 +51,12 @@
 | `journey-map` | JourneyMap | ✓ | ✓ | 56 |  |  | ✓ |  |
 | `match-stat-line` | MatchStatLine | ✓ | ✓ | 58 |  |  | ✓ | ✓ |
 | `elevation-profile` | ElevationProfile | ✓ | ✓ | 58 |  |  |  |  |
-| `region-map` | RegionMap | ✓ | ✓ | 60 |  |  | ✓ |  |
+| `region-map` | RegionMap | ✓ | ✓ | 60 |  |  | ✓ | ✓ |
 | `climate-strip` | ClimateStrip | ✓ | ✓ | 64 |  |  | ✓ | ✓ |
 | `carbon-gauge` | CarbonGauge | ✓ | ✓ | 64 |  |  | ✓ |  |
 | `approval-chart` | ApprovalChart | ✓ | ✓ | 62 |  |  | ✓ |  |
 | `power-matrix` | PowerMatrix | ✓ | ✓ | 56 |  |  | ✓ | ✓ |
-| `orbit-trace` | OrbitTrace | ✓ | ✓ | 60 |  |  | ✓ |  |
+| `orbit-trace` | OrbitTrace | ✓ | ✓ | 60 |  |  | ✓ | ✓ |
 | `launch-stats` | LaunchStats | ✓ | ✓ | 62 |  |  | ✓ |  |
 | `benchmark-chart` | BenchmarkChart | ✓ | ✓ | 62 |  |  | ✓ | ✓ |
 | `adoption-curve` | AdoptionCurve | ✓ | ✓ | 62 |  |  | ✓ | ✓ |
@@ -70,7 +70,7 @@
 | `vote-flow` | VoteFlow | ✓ | ✓ | 80 |  |  | ✓ |  |
 | `margin-ladder` | MarginLadder | ✓ | ✓ | 78 |  |  | ✓ |  |
 | `chamber` | Chamber | ✓ | ✓ | 100 | ✓ | ✓ | ✓ |  |
-| `power-flow` | PowerFlow | ✓ | ✓ | 92 |  | ✓ | ✓ |  |
+| `power-flow` | PowerFlow | ✓ | ✓ | 92 |  | ✓ | ✓ | ✓ |
 | `coalition-calculus` | CoalitionCalculus | ✓ | ✓ | 86 |  | ✓ | ✓ |  |
 | `gerrymander-lens` | GerrymanderLens | ✓ | ✓ | 80 |  | ✓ | ✓ |  |
 | `ballot-flow` | BallotFlow | ✓ | ✓ | 80 |  | ✓ | ✓ |  |
@@ -80,7 +80,7 @@
 | `trajectory-arc` | TrajectoryArc | ✓ | ✓ | 84 |  |  | ✓ |  |
 | `delta-v-ladder` | DeltaVLadder | ✓ | ✓ | 78 |  |  | ✓ |  |
 | `signal-readout` | SignalReadout | ✓ | ✓ | 76 |  |  | ✓ |  |
-| `descent-profile` | DescentProfile | ✓ | ✓ | 84 |  |  | ✓ |  |
+| `descent-profile` | DescentProfile | ✓ | ✓ | 84 |  |  | ✓ | ✓ |
 | `solar-system` | SolarSystem | ✓ | ✓ | 100 | ✓ | ✓ | ✓ |  |
 | `constellation-swarm` | ConstellationSwarm | ✓ | ✓ | 90 | ✓ | ✓ | ✓ |  |
 | `lagrange-map` | LagrangeMap | ✓ | ✓ | 82 |  | ✓ | ✓ |  |
@@ -88,7 +88,7 @@
 | `eclipse-cone` | EclipseCone | ✓ | ✓ | 76 |  | ✓ | ✓ |  |
 | `margin-bullets` | MarginBullets | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
 | `data-globe` | DataGlobe | ✓ | ✓ | 96 | ✓ |  | ✓ |  |
-| `core-sample` | CoreSample | ✓ | ✓ | 82 |  |  | ✓ |  |
+| `core-sample` | CoreSample | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `sea-level-tank` | SeaLevelTank | ✓ | ✓ | 84 |  |  | ✓ |  |
 | `climate-spiral` | ClimateSpiral | ✓ | ✓ | 90 |  |  | ✓ |  |
 | `quake-depth` | QuakeDepth | ✓ | ✓ | 76 |  |  | ✓ |  |
@@ -97,9 +97,9 @@
 | `atmosphere-column` | AtmosphereColumn | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
 | `carbon-loop` | CarbonLoop | ✓ | ✓ | 66 |  | ✓ | ✓ |  |
 | `storm-track` | StormTrack | ✓ | ✓ | 84 | ✓ | ✓ | ✓ |  |
-| `arch-stack` | ArchStack | ✓ | ✓ | 80 |  |  | ✓ |  |
+| `arch-stack` | ArchStack | ✓ | ✓ | 80 |  |  | ✓ | ✓ |
 | `latency-waterfall` | LatencyWaterfall | ✓ | ✓ | 82 |  |  | ✓ |  |
-| `version-graph` | VersionGraph | ✓ | ✓ | 76 |  |  | ✓ |  |
+| `version-graph` | VersionGraph | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `scaling-plot` | ScalingPlot | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `throughput-dial` | ThroughputDial | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `neural-flow` | NeuralFlow | ✓ | ✓ | 90 | ✓ | ✓ | ✓ |  |
@@ -118,7 +118,7 @@
 | `altitude-oxygen` | AltitudeOxygen | ✓ | ✓ | 62 |  | ✓ | ✓ |  |
 | `season-wheel` | SeasonWheel | ✓ | ✓ | 74 |  | ✓ | ✓ |  |
 | `fare-terrain` | FareTerrain | ✓ | ✓ | 62 |  | ✓ | ✓ |  |
-| `attrition-waffle` | AttritionWaffle | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
+| `attrition-waffle` | AttritionWaffle | ✓ | ✓ | 68 |  | ✓ | ✓ | ✓ |
 | `tactics-pitch` | TacticsPitch | ✓ | ✓ | 86 |  |  | ✓ | ✓ |
 | `shot-map` | ShotMap | ✓ | ✓ | 86 |  |  | ✓ | ✓ |
 | `xg-race` | XgRace | ✓ | ✓ | 86 |  |  | ✓ |  |
@@ -128,15 +128,15 @@
 | `elo-river` | EloRiver | ✓ | ✓ | 76 |  | ✓ | ✓ |  |
 | `court-value` | CourtValue | ✓ | ✓ | 86 |  | ✓ | ✓ |  |
 | `pace-ridge` | PaceRidge | ✓ | ✓ | 72 |  | ✓ | ✓ |  |
-| `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
+| `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ | ✓ |
 | `finish-interval` | FinishInterval | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 
-## Never in a published issue — 76 of 101
+## Never in a published issue — 67 of 101
 
 The plan's argument for workstream B over Wave 2 rests on this number.
 It is computed here rather than asserted.
 
-`act-break` · `beat-sheet` · `plate` · `orbital-shells` · `commit-grid` · `journey-map` · `elevation-profile` · `region-map` · `carbon-gauge` · `approval-chart` · `orbit-trace` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `vote-flow` · `margin-ladder` · `chamber` · `power-flow` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `trajectory-arc` · `delta-v-ladder` · `signal-readout` · `descent-profile` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `core-sample` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `arch-stack` · `latency-waterfall` · `version-graph` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `attrition-waffle` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `channel-ternary` · `finish-interval`
+`act-break` · `beat-sheet` · `plate` · `orbital-shells` · `commit-grid` · `journey-map` · `elevation-profile` · `carbon-gauge` · `approval-chart` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `vote-flow` · `margin-ladder` · `chamber` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `trajectory-arc` · `delta-v-ladder` · `signal-readout` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `latency-waterfall` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `finish-interval`
 
 ## Decisions
 
@@ -216,4 +216,10 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-06-04-asteroid-2024-yr4` | space | published | 6 | 6 | 8 |
 | `2026-06-04-cockroach-janta-party` | politics | published | 9 | 9 | 10 |
 | `2026-06-04-queue-is-the-product` | travel | published | 8 | 8 | 11 |
+| `2026-09-21-eleven-bills-fifteen-percent` | politics | published | 0 | 0 | 15 |
+| `2026-09-21-half-indias-arrivals-are-indians` | travel | published | 9 | 9 | 21 |
+| `2026-09-21-indonesia-fire-burns-soil-not-trees` | earth | published | 9 | 9 | 25 |
+| `2026-09-21-iss-retirement-set-by-contract` | space | published | 8 | 8 | 15 |
+| `2026-09-21-open-models-four-months-behind` | tech | published | 8 | 8 | 23 |
+| `2026-09-21-premier-league-squad-cost-ratio` | sports | published | 9 | 9 | 23 |
 

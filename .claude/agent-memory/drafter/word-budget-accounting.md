@@ -74,4 +74,65 @@ needed roughly 100 words cut from the approved plan to land at ~1,087.
   others only if the budget has room. Story mode is covered by the authored
   `story:` block, which the gate does not count at all.
 
-Related: [[component-data-shape-traps]].
+- **Name the swing row before you write, not after.** On an eight-section
+  issue every row will drift 10–20 words from its budget in one direction or
+  the other, and the honest way to hold the total is to pick one row whose
+  content can genuinely run short — usually a `timeline`, because its `date`s
+  are free and its notes are capped at 20 words each anyway — and treat its
+  underrun as the issue's float. On the open-models draft (2026-09-21) the
+  timeline came in ~36 words under its 150 and paid for `version-graph`'s node
+  `id`/`parents`/`tag` strings (~17 over) and the prose row (~10 over), leaving
+  the issue at ~1,010 of 1,100. Report which row lent and which row borrowed;
+  that is a departure from the storyboard's table even when the total holds.
+- **A graphic whose `value` is a DERIVED number needs its inputs somewhere,
+  and the cheapest honest slot is a per-item `sublabel`.** Drawing the *gap*
+  between two scores rather than the two scores is a strong form, but a bar
+  labelled "58" with no inputs is unverifiable to the reader. Four `sublabel`s
+  of "Open 26% · closed 84%" cost ~20 billed words and save the caption from
+  having to list eight numbers, which would trip NUMBER-DENSE anyway.
+
+- **A storyboard's per-row budget can be internally consistent and still ~7%
+  light, and it is always the never-published kinds that overrun.** On the
+  Indonesia peat draft (2026-09-21) the storyboard budgeted 1,072 of 1,100.
+  Authored literally, the first pass measured ~1,171. The overrun sat almost
+  entirely in the three new kinds — `core-sample` (+17 over its 145, because
+  `layers[].depth` strings are billed), `power-flow` (+19 over its 150, because
+  five node labels plus four link notes are billed) and `timeline` (+13, six
+  labels plus five notes) — while the cards and the chart came in close to
+  plan. **Budget a never-published kind 15–20% above the storyboard's figure
+  before writing, then trim the prose fields, not the data.** A second pass
+  that shortened captions, intros and step text by 2–6 words each recovered
+  ~85 words and landed the issue at ~1,086.
+- **Where to find those 80 words, in order of least damage:** a `legend.none`
+  string (~3), the note on a timeline event whose label already says it
+  (~5–10), an adjectival clause in a caption that the graphic itself shows
+  (~3 per caption, across five captions), a source label compressed from a
+  sentence to a list ("Kiely et al. 2019, Mongabay, WRI"), and the closing
+  prose paragraph's last sentence — a mirrored close is an AI tell anyway, so
+  cutting it fixes two things at once (~8).
+
+- **`margin-bullets` has an irreducible floor of ~190 reader words, so never
+  accept a storyboard budget under 200 for it.** On the parliament-scrutiny
+  draft (2026-09-21) the storyboard budgeted 175 and the honest minimum came
+  to ~198. The cost is structural, not padding: four `label`s that must each
+  carry or imply their own unit (~24), four `note`s (~40), a mandatory
+  authored `plain` because the kind's EXPLAIN default is space-desk copy
+  (~27), a mandatory instrument `howToRead` (~27), an intro carrying the
+  mark-sheet analogy (~30), a caption (~13), and a source line that has to
+  show the derivation arithmetic for any derived `required` (~20). Only `unit`
+  and `value` are free. **Take the overrun out of the narrative kinds**
+  (`quote`, `three-steps`) and the prose rows, which under-run easily.
+- **Adding a `so` / `because` to satisfy NO-CONNECTIVE costs 4–8 words each,
+  and the primer is the one worth paying for.** NO-CONNECTIVE is ℹ-level, so
+  three flagged 25-word section intros are not a defect worth 20 words; the
+  primer is a real paragraph the reader reads first and is worth the spend.
+  Rewriting the primer's second sentence to open with "You" rather than "The
+  laws you live under were…" recovered the same words the connective cost.
+- **Clearing four JARGON-UNGLOSSED flags cost +15 words and pushed the issue
+  from 1,081 to 1,096 of 1,100 — budget for the gloss repairs, not just the
+  draft.** Each `which is` / `which means` insertion is 2 words, and words
+  added to the *head* are billed twice: once to the 1,100 ceiling and once to
+  the 80-words-before-the-first-graphic count. A head edit is the most
+  expensive word in the issue.
+
+Related: [[component-data-shape-traps]], [[check-prose-heuristics]].

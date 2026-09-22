@@ -59,7 +59,7 @@ roughly one added sentence in the whole issue. Budget the delta before editing,
 not after. `ISSUE-LONG` is ⚠️ (not ❌), so it warns rather than blocks the
 gate — but it is still a finding on a published issue.
 
-## Three flags that are artifacts, not faults — report, don't chase
+## Four flags that are artifacts, not faults — report, don't chase
 
 1. **`NAME-THROUGHPUT`.** The proper-noun heuristic counts `MP`, `MPs`,
    `Prime Minister`, `Constitution` and state names as distinct "names", and it
@@ -73,6 +73,34 @@ gate — but it is still a finding on a published issue.
    the first uncommitted keystroke. It is not a signal about the styling pass —
    but it *is* the reason every styling edit must be punctuation-and-wording
    only, never a retyped figure.
+
+4. **`JARGON-UNGLOSSED`.** It reports *first use in document order*, so a
+   `jargon-buster` card placed at section 4 by an approved storyboard is always
+   "late" for any term the earlier sections used, and the card's own `term`
+   rows re-fire the flag against their own `meaning` text. On the Indonesia
+   issue all four hits were of these two shapes ("peat" first appears inside
+   section 2's protected `you-think` reframe; "smouldering" and "water table"
+   were flagged on the glossary card itself). Report the placement, don't move
+   a term the storyboard sited.
+
+## Two ways to buy reader words back without losing a claim
+
+An issue can arrive at 1,086 of 1,100 with a panel fix that costs +15. Two
+edits pay for it and improve the prose on their own merits:
+
+- **A `plain` line that restates the `howToRead` is free money.** The drafter
+  often writes the destination into both ("Each band is one source of carbon,
+  **and all of them end in the air**" beside a how-to-read already saying "All
+  four end in the atmosphere", under a title already saying "All four end in
+  the same place"). Cutting the duplicated clause was −9 words and dropped the
+  section's `CHROME-HEAVY` block count. `plain` is FORM-only, so the clause was
+  never load-bearing.
+- **`voice:` in the frontmatter costs nothing.** The key is in `SKIP_KEYS`, so
+  declaring the issue's dominant job is a zero-word edit.
+
+Also cheap: "Picture a tap left running" instead of "It is like a tap left
+running" is −1 word **and** satisfies `NO-ANALOGY` (both `picture` and
+`is like` are on the marker list).
 
 ## Words-before-the-first-graphic is a head budget, and it has three levers
 

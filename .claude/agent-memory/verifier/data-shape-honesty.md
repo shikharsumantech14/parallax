@@ -52,8 +52,12 @@ that was not used.
 - **Count the STRANDS: how many rendering places does each key fact reach the
   reader through?** The sibling of the annotation check, and it turns "does this
   render" into something more useful. On amazon the two published bands were
-  authored into `items[].sublabel` on `benchmark-chart` — a field the component
-  declares in its `Item` interface and **never emits**. The bands still reached
+  authored into `items[].sublabel` on `benchmark-chart` — then a declared-but-unemitted
+  field. (**Corrected 2026-09-22: it emits now.** The 2026-09-15 unread-field
+  sweep wired it as `.bc__sub`, a second line in the fixed 150px label column.
+  Re-read that sweep's list in root `AGENTS.md` §10 before citing any field as
+  dead — thirteen were fixed at once, and a memory note about a dead field is
+  the most perishable kind.) The bands still reached
   the reader, through the `caption`, so nothing was lost and there was no flag to
   raise. But counting strands showed 3.7–4 arriving three ways (two captions plus
   a printed `value`), 22–28 two ways (caption plus a `zones[].label` legend chip,
@@ -62,6 +66,37 @@ that was not used.
   note the operator can act on ("do not trim this caption") and it costs one pass
   over the file. A one-strand fact whose apparent second strand is a dead field is
   the shape to look for.
+- **An intro that promises a label the component does not draw is the
+  highest-yield version of this whole class.** On open-models (2026-09-22) the
+  `version-graph` intro said *"Three labs you have probably never heard of. Each
+  has its own column below"* and the `plain` said *"the column is the lab that
+  made it"*. `VersionGraph.astro` draws **no lane labels** — lanes are colour
+  only — so the three lab names appeared nowhere in the issue. Every underlying
+  fact traced; the reader still got nothing. **The test that catches it: read
+  every promissory phrase in an intro or `plain` ("below", "each column", "the
+  colour shows", "labelled") as an assertion about the RENDER, and go find the
+  markup that satisfies it.** The independent reader panel found the same defect
+  and scored the section 2/5 — when a panel says "the intro promises names the
+  section never delivers", that is this flag, not a prose complaint.
+- **Check the layout axis before believing an ordering claim.** The same
+  component positions rows by `cy(i)` where `i` is the **array index**, while the
+  `plain` claimed "oldest at the top". The authored array was grouped by lane, so
+  a 2025 release sat below a 2026 one. `AdoptionCurve` has the identical
+  array-index habit (above). **Any `plain` asserting "oldest", "largest",
+  "in order" is a claim about the array, not about the data** — sort the authored
+  array yourself and check. Relatedly, a skipped lane/index value reserves an
+  empty column, because width comes from `Math.max(...laneVals)`.
+- **Some components hard-throw on the wrong TYPE, not just the wrong shape —
+  which makes a data-shape defect a build failure.** `NumberSense` requires
+  `value` as a **string** (it must never reformat: en-IN `toLocaleString`
+  regroups 1,500,000 as 15,00,000), so a YAML `value: 4795` throws at build.
+  `data: z.any()` in `config.ts` means Zod coerces nothing and catches nothing.
+  Worth one pass: for every kind in the draft, grep its `.astro` for `throw new
+  Error` and check the authored data against each guard. Cheap, and it turns a
+  "needs revision" into a "does not build", which the operator must know first.
+  Sibling trap in the same component: `unit` renders as a mono suffix AFTER the
+  figure, so `value: "4,795"` + `unit: "₹"` paints "4,795 ₹" while the caption
+  says "₹4,795". The published convention is the symbol inside `value`.
 - **Story `beats` lose the chrome that carries the caveat.** `story.css` hides
   `[class$='__cap']` inside a beat, and most viz render their caption as
   `.px-viz__cap`. So an honesty line the operator ruled into the *caption*

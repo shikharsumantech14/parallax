@@ -125,6 +125,94 @@ reasoning written out, both because it is usually right and because the operator
 needs to know which words are quoted and which are reasoned. Do not ask for a
 rewrite.
 
+**12. A CUT section leaves its source behind on a neighbour's `sourceRefs` —
+and the `# EDITOR:` note inherits the same wrong document.** The storyboard's
+contingency swap (§8.4: if the delta-v values cannot be confirmed, drop the
+`benchmark-chart` for an `elevation-profile`) never fired, but the *source that
+belonged to the unbuilt section* did: `src-07`, the Orbital Debris Program
+Office, sits on the benchmark chart carrying none of its three numbers, while
+the white paper that does carry them is the OTHER ref on the same line. The
+`# EDITOR:` block then told the operator to "confirm against NASA's Orbital
+Debris Program Office" — the wrong document, so the pre-publish check on three
+[UNVERIFIED] figures would have returned a false negative and the operator
+would reasonably have concluded the numbers were unfindable.
+**Why it survives:** both refs resolve, the section is genuinely dual-sourced,
+and the EDITOR note reads as diligence. The trace check asks "does this id
+exist", never "does this id contain this number".
+**How to apply:** whenever the storyboard names a contingency section that was
+NOT built, list that section's planned sources and grep the draft for them —
+each one still present is on the wrong section. Then read every `# EDITOR:`
+block as a claim in its own right and trace the *document it names* the same
+way you trace a figure. An EDITOR note naming the wrong source is more damaging
+than an untraced number, because it converts a resolvable check into a dead end.
+
+**13. THE HEDGE REVERSAL — "at least X" rewritten as "only to X".** Distinct
+from pattern 1 (a dropped qualifier) because nothing is dropped: a bound is
+*inverted*. The dossier and its primary source both say Russia is committed
+"through **at least** 2028" — a floor. The draft says "**only to** 2028" — a
+ceiling, in two places. The direction is never random: it always strengthens
+the issue's own argument (here, that the partnership is fraying faster than the
+2030 date suggests).
+**How to apply:** build a small list before reading the draft of every dossier
+phrase containing *at least, at minimum, up to, no earlier than, through, more
+than, roughly, approximately*, and grep the draft for each figure. Check which
+side of the number the draft's word sits on. Report ⚠️ with both phrasings
+quoted side by side — the fix is one word and needs no research, but a verifier
+who only compares numerals will never see it.
+
+**14. A section promises arithmetic and then does not do it.** `three-steps`
+opened "The gap between them is arithmetic" and gave 18 months plus "at least
+three years", which counted back from 2030 does not land on the 2027 the third
+step asserts. The real driver (certifying a replacement, securing funding) is in
+the dossier and never reaches the page. Every individual figure traces; the
+*derivation* does not exist.
+**How to apply:** when an intro says the finding follows from the numbers
+("arithmetic", "count back", "add it up", "that leaves"), do the sum yourself on
+the section's own `data`. This is [[cheap-checks-that-catch-most]] 1 applied to a
+promise rather than a total. Note that the reader panel finds these
+independently — if the panel's surviving item and your arithmetic point at the
+same section, say so; a defect two gates found from opposite directions is the
+one the editor should fix first.
+
+**15. THE DOSSIER'S OWN ARITHMETIC, inherited faithfully and ratified by the
+panel.** Distinct from every pattern above, because the draft did nothing
+wrong: it copied a computed figure the researcher had already got wrong. On
+half-indias-arrivals the dossier's §4h read "roughly 38 paise per foreign
+tourist (Researcher's division)"; ₹3.5 crore ÷ 9.15 million is **₹3.83**, a
+factor of ten. The draft printed both operands and the wrong quotient in one
+sentence, so the page refuted itself.
+**Why nothing else caught it:** a reader panel's arithmetic persona *validates*
+a figure that is presented as already-divided — Karthik wrote "the ₹3.5 crore
+promotion budget works out to 38 paise a tourist. Numbers check out." The
+stylist preserves numerals by contract. The trace check passes, because the
+figure genuinely traces.
+**How to apply:** treat any dossier line annotated "(Researcher's division)",
+"(computed)", "(derived)" or carrying a unit that is a *ratio* as UNVERIFIED
+regardless of what the dossier's status header says, and redo the division on
+the draft's own printed operands. Then **write the dossier fix as a numbered
+required fix of its own**, beside the draft fix — the draft edit alone leaves
+the error live for the next issue that reaches for the figure. Report ❌: a
+self-refuting sentence is not a wording flag. See
+[[cheap-checks-that-catch-most]] 1, which this is the purest instance of.
+
+**16. Check the COMPONENT's value domain before flagging a draft that departs
+from its approved storyboard.** Twice on one issue the draft's `data` differed
+from the storyboard and the draft was right both times. `region-map` documents
+`value` as **0–1 choropleth intensity** consumed by `colorAt()` with no
+internal normalisation, so the storyboard's raw percentage shares (18.13,
+17.59…) would have clamped every zone to the darkest colour; the draft
+normalised against the leader. `attrition-waffle`'s optional `trueN` forces the
+literal figure into the caption and adds a `per hundred · n = N` chip, so the
+storyboard's `trueN: 9150000` would have asserted a full-year foreign-tourist
+sample size over a three-month table of admittedly unknown denominator; the
+draft omitted it. **How to apply:** a storyboard is a composition document, not
+a type contract, and the composer reads `catalog-shapes.md` rather than the
+component. Before writing STORYBOARD-DRIFT, open the component and read the
+interface comment on the field. When the departure is correct, still record it
+— and check whether the draft's `# EDITOR:` block *names* it. One of these two
+was named and one was not, and the unnamed one invites a later editor to
+"restore" values that break the graphic.
+
 **11. The dossier is stale in more places than the brief names — and the date
 that betrays it is the one the draft got RIGHT.** The brief said three; a fourth
 surfaced from a row the draft had quietly sidestepped. Dossier §3 put the 2019
