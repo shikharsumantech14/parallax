@@ -639,6 +639,10 @@ data shapes (§5.2 replaces them).
 | Read time | 4–5 minutes | 6–8 today. |
 | Annotations inside the workhorse charts | every chart with a finding carries ≥ 1 in-graphic callout (≤ 12 words) that states it | Readers prefer annotated charts to sparse ones (Stokes et al., n=302, §10); today the charts carry captions outside, never callouts inside. RG-20. |
 | Kinds from outside the six workhorses | ≥ 1 per issue, ≥ 2 when the dossier's data supports it | 78 kinds have never been seen. |
+| Drawn graphics — not `you-think`, `number-sense`, `jargon-buster`, `three-steps` or `data-readout`, which are typographic cards | **≥ 40% of sections**, ≥ 3 distinct graphic kinds | Added 2026-09-16 at the operator's request. After the Phase 4/6 rewrites the cards were carrying the 60% floor: `you-think` in 10 of 10 issues, `number-sense` in 8, `jargon-buster` and `three-steps` in 7. Gate: FEW-GRAPHICS. |
+| The four plain-language cards | at most once each, ≤ 3 in total per issue | Same measurement. Gate: CARD-HEAVY. |
+| Graphic kinds new to the publication (the ledger in `docs/generated/PROJECT-GRAPH.md`) | **≥ 2 per issue** where a shape fits | 76 of 101 kinds had never reached a reader on 2026-09-16. Gate: NO-NEW-KIND, a warning on drafts. The storyboard's §9 tallies it. |
+| Sources | ≥ 8, from ≥ 5 publishers, no publisher behind > 40% | Four of ten published issues rested on one or two publishers (the token bill: 7 sources, 1 domain). Gate: SOURCE-NARROW. Added 2026-09-16. |
 | `timeline` | ≤ 6 events, notes ≤ 20 words | Story mode already trims to 6. |
 | `paradox` | `detail` ≤ 45 words each; used ≤ 1 per issue | It is prose in a costume. |
 | Loudness ceilings (CANON §3: one hero, ≤ 3 loud, no adjacent WebGL) | unchanged | |

@@ -82,7 +82,10 @@ kinds from `src/content/config.ts`.
 
 Complete list of every source consulted, whether cited or not.
 
-- [Title](URL) — Publisher, accessed YYYY-MM-DD — `kind: primary|secondary|analysis`
+Spread: N sources · N publishers · tiers T0…T4 · top publisher N%
+(floors, added 2026-09-16: ≥ 8 sources · ≥ 5 publishers · ≥ 3 tiers · no publisher above 40%)
+
+- [Title](URL) — Publisher, accessed YYYY-MM-DD — `tier: T0` · `viewpoint: n/a` · `kind: primary|secondary|analysis`
 
 ---
 

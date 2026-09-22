@@ -47,6 +47,11 @@ they disagree. This rule carries only what is violated most often.
 - Floors (REGISTER-PLAN §5.1): ≥ 6 in 10 sections visual; never two text-only
   sections adjacent; the first section a graphic; ≤ 3 prose sections of
   ≤ 200 words; ≤ 1,100 reader-facing words; ≤ 80 words before the first graphic.
+- The diversity floors (2026-09-16): ≥ 40% of sections DRAWN graphics — the
+  cards (`you-think`, `number-sense`, `jargon-buster`, `three-steps`,
+  `data-readout`) do not count — with ≥ 3 graphic kinds; the four cards at
+  most once each, ≤ 3 in total; ≥ 2 graphic kinds new to the publication;
+  ≥ 8 sources from ≥ 5 publishers. `check:prose` flags each.
 
 ## The AI-tell catalog (twenty-two — contract §6)
 

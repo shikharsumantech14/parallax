@@ -80,6 +80,11 @@ npm run pipeline:draft       <category>    # Phase 3 — drafter agent (refuses 
 npm run pipeline:panel       <category>    # Phase 3.2 / 3.7 — reader-panel agent, the comprehension gate
 npm run pipeline:stylist     <category>    # Phase 3.5 — stylist agent
 npm run pipeline:verify      <category>    # Phase 4 — verifier agent
+#   flags (2026-09-16): -- --slug <s> (storyboard…verify) · --candidate C-NN
+#   (research) · --model <id> · --count <n> (discover) — two issues per desk
+npm run pipeline:costs       [-- --since <date> | --category <cat>]
+                          # what each agent ACTUALLY cost per issue, dollars and
+                          # tokens, from research/_costs/ledger.jsonl (every run appends)
 npm run check:prose          [-- <slug>]   # the register + composition report (gate: check:prose:gate)
 ```
 
@@ -362,9 +367,10 @@ API-CLI only).
 
 **Two hard rules that have been broken before:**
 
-- **Cost.** A full pipeline run is **$6–14** on the API-CLI route and the root
-  `.env.local` exists, so `npm run pipeline:*` really executes and really bills.
-  Never run one to test something.
+- **Cost.** A full pipeline run is **$3–7** on the API-CLI route at the
+  September 2026 rates (it was $6–14 on the previous model generation) and
+  the root `.env.local` exists, so `npm run pipeline:*` really executes and
+  really bills. Never run one to test something.
 - **Model routing.** The Claude Code route pins **every** phase to Opus.
   `scripts/pipeline.config.ts`'s Sonnet/Opus split is the API-CLI config —
   **do not "optimise" the Claude Code route to match it.**
@@ -718,6 +724,57 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-16 — The API route brought current; the diversity floors
+
+The operator's brief for the next round (two new issues per desk, on the
+API route): the rewritten issues still read as text, the same few components
+keep appearing, and issues lean on one or two sources. Measured before
+changing anything: `you-think` in ten of ten published issues, `timeline` and
+`data-readout` in nine, `number-sense` in eight, `jargon-buster` and
+`three-steps` in seven — the four plain-language kinds built on 2026-09-13
+had become the workhorses and were carrying the 60% visual floor as
+typographic cards; 76 of 101 kinds had never reached a reader; four issues
+rested on one or two publishers (the token bill: seven sources, one domain).
+
+**Standing rules added — do not relax them back to "visual":**
+
+- **A card is not a graphic.** `you-think`, `number-sense`, `jargon-buster`,
+  `three-steps` and `data-readout` count toward the 60% visual floor but not
+  as drawn graphics. REGISTER-PLAN §5.1 gained four rows: ≥ 40% of sections
+  drawn graphics with ≥ 3 graphic kinds; the four cards at most once each
+  and ≤ 3 in total; ≥ 2 graphic kinds new to the publication (the ledger in
+  `docs/generated/PROJECT-GRAPH.md`); ≥ 8 sources from ≥ 5 publishers, none
+  above 40%. Every agent carries them; the storyboard template gained §9,
+  the kind ledger, where the composer tallies them before the draft; and
+  `check:prose` flags FEW-GRAPHICS · CARD-HEAVY · NO-NEW-KIND ·
+  SOURCE-NARROW (warnings, so the backlist still builds). Discovery now
+  names three drawn graphics per candidate with the source that carries
+  each one's data — the diversity starts at candidate selection, not at the
+  storyboard.
+- **The API route had gone stale in ways that would have failed on the
+  first call.** `pipeline.config.ts` pinned the drafter and stylist to
+  `claude-opus-4-1`, retired on 2026-08-05. Moved to the current generation
+  (`claude-sonnet-5` / `claude-opus-5`, both verified live through the SDK).
+  **The operator then ruled every phase onto Opus 5 except the reader
+  panel**, overturning the May split: the verifier is brand protection and
+  needs the reasoning, the researcher's dossier decides what the graphics can
+  draw, and the panel stays on Sonnet so it never judges its own drafter's
+  prose. **Costs are measured, not estimated, from here on:** every run
+  appends its actual dollars and tokens to `research/_costs/ledger.jsonl`
+  and `npm run pipeline:costs` totals them per issue and per agent. The SDK's spawned CLI
+  was also loading the desktop app's seven claude.ai connectors (196 tools
+  instead of 28) into every run; `runner.ts` sets `strictMcpConfig`. The
+  footer prints the token split, because every run writes ~35–50k tokens to
+  a one-hour cache on its first turn and that is what a short run costs.
+- **Two issues per desk needs `--slug` / `--candidate`.** Every phase after
+  research found its input by "most recent file in the folder", and two
+  same-day files from one desk sort by slug. `--slug <dossier-slug>`,
+  `--candidate C-NN`, `--model <id>` and `--count <n>` are in
+  `scripts/pipeline.ts`; `scripts/README.md` has the table.
+- Prompts tell the agents today's date (an agent under its own system
+  prompt is never told it); the stylist prompt names the v2 contract, not
+  the v1 mode library.
 
 ### 2026-09-15 — The unread-field sweep: thirteen documented fields nothing rendered
 

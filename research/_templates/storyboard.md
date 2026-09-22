@@ -41,6 +41,11 @@ One row per thing the reader must get, in reading order. 6–9 rows. The first
 row after the head is a graphic or a `data-readout`, never prose. No two
 text-only rows adjacent. At least six in ten rows visual. ≥ 1 kind from outside
 the six workhorses (prose, data-readout, timeline, paradox, quote, comparison).
+And, since 2026-09-16: at least 40% of rows DRAWN graphics (`you-think`,
+`number-sense`, `jargon-buster`, `three-steps` and `data-readout` are cards,
+not graphics), ≥ 3 distinct graphic kinds, the four plain-language cards at
+most once each and ≤ 3 in total, ≥ 2 graphic kinds new to the publication —
+tallied in §9.
 
 | # | The reader must get (one line, register) | Data shape (G1–G12) | Kind | Hero? | Words around it | Analogy / example | Plain-line sketch | Dossier §4 rows it renders |
 |---|---|---|---|---|---|---|---|---|
@@ -88,3 +93,19 @@ described, not named.
 
 Kinds considered and rejected (and why); data the dossier lacks for a kind
 that would have fitted; anything the operator should rule on before the draft.
+
+## 9. Kind ledger
+
+Added 2026-09-16. The floors on drawn graphics and new kinds are checked
+here before the draft, and by `npm run check:prose` after it (FEW-GRAPHICS,
+CARD-HEAVY, NO-NEW-KIND). "New" means on the ledger in
+`docs/generated/PROJECT-GRAPH.md` ("Never in a published issue") AND not
+claimed by another storyboard dated within the last 30 days.
+
+| Kind | Rows (#) | Drawn graphic? | New to the publication? |
+|---|---|---|---|
+| | | | |
+
+- **Drawn graphics:** N of M rows (floor 40%) · distinct graphic kinds: N (floor 3)
+- **Plain-language cards** (you-think · number-sense · jargon-buster · three-steps): N (cap 3, one of each)
+- **New kinds:** N (floor 2) — which, and the data shape each fills

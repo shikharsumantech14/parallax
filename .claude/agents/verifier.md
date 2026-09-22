@@ -155,6 +155,15 @@ Flags added 2026-09-13. Check every prose field against the contract:
   in 10 sections visual; two text-only sections adjacent; the first section
   not a graphic or `data-readout`; more than 80 words before the first
   graphic; more than 1,100 reader-facing words.
+- **⚠️ FEW-GRAPHICS / CARD-HEAVY / NO-NEW-KIND** (added 2026-09-16) — fewer
+  than 40% of sections drawn graphics (`you-think`, `number-sense`,
+  `jargon-buster`, `three-steps` and `data-readout` are cards, not graphics),
+  or fewer than three distinct graphic kinds; a plain-language card used more
+  than once, or more than three of the four in one issue; fewer than two
+  graphic kinds new to the publication (`docs/generated/PROJECT-GRAPH.md`,
+  "Never in a published issue"). The storyboard's §9 ledger is the reference.
+- **⚠️ SOURCE-NARROW** (added 2026-09-16) — fewer than 8 sources, fewer than
+  5 distinct publishers, or one publisher behind more than 40% of them.
 - **⚠️ STORYBOARD-DRIFT** — kinds, order or hero not as the storyboard has
   them and the departure not named in the draft's summary.
 - **⚠️ QUESTION-UNANSWERED** — one of the storyboard's three questions cannot
@@ -186,7 +195,8 @@ Confirm:
 - [ ] `publishedAt` is a real date
 - [ ] All source URLs use `https://`
 - [ ] Source `kind` values are only `primary`, `secondary`, or `analysis`
-- [ ] At least 6 sources
+- [ ] At least 8 sources, from at least 5 distinct publishers, none behind
+      more than 40% of them
 
 ### Step 6 — Write the verification report
 

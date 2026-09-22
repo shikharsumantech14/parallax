@@ -123,7 +123,13 @@ and the human or the drafter fixes. Report under **"Structure flags"**:
 - **Floors** (REGISTER-PLAN §5.1): < 6 in 10 sections visual; two text-only
   sections adjacent; the first section not a graphic or `data-readout`;
   > 80 words before the first graphic; > 3 prose sections; > 1,100
-  reader-facing words; timeline > 6 events; only the six workhorse kinds.
+  reader-facing words; timeline > 6 events; only the six workhorse kinds;
+  and (added 2026-09-16) fewer than 40% of sections drawn graphics
+  (`you-think`, `number-sense`, `jargon-buster`, `three-steps` and
+  `data-readout` are cards, not graphics); a plain-language card used more
+  than once or more than three of the four in one issue; fewer than two
+  graphic kinds new to the publication (the storyboard's §9 ledger); fewer
+  than 8 sources or 5 publishers, or one publisher behind more than 40%.
 - **Ceilings** (CANON §2–3): more than one hero; > 3 loud sections; adjacent
   WebGL kinds; a loud section followed by a loud one.
 - **Head:** a title that names the subject rather than the finding, or uses

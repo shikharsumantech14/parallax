@@ -85,6 +85,13 @@ Floors (`docs/REGISTER-PLAN.md` §5.1):
   ≤ 45; intro ≤ 45; annotation ≤ 12.
 - ≥ 1 kind from outside prose / data-readout / timeline / paradox / quote /
   comparison.
+- ≥ 40% of sections are DRAWN graphics — `you-think`, `number-sense`,
+  `jargon-buster`, `three-steps` and `data-readout` are cards, not graphics;
+  ≥ 3 distinct graphic kinds; the four plain-language cards at most once each
+  and ≤ 3 in total; ≥ 2 graphic kinds new to the publication (the
+  storyboard's §9 ledger says which). Added 2026-09-16; `check:prose` flags
+  FEW-GRAPHICS, CARD-HEAVY and NO-NEW-KIND. The storyboard met these; a
+  departure that swaps a graphic for a card breaks them.
 
 Ceilings (CANON §2–3): one hero visual (the only section that may take
 `layout: split`); ≤ 3 loud sections (WebGL, `bleed`, full-width animated);
@@ -220,7 +227,11 @@ draft is not teaching its own argument: fix the section, not the question.
 Map dossier §8 to the frontmatter `sources:` array: `id` `"src-01"`… in the
 order cited; `title`, `publisher`, `url` exact and unmodified;
 `accessedAt` `"YYYY-MM-DD"`; `kind` primary / secondary / analysis. Only
-sources actually cited. Minimum 6, maximum 15.
+sources actually cited. Minimum 8, maximum 15, from at least five distinct
+publishers, no single publisher behind more than 40% of them (`check:prose`
+flags SOURCE-NARROW, added 2026-09-16 — four of the ten published issues
+rested on one or two publishers). The dossier's §8 carries the spread; if it
+does not, say so in your summary rather than pad the list.
 
 ### Step 7 — Write the file
 
@@ -246,8 +257,10 @@ sections). Then re-read the file and check:
 - [ ] ≤ 12 names, each with a role; the storyboard's Indian ground present
 - [ ] The three questions are answerable from the draft
 - [ ] `status: draft`; no invented facts; no [UNVERIFIED] claim stated as
-      fact (drop it or flag `# EDITOR: verify before publish`); ≥ 6 sources;
-      `publishedAt` valid
+      fact (drop it or flag `# EDITOR: verify before publish`); ≥ 8 sources
+      from ≥ 5 publishers; `publishedAt` valid
+- [ ] ≥ 40% of sections drawn graphics, ≥ 3 graphic kinds, cards ≤ 3 and one
+      of each, ≥ 2 kinds new to the publication — as the storyboard's §9 had it
 
 ## Hard rules
 

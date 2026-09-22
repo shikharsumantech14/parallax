@@ -59,7 +59,7 @@ Steps 5, 6, 8, 11 and 13 were added on 2026-09-13 under `docs/REGISTER-PLAN.md`
 contract every writing agent loads is `research/_voice/_voice-core.md` v2;
 the lexicon and the jargon list sit beside it.
 
-> **Component palette.** The publication ships **~90 section kinds** — the
+> **Component palette.** The publication ships **101 section kinds** — the
 > editorial kinds plus a deep physics / data / geography-grounded interactive +
 > 3D library (each world's flagships and its breadth: WebGL globes, CSS-3D
 > cards, animated SVG). The canonical catalog is **`docs/design/catalog.md`**:
@@ -67,8 +67,8 @@ the lexicon and the jargon list sit beside it.
 > right alternative), the exact **DATA** shape, the **PLAIN** one-liner, and —
 > on the data-hungry kinds — a **RESEARCHER MUST CAPTURE** note.
 > `npm run check:catalog` verifies that the catalog and `SECTION_KINDS` in
-> `src/content/config.ts` stay 1:1 and in the same order (90 ↔ 90 today).
-> It is a manual check — `npm run build` does not run it.
+> `src/content/config.ts` stay 1:1 and in the same order (101 ↔ 101 today)
+> and runs in `prebuild`, so a half-wired kind fails the build.
 > The drafter chooses kinds that fit the data; discovery should suggest them.
 > The six `2026-06-03-<world>-showcase` **draft** issues exercise the library
 > with real data — the canonical worked examples.
@@ -81,7 +81,24 @@ Two paths run the same agents:
 - **Slash commands** (`/pipeline-*`) inside Claude Code — bills to Pro budget.
 - **API CLI** (`npm run pipeline:*`) — bills to `ANTHROPIC_API_KEY` from
   `.env.local`. See `scripts/README.md` for setup. **The stylist phase is
-  CLI-only** (no slash command equivalent today).
+  CLI-only** (no slash command equivalent today). Since 2026-09-16 the CLI
+  takes `--slug`, `--candidate`, `--model` and `--count`, so one desk can
+  carry two issues in a round without the phases picking the wrong file.
+
+**The diversity floors (2026-09-16).** After the register rewrites the ten
+published issues used `you-think` in all ten and the four plain-language
+cards for most of their "visual" sections, while 76 of 101 kinds had never
+reached a reader, and four issues rested on one or two publishers. So
+`docs/REGISTER-PLAN.md` §5.1 gained four rows the whole pipeline now
+enforces: ≥ 40% of sections DRAWN graphics (the cards and `data-readout` do
+not count) with ≥ 3 graphic kinds; the four cards at most once each and ≤ 3
+in total; ≥ 2 graphic kinds new to the publication (the ledger in
+`docs/generated/PROJECT-GRAPH.md`, tallied in the storyboard's new §9); and
+≥ 8 sources from ≥ 5 publishers with none above 40%. Discovery names three
+drawn graphics per candidate with their data source, the researcher captures
+data for four and prints the source spread at the top of §8, the composer
+fills §9, and `check:prose` flags FEW-GRAPHICS · CARD-HEAVY · NO-NEW-KIND ·
+SOURCE-NARROW on the draft.
 
 ---
 
@@ -115,7 +132,7 @@ each one a candidate Parallax issue. Each block has:
 - **why now:** <event + date that makes this timely>
 - **angle:** <the structural Parallax framing — what makes this an issue,
               not just a news story>
-- **suggested kinds:** hero, timeline, ...
+- **suggested kinds:** climate-strip, region-map, timeline, ... (≥ 3 drawn graphics, each with its data and source)
 - **est. read time:** N min
 - **sources:**
   - URL 1
@@ -255,16 +272,12 @@ Average ~3.5 issues/week. Sustainable for solo + audit-quality.
 
 ## 10. Cost discipline
 
-From `scripts/README.md` (May 2026 rates), full per-issue API spend:
-
-| Phase | Approx |
-|---|---|
-| Discover (Sonnet) | $0.30–0.80 |
-| Research (Sonnet) | $0.80–2.00 |
-| Draft (Opus) | $3.00–7.50 |
-| Stylist (Opus) | $1.50–2.50 |
-| Verify (Sonnet) | $0.40–1.00 |
-| **Per issue** | **$6.00–13.80** |
+Since 2026-09-16 the per-issue figure is MEASURED: every run appends its
+actual dollars and tokens to `research/_costs/ledger.jsonl`, and
+`npm run pipeline:costs` prints each agent's cost per issue, subtotals,
+per-agent averages and the grand total. Every phase runs on Opus 5 except
+the reader panel (Sonnet 5, so it never judges its own drafter's prose).
+Quote the report, not a range.
 
 Discovery and verify are cheap — re-run freely if results look off. Draft
 and stylist are expensive — review the dossier carefully before

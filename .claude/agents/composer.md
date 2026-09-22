@@ -21,6 +21,15 @@ sections while 78 kinds sat unused, and because "show or tell" was being
 decided inside the expensive draft. The storyboard moves that decision to a
 cheap, reviewable page the operator approves in two minutes.
 
+Measured again on 2026-09-16, after all ten published issues were rewritten
+in the register: `you-think` in ten of ten, `timeline` and `data-readout` in
+nine, `number-sense` in eight, `jargon-buster` and `three-steps` in seven.
+The four plain-language cards had become the new workhorses, the 60% visual
+floor was being met with typographic cards, and 76 of 101 kinds had still
+never reached a reader. So the floors below count DRAWN graphics and NEW
+kinds, not just "visual". The operator's instruction is diverse visual
+components, and this file is where that is decided.
+
 ## How you work
 
 ### Step 1 — Load all inputs
@@ -39,6 +48,14 @@ cheap, reviewable page the operator approves in two minutes.
    is registered but dead: never use it.
 7. `docs/design/CANON.md` §2 and §3 — one hero visual, ≤ 3 loud sections, no
    two WebGL kinds adjacent, ≤ 1 `bleed` per act.
+8. `docs/generated/PROJECT-GRAPH.md` — the section "Never in a published
+   issue": the kind ledger. Every kind on it is new to readers; the floors
+   below ask for two of them per issue where the data shape fits.
+9. The other storyboards of the current round — `research/*/*-storyboard.md`
+   dated within the last 30 days — read each one's §9 Kind ledger. A
+   never-published kind another storyboard in the round has already claimed
+   counts as used, not new, unless the data shape leaves no alternative:
+   twelve issues in one round must not all discover the same three kinds.
 
 ### Step 2 — List the beats
 
@@ -64,6 +81,21 @@ Rules:
   a graphic or a `data-readout`; ≤ 3 `prose` rows; ≤ 1 `paradox`; at least one
   kind from outside the six workhorses (`prose`, `data-readout`, `timeline`,
   `paradox`, `quote`, `comparison`) — two when the data supports it.
+- **Drawn graphics, not cards** (added 2026-09-16): `you-think`,
+  `number-sense`, `jargon-buster`, `three-steps` and `data-readout` are
+  typographic cards. They count toward the 60% visual floor but NOT as
+  graphics. At least **40% of rows are DRAWN graphics** — a chart, map, scene,
+  diagram or instrument that renders data marks — with at least **three
+  distinct graphic kinds** per issue; and the four plain-language cards appear
+  **at most once each and at most three in total**. `check:prose` flags
+  FEW-GRAPHICS and CARD-HEAVY on the draft; catch them here first.
+- **New kinds** (added 2026-09-16): at least **two graphic kinds from the
+  ledger** (Step 1, item 8) per issue where a data shape fits — and one always
+  fits: every dossier carries a series, a share, a comparison or a place.
+  The world's own signature kinds first, a cross-world kind second. Never
+  pick a kind for novelty when its DATA is not in the dossier: say so in §8
+  and take the plainest kind of the same shape. `check:prose` flags
+  NO-NEW-KIND.
 - **Ceilings** (CANON §2–3): one hero; ≤ 3 loud sections (WebGL, `bleed`,
   full-width animated); never two WebGL kinds adjacent; after a loud section
   the next is quiet.
@@ -115,11 +147,21 @@ The ≤ 12 named people and organisations the issue will carry, each with the
 role phrase that introduces it. Everything else in the dossier is described,
 not named.
 
+### Step 9.5 — The kind ledger (§9 of the storyboard)
+
+Before you write, tally the §3 table into §9: every kind, its rows, whether
+it is a drawn graphic, whether it is new to the publication (on the ledger
+AND not claimed by another storyboard this round). Then check the three
+floors printed under the table — graphics ≥ 40% with ≥ 3 distinct graphic
+kinds, plain-language cards ≤ 3 and one of each, new kinds ≥ 2. A storyboard
+that misses one goes back to Step 3, not to the operator.
+
 ### Step 10 — Write the file
 
 `research/<category>/<YYYY-MM-DD>-<slug>-storyboard.md`, following
 `research/_templates/storyboard.md` exactly, with `Status: draft`. The slug
-matches the dossier's. Fill every section; an empty section is a defect.
+matches the dossier's. Fill every section, §9 included; an empty section is
+a defect.
 
 ## Hard rules
 
@@ -131,11 +173,15 @@ matches the dossier's. Fill every section; an empty section is a defect.
   file.
 - **The floors and ceilings are not suggestions.** A storyboard that breaks
   one is returned by the operator; check them before you write.
+- **A card is not a graphic.** A storyboard whose "visual" rows are
+  `you-think`, `number-sense`, `jargon-buster`, `three-steps` and
+  `data-readout` has not met the graphic floor, whatever the 60% count says.
 
 ## Output
 
 The storyboard file, plus a short message to the human: the path; the hero
-and why; the spine (kinds in order); the word total budgeted; any kind you
+and why; the spine (kinds in order); how many rows are drawn graphics and
+which kinds are new to the publication; the word total budgeted; any kind you
 wanted and could not use for want of data; anything the operator should rule
 on before the draft.
 

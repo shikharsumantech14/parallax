@@ -47,6 +47,28 @@ npm run pipeline:verify   earth
 
 Valid categories: `politics` · `space` · `earth` · `tech` · `travel` · `sports`
 
+### Flags (2026-09-16)
+
+A desk carrying **two issues in one round** needs these — without them every
+phase after research picks whichever dossier / storyboard / draft sorts last
+in the folder, and two same-day files from one desk sort by slug, not by age.
+
+| Flag | Phases | What it does |
+|---|---|---|
+| `--slug <slug>` | storyboard · draft · panel · stylist · verify | target the `<date>-<slug>-…` dossier / storyboard and the `<date>-<slug>` issue directory; the slug is the dossier's, without the date |
+| `--candidate C-NN` | research | research that candidate regardless of its `status:` line (so the second pick of a desk needs no edit to the candidates file) |
+| `--model <id>` | all | override the phase's model from `pipeline.config.ts` for one run |
+| `--count <n>` | discover | surface exactly n candidates (1–10) instead of 5–10 |
+
+```bash
+npm run pipeline:discover   earth -- --count 5
+npm run pipeline:research   earth -- --candidate C-03
+npm run pipeline:storyboard earth -- --slug glacier-lake-outburst
+npm run pipeline:draft      earth -- --slug glacier-lake-outburst
+```
+
+The `--` after the npm script name is what passes the flags through.
+
 ---
 
 ## Full workflow (6 categories, one issue each)
@@ -84,32 +106,67 @@ YOU AUDIT + PUBLISH    ← read verification report, fix residual issues,
 
 ## Model assignments
 
-Configured in `scripts/pipeline.config.ts` — change there to re-route:
+Configured in `scripts/pipeline.config.ts` — change there to re-route, or pass
+`--model <id>` for one run. Current generation as of 2026-09-16 (both IDs
+verified live through the SDK that day):
 
-| Phase | Agent | Model |
-|---|---|---|
-| discover | discovery | `claude-sonnet-4-6` |
-| research | researcher | `claude-sonnet-4-6` |
-| draft | drafter | `claude-opus-4-1` |
-| stylist | stylist | `claude-opus-4-1` |
-| verify | verifier | `claude-sonnet-4-6` |
+| Phase | Agent | Model | Shape | Turn cap |
+|---|---|---|---|---|
+| discover | discovery | `claude-sonnet-5` | long tool loop | 60 |
+| research | researcher | `claude-sonnet-5` | longest tool loop | 90 |
+| storyboard | composer | `claude-opus-5` | short read-only pass | 40 |
+| draft | drafter | `claude-opus-5` | short pass, one file out | 50 |
+| panel | reader-panel | `claude-sonnet-5` — deliberately not the drafter's model | short | 40 |
+| stylist | stylist | `claude-opus-5` | short, edit in place | 50 |
+| verify | verifier | `claude-opus-5` | medium, read-only | 70 |
 
-Drafting and styling use Opus because voice quality is the highest-value output
-of those phases. All other phases are rule-following tasks where Sonnet is sufficient.
+**Split by the shape of the phase, not its importance** — the operator's
+ruling of 2026-09-21 after the first measured round. The ledger showed where
+a run's money goes: about 45% writing tool results to the prompt cache, 30%
+re-reading the whole context on every turn, 20% output. A long loop (40–80
+turns of searches and fetches) therefore costs by its length, and Opus made
+every turn 2.5× dearer: discovery and research for six desks came to $65.91.
+So the cheap model runs the loops (diligence — the operator picks the
+candidate, the verifier catches what research missed) and the dear model
+runs the short passes where the judgment lives. Both loop prompts now carry a
+search / fetch budget, which saves more than the model swap, and every phase
+has a `maxTurns` safety cap (`MAX_TURNS` in `pipeline.config.ts`; a capped
+run exits 3 and still lands in the ledger). The panel stays on Sonnet so it
+never judges its own prose, and a slightly less capable reader is the better
+proxy for a cold one. The previous pins —
+`claude-sonnet-4-6` and `claude-opus-4-1` — are a generation old, and Opus 4.1
+**retired on 2026-08-05**: a draft or stylist run on the old config fails
+with a model-not-found error. The runner names the model in that error now.
 
 ---
 
-## Approximate cost per run (May 2026 rates)
+## What a run costs — measured, not estimated
 
-| Phase | Model | Typical token range | Approx cost |
-|---|---|---|---|
-| discover | Sonnet | 30 K–80 K | $0.30–0.80 |
-| research | Sonnet | 80 K–200 K | $0.80–2.00 |
-| draft | Opus | 60 K–150 K | $3.00–7.50 |
-| stylist | Opus | 30 K–80 K | $1.50–2.50 |
-| verify | Sonnet | 40 K–100 K | $0.40–1.00 |
+Every `npm run pipeline:<phase>` appends one JSON line to
+`research/_costs/ledger.jsonl`: the SDK's own `total_cost_usd`, the token
+split (fresh input · cache write · cache read · output), web searches, turns
+and wall-clock, tagged with the desk, the issue slug, the phase, the agent and
+the model. The ledger is tracked in git — it is the operator's cost record.
 
-**Full 6-category run (all five phases):** approximately $36–84 on the API.
+```bash
+npm run pipeline:costs                        # per issue: each agent's runs, cost, tokens; subtotals; per-agent averages; grand total
+npm run pipeline:costs -- --since 2026-09-16  # one round
+npm run pipeline:costs -- --category earth    # one desk
+npm run pipeline:costs -- --json              # the raw rows
+```
+
+Discovery rows belong to the desk (slug `(discovery)`); every other row to
+the issue whose dossier / storyboard / draft the phase worked on. Read the
+report before quoting a per-issue figure anywhere — the estimates that used
+to sit here were a generation of prices old.
+
+Two things the footer's token line shows (measured 2026-09-16): every run
+writes its first turn — the CLI's own prompt, the tool schemas, the agent
+definition, ~35–50 K tokens — to a one-hour prompt cache and reads it after,
+so a short run's cost is mostly that write; and the runner passes
+`strictMcpConfig`, because the SDK's spawned CLI otherwise inherits every MCP
+server the desktop app has registered on the machine (seven claude.ai
+connectors, 196 tool schemas instead of 28) into each run's context.
 
 For comparison, routing all agent work through Claude Pro would consume
 roughly 2–4 hours of the 5-hour Pro usage limit window — leaving little
@@ -151,11 +208,12 @@ Agent definitions (the system prompts the pipeline uses) live in
 `stylist.md`, `verifier.md`. These are the same agents used by the slash
 commands in Claude Code; the pipeline CLI simply calls them directly via the SDK.
 
-The stylist agent reads `research/_voice/mode-library.md` at runtime — an
-890-line canonical voice reference containing 8 rhetorical modes (AWE,
-CONVERSATIONAL EXPLAINER, CALM-STRUCTURAL, SATIRICAL EXPOSURE, DRY WIT,
-INVESTIGATION, FORENSIC, LYRICAL COMPRESSION) with sentence rhythm recipes,
-opening templates, lexical defaults, and failure modes per mode.
+The writing agents (composer, drafter, stylist, reader-panel, verifier) read
+`research/_voice/_voice-core.md` v2 at runtime — the register contract: plain
+Indian English, hand-held, a Hindi word only where it is the natural word,
+the eight rhetorical jobs and the twenty-two AI tells. `mode-library.md` is
+the deeper reference for the eight jobs and loses to the contract where they
+disagree.
 
 ---
 
@@ -170,7 +228,12 @@ wrong directory.
 
 **`No candidate with status: chosen`**
 → Open the candidates file and change exactly one `status: open` to
-`status: chosen`, then save.
+`status: chosen`, then save — or pass `--candidate C-NN` and leave the file
+alone (the second pick of a desk, in a two-per-desk round).
+
+**`No dossier found in research/<cat>/ matching --slug <slug>`**
+→ The slug is the dossier's, without the date: `glacier-lake-outburst`, not
+`2026-09-16-glacier-lake-outburst`. `ls research/<cat>/*-dossier.md` shows them.
 
 **`No dossier found in research/<cat>/`**
 → Run `pipeline:research` before `pipeline:draft`.

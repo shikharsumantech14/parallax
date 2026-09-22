@@ -19,7 +19,9 @@
  *
  * Flags (the contract is research/_voice/_voice-core.md v2):
  *   ❌ blocking  HINDI-SCRIPT · HINDI-FIELD · NUMBER-DRIFT
- *   ⚠️ warning   everything else — see FLAGS below
+ *   ⚠️ warning   everything else — see FLAGS below, including the four
+ *                diversity floors added 2026-09-16 (REGISTER-PLAN §5.1):
+ *                FEW-GRAPHICS · CARD-HEAVY · NO-NEW-KIND · SOURCE-NARROW
  * Report mode never fails; --gate fails on ❌ only, so a warning never breaks
  * a deploy until the operator promotes it.
  *
@@ -65,12 +67,28 @@ const T = {
   ariGrade: 9,
   blocksPerSection: 3,
   hindiLoadBearingShare: 0.4,
+  // The diversity floors (2026-09-16). Measured before they were set: the ten
+  // published issues used `you-think` in ten of ten and the four plain-language
+  // cards for most "visual" sections; 76 of 101 kinds never published; four
+  // issues on one or two publishers.
+  graphicShare: 0.4,
+  graphicKinds: 3,
+  plainCardsPerIssue: 3,
+  newKinds: 2,
+  sourcesMin: 8,
+  sourceHosts: 5,
+  sourceTopShare: 0.4,
 };
 
 // Kinds that carry no graphic. `paradox` is two blocks of prose (REGISTER-PLAN §1.3).
 // The narrative set plus `paradox`; `jargon-buster` and `three-steps` (RG-09) render cells and cards, not a graphic.
 const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox', 'jargon-buster', 'three-steps']);
 const WORKHORSES = new Set(['prose', 'data-readout', 'timeline', 'paradox', 'quote', 'comparison']);
+// Typographic cards: visual for the 60% floor, but not DRAWN graphics (2026-09-16).
+// `jargon-buster` and `three-steps` are already in TEXT_ONLY.
+const CARD_KINDS  = new Set(['you-think', 'number-sense', 'data-readout']);
+const PLAIN_CARDS = new Set(['you-think', 'number-sense', 'jargon-buster', 'three-steps']);
+const isGraphic   = (k) => !TEXT_ONLY.has(k) && !CARD_KINDS.has(k);
 // The precision layer: English only (contract §2, precision test).
 const PRECISION_FIELDS = new Set(['caption', 'howToRead', 'plain', 'source', 'label', 'unit', 'attribution']);
 // Data keys that are never prose.
@@ -200,6 +218,16 @@ const slugs = readdirSync(issuesDir, { withFileTypes: true })
 const summary = [];
 let blockingTotal = 0;
 
+// Kinds already in front of readers, per published issue — NO-NEW-KIND asks
+// what an issue brings that no OTHER published issue has (2026-09-16).
+const publishedKinds = new Map();
+for (const s of readdirSync(issuesDir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith('_')).map((e) => e.name)) {
+  const f = join(issuesDir, s, 'index.mdx');
+  if (!existsSync(f)) continue;
+  const d = matter(readFileSync(f, 'utf-8')).data;
+  if (d.status === 'published') publishedKinds.set(s, new Set((Array.isArray(d.sections) ? d.sections : []).map((x) => x.kind)));
+}
+
 for (const slug of slugs) {
   const file = join(issuesDir, slug, 'index.mdx');
   if (!existsSync(file)) continue;
@@ -247,6 +275,25 @@ for (const slug of slugs) {
   const proseSecs = sectionsArr.filter((s) => s.kind === 'prose');
   if (proseSecs.length > T.proseSections) flag('⚠️', 'PROSE-COUNT', 'sections', `${proseSecs.length} prose sections, cap ${T.proseSections}`);
   if (!kinds.some((k) => !WORKHORSES.has(k) && !TEXT_ONLY.has(k))) flag('⚠️', 'WORKHORSE-ONLY', 'sections', 'no kind from outside prose/data-readout/timeline/paradox/quote/comparison');
+
+  // — The diversity floors (REGISTER-PLAN §5.1, added 2026-09-16) —
+  const graphicKinds = [...new Set(kinds.filter(isGraphic))];
+  const graphics = kinds.filter(isGraphic).length;
+  const graphicShare = kinds.length ? graphics / kinds.length : 0;
+  if (kinds.length && (graphicShare < T.graphicShare || graphicKinds.length < T.graphicKinds)) flag('⚠️', 'FEW-GRAPHICS', 'sections', `${graphics}/${kinds.length} drawn graphics (${Math.round(graphicShare * 100)}%), ${graphicKinds.length} graphic kind(s) — floor ${Math.round(T.graphicShare * 100)}% and ${T.graphicKinds} kinds; you-think / number-sense / data-readout / jargon-buster / three-steps are cards, not graphics`);
+  const plainCards = kinds.filter((k) => PLAIN_CARDS.has(k));
+  const cardDupes = [...PLAIN_CARDS].filter((k) => kinds.filter((x) => x === k).length > 1);
+  if (plainCards.length > T.plainCardsPerIssue || cardDupes.length) flag('⚠️', 'CARD-HEAVY', 'sections', `${plainCards.length} plain-language cards (${plainCards.join(', ')}), cap ${T.plainCardsPerIssue} and one of each${cardDupes.length ? ` — repeated: ${cardDupes.join(', ')}` : ''}`);
+  const seenElsewhere = new Set();
+  for (const [s, ks] of publishedKinds) if (s !== slug) for (const k of ks) seenElsewhere.add(k);
+  const newKinds = graphicKinds.filter((k) => !seenElsewhere.has(k));
+  if (kinds.length && newKinds.length < T.newKinds) flag(status === 'published' ? 'ℹ' : '⚠️', 'NO-NEW-KIND', 'sections', `${newKinds.length} graphic kind(s) new to the publication (${newKinds.join(', ') || '—'}), floor ${T.newKinds} — the ledger is docs/generated/PROJECT-GRAPH.md`);
+  const srcs = Array.isArray(fm.sources) ? fm.sources : [];
+  const hosts = new Map();
+  for (const s of srcs) { let h; try { h = new URL(String(s.url)).hostname.replace(/^www[.]/, ''); } catch { h = String(s.publisher ?? s.url ?? '?'); } hosts.set(h, (hosts.get(h) ?? 0) + 1); }
+  const topHost = [...hosts].sort((a, b) => b[1] - a[1])[0];
+  const topShare = srcs.length && topHost ? topHost[1] / srcs.length : 0;
+  if (srcs.length < T.sourcesMin || hosts.size < T.sourceHosts || topShare > T.sourceTopShare) flag('⚠️', 'SOURCE-NARROW', 'sources', `${srcs.length} sources from ${hosts.size} publisher(s)${topHost ? `, ${topHost[0]} carries ${Math.round(topShare * 100)}%` : ''} — floor ${T.sourcesMin} sources, ${T.sourceHosts} publishers, none above ${Math.round(T.sourceTopShare * 100)}%`);
 
   // words before the first graphic: head + everything up to and including the first visual section's intro
   let before = wc(head.title) + wc(head.dek) + wc(head.hook) + wc(head.primer);
@@ -450,8 +497,8 @@ for (const slug of slugs) {
   const blocking = flags.filter((f) => f.sev === '❌').length;
   blockingTotal += blocking;
   const warn = flags.filter((f) => f.sev === '⚠️').length;
-  summary.push({ slug, status, readerWords, sections: kinds.length, visual: `${visual}/${kinds.length}`, before, names: nameSet.size, blocking, warn });
-  console.log(`\n${status === 'published' ? '●' : '○'} ${slug}  [${status}]  ${readerWords} reader words · ${kinds.length} sections, ${visual} visual · ${before} words before the first graphic · ${nameSet.size} names`);
+  summary.push({ slug, status, readerWords, sections: kinds.length, visual: `${visual}/${kinds.length}`, graphics: `${graphics}/${kinds.length}`, newKinds: newKinds.length, sources: `${srcs.length}/${hosts.size}`, before, names: nameSet.size, blocking, warn });
+  console.log(`\n${status === 'published' ? '●' : '○'} ${slug}  [${status}]  ${readerWords} reader words · ${kinds.length} sections, ${visual} visual, ${graphics} drawn, ${newKinds.length} new kind(s) · ${srcs.length} sources / ${hosts.size} publishers · ${before} words before the first graphic · ${nameSet.size} names`);
   const order = { '❌': 0, '⚠️': 1, 'ℹ': 2 };
   for (const f of flags.sort((x, y) => order[x.sev] - order[y.sev] || x.code.localeCompare(y.code))) console.log(`   ${f.sev} ${f.code.padEnd(18)} ${f.where} — ${f.note}`);
   if (!flags.length) console.log('   clean');
@@ -459,9 +506,9 @@ for (const slug of slugs) {
 
 // ── Summary ─────────────────────────────────────────────────────────────────
 console.log('\n' + '─'.repeat(100));
-console.log('slug'.padEnd(42) + 'status'.padEnd(11) + 'words'.padStart(6) + '  sections  visual   before  names  ❌  ⚠️');
+console.log('slug'.padEnd(42) + 'status'.padEnd(11) + 'words'.padStart(6) + '  sections  visual   drawn  new  src/pub  before  names  ❌  ⚠️');
 for (const r of summary.filter((r) => r.slug)) {
-  console.log(r.slug.padEnd(42) + r.status.padEnd(11) + String(r.readerWords).padStart(6) + String(r.sections).padStart(9) + r.visual.padStart(9) + String(r.before).padStart(8) + String(r.names).padStart(7) + String(r.blocking).padStart(4) + String(r.warn).padStart(4));
+  console.log(r.slug.padEnd(42) + r.status.padEnd(11) + String(r.readerWords).padStart(6) + String(r.sections).padStart(9) + r.visual.padStart(9) + r.graphics.padStart(8) + String(r.newKinds).padStart(5) + r.sources.padStart(9) + String(r.before).padStart(8) + String(r.names).padStart(7) + String(r.blocking).padStart(4) + String(r.warn).padStart(4));
 }
 console.log(`\ncheck-prose: ${summary.filter((r) => r.slug).length} issue(s) · thresholds from docs/REGISTER-PLAN.md · ${GATE ? 'GATE mode (published only)' : 'report mode'}`);
 if (GATE && blockingTotal) { console.error(`check-prose: ${blockingTotal} blocking flag(s).`); process.exit(1); }
