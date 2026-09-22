@@ -228,7 +228,7 @@
 - **DON'T USE:** point values at exact coordinates (→ `data-globe`); anything that needs spinning to see (→ `data-globe`).
 - **DATA:** `{ projection?, palette?, zones?: [{id, label?, value, note?}], markers?: [{lat, lng, label?, kind?}], legend?: {title?, low?, high?, none?} }`
 - **PLAIN:** "A flat world map where each shaded region encodes its value; the legend gives the scale."
-- **NOTES:** earth signature; hero-capable; free-standing cartographic SVG (kept its `px-` classes; SVG conventions in `src/components/AGENTS.md` §5).
+- **NOTES:** earth signature; hero-capable; free-standing cartographic SVG (kept its `px-` classes; SVG conventions in `src/components/AGENTS.md` §5). **The projection FRAMES ITS DATA** (2026-09-22): it is fitted with `fitExtent` to the geographic extent of the zones that carry a value plus every marker, padded ~8% of the viewBox, capped at 6x world scale so one small country cannot fill the card — but it keeps the old world framing when the zones span more than 150° of longitude, or when the fit would not zoom in at all. Countries with no value stay drawn as context wherever the frame falls across them. Labels are 9.5px; markers are placed first and never yield, and a zone label that cannot find a free vertical slot (0, ±12, ±24) is DROPPED rather than stacked — so on a crowded map the marker beneath it carries the name.
 
 ## climate-strip
 - **World/Tier:** earth · v2 kit `.cs` (warming stripes) · `src/components/topic/earth/ClimateStrip.astro`

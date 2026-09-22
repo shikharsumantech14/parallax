@@ -859,10 +859,13 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
        makes a 600px-tall block for a figure whose whole point is one legible
        ring. Radial forms want a redraw, not a scroll.
 
-   ALSO FOUND, and NOT a geometry problem: region-map renders at 7.5px even at
-   scale 1, because its labels are AUTHORED at 7.5px — below the 9.5px floor
-   the type harvest set. That is a type-scale fix in the component, and it is
-   the operator's call, not this rule's.
+   ALSO FOUND, and NOT a geometry problem: region-map rendered below the floor
+   even at scale 1, because its labels were AUTHORED under it — 9px on the zone
+   names and 8.5px on the marker names. RESOLVED 2026-09-22: both are 9.5px
+   now, the floor the type harvest set, with an overlap pass in the component
+   (markers placed first, zone labels offset vertically or dropped) so the
+   larger type cannot collide. The min-width below already gives this SVG
+   scale 1 on a phone, so 9.5px authored is 9.5px rendered there.
    ========================================================================== */
 @media (max-width: 900px) {
   /* The CARD scrolls, so the page never does.

@@ -1,8 +1,11 @@
 ---
 /*
-  RegionMap v2 — build-time choropleth world map.
+  RegionMap v2 — build-time choropleth map.
   50m Natural Earth resolution. Transparent SVG — integrates with page bg.
   Legend lives inside the SVG as a cartographic box. Zero runtime JS.
+
+  Since 2026-09-22 the projection FRAMES ITS DATA rather than the globe —
+  see the projection block below.
 
   Zone IDs: ISO 3166-1 numeric strings
     India = "356"   Brazil = "076"   China = "156"   USA = "840"
@@ -15,7 +18,7 @@
     South Africa = "710"  Nigeria = "566"  Ethiopia = "231"  DR Congo = "180"
     Egypt = "818"   Kenya = "404"   Tanzania = "834"  Sudan = "729"
 */
-import { geoNaturalEarth1, geoMercator, geoPath, geoGraticule } from 'd3-geo';
+import { geoNaturalEarth1, geoMercator, geoPath, geoGraticule, geoBounds } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, Objects } from 'topojson-specification';
 import { readFileSync } from 'fs';
@@ -62,19 +65,93 @@ const {
 const W = 800;
 const H = 452;
 
-// ── Projection ──────────────────────────────────────────────────────────────
-const projFn = projName === 'mercator'
-  ? geoMercator().scale(128).translate([W / 2, H / 1.85])
-  : geoNaturalEarth1().scale(140).translate([W / 2, H / 2 + 20]);
-
-const pathGen  = geoPath(projFn);
-const gratGen  = geoGraticule().step([20, 20]);
-
 // ── Topology — 50m for sharp coastlines ─────────────────────────────────────
 const topo = JSON.parse(
   readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-50m.json'), 'utf-8')
 ) as Topology<Objects<{}>>;
 const countriesFC = feature(topo, topo.objects['countries'] as any);
+
+/* ── Projection: FRAME THE AUTHORED DATA, not the globe (2026-09-22) ─────────
+   Both projections used to be pinned to world scale (140 / 128), so an issue
+   about Indonesia drew the whole planet and crammed its thirteen labels into
+   one corner. The projection is now FITTED to the geographic extent of the
+   countries that carry a value PLUS every marker, padded by ~8% of the
+   viewBox on each side.
+
+   Two guards keep the fit honest:
+     · CEILING — the scale is capped at 6x world scale. Past that one small
+       country fills the card and the reader loses the surrounding coastline
+       that tells them where on Earth they are looking.
+     · WORLD FLOOR — if the zones span more than 150 deg of longitude (a
+       genuinely global story, e.g. "where India's arrivals come from"), or if
+       the fit would not zoom in past world scale at all, the map keeps its
+       world framing exactly as before.
+
+   Countries with no value are still drawn — they are the context the frame
+   falls across. clipExtent trims the drawn geometry to the card rather than
+   emitting path strings for continents that are entirely off-screen.
+*/
+const WORLD_SCALE = projName === 'mercator' ? 128 : 140;
+const MAX_SCALE = WORLD_SCALE * 6;   // ceiling
+const PAD_X = Math.round(W * 0.08);  // 64
+const PAD_Y = Math.round(H * 0.08);  // 36
+const WORLD_LON_SPAN = 150;          // wider than this keeps world framing
+
+const projFn = projName === 'mercator' ? geoMercator() : geoNaturalEarth1();
+
+function frameWorld() {
+  if (projName === 'mercator') projFn.scale(128).translate([W / 2, H / 1.85]);
+  else projFn.scale(140).translate([W / 2, H / 2 + 20]);
+}
+frameWorld();
+
+const zoneIds = new Set(zones.map(z => String(z.id)));
+const fitFeatures: any[] = [
+  ...(countriesFC.features as any[]).filter((f: any) => zoneIds.has(String(f.id))),
+  ...markers.map(m => ({
+    type: 'Feature',
+    properties: {},
+    geometry: { type: 'Point', coordinates: [m.lng, m.lat] },
+  })),
+];
+
+let framed = false;   // true = fitted to the data; false = the old world framing
+let lonSpan = 360;
+
+if (fitFeatures.length > 0) {
+  const fitFC = { type: 'FeatureCollection', features: fitFeatures } as any;
+  const [[lon0, lat0], [lon1, lat1]] = geoBounds(fitFC);
+  // geoBounds returns a wrapped range when the extent crosses the antimeridian.
+  lonSpan = lon1 >= lon0 ? lon1 - lon0 : 360 - (lon0 - lon1);
+
+  if (Number.isFinite(lonSpan) && Number.isFinite(lat0) && lonSpan <= WORLD_LON_SPAN) {
+    projFn.fitExtent([[PAD_X, PAD_Y], [W - PAD_X, H - PAD_Y]], fitFC);
+    const fitScale = projFn.scale();
+
+    if (Number.isFinite(fitScale) && fitScale > WORLD_SCALE * 1.05) {
+      const scale = Math.min(fitScale, MAX_SCALE);
+      if (scale !== fitScale) {
+        // Capped by the ceiling — re-centre the extent in the card by hand.
+        let lonC = lon0 + lonSpan / 2;
+        if (lonC > 180) lonC -= 360;
+        const latC = (lat0 + lat1) / 2;
+        projFn.scale(scale).translate([0, 0]);
+        const p = projFn([lonC, latC]) ?? [0, 0];
+        projFn.translate([W / 2 - p[0], H / 2 - p[1]]);
+      }
+      framed = true;
+    } else {
+      frameWorld();   // the fit wanted world scale or wider — keep the globe
+    }
+  }
+}
+
+if (framed) projFn.clipExtent([[0, 0], [W, H]]);
+
+const pathGen = geoPath(projFn);
+// A 20 deg graticule is invisible once we are zoomed in; step down with the span.
+const gratStep = !framed ? 20 : lonSpan > 60 ? 10 : lonSpan > 24 ? 5 : 2;
+const gratGen = geoGraticule().step([gratStep, gratStep]);
 
 // ── Colour palettes ──────────────────────────────────────────────────────────
 const PALETTES: Record<Palette, [string, string, string]> = {
@@ -115,16 +192,89 @@ const paths = (countriesFC.features as any[])
   .filter(Boolean) as { d: string; id: string; fill: string; active: boolean }[];
 
 const graticulePath = pathGen(gratGen() as any) ?? '';
-const spherePath    = pathGen({ type: 'Sphere' } as any) ?? '';
+const spherePath = framed ? '' : (pathGen({ type: 'Sphere' } as any) ?? '');
 
-// ── Project markers ──────────────────────────────────────────────────────────
+// ── Legend geometry (inside SVG, lower-left) ─────────────────────────────────
+const LX = 16, LY = H - 86, LW = 178, LH = 72;
+const RY = LY + 30, RW = LW - 22, RH = 11;
+const hasLegend = zones.length > 0;
+
+/* ── Label placement (2026-09-22) ────────────────────────────────────────────
+   Labels are authored at 9.5px — the floor the 2026-09-07 type harvest set.
+   They were 9px (zones) and 8.5px (markers), which the mobile-legibility block
+   in dataviz-v2.css recorded as below the floor.
+
+   THE OVERLAP RULE, chosen once here so it is not re-decided per map:
+     · MARKERS ARE PLACED FIRST AND NEVER YIELD to a zone label. A marker names
+       one exact point the section is about; a country label only names the fill
+       it sits on, and the legend already explains the fill.
+     · Two labels collide when their boxes overlap — each box is one label
+       height (12px) tall, so in practice: vertical centres within a label
+       height of each other AND horizontal overlap of the estimated text width.
+     · A colliding label is offset VERTICALLY ONLY — 0, −12, +12, −24, +24 in
+       that order (a marker label may also flip to the other side of its dot).
+       Vertical-only keeps a country label over its own country.
+     · If no offset in that ladder is free, the label is DROPPED. For a zone
+       that means the marker sitting on it carries the name, which is the more
+       specific label anyway; two labels stacked on each other read as neither.
+     · The legend box, every marker dot and the card edge are pre-occupied, so
+       no label can land under the legend or bleed outside the SVG.
+*/
+/* Width model, MEASURED off the rendered SVG rather than guessed (the first
+   pass guessed 0.74em/char for the caps and let MADAGASCAR sit on ANGOLA).
+   Per-character advance tops out at 8.6 for the tracked serif caps and 5.7
+   for the mono, and every label carries a halo stroke that adds ~6 to the
+   painted box. Both numbers are deliberately the worst case — over-reserving
+   only makes the pass move a label that would just have cleared. */
+const LABEL_FS = 9.5;
+const LABEL_H = 12;                // measured painted height is 11
+const ZONE_CH = 8.6, ZONE_HALO = 6;   // serif caps + .12em tracking
+const MARK_CH = 5.7, MARK_HALO = 6;   // mono + .06em tracking
+const EDGE = 6;
+
+type Box = { x0: number; x1: number; y0: number; y1: number };
+const occupied: Box[] = [];
+if (hasLegend) occupied.push({ x0: LX - 2, x1: LX + LW + 2, y0: LY - 2, y1: LY + LH + 2 });
+
+function place<T extends { x0: number; x1: number; y: number }>(options: T[]): T | null {
+  for (const o of options) {
+    const b: Box = { x0: o.x0, x1: o.x1, y0: o.y - LABEL_H / 2, y1: o.y + LABEL_H / 2 };
+    if (b.x0 < EDGE || b.x1 > W - EDGE || b.y0 < EDGE || b.y1 > H - EDGE) continue;
+    if (occupied.some(p => b.x0 < p.x1 && b.x1 > p.x0 && b.y0 < p.y1 && b.y1 > p.y0)) continue;
+    occupied.push(b);
+    return o;
+  }
+  return null;
+}
+
+// ── Project markers (placed first — they win every collision) ────────────────
 const projMarkers = markers
   .map(m => {
     const pt = projFn([m.lng, m.lat]);
-    if (!pt) return null;
-    return { ...m, x: Math.round(pt[0]), y: Math.round(pt[1]) };
+    if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) return null;
+    const x = Math.round(pt[0]), y = Math.round(pt[1]);
+    if (x < 0 || x > W || y < 0 || y > H) return null;
+    return { ...m, x, y };
   })
   .filter(Boolean) as (Marker & { x: number; y: number })[];
+
+// The dots themselves block labels before any text is placed.
+projMarkers.forEach(m => occupied.push({ x0: m.x - 8, x1: m.x + 8, y0: m.y - 8, y1: m.y + 8 }));
+
+const MARK_DY = [0, -LABEL_H, LABEL_H, -2 * LABEL_H, 2 * LABEL_H, -3 * LABEL_H, 3 * LABEL_H];
+const placedMarkers = projMarkers.map(m => {
+  const blank = { ...m, lx: 10, ly: 0, anchor: 'start' as 'start' | 'end', showLabel: false };
+  if (!m.label) return blank;
+  const w = m.label.length * MARK_CH + MARK_HALO;
+  const options: { x0: number; x1: number; y: number; dx: number; anchor: 'start' | 'end' }[] = [];
+  for (const dy of MARK_DY) {
+    options.push({ x0: m.x + 8, x1: m.x + 12 + w, y: m.y + dy, dx: 10, anchor: 'start' });
+    options.push({ x0: m.x - 12 - w, x1: m.x - 8, y: m.y + dy, dx: -10, anchor: 'end' });
+  }
+  const got = place(options);
+  if (!got) return blank;
+  return { ...m, lx: got.dx, ly: got.y - m.y, anchor: got.anchor, showLabel: true };
+});
 
 // ── Zone label centroids ─────────────────────────────────────────────────────
 const labels = zones
@@ -133,14 +283,17 @@ const labels = zones
     const feat = (countriesFC.features as any[]).find((f: any) => String(f.id) === z.id);
     if (!feat) return null;
     const c = pathGen.centroid(feat);
-    if (!c || isNaN(c[0])) return null;
-    return { text: z.label!.toUpperCase(), x: Math.round(c[0]), y: Math.round(c[1]) };
+    if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) return null;
+    const text = z.label!.toUpperCase();
+    const w = text.length * ZONE_CH + ZONE_HALO;
+    const x = Math.round(c[0]), y = Math.round(c[1]);
+    const got = place([0, -LABEL_H, LABEL_H, -2 * LABEL_H, 2 * LABEL_H].map(dy => ({
+      x0: x - w / 2 - 2, x1: x + w / 2 + 2, y: y + dy,
+    })));
+    if (!got) return null;   // dropped — a marker or the legend already owns that spot
+    return { text, x, y: got.y };
   })
   .filter(Boolean) as { text: string; x: number; y: number }[];
-
-// ── Legend geometry (inside SVG, lower-left) ─────────────────────────────────
-const LX = 16, LY = H - 86, LW = 178, LH = 72;
-const RY = LY + 30, RW = LW - 22, RH = 11;
 
 // ── Zone notes ───────────────────────────────────────────────────────────────
 const notes = zones.filter(z => z.note);
@@ -158,7 +311,9 @@ const notes = zones.filter(z => z.note);
   >
     <defs>
       <clipPath id="px-sphere-clip">
-        <path d={spherePath} />
+        {framed
+          ? <rect x="0" y="0" width={W} height={H} />
+          : <path d={spherePath} />}
       </clipPath>
 
       <!-- Ocean: radial gradient — lighter centre, deeper at the rim -->
@@ -180,11 +335,15 @@ const notes = zones.filter(z => z.note);
       </linearGradient>
     </defs>
 
-    <!-- ① Ocean fill -->
-    <path d={spherePath} fill="url(#px-ocean)" />
+    <!-- ① Ocean fill — the globe when world-framed, the whole card when fitted -->
+    {framed
+      ? <rect x="0" y="0" width={W} height={H} fill="url(#px-ocean)" />
+      : <path d={spherePath} fill="url(#px-ocean)" />}
 
     <!-- ② Water ruling texture -->
-    <path d={spherePath} fill="url(#px-water-rule)" opacity="0.22" clip-path="url(#px-sphere-clip)" />
+    {framed
+      ? <rect x="0" y="0" width={W} height={H} fill="url(#px-water-rule)" opacity="0.22" />
+      : <path d={spherePath} fill="url(#px-water-rule)" opacity="0.22" clip-path="url(#px-sphere-clip)" />}
 
     <!-- ③ Graticule grid -->
     <path
@@ -217,8 +376,8 @@ const notes = zones.filter(z => z.note);
       ))}
     </g>
 
-    <!-- ⑥ Sphere outline — globe edge / neat line -->
-    <path d={spherePath} fill="none" stroke="#6e9a8e" stroke-width="1.5" />
+    <!-- ⑥ Sphere outline — globe edge / neat line (world framing only) -->
+    {!framed && <path d={spherePath} fill="none" stroke="#6e9a8e" stroke-width="1.5" />}
 
     <!-- ⑦ SVG border frame -->
     <rect
@@ -226,13 +385,13 @@ const notes = zones.filter(z => z.note);
       fill="none" stroke="#8aaa9c" stroke-width="0.6" opacity="0.5"
     />
 
-    <!-- ⑧ Zone labels (Cormorant Garamond, white with dark halo) -->
+    <!-- ⑧ Zone labels (display serif, warm paper on a dark halo) -->
     {labels.map(l => (
       <text
         x={l.x} y={l.y}
         text-anchor="middle"
         dominant-baseline="central"
-        style="font-family:'Fraunces',Georgia,serif;font-size:9px;font-weight:700;letter-spacing:0.12em;"
+        style="font-family:'Fraunces',Georgia,serif;font-size:9.5px;font-weight:700;letter-spacing:0.12em;"
         fill="#f4ecd8"
         paint-order="stroke"
         stroke="rgba(18,12,2,0.60)"
@@ -244,7 +403,7 @@ const notes = zones.filter(z => z.note);
     ))}
 
     <!-- ⑨ Markers -->
-    {projMarkers.map(m => {
+    {placedMarkers.map(m => {
       const accent =
         m.kind === 'event'      ? '#961a10' :
         m.kind === 'data-point' ? '#165c34' : '#9a4420';
@@ -252,11 +411,12 @@ const notes = zones.filter(z => z.note);
         <g transform={`translate(${m.x},${m.y})`}>
           <circle r="6.5" fill="none" stroke={accent} stroke-width="0.9" opacity="0.35" />
           <circle r="3.5"  fill={accent} stroke="#f4ead0" stroke-width="1.2" />
-          {m.label && (
+          {m.label && m.showLabel && (
             <text
-              x="10" y="0.5"
+              x={m.lx} y={m.ly + 0.5}
+              text-anchor={m.anchor}
               dominant-baseline="central"
-              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8.5px;letter-spacing:0.06em;"
+              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:0.06em;"
               fill="#1c2218"
               paint-order="stroke"
               stroke="rgba(244,234,208,0.90)"
@@ -271,7 +431,7 @@ const notes = zones.filter(z => z.note);
     })}
 
     <!-- ⑩ Cartographic legend box (lower-left, inside SVG) -->
-    {zones.length > 0 && (
+    {hasLegend && (
       <>
         <!-- Background with slight transparency -->
         <rect
