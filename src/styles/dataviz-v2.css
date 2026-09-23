@@ -29,9 +29,11 @@
   display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
   margin-bottom: 22px;
   /* The ⤢ study button (modal.css `.px-vexp`) sits absolutely at the card's
-     top-right, 30px wide at 10px in. Without this reserve the chip and the
-     button share the same corner and collide on hover — measured live on
-     every card with a chip, 2026-09-22. */
+     top-right on a hover-capable wide screen, 30px wide at 10px in. Without
+     this reserve the chip and the button share the same corner and collide
+     on hover — measured live on every card with a chip, 2026-09-22. On touch
+     and phones the button is an in-flow row under the graphic instead
+     (2026-09-23), so the reserve is released below. */
   padding-right: 44px;
   font-family: var(--font-display);
   font-weight: 500;
@@ -60,8 +62,12 @@
   max-width: 40%;
   text-align: right;
 }
+/* No corner button here: the same three conditions as modal.css's in-flow
+   `.px-vexp` row, so the caption takes the full width back. */
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+  .px-viz__cap { padding-right: 0; }
+}
 @media (max-width: 640px) {
-  /* The reserve stays: the ⤢ button is at the same corner on a phone. */
   .px-viz__cap { flex-wrap: wrap; }
   .px-viz__cap b { max-width: 100%; text-align: left; }
 }
@@ -366,7 +372,13 @@ html.js .px-viz:not(.is-in) .ls__bar { height: 0; }
 .cs__strip { display: flex; height: 150px; border-radius: 8px; overflow: hidden; position: relative; }
 .cs__bar { flex: 1; transform: scaleY(1); transform-origin: bottom; transition: transform 700ms var(--ease); }
 html.js .px-viz:not(.is-in) .cs__bar { transform: scaleY(0); }
-.cs__overlay { position: absolute; inset: 0; pointer-events: none; }
+/* An absolutely positioned <svg> is a REPLACED element: `inset: 0` does not
+   stretch it, it takes its height from the viewBox ratio instead. At 1280 that
+   made the overlay 201px tall on a 150px strip and the strip cut the trend
+   line's lower 51px off; at 375 it was 78px tall and the line was squashed
+   into the top half (measured 2026-09-23). The explicit size is the fix —
+   preserveAspectRatio="none" then maps the viewBox onto the strip exactly. */
+.cs__overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .cs__path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1600ms var(--ease) 400ms; }
 html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
 .cs__axis { display: flex; justify-content: space-between; margin-top: 10px; font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
@@ -407,13 +419,14 @@ html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
 html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
 .bc__row[data-hl="true"] .bc__fill { background: var(--accent); }
 .bc__val { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
-.bc__ref { position: relative; height: 0; }
-.bc__refline { position: absolute; top: -8px; bottom: 0; border-left: 2px dashed var(--accent); }
-.bc__reflabel { position: absolute; top: -20px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
-/* A reference line near the right edge pushes its centred label past the
-   card ("Premier League average, 2024/25" measured 12–19px over on a phone,
-   2026-09-22). Past 70% of the track the label hangs to the LEFT of the line. */
-.bc__reflabel[data-side='left'] { transform: translateX(-100%); padding-right: 6px; }
+/* The reference row: in flow between the caption and the bars (never hung
+   above a zero-height box, where it printed into the caption row and the
+   unit chip, 2026-09-23). The label wraps; the component pads it to start or
+   end beside the line. The dashed tick drops from under the label to the
+   first bar's track (5px row padding). */
+.bc__ref { position: relative; padding-bottom: 10px; }
+.bc__refline { position: absolute; bottom: -5px; height: 13px; margin-left: -1px; border-left: 2px dashed var(--accent); }
+.bc__reflabel { display: block; font-family: var(--font-mono); font-size: 9px; line-height: 1.4; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
 
 /* ──────────────────────────────────────────────────────────────────────────
    ADOPTION CURVE (tech) — S-curve, animated draw, milestone pins
@@ -528,7 +541,10 @@ html.js .px-viz:not(.is-in) .pr__stat-fill { width: 0; }
   background: var(--paper);
   border-radius: var(--r-card);
   padding: 28px;
-  max-width: 640px;
+  /* No cap of its own (2026-09-23). The kit's 640px was set for a prose
+     column wider than the card; on the floor plan it left the card 78px
+     short of the 720 measure every other figure fills, flush left under
+     text that runs on. The section decides the width, as for any figure. */
   border: 1px solid var(--rule);
   position: relative;
 }
@@ -571,10 +587,18 @@ html.js .vb:not(.is-in) .vb__th { opacity: 0; transform: translateY(-8px); }
   font-family: var(--font-mono); font-size: 10px;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink);
   white-space: nowrap;
+  /* the dashed threshold runs through the label's centre; the card's own
+     ground behind the text keeps it off the glyphs ("352 RE¦QUIRED") */
+  background: var(--paper); padding: 0 4px;
 }
+/* The stamp's own row, right-aligned under the bar (2026-09-23 — laid over the
+   bar it printed on the segment labels). Rotated −8°, the stamp's corners
+   reach ~14px above and below its box: the rail's 22px margin above and the
+   chamber's 20px below absorb them, and the 8px inset keeps the corner off
+   the card padding. */
+.vb__verdict { display: flex; justify-content: flex-end; padding-right: 8px; }
 .vb__stamp {
-  position: absolute; top: 50%; right: 32px;
-  transform: translateY(-50%) rotate(-8deg) scale(1);
+  transform: rotate(-8deg) scale(1);
   font-family: var(--font-mono); font-weight: 700;
   font-size: 26px; letter-spacing: 0.1em;
   color: var(--accent-deep, var(--accent));
@@ -585,7 +609,7 @@ html.js .vb:not(.is-in) .vb__th { opacity: 0; transform: translateY(-8px); }
   transition: opacity var(--t-soft) var(--ease) 1100ms,
               transform var(--t-soft) var(--ease-snap) 1100ms;
 }
-html.js .vb:not(.is-in) .vb__stamp { opacity: 0; transform: translateY(-50%) rotate(0deg) scale(0.7); }
+html.js .vb:not(.is-in) .vb__stamp { opacity: 0; transform: rotate(0deg) scale(0.7); }
 .vb__chamber {
   display: grid;
   grid-template-columns: repeat(44, 1fr);
@@ -653,15 +677,27 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
   background: var(--accent);
   animation: lensPulse 2s infinite;
 }
-.tel__grid { display: grid; grid-template-columns: repeat(3, 1fr); position: relative; }
+/* The grid is the size container the numerals are fitted to (see `.tel__n`),
+   and `--tel-cols` / `--tel-padx` state the geometry that fit reads. */
+.tel__grid {
+  --tel-cols: 3; --tel-padx: 22px;
+  display: grid; grid-template-columns: repeat(var(--tel-cols), 1fr); position: relative;
+  container-type: inline-size;
+}
+.tel[data-cols="2"] .tel__grid { --tel-cols: 2; }
+/* The divider hangs 1px into the next track, so the last column's rule lands
+   just outside the grid and `.tel`'s overflow clips it — whatever the column
+   count. Per-count `nth-child` rules left a doubled edge on tile 3 at three
+   columns and on tiles 4 and 6 at two. */
 .tel__tile {
-  padding: 28px 22px;
+  padding: 28px var(--tel-padx);
   border-right: 1px solid var(--rule);
+  margin-right: -1px;
   position: relative;
   isolation: isolate;
   overflow: hidden;
 }
-.tel__tile:last-child { border-right: none; }
+.tel__tile:last-child { border-right: none; margin-right: 0; }
 /* `emphasis` — the tile the section is actually about. The component has
    written this attribute since the v2 port, but the CSS for it stayed behind
    on the RETIRED `.px-readout__tile` prefix in the six theme files, so the
@@ -691,9 +727,17 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
   100% { opacity: 0; transform: translateX(360%); }
 }
 .tel__val { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+/* The numeral never wraps and is never cut (2026-09-23): its size is the
+   tile's content width over the readout's widest value in em (`--tel-em`,
+   estimated by core/DataReadout.astro), capped at the 40px design size — one
+   size for every tile in the readout. `cqi` is the grid's width; the 1px is
+   the divider. Where container units are unsupported the second declaration
+   drops and the 40px design size stands. */
 .tel__n {
   font-family: var(--font-display); font-weight: 700;
-  font-size: 40px; color: var(--ink);
+  font-size: 40px;
+  font-size: clamp(22px, calc((100cqi / var(--tel-cols, 3) - 2 * var(--tel-padx, 22px) - 1px) / var(--tel-em, 1)), 40px);
+  color: var(--ink);
   letter-spacing: -0.02em; line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -701,8 +745,13 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
 .tel__l { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--ink-soft); line-height: 1.5; }
 .tel__note { font-family: var(--font-body); font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
 @media (max-width: 720px) {
-  .tel__grid { grid-template-columns: 1fr 1fr; }
-  .tel__tile:nth-child(2) { border-right: none; }
+  .tel__grid, .tel[data-cols="2"] .tel__grid { --tel-cols: 2; --tel-padx: 16px; }
+  .tel__tile { padding-block: 22px; }
+  /* A value too long for half a phone card at ~32px takes the full width at
+     40px instead; stacked tiles are divided by a hairline under each. */
+  .tel[data-phone="stack"] .tel__grid { --tel-cols: 1; }
+  .tel[data-phone="stack"] .tel__tile { border-bottom: 1px solid var(--rule); }
+  .tel[data-phone="stack"] .tel__tile:last-child { border-bottom: none; }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -711,8 +760,13 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
    ────────────────────────────────────────────────────────────────────────── */
 .tl { max-width: var(--col-prose); position: relative; }
 .tl::before { content: ''; position: absolute; left: 18px; top: 6px; bottom: 6px; width: 1px; background: var(--rule); }
+/* The date cell (2026-09-23): 80px with no gap let "Feb 18 2025" (79.4px)
+   print 0.6px from its title and wrapped "Mar 27 2019" (85.5px) while its
+   neighbours stayed on one line. Every day-month-year form in the published
+   issues measures 72–91px at this size, so 92px holds them all on one line
+   and the 14px gap keeps a longer date (it wraps at its spaces) off the title. */
 .tl__row {
-  display: grid; grid-template-columns: 80px 1fr;
+  display: grid; grid-template-columns: 92px minmax(0, 1fr); column-gap: 14px;
   align-items: start;
   padding: 18px 0 18px 56px;
   position: relative;
@@ -745,7 +799,8 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
 .tl__note { font-family: var(--font-body); font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; max-width: 56ch; }
 @media (max-width: 720px) {
   .tl__row { grid-template-columns: 1fr; gap: 4px; }
-  .tl__row::before { left: -4px; top: 22px; }
+  /* The node keeps its desktop `left: 12px`, centred on the rail at 18px. A
+     `left: -4px` here put every phone node 16px off the rail it marks. */
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -775,7 +830,7 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   /* vote bar + timeline (standalone roots) */
   .vb:not(.is-in) .vb__seg { transform: scaleX(1) !important; }
   .vb:not(.is-in) .vb__th { opacity: 1 !important; transform: none !important; }
-  .vb:not(.is-in) .vb__stamp { opacity: 0.92 !important; transform: translateY(-50%) rotate(-8deg) scale(1) !important; }
+  .vb:not(.is-in) .vb__stamp { opacity: 0.92 !important; transform: rotate(-8deg) scale(1) !important; }
   .vb:not(.is-in) .vb__mp { opacity: 1 !important; transform: scale(1) !important; }
   .tl:not(.is-in) .tl__row { opacity: 1 !important; transform: none !important; }
 }

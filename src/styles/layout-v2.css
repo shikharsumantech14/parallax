@@ -3,99 +3,93 @@
    ----------------------------------------------------------------------------
    Consumed via `section.layout` → `data-layout` on `.px-section`
    (core/Section.astro). Pure CSS — no per-component changes, no JS. Rhythm
-   rules live in docs/design/CANON.md §3 (≤1 bleed per act; split only for the
-   issue's hero metaphor; never two loud sections adjacent).
+   rules live in docs/design/CANON.md §3.
 
-   Geometry context: everything lives inside .px-wrap (max-width 980px,
-   32px side padding → 916px inner at full width). Breakouts widen a section
-   PAST the wrap while staying centered:  margin-inline: calc((100% − W) / 2)
-   goes negative when W exceeds the wrap's inner width.
+   THE FLOOR-PLAN RULING (2026-09-23). On the launch floor plan a section has
+   exactly two widths: the MEASURE (720, the article's content box) and the
+   COLUMN (858, rule to rule — the 860 grid cell less its two 1px rules).
+   Nothing crosses the rails. They carry the facts
+   and the aside, and the hero is often section 1, so a plate that crosses
+   them covers content — on the ISS issue the split hero hid "Nº 14" and the
+   contents list under its own ground. The old breakouts were derived for the
+   980 single-column frame, where the margins were empty; the floor plan
+   (2026-09-08) put content in the margins and kept the breakouts as
+   half-crossings (1080 on an 860 column), which the operator read, correctly,
+   as components overflowing their column (2026-09-22).
+
+   · default  — everything at the measure.
+   · wide     — the FIGURE spans the column; the text (number, eyebrow, title,
+                intro, how-to-read, caption, plain line) stays at the measure,
+                so the figure breaks out 69px on each side, symmetrically.
+                Flush-left text against the rule with a 720 hairline under an
+                860 figure was the "component mismatch" of 2026-09-22.
+   · bleed, split, split-flip — ALIASES of wide until a design pass re-derives
+                them on the floor plan. The size system's L (1080) cannot exist
+                inside a floor with populated rails, and the sticky two-column
+                split would cramp five of its six published stages (all SVGs
+                drawn at 720) to about 480px. The values stay valid in the
+                schema so nothing stops building; bleed keeps its vertical air.
+                core/Section.astro renders one markup for every layout — the
+                split wrappers (`__copy` / `__stage`) are gone with the grid.
+   · breath   — the whitespace valve: air above and below, the intro set as
+                display copy, LEFT-ALIGNED like every other section. The
+                centred version read as a misaligned block in a left-aligned
+                page, and its `text-align: center` leaked into the jargon
+                cards and step columns it carried.
+
+   Below 1101px there are no rails and every layout is the column.
    ============================================================================ */
 
-/* ── wide — a modest breakout to the full wrap width (980) ────────────────── */
-.px-section[data-layout='wide'] {
-  width: min(var(--col-wide), 100vw - 40px);
-  margin-inline: calc((100% - min(var(--col-wide), 100vw - 40px)) / 2);
-}
-
-/* ── bleed — the big plate (1180), earns its own air ──────────────────────── */
-.px-section[data-layout='bleed'] {
-  width: min(var(--col-bleed), 100vw - 32px);
-  margin-inline: calc((100% - min(var(--col-bleed), 100vw - 32px)) / 2);
-  margin-top: 24px;
-  margin-bottom: 108px;
-}
-
-@media (max-width: 720px) {
-  /* On small screens the wrap padding is 20px; keep 16px gutters, no fancier */
-  .px-section[data-layout='wide'],
-  .px-section[data-layout='bleed'] {
-    width: calc(100vw - 32px);
-    margin-inline: calc((100% - (100vw - 32px)) / 2);
+/* ── wide, and its aliases ─────────────────────────────────────────────────── */
+@media (min-width: 1101px) {
+  .px-floor .px-section[data-layout='wide'],
+  .px-floor .px-section[data-layout='bleed'],
+  .px-floor .px-section[data-layout='split'],
+  .px-floor .px-section[data-layout='split-flip'] {
+    width: calc(100% + 138px);
+    margin-inline: -69px;
+  }
+  /* The text sits at the measure; only the figure takes the column. */
+  .px-floor .px-section[data-layout='wide'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
+  .px-floor .px-section[data-layout='bleed'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
+  .px-floor .px-section[data-layout='split'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
+  .px-floor .px-section[data-layout='split-flip'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain) {
+    margin-inline: 69px;
+  }
+  /* The timeline is a figure too, but it carries its own 720 cap (`.tl` in
+     dataviz-v2.css), so in a wide section it sat flush against the left rule
+     and stopped 138px short of the right one while the text above it started
+     69px in. Lift the cap here so it spans rule to rule like every figure. */
+  .px-floor .px-section:is([data-layout='wide'], [data-layout='bleed'], [data-layout='split'], [data-layout='split-flip']) > .tl {
+    max-width: none;
   }
 }
+.px-section[data-layout='bleed'] { margin-top: 24px; margin-bottom: 72px; }
 
 /* ── breath — the whitespace valve ────────────────────────────────────────── */
-.px-section[data-layout='breath'] {
-  padding-block: 96px 72px;
-  text-align: center;
-}
+.px-section[data-layout='breath'] { padding-block: 72px 40px; }
 .px-section[data-layout='breath'] .px-section__intro {
   font-family: var(--font-display);
   font-size: clamp(19px, 2.6vw, 24px);
   line-height: 1.5;
   color: var(--ink);
   max-width: 560px;
-  margin-inline: auto;
 }
-.px-section[data-layout='breath'] .px-section__num { display: inline-block; }
 @media (max-width: 640px) {
-  .px-section[data-layout='breath'] { padding-block: 64px 48px; }
-}
-
-/* ── split / split-flip — the scrollytelling primitive ────────────────────────
-   Copy column (num/eyebrow/title/intro/plain) beside a STICKY stage holding
-   the viz. The reader scrolls the copy; the viz holds. Pairs with
-   SceneHandle.setState via the Reveal IO for state-switching scenes (P2+).
-   Below 960px it stacks back to the flat flow. */
-@media (min-width: 960px) {
-  .px-section[data-layout='split'],
-  .px-section[data-layout='split-flip'] {
-    display: grid;
-    grid-template-columns: minmax(0, 38ch) minmax(0, 1fr);
-    gap: 0 56px;
-    align-items: start;
-    /* split earns wide geometry so the stage has room */
-    width: min(var(--col-bleed), 100vw - 40px);
-    margin-inline: calc((100% - min(var(--col-bleed), 100vw - 40px)) / 2);
-  }
-  .px-section[data-layout='split-flip'] {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 38ch);
-  }
-  .px-section[data-layout='split-flip'] .px-section__copy { order: 2; }
-  .px-section[data-layout='split-flip'] .px-section__stage { order: 1; }
-
-  .px-section[data-layout='split'] .px-section__stage,
-  .px-section[data-layout='split-flip'] .px-section__stage {
-    position: sticky;
-    top: 88px;
-    min-width: 0;
-  }
-  .px-section[data-layout='split'] .px-section__copy,
-  .px-section[data-layout='split-flip'] .px-section__copy {
-    min-width: 0;
-    padding-bottom: 15vh; /* lets the copy scroll past while the stage holds */
-  }
+  .px-section[data-layout='breath'] { padding-block: 48px 32px; }
 }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
    THE ISSUE FLOOR PLAN (RD-12; launch geometry 2026-09-08)
    170px fact rail · 1fr prose · 250px aside on the 1280 frame. The rails
-   INCLUDE the page's 40px outer padding, and the prose column carries 70px of
-   its own on each side, so the measure is exactly 720 — the width every figure
-   in the library is drawn for (M in the size system). The old 980px frame put
-   this same grid into 916px and left the prose 436px wide.
+   INCLUDE the page's 40px outer padding. The prose cell is 860: a 1px rule on
+   each side and 69px of padding inside each rule, so the measure is exactly
+   720 — the width every figure in the library is drawn for (M in the size
+   system). It was 70px until 2026-09-23, which forgot the rules and left the
+   measure at 718: every M figure was drawn 2px wider than its column. The
+   old 980px frame put this same grid into 916px and left the prose 436px
+   wide.
 
    The rails are SIBLINGS of #px-article, never wrappers around it. That is
    deliberate and load-bearing: ReadingGate walks `#px-article`.children to
@@ -112,7 +106,7 @@
 }
 .px-floor > #px-article {
   min-width: 0;
-  padding: 26px 70px 30px;
+  padding: 26px 69px 30px;
   border-inline: 1px solid var(--rule);
 }
 
@@ -190,35 +184,4 @@
 }
 @media (max-width: 768px) {
   .px-floor > #px-article { padding: 22px 20px 26px; }
-}
-
-/* Breakouts inside the prose column. `wide` fills the column to its rules
-   (720 + 70 each side); `bleed` is the size system's L — 1080, breaking the
-   column symmetrically 180px each side. Both collapse to the column below the
-   rail breakpoint, where there is nothing to break out of. */
-@media (min-width: 1101px) {
-  .px-floor .px-section[data-layout='wide'] { width: calc(100% + 140px); margin-inline: -70px; }
-  .px-floor .px-section[data-layout='bleed'] { width: calc(100% + 360px); margin-inline: -180px; margin-top: 24px; margin-bottom: 72px; }
-  .px-floor .px-section[data-layout='split'],
-  .px-floor .px-section[data-layout='split-flip'] { width: calc(100% + 360px); margin-inline: -180px; }
-  /* A breakout crosses the article's inline rules by design (it is the size
-     system's L). Left transparent, the rule ran straight through the stage
-     and the operator read it as a component overflowing its column
-     (2026-09-22). The breakout now paints its own ground, so the rules stop
-     at its edges and it reads as a plate set into the page. */
-  .px-floor .px-section[data-layout='bleed'],
-  .px-floor .px-section[data-layout='split'],
-  .px-floor .px-section[data-layout='split-flip'] {
-    position: relative;
-    z-index: 1;
-    background: var(--bg);
-    padding-inline: 24px;
-    box-sizing: border-box;
-  }
-}
-@media (max-width: 1100px) {
-  .px-floor .px-section[data-layout='wide'],
-  .px-floor .px-section[data-layout='bleed'],
-  .px-floor .px-section[data-layout='split'],
-  .px-floor .px-section[data-layout='split-flip'] { width: auto; margin-inline: 0; }
 }

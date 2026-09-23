@@ -78,10 +78,19 @@ const safeMinMax = (arr: number[]) => {
 
 // Point label placement — defensive clamps so labels never clip the frame and
 // edge points keep their text inside the plot. Label normally sits ABOVE the
-// dot (cy − 10); if that would clip the top, flip it BELOW the dot. The x is
-// clamped into [padL, W − padR] and the text-anchor flips near the side edges
-// so a long label grows inward, not off the canvas.
+// dot (cy − 10); if that would clip the top, flip it BELOW the dot. The anchor
+// is decided by the label's estimated WIDTH, not by a fixed distance from the
+// edge: centred on the dot when the whole label fits inside [padL, W − padR],
+// otherwise pinned to the edge it would cross and grown inward. The old rule
+// (flip within 28 units of the edge) let a 27-character label centred 39
+// units from the right edge run 8 units past the viewBox (measured 2026-09-23).
 const LBL_FS = 9;            // matches .px-scale__plabel font-size
+// Per-character advance of a point label, in em. Measured 2026-09-23 on the
+// live page: "GPT-5 Codex task (measured)" is 137.5 units at 9px, 0.566 em a
+// character (Literata at the label's 0.02em tracking). Rounded up so the box
+// errs wide, never narrow.
+const LBL_CW = 0.58;
+const lblW = (s?: string) => LBL_CW * LBL_FS * String(s ?? '').length;
 const LBL_UP = 10;           // gap above the dot
 const LBL_DOWN = 15;         // gap below the dot (room for the glyph + dot)
 const EDGE = 4;              // keep this far inside the frame
@@ -141,11 +150,13 @@ function project(lgX: boolean, lgY: boolean) {
     const cy = py(txY(p.y));
     const above = cy - LBL_UP - LBL_FS >= padT;      // does it clip the top?
     const labelY = above ? cy - LBL_UP : cy + LBL_DOWN;
-    // horizontal anchor: end near the right edge, start near the left, else middle
+    // horizontal anchor: centred when the whole label fits, else pinned to the
+    // edge it would cross so it grows inward
+    const half = lblW(p.label) / 2;
     let anchor: 'start' | 'middle' | 'end' = 'middle';
     let labelX = cx;
-    if (cx > W - padR - 28) { anchor = 'end'; labelX = Math.min(cx, W - padR - EDGE); }
-    else if (cx < padL + 28) { anchor = 'start'; labelX = Math.max(cx, padL + EDGE); }
+    if (cx + half > W - padR - EDGE) { anchor = 'end'; labelX = W - padR - EDGE; }
+    else if (cx - half < padL + EDGE) { anchor = 'start'; labelX = padL + EDGE; }
     return { ...p, i, cx, cy, lx: labelX, ly: labelY, anchor, showLabel: !!p.label };
   });
 
@@ -216,7 +227,12 @@ const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-
 const A_LH = 14;     // leading between the two wrapped lines
 const A_LEAD = 16;   // leader length (spec §3: 14–22)
 const A_GAP = 5;     // clearance between the marker dot and the leader
-const A_L = padL, A_R = W - padR, A_T = padT, A_B = padT + ih;
+const A_CLEAR = 3;   // air kept between a note and any label, dot or other note
+// Where a note's TEXT may sit: inside the viewBox (spec §3), clear of the
+// y-tick gutter on the left and of the x-tick row below the plot. The empty
+// top pad is allowed, so a note beside a dot at the very top can rise above
+// its own point label instead of printing on it.
+const F_L = padL + 2, F_R = W - 4, F_T = 4, F_B = padT + ih - 2;
 const aEst = (s: string) => 0.52 * A_FS * s.length;
 // Two lines once the estimate passes 40% of the viewBox, split at the nearest
 // space past the midpoint.
@@ -227,83 +243,125 @@ const aWrap = (s: string): string[] => {
   return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
 };
 
+type Side = 'above' | 'below' | 'left' | 'right';
 interface PlacedAnnot {
   lines: string[]; cx: number; cy: number;
   x1: number; y1: number; x2: number; y2: number;
   tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
 }
 interface LblBox { l: number; r: number; t: number; b: number; }
-/* The box a point's own label occupies, in viewBox units — the same estimate
-   `aEst` uses, at the label's font size and anchor. */
+/* The box a point's own label occupies, in viewBox units, at the label's font
+   size, measured advance (LBL_CW) and anchor. */
 const lblBoxOf = (q: { label?: string; lx: number; ly: number; anchor: string }): LblBox => {
-  const w = 0.52 * LBL_FS * String(q.label ?? '').length;
+  const w = lblW(q.label);
   const l = q.anchor === 'start' ? q.lx : q.anchor === 'end' ? q.lx - w : q.lx - w / 2;
   return { l, r: l + w, t: q.ly - LBL_FS * 0.8, b: q.ly + LBL_FS * 0.25 };
 };
+const dotBox = (x: number, y: number): LblBox => ({ l: x - 6, r: x + 6, t: y - 6, b: y + 6 });
+const boxesHit = (a: LblBox, b: LblBox, pad = 0) =>
+  a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
+const overlapArea = (a: LblBox, b: LblBox, pad = 0) =>
+  Math.max(0, Math.min(a.r, b.r + pad) - Math.max(a.l, b.l - pad)) *
+  Math.max(0, Math.min(a.b, b.b + pad) - Math.max(a.t, b.t - pad));
+// Does the segment (x1,y1)→(x2,y2) cross the box? Liang–Barsky clip.
+function segHits(x1: number, y1: number, x2: number, y2: number, bx: LblBox): boolean {
+  const dx = x2 - x1, dy = y2 - y1;
+  let t0 = 0, t1 = 1;
+  const edges: Array<[number, number]> = [[-dx, x1 - bx.l], [dx, bx.r - x1], [-dy, y1 - bx.t], [dy, bx.b - y1]];
+  for (const [pp, qq] of edges) {
+    if (pp === 0) { if (qq < 0) return false; continue; }
+    const r = qq / pp;
+    if (pp < 0) { if (r > t1) return false; if (r > t0) t0 = r; }
+    else { if (r < t0) return false; if (r < t1) t1 = r; }
+  }
+  return true;
+}
+const OPPOSITE: Record<Side, Side> = { above: 'below', below: 'above', left: 'right', right: 'left' };
+const ACROSS: Record<Side, Side[]> = {
+  left: ['below', 'above'], right: ['below', 'above'], above: ['right', 'left'], below: ['right', 'left'],
+};
 
+/* Place one note. `side` is a hint (spec §1), so every side is a candidate, in
+   the order hint → its opposite → the two across it. A side note may also
+   slide up or down its dot (the leader angles to follow), and an above/below
+   note may hang centred, left or right of it, on a longer leader. The
+   cheapest candidate — by that order, then by how far it moved — that keeps
+   its text inside the frame, its text off every label, dot and earlier note,
+   and its leader off every label and every other dot, wins.
+
+   Why the search, and why the point's OWN label is an obstacle: the old
+   placement asked only whether the text stayed inside the plot, then nudged
+   it off OTHER points' labels. On the tech desk the one measured point sits
+   high on the right edge, so its label flips below the dot, "right" mirrors
+   to "left", and the note printed straight over its own point's name
+   ("GPT-5 Codex task (measured)", measured 2026-09-23 at both widths).
+
+   If nothing is clean, the in-frame candidate with the least overlap wins; a
+   legible overlap beats a callout off-canvas. */
 function placeAnnot(
   cx: number,
   cy: number,
-  hint: 'above' | 'below' | 'left' | 'right',
+  hint: Side,
   lines: string[],
-  others: LblBox[] = [],
-): PlacedAnnot {
+  labels: LblBox[],
+  dots: Array<{ x: number; y: number }>,
+): PlacedAnnot & { box: LblBox } {
   const wEst = Math.max(...lines.map(aEst));
   const blockH = (lines.length - 1) * A_LH;
+  const others = dots.filter((d) => Math.abs(d.x - cx) > 0.5 || Math.abs(d.y - cy) > 0.5);
+  const textObstacles = [...labels, ...dots.map((d) => dotBox(d.x, d.y))];
+  const leadObstacles = [...labels, ...others.map((d) => dotBox(d.x, d.y))];
 
-  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
-  let side = hint;
-  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
-  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
-
-  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
-  let anchor: 'start' | 'middle' | 'end' = 'middle';
-  if (side === 'left' || side === 'right') {
-    // mirror the leader rather than run the text off the edge
-    let dir = side === 'right' ? 1 : -1;
-    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
-    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
-    x1 = cx + dir * A_GAP;
-    x2 = cx + dir * (A_GAP + A_LEAD);
-    tx = x2 + dir * 3;
-    anchor = dir > 0 ? 'start' : 'end';
-    ty = cy + A_FS * 0.34 - blockH / 2;
-  } else {
-    const dir = side === 'above' ? -1 : 1;
-    y1 = cy + dir * A_GAP;
-    y2 = cy + dir * (A_GAP + A_LEAD);
-    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
-    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
-    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
-  }
-
-  /* Keep the callout off every OTHER point's label. The placement above only
-     asked whether the text stays inside the plot; a sideways note from a high
-     dot runs straight across the label band of the next point along, because
-     every point label sits at `cy − LBL_UP`. On the live sports issue
-     Bournemouth's "Smallest revenue. Highest ratio. Same rule." covered half
-     of West Ham's name (measured 2026-09-22). Shift the text block by the
-     smaller of the two clearances and keep it inside the frame; if neither
-     direction fits, leave it — a legible overlap beats a callout off-canvas. */
-  const boxAt = (y: number): LblBox => {
+  const textBox = (tx: number, ty: number, anchor: 'start' | 'middle' | 'end'): LblBox => {
     const l = anchor === 'start' ? tx : anchor === 'end' ? tx - wEst : tx - wEst / 2;
-    return { l, r: l + wEst, t: y - A_FS * 0.8, b: y + blockH + A_FS * 0.25 };
+    return { l, r: l + wEst, t: ty - A_FS * 0.8, b: ty + blockH + A_FS * 0.25 };
   };
-  for (let pass = 0; pass < others.length; pass++) {
-    const box = boxAt(ty);
-    const hit = others.find((q) => q.l < box.r && q.r > box.l && q.t < box.b && q.b > box.t);
-    if (!hit) break;
-    const down = hit.b - box.t + 2;
-    const up = box.b - hit.t + 2;
-    const tryUp = up <= down && box.t - up >= A_T;
-    const next = tryUp ? ty - up : ty + down;
-    if (next - A_FS * 0.8 < A_T || next + blockH + A_FS * 0.25 > A_B) break;
-    ty = next;
-  }
-  return { lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor };
+
+  type Cand = PlacedAnnot & { box: LblBox; cost: number };
+  const cands: Cand[] = [];
+  [hint, OPPOSITE[hint], ...ACROSS[hint]].forEach((side, rank) => {
+    if (side === 'left' || side === 'right') {
+      const dir = side === 'right' ? 1 : -1;
+      const anchor = dir > 0 ? 'start' : 'end';
+      for (let k = 0; k <= 30; k++) {
+        const off = (k % 2 ? -1 : 1) * Math.ceil(k / 2) * 2;   // 0, −2, +2, −4, +4 … ±30
+        const x2 = cx + dir * (A_GAP + A_LEAD), y2 = cy + off;
+        const len = Math.hypot(x2 - cx, y2 - cy);
+        const x1 = cx + ((x2 - cx) / len) * A_GAP, y1 = cy + ((y2 - cy) / len) * A_GAP;
+        const tx = x2 + dir * 3;
+        const ty = cy + off + A_FS * 0.34 - blockH / 2;
+        cands.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor, box: textBox(tx, ty, anchor), cost: rank * 30 + Math.abs(off) });
+      }
+    } else {
+      const dir = side === 'above' ? -1 : 1;
+      for (const extra of [0, 6]) {
+        const y1 = cy + dir * A_GAP, y2 = cy + dir * (A_GAP + A_LEAD + extra);
+        const ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
+        (['middle', 'end', 'start'] as const).forEach((anchor, ai) => {
+          cands.push({ lines, cx, cy, x1: cx, y1, x2: cx, y2, tx: cx, ty, anchor, box: textBox(cx, ty, anchor), cost: rank * 30 + extra + ai * 4 });
+        });
+      }
+    }
+  });
+
+  const inFrame = (b: LblBox) => b.l >= F_L && b.r <= F_R && b.t >= F_T && b.b <= F_B;
+  const clean = (c: Cand) =>
+    inFrame(c.box) &&
+    !textObstacles.some((o) => boxesHit(c.box, o, A_CLEAR)) &&
+    !leadObstacles.some((o) => segHits(c.x1, c.y1, c.x2, c.y2, o));
+  cands.sort((a, b) => a.cost - b.cost);
+  const best =
+    cands.find(clean) ??
+    cands
+      .filter((c) => inFrame(c.box))
+      .map((c) => ({ c, o: textObstacles.reduce((s, o) => s + overlapArea(c.box, o, A_CLEAR), 0) }))
+      .sort((a, b) => a.o - b.o || a.c.cost - b.c.cost)[0]?.c ??
+    cands[0];
+  const { cost: _cost, ...placed } = best;
+  return placed;
 }
 
-const annotAt: Array<{ i: number; lines: string[]; side: 'above' | 'below' | 'left' | 'right' }> = [];
+const annotAt: Array<{ i: number; lines: string[]; side: Side }> = [];
 for (const a of annotations) {
   if (!a || !a.text) continue;
   const num = typeof a.at === 'number' ? a.at : Number(String(a.at).trim() || NaN);
@@ -313,15 +371,20 @@ for (const a of annotations) {
   if (i < 0) continue;
   annotAt.push({ i, lines: aWrap(a.text), side: a.side || 'right' });
 }
-const annotLayers = layers.map(({ p, k }) => ({
-  k,
-  items: annotAt.map((a) =>
-    placeAnnot(
-      p.plotted[a.i].cx, p.plotted[a.i].cy, a.side, a.lines,
-      p.plotted.filter((q) => q.showLabel && q.i !== a.i).map(lblBoxOf),
-    ),
-  ),
-}));
+/* Per projection, the obstacles for each note are: every VISIBLE label in that
+   projection (the annotated point's own included), every dot, and every note
+   already placed. */
+const annotLayers = layers.map(({ p, k }) => {
+  const labels = p.plotted.filter((q) => q.label && q.showLabel).map(lblBoxOf);
+  const dots = p.plotted.map((q) => ({ x: q.cx, y: q.cy }));
+  const done: LblBox[] = [];
+  const items = annotAt.map((a) => {
+    const placed = placeAnnot(p.plotted[a.i].cx, p.plotted[a.i].cy, a.side, a.lines, [...labels, ...done], dots);
+    done.push(placed.box);
+    return placed;
+  });
+  return { k, items };
+});
 
 /* ── The readout (px-inst contract part 05) ───────────────────────────────
    Derived from the data, never authored beside the chart: a readout that can
@@ -371,6 +434,57 @@ const xTitleLog = xLabel ? `${xLabel}${logX ? ' (log)' : ''}` : '';
 const xTitleLin = xLabel ?? '';
 const yTitleLog = yLabel ? `${yLabel}${logY ? ' (log)' : ''}` : '';
 const yTitleLin = yLabel ?? '';
+
+/* ── axis-title wrapping (AGENTS.md, 2026-09-22: an outward SVG label wraps
+   or is budgeted in characters against the gutter it is drawn into) ──────
+   The y title runs the inner-height gutter (rotated -90°, up padT..padT+ih);
+   the x title runs the inner-width gutter (padL..padL+iw). Same font both
+   ways — the shared 10px mono eyebrow cut at 0.16em tracking — so the same
+   per-character width estimate (glyph advance ≈0.62em + 0.16em tracking)
+   sizes both budgets, just against a different span. */
+const AXT_CHARS_PER_UNIT = 10 * 0.62 + 10 * 0.16; // ≈ 7.8 SVG units/char
+const yTitleChars = Math.max(1, Math.floor(ih / AXT_CHARS_PER_UNIT));
+const xTitleChars = Math.max(1, Math.floor(iw / AXT_CHARS_PER_UNIT));
+
+// Greedy word-wrap into AT MOST TWO lines, never breaking a word (a single
+// word longer than `max` is kept whole on its own line). Anything left over
+// after two lines is dropped, with a single ellipsis on the second line.
+function wrapAxisTitle(s: string, max: number): string[] {
+  if (!s) return [];
+  const words = s.split(' ').filter(Boolean);
+  const lines: string[] = [];
+  let cur = '';
+  let i = 0;
+  while (i < words.length) {
+    const w = words[i];
+    const next = cur ? `${cur} ${w}` : w;
+    if (!cur || next.length <= max) {
+      cur = next;
+      i++;
+    } else {
+      lines.push(cur);
+      cur = '';
+      if (lines.length === 2) break;
+    }
+  }
+  if (cur && lines.length < 2) lines.push(cur);
+  if (i < words.length) {
+    const budget = Math.max(0, max - 1);
+    const last = (lines[lines.length - 1] ?? '').slice(0, budget).replace(/\s+$/, '');
+    lines[lines.length - 1] = `${last}…`;
+  }
+  return lines;
+}
+
+// The x-axis title never wraps — one line, ellipsis-truncated if it would
+// overrun the plot width.
+const truncateAxisTitle = (s: string, max: number): string =>
+  s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1)).replace(/\s+$/, '')}…`;
+
+const xTitleLogText = truncateAxisTitle(xTitleLog, xTitleChars);
+const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
+const yTitleLogLines = wrapAxisTitle(yTitleLog, yTitleChars);
+const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
 ---
 
 <VizCard
@@ -451,23 +565,37 @@ const yTitleLin = yLabel ?? '';
         </g>
       ))}
 
-      {/* axis titles */}
+      {/* axis titles — budgeted in characters against their gutter (see the
+          wrap block in frontmatter). The x title stays on the original
+          data-axt text-swap (one line, never overruns iw); the y title
+          renders as one wrapped stack per projection layer, cross-faded by
+          the same .px-scale__lyr--a/--b rule the ticks/points/labels use
+          above, so the log⇄linear swap needs no extra client JS. */}
       {xLabel && (
         <text
           class="px-scale__axis-title"
           x={padL + iw / 2} y={H - 6} text-anchor="middle"
-          data-axt data-axt-log={xTitleLog} data-axt-linear={xTitleLin}
-        >{xTitleLog}</text>
+          data-axt data-axt-log={xTitleLogText} data-axt-linear={xTitleLinText}
+        >{xTitleLogText}</text>
       )}
-      {yLabel && (
-        <text
-          class="px-scale__axis-title"
-          x={14} y={padT + ih / 2}
-          text-anchor="middle"
-          transform={`rotate(-90 14 ${padT + ih / 2})`}
-          data-axt data-axt-log={yTitleLog} data-axt-linear={yTitleLin}
-        >{yTitleLog}</text>
-      )}
+      {yLabel && layers.map(({ k }) => {
+        const lines = k === 'a' ? yTitleLogLines : yTitleLinLines;
+        const cy = padT + ih / 2;
+        return (
+          <g class:list={['px-scale__ytitle', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
+            {lines.map((ln, li) => {
+              const x = lines.length > 1 ? (li === 0 ? 26 : 14) : 14;
+              return (
+                <text
+                  class="px-scale__axis-title"
+                  x={x} y={cy} text-anchor="middle"
+                  transform={`rotate(-90 ${x} ${cy})`}
+                >{ln}</text>
+              );
+            })}
+          </g>
+        );
+      })}
 
       {/* annotations — one set per projection, inside the layer groups the
           toggle already cross-fades, so the callout follows the active scale */}

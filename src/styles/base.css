@@ -903,19 +903,12 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
     -webkit-hyphens: auto;
   }
   /* The ruling's own exception, applied where it bites: "short measures river
-     when justified." A split section's copy column is 38ch and a breath
-     section's intro is centred at 560px — both rivered on the live pages
-     (2026-09-22). They go back to ragged; the 720 measure stays justified. */
-  .px-section[data-layout='split'] .px-section__intro,
-  .px-section[data-layout='split'] .px-viz__how,
-  .px-section[data-layout='split-flip'] .px-section__intro,
-  .px-section[data-layout='split-flip'] .px-viz__how {
-    text-align: start;
-    hyphens: manual;
-    -webkit-hyphens: manual;
-  }
+     when justified." A breath section's intro is display copy at 560px — it
+     rivered on the live pages (2026-09-22) and stays ragged. (The split
+     column's exception went with the split grid on 2026-09-23: split is an
+     alias of wide now, so its intro sits at the 720 measure like any other.) */
   .px-section[data-layout='breath'] .px-section__intro {
-    text-align: center;
+    text-align: start;
     hyphens: manual;
     -webkit-hyphens: manual;
   }

@@ -68,6 +68,22 @@ window.scrollTo(9999, window.scrollY); window.scrollX === 0
 `scrollX` staying 0 means no overflow. **Do not "fix" overflow you have not
 proven this way.**
 
+**Since 2026-09-23 the render gate runs this and more in a real headless
+Chrome — use it, not the pane:**
+
+```bash
+npm run check:render -- --report            # every published issue, 1280 AND 375
+npm run check:render -- --slug <slug>       # one issue
+```
+
+It loads each page as a SIGNED-IN reader (the gate lifted), measures elements
+crossing the column, clipped text, text printed on text, the ⤢ button on text
+and duplicate chrome, and writes a screenshot per section per width under
+`research/_ui/<date>/`. Read the report AND the screenshots for the sections
+you touched at both widths. A visual change is not done until both widths
+are clean; a fix for one width that breaks the other is the loop this gate
+exists to end.
+
 Known deliberate residual: in-SVG fine print renders ~3.4–7px at 375px on
 fixed-`viewBox` cards. That is Phase 5 of the revamp, not a bug you found.
 

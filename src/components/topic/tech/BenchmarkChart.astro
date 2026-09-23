@@ -98,21 +98,26 @@ const annotPad = (v: number) => {
 <div class="px-viz" data-reveal>
   <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
+  {/* The reference label owns its own row between the caption and the bars,
+      in flow, so it can never ride up into the caption row or the unit chip
+      (it used to hang 28px above a zero-height box and printed into both:
+      the sports caption at 1280, the earth chip at 375, 2026-09-23). It
+      starts beside the line when the line sits in the left half of the
+      track and ends beside it in the right half — the annotation's own
+      placement rule — and it wraps rather than running past the card (the
+      value is bound to its separator by no-break spaces, so it never wraps
+      onto a line of its own). The
+      dashed tick drops from under the label to the first bar. */}
   {hasRef && (
-    <div class="bc__ref">
-      <div
-        class="bc__refline"
-        style={`left:calc(150px + 14px + (100% - 150px - 14px - 52px - 14px) * ${refValue! / max})`}
-      >
-        <span class="bc__reflabel" data-side={refValue / maxValue > 0.7 ? 'left' : 'center'}>{refLabel ? `${refLabel} · ${refValue}` : refValue}</span>
-      </div>
+    <div class="bc__ref" style={annotPad(refValue!)}>
+      <span class="bc__reflabel">{refLabel ? `${refLabel}\u00a0·\u00a0${refValue}` : refValue}</span>
+      <span class="bc__refline" style={`left:${barEnd(refValue!)}`}></span>
     </div>
   )}
 
   <div
     role="img"
     aria-label={caption ? `Benchmark comparison: ${caption}` : 'Benchmark comparison chart'}
-    style={`margin-top:${hasRef ? 18 : 0}px`}
   >
     {rows.map((it, i) => (
       <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'}>

@@ -2,7 +2,8 @@
 /**
  * VoteResult — v2 vote bar (.vb): animated for/against segments, a dashed
  * threshold marker, a rotated "slam" stamp, and the 44-column MP-dot chamber.
- * Faithful port of publication-v2 Components.jsx <VoteBar>. Props/semantics
+ * Port of publication-v2 Components.jsx <VoteBar>, with the stamp moved off
+ * the bar into its own row (2026-09-23). Props/semantics
  * unchanged from the previous version, so existing MDX usages keep working.
  *
  * Reveal: the .vb root carries data-reveal; core/Reveal.astro adds .is-in and
@@ -47,8 +48,13 @@ const dots = Array.from({ length: seats }, (_, i) =>
       <div class="vb__seg vb__seg--for" style={`width: ${forPct}%;`}>For&nbsp;<span data-countup={forVotes}>{forVotes}</span></div>
       <div class="vb__seg vb__seg--against" style={`width: ${againstPct}%;`}>Against&nbsp;<span data-countup={against}>{against}</span></div>
     </div>
-    {stamp && <div class="vb__stamp">{stamp}</div>}
   </div>
+
+  {/* The stamp has its own row under the bar. Laid over the bar it printed
+      on the "Against" figure (74% of that label, measured at 1280 and 375,
+      2026-09-23), and at 375 over "For" and the threshold label as well:
+      the bar carries the numbers, so nothing may sit on it. */}
+  {stamp && <div class="vb__verdict"><div class="vb__stamp">{stamp}</div></div>}
 
   {seats > 0 && (
     <div class="vb__chamber" aria-hidden="true">

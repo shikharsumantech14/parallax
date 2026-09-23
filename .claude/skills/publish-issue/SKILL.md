@@ -57,7 +57,15 @@ list any that remain, with the claim each guards.
 npm run build
 npm run check:catalog
 npm run graph:check
+npm run check:render -- --slug <slug>
 ```
+
+`check:render` (2026-09-23) renders the issue as a signed-in reader at 1280
+and 375 in headless Chrome and fails on any element crossing the column,
+clipped or overlapping text, the ⤢ button on text, or duplicate chrome. It
+writes a screenshot per section per width under `research/_ui/<date>/` —
+open every one before recommending a flip; the probe finds only what it was
+written to find.
 
 ```bash
 grep -rn "Shikhar S" src/ --include="*.astro" --include="*.ts" --include="*.mdx" --include="*.css"

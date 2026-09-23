@@ -97,10 +97,12 @@ Every section conforms to:
                               // portals only the card, so it shows no source —
                               // ruled as-is. Legacy data.source still works.
   layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
-                              // geometry variant — rhythm rules in
-                              // docs/design/CANON.md §3: ≤1 bleed per act,
-                              // split ONLY for the issue's hero metaphor,
-                              // never two loud sections adjacent
+                              // geometry variant (src/styles/layout-v2.css).
+                              // Author default | wide | breath ONLY. Since
+                              // 2026-09-23 bleed, split and split-flip render
+                              // as wide on the floor plan (they crossed the
+                              // rails); the values stay valid so old issues
+                              // build. Rhythm rules: CANON §3.
   data?: unknown;             // section-kind-specific shape; §11–§12 below,
                               // then src/components/AGENTS.md
   sourceRefs: string[];       // ids that must exist in this issue's sources[]

@@ -3,7 +3,9 @@
  * ExpandModal — in-page "study view" lightbox for data-viz. Rendered once per
  * issue page.
  *
- * Adds a ⤢ button to every viz card (.px-viz / .vb / .tl / .tel). On click it
+ * Adds a ⤢ button to every viz card (.px-viz / .vb / .tl / .tel /
+ * [data-viz-root]) — a hover corner square on desktop, an in-flow
+ * "Study this figure ⤢" row under the graphic on touch and phones. On click it
  * PORTALS the live root node into the modal (leaving a same-height placeholder
  * so the page never shifts), REPLAYS its entrance animation so it feels alive,
  * and shows a plain-language explainer beside it: "What you're looking at"
@@ -171,11 +173,17 @@ import { EXPLAIN } from '../../lib/explainers';
     // shadow they were never drawn with. The attribute changes nothing visual.
     document.querySelectorAll('.px-viz, .vb, .tl, .tel, [data-viz-root]').forEach(function (root) {
       if (root.closest('[data-modal-slot]')) return;
+      // Two shapes from one node (modal.css): on a hover-capable wide screen
+      // the ⤢ glyph alone, a hover-revealed square in the card's top-right
+      // corner; on touch or a phone-width column the label shows and the
+      // button drops into the flow as the card's LAST row. Appended last, so
+      // in flow it lands after the graphic and cannot cover a caption. The
+      // accessible name starts with the visible label (WCAG 2.5.3).
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'px-vexp';
-      btn.setAttribute('aria-label', 'Expand to full view');
-      btn.innerHTML = '<span aria-hidden="true">⤢</span>';
+      btn.setAttribute('aria-label', 'Study this figure in full view');
+      btn.innerHTML = '<span class="px-vexp__l">Study this figure</span><span class="px-vexp__g" aria-hidden="true">⤢</span>';
       btn.addEventListener('click', function (e) { e.stopPropagation(); open(root, btn); });
       root.appendChild(btn);
     });

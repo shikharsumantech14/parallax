@@ -86,6 +86,12 @@ npm run pipeline:costs       [-- --since <date> | --category <cat>]
                           # what each agent ACTUALLY cost per issue, dollars and
                           # tokens, from research/_costs/ledger.jsonl (every run appends)
 npm run check:prose          [-- <slug>]   # the register + composition report (gate: check:prose:gate)
+npm run check:render         [-- --slug <s> --widths 1280,375 --report]
+                          # the RENDER gate (2026-09-23): headless Chrome loads every
+                          # published issue signed in, at 1280 and 375, and measures
+                          # overflow, clipping, text-on-text, the ⤢ button on text,
+                          # duplicate chrome; screenshots per section under
+                          # research/_ui/<date>/. Exit 1 on a blocking finding.
 ```
 
 The pipeline scripts bill to your `ANTHROPIC_API_KEY` (loaded from
@@ -651,6 +657,11 @@ npm run check:prose   # the register + composition report (2026-09-13); the
 npm run design:check  # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check   # the derived project graph is in sync
 npm run hooks:test    # the enforcement hooks still decide correctly
+npm run check:render  # the render gate (2026-09-23): every published issue,
+                      # signed in, 1280 AND 375, measured — see §2. Required
+                      # after any change under src/components, src/styles or
+                      # src/layouts, and before a status flip. A fix is not
+                      # done until BOTH widths are clean.
 # app/ is gone (merged 2026-09-06) — `npm run build` now covers everything,
 # including the SSR reader-account routes.
 ```
@@ -669,7 +680,10 @@ grep -rn 'font-family="var(' src/components/ --include="*.astro" --include="*.ts
 **Mobile 375px uses the honest overflow test** — `window.scrollTo(9999, y)`
 then `scrollX === 0`. The preview browser reports FALSE overflow: hidden, its
 `clientWidth` is 0; displayed, `position: fixed` elements measure wider than the
-viewport. Do not "fix" overflow you have not proven this way.
+viewport. Do not "fix" overflow you have not proven this way. **`check:render`
+runs this test, and the rest, in a real headless Chrome** — a probe written in
+the preview pane against a scaled viewport, signed out, is not verification
+(2026-09-23, §10).
 
 → The full checklist, the per-component checks, and the nine registry places:
   **`/verify-done`** and **`/add-section-kind`** skills.
@@ -724,6 +738,74 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-23 — The geometry was the bug: one markup, two widths, a render gate
+
+The operator read the six 2026-09-21 issues live, signed in, and found that
+the 2026-09-22 fixes had not touched what they saw: the split hero on the ISS
+issue now painting over "Nº 14" and the contents list; wide charts with their
+text glued to the rule and a 720 hairline under an 860 figure; breath sections
+centred in a left-aligned page, and centring the jargon cards and step columns
+inside them; a scaling-plot axis title running through the how-to-read panel
+above it. Root causes, in order of weight:
+
+- **Two generations of geometry on one page.** `layout-v2.css`'s breakouts
+  were derived for the 980 single-column frame, where the margins were empty.
+  The launch floor plan (2026-09-08) put the facts rail and the aside in those
+  margins and kept `bleed` / `split` as 1080 half-crossings of an 860 column.
+  Six of sixteen published issues carry a split, and five of those stages are
+  SVGs drawn at 720. **Ruling:** a section has two widths, the measure and the
+  column. `wide` puts the FIGURE rule to rule and keeps the TEXT at the
+  measure, so the figure breaks out symmetrically. `bleed`, `split` and
+  `split-flip` are aliases of `wide` on every viewport until a design pass
+  re-derives them on the floor plan; the values stay in the schema so the
+  backlist builds, and the agents are told not to author them (composer,
+  drafter, storyboard template, `_AGENTS.md`, the authoring rule, CANON §2
+  and §3 amended). `breath` keeps its air and its display intro,
+  left-aligned. `core/Section.astro` renders ONE markup for every layout: the
+  split wrappers put the plain line and source ABOVE the graphic wherever the
+  grid stacked, which was every phone. `core-sample` no longer chips its own
+  kind name onto the caption row.
+- **The instrument was wrong, and it was mine.** The 2026-09-22 probe
+  measured every element against its own `.px-section`, so a section that was
+  itself the wrong shape passed. It ran signed out, in a scaled preview pane,
+  against the dev server. And it ruled the split crossing "designed" and
+  painted a ground over the rails, which hid content on the live page. The
+  honest answer to "how were these not visible to you" is that the check
+  confirmed the ruling instead of testing the page.
+- **No rendering gate existed.** Every gate was textual: schema, catalog,
+  prose. The diversity floors guarantee two never-rendered kinds per issue, so
+  every issue exercises code paths nobody has seen with real data, and the
+  operator was fixing one width by eye and breaking the other.
+
+**What exists now, and the standing rule for any visual change:**
+
+- **`npm run check:render`** — `scripts/ui-probe.mjs`, `puppeteer-core`
+  driving the installed Chrome (new dev dependency; not in `prebuild`, it
+  needs a browser). It loads every published issue as a SIGNED-IN reader (the
+  gate's cookie) at 1280 and at 375 with a phone UA, forces the reveals, and
+  measures: elements crossing the column (COLUMN), the honest phone overflow
+  (FRAME), text clipped by an overflow-hidden ancestor or its own outer SVG
+  (CLIP), text printed on text by glyph box (OVERLAP), the ⤢ button on text
+  (CHIP), duplicate captions / sources / how panels (CHROME); warnings for
+  misaligned edges, touching text, empty stages and tiny text. One screenshot
+  per section per width lands under `research/_ui/<date>/` (gitignored, about
+  80 MB a run) beside `report.md` / `report.json`. Exit 1 on a blocking
+  finding; `--report` to look without failing; `--slug` to scope. **Its first
+  run on the sixteen live issues found 49 blocking defects**: 36 were the ⤢
+  study button covering captions, readout values and timeline labels on
+  phones (the 44px reserve of 2026-09-22 was the wrong shape — on coarse
+  pointers the button is now an in-flow row under the graphic, so it cannot
+  overlap anything); five data-readout values cut off by their tile; five
+  label-on-label collisions in vote-result, scaling-plot and benchmark-chart;
+  a clipped climate-strip overlay; two SVG labels hanging across the rule.
+  It also measured the text column at 718, not 720: the two 1px rules sat
+  inside the 860 cell.
+- **The gate runs before a status flip** (`research/AGENTS.md` step 14,
+  `/publish-issue`, `/verify-done`) and after any change under
+  `src/components`, `src/styles` or `src/layouts`. **A fix for one width is
+  not done until the other width's run is clean.** Screenshots are read, not
+  just counted: the probe finds what it was written to find.
 
 ### 2026-09-22 — The visual layer of the six new issues, measured
 

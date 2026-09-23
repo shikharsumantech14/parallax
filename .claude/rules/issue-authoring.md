@@ -42,7 +42,9 @@ build**:
   with the log/linear toggle can make such a caption false
 - `sources[].url` — must be a real URL; mock URLs break the build
 - every `sourceRefs[]` entry must resolve to an existing `source.id`
-- `layout` ∈ `default | wide | bleed | split | split-flip | breath`
+- `layout` ∈ `default | wide | bleed | split | split-flip | breath` — author
+  only `default`, `wide` or `breath`; `bleed`, `split` and `split-flip` are
+  aliases of `wide` since 2026-09-23 (they crossed the floor plan's rails)
 - `skimCaption` applies to `kind: prose` only; other kinds ignore it
 - `source` — string or `{ label, date }`, on the section (or legacy `data.source`).
   Renders ONCE, from `core/Section.astro`, as `SOURCE · …` — the second line of

@@ -5,10 +5,41 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-16.** Derived facts below are generated and gated —
-> if they look wrong, run `npm run graph`, do not hand-edit. Volatile facts
-> (branch, unpushed, dirty) are not in this file at all; read the session brief.
-> Refresh the authored sections with `/update-state`.
+> **Last updated: 2026-09-16, with a 2026-09-23 addendum below.** Derived
+> facts below are generated and gated — if they look wrong, run
+> `npm run graph`, do not hand-edit. Volatile facts (branch, unpushed, dirty)
+> are not in this file at all; read the session brief. Refresh the authored
+> sections with `/update-state`.
+
+---
+
+## 0. Addendum, 2026-09-23 — the visual layer, and the gate it was missing
+
+Sixteen issues are published: the ten rewritten in the register and six new
+ones (one per desk, 2026-09-21) through the full v2 pipeline. The operator
+read the six live, signed in, and found the visual layer broken on every one;
+the fixes of 2026-09-22 had chased the wrong thing. What changed, and what
+holds now (`AGENTS.md` §10, 2026-09-23):
+
+- **The section geometry was the bug.** `layout-v2.css`'s breakouts predated
+  the launch floor plan and crossed the rails that now carry the facts and the
+  contents list. **Ruling:** a section has two widths, the measure (720) and
+  the column (rule to rule). `wide` keeps the text at the measure and gives
+  the figure the column. `bleed`, `split` and `split-flip` are aliases of
+  `wide` until re-derived; `breath` is left-aligned. `core/Section.astro` is
+  one markup for every layout. The agents no longer author split or bleed.
+- **`npm run check:render` is the render gate.** Headless Chrome, signed-in
+  reader, 1280 and 375, objective measurements, a screenshot per section per
+  width under `research/_ui/<date>/`. It found 49 blocking defects on the
+  sixteen live issues on its first run, most of them the ⤢ study button
+  sitting on captions and labels on phones. It runs before any status flip and
+  after any change under `src/components`, `src/styles` or `src/layouts`.
+- **Open:** the per-component fixes from that first run are in progress in
+  the working tree (see the session brief); the composer's cross-round kind
+  ledger and a closing-section rule are still to be written; the operator's
+  pending editorial items from the 2026-09-21 round stand (space delta-v
+  figures, sports IPL and Swiss Ramble figures, politics prorogation and
+  committee-referral source, travel ₹3.5 crore source, the allowlist edits).
 
 ---
 

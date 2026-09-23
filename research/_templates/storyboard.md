@@ -32,8 +32,9 @@ English, ≤ 30 words). This is what the issue exists to make a reader get.
 ## 2. The hero
 
 One component carries the argument (CANON §2). Name it, name its data shape,
-and say which dossier §4 facts it renders. It is the only section that may use
-`layout: split`.
+and say which dossier §4 facts it renders. Give it `layout: wide` if its
+figure earns the full column. Never `split` or `bleed` (aliases of `wide` on
+the floor plan since 2026-09-23).
 
 ## 3. The beats
 

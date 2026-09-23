@@ -51,7 +51,10 @@ research/
 11. /pipeline-panel <cat>       → second pass
 12. /pipeline-verify <cat>      → research/<cat>/<date>-<slug>-verification.md
 13. npm run check:prose -- <slug>                → the deterministic register/composition report
-14. YOU AUDIT + PUBLISH         ← read the reports, fix, flip status, commit
+14. npm run check:render -- --slug <slug>        → the render gate: the issue as a signed-in reader
+                                                    at 1280 AND 375, measured, with a screenshot per
+                                                    section under research/_ui/<date>/ — READ them
+15. YOU AUDIT + PUBLISH         ← read the reports and the screenshots, fix, flip status, commit
 ```
 
 Steps 5, 6, 8, 11 and 13 were added on 2026-09-13 under `docs/REGISTER-PLAN.md`

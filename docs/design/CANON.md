@@ -40,9 +40,14 @@ small charts.** Readers remember the picture, not the words.
 - Every issue names **one hero visual** — the single component that carries the
   issue's structural argument (the chamber for a vote story, the solar system for a
   trajectory story). The drafter picks it FIRST, before writing sections.
-- The hero visual is the only section that may use `layout: split` (the sticky
-  scrollytelling layout) and it should — the issue's deepest explanation happens
-  while the hero holds on screen.
+- The hero visual takes `layout: wide` when its figure earns the full column.
+  **Amended 2026-09-23:** `layout: split` (the sticky scrollytelling layout)
+  and `layout: bleed` render as `wide` on the launch floor plan. The 1080 plate
+  crossed the facts rail and the aside and covered them on the live pages, and
+  the two-column split cramped every 720-wide stage. They stay valid in the
+  schema so the backlist builds; nobody authors them until a design pass
+  re-derives them on the floor plan. The sentence this replaces said the hero
+  "should" use split.
 - Every other viz **supports** the hero: smaller, quieter, single-state.
 - **Never two WebGL sections adjacent.** Never more than **3 "loud" sections** per
   issue (loud = WebGL, `layout: bleed`, or a full-width animated viz).
@@ -58,8 +63,8 @@ enforced structurally, not aesthetically:
   (ghost numeral, rule, air). An act is 2–4 sections.
 - Each act contains **at least one quiet section** (`prose`, `quote`, or any section
   with `layout: breath`) and **at most one loud section**.
-- ≤ 1 `layout: bleed` per act. The issue opens at default width — the first bleed
-  must be *earned* (never before section 2).
+- The issue opens at default width; a `wide` figure is earned, never section 1.
+  (`layout: bleed` is an alias of `wide` since 2026-09-23 — see §2.)
 - The eye-rest rule: after any loud section, the next section is quiet.
 - Section count discipline: 6–12 sections per issue. Below 6, the act structure
   collapses; above 12, split the story.

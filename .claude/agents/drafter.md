@@ -93,10 +93,11 @@ Floors (`docs/REGISTER-PLAN.md` §5.1):
   FEW-GRAPHICS, CARD-HEAVY and NO-NEW-KIND. The storyboard met these; a
   departure that swaps a graphic for a card breaks them.
 
-Ceilings (CANON §2–3): one hero visual (the only section that may take
-`layout: split`); ≤ 3 loud sections (WebGL, `bleed`, full-width animated);
-never two WebGL kinds adjacent; after a loud section the next is quiet;
-`bleed` at most once per act and never before section 2.
+Ceilings (CANON §2–3): one hero visual; ≤ 3 loud sections (WebGL,
+full-width animated); never two WebGL kinds adjacent; after a loud section
+the next is quiet. `layout` is `default`, `wide` or `breath` — `split`,
+`split-flip` and `bleed` are aliases of `wide` on the floor plan since
+2026-09-23 and must not be authored.
 
 ### Step 3 — The head
 
@@ -163,8 +164,9 @@ normal page.
 **`source`:** every visual section, string or `{ label, date }`. No source,
 no section.
 
-**`layout`:** default unless the storyboard says otherwise; `split` only on
-the hero.
+**`layout`:** default unless the storyboard says otherwise; `wide` for a
+figure that earns the full column; `breath` for air. Never `split`,
+`split-flip` or `bleed` (aliases of `wide` since 2026-09-23).
 
 **Restate after the graphic:** the NEXT section's intro opens by saying, in
 the reader's words, what the graphic before it just showed; or this

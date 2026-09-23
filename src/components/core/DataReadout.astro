@@ -42,9 +42,41 @@ const countUpValue = (v: string): number | null => {
   const n = parseInt(v.replace(/,/g, ''), 10);
   return Number.isFinite(n) ? n : null;
 };
+
+/* THE FIT (2026-09-23). A value is authored, a tile is a fixed share of the
+   card, and the numeral may neither wrap nor be cut — "$150,000" ran 26px
+   past a phone tile's clip and "1 Jul – 10 Sep" broke over two lines at
+   1280. CSS cannot measure a string, so the component estimates it: each
+   glyph's advance in em for the numeral face (Literata 700, tabular
+   figures), calibrated against the eleven published readouts at 40px and
+   rounded UP so the estimate errs wide; a unit is fixed-size small capitals,
+   about 8px a character plus the 8px gap, taken against a 28px numeral (the
+   phone floor) so it errs wide too. `--tel-em` is the widest tile's need;
+   dataviz-v2.css sizes every numeral in the readout from it with container
+   units, one size per readout, capped at the 40px design size. When that
+   size would drop too far the readout takes fewer columns instead:
+   `data-cols="2"` on a wide screen (fitted size under ~39px at 1280), and
+   `data-phone="stack"` below 720 (under ~32px at a 375 phone). */
+const glyphEm = (ch: string): number => {
+  if (/[0-9]/.test(ch)) return 0.56;
+  if (/[,.:'’]/.test(ch)) return 0.3;
+  if (ch === ' ' || ch === ' ') return 0.25;
+  if (/[–—-]/.test(ch)) return 0.55;
+  if (/[MWmw@]/.test(ch)) return 0.95;
+  return 0.62;                        // letters and $ £ ¥ € + ~ < > % × −
+};
+const tileEm = (t: Tile): number => {
+  const v = [...String(t.value ?? '')].reduce((s, ch) => s + glyphEm(ch), 0);
+  const u = t.unit ? (8 + 8 * [...t.unit.trim()].length) / 28 : 0;
+  return v + u;
+};
+const need = Math.max(1, ...tiles.map(tileEm));
+const telEm = Math.ceil(need * 10) / 10;
+const cols = need > 5.0 ? '2' : undefined;
+const phone = need > 4.2 ? 'stack' : undefined;
 ---
 
-<div class="tel" data-reveal>
+<div class="tel" data-reveal data-cols={cols} data-phone={phone} style={`--tel-em:${telEm}`}>
   {caption && (
     <div class="tel__cap">
       <span>{caption}</span>

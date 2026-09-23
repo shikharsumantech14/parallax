@@ -104,23 +104,47 @@ const maxLabelY = maxPt ? Math.max(maxPt.y - 10, padT + 2) : 0;
 const minLabelY = minPt ? Math.min(minPt.y + 18, baseY - 4) : 0;
 
 // ── waypoint pins (points carrying a label) ──────────────────────────────────
-// Stagger labels into two rows below the floor (alternate by index) so close
-// neighbours don't print on top of each other. As a final guard, drop a label
-// whose estimated box still overlaps the previous *kept* label in its own row
-// (the pin + tick stay; only the text is dropped). Reasoned geometrically.
-const CH = 5.4; // ~px per char at the 9px mono label size
-const lastRight: Record<number, number> = { 0: -Infinity, 1: -Infinity };
+// Every label is boxed at its estimated width and anchored so the box stays
+// inside the plot's x-range [padL, W − padR]: centred under its pin when it
+// fits, otherwise pinned to the edge it would cross and grown inward (the box
+// still spans the pin, which sits inside the range). The old rule switched
+// anchor at a fixed 64 units from the edge and estimated 5.4 units a
+// character, so "Camp 4 · South Col — death zone begins", centred 86 units from
+// the right edge, ran 21.5px past the SVG and across the article rule
+// (measured 2026-09-23). A label longer than the whole range is cut with an
+// ellipsis (the full name stays in a <title>).
+//
+// Rows: neighbours stagger — a label takes its preferred row (alternating by
+// index), else the other of the two, else a third row that exists only when
+// some label needs it (the viewBox grows by one row, the plot does not move).
+// A label that fits no row is dropped; its pin and tick stay.
+const WP_CW = 7.0;   // units a character: measured 6.3–6.9 at 9.5px uppercase, 0.04em tracking — rounded up
+const WP_ROW = 11;   // row pitch below the floor
+const WP_GAP = 4;    // air between two labels in one row
+const WP_L = padL, WP_R = W - padR;
+const wpMaxChars = Math.max(1, Math.floor((WP_R - WP_L) / WP_CW));
+const fitLabel = (s: string) =>
+  s.length <= wpMaxChars ? s : `${s.slice(0, wpMaxChars - 1).trimEnd()}…`;
+const wpBox = (x: number, text: string) => {
+  const w = text.length * WP_CW;
+  if (x - w / 2 < WP_L) return { anchor: 'start' as const, lx: WP_L, left: WP_L, right: WP_L + w };
+  if (x + w / 2 > WP_R) return { anchor: 'end' as const, lx: WP_R, left: WP_R - w, right: WP_R };
+  return { anchor: 'middle' as const, lx: x, left: x - w / 2, right: x + w / 2 };
+};
+const rowRight = [-Infinity, -Infinity, -Infinity];
 const waypoints = xy
   .filter((p) => p.label && p.label.trim().length > 0)
   .map((p, i) => {
-    const row = i % 2;
-    const halfW = (String(p.label).length * CH) / 2 + 3;
-    const lx = labelX(p.x);
-    const left = lx - halfW;
-    const show = left > lastRight[row] + 4;
-    if (show) lastRight[row] = lx + halfW;
-    return { ...p, i, row, show };
+    const text = fitLabel(String(p.label).trim());
+    const box = wpBox(p.x, text);
+    const pref = i % 2;
+    const row = [pref, 1 - pref, 2].find((r) => box.left > rowRight[r] + WP_GAP);
+    if (row !== undefined) rowRight[row] = box.right;
+    return { ...p, i, text, anchor: box.anchor, lx: box.lx, row: row ?? 0, show: row !== undefined };
   });
+// The third row only when a shown label sits in it.
+const extraRows = waypoints.some((w) => w.show && w.row === 2) ? 1 : 0;
+const VH = H + extraRows * WP_ROW;
 
 // ── x-axis ticks: first / mid / last distance ────────────────────────────────
 const xTicks = hasData
@@ -139,7 +163,7 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
       <div class="px-etrek__plane px3d-tilt" data-tilt="6">
         <svg
           class="px-etrek__svg"
-          viewBox={`0 0 ${W} ${H}`}
+          viewBox={`0 0 ${W} ${VH}`}
           preserveAspectRatio="xMidYMid meet"
           role="img"
           aria-label={`Elevation profile from ${fmtE(elevMin)}${unit} to ${fmtE(elevMax)}${unit} over ${fmtKm(kmSpan)} km`}
@@ -181,14 +205,14 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
               <line x1={p.x.toFixed(1)} y1={p.y.toFixed(1)} x2={p.x.toFixed(1)} y2={baseY} />
               <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="3.4" />
               {p.show && (
-                <text x={labelX(p.x).toFixed(1)} y={(baseY + 14 + p.row * 11).toFixed(1)} text-anchor={labelAnchor(p.x)}>{p.label}</text>
+                <text x={p.lx.toFixed(1)} y={(baseY + 14 + p.row * WP_ROW).toFixed(1)} text-anchor={p.anchor}>{p.text !== p.label && <title>{p.label}</title>}{p.text}</text>
               )}
             </g>
           ))}
 
-          <!-- x-axis distance ticks (below both waypoint rows) -->
+          <!-- x-axis distance ticks (below every waypoint row in use) -->
           {xTicks.map((t) => (
-            <text class="px-etrek__xtick" x={labelX(t.x).toFixed(1)} y={(baseY + 40).toFixed(1)} text-anchor={labelAnchor(t.x)}>
+            <text class="px-etrek__xtick" x={labelX(t.x).toFixed(1)} y={(baseY + 40 + extraRows * WP_ROW).toFixed(1)} text-anchor={labelAnchor(t.x)}>
               {fmtKm(t.km)} km
             </text>
           ))}

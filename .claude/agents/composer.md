@@ -47,7 +47,8 @@ components, and this file is where that is decided.
 6. `src/content/config.ts` — `SECTION_KINDS`; use nothing outside it. `hero`
    is registered but dead: never use it.
 7. `docs/design/CANON.md` §2 and §3 — one hero visual, ≤ 3 loud sections, no
-   two WebGL kinds adjacent, ≤ 1 `bleed` per act.
+   two WebGL kinds adjacent. (`bleed` and `split` render as `wide` since
+   2026-09-23 — see Step 4; do not plan around a full-bleed plate.)
 8. `docs/generated/PROJECT-GRAPH.md` — the section "Never in a published
    issue": the kind ledger. Every kind on it is new to readers; the floors
    below ask for two of them per issue where the data shape fits.
@@ -107,7 +108,12 @@ Rules:
 ### Step 4 — The hero
 
 Name the one component that carries the argument (CANON §2). Say which §4
-facts it renders. It is the only row that may take `layout: split`.
+facts it renders. Give it `layout: wide` when its figure earns the full
+column. **Never `split`, `split-flip` or `bleed`**: on the launch floor plan
+those are aliases of `wide` (layout-v2.css, 2026-09-23) — the sticky
+two-column split and the 1080 plate crossed the rails and covered the facts
+and the contents list on the live pages. `breath` is fine for a quote or a
+three-steps: it adds air, left-aligned like every other section.
 
 ### Step 5 — Words, analogies, annotations
 

@@ -58,10 +58,24 @@ function smoothPath(ps: { x: number; y: number }[]): string {
     const p1 = ps[i];
     const p2 = ps[i + 1];
     const p3 = ps[i + 2] ?? p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
+    let c1x = p1.x + (p2.x - p0.x) / 6;
+    let c1y = p1.y + (p2.y - p0.y) / 6;
+    let c2x = p2.x - (p3.x - p1.x) / 6;
+    let c2y = p2.y - (p3.y - p1.y) / 6;
+    // Clamp each control point into its own segment's endpoint box. Uniform
+    // Catmull-Rom assumes roughly even spacing; when a segment is much
+    // shorter than its neighbour (e.g. re-entry's last two points sit 0.13
+    // months apart right after a 5.87-month segment), the neighbour-span/6
+    // offset overshoots the short segment — the curve loops past the final
+    // point before snapping back to it, which pokes out past whatever sits
+    // on the endpoint (here, the craft marker). Clamping keeps the tangent
+    // inside the segment's own box, so the path can never run past a point.
+    const loX = Math.min(p1.x, p2.x), hiX = Math.max(p1.x, p2.x);
+    const loY = Math.min(p1.y, p2.y), hiY = Math.max(p1.y, p2.y);
+    c1x = Math.min(Math.max(c1x, loX), hiX);
+    c2x = Math.min(Math.max(c2x, loX), hiX);
+    c1y = Math.min(Math.max(c1y, loY), hiY);
+    c2y = Math.min(Math.max(c2y, loY), hiY);
     d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
   return d;
@@ -228,7 +242,12 @@ const summary = nodes.length
       {xTicks.map((t) => (
         <text class="px-desc__axis" x={t.x.toFixed(1)} y={H - 22} text-anchor="middle">{fmtT(t.v)}</text>
       ))}
-      <text class="px-desc__axis px-desc__axis--unit" x={padL - 8} y={padT - 10} text-anchor="end">ALT km</text>
+      {/* The unit STARTS at the viewBox edge. End-anchored on the tick column
+          (x = padL − 8 = 38) its ~49 units of tracked capitals began at −11
+          and hung past the SVG and across the article rule (14.3px at 1280,
+          2026-09-23). Start-anchored it cannot leave the viewBox whatever the
+          font; it sits above the plot top, clear of the 448 tick. */}
+      <text class="px-desc__axis px-desc__axis--unit" x="2" y={padT - 10} text-anchor="start">ALT km</text>
       <text class="px-desc__axis px-desc__axis--unit" x={W - padR} y={H - 6} text-anchor="end">TIME</text>
 
       <!-- event pins -->
