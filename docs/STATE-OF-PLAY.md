@@ -5,7 +5,7 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-16, with a 2026-09-23 addendum below.** Derived
+> **Last updated: 2026-09-24.** Derived
 > facts below are generated and gated — if they look wrong, run
 > `npm run graph`, do not hand-edit. Volatile facts (branch, unpushed, dirty)
 > are not in this file at all; read the session brief. Refresh the authored
@@ -109,10 +109,10 @@ are deliberately not written down anywhere (CD-11).
 |---|---|
 | Section kinds | **101** (14 WebGL) |
 | Blueprinted | 40 of 101 |
-| Issues | 23 (10 published, 13 draft) |
-| Kinds never in a published issue | **76** |
+| Issues | 29 (16 published, 13 draft) |
+| Kinds never in a published issue | **67** |
 | Registry gaps | none |
-| Decisions tracked | 35 (8 decided-but-unbuilt) |
+| Decisions tracked | 37 (10 decided-but-unbuilt) |
 
 <!-- END GENERATED -->
 
@@ -190,6 +190,7 @@ citations resolve. Highlights of what shipped:
 | **Register plan, Phase 6 (2026-09-15)** | The remaining six rewritten in place and committed (`4122cc9`, `9d23414`), same slugs, same status. Each went storyboard (operator-approved) → draft → panel → stylist → second panel → verifier → `check:prose`. **All six passed the second panel with every quiz question answered by all four personas, and all six verifiers returned zero untraced claims across 303 checked.** Transgender-ratchet took a narrow re-anchoring pass first, which landed the Lok Sabha record at T0 by walking the e-library as a DSpace REST API, and which corrected its own storyboard. **All ten published issues now clear every floor**: ≤1,100 words, ≥60% visual, ≤80 before the first graphic, ≤12 names, against a backlist that averaged 1,573 words at 49% visual with up to 639 words of head and 55 names. Six kinds reached readers for the first time (`power-matrix`, `you-think`, `jargon-buster`, `three-steps`, `number-sense`, `bill-passage`). Five published errors corrected: "Parliament passed three laws" (it passed two, and the 2016 Bill cleared the Lok Sabha before lapsing in the Rajya Sabha, so neither three laws nor lapsed in committee); a minister's sentence presented as his own words from the record, where the record says "biological condition" and the reported English says "gender identity"; a NASA quotation trimmed and recapitalised inside quote marks; "either tipping point ends the same way", which the record splits by branch; and a hero cell giving an account control over copies its readers held. Two standing rules were set: **draw the low end of a published band and put the band in the copy**, and **no rupee bracket inside a dated event or on a per-token rate card**. |
 | **The unread-field sweep (2026-09-15)** | All 101 kinds swept, each catalog `DATA:` line against what its component reads BELOW the frontmatter fence. **Thirteen documented fields rendered nothing.** A props interface is a declaration, not a reader, which is why every one survived: each was in the interface, the header comment, the catalog and issue frontmatter, and Astro does not error on an unread prop. Two were live: the Arsenal pitch shipped **eleven blank discs** (`tactics-pitch.role`), and `data-readout`'s `emphasis` reached the DOM and painted nothing because its CSS stayed on the retired `.px-readout__tile` prefix, so **25 flags across 8 published issues** were flat. `comparison`'s entire documented `columns` shape had never been implemented. Rendered rather than struck where authors already used them (`benchmark-chart.sublabel` is the Kessler hero, designed around it); struck with content moved otherwise. `Comparison` also stopped emitting its own source line, the last component-rendered one in the codebase, which printed the source twice and ends `__source` so neither the 2026-09-04 sweep nor story.css's `[class$='__src']` rule caught it. **`check:catalog` gained check 5**: every DATA field needs a reader in the component, its dispatch arm, its imports or its WebGL scene, and a bare prop forward does not count. 852 fields. Exceptions carry a reason in `ACCEPTED_UNREAD`. |
 | **Register plan (2026-09-13)** | Reader feedback measured (REGISTER-PLAN §1): the formulas said the issues were already easier than Finshots; what was missing was hand-holding, the copy was ~40 blocks an issue, ~300 names, and no Indian ground (₹, crore, Hinglish: zero). Signed RG-01…RG-22 with two amendments (Hindi only where it fits; no date). Built: `_voice-core.md` v2, the lexicon, the jargon list; `composer` and `reader-panel` with `/pipeline-storyboard`, `/pipeline-panel` and the API phases behind `GATES.storyboard` (`'required'`); drafter, stylist, verifier and researcher re-based; `check:prose` (report mode: 0 blocking on the backlist, 16–59 warnings per issue); RG-19 (`howToReadFor`, `NEEDS_HOW`, the source inline on the plain line; the delimitation page went from 5 panels to 0); Phase 3 (`you-think`, `jargon-buster`, `number-sense`, `three-steps`, `analogy` pairs, `hero` retired, annotations on eight charts, all verified on the showcases). Five commits, `828f9a5`…`b2e21a5`. |
+| **The visual layer and the render gate (2026-09-21 → 24)** | Six new issues, one per desk, through the full v2 pipeline on the API route; sixteen published. The operator found the visual layer broken on all six; the cause was section geometry from the 980 frame crossing the floor plan's rails. **RD-14** (two widths, the measure and the breakout; `split`, `bleed` and `split-flip` alias `wide`) and **RD-15** (the render gate, headless Chrome at 1280 and 375, enforced by a commit hook). First run: 49 blocking defects on the sixteen live issues. Then the showcase sweep: 32 blocking findings across 14 never-published kinds, fixed generically. Every published issue and every showcase measures 0 blocking, 0 warnings at both widths. Commits `9ec133a`, `815cb96`, `207b440`. |
 
 **Corrections discovered in execution** (already folded into the plan/docs — do
 not rediscover): the "CSS vars don't resolve in SVG presentation attributes"
@@ -233,15 +234,20 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    earth predates Global Forest Watch reaching T1. Two research jobs, neither
    blocking: one published catalogued-object count closes kessler's missing
    total, and one dated per-million-token price series closes the token bill's
-   evidence gap and unblocks `moore-ladder`.
-3. **Phase 5 — finish it.** Step 1 landed (`f76fa8c`, §4). What is left is the
-   stated exit and the four exclusions: sweep all 23 issues at 375px rather
-   than the 6 showcases, test for new clipping, decide `region-map`'s authored
-   7.5px labels (a type-scale call, not geometry), and handle
-   `flight-of-the-ball`'s pinned mount aspect-ratio. Step 2 of the original
-   plan — rebuilding `adoption-curve` and `scaling-plot` as true mobile
-   layouts — is **no longer urgent**: both now clear the floor, so it would buy
-   back the at-a-glance shape, not legibility.
+   evidence gap and unblocks `moore-ladder`. Before the next round: the two
+   composer rules (a closing section; a cross-round kind ledger so kinds stop
+   recurring across desks), the operator's pending confirmations from the
+   2026-09-21 round (space delta-v, sports IPL and Swiss Ramble figures,
+   politics prorogation and committee-referral source, travel ₹3.5 crore
+   source, the three allowlist edits), and credits on the API key, which the
+   pipeline now bills correctly.
+3. **Phase 5 — closed 2026-09-24 by the render gate and the showcase sweep.**
+   Every published issue and every showcase measures clean at 375;
+   `region-map` labels are 9.5px since `c725bf3`; the WebGL fallbacks and
+   aspect-pinned mounts carry two label sets or a real-pixel label layer.
+   Three design calls remain for the operator: `storm-track`'s hemisphere
+   framing, `fare-terrain`'s paper fill under the ridges, and whether phone
+   charts drawn for 720 should keep scrolling inside their card.
 4. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
    days, against 81 of 101 unused. The register plan's finding was that
    usage, not count, is the problem, and its four plain-language kinds now
@@ -324,12 +330,12 @@ the top-level field, so flipping `.optional()` off today fails 120 sections.
 Only 28 are already promoted. Mechanical to migrate, and worth doing as its own
 commit rather than smuggled into a schema change.
 
-**5 · The rest of Phase 5 is draft-only.** `flight-of-the-ball` (3.6px — its
-mount pins an aspect-ratio, so a min-width cannot help), `climate-spiral`,
-`region-map` (authored at 7.5px — a type call), the WebGL fallbacks, and the
-narrow-viewBox forms left by ruling. **No published issue uses any of them**,
-and the WebGL ones only render without WebGL. Fix one the week you publish an
-issue that uses it, not before.
+**5 · Phone charts drawn for the 720 measure scroll sideways inside their
+card at 375** (the 2026-09-07 rule, the `min-width` block in
+`dataviz-v2.css`). Deliberate, and the gate accepts it; the operator has not
+yet read on a phone, so it is a ruling to revisit, not a defect. The kinds
+that cannot scroll (WebGL fallbacks, aspect-pinned mounts) carry two label
+sets instead (2026-09-24).
 
 **7 · `check:prose` is report-only, on purpose.** Six published issues are
 still the old register and carry 16–59 warnings each (the four flagships are
@@ -363,7 +369,8 @@ likely complete and instance coverage is not).
   generalise, measured 7.0px and never held the floor it was written for. The
   per-component bumps on `PowerFlow`, `CarbonLoop`, `EloRiver` and `PaceRidge`
   were RETIRED with the fix: at natural scale they would render their 21px
-  SVG-unit sizes at a literal 21px. What remains is item 5 above.
+  SVG-unit sizes at a literal 21px. What remained was closed by the showcase
+  sweep of 2026-09-24; item 5 above is now the card-scroll ruling.
 - **The ⤢ modal shows no source since `8eea66f`.** It portals the card; the
   source lives with the section now. Landed as-is by ruling; a modal source
   line is a separate, later call.
@@ -409,6 +416,18 @@ likely complete and instance coverage is not).
 
 ## 7. Traps that have actually bitten (additions this cycle in bold)
 
+- **A probe that measures each element against its own section cannot see a
+  section that is itself the wrong shape** (2026-09-22). It ran signed out,
+  in a scaled preview pane, and confirmed the ruling it was written under:
+  the split plate got a painted ground and hid the issue number and the
+  contents list on the live ISS page. Verification means `check:render` at
+  both widths and the screenshots read.
+- **A geometry rule derived for one frame survives a frame change silently**
+  (2026-09-08 → 22). `layout-v2.css`'s breakouts assumed the 980
+  single-column frame's empty margins; the floor plan put the facts and the
+  contents list there, and for two weeks and six issues the 1080 plates
+  crossed them. When the frame changes, every breakout is re-derived in the
+  same commit.
 - **A git worktree poisons any generator that walks the filesystem.**
   Worktrees live under `.claude/worktrees/` and each is a FULL second copy of
   the repo. They are gitignored, so git never surfaces them, but a filesystem
