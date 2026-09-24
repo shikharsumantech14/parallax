@@ -13,33 +13,43 @@
 
 ---
 
-## 0. Addendum, 2026-09-23 — the visual layer, and the gate it was missing
+## 0. Addendum, 2026-09-23 / 24 — the visual layer, and the gate it was missing
 
 Sixteen issues are published: the ten rewritten in the register and six new
 ones (one per desk, 2026-09-21) through the full v2 pipeline. The operator
 read the six live, signed in, and found the visual layer broken on every one;
 the fixes of 2026-09-22 had chased the wrong thing. What changed, and what
-holds now (`AGENTS.md` §10, 2026-09-23):
+holds now (`AGENTS.md` §7 and §10, 2026-09-23 and 2026-09-24; RD-14 and RD-15
+in `docs/REVAMP-PLAN.md`):
 
 - **The section geometry was the bug.** `layout-v2.css`'s breakouts predated
   the launch floor plan and crossed the rails that now carry the facts and the
-  contents list. **Ruling:** a section has two widths, the measure (720) and
-  the column (rule to rule). `wide` keeps the text at the measure and gives
-  the figure the column. `bleed`, `split` and `split-flip` are aliases of
-  `wide` until re-derived; `breath` is left-aligned. `core/Section.astro` is
-  one markup for every layout. The agents no longer author split or bleed.
-- **`npm run check:render` is the render gate.** Headless Chrome, signed-in
-  reader, 1280 and 375, objective measurements, a screenshot per section per
-  width under `research/_ui/<date>/`. It found 49 blocking defects on the
-  sixteen live issues on its first run, most of them the ⤢ study button
-  sitting on captions and labels on phones. It runs before any status flip and
-  after any change under `src/components`, `src/styles` or `src/layouts`.
-- **Open:** the per-component fixes from that first run are in progress in
-  the working tree (see the session brief); the composer's cross-round kind
-  ledger and a closing-section rule are still to be written; the operator's
-  pending editorial items from the 2026-09-21 round stand (space delta-v
-  figures, sports IPL and Swiss Ramble figures, politics prorogation and
-  committee-referral source, travel ₹3.5 crore source, the allowlist edits).
+  contents list. **Ruling (RD-14):** a section has two widths, the measure
+  (720) and the breakout. `wide` keeps the text at the measure and lets the
+  figure out 45px each side, 24px clear of the rules. `bleed`, `split` and
+  `split-flip` are aliases of `wide` until re-derived; `breath` is
+  left-aligned. `core/Section.astro` is one markup for every layout. The
+  agents no longer author split or bleed.
+- **`npm run check:render` is the render gate (RD-15), and it is enforced.**
+  Headless Chrome, signed-in reader, 1280 and 375, objective measurements, a
+  screenshot per section per width under `research/_ui/<date>/`. Its first run
+  found 49 blocking defects on the sixteen live issues; the tree at `9ec133a`
+  and after measures 0 blocking, 0 warnings. `guard-render.mjs` refuses a
+  rendering-relevant commit without a fresh clean run that covers it.
+- **Committed and live:** `9ec133a` (the geometry, the gate, the fixes from
+  the first run), pushed by the operator 2026-09-24; the wide-figure air and
+  the hook follow in the next commit.
+- **Open — the next work package:** the six showcase drafts carry 32 blocking
+  findings across 14 never-published kinds (the list is in `AGENTS.md` §10,
+  2026-09-24); the gate will refuse the first issue that carries one until the
+  kind is fixed, so fix the kinds before the next round picks them. Also the composer's
+  cross-round kind ledger and a closing-section rule are still to be written;
+  the operator's pending editorial items from the 2026-09-21 round stand
+  (space delta-v figures, sports IPL and Swiss Ramble figures, politics
+  prorogation and committee-referral source, travel ₹3.5 crore source, the
+  allowlist edits); the phone card-scroll ruling (charts drawn for 720 scroll
+  inside their card at 375) may want revisiting after the operator reads on a
+  phone.
 
 ---
 

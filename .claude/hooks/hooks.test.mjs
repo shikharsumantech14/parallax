@@ -14,6 +14,7 @@
  */
 import { decide as gitDecide } from './guard-git.mjs';
 import { decide as genDecide } from './guard-generated.mjs';
+import { decide as renderDecide, commitPlan, pendingPaths } from './guard-render.mjs';
 
 let pass = 0;
 const failures = [];
@@ -83,6 +84,76 @@ g('normal doc',     'docs/STATE-OF-PLAY.md', false);
 g('a component',    'src/components/core/VizCard.astro', false);
 g('similar name',   'docs/generated-by-hand.md', false);
 g('undefined path',  undefined, false);
+
+/* ── guard-render: decide(command, state) ──────────────────────────────── */
+const FP = 'f'.repeat(40);
+const ISS = 'src/content/issues/2026-09-21-iss-retirement-set-by-contract/index.mdx';
+const EARTH = 'src/content/issues/2026-09-21-indonesia-fire-burns-soil-not-trees/index.mdx';
+const COMP = 'src/components/core/VizCard.astro';
+const stamp = (over = {}) => ({
+  when: '2026-09-24T10:00:00.000Z', base: 'http://localhost:4321', widths: [1280, 375],
+  slugs: ['2026-09-21-iss-retirement-set-by-contract', '2026-09-21-indonesia-fire-burns-soil-not-trees'],
+  full: true, blocking: 0, warnings: 12, fingerprint: FP, ...over,
+});
+const state = (staged, over = {}) => ({ staged, stagedStatus: {}, stamp: null, fingerprint: FP, ...over });
+const r = (name, cmd, st, shouldBlock) => check(`render: ${name}`, renderDecide(cmd, st), shouldBlock);
+const scoped = (slugs) => stamp({ full: false, slugs });
+const pub = { [ISS]: 'published' };
+
+r('not a commit',                  'npm run build', state([COMP]), false);
+r('git status is not a commit',    'git status --short', state([COMP]), false);
+r('only docs staged',              'git commit -m "docs"', state(['docs/CONTEXT-PLAN.md', 'AGENTS.md']), false);
+r('component guide is docs',       'git commit -m "x"', state(['src/components/AGENTS.md']), false);
+r('component + no stamp',          'git commit -m "x"', state([COMP]), true);
+r('component + clean full stamp',  'git commit -m "x"', state([COMP], { stamp: stamp() }), false);
+r('component + stale fingerprint', 'git commit -m "x"', state([COMP], { stamp: stamp({ fingerprint: 'e'.repeat(40) }) }), true);
+r('component + blocking > 0',      'git commit -m "x"', state([COMP], { stamp: stamp({ blocking: 3 }) }), true);
+r('component + blocking missing',  'git commit -m "x"', state([COMP], { stamp: stamp({ blocking: undefined }) }), true);
+r('component + scoped stamp',      'git commit -m "x"', state([COMP], { stamp: scoped(stamp().slugs) }), true);
+r('style + clean full stamp',      'git commit -m "x"', state(['src/styles/layout-v2.css'], { stamp: stamp() }), false);
+r('content config staged',         'git commit -m "x"', state(['src/content/config.ts']), true);
+r('issue + stamp lists slug',      'git commit -m "x"', state([ISS], { stagedStatus: pub, stamp: scoped(['2026-09-21-iss-retirement-set-by-contract']) }), false);
+r('issue + stamp lists other',     'git commit -m "x"', state([ISS], { stagedStatus: pub, stamp: scoped(['2026-09-21-indonesia-fire-burns-soil-not-trees']) }), true);
+r('issue + full stamp',            'git commit -m "x"', state([ISS], { stagedStatus: pub, stamp: stamp() }), false);
+r('two issues, one missing',       'git commit -m "x"', state([ISS, EARTH], { stagedStatus: { ...pub, [EARTH]: 'published' }, stamp: scoped(['2026-09-21-iss-retirement-set-by-contract']) }), true);
+r('draft issue alone',             'git commit -m "x"', state([ISS], { stagedStatus: { [ISS]: 'draft' } }), false);
+r('review issue renders',          'git commit -m "x"', state([ISS], { stagedStatus: { [ISS]: 'review' } }), true);
+r('unknown status counts',         'git commit -m "x"', state([ISS], { stagedStatus: { [ISS]: null } }), true);
+r('template is not an issue',      'git commit -m "x"', state(['src/content/issues/_template/index.mdx']), false);
+r('escape hatch',                  'PX_SKIP_RENDER_GATE=1 git commit -m "x"', state([COMP]), false);
+r('escape hatch, exported',        'export PX_SKIP_RENDER_GATE=1 && git commit -m "x"', state([COMP]), false);
+r('escape named in message only',  'git commit -m "PX_SKIP_RENDER_GATE=1"', state([COMP]), true);
+r('commit inside && chain',        'npm run check:catalog && git commit -m "x"', state([COMP]), true);
+r('add && commit chain',           'git add -A && git commit -m "x"', state([COMP]), true);
+r('heredoc commit',                "git commit -F- <<'MSG'\nfix the chip\nMSG", state([COMP]), true);
+r('amend with nothing staged',     'git commit --amend --no-edit', state([]), false);
+r('amend with a component',        'git commit --amend --no-edit', state([COMP]), true);
+r('remote base is not this tree',  'git commit -m "x"', state([COMP], { stamp: stamp({ base: 'https://parallaxlens.com' }) }), true);
+r('one width is not done',         'git commit -m "x"', state([COMP], { stamp: stamp({ widths: [1280] }) }), true);
+r('issue-only, one width',         'git commit -m "x"', state([ISS], { stagedStatus: pub, stamp: { ...scoped(['2026-09-21-iss-retirement-set-by-contract']), widths: [375] } }), true);
+
+/* ── guard-render: what a command will stage before it commits ─────────── */
+const same = (name, actual, expected) => {
+  const a = JSON.stringify([...actual].sort());
+  const e = JSON.stringify([...expected].sort());
+  if (a === e) { pass++; return; }
+  failures.push(`render: ${name}\n      expected ${e}, got ${a}`);
+};
+const DIRTY = ['src/styles/layout-v2.css', 'AGENTS.md', 'src/components/core/Section.astro'];
+const NEW = ['src/components/core/New.astro', 'research/x.md'];
+const pp = (cmd) => pendingPaths(commitPlan(cmd), { dirty: DIRTY, untracked: NEW, root: 'D:\\SideProjects\\parallax' });
+same('plain commit stages nothing',  pp('git commit -m "x"'), []);
+same('add one file',                 pp('git add src/styles/layout-v2.css && git commit -m "x"'), ['src/styles/layout-v2.css']);
+same('add a directory',              pp('git add src/components && git commit -m "x"'), ['src/components/core/Section.astro', 'src/components/core/New.astro']);
+same('add -A takes everything',      pp('git add -A && git commit -m "x"'), [...DIRTY, ...NEW]);
+same('add -u skips untracked',       pp('git add -u; git commit -m "x"'), DIRTY);
+same('commit -am',                   pp('git commit -am "x"'), DIRTY);
+same('commit with a pathspec',       pp('git commit -m "msg" src/styles/layout-v2.css'), ['src/styles/layout-v2.css']);
+same('add after the commit ignored', pp('git commit -m "x" && git add -A'), []);
+same('absolute Git Bash path',       pp('git add /d/SideProjects/parallax/AGENTS.md && git commit -m x'), ['AGENTS.md']);
+same('quoted author is not a path',  pp('git commit --author="A B <a@b>" -m "x"'), []);
+/* No commit segment → no plan, so the entry never touches git or the disk. */
+check('render: add alone has no plan', commitPlan('git add -A'), false);
 
 /* ── report ────────────────────────────────────────────────────────────── */
 if (failures.length) {

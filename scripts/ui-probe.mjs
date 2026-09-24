@@ -20,6 +20,12 @@
  * Exit 1 when any BLOCKING finding exists (unless --report), 2 on a harness
  * failure (no Chrome, no server).
  *
+ * Every completed run also writes research/_ui/last-run.json (the stamp):
+ * when, base, widths, the slugs rendered, `full`, the blocking and warning
+ * counts, and the render fingerprint taken at the START of the run
+ * (scripts/lib/render-fingerprint.mjs). .claude/hooks/guard-render.mjs reads it
+ * and refuses a rendering commit it does not cover (AGENTS.md §8, 2026-09-24).
+ *
  * ── How the page is put into a measurable state ──────────────────────────────
  *  - Cookie `sb-probe-auth-token=1` on the base origin BEFORE navigation, so
  *    core/ReadingGate.astro sees a session and removes itself: the whole
@@ -112,9 +118,15 @@ import path from 'node:path';
 import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
+import { renderFingerprint, renderedIssueSlugs } from './lib/render-fingerprint.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ISSUES_DIR = path.join(ROOT, 'src', 'content', 'issues');
+/* Local state for .claude/hooks/guard-render.mjs, which refuses a rendering
+   commit unless this stamp is clean, covers the staged scope and carries the
+   fingerprint of the tree being committed. research/_ui/ is gitignored. */
+const STAMP = path.join(ROOT, 'research', '_ui', 'last-run.json');
+const GATE_WIDTHS = [1280, 375];
 
 const BLOCKING = ['HARNESS', 'FRAME', 'COLUMN', 'CLIP', 'OVERLAP', 'CHIP', 'CHROME'];
 const WARNING = ['ALIGN', 'TOUCH', 'EMPTY', 'TINY'];
@@ -152,7 +164,7 @@ function usage() {
 
   --base <url>         server to probe (default http://localhost:4321)
   --slug <s>           issue slug; repeatable or comma-separated; "home" = /
-                       (default: every published issue + home)
+                       (default: every non-draft issue + home)
   --widths <a,b>       viewport widths (default 1280,375). <768 = phone profile
                        (DPR 2, mobile UA, touch, 812 tall); else DPR 1, 900 tall
   --out <dir>          output dir (default research/_ui/<YYYY-MM-DD>)
@@ -241,19 +253,39 @@ function findChrome() {
   });
 }
 
-function publishedSlugs() {
-  const out = [];
-  for (const d of fs.readdirSync(ISSUES_DIR, { withFileTypes: true })) {
-    if (!d.isDirectory() || d.name.startsWith('_')) continue;
-    const f = path.join(ISSUES_DIR, d.name, 'index.mdx');
-    if (!fs.existsSync(f)) continue;
-    const src = fs.readFileSync(f, 'utf8');
-    const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(src);
-    if (!fm) continue;
-    const st = /^status:\s*['"]?([a-z]+)/m.exec(fm[1]);
-    if (st && st[1] === 'published') out.push(d.name);
+/* Every issue that renders publicly (status not `draft`: published and
+   review). Shared with guard-render so "a full run" means the same set in
+   both places. */
+const publishedSlugs = () => renderedIssueSlugs(ROOT);
+
+/* The render gate's stamp. Written after every completed run, clean or not:
+   `blocking` is what the hook reads, so a failing run must overwrite an older
+   clean one. `full` = no --slug, and every rendered issue at 1280 AND 375. */
+function writeStamp(opts, pages, fingerprint, startedAt, blocking, totals, reportPath) {
+  const slugs = pages.filter((p) => p !== 'home');
+  const everyWidth = GATE_WIDTHS.every((w) => opts.widths.includes(w));
+  const all = publishedSlugs();
+  const stamp = {
+    when: new Date().toISOString(),
+    started: startedAt,
+    base: opts.base,
+    widths: opts.widths,
+    slugs,
+    home: pages.includes('home'),
+    full: opts.slugs.length === 0 && everyWidth && all.every((s) => slugs.includes(s)),
+    blocking,
+    warnings: WARNING.reduce((s, t) => s + (totals[t] || 0), 0),
+    report: path.relative(ROOT, reportPath).split(path.sep).join('/'),
+    fingerprint,
+  };
+  try {
+    fs.mkdirSync(path.dirname(STAMP), { recursive: true });
+    fs.writeFileSync(STAMP, JSON.stringify(stamp, null, 2) + '\n');
+    return stamp;
+  } catch (e) {
+    console.error(`ui-probe: could not write ${STAMP}: ${e.message}`);
+    return null;
   }
-  return out.sort();
 }
 
 function portOpen(host, port) {
@@ -1306,6 +1338,10 @@ function writeReport(results, opts, extra) {
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+  /* Taken BEFORE anything renders, so an edit made during the run leaves the
+     stamp describing the older tree, and guard-render calls it stale. */
+  const startedAt = new Date().toISOString();
+  const fingerprint = renderFingerprint(ROOT);
   const chrome = findChrome();
   if (!chrome) die('no Chrome found — set PX_CHROME to the chrome executable');
 
@@ -1384,6 +1420,8 @@ async function main() {
   console.log('');
   console.log(`${blocking} blocking · ${WARNING.map((t) => `${t.toLowerCase()} ${totals[t]}`).join(' · ')}`);
   console.log(`report: ${path.relative(ROOT, path.join(opts.out, 'report.md')).split(path.sep).join('/')}`);
+  const stamp = writeStamp(opts, pages, fingerprint, startedAt, blocking, totals, path.join(opts.out, 'report.md'));
+  if (stamp) console.log(`stamp: ${path.relative(ROOT, STAMP).split(path.sep).join('/')} (${stamp.full ? 'full' : 'scoped'} run, fingerprint ${fingerprint.slice(0, 12)})`);
   process.exit(blocking && !opts.report ? 1 : 0);
 }
 

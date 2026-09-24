@@ -63,11 +63,17 @@ Plus: theme CSS, an entry in `src/components/AGENTS.md`, and a `TRIM` cap in
 ```
 npm run check:catalog
 npm run graph
+npm run check:render -- --slug 2026-06-03-<world>-showcase
 ```
 
 `check:catalog` asserts the 1:1 pairing, the order, and EXPLAIN + KIND_PRIORITY
 coverage. `npm run graph` refreshes the derived graph — commit its output
-alongside the kind, or `prebuild` will fail on a stale graph.
+alongside the kind, or `prebuild` will fail on a stale graph. `check:render`
+(2026-09-23) renders the showcase that carries the worked example at 1280 and
+375 as a signed-in reader and fails on overflow, clipping, text on text, the
+⤢ button on text or duplicate chrome; open the section's screenshots at both
+widths under `research/_ui/<date>/` and read them. The commit hook refuses a
+component commit without a fresh clean run.
 
 Then run `/verify-done`.
 

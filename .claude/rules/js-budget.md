@@ -45,7 +45,10 @@ Any new interactivity must honour this and be justified.
 - `core/ReadingToolbar.astro` — reading progress, Full⇄Skim, Save
 - `core/Viz3DRuntime.astro` — lazy-boots the WebGL runtime on `[data-viz3d]`
 - `core/Tilt.astro` — CSS-3D pointer-tilt + flip
-- `core/ExpandModal.astro` — ⤢ portals a viz card into a modal study view
+- `core/ExpandModal.astro` — ⤢ portals a viz card into a modal study view;
+  the button is a hover-revealed corner on hover screens and an in-flow
+  "Study this figure" row under the graphic below 768px and on coarse
+  pointers (2026-09-23), so it can never cover a caption or a label
 - `core/ReadingGate.astro` — the metered soft signup wall
 - Phase-B reader islands — Save, Reactions, ReadingTracker,
   Letters, NewsletterForm (AnnotationLayer — margin notes — was removed with

@@ -881,6 +881,45 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-09-21 → 2026-09-24 — Six new issues, the visual layer measured, the render gate
+
+Six issues, one per desk, went through the full v2 pipeline on the API route
+(discovery and research on Sonnet 5, composer / drafter / stylist / verifier
+on Opus 5, the panel on Sonnet 5 — the operator's routing after an all-Opus
+round cost $65.91 for the two loops alone; every run's real cost is in
+`research/_costs/ledger.jsonl`, `npm run pipeline:costs`). A billing
+misdiagnosis was corrected along the way: the SDK's spawned CLI had preferred
+the machine's claude.ai login over the API key, so every run from 2026-09-16 to
+2026-09-22 drew on the subscription; `scripts/lib/runner.ts` now isolates the
+CLI's config dir so the key is the only credential it can find
+(`.claude/rules/pipeline-scripts.md`). Sixteen issues are published.
+
+The operator then read the six live, signed in, and found the visual layer
+broken on every one. Two rounds followed, recorded in `AGENTS.md` §10
+(2026-09-22, 2026-09-23, 2026-09-24):
+
+- **2026-09-22** fixed the component-level causes the eye could see — `nowrap`
+  cells, chip-versus-button corners, SVG labels longer than their gutters,
+  justified narrow columns, a desk word in a universal kind, duplicate captions
+  and sources under unseen spellings — and got the wrong thing right about the
+  split plate: it painted a ground over the rails, which hid the facts and the
+  contents list on the ISS issue.
+- **2026-09-23** found the real cause: two generations of geometry on one page.
+  `layout-v2.css`'s breakouts predated the floor plan and crossed the rails it
+  populated. **RD-14:** the measure and the breakout are the only two widths;
+  `wide` keeps the text at the measure and lets the figure out; `bleed` /
+  `split` / `split-flip` are aliases of `wide`; `breath` is left-aligned; one
+  markup in `core/Section.astro`. And **RD-15, the render gate:**
+  `npm run check:render` (headless Chrome, signed-in reader, 1280 and 375,
+  objective measurements, a screenshot per section per width). Its first run
+  found 49 blocking defects on the sixteen live issues — 36 of them the ⤢
+  study button covering text on phones — and the committed tree measures 0.
+  Commit `9ec133a`.
+- **2026-09-24** gave wide figures air (45px each side, 24px clear of the
+  rules — rule to rule had read as "fitted to the exact size"), made the gate a
+  wall (`guard-render.mjs` refuses a rendering-relevant commit without a fresh
+  clean run that covers it), and wrote the component contract into the
+  guides (`AGENTS.md` §7, `src/components/AGENTS.md` §3).
 
 ### 2026-09-04 — Revamp plan v3 signed (look first) + Phase 6.1 shell adoption + B1 instrument retrofits
 

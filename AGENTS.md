@@ -523,6 +523,28 @@ with the canon in `_voice-core.md` §6.
   `.px-chip`, `.px-input`). Page styles are SCOPED to their page; `meta.css`
   is tokens only. The issue floor plan is 170 / 1fr / 250 on that frame, which
   is what makes the prose column exactly 720 — the old 980 cap left it 436.
+- **The section geometry (ruled 2026-09-23, air added 2026-09-24).** On the
+  floor plan a section has two widths: the MEASURE (720, the article's content
+  box, 69px inside each rule) and the breakout. `default` sets everything at
+  the measure. `wide` keeps the TEXT at the measure and lets the FIGURE out by
+  45px each side (810 wide, 24px clear of each rule) — never rule to rule,
+  which the operator read as "fitted to the exact size". `bleed`, `split` and
+  `split-flip` are aliases of `wide` until a design pass re-derives them on
+  the floor plan; **never author them**. `breath` is `default` with air and a
+  display intro, left-aligned. **Nothing crosses the rails, ever**: they carry
+  the facts and the contents list, and the hero is often section 1.
+  `src/styles/layout-v2.css` is the one place this lives; `core/Section.astro`
+  is one markup for every layout.
+- **A component's contract, enforced by `check:render` (2026-09-22/23):** a
+  text cell wraps or truncates, never `nowrap` in a fixed width; an outward SVG
+  label wraps or is budgeted in characters against its gutter, and never leaves
+  its own SVG; a control never floats over content on touch (the ⤢ study button
+  is an in-flow row under the graphic below 768px and on coarse pointers); a
+  component renders no source and no caption under a spelling the shell cannot
+  see (`__cap` / `__caption`; the source is Section's alone); its copy is
+  desk-neutral; its values size to their cell. **It is not done until
+  `npm run check:render` is clean at 1280 AND 375 on every page that uses it,
+  and the screenshots have been read.**
 - **Zero rounded corners.** `--r-card`, `--r-tile` AND `--r-pill` are all 0
   in `base.css :root` (the pill joined on 2026-09-08 by operator ruling on the
   canvas). Only colour dots and the medallion are round.
@@ -738,6 +760,59 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-24 — Air on wide figures; the render gate becomes a wall
+
+The operator pushed `9ec133a`, read the sixteen issues live and called them
+much better, with one residual: some sections felt "fitted to the exact size,
+right up against both edges of the middle column". Those were the `wide`
+figures, which the 2026-09-23 ruling ran rule to rule while every other
+section breathes 69px. **A wide figure now breaks out 45px on each side** —
+810 wide, 24px clear of each rule — and the text stays at the measure (§7,
+RD-14). Measured on all sixteen issues at 1280 and 375: 0 blocking, 0 warnings.
+
+**The gate is enforced, not documented, from today.** Every textual gate was
+green while sixteen issues shipped visually broken, and the operator was
+fixing one width by eye and breaking the other. So:
+
+- `.claude/hooks/guard-render.mjs` (PreToolUse on Bash) refuses a `git commit`
+  whose STAGED changes affect rendering — anything under `src/components`,
+  `src/styles`, `src/layouts`, `src/pages`, `src/lib`, `src/scripts`, the
+  schema, or a non-draft issue — unless `research/_ui/last-run.json`, which
+  `check:render` writes at the end of every run, carries (a) a fingerprint of
+  the rendering tree that matches the tree NOW, (b) `blocking: 0`, and (c)
+  coverage of what changed: a full run when code changed, the slug when only
+  an issue changed. Edit anything after the run and the stamp is stale; the
+  deny message says exactly what to run. `PX_SKIP_RENDER_GATE=1` on the
+  commit command is the operator's override, and only theirs.
+  `scripts/lib/render-fingerprint.mjs` is the one definition of "the
+  rendering tree", shared by the probe and the hook. `hooks:test` covers it.
+- The component contract is written where a component author reads (§7
+  above, `src/components/AGENTS.md` §3 preamble and step 10,
+  `/add-section-kind`), and the publish path runs the gate on the issue
+  (`research/AGENTS.md` step 14, `/publish-issue`, `/verify-done`).
+- The decision record carries it: **RD-14** (the geometry) and **RD-15** (the
+  gate) in `docs/REVAMP-PLAN.md` §1.
+
+**Known, not fixed — the next work package:** the six
+`2026-06-03-<world>-showcase` drafts, the worked examples of every kind, were
+probed on 2026-09-24: **32 blocking findings across 14 kinds** that no
+published issue has used yet, which is exactly the set the diversity floors
+(≥ 2 new kinds per issue) will pull into the next round. Blocking:
+`itinerary-reel` (a day card 227px past the column), `commit-grid` (scrolls
+sideways at 1280), `carbon-gauge` (clipped by its own SVG), `altitude-oxygen`,
+`fare-terrain`, `momentum-wave`, `pace-ridge`, `descent-profile` and
+`lagrange-map` (event labels), `city-grid`, `chip-die`, `ballot-flow`,
+`storm-track` and `flight-of-the-ball` (their static fallbacks). Warnings
+only: sub-5px labels in seven WebGL fallbacks, `climate-calendar` and
+`tactics-pitch`; touching labels in `atmosphere-column`, `throughput-dial`,
+`queue-cliff`; `season-wheel` edges. They are drafts, so the hook does not
+gate them, but the gate WILL refuse the first published issue that carries
+one of these kinds until the kind is fixed — fix the kind, never the issue.
+Run `check:render --slug` on a showcase before modelling a section on it. On phones a chart drawn for
+the 720 measure scrolls sideways inside its card (the 2026-09-07 ruling) and
+the region-map on the Indonesia issue is cut at the right edge until scrolled
+— a ruling to revisit, not a defect the gate reports.
 
 ### 2026-09-23 — The geometry was the bug: one markup, two widths, a render gate
 

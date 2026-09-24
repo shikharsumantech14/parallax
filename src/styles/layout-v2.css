@@ -18,9 +18,13 @@
    as components overflowing their column (2026-09-22).
 
    · default  — everything at the measure.
-   · wide     — the FIGURE spans the column; the text (number, eyebrow, title,
-                intro, how-to-read, caption, plain line) stays at the measure,
-                so the figure breaks out 69px on each side, symmetrically.
+   · wide     — the FIGURE breaks out of the measure by 45px on each side
+                (810 wide, 24px clear of each rule); the text (number, eyebrow,
+                title, intro, how-to-read, caption, plain line) stays at the
+                measure. Symmetric, and never touching the rules: the first cut
+                (2026-09-23) ran the figure rule to rule, and the operator read
+                a figure with zero air on both sides as "fitted to the exact
+                size" against sections that breathe 69px (2026-09-24).
                 Flush-left text against the rule with a 720 hairline under an
                 860 figure was the "component mismatch" of 2026-09-22.
    · bleed, split, split-flip — ALIASES of wide until a design pass re-derives
@@ -46,20 +50,21 @@
   .px-floor .px-section[data-layout='bleed'],
   .px-floor .px-section[data-layout='split'],
   .px-floor .px-section[data-layout='split-flip'] {
-    width: calc(100% + 138px);
-    margin-inline: -69px;
+    /* 45 each side, not the full 69 to the rule: a wide figure breathes. */
+    width: calc(100% + 90px);
+    margin-inline: -45px;
   }
-  /* The text sits at the measure; only the figure takes the column. */
+  /* The text sits at the measure; only the figure takes the breakout. */
   .px-floor .px-section[data-layout='wide'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
   .px-floor .px-section[data-layout='bleed'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
   .px-floor .px-section[data-layout='split'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
   .px-floor .px-section[data-layout='split-flip'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain) {
-    margin-inline: 69px;
+    margin-inline: 45px;
   }
   /* The timeline is a figure too, but it carries its own 720 cap (`.tl` in
-     dataviz-v2.css), so in a wide section it sat flush against the left rule
-     and stopped 138px short of the right one while the text above it started
-     69px in. Lift the cap here so it spans rule to rule like every figure. */
+     dataviz-v2.css), so in a wide section it sat flush against the left edge
+     and stopped 90px short of the right one while the text above it started
+     45px in. Lift the cap here so it spans the breakout like every figure. */
   .px-floor .px-section:is([data-layout='wide'], [data-layout='bleed'], [data-layout='split'], [data-layout='split-flip']) > .tl {
     max-width: none;
   }

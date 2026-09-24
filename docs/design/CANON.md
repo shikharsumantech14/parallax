@@ -40,7 +40,9 @@ small charts.** Readers remember the picture, not the words.
 - Every issue names **one hero visual** — the single component that carries the
   issue's structural argument (the chamber for a vote story, the solar system for a
   trajectory story). The drafter picks it FIRST, before writing sections.
-- The hero visual takes `layout: wide` when its figure earns the full column.
+- The hero visual takes `layout: wide` when its figure earns the breakout (RD-14:
+  45px past the measure on each side, 24px clear of the rules — never rule to
+  rule).
   **Amended 2026-09-23:** `layout: split` (the sticky scrollytelling layout)
   and `layout: bleed` render as `wide` on the launch floor plan. The 1080 plate
   crossed the facts rail and the aside and covered them on the live pages, and

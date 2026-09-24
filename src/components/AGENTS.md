@@ -278,6 +278,22 @@ KIND_PRIORITY coverage. Since 2026-08-27 it runs in `prebuild`, ahead of the
 OG writer — so `npm run build` fails on a half-wired kind with a clean tree. Item 8 (the scene registry) applies to WebGL kinds only; the other
 eight apply to every kind.
 
+**Before the checklist — the contract every component signs (root `AGENTS.md`
+§7, 2026-09-22/23), because the sixteen live issues shipped broken three times
+against components that each broke it once:** a text cell wraps or truncates,
+never `nowrap` inside a fixed width; an outward SVG label wraps or is budgeted
+in characters against the gutter it is drawn into, and never leaves its own
+SVG (the outer `<svg>` clips, and in a `wide` section the figure's edge is
+24px from the article rule); no control floats over content on touch — the ⤢
+study button is appended by `core/ExpandModal.astro` and becomes an in-flow
+row under the graphic below 768px, so a component never reserves a corner for
+it; no source line and no caption under a spelling the shell cannot see
+(`__cap` / `__caption`; `core/Section.astro` prints the source); copy is
+desk-neutral (101 kinds run under six worlds); values size to their cell. The
+figure is drawn for the 720 measure (M); on phones it may scroll inside its
+card (the `min-width` block in `dataviz-v2.css`), never overflow the page.
+Step 10 below is how you prove all of it.
+
 1. **Add the kind name** to `SECTION_KINDS` in `src/content/config.ts`.
 2. **Create the component** at `src/components/<scope>/<Name>.astro` (scope
    = `core/` or `topic/<topic>/`).
@@ -299,6 +315,12 @@ eight apply to every kind.
    Omit this and the mount renders its static fallback forever, silently.
 9. **Add a worked section** to that world's `2026-06-03-<world>-showcase`
    issue, so the kind has a live example to look at.
+10. **Render it, both widths, and look** (2026-09-23):
+    `npm run check:render -- --slug 2026-06-03-<world>-showcase` (and the
+    issue that carries it, once one does). Zero blocking findings at 1280 and
+    375, then open the section's screenshots under `research/_ui/<date>/` at
+    both widths and read them. The commit hook `guard-render.mjs` refuses a
+    commit of a component without a fresh clean run (root `AGENTS.md` §8).
 
 For data viz components that emit SVG, follow the SVG conventions in §5.
 

@@ -433,6 +433,22 @@ Read-only `git status|log|diff|show` is never touched.
 **`guard-generated.mjs`** — denies writes to `docs/generated/**` (CD-09), with
 a reason naming `scripts/project-graph.mjs` as the way to change it.
 
+**`guard-render.mjs`** (added 2026-09-24, same `Bash` matcher as guard-git) —
+denies a `git commit` whose staged changes affect rendering unless the stamp
+`npm run check:render` writes at the end of every run,
+`research/_ui/last-run.json`, covers them: rendered from a local server,
+carrying the current tree's render fingerprint (`scripts/lib/render-fingerprint.mjs`:
+a sha1 over `src/components|styles|layouts|pages|lib|scripts/**`,
+`src/content/config.ts` and every non-draft issue's `index.mdx`, taken at the
+START of the run, so any edit since reads as stale), at 1280 and 375, with 0
+blocking findings, and a full run when anything outside `src/content/issues/`
+is staged (else every staged slug listed). A staged issue whose status is
+`draft` is not rendering. "Staged" means what the commit will contain, so
+`git add x && git commit` and `git commit -a` are judged on the files they are
+about to stage. The reason names the exact command to run;
+`PX_SKIP_RENDER_GATE=1` on the commit is the operator's override. It imports
+guard-git's `strip` / `segments` / `parseGit` rather than copying them.
+
 **`gate-registry.mjs`** — after an edit to `src/content/config.ts`,
 `docs/design/catalog.md`, `src/lib/explainers.ts` or `src/lib/story.ts`, runs
 `check:catalog` and surfaces failure via `systemMessage`. Catches a half-wired

@@ -93,6 +93,19 @@ the prompt does (`scripts/lib/prompts.ts` passes it to discovery and research).
   idempotent, handles per-file line endings.
 - `project-graph.mjs` — the derived project graph (CD-09: its output in
   `docs/generated/` is never hand-edited).
+- `ui-probe.mjs` — **the render gate** (`npm run check:render`, 2026-09-23;
+  RD-15). `puppeteer-core` on the installed Chrome renders every non-draft
+  issue as a signed-in reader at 1280 and 375 and fails on any element past
+  the column, the honest phone overflow, clipped text, text on text, the ⤢
+  button on text or duplicate chrome; screenshots per section per width
+  under `research/_ui/<date>/` (gitignored). Not in `prebuild` — it needs a
+  browser — but **enforced at commit time**: it writes
+  `research/_ui/last-run.json` with a fingerprint of the rendering tree
+  (`scripts/lib/render-fingerprint.mjs`), and `.claude/hooks/guard-render.mjs`
+  refuses a `git commit` that stages rendering files unless the stamp matches
+  the tree now, is clean, and covers what changed. Edit after the run and it
+  is stale. `PX_SKIP_RENDER_GATE=1` on the commit is the operator's override,
+  and only theirs.
 
 `prebuild` runs the gates **before** `story/og.ts` writes anything. Keep that
 order: a gate that runs after a writer has already rewritten tracked files is

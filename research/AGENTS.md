@@ -278,9 +278,12 @@ Average ~3.5 issues/week. Sustainable for solo + audit-quality.
 Since 2026-09-16 the per-issue figure is MEASURED: every run appends its
 actual dollars and tokens to `research/_costs/ledger.jsonl`, and
 `npm run pipeline:costs` prints each agent's cost per issue, subtotals,
-per-agent averages and the grand total. Every phase runs on Opus 5 except
-the reader panel (Sonnet 5, so it never judges its own drafter's prose).
-Quote the report, not a range.
+per-agent averages and the grand total. On the API route the long tool
+loops (discovery, research) run on Sonnet 5 and the short passes (composer,
+drafter, stylist, verifier) on Opus 5, with the reader panel on Sonnet 5 so
+it never judges its own drafter's prose (`scripts/pipeline.config.ts`, the
+operator's ruling of 2026-09-21 after an all-Opus round cost $65.91 for the
+two loops alone). Quote the report, not a range.
 
 Discovery and verify are cheap — re-run freely if results look off. Draft
 and stylist are expensive — review the dossier carefully before

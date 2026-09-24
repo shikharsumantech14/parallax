@@ -36,22 +36,26 @@ const deny = (reason) => {
 };
 
 /* Strip quoted runs and comments so a commit message mentioning "git push"
-   cannot trip the matcher. We only care about executable command text. */
-const strip = (s) => s
+   cannot trip the matcher. We only care about executable command text.
+   `fill` replaces each quoted run; guard-render passes a placeholder token so
+   it can still see that an argument WAS there (`-m "msg" path` must not read
+   `path` as the message). Heredoc bodies are stdin, never arguments, so they
+   always become a space. Exported for guard-render — keep one parser. */
+export const strip = (s, fill = ' ') => s
   .replace(/<<-?\s*(['"]?)(\w+)\1[\s\S]*?^\s*\2\s*$/gm, ' ')  // heredocs
-  .replace(/'[^']*'/g, ' ')
-  .replace(/"[^"]*"/g, ' ')
+  .replace(/'[^']*'/g, fill)
+  .replace(/"[^"]*"/g, fill)
   .replace(/#.*$/gm, ' ');
 
 /* Split on separators so `npm test && git push` is caught. */
-const segments = (s) => strip(s).split(/(?:&&|\|\||[;|\n])/);
+export const segments = (s, fill) => strip(s, fill).split(/(?:&&|\|\||[;|\n])/);
 
 /* Global flags that consume the NEXT token as their value, so `git -C . push`
    resolves to subcommand `push` rather than `.`. */
 const VALUE_FLAGS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--exec-path', '--namespace']);
 
 /** Split a git segment into { sub, rest }, skipping global flags. */
-function parseGit(seg) {
+export function parseGit(seg) {
   const tokens = seg.split(/\s+/).filter(Boolean);
   let i = tokens.findIndex((t) => /(^|[/\\])git$/.test(t));
   if (i === -1) return null;
