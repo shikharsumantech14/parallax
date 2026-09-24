@@ -39,10 +39,13 @@ in `docs/REVAMP-PLAN.md`):
 - **Committed and live:** `9ec133a` (the geometry, the gate, the fixes from
   the first run), pushed by the operator 2026-09-24; the wide-figure air and
   the hook follow in the next commit.
-- **Open — the next work package:** the six showcase drafts carry 32 blocking
-  findings across 14 never-published kinds (the list is in `AGENTS.md` §10,
-  2026-09-24); the gate will refuse the first issue that carries one until the
-  kind is fixed, so fix the kinds before the next round picks them. Also the composer's
+- **The showcase sweep is done (2026-09-24):** the six showcase drafts had 32
+  blocking findings across 14 never-published kinds; all fixed generically,
+  and the six showcases measure 0 blocking, 0 warnings at both widths
+  (`AGENTS.md` §10, 2026-09-24). Three design calls remain for the operator:
+  `storm-track`'s hemisphere framing, `fare-terrain`'s paper fill under the
+  ridges, and whether phone charts should keep scrolling inside their card.
+- **Open:** the composer's
   cross-round kind ledger and a closing-section rule are still to be written;
   the operator's pending editorial items from the 2026-09-21 round stand
   (space delta-v figures, sports IPL and Swiss Ramble figures, politics

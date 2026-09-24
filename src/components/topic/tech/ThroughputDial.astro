@@ -229,6 +229,10 @@ const valText = Number.isInteger(val) ? val.toLocaleString() : (Math.round(val *
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--accent);
+    /* air under the numeral: at line-height 1 its figures run to the foot of
+       their box, so the 2px row gap left the unit's caps touching them
+       (probe TOUCH, 2026-09-24) */
+    margin-top: 5px;
   }
   .px-tdial__label {
     /* sub-label — mono uppercase muted, legend register */

@@ -52,13 +52,22 @@ routes.forEach((r, i) => {
 const W = 720;
 const ROW = 48;                 // ridgeline row pitch
 const AMP = ROW * 2.4;          // 115.2px — tallest fare rises this far; ridges overlap ~2.4 rows
-const TOP = 120;                // top headroom: row-0 baseline; peaks rise into 0..120 (AMP < TOP)
+// Label strip (2026-09-24): two tag rows ABOVE the terrain. The tallest peak
+// rises to within 5 units of the row-0 headroom's top, so a tag printed
+// inside the headroom lands on the ridge or on the other tag (the SWEET SPOT
+// label and the cliff tag both sat at y≈22 and crossed). The strip gives the
+// two plate tags their own rows; §4's geometry below it is unchanged.
+// The band starts at the strip's foot, so its dashed edges never run through
+// a tag, and the caret over the highest possible anchor clears row 1.
+const STRIP = 36;
+const ROW0_Y = 12, ROW1_Y = 26; // tag baselines in the strip
+const TOP = STRIP + 120;        // row-0 baseline; peaks rise into STRIP..TOP (AMP < 120)
 const PLOT_L = 72, PLOT_R = 648;
 const PLOT_W = PLOT_R - PLOT_L; // 576
 const n = routes.length;
 const y0 = (r: number) => TOP + r * ROW;        // baseline of route row r (top → down)
 const axisY = y0(n - 1) + 30;
-const H = 120 + n * ROW + 60;                    // §4 viewBox height formula
+const H = STRIP + 120 + n * ROW + 60;            // §4 viewBox height formula + the strip
 
 // ── x scale: REVERSED, linear (§4) — maxDays → left, 0 → right ───────────────
 const maxDays = Math.max(...routes.flatMap((r) => r.points.map((p) => p.daysBefore)));
@@ -143,7 +152,7 @@ const valleyMinDay = (inWin.find((p) => p.fare === valleyMin) ?? focalSorted[0])
 // valley band screen box (maxD is further left, minD nearer departure/right)
 const bandL = x(winMaxD);
 const bandR = x(winMinD);
-const bandTopY = 10;
+const bandTopY = STRIP - 4;
 
 // ── cliff: last-minute premium on the focal route (§4) ───────────────────────
 const departureFare = focal.rightEnd ? focal.rightEnd.fare : globalMaxFare; // nearest-to-departure fare
@@ -158,11 +167,30 @@ const ticks = TICKS.filter((d) => d <= maxDays).map((d) => ({ d, x: x(d), mobile
 // per-route reveal stagger, capped so the whole sweep still lands ≤1.6s (§5)
 const stagMs = n > 1 ? Math.min(120, Math.floor(200 / (n - 1))) : 0;
 
-// route-label y, clamped to [24, H−16]; dashed connector if it pulls off the curve end
-const clampLabelY = (yv: number) => Math.max(24, Math.min(H - 16, yv));
+// route-label y, clamped below the strip and above the axis chips; dashed
+// connector if it pulls off the curve end
+const clampLabelY = (yv: number) => Math.max(STRIP + 10, Math.min(H - 16, yv));
 const isIndex = unit === 'index' || unit === 'INDEX';
 const fareAxisChip = isIndex ? 'fare index' : `fare · ${unit}`;
 const bandLabel = `SWEET SPOT · ${winMaxD}–${winMinD} DAYS`;
+const cliffLabel = `+${cliffPct}% last 14 days`;
+
+// ── the two plate tags, placed in the strip ─────────────────────────────────
+// Widths are budgeted, not measured: 10px caps at 0.12em tracking run ≈ 8.1
+// units a character in Literata (measured 2026-09-24); 0.86em keeps a margin.
+const TAG_CH = 10 * 0.86;
+const tagW = (t: string) => t.length * TAG_CH;
+// SWEET SPOT: centred on the band, clamped inside the viewBox.
+const spotW = tagW(bandLabel);
+const spotX = Math.min(Math.max((bandL + bandR) / 2, spotW / 2 + 2), W - 2 - spotW / 2);
+// Cliff tag: right-aligned on its anchor, clamped inside the viewBox; row 0
+// unless it would print on the SWEET SPOT label, then row 1. A dashed leader
+// drops from the tag to the caret over the anchor.
+const cliffW = tagW(cliffLabel);
+const cliffEnd = cliffAnchor ? Math.min(Math.max(cliffAnchor.x + 4, cliffW + 2), W - 2) : 0;
+const spotBox = [spotX - spotW / 2 - 10, spotX + spotW / 2 + 10];
+const cliffHits = cliffEnd - cliffW < spotBox[1] && cliffEnd > spotBox[0];
+const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
 ---
 
 <div class="px-viz px-fterr" data-reveal>
@@ -216,7 +244,7 @@ const bandLabel = `SWEET SPOT · ${winMaxD}–${winMinD} DAYS`;
         <!-- SWEET SPOT band label -->
         <text
           class="px-fterr__spot"
-          x={((bandL + bandR) / 2).toFixed(1)} y={(bandTopY + 12).toFixed(1)}
+          x={spotX.toFixed(1)} y={ROW0_Y}
           text-anchor="middle"
         >{bandLabel}</text>
 
@@ -238,15 +266,22 @@ const bandLabel = `SWEET SPOT · ${winMaxD}–${winMinD} DAYS`;
         <!-- cliff tag on the focal route -->
         {cliffAnchor && Number.isFinite(cliffPct) && (
           <g class="px-fterr__cliff">
+            {cliffAnchor.y - 10 > cliffY + 5 && (
+              <line
+                class="px-fterr__leader"
+                x1={cliffAnchor.x.toFixed(1)} y1={(cliffY + 5).toFixed(1)}
+                x2={cliffAnchor.x.toFixed(1)} y2={(cliffAnchor.y - 10).toFixed(1)}
+              />
+            )}
             <path
               class="px-fterr__caret"
-              d={`M ${(cliffAnchor.x - 4).toFixed(1)} ${(cliffAnchor.y + 6).toFixed(1)} L ${(cliffAnchor.x + 4).toFixed(1)} ${(cliffAnchor.y + 6).toFixed(1)} L ${cliffAnchor.x.toFixed(1)} ${(cliffAnchor.y + 12).toFixed(1)} Z`}
+              d={`M ${(cliffAnchor.x - 4).toFixed(1)} ${(cliffAnchor.y - 10).toFixed(1)} L ${(cliffAnchor.x + 4).toFixed(1)} ${(cliffAnchor.y - 10).toFixed(1)} L ${cliffAnchor.x.toFixed(1)} ${(cliffAnchor.y - 4).toFixed(1)} Z`}
             />
             <text
               class="px-fterr__clifftag"
-              x={(cliffAnchor.x - 8).toFixed(1)} y={(cliffAnchor.y + 22).toFixed(1)}
+              x={cliffEnd.toFixed(1)} y={cliffY}
               text-anchor="end"
-            >+{cliffPct}% last 14 days</text>
+            >{cliffLabel}</text>
           </g>
         )}
       </g>
@@ -304,6 +339,10 @@ const bandLabel = `SWEET SPOT · ${winMaxD}–${winMinD} DAYS`;
     paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
   }
   .px-fterr__caret { fill: var(--accent-deep, var(--accent)); fill-opacity: 0.9; }
+  .px-fterr__leader {
+    stroke: var(--accent-deep, var(--accent)); stroke-opacity: 0.6;
+    stroke-width: 1; stroke-dasharray: 2 3;
+  }
 
   /* ── route labels (fixed right column) ────────────────────────────────── */
   .px-fterr__rlabel text {

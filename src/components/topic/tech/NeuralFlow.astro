@@ -100,6 +100,34 @@ const collapse = legend.length > 5;
 const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
 const HALO = 'paint-order:stroke;stroke:var(--paper);stroke-width:3';
 
+/* ── layer labels: two type tiers (2026-09-24) ──
+   The plate is 720 units drawn at the column width — 335px on a 375px phone,
+   where the 9.5-unit layer labels printed at 4.4px (probe TINY). The plate
+   carries them twice: the authored 9.5 units, and 20.5 units for phones
+   (≤640px, CSS), which prints ~9.5px on a 335px plate. At the larger size two
+   neighbouring labels can meet — up to eight layers share 720 units — so each
+   tier is decluttered left to right: a label whose box would touch the one
+   before it drops a line. Widths lean wide (0.66em + tracking). */
+const LBL_TIERS = { d: 9.5, m: 20.5 } as const;
+function layerLabels(fs: number) {
+  const out: { x: number; y: number }[] = [];
+  const boxes: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  svgLayers.forEach((ly, l) => {
+    const w = (legend[l].label.length) * fs * 0.72;
+    // the larger tier's caps would climb into the slab's front nodes; keep the
+    // cap line where the authored size puts it and let the text grow downward
+    let y = ly.labelY + (fs - LBL_TIERS.d) * 0.8;
+    for (let k = 0; k < 4; k++) {
+      const b = { x0: ly.labelX - w / 2, x1: ly.labelX + w / 2, y0: y - fs * 0.8, y1: y + fs * 0.25 };
+      if (!boxes.some((q) => b.x0 < q.x1 + 4 && q.x0 < b.x1 + 4 && b.y0 < q.y1 + 2 && q.y0 < b.y1 + 2)) { boxes.push(b); break; }
+      y += fs * 1.15;
+    }
+    out.push({ x: ly.labelX, y: Math.min(y, VH - fs * 0.3) });
+  });
+  return out;
+}
+const lblSets = { d: layerLabels(LBL_TIERS.d), m: layerLabels(LBL_TIERS.m) };
+
 const payload = JSON.stringify({
   layers,
   ...(paramsNote ? { paramsNote } : {}),
@@ -115,6 +143,15 @@ const paramsStr = formatCount(R.params);
       {R.sampled && <b>sampled — showing 1 in {R.maxEvery}</b>}
     </div>
   )}
+
+  {/* phone copy of the static readout, in flow ABOVE the plate: pinned inside
+      a 335px plate, the 15px readout covered the first two columns. Shown only
+      at ≤640px and only while the plate is the fallback (the live scene mounts
+      its own readout). */}
+  <div class="px-nflow__readout px-nflow__readout--flow" aria-hidden="true">
+    <span class="px-nflow__params vz-value"><b>{paramsStr}</b> params</span>
+    {paramsNote && <span class="px-nflow__note vz-legend">{paramsNote}</span>}
+  </div>
 
   <div
     class="viz3d viz3d--nflow"
@@ -140,12 +177,17 @@ const paramsStr = formatCount(R.params);
               opacity={l === midL ? 1 : 0.45} />
           ))
         ))}
-        {/* layer labels — mono 9.5px with paper halo, centred under each slab */}
-        {svgLayers.map((ly, l) => (
-          <text x={ly.labelX} y={ly.labelY} text-anchor="middle"
-            style={MONO + ';' + HALO} font-size="9.5"
-            letter-spacing="0.06em"
-            fill={l === midL ? 'var(--accent)' : 'var(--muted)'}>{legend[l].label}</text>
+        {/* layer labels — mono with paper halo, centred under each slab; one set
+            per type tier (see the frontmatter note), CSS shows one */}
+        {(['d', 'm'] as const).map((tier) => (
+          <g class={`px-nflow__lbls px-nflow__lbls--${tier}`}>
+            {lblSets[tier].map((pos, l) => (
+              <text x={pos.x} y={pos.y.toFixed(1)} text-anchor="middle"
+                style={MONO + ';' + HALO + (tier === 'm' ? ';stroke-width:5' : '')} font-size={LBL_TIERS[tier]}
+                letter-spacing="0.06em"
+                fill={l === midL ? 'var(--accent)' : 'var(--muted)'}>{legend[l].label}</text>
+            ))}
+          </g>
         ))}
       </svg>
     </div>
@@ -216,6 +258,17 @@ const paramsStr = formatCount(R.params);
   /* the static readout hides once the live canvas takes over (its own count-up
      version mounts inside the mount); the live one hides under no-JS. */
   .viz3d--live .px-nflow__readout--static { display: none; }
+
+  /* layer-label tiers + the phone readout (see the frontmatter note) */
+  .px-nflow__lbls--m { display: none; }
+  .px-nflow__readout--flow { display: none; }
+  @media (max-width: 640px) {
+    .px-nflow__lbls--d { display: none; }
+    .px-nflow__lbls--m { display: inline; }
+    .px-nflow__readout--static { display: none; }
+    .px-nflow__readout--flow { display: flex; position: static; margin: 0 0 10px; }
+    .px-nflow__readout--flow:has(+ .viz3d--live) { display: none; }
+  }
 
   /* live-only wave-honesty chip (scene appends .px-nflow__chip) */
   .px-nflow__chip {

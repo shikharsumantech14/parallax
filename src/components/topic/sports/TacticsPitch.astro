@@ -111,22 +111,42 @@ const placed = (players || []).map((p, i) => ({
 
 <style>
   /* --recline is the base pitch tilt; --counter is its negative so markers
-     stay flat-facing. Single source of truth → mobile only overrides --recline
-     (below) and every marker rule follows automatically. */
-  .px-pitch { width: 100%; max-width: 520px; margin: 0 auto; --recline: 52deg; --counter: -52deg; }
-
-  /* The tilt wrapper carries BOTH the fixed recline AND the pointer-tilt vars.
-     core/Tilt writes --rx/--ry (small, data-tilt="3"); we prepend the base
-     rotateX so the plane reads as a receding pitch. transform-origin low so it
-     recedes from the reader. */
-  .px-pitch__tilt {
-    transform: rotateX(var(--recline)) rotateX(var(--rx)) rotateY(var(--ry));
-    transform-origin: 50% 88%;
-    margin: 6px auto 30px;
+     stay flat-facing; --lift raises each marker off the turf so its lower
+     half is not buried in the plane once it stands up. --reclaim is the empty
+     band the recline leaves above the pitch (the transform never shrinks the
+     layout box), as a share of the width: measured 54% at 52° and 38–40% at
+     40°, less a little air. Single source of truth → mobile overrides
+     --recline / --reclaim (below) and every rule follows. */
+  .px-pitch {
+    width: 100%; max-width: 520px; margin: 0 auto;
+    --recline: 52deg; --counter: -52deg; --lift: 24px; --reclaim: 52%;
   }
 
-  /* The pitch plane — green field with a subtle mow-stripe gradient. */
+  /* The tilt wrapper carries ONLY the pointer tilt (core/Tilt writes --rx/--ry
+     via .px3d-tilt). The recline lives on the plane, because
+     components-3d.css resets `.px3d-tilt` to `transform: none` under
+     prefers-reduced-motion: with the recline here, reduced motion flattened
+     the pitch while the markers kept their counter-rotation, so every disc
+     and name printed at 62% height. The reclined pitch is the composed still,
+     not motion; only the pointer tilt is. The box is pulled up by --reclaim
+     so the pitch does not sit under a ~280px hole; it lets pointer events
+     through where it is empty, the plane takes them back. */
+  .px-pitch__tilt {
+    transform-origin: 50% 88%;
+    margin: calc(6px - var(--reclaim)) auto 30px;
+    pointer-events: none;
+  }
+
+  /* The pitch plane — green field with a subtle mow-stripe gradient. Reclined
+     here (see above), and a 3D context of its own so the counter-rotated
+     markers actually stand up: without preserve-3d they were flattened INTO
+     the plane first and then foreshortened with it — discs drawn as slivers
+     and names at ~40% height, in every mode. */
   .px-pitch__plane {
+    transform: rotateX(var(--recline));
+    transform-origin: 50% 88%;
+    transform-style: preserve-3d;
+    pointer-events: auto;
     position: relative;
     width: 100%;
     aspect-ratio: 68 / 100;            /* width : length (real pitch ratio) */
@@ -168,11 +188,12 @@ const placed = (players || []).map((p, i) => ({
   }
 
   /* Player marker — counter-rotated so the disc faces the reader despite the
-     reclined plane (keeps numbers legible). */
+     reclined plane (keeps numbers legible), lifted so none of it sinks below
+     the turf. */
   .px-pitch__mk {
     position: absolute;
     z-index: 2;
-    transform: translate(-50%, -50%) rotateX(var(--counter));
+    transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter));
     transform-origin: 50% 50%;
     display: flex;
     flex-direction: column;
@@ -202,7 +223,7 @@ const placed = (players || []).map((p, i) => ({
   }
   .px-pitch__name {
     font-family: var(--font-mono);
-    font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; /* the 9.5px floor */
     color: var(--ink);
     /* the chip floats over the green field + heat glow — keep the paper
        backing near-opaque so the surname stays legible on the pitch */
@@ -211,7 +232,7 @@ const placed = (players || []).map((p, i) => ({
     white-space: nowrap;
     /* final guard against a long surname colliding with a neighbour: cap the
        chip and ellipsis the overflow (full name stays in the title attr). */
-    max-width: 76px;
+    max-width: 84px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -237,7 +258,7 @@ const placed = (players || []).map((p, i) => ({
   /* reveal: markers pop in staggered (gated behind html.js) */
   html.js .px-viz:not(.is-in) .px-pitch__mk {
     opacity: 0;
-    transform: translate(-50%, -50%) rotateX(var(--counter)) scale(0.4);
+    transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter)) scale(0.4);
   }
   .px-viz.is-in .px-pitch__mk { transition-delay: calc(var(--i) * 55ms); }
 
@@ -246,7 +267,7 @@ const placed = (players || []).map((p, i) => ({
      flat-facing automatically. Names are hidden at this width to avoid
      collisions. */
   @media (max-width: 560px) {
-    .px-pitch { --recline: 40deg; --counter: -40deg; }
+    .px-pitch { --recline: 40deg; --counter: -40deg; --reclaim: 36%; }
     .px-pitch__disc { width: 26px; height: 26px; font-size: 12px; }
     .px-pitch__disc[data-role="true"] { font-size: 9.5px; }
     .px-pitch__name { display: none; }
@@ -256,7 +277,7 @@ const placed = (players || []).map((p, i) => ({
   @media (prefers-reduced-motion: reduce) {
     .px-viz:not(.is-in) .px-pitch__mk {
       opacity: 1 !important;
-      transform: translate(-50%, -50%) rotateX(var(--counter)) !important;
+      transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter)) !important;
     }
   }
 </style>

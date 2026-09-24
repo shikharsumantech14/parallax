@@ -84,7 +84,27 @@ const ghostCross = ghost[ghost.length - 1];
 
 /* ── fallback geometry: two stacked panels sharing one downrange x-axis ──
    viewBox 720×380. Top = elevation (side-on): downrange x vs height y.
-   Bottom = plan (top-down): downrange x vs lateral z (with the swerve bracket). */
+   Bottom = plan (top-down): downrange x vs lateral z (with the swerve bracket).
+
+   TWO LAYERS (2026-09-24). The drawing is a 720×380 viewBox scaled to the
+   card; the LABELS are a second, viewBox-less SVG laid over it, positioned in
+   percent of the same frame and set in real pixels. Why: the mount pins
+   `aspect-ratio: 720 / 380` (the WebGL canvas needs it), so the phone
+   card-scroll rule in dataviz-v2.css cannot give this drawing scale 1 (a
+   min-width only makes `meet` scale it back down), and every label rendered
+   at 4.4px on a 375 phone. In the overlay a 9.5px label is 9.5px at any card
+   width, while the lines scale as before. Every label position below is
+   budgeted for the smallest card (320px) as well as the 720 measure:
+     - the rail's tick labels and the PLAN title hang from the rail by an
+       offset in em, so they keep a text line apart (and clear the tick
+       marks) at any scale; the plan band starts under the title at the
+       smallest card, so the title is never struck through by a curve that
+       launches at the band's top;
+     - the swerve label is END-anchored just right of the bracket, UNDER its
+       lower end (offset in em, not units), so it always grows left into the
+       plot's empty bottom band and can never pass the mount's clipping edge.
+       It used to start 18 units right of the goal line and run ~80 units,
+       past the 720 frame, at every width. */
 const VW = 720, VH = 380;
 const PL = 56, PR = 40;                 // plot left/right margins
 const PX0 = PL, PX1 = VW - PR;          // downrange axis pixel span
@@ -102,8 +122,12 @@ const TOP_Y0 = 30, TOP_Y1 = 168;        // pixel band for the height plot
 const yMaxM = Math.max(goal.height_m, apex) * 1.12;
 const ey = (h: number) => TOP_Y1 - (Math.max(0, h) / yMaxM) * (TOP_Y1 - TOP_Y0);
 
-// Bottom panel (plan) vertical band — lateral z, 0 centered
-const BOT_Y0 = 214, BOT_Y1 = 330;
+// Bottom panel (plan) vertical band — lateral z, 0 centered. Starts under the
+// PLAN title, which hangs 2.75em below the rail (≈ 116px down a 177px phone
+// mount, where 250 units is 116.3px and the curves stay ≥ 7 units inside the
+// band); ends 30 units short of the frame, the band the swerve label sits in.
+const RAIL_Y = 190;
+const BOT_Y0 = 250, BOT_Y1 = 350;
 const BOT_MID = (BOT_Y0 + BOT_Y1) / 2;
 const zAbs = Math.max(goal.width_m / 2, Math.abs(realCross.z), Math.abs(ghostCross.z), 1) * 1.15;
 const pz = (z: number) => BOT_MID - (z / (2 * zAbs)) * (BOT_Y1 - BOT_Y0);
@@ -145,6 +169,12 @@ const isCricket = sport === 'cricket';
 const showSlowmoChip = slowmo > 1; // live only (rendered via the live chip node)
 
 const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+// overlay coordinates: percent of the 720×380 frame the drawing fills exactly
+const pctX = (x: number) => `${((x / VW) * 100).toFixed(3)}%`;
+const pctY = (y: number) => `${((y / VH) * 100).toFixed(3)}%`;
+// the swerve label: right edge just past the bracket, under its lower end
+const swerveBottom = Math.max(realZ_px, ghostZ_px);
+const swerveX = Math.min(bracketX + 6, VW - 4);
 const payload = JSON.stringify({
   sport,
   shot: {
@@ -179,33 +209,20 @@ const payload = JSON.stringify({
             {/* bottom panel center line (z=0) */}
             <line x1={PX0} y1={BOT_MID} x2={PX1} y2={BOT_MID} stroke-dasharray="2 4" />
             {/* the shared downrange rail between the two panels */}
-            <line x1={PX0} y1={190} x2={PX1} y2={190} stroke-opacity="0.2" />
+            <line x1={PX0} y1={RAIL_Y} x2={PX1} y2={RAIL_Y} stroke-opacity="0.2" />
           </g>
 
-          {/* ── downrange ticks (shared rail, the minute-rail motif as distance) ── */}
+          {/* ── downrange ticks (shared rail, the minute-rail motif as distance);
+               their labels live in the overlay below ── */}
           {xTicks.map((x) => (
-            <g>
-              <line x1={round(dx(x))} y1="186" x2={round(dx(x))} y2="194"
-                stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
-              <text x={round(dx(x))} y="204" text-anchor="middle"
-                style={MONO} font-size="9.5" fill="var(--muted)" letter-spacing="0.06em">{x} m</text>
-            </g>
+            <line x1={round(dx(x))} y1={RAIL_Y - 4} x2={round(dx(x))} y2={RAIL_Y + 4}
+              stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
           ))}
 
-          {/* ── panel labels ── */}
-          <text x={PX0} y="22" style={MONO} font-size="9.5" fill="var(--muted)"
-            letter-spacing="0.16em">ELEVATION · SIDE-ON</text>
-          <text x={PX0} y="228" style={MONO} font-size="9.5" fill="var(--muted)"
-            letter-spacing="0.16em">PLAN · TOP-DOWN</text>
-
-          {/* ── TOP: height axis ticks ── */}
+          {/* ── TOP: height axis ticks (labels in the overlay) ── */}
           {yTicks.map((h) => (
-            <g>
-              <line x1={PX0 - 4} y1={round(ey(h))} x2={PX0} y2={round(ey(h))}
-                stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
-              <text x={PX0 - 8} y={round(ey(h)) + 3} text-anchor="end"
-                style={MONO} font-size="9.5" fill="var(--muted)">{h}</text>
-            </g>
+            <line x1={PX0 - 4} y1={round(ey(h))} x2={PX0} y2={round(ey(h))}
+              stroke="var(--ink)" stroke-opacity="0.3" stroke-width="1" />
           ))}
 
           {/* ── TOP: goal post (2.44 m vertical tick, ink @ 0.9) ── */}
@@ -242,18 +259,31 @@ const payload = JSON.stringify({
               <line x1={bracketX - 4} y1={round(ghostZ_px)} x2={bracketX + 4} y2={round(ghostZ_px)} />
             </g>
           )}
-          {showGhost && (
-            <text x={bracketX + 8} y={round((realZ_px + ghostZ_px) / 2) + 3}
-              style={MONO} font-size="10.5" fill="var(--accent-deep)" letter-spacing="0.04em"
-              paint-order="stroke" stroke="var(--paper)" stroke-width="3">swerve {swerveAbs} m</text>
-          )}
           {/* real crossing dot (plan) */}
           <circle cx={goalX_px} cy={round(realZ_px)} r="3.2" fill="var(--accent)" />
+        </svg>
 
-          {/* ── cricket honesty chip (fallback shows this, never the slow-mo chip) ── */}
-          {isCricket && (
-            <text x={PX1} y="22" text-anchor="end" style={MONO} font-size="9.5"
-              fill="var(--muted)" letter-spacing="0.1em">swing not modeled</text>
+        {/* ── the label layer: no viewBox, so its type is set in real pixels;
+             x/y are percent of the frame the drawing fills (see the header).
+             The cricket "swing not modeled" note is NOT repeated here: the
+             caption chip under the mount always carries it. ── */}
+        <svg class="px-fball__lbls" aria-hidden="true">
+          <text x={pctX(PX0)} y={pctY(22)} style={MONO} font-size="9.5" fill="var(--muted)"
+            letter-spacing="0.16em">ELEVATION · SIDE-ON</text>
+          <text x={pctX(PX0)} y={pctY(RAIL_Y)} dy="2.75em" style={MONO} font-size="9.5" fill="var(--muted)"
+            letter-spacing="0.16em">PLAN · TOP-DOWN</text>
+          {yTicks.map((h) => (
+            <text x={pctX(PX0 - 8)} y={pctY(ey(h))} dy="0.35em" text-anchor="end"
+              style={MONO} font-size="9.5" fill="var(--muted)">{h}</text>
+          ))}
+          {xTicks.map((x) => (
+            <text x={pctX(dx(x))} y={pctY(RAIL_Y)} dy="1.35em" text-anchor="middle"
+              style={MONO} font-size="9.5" fill="var(--muted)" letter-spacing="0.06em">{x} m</text>
+          ))}
+          {showGhost && (
+            <text x={pctX(swerveX)} y={pctY(swerveBottom)} dy="1.25em" text-anchor="end"
+              style={MONO} font-size="10.5" fill="var(--accent-deep)" letter-spacing="0.04em"
+              paint-order="stroke" stroke="var(--paper)" stroke-width="3">swerve {swerveAbs} m</text>
           )}
         </svg>
       </div>
@@ -337,6 +367,10 @@ const payload = JSON.stringify({
   .px-fball__stage { position: relative; }
   .viz3d--fball { aspect-ratio: 720 / 380; }
   .px-fball__svg { overflow: visible; }
+  /* the label layer sits exactly over the drawing (the shared
+     `.viz3d__fallback svg` rule makes both SVGs block-level 100% boxes, so
+     this one is lifted out of flow onto the same frame) */
+  .px-fball__lbls { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
 
   /* REPLAY chip — inside the mount, hidden until the WebGL scene is live (dead
      controls never show; the no-JS reader gets the composed still + full

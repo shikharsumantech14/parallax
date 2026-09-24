@@ -348,13 +348,17 @@ const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', p
 <style>
   .px-swheel {
     position: relative;
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    /* Bespoke root, so it carries the shell itself: the same 3px world rule
-       `.px-viz` gets (ink on light desks, accent on dark), flat per RD-05. */
+    /* Bespoke root, so it carries the shell itself — and the WHOLE shell, the
+       same geometry `.px-viz` has had since the launch design: transparent,
+       no side rules, no side padding, the 3px world rule on top (ink on light
+       desks, accent on dark), flat per RD-05. (2026-09-24: it still wore the
+       pre-launch boxed card, a paper panel inset 31px, so its readout rule and
+       every other figure's edges disagreed by 31px — ALIGN.) */
+    background: transparent;
+    border: 0;
     border-top: 3px solid var(--viz-edge, var(--ink));
-    border-radius: var(--r-tile);
-    padding: 26px 30px 24px;
+    border-radius: 0;
+    padding: 14px 0 0;
   }
 
   /* caption row — editorial serif + the honesty index chip (always present) */
@@ -568,7 +572,6 @@ const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', p
 
   /* ── 375px: smaller tilt (less foreshortening), key above the wheel ──────── */
   @media (max-width: 640px) {
-    .px-swheel { padding: 22px 14px 20px; }
     .px-swheel__main { flex-direction: column; gap: 12px; }
     .px-swheel__key { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; margin-top: 0; }
     .px-swheel__stage { padding: 6px 40px 2px; width: 100%; }

@@ -160,7 +160,7 @@ const payload = JSON.stringify({ shells: valid, epoch, spin, caption, source });
         <!-- the swarm -->
         {dots.map((dt) => <circle cx={dt.px.toFixed(1)} cy={dt.py.toFixed(1)} r="1.3" fill={legend[dt.ci].color} />)}
         <!-- epoch / census stamp -->
-        <text x={720 - 10} y={560 - 12} text-anchor="end"
+        <text class="px-cswrm__stamp" x={720 - 10} y={560 - 12} text-anchor="end"
           style="font-family:'JetBrains Mono',ui-monospace,monospace"
           font-size="9.5" fill="var(--muted)" letter-spacing="0.08em">
           {nf(total)} CRAFT · {epochLabel}{fbSampled ? ` · PLOTTING ${nf(fbShownTotal)}` : ''}
@@ -202,6 +202,15 @@ const payload = JSON.stringify({ shells: valid, epoch, spin, caption, source });
 
 <style>
   .viz3d--cswrm { aspect-ratio: 18 / 14; }
+
+  /* The fallback plate is 720 units drawn at the column width — 335px on a
+     375px phone, where the 9.5-unit stamp printed at 4.4px (probe TINY,
+     2026-09-24). On phones the stamp is set at 20.5 units, which lands at
+     ~9.5px on a 335px plate; it is the only text in the plate and sits in
+     the empty band under the swarm, so the larger size collides with nothing. */
+  @media (max-width: 640px) {
+    .px-cswrm__stamp { font-size: 20.5px; }
+  }
 
   .px-cswrm__legend { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; }
   .px-cswrm__row {

@@ -167,6 +167,85 @@ const payload = JSON.stringify({
 
 const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
 const SERIF = "font-family:var(--font-display),Georgia,serif";
+
+/* ── plate labels: two type tiers, one collision rule (2026-09-24) ──────────
+   The plate is 720 units wide drawn at the column width — 335px on a 375px
+   phone, where 9.5 units printed at 4.4px (probe TINY: every contour value,
+   corner and elevation). So the plate carries its labels twice: a DESKTOP set
+   at the authored sizes and a PHONE set sized to print at or above the 9.5px
+   floor on a 335px plate; CSS shows one (≤640px: phone). The map does not
+   move, only the type grows, so each set is placed on its own:
+     1. peaks, highest first — the name over its elevation as one block,
+        tried on eight sides of the dot, then a ring further out with a
+        hairline leader; the first spot clear of every dot and block wins;
+     2. index-contour values, which stay on their loop or are dropped when
+        they would touch a peak block, a dot or another value;
+     3. corner coordinates on desktop only — the 24-unit margin cannot hold
+        9.5px type on a phone, and the legend rows carry each peak's
+        coordinates. The scale bar keeps its label at both sizes.
+   Widths lean wide: too wide costs air, too narrow a collision. */
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Anchor = 'start' | 'middle' | 'end';
+const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+const TIERS = {
+  d: { name: 14, mono: 9.5, bar: 9, halo: 3 },
+  m: { name: 21, mono: 20.5, bar: 20.5, halo: 5 },
+} as const;
+type Tier = (typeof TIERS)[keyof typeof TIERS];
+const DIRS: [number, number][] = [[1, -1], [1, 1], [-1, -1], [-1, 1], [1, 0], [-1, 0], [0, -1], [0, 1]];
+const dotBoxes: Box[] = platePeaks.map((pk) => ({ x0: pk.x - 5, y0: pk.y - 5, x1: pk.x + 5, y1: pk.y + 5 }));
+function plateLabels(t: Tier) {
+  const inner: Box = { x0: PAD + 3, y0: PAD + 3, x1: VW - PAD - 3, y1: VH - PAD - 3 };
+  const barTxt = `${bar.km} km`;
+  const barBox: Box = { x0: PAD - 2, y0: VH - PAD - 10 - t.bar, x1: PAD + barPx + 8 + barTxt.length * t.bar * 0.7, y1: VH - PAD - 2 };
+  const placed: Box[] = [barBox];
+  const order = platePeaks.map((pk, i) => ({ pk, i })).sort((a, b) => b.pk.elev_m - a.pk.elev_m);
+  const peaksOut: { i: number; anchor: Anchor; lx: number; nameY: number; elevY: number; leader: number[] | null }[] = [];
+  for (const { pk, i } of order) {
+    const elevTxt = `${fmtElev(pk.elev_m)} m`;
+    const w = Math.max(pk.name.length * t.name * 0.5, elevTxt.length * t.mono * 0.66);
+    const h = t.name * 1.02 + 2 + t.mono * 1.05;
+    const others = dotBoxes.filter((_, j) => j !== i);
+    let best: (typeof peaksOut)[number] | null = null, bestBox: Box | null = null, bestCost = Infinity;
+    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
+      const d = 6 + ring * t.name * 1.4;
+      for (const [dx, dy] of DIRS) {
+        const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
+        const x0 = dx > 0 ? pk.x + d * diag : dx < 0 ? pk.x - d * diag - w : pk.x - w / 2;
+        const y0 = dy < 0 ? pk.y - d * diag - h : dy > 0 ? pk.y + d * diag : pk.y - h / 2;
+        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
+        if (b.x0 < inner.x0 || b.x1 > inner.x1 || b.y0 < inner.y0 || b.y1 > inner.y1) continue;
+        let cost = ring * 4 + DIRS.findIndex(([a, c]) => a === dx && c === dy) * 0.5;
+        for (const q of placed) if (hit(b, q, 3)) cost += 1000 + cover(b, q);
+        for (const q of others) if (hit(b, q, 1)) cost += 1000 + cover(b, q);
+        if (cost < bestCost) {
+          bestCost = cost;
+          const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
+          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
+          const nx = Math.max(b.x0, Math.min(pk.x, b.x1)), ny = Math.max(b.y0, Math.min(pk.y, b.y1));
+          const len = Math.hypot(nx - pk.x, ny - pk.y) || 1;
+          const leader = ring > 0 ? [pk.x + ((nx - pk.x) / len) * 4, pk.y + ((ny - pk.y) / len) * 4, nx, ny] : null;
+          best = { i, anchor, lx, nameY: b.y0 + t.name * 0.8, elevY: b.y0 + t.name * 1.02 + 2 + t.mono * 0.8, leader };
+          bestBox = b;
+        }
+      }
+    }
+    if (best && bestBox) { peaksOut.push(best); placed.push(bestBox); }
+  }
+  const contoursOut = idxLabels
+    .map((l) => {
+      const w = l.t.length * t.mono * 0.66;
+      const b: Box = { x0: l.x - w / 2, y0: l.y - t.mono * 0.8, x1: l.x + w / 2, y1: l.y + t.mono * 0.25 };
+      const ok = b.x0 >= inner.x0 && b.x1 <= inner.x1 && b.y0 >= inner.y0 && b.y1 <= inner.y1 &&
+        !placed.some((q) => hit(b, q, 3)) && !dotBoxes.some((q) => hit(b, q, 2));
+      if (ok) placed.push(b);
+      return ok ? l : null;
+    })
+    .filter(Boolean) as typeof idxLabels;
+  return { peaks: peaksOut, contours: contoursOut };
+}
+const labelSets = { d: plateLabels(TIERS.d), m: plateLabels(TIERS.m) };
 const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
 ---
 
@@ -214,26 +293,41 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
                 stroke-linecap="round" stroke-linejoin="round" />
             ))}
 
-            {/* index-contour elevation labels (mono 9.5) */}
-            {idxLabels.map((l) => (
-              <text x={l.x} y={l.y} style={MONO} font-size="9.5" fill="var(--muted)"
-                text-anchor="middle" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{l.t}</text>
+            {/* peak dots — accent-deep (specimen) */}
+            {platePeaks.map((p) => <circle cx={p.x} cy={p.y} r="3" fill="var(--accent-deep)" />)}
+
+            {/* labels, once per type tier (see the frontmatter note): index-contour
+                values (mono), peak names (Fraunces italic) over their elevations */}
+            {(['d', 'm'] as const).map((tier) => (
+              <g class={`px-trrlf__lbls px-trrlf__lbls--${tier}`}>
+                {labelSets[tier].contours.map((l) => (
+                  <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} style={MONO} font-size={TIERS[tier].mono} fill="var(--muted)"
+                    text-anchor="middle" paint-order="stroke" stroke="var(--paper)" stroke-width={TIERS[tier].halo}>{l.t}</text>
+                ))}
+                {labelSets[tier].peaks.map((q) => {
+                  const pk = platePeaks[q.i];
+                  return (
+                    <>
+                      {q.leader && (
+                        <line x1={q.leader[0].toFixed(1)} y1={q.leader[1].toFixed(1)} x2={q.leader[2].toFixed(1)} y2={q.leader[3].toFixed(1)}
+                          stroke="var(--ink)" stroke-width={tier === 'm' ? 1.6 : 0.8} opacity="0.55" />
+                      )}
+                      <text x={q.lx.toFixed(1)} y={q.nameY.toFixed(1)} text-anchor={q.anchor} style={`${SERIF};font-style:italic`}
+                        font-size={TIERS[tier].name} fill="var(--ink)" paint-order="stroke" stroke="var(--paper)"
+                        stroke-width={TIERS[tier].halo + 0.5}>{pk.name}</text>
+                      <text x={q.lx.toFixed(1)} y={q.elevY.toFixed(1)} text-anchor={q.anchor} style={MONO}
+                        font-size={TIERS[tier].mono} fill="var(--accent-deep)" paint-order="stroke" stroke="var(--paper)"
+                        stroke-width={TIERS[tier].halo}>{fmtElev(pk.elev_m)} m</text>
+                    </>
+                  );
+                })}
+              </g>
             ))}
 
-            {/* peaks — accent-deep dot + Fraunces-italic name + mono elev (specimen) */}
-            {platePeaks.map((p) => (
-              <>
-                <circle cx={p.x} cy={p.y} r="3" fill="var(--accent-deep)" />
-                <text x={p.x + 7} y={p.y - 5} style={`${SERIF};font-style:italic`} font-size="14"
-                  fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{p.name}</text>
-                <text x={p.x + 7} y={p.y + 9} style={MONO} font-size="9.5" fill="var(--accent-deep)"
-                  paint-order="stroke" stroke="var(--paper)" stroke-width="3">{fmtElev(p.elev_m)} m</text>
-              </>
-            ))}
-
-            {/* corner coordinates (motif 2) — sign-aware, outside the frame */}
+            {/* corner coordinates (motif 2) — sign-aware, outside the frame;
+                desktop tier only (the phone margin cannot hold 9.5px type) */}
             {corners && (
-              <>
+              <g class="px-trrlf__lbls--d">
                 <text x={PAD} y={PAD - 8} style={MONO} font-size="9.5" fill="var(--muted)"
                   letter-spacing="0.06em">{corners.nw}</text>
                 <text x={VW - PAD} y={PAD - 8} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
@@ -242,7 +336,7 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
                   letter-spacing="0.06em">{corners.sw}</text>
                 <text x={VW - PAD} y={VH - PAD + 16} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
                   letter-spacing="0.06em">{corners.se}</text>
-              </>
+              </g>
             )}
 
             {/* survey scale bar (motif 4) — bottom-left, ruled ticks, km length */}
@@ -256,8 +350,8 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
                   stroke="var(--accent-deep)" stroke-width="1" />
                 <line x1={PAD + barPx} y1={VH - PAD - 14} x2={PAD + barPx} y2={VH - PAD - 6}
                   stroke="var(--accent-deep)" stroke-width="1.4" />
-                <text x={PAD + barPx + 6} y={VH - PAD - 6} style={MONO} font-size="9" fill="var(--muted)"
-                  letter-spacing="0.1em">{bar.km} km</text>
+                <text class="px-trrlf__bar" x={PAD + barPx + 6} y={VH - PAD - 6} style={MONO} font-size="9" fill="var(--muted)"
+                  letter-spacing="0.1em" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{bar.km} km</text>
               </>
             )}
           </svg>
@@ -360,6 +454,14 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
 
 <style>
   .px-trrlf__stage { position: relative; }
+
+  /* plate label tiers — see the frontmatter note */
+  .px-trrlf__lbls--m { display: none; }
+  @media (max-width: 640px) {
+    .px-trrlf__lbls--d { display: none; }
+    .px-trrlf__lbls--m { display: inline; }
+    .px-trrlf__bar { font-size: 20.5px; stroke-width: 5px; }
+  }
 
   /* survey-plate mount tint — atlas paper under the line-art */
   .viz3d--trrlf {

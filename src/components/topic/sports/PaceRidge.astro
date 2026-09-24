@@ -173,6 +173,26 @@ const ticks: number[] = [];
 for (let v = t0; v <= dMax + 1e-9; v += tStep) ticks.push(Math.round(v * 1e6) / 1e6);
 const axisY = PAD_T + G * RIDGE_STEP + 18;
 
+// ── the unit label: never on the tick row's last numeral ─────────────────────
+// It used to be end-anchored AT the axis end, which is exactly where a tick
+// lands whenever the domain ends on a round value (the usual case), so the
+// last numeral printed through the unit. It now sits AFTER the axis in the
+// right gutter, clear of the last tick label's half-width; the gutter's own
+// labels sit on the ridge baselines, never on the axis row. A unit too long
+// for the gutter drops to its own row under the ticks, end-aligned to the axis.
+// Widths are estimated for Literata (the product face every role resolves to):
+// caps ≈ .70em, lower/digits ≈ .56em, punctuation ≈ .36em, plus the tracking.
+const estW = (s: string, fs: number, track: number) =>
+  [...s].reduce((t, ch) => t + (/[A-Z]/.test(ch) ? 0.7 : /[a-z0-9]/.test(ch) ? 0.56 : 0.36) + track, 0) * fs;
+const unitText = unit.toUpperCase();
+const lastTick = ticks.length ? ticks[ticks.length - 1] : dMax;
+const lastTickHalf = estW(String(lastTick), 10, 0.04) / 2;
+const unitGutterX = Math.max(PAD_L + w + 8, x(lastTick) + lastTickHalf + 8);
+const unitFits = unitGutterX + estW(unitText, 10, 0.08) <= W - 4;
+const unitPos = unitFits
+  ? { x: unitGutterX, y: axisY + 17, anchor: 'start' }
+  : { x: PAD_L + w, y: axisY + 31, anchor: 'end' };
+
 // ── accessibility summary (subject vs the largest field group) ────────────────
 const field = model.filter((m) => !m.subject).sort((a, b) => b.n - a.n)[0];
 const aria = subj && field
@@ -236,7 +256,9 @@ const chip = `kernel density`;
           <text class="px-prdg__ax" x={x(t).toFixed(2)} y={axisY + 17} text-anchor="middle">{t}</text>
         </g>
       ))}
-      <text class="px-prdg__unit" x={PAD_L + w} y={axisY + 17} text-anchor="end">{unit}</text>
+      {unit && (
+        <text class="px-prdg__unit" x={unitPos.x.toFixed(2)} y={unitPos.y} text-anchor={unitPos.anchor}>{unit}</text>
+      )}
     </svg>
   </div>
 

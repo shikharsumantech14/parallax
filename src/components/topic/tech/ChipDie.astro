@@ -135,8 +135,38 @@ function squarify(items: { value: number; meta: Meta }[]): Rect[] {
 }
 const rects = squarify(cells);
 
+// ── Does a tile's label fit it? Measured per width tier, not guessed by area ─
+// A tile is a fixed share of a board that draws at 548px on a desktop column,
+// ~410px on a small tablet and ~310px on a phone, while its label is set in
+// CSS pixels — so the same tile holds its label at one width and not at the
+// next. Area alone (the old LABEL_MIN rule) let a narrow tile keep a label
+// that wrapped mid-word, and put the ×count badge in the corner on top of it
+// ("×4" over "Efficiency cores" at 375, probe 2026-09-24). Now each tile gets
+// `data-fit` = the narrowest tier whose box holds its name (wrapped at
+// spaces only, count inline), then its area line; below that tier the label
+// hides and a dot marks the tile (the legend and readout carry every block).
+// Widths lean wide: Literata 600 runs ~0.55em, estimated at 0.6em.
+const TIERS = [
+  { key: 'm', scale: 0.55, name: 10, area: 9.5 },   // ≤460px: board ≈ 310px at 360
+  { key: 't', scale: 0.73, name: 11, area: 9.5 },   // ≤620px: board ≈ 410px at 461
+  { key: 'd', scale: 0.97, name: 11, area: 9.5 },   // the desktop column, board 548px
+] as const;
+const glyphW = (s: string, fs: number) => s.length * fs * 0.6;
+function labelFits(label: string, count: number | undefined, areaTxt: string, w: number, h: number, t: (typeof TIERS)[number]): boolean {
+  const boxW = w * t.scale - 2 /* border */ - 4 /* padding */ - 2;
+  const boxH = h * t.scale - 2 - 4 - 2;
+  let lines = 1, cur = 0;
+  for (const word of `${label}${count ? ` ×${count}` : ''}`.split(/\s+/).filter(Boolean)) {
+    const ww = glyphW(word, t.name);
+    if (ww > boxW) return false;
+    const next = cur === 0 ? ww : cur + glyphW(' ', t.name) + ww;
+    if (next > boxW) { lines++; cur = ww; } else cur = next;
+  }
+  if (glyphW(areaTxt, t.area) > boxW) return false;
+  return lines * t.name * 1.1 + 1 + t.area * 1.1 <= boxH;
+}
+
 // ── Render objects: area-descending (= tab / reveal / legend order) ─────────
-const LABEL_MIN = 3200; // px² — below this a tile shows a dot only (label → legend)
 const groupFill: Record<Group, string> = {
   compute: 'color-mix(in srgb, var(--accent) 85%, transparent)',
   memory: 'color-mix(in srgb, var(--accent) 45%, transparent)',
@@ -165,8 +195,8 @@ const tiles = rects
       tp: (r.y / BOARD_H) * 100,
       wp: (r.w / BOARD_W) * 100,
       hp: (r.h / BOARD_H) * 100,
-      tiny: pxArea < LABEL_MIN,
-      mid: pxArea < LABEL_MIN * 1.7, // hidden label on mobile only
+      // the narrowest tier the label fits ('' = it never fits: dot + legend)
+      fit: (TIERS.find((t) => labelFits(m.label, m.count, `${fmtArea(m.area)} mm²`, r.w, r.h, t))?.key ?? '') as string,
       fill: m.primary ? 'var(--accent)' : groupFill[m.group],
       // Bright fills (primary @100% + compute @85% accent) need DARK on-tile text
       // to pass AA; every other group is a dark/medium tile that takes light text.
@@ -223,7 +253,8 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
         {tiles.map((t) => (
           <button
             type="button"
-            class:list={['px-die__tile', { 'is-primary': t.primary, 'is-bright': t.bright, 'is-tiny': t.tiny, 'is-mid': t.mid && !t.tiny, 'is-unmapped': t.unmapped }]}
+            class:list={['px-die__tile', { 'is-primary': t.primary, 'is-bright': t.bright, 'is-unmapped': t.unmapped }]}
+            data-fit={t.fit}
             data-die-i={(t as any).i}
             data-die-read={t.read}
             aria-label={t.read}
@@ -231,15 +262,13 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
             style={`left:${t.lp.toFixed(3)}%; top:${t.tp.toFixed(3)}%; width:${t.wp.toFixed(3)}%; height:${t.hp.toFixed(3)}%; --fill:${t.fill}; --i:${(t as any).i}; ${t.primary ? `--p:1;` : ''}`}
           >
             <span class="px-die__face" aria-hidden="true"></span>
-            {t.count && <span class="px-die__count">×{t.count}</span>}
-            {t.tiny
-              ? <span class="px-die__dot" aria-hidden="true"></span>
-              : (
-                <span class="px-die__lab">
-                  <span class="px-die__name">{t.label}</span>
-                  <span class="px-die__area">{fmtArea(t.area)} mm²</span>
-                </span>
-              )}
+            <span class="px-die__dot" aria-hidden="true"></span>
+            {t.fit && (
+              <span class="px-die__lab">
+                <span class="px-die__name">{t.label}{t.count ? <>{' '}<em class="px-die__tx">×{t.count}</em></> : null}</span>
+                <span class="px-die__area">{fmtArea(t.area)} mm²</span>
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -367,7 +396,13 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
     align-items: center;
     justify-content: center;
     text-align: center;
-    overflow: hidden;
+    /* NO overflow clip here (2026-09-24). `overflow: hidden` forces a flat
+       transform-style, which dropped the face below out of 3D: it then
+       painted as a z-index:-1 child OVER the tile's own background, so every
+       fill rendered as the dark face colour and the dark-on-bright labels
+       (GPU, the compute tiles) vanished. Labels no longer need the clip —
+       each renders only at the widths where it was measured to fit
+       (`data-fit`, frontmatter). */
   }
   /* the extruded side face (crisp relief, not a glow) */
   .px-die__face {
@@ -404,8 +439,10 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
     font-weight: 600;
     letter-spacing: 0.01em;
     color: var(--ink);
-    overflow-wrap: anywhere;
+    /* wraps at spaces only; a word that cannot fit hides the label instead */
+    overflow-wrap: normal;
   }
+  .px-die__tx { font-style: normal; font-weight: 500; opacity: 0.78; white-space: nowrap; }
   .px-die__area {
     font-family: var(--font-mono);
     font-size: 9.5px;
@@ -418,23 +455,17 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
   /* Bright fills (primary + compute) flip to DARK ink so label + value pass AA
      (--bg measures ~11:1 on compute, ~15:1 on primary). Luminance-picked. */
   .px-die__tile.is-bright .px-die__name,
-  .px-die__tile.is-bright .px-die__area,
-  .px-die__tile.is-bright .px-die__count {
+  .px-die__tile.is-bright .px-die__area {
     color: var(--bg);
   }
-  .px-die__count {
-    position: absolute;
-    top: 3px; right: 4px;
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-    pointer-events: none;
-  }
+  /* a tile whose label does not fit at this width shows a dot instead */
   .px-die__dot {
+    display: none;
     width: 4px; height: 4px; border-radius: 50%;
     background: var(--ink); opacity: 0.55; pointer-events: none;
   }
+  .px-die__tile.is-bright .px-die__dot { background: var(--bg); }
+  .px-die__tile[data-fit=""] .px-die__dot { display: block; }
 
   /* ── lift on hover / focus / legend-sync; siblings dim (opacity only) ─── */
   .px-die__tile:hover,
@@ -549,15 +580,17 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
   .px-die__tile:focus-visible,
   .px-die__tile.is-active { transition: transform 150ms var(--ease), filter 150ms var(--ease); }
 
-  /* ── 375px: shallower tilt, bigger label→legend threshold, no overflow ── */
+  /* ── the label tiers (data-fit, frontmatter TIERS) ─────────────────── */
+  @media (max-width: 620px) {
+    .px-die__tile[data-fit="d"] .px-die__lab { display: none; }
+    .px-die__tile[data-fit="d"] .px-die__dot { display: block; }
+  }
+  /* ── 375px: shallower tilt, the phone label tier, no overflow ── */
   @media (max-width: 460px) {
     .px-die__board { transform: rotateX(38deg); }
     .px-die__stage { padding: 22px 4px 12px; }
-    .px-die__tile.is-mid .px-die__lab { display: none; }
-    .px-die__tile.is-mid::after {
-      content: ''; width: 4px; height: 4px; border-radius: 50%;
-      background: var(--ink); opacity: 0.55;
-    }
+    .px-die__tile[data-fit="t"] .px-die__lab { display: none; }
+    .px-die__tile[data-fit="t"] .px-die__dot { display: block; }
     .px-die__name { font-size: 10px; }
     .px-die__area { font-size: 9.5px; } /* CANON §5 hard floor — this is a primary mm² value */
   }

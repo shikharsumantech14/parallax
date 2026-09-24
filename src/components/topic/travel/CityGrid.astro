@@ -45,12 +45,42 @@ cities.forEach((c, i) => {
 
 /* ── geometry (build-time, §4) ───────────────────────────────────────────── */
 const BOX = 412;          // single-rose viewBox width  (300 plot box + 56 margin ×2)
-const H = 380;            // viewBox height
 const CX = 206;           // rose centre x
-const CY = 190;           // rose centre y
 const R = 130;            // outer radius
 const RINGS = [0.33, 0.66, 1];               // guide rings (× R)
 const CARD_R = R + 18;                        // cardinal-tick radius
+
+// ── the head stacks ABOVE the rose, never on it (2026-09-24) ─────────────────
+// The rose centre was a constant, so the N tick (centred 42 units down) sat on
+// the subtitle's baseline (38) and the two printed on each other. The head is
+// now measured in rows: the name, then the subtitle wrapped to at most two
+// lines against a character budget for the plate's width, and the rose starts
+// below whatever the TALLEST head among the cities needs, so side-by-side
+// roses stay level.
+const SUB_PX = 10;
+const SUB_CH = Math.floor((BOX - 16) / (SUB_PX * 0.66));   // 60 — ≈0.6em + 0.06em tracking
+function wrap(text: string, budget: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= budget || !cur) cur = next;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  const out = lines.slice(0, maxLines).map((l) => (l.length > budget ? l.slice(0, budget - 1).trimEnd() + '…' : l));
+  if (lines.length > maxLines) out[maxLines - 1] = out[maxLines - 1].replace(/…?$/, '…');
+  return out;
+}
+const NAME_Y = 20;                         // name baseline (16px)
+const SUB_Y0 = NAME_Y + 15, SUB_LH = 13;   // subtitle baselines
+const subLines = cities.map((c) => (c.subtitle ? wrap(c.subtitle, SUB_CH, 2) : []));
+const maxSub = Math.max(0, ...subLines.map((l) => l.length));
+const headBottom = maxSub ? SUB_Y0 + (maxSub - 1) * SUB_LH + 3 : NAME_Y + 4;
+const CY = Math.round(headBottom + 12 + CARD_R);   // the N tick's cap top clears the head by ≥ 5
+const PHI_Y = CY + CARD_R + 22;                    // under the S tick
+const H = PHI_Y + 6;                               // viewBox height
 
 // screen angle for bearing bin b (deg): bearing measured clockwise from north,
 // north = up → SVG angle = −90 + b·10  (0° = +x/east).
@@ -94,6 +124,9 @@ const roses = cities.map((c) => {
 
   return { name: c.name, subtitle: c.subtitle, petals, pct: Math.round(phi * 100) };
 });
+const roseSubs = subLines;
+const NAME_CH = Math.floor((BOX - 16) / (16 * 0.62));      // 39
+const roseNames = cities.map((c) => wrap(c.name, NAME_CH, 1)[0] ?? '');
 
 // minor ticks: 30° multiples that are NOT cardinal (30,60,120,150,210,240,300,330)
 const MINOR = [30, 60, 120, 150, 210, 240, 300, 330];
@@ -126,9 +159,11 @@ const multi = cities.length > 1;
             aria-label={`${rose.name}: street-orientation rose, order ${rose.pct}%`}
           >
             {/* city name + subtitle */}
-            <text class="px-cgrid__name" x={CX} y={22} text-anchor="middle">{rose.name}</text>
-            {rose.subtitle && (
-              <text class="px-cgrid__sub" x={CX} y={38} text-anchor="middle">{rose.subtitle}</text>
+            <text class="px-cgrid__name" x={CX} y={NAME_Y} text-anchor="middle">{roseNames[ri]}</text>
+            {roseSubs[ri].length > 0 && (
+              <text class="px-cgrid__sub" x={CX} y={SUB_Y0} text-anchor="middle">
+                {roseSubs[ri].map((l, k) => <tspan x={CX} y={SUB_Y0 + k * SUB_LH}>{l}</tspan>)}
+              </text>
             )}
 
             {/* guide rings */}
@@ -169,7 +204,7 @@ const multi = cities.length > 1;
             </g>
 
             {/* order φ readout */}
-            <text class="px-cgrid__phi" x={CX} y={358} text-anchor="middle">
+            <text class="px-cgrid__phi" x={CX} y={PHI_Y} text-anchor="middle">
               <tspan class="px-cgrid__phi-l">ORDER φ </tspan><tspan class="px-cgrid__phi-v">{rose.pct}%</tspan>
             </text>
           </svg>

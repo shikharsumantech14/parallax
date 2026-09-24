@@ -77,40 +77,48 @@ const htX = px(45);
 const xTicks = Array.from({ length: Math.floor(maxMin / 15) + 1 }, (_, i) => i * 15);
 
 // event pins — clamp the label minute to the plot, derive a side for colour.
-// Two defensive passes so labels never clip or pile up:
-//  • anchor: a pin near the left/right edge would centre its label past the
-//    viewBox; switch text-anchor to start/end so the label grows inward.
-//  • stagger: same-side pins that are close in x get an increasing extra
-//    vertical offset (one "step" per collision) so their labels don't overlap.
-const EDGE_PAD = 56;          // within this of an edge → anchor inward
-const PIN_NEAR_X = 64;        // pins closer than this (same side) collide
-const STAGGER_STEP = 12;      // px pushed per stagger level
+// Labels are placed by their MEASURED extent, not by how close the pins are:
+// the old rule staggered only pins under 64 units apart, so a long scorer
+// label ("Kvaratskhelia 4–0", ~117 units) printed straight through a neighbour
+// 100 units away. Two passes, both on the label's estimated box:
+//  • anchor: a label that would centre past the plot edge is anchored inward
+//    (start / end), nudged off the pin line.
+//  • rows: labels on one side fill rows outward from the pitch edge; a label
+//    takes the first row where its box clears every label already in that
+//    row, so any number of close events stacks instead of overprinting.
+// Width estimate is for Literata caps (the product face every role resolves
+// to; the label is uppercase): caps ≈ .70em, digits ≈ .56em, the rest ≈ .36em,
+// plus the .08em tracking.
+const PIN_FS = 9.5;           // px — the in-figure floor (CANON §5)
+const PIN_TRACK = 0.08;       // em, matches the CSS letter-spacing
+const ROW_STEP = 12;          // px between label rows
+const ROW_PAD = 8;            // px of air a label keeps from its row neighbours
+const estW = (s: string) =>
+  [...s.toUpperCase()].reduce((t, ch) => t + (/[A-Z]/.test(ch) ? 0.7 : /[0-9]/.test(ch) ? 0.56 : 0.36) + PIN_TRACK, 0) * PIN_FS;
 const rawPins = (events || [])
   .filter((e) => e && Number.isFinite(e.minute))
   .map((e) => ({ ...e, x: px(e.minute), side: (e.team ?? 'home') as Side }))
   .sort((a, b) => a.x - b.x);
 
-const lastXBySide: Record<Side, number> = { home: -Infinity, away: -Infinity };
-const stepBySide: Record<Side, number> = { home: 0, away: 0 };
+// rows available in one half: from the pitch edge to 14px short of the baseline
+const maxRow = Math.max(0, Math.floor((halfH - 14 - 12) / ROW_STEP));
+const rowsBySide: Record<Side, { l: number; r: number }[][]> = { home: [], away: [] };
 const pins = rawPins.map((e) => {
-  // horizontal de-collision within a side
-  if (e.x - lastXBySide[e.side] < PIN_NEAR_X) {
-    stepBySide[e.side] += 1;
-  } else {
-    stepBySide[e.side] = 0;
-  }
-  lastXBySide[e.side] = e.x;
-  const stagger = stepBySide[e.side] * STAGGER_STEP;
+  const w = estW(e.label ?? '');
+  const anchor = e.x - w / 2 < plotL ? 'start' : e.x + w / 2 > plotR ? 'end' : 'middle';
+  const labelX = anchor === 'start' ? e.x + 4 : anchor === 'end' ? e.x - 4 : e.x;
+  const box = anchor === 'start' ? { l: labelX, r: labelX + w }
+    : anchor === 'end' ? { l: labelX - w, r: labelX }
+    : { l: labelX - w / 2, r: labelX + w / 2 };
+  const rows = rowsBySide[e.side];
+  let row = 0;
+  while (row < maxRow && (rows[row] ?? []).some((o) => box.l < o.r + ROW_PAD && o.l < box.r + ROW_PAD)) row++;
+  (rows[row] ??= []).push(box);
+  const stagger = row * ROW_STEP;
   // home labels sit below the top edge (grow downward); away above the bottom.
-  // Clamp so a deep stagger never crosses the baseline into the other half.
   const labelY = e.side === 'away'
     ? Math.max(mid + 14, plotB - 8 - stagger)
     : Math.min(mid - 14, plotT + 12 + stagger);
-  // edge-aware horizontal anchor
-  const anchor = e.x <= plotL + EDGE_PAD ? 'start' : e.x >= plotR - EDGE_PAD ? 'end' : 'middle';
-  // nudge the text x off the pin a touch when anchored to an edge so it clears
-  // the dotted pin line
-  const labelX = anchor === 'start' ? e.x + 4 : anchor === 'end' ? e.x - 4 : e.x;
   return { ...e, stagger, labelY, anchor, labelX };
 });
 ---
@@ -186,7 +194,7 @@ const pins = rawPins.map((e) => {
   .px-mom__base { stroke: var(--ink-soft); stroke-width: 1.5; }
   .px-mom__ht { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
   .px-mom__ht-lbl {
-    font-family: var(--font-mono); font-size: 9px;
+    font-family: var(--font-mono); font-size: 9.5px;
     letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
   }
 
@@ -212,7 +220,8 @@ const pins = rawPins.map((e) => {
   .px-mom__pin circle { fill: var(--accent); }
   .px-mom__pin[data-side="away"] circle { fill: var(--ink-soft); }
   .px-mom__pin text {
-    font-family: var(--font-mono); font-size: 9px;
+    /* 9.5px = PIN_FS in the frontmatter, which budgets each label's width */
+    font-family: var(--font-mono); font-size: 9.5px;
     letter-spacing: 0.08em; text-transform: uppercase; fill: var(--ink);
     /* pins drop their labels over the wave fills + momentum line — paper halo
        keeps them legible against the filled areas */

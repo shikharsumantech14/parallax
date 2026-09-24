@@ -39,8 +39,11 @@ const {
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /* ── canvas geometry (blueprint §4) ─────────────────────────────────────── */
-const W = 560, H = 640;
-const MARGIN_TOP = 28, PLOT_H = 584;
+const W = 560, H = 652;
+/* MARGIN_TOP 28 → 40 (2026-09-24): the pressure key needs two rows above the
+   plot — the axis title, then the tick values — and at 28 the title sat
+   directly on the values (probe: TOUCH, "PRESSURE (hPa) →" on "500"). */
+const MARGIN_TOP = 40, PLOT_H = 584;
 const COL_X0 = 140, COL_W = 180;
 const CURVE_X0 = COL_X0 + COL_W + 8;     // 328 — pressure grows rightward from here
 const CURVE_W = 150;
@@ -223,15 +226,15 @@ const uid = 'atmc-' + Math.random().toString(36).slice(2, 8);
           fill="var(--ink)" opacity="0.55">SEA LEVEL · 0 km</text>
 
         {/* ── pressure axis key + ticks (top) ── */}
-        <text class="px-atmc__axis" x={CURVE_X0} y={9}
+        <text class="px-atmc__axis" x={CURVE_X0} y={10}
           fill="var(--ink)" opacity="0.55" letter-spacing="0.1em">PRESSURE (hPa) →</text>
-        <line x1={CURVE_X0} y1={23} x2={CURVE_X0 + CURVE_W} y2={23}
+        <line x1={CURVE_X0} y1={33} x2={CURVE_X0 + CURVE_W} y2={33}
           stroke="var(--ink)" stroke-width="1" opacity="0.30" />
         {pTicks.map((p) => (
           <>
-            <line x1={xPress(p)} y1={20} x2={xPress(p)} y2={26}
+            <line x1={xPress(p)} y1={30} x2={xPress(p)} y2={36}
               stroke="var(--ink)" stroke-width="1" opacity="0.4" />
-            <text class="px-atmc__axis" x={xPress(p)} y={17} text-anchor="middle"
+            <text class="px-atmc__axis" x={xPress(p)} y={26} text-anchor="middle"
               fill="var(--ink)" opacity="0.55">{p}</text>
           </>
         ))}

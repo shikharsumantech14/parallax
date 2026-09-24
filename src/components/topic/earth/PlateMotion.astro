@@ -166,6 +166,30 @@ const payload = JSON.stringify({
 });
 
 const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+
+/* ── plate-name type tiers (2026-09-24) ──
+   The plate is 720 units drawn at the column width: 335px on a 375px phone,
+   where the 10-unit key and coordinate printed at 4.7px and the 15-unit names
+   at 7px (probe TINY). On phones (≤640px, CSS) the key and coordinate are set
+   at 20.5 units and the names at 20.5 too — ~9.5px on a 335px plate. The
+   names sit at plate centroids, which the data decides, so each tier is
+   decluttered on its own: a name whose box would touch one already placed
+   steps down a line until it clears. Widths lean wide (italic ~0.5em). */
+const NAME_TIERS = { d: 15, m: 20.5 } as const;
+function nameSet(fs: number) {
+  const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
+  return [...pLabels].sort((a, b) => a.y - b.y).map((l) => {
+    const w = l.name.length * fs * 0.52;
+    let y = l.y;
+    for (let k = 0; k < 8; k++) {
+      const b = { x0: l.x - w / 2, y0: y - fs * 0.8, x1: l.x + w / 2, y1: y + fs * 0.25 };
+      if (!placed.some((q) => b.x0 < q.x1 + 4 && q.x0 < b.x1 + 4 && b.y0 < q.y1 + 3 && q.y0 < b.y1 + 3)) { placed.push(b); break; }
+      y += fs * 1.15;
+    }
+    return { ...l, y };
+  });
+}
+const nameSets = { d: nameSet(NAME_TIERS.d), m: nameSet(NAME_TIERS.m) };
 const SERIF = 'font-family:var(--font-display),Georgia,serif';
 ---
 
@@ -214,19 +238,23 @@ const SERIF = 'font-family:var(--font-display),Georgia,serif';
             {/* sphere neat-line */}
             <circle cx={CX} cy={CY} r={RAD} fill="none" stroke="var(--ink)" stroke-width="1.2" opacity="0.4" />
             {/* plate names (Fraunces italic) */}
-            {pLabels.map((l) => (
-              <text x={l.x} y={l.y} text-anchor="middle" style={`${SERIF};font-style:italic`} font-size="15"
-                fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{l.name}</text>
+            {(['d', 'm'] as const).map((tier) => (
+              <g class={`px-plmot__names px-plmot__names--${tier}`}>
+                {nameSets[tier].map((l) => (
+                  <text x={l.x} y={l.y.toFixed(1)} text-anchor="middle" style={`${SERIF};font-style:italic`} font-size={NAME_TIERS[tier]}
+                    fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width={tier === 'm' ? 5 : 3.5}>{l.name}</text>
+                ))}
+              </g>
             ))}
             {/* velocity scale key (motif 4) — mono, bottom-left */}
             <g transform={`translate(${CX - RAD + 4}, ${CY + RAD + 30})`}>
               <line x1="0" y1="0" x2="56" y2="0" stroke="var(--accent-deep)" stroke-width="1.8" stroke-linecap="round" />
               <path d="M50 -3.5 L56 0 L50 3.5" fill="none" stroke="var(--accent-deep)" stroke-width="1.8"
                 stroke-linecap="round" stroke-linejoin="round" />
-              <text x="64" y="4" style={MONO} font-size="10" fill="var(--muted)" letter-spacing="0.06em">{scaleKeyText}</text>
+              <text class="px-plmot__key" x="64" y="4" style={MONO} font-size="10" fill="var(--muted)" letter-spacing="0.06em">{scaleKeyText}</text>
             </g>
             {/* coordinate margin (motif 2) — hemisphere centre */}
-            <text x={CX + RAD - 4} y={CY + RAD + 34} text-anchor="end" style={MONO} font-size="10"
+            <text class="px-plmot__key" x={CX + RAD - 4} y={CY + RAD + 34} text-anchor="end" style={MONO} font-size="10"
               fill="var(--muted)" letter-spacing="0.08em">{centerCoord}</text>
           </svg>
         </div>
@@ -286,6 +314,14 @@ const SERIF = 'font-family:var(--font-display),Georgia,serif';
 
 <style>
   .px-plmot__stage { position: relative; }
+
+  /* plate type tiers — see the frontmatter note */
+  .px-plmot__names--m { display: none; }
+  @media (max-width: 640px) {
+    .px-plmot__names--d { display: none; }
+    .px-plmot__names--m { display: inline; }
+    .px-plmot__key { font-size: 20.5px; }
+  }
 
   /* map-paper mount tint under the line-art globe */
   .viz3d--plmot {

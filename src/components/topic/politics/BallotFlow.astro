@@ -211,6 +211,7 @@ const minTransfer = allTransferValues.length ? Math.min(...allTransferValues) : 
 
 interface Ribbon {
   band: string; dash: string; t: number;
+  x0: number; y0: number; x1: number; y1: number; mx: number;
   midX: number; midY: number; value: number;
   color: string; toExhausted: boolean;
   durS: string; sweep: number; rd: number;
@@ -245,9 +246,172 @@ rounds.forEach((r, i) => {
     const sweep = Math.ceil(est / 8) * 8 + 8;
     // per-round sweep stagger, bounded so even 6 rounds finish inside the 900ms window
     const rd = Math.round(250 + i * Math.min(120, 700 / Math.max(1, nR - 1)));
-    ribbons.push({ band, dash, t, midX: mx, midY: (y0 + y1) / 2, value: tr.value, color: elimColor, toExhausted, durS, sweep, rd });
+    ribbons.push({ band, dash, t, x0, y0, x1, y1, mx, midX: mx, midY: (y0 + y1) / 2, value: tr.value, color: elimColor, toExhausted, durS, sweep, rd });
   });
 });
+
+/* ── in-figure label layout: every label gets a measured box ─────────────────
+   Three collisions shipped on the showcase count, all from labels placed at a
+   fixed offset with no idea of their own width: the MAJORITY label printed
+   through the final round's tallies (the winner crosses the line by
+   definition, so its tally always sits where that label was), two 12px
+   tallies overprinted in a 40-unit slot pitch, and round one's tallies touched.
+   The rules, in order, for any count:
+     0. a transfer value sits on its ribbon, at the first point along the
+        centreline (middle outward) clear of every bar: a transfer to the
+        EXHAUSTED sink runs along the baseline under the next round's bars,
+        and its midpoint used to print the value across them;
+     1. tally size: the largest size ≤ 12px (≤ 13px in the narrow-container
+        bump) at which the WIDEST tally fits one slot pitch — so side by side
+        tallies cannot touch, whatever their heights;
+     2. a tally that still meets a placed label (a dense count at the 9.5px
+        floor) first slides to its bar's left or right edge, then lifts
+        above what it meets — stacking, never overprinting;
+     3. the WINNER stamp sits above the winner's tally and clears every label;
+     4. MAJORITY keeps the blueprint's anchor (right end of the final tick)
+        and takes the first clear slot: above the tick, below it, then lifted
+        over whatever is in its span;
+     5. the viewBox grows upward by whatever the lifts used, so nothing leaves
+        the SVG.
+   Widths are estimated for Literata (the face every role resolves to),
+   measured in Chrome 2026-09-24: tabular digits .582em, caps .69 average
+   (I .40, J .56, M/W .98), lower .53, comma/point .33. The table below
+   rounds each up to the rendered box (a tally's box runs ~.2em past its
+   advances), plus the tracking. */
+interface LBox { l: number; r: number; t: number; b: number; }
+const glyphEm = (ch: string) =>
+  /[0-9+]/.test(ch) ? 0.62 : /[IJ]/.test(ch) ? 0.5 : /[MW]/.test(ch) ? 1.0
+    : /[A-Z]/.test(ch) ? 0.72 : /[a-z]/.test(ch) ? 0.56 : /[,.·]/.test(ch) ? 0.33
+    : ch === ' ' ? 0.25 : 0.58;
+const estW = (s: string, fs: number, track: number) =>
+  ([...s].reduce((t, ch) => t + glyphEm(ch) + track, 0) + 0.05) * fs;
+const textBox = (x: number, y: number, w: number, fs: number, anchor: 'start' | 'middle' | 'end'): LBox => {
+  const l = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+  return { l, r: l + w, t: y - 0.8 * fs, b: y + 0.18 * fs };
+};
+const hits = (a: LBox, b: LBox, pad = 1) =>
+  a.l < b.r + pad && b.l < a.r + pad && a.t < b.b + pad && b.t < a.b + pad;
+const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+// 1. tally size — fitted to the slot pitch (2 units of air between neighbours).
+//    The narrow-container bump (@container ≤ 760px) only grows a tally as far
+//    as it still fits: a bump past the fit is exactly what made them collide.
+//    A dense count (fit under the 9.5px floor) stays at 9.5 and stacks (rule 2).
+const VAL_TRACK = 0.02;
+const valBars = bars.filter((b) => b.h >= 1 || b.exhausted);
+const widestValEm = Math.max(1, ...valBars.map((b) => estW(b.valLabel, 1, VAL_TRACK)));
+const fitFs = (BAR + SLOT_GAP - 2) / widestValEm;
+const VAL_FS = +clampN(fitFs, 9.5, 12).toFixed(2);       // the card at ≥ 760px
+const VAL_FS_SM = +clampN(fitFs, VAL_FS, 13).toFixed(2); // the @container bump, never past the fit
+const PLACE_FS = VAL_FS_SM;                              // the larger of the two: safe at both
+const MAJ_FS = 11;                                       // the larger of the maj label's two sizes
+const MAJ_TRACK = 0.16;
+const TVAL_FS = 11;
+
+// fixed obstacles: the bars themselves
+const barBoxes: LBox[] = bars
+  .filter((b) => b.h > 0)
+  .map((b) => ({ l: b.x, r: b.x + b.w, t: b.y, b: baselineY }));
+const placedLabels: LBox[] = [];
+
+// 0. transfer values along their ribbon's centreline (the same cubic as `dash`)
+const onRibbon = (r: Ribbon, t: number) => {
+  const u = 1 - t;
+  return {
+    x: u * u * u * r.x0 + 3 * u * u * t * r.mx + 3 * u * t * t * r.mx + t * t * t * r.x1,
+    y: u * u * u * r.y0 + 3 * u * u * t * r.y0 + 3 * u * t * t * r.y1 + t * t * t * r.y1,
+  };
+};
+const RIBBON_T = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.12, 0.88];
+const tvalPos = ribbons.map((r) => {
+  const w = estW(`+${fmt(r.value)}`, TVAL_FS, 0.03);
+  const boxAt = (q: { x: number; y: number }): LBox =>
+    ({ l: q.x - w / 2, r: q.x + w / 2, t: q.y - 0.5 * TVAL_FS, b: q.y + 0.5 * TVAL_FS });
+  const clear = (q: { x: number; y: number }) =>
+    ![...barBoxes, ...placedLabels].some((o) => hits(boxAt(q), o));
+  const at = RIBBON_T.map((t) => onRibbon(r, t)).find(clear) ?? { x: r.midX, y: r.midY };
+  placedLabels.push(boxAt(at));
+  return at;
+});
+
+// 2. tallies, round by round, slot by slot: centred on the bar, else slid to
+//    its left or right edge (over a gap or an eliminated slot), else lifted
+const valLabels = valBars.map((b) => {
+  const w = estW(b.valLabel, PLACE_FS, VAL_TRACK);
+  const own = barBoxes.find((o) => o.l === b.x && o.t === b.y);
+  const obstacles = [...placedLabels, ...barBoxes.filter((o) => o !== own)];
+  const spots = [
+    { x: b.cx, anchor: 'middle' as const },
+    { x: b.x, anchor: 'start' as const },
+    { x: b.x + b.w, anchor: 'end' as const },
+  ];
+  let y = b.topY - 6;
+  let spot = spots[0];
+  let box = textBox(spot.x, y, w, PLACE_FS, spot.anchor);
+  for (let k = 0; k < 12; k++) {
+    const free = spots.find((sp) => !obstacles.some((o) => hits(textBox(sp.x, y, w, PLACE_FS, sp.anchor), o)));
+    if (free) { spot = free; box = textBox(spot.x, y, w, PLACE_FS, spot.anchor); break; }
+    spot = spots[0];
+    box = textBox(spot.x, y, w, PLACE_FS, spot.anchor);
+    const hit = obstacles.find((o) => hits(box, o))!;
+    y = hit.t - 3 - 0.18 * PLACE_FS;
+    box = textBox(spot.x, y, w, PLACE_FS, spot.anchor);
+  }
+  placedLabels.push(box);
+  return { bar: b, y, x: spot.x, anchor: spot.anchor, box };
+});
+
+// 3. the WINNER stamp — 68 × 18, above the winner's tally, clear of every label
+const STAMP_W = 68, STAMP_H = 18;
+const stamps = valLabels.filter((v) => v.bar.isWinnerFinal).map((v) => {
+  let bottom = v.box.t - 2;
+  let box: LBox = { l: v.bar.cx - STAMP_W / 2, r: v.bar.cx + STAMP_W / 2, t: bottom - STAMP_H, b: bottom };
+  for (let k = 0; k < 12; k++) {
+    const hit = placedLabels.find((o) => o !== v.box && hits(box, o));
+    if (!hit) break;
+    bottom = hit.t - 2;
+    box = { ...box, t: bottom - STAMP_H, b: bottom };
+  }
+  placedLabels.push(box);
+  return { cx: v.bar.cx, top: box.t };
+});
+
+// 4. MAJORITY — right-aligned to the final tick's right end (blueprint §4),
+//    which is usually over eliminated slots. First clear of: one line above
+//    the tick, one line below it, then MAJORITY / value on two lines above,
+//    then below; failing all four, two lines lifted over whatever is in span.
+const majValue = fmt(finalTick.value);
+const MAJ_LH = MAJ_FS * 1.15;
+const majBox = (lines: string[], yLast: number): LBox => {
+  const w = Math.max(...lines.map((l) => estW(l, MAJ_FS, MAJ_TRACK)));
+  return { l: finalTick.x1 - w, r: finalTick.x1, t: yLast - (lines.length - 1) * MAJ_LH - 0.8 * MAJ_FS, b: yLast + 0.18 * MAJ_FS };
+};
+const majObstacles = [...placedLabels, ...barBoxes];
+const majFree = (lines: string[], yLast: number) => !majObstacles.some((o) => hits(majBox(lines, yLast), o));
+const oneLine = [`MAJORITY ${majValue}`];
+const twoLine = ['MAJORITY', majValue];
+const above = (lines: string[]) => finalTick.y - 6;
+const below = (lines: string[]) => finalTick.y + 4 + 0.8 * MAJ_FS + (lines.length - 1) * MAJ_LH;
+let majLines = twoLine;
+let majY = above(twoLine);
+const majTry = [[oneLine, above], [oneLine, below], [twoLine, above], [twoLine, below]] as const;
+const majHit = majTry.find(([lines, at]) => majFree([...lines], at([...lines])));
+if (majHit) {
+  majLines = [...majHit[0]];
+  majY = majHit[1](majLines);
+} else {
+  for (let k = 0; k < 12 && !majFree(majLines, majY); k++) {
+    const hit = majObstacles.find((o) => hits(majBox(majLines, majY), o))!;
+    majY = hit.t - 3 - 0.18 * MAJ_FS;
+  }
+}
+placedLabels.push(majBox(majLines, majY));
+const majFirstY = majY - (majLines.length - 1) * MAJ_LH;
+
+// 5. headroom — the gutter names start at y≈6; anything lifted above that
+//    grows the viewBox upward rather than leaving the SVG
+const minTop = Math.min(6, ...placedLabels.map((b) => b.t));
+const TOP = Math.ceil(Math.max(0, 3 - minTop));
 
 /* ── round ledger (blueprint §7) — AT-readable, no-JS-open, folds on boot ────── */
 const ledger = rounds.map((r, i) => {
@@ -306,10 +470,11 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
   <div class="px-bflow__svg-wrap">
     <svg
       class="px-bflow__svg"
-      viewBox={`0 0 ${W} ${H}`}
+      viewBox={`0 ${-TOP} ${W} ${H + TOP}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={caption ? `Ranked-choice count, round by round: ${caption}` : 'Ranked-choice count, round by round'}
+      style={`--bflow-val-fs:${VAL_FS}px; --bflow-val-fs-sm:${VAL_FS_SM}px`}
     >
       <!-- transfer ribbon bands (drawn first, under bars) -->
       <g>
@@ -338,12 +503,6 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
         {majTicks.map((m) => (
           <line class="px-bflow__maj" x1={f1(m.x0)} y1={f1(m.y)} x2={f1(m.x1)} y2={f1(m.y)} />
         ))}
-        <text
-          class="px-bflow__maj-lbl"
-          x={f1(finalTick.x1)}
-          y={f1(finalTick.y - 6)}
-          text-anchor="end"
-        >MAJORITY {fmt(finalTick.value)}</text>
       </g>
 
       <!-- bars (grow reveal; exhausted muted sink) -->
@@ -359,20 +518,28 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
 
       <!-- per-bar tally labels (candidate color; exhausted muted) -->
       <g>
-        {bars.filter((b) => b.h >= 1 || b.exhausted).map((b) => (
+        {valLabels.map(({ bar: b, y, x, anchor }) => (
           <text
             class={`px-bflow__val${b.exhausted ? ' px-bflow__val--exh' : ''}`}
-            x={f1(b.cx)} y={f1(Math.max(LABEL_PAD - 6, b.topY - 6))}
-            text-anchor="middle"
+            x={f1(x)} y={f1(y)}
+            text-anchor={anchor}
             style={`fill:${b.labelColor}`}
           >{b.valLabel}</text>
         ))}
       </g>
 
+      <!-- the majority label, once, at the final tick's right end (placed clear
+           of every tally, above the bars so no bar can cover it) -->
+      <text class="px-bflow__maj-lbl" x={f1(finalTick.x1)} y={f1(majFirstY)} text-anchor="end">
+        {majLines.map((line, i) => (
+          <tspan x={f1(finalTick.x1)} dy={i ? f1(MAJ_LH) : 0}>{line}</tspan>
+        ))}
+      </text>
+
       <!-- transfer value labels at mid-stream (mono, paper halo) -->
       <g>
-        {ribbons.map((r) => (
-          <text class="px-bflow__tval" x={f1(r.midX)} y={f1(r.midY)} text-anchor="middle" dominant-baseline="middle">+{fmt(r.value)}</text>
+        {ribbons.map((r, i) => (
+          <text class="px-bflow__tval" x={f1(tvalPos[i].x)} y={f1(tvalPos[i].y)} text-anchor="middle" dominant-baseline="middle">+{fmt(r.value)}</text>
         ))}
       </g>
 
@@ -405,13 +572,13 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
       </g>
 
       <!-- WINNER stamp (fires last; pre-stamped under reduced-motion / no-JS) -->
-      {bars.filter((b) => b.isWinnerFinal).map((b) => (
-        <g class="px-bflow__stamp" style={`--sx:${f1(b.cx)}px; --sy:${f1(b.topY - 22)}px`}>
+      {stamps.map((s) => (
+        <g class="px-bflow__stamp">
           <rect
             class="px-bflow__stamp-box"
-            x={f1(b.cx - 34)} y={f1(b.topY - 34)} width="68" height="18" rx="2"
+            x={f1(s.cx - STAMP_W / 2)} y={f1(s.top)} width={STAMP_W} height={STAMP_H} rx="2"
           />
-          <text class="px-bflow__stamp-txt" x={f1(b.cx)} y={f1(b.topY - 25)} text-anchor="middle" dominant-baseline="middle">WINNER</text>
+          <text class="px-bflow__stamp-txt" x={f1(s.cx)} y={f1(s.top + STAMP_H / 2)} text-anchor="middle" dominant-baseline="middle">WINNER</text>
         </g>
       ))}
     </svg>
@@ -546,7 +713,8 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
   /* per-bar tally — mono tabular, candidate color, paper halo */
   .px-bflow__val {
     font-family: var(--font-mono);
-    font-size: 12px;
+    /* fitted to the slot pitch in the frontmatter (VAL_FS), ≤ 12px */
+    font-size: var(--bflow-val-fs, 12px);
     letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
     paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
@@ -638,7 +806,7 @@ const basisChip = majorityBasis === 'continuing' ? 'majority of continuing ballo
      never fires. Bumping the axis/legend/eyebrow roles to 11px holds ≥9.5px rendered
      down to the ~640px mobile-stack switch (11 × 640/720 ≈ 9.8px). */
   @container (max-width: 760px) {
-    .px-bflow__val { font-size: 13px; }
+    .px-bflow__val { font-size: var(--bflow-val-fs-sm, 13px); } /* VAL_FS_SM, ≤ 13px */
     .px-bflow__tval, .px-bflow__round, .px-bflow__name, .px-bflow__maj-lbl { font-size: 11px; }
   }
 

@@ -121,12 +121,27 @@ const xTicks = xTickRhos.map((r, i) => ({
   key: i,
 }));
 const yTickMults = [1, 2, wMult(0.7), 10, yCap];
-const yTicks = yTickMults.map((m, i) => ({
-  y: yOf(m),
-  label: `${fmtMult(m)}×`,
-  minor: i === 1 || i === 2,               // 2× / 3.3× thinned at 375px
-  key: i,
-}));
+// The y-axis is linear in the multiplier and runs to yCap (50× at the default
+// maxRho), so the low ticks bunch at the baseline: 1× and 2× sat 6.5 units
+// apart, their labels touching (probe TOUCH, 2026-09-24). A tick survives only
+// if its label clears every tick already kept by one line of type; the floor
+// (1×) and the cap keep priority, then 10×, then the knee, then 2×.
+const TICK_ROOM = 13;                      // 9.5px label + air, in viewBox units
+const tickPriority = [0, 4, 3, 2, 1];
+const keptY: number[] = [];
+const keepTick = new Set<number>();
+for (const i of tickPriority) {
+  const y = yOf(yTickMults[i]);
+  if (keptY.every((k) => Math.abs(k - y) >= TICK_ROOM)) { keptY.push(y); keepTick.add(i); }
+}
+const yTicks = yTickMults
+  .map((m, i) => ({
+    y: yOf(m),
+    label: `${fmtMult(m)}×`,
+    minor: i === 1 || i === 2,               // 2× / 3.3× thinned at 375px
+    key: i,
+  }))
+  .filter((t) => keepTick.has(t.key));
 
 // ── Annotations pinned to the curve ─────────────────────────────────────────
 const annos = annotations.slice(0, 3).map((a, i) => {

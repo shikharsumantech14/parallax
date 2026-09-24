@@ -918,8 +918,12 @@ broken on every one. Two rounds followed, recorded in `AGENTS.md` §10
 - **2026-09-24** gave wide figures air (45px each side, 24px clear of the
   rules — rule to rule had read as "fitted to the exact size"), made the gate a
   wall (`guard-render.mjs` refuses a rendering-relevant commit without a fresh
-  clean run that covers it), and wrote the component contract into the
-  guides (`AGENTS.md` §7, `src/components/AGENTS.md` §3).
+  clean run that covers it), wrote the component contract into the guides
+  (`AGENTS.md` §7, `src/components/AGENTS.md` §3), and then swept the six
+  showcase drafts: 32 blocking findings across 14 never-published kinds,
+  fixed generically by three agents, so the next round's new kinds do not
+  stall at the flip. Every published issue and every showcase measures 0
+  blocking, 0 warnings at 1280 and 375.
 
 ### 2026-09-04 — Revamp plan v3 signed (look first) + Phase 6.1 shell adoption + B1 instrument retrofits
 

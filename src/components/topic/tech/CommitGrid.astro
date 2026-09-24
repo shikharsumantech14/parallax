@@ -1,7 +1,20 @@
 ---
 /* CommitGrid — GitHub-style activity heatmap. Lime cells with 5 intensity
    steps. Pure CSS grid. Use for: release cadence, deployment frequency,
-   incident timelines, model-version drops. */
+   incident timelines, model-version drops.
+
+   2026-09-24 — the grid FITS its column. It used fixed 13px cells (10px under
+   760px), so 52 weeks came to ~876px of content in a 718px frame and the
+   frame scrolled sideways at 1280 (probe: 158px over), while the month row —
+   a 12-column grid sized to the frame, not to the cells — squeezed its
+   labels into each other. Now the weekday labels, the month row and the
+   cells share ONE column template: a fixed label column and `cols` equal
+   columns of `minmax(0, 1fr)`, cells square by aspect-ratio. The cells size
+   from the width the column gives them, so any number of weeks fits at
+   1280. On a phone the same template gets a floor of 10px per week and the
+   frame scrolls inside the card (the designed phone card-scroll); the month
+   labels span the weeks they head, so they move with the cells. Labels are
+   9.5px, the floor. */
 import { renderInline } from '../../../lib/text';
 
 interface Day {
@@ -33,9 +46,18 @@ const {
   meta,
   source
 } = Astro.props;
+
+const cols = Math.max(1, weeks.length);
+// Each month label heads an even share of the weeks (the data carries no
+// dates, so an even split is the honest reading of "12 labels over N weeks").
+const monthSpans = months.map((m, i) => {
+  const a = Math.round((i * cols) / months.length);
+  const b = Math.round(((i + 1) * cols) / months.length);
+  return { m, start: a + 2, end: Math.max(a + 1, b) + 2 };
+});
 ---
 
-<div class="px-commit" data-viz-root data-reveal>
+<div class="px-commit" data-viz-root data-reveal style={`--cols:${cols}`}>
   {(caption || meta) && (
     <div class="px-commit__head">
       {caption && <div class="px-commit__caption" set:html={renderInline(caption)} />}
@@ -44,14 +66,16 @@ const {
   )}
 
   <div class="px-commit__frame">
-    <div class="px-commit__months">
-      {months.map((m) => <span class="px-commit__month">{m}</span>)}
-    </div>
-    <div class="px-commit__body">
-      <div class="px-commit__weekdays">
-        {weekdays.map((d) => <span class="px-commit__weekday">{d}</span>)}
+    <div class="px-commit__plot">
+      <div class="px-commit__months">
+        {monthSpans.map((s) => (
+          <span class="px-commit__month" style={`grid-column:${s.start} / ${s.end}`}>{s.m}</span>
+        ))}
       </div>
-      <div class="px-commit__grid" style={`--cols:${weeks.length}`}>
+      <div class="px-commit__body">
+        <div class="px-commit__weekdays">
+          {weekdays.slice(0, 7).map((d) => <span class="px-commit__weekday">{d}</span>)}
+        </div>
         {weeks.map((week) => (
           <div class="px-commit__week">
             {week.map((d) => (
@@ -83,3 +107,79 @@ const {
      sweep, which matched `__src`, so every section with a source printed
      it twice (measured live 2026-09-22). Same shape as Comparison's. */}
 </div>
+
+<style>
+  /* Scoped rules outrank the tech.css block (attribute specificity), so the
+     theme keeps the colours and the head while the geometry lives here. */
+  .px-commit {
+    --wd: 30px;                 /* weekday label column */
+    --gap: 3px;
+    --template: var(--wd) repeat(var(--cols), minmax(0, 1fr));
+  }
+  .px-commit__frame { overflow-x: auto; }
+  .px-commit__plot { min-width: 0; }
+
+  .px-commit__months {
+    display: grid;
+    grid-template-columns: var(--template);
+    column-gap: var(--gap);
+    padding-left: 0;
+    margin-bottom: 8px;
+    font-size: 9.5px;
+  }
+  .px-commit__month {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  .px-commit__body {
+    display: grid;
+    grid-template-columns: var(--template);
+    column-gap: var(--gap);
+    gap: var(--gap);
+  }
+  .px-commit__weekdays,
+  .px-commit__week {
+    display: grid;
+    grid-template-rows: repeat(7, auto);
+    row-gap: var(--gap);
+    min-width: 0;
+  }
+  /* the label column stretches to the weeks' height and splits it in seven,
+     so each label sits on its row of cells whatever size the cells come to */
+  .px-commit__weekdays {
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    padding-top: 0;
+    font-size: 9.5px;
+    line-height: 1;
+  }
+  .px-commit__weekday {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .px-commit__week .px-commit__cell {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    display: block;
+  }
+  /* the legend keeps fixed swatches */
+  .px-commit__legend .px-commit__cell { width: 11px; height: 11px; }
+  .px-commit__legend { font-size: 10px; }
+
+  /* Phones: a floor of 10px per week and the frame scrolls inside the card,
+     the designed phone card-scroll. The whole plot widens together, so the
+     month row still heads the weeks it names. */
+  @media (max-width: 640px) {
+    .px-commit { --gap: 2px; }
+    .px-commit__plot {
+      min-width: calc(var(--wd) + var(--cols) * 10px + var(--cols) * var(--gap));
+    }
+  }
+</style>

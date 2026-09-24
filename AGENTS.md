@@ -794,22 +794,37 @@ fixing one width by eye and breaking the other. So:
 - The decision record carries it: **RD-14** (the geometry) and **RD-15** (the
   gate) in `docs/REVAMP-PLAN.md` §1.
 
-**Known, not fixed — the next work package:** the six
-`2026-06-03-<world>-showcase` drafts, the worked examples of every kind, were
-probed on 2026-09-24: **32 blocking findings across 14 kinds** that no
-published issue has used yet, which is exactly the set the diversity floors
-(≥ 2 new kinds per issue) will pull into the next round. Blocking:
-`itinerary-reel` (a day card 227px past the column), `commit-grid` (scrolls
-sideways at 1280), `carbon-gauge` (clipped by its own SVG), `altitude-oxygen`,
-`fare-terrain`, `momentum-wave`, `pace-ridge`, `descent-profile` and
-`lagrange-map` (event labels), `city-grid`, `chip-die`, `ballot-flow`,
-`storm-track` and `flight-of-the-ball` (their static fallbacks). Warnings
-only: sub-5px labels in seven WebGL fallbacks, `climate-calendar` and
-`tactics-pitch`; touching labels in `atmosphere-column`, `throughput-dial`,
-`queue-cliff`; `season-wheel` edges. They are drafts, so the hook does not
-gate them, but the gate WILL refuse the first published issue that carries
-one of these kinds until the kind is fixed — fix the kind, never the issue.
-Run `check:render --slug` on a showcase before modelling a section on it. On phones a chart drawn for
+**The showcase sweep, same day.** The six `2026-06-03-<world>-showcase`
+drafts, the worked examples of every kind, were probed: **32 blocking
+findings across 14 kinds** that no published issue had used yet — exactly the
+set the diversity floors (≥ 2 new kinds per issue) pull into every round.
+Three agents, one per world group, fixed all of them plus the warning-only
+kinds, generically (a rule for any data of that shape, never a nudge for the
+example): `itinerary-reel` wraps its cards into rows of three on desktop and
+scrolls inside its own box on phones (a day card had run 227px past the
+column); `commit-grid` sizes its cells to the column at 1280 (it scrolled
+sideways) with a per-week floor on phones; `carbon-gauge` had BOTH arcs
+sweeping the wrong way, so the gauge hung below its viewBox — it now sweeps
+over the top and the filled arc is the USED share, as the catalog and EXPLAIN
+always said (the needle moved; no published issue carries the kind);
+`altitude-oxygen`, `fare-terrain`, `city-grid`, `momentum-wave`, `pace-ridge`,
+`descent-profile`, `lagrange-map`, `ballot-flow`, `chip-die`, `storm-track`
+each gained collision-aware label placement (try the other side, stack, drop
+the least important, never overlap); `chip-die`'s `overflow: hidden` had also
+been hiding two of its tiles' labels behind the 3D side face; `tactics-pitch`
+markers had been squashed flat in every mode. **The rule for the WebGL
+fallbacks and the aspect-pinned mounts** (`flight-of-the-ball`, `chamber`,
+`storm-track`, `constellation-swarm`, `plate-motion`, `terrain-relief`,
+`neural-flow`, `packet-trace`, `terminator-globe`): they cannot scroll
+sideways without hiding their subject, so they carry two label sets — the
+authored sizes for desktop and a phone set that prints at ≥ 9.5px on a 335px
+plate — or an HTML / real-pixel SVG label layer over the drawing
+(`src/components/AGENTS.md` §10). All six showcases measure 0 blocking,
+0 warnings at 1280 and 375. Design calls left for the operator, not defects:
+`storm-track` draws a full hemisphere so a basin's track is small (the
+region-map fitting question again); `fare-terrain` fills under each ridge
+with paper, a flat slab over the sweet-spot band. Run `check:render --slug`
+on a showcase before modelling a section on it. On phones a chart drawn for
 the 720 measure scrolls sideways inside its card (the 2026-09-07 ruling) and
 the region-map on the Indonesia issue is cut at the right edge until scrolled
 — a ruling to revisit, not a defect the gate reports.

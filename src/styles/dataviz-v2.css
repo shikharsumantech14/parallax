@@ -858,10 +858,10 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   .px-viz { max-width: 100%; }
   .px-viz > * { min-width: 0; }
 
-  /* itinerary-reel: its day-card rail scrolls internally (overflow-x:auto);
-     clip the few-px scroll bleed at the reel root so it can't nudge the page
-     sideways. overflow-x:clip leaves overflow-y visible (reveal transforms). */
-  .px-ireel { overflow-x: clip; }
+  /* itinerary-reel's rail scrolls INSIDE the reel's own box (the component's
+     scoped style); the old `.px-ireel { overflow-x: clip }` here cut the
+     second card's text mid-word, and the bleed it clipped (a negative gutter
+     margin) is gone. 2026-09-24. */
 }
 
 /* ============================================================================
@@ -899,11 +899,18 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
      - the WebGL fallback SVGs (neural-flow, chamber, terminator-globe,
        plate-motion, storm-track, terrain-relief, constellation-swarm) — their
        <svg> carries no class to target and their viewBox widths differ, so a
-       blanket `.viz3d__fallback > svg` rule would blow up the narrow ones.
-       They are only ever seen without WebGL. Left for a pass that can address
-       them individually.
+       blanket `.viz3d__fallback > svg` rule would blow up the narrow ones,
+       and their mounts pin an aspect ratio, so a scroll would hide the
+       subject. Addressed individually on 2026-09-24 (the showcase sweep):
+       each carries TWO label sets, the authored sizes for desktop and a
+       phone set sized to print at >= 9.5px on a 335px plate, one shown by a
+       media query; terminator-globe's labels are HTML over the drawing.
      - flight-of-the-ball, which DOES have a class and was treated in the first
-       pass — and did not move, still measuring 3.6px at a full 720px width.
+       pass — and did not move, still measuring 3.6px at a full 720px width,
+       because `.viz3d--fball` pins the mount's aspect ratio. Fixed 2026-09-24
+       the other way round: its labels (and chamber's) live in a second SVG
+       layer over the drawing, positioned by percent and sized in real pixels,
+       so 9.5px is 9.5px at any width.
        `.viz3d--fball` pins `aspect-ratio: 720 / 380` on the MOUNT, so the box
        keeps the height its 273px column implies while the min-width widens it;
        `preserveAspectRatio="xMidYMid meet"` then scales the drawing back down

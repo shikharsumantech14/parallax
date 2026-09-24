@@ -294,6 +294,76 @@ const hillReadout = separationKm
 
 const ariaLabel = `Effective-potential map of the ${primary.name}–${secondary.name} system, ${shown.length} Lagrange points marked`;
 const axisEndX = 690;
+const axisStartX = sx(-1.28);
+
+// ── the axis name finds a clear stretch of its own axis ─────────────────────
+// Everything that marks the frame sits ON this axis — both masses, L1/L2/L3,
+// the collapsed "L1·L2" tick — so no fixed spot is safe for every mass ratio:
+// at the right end it printed across Earth and the L1·L2 label (Sun–Earth,
+// 2026-09-24). The label tries the axis ends, above then below the line, then
+// the stretches between the bodies, and takes the first spot whose box clears
+// every mark, label, leader and the inset. If none is clear it takes the
+// least-covered one. Widths are estimated wide (tracked capitals ~0.70em).
+type Box = { x0: number; y0: number; x1: number; y1: number };
+const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+const tBox = (x: number, y: number, anchor: 'start' | 'middle' | 'end', w: number, fs: number): Box => {
+  const x0 = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+  return { x0, y0: y - fs * 0.8, x1: x0 + w, y1: y + fs * 0.25 };
+};
+// a segment as a thin box sampled along its length (leaders, connector)
+const segBoxes = (x1: number, y1: number, x2: number, y2: number): Box[] => {
+  const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 6));
+  return Array.from({ length: n }, (_, k) => {
+    const xa = x1 + ((x2 - x1) * k) / n, ya = y1 + ((y2 - y1) * k) / n;
+    const xb = x1 + ((x2 - x1) * (k + 1)) / n, yb = y1 + ((y2 - y1) * (k + 1)) / n;
+    return { x0: Math.min(xa, xb) - 1, y0: Math.min(ya, yb) - 1, x1: Math.max(xa, xb) + 1, y1: Math.max(ya, yb) + 1 };
+  });
+};
+const marks: Box[] = [];
+const disc = (x: number, y: number, r: number) => marks.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
+disc(priS.x, priS.y, priS.r + 4);
+marks.push(tBox(priS.x, priS.y + priS.r + 14, 'middle', priS.name.length * 10 * 0.62, 10));
+disc(secS.x, secS.y, secS.r + 3.5);
+if (!collapse) marks.push(tBox(secS.x, secS.y + secS.r + 14, 'middle', secS.name.length * 10 * 0.62, 10));
+for (const p of drawn) {
+  disc(p.x, p.y, 5.5);
+  marks.push(tBox(p.lx, p.ly, p.anchor, p.id.length * 10 * 0.72, 10));
+}
+for (const m of mainCallouts) {
+  const w = m.label.length * 13 * 0.5;
+  marks.push(tBox(m.lx + (m.anchor === 'start' ? 4 : -4), m.ly, m.anchor, w, 13));
+  marks.push(...segBoxes(m.x, m.y, m.lx, m.ly - 3));
+}
+if (collapse) {
+  marks.push({ x0: insetX, y0: insetY, x1: insetX + insetW, y1: insetY + insetH });
+  marks.push(...segBoxes(insetCx, insetY, secS.x, secS.y + 8));
+  marks.push({ x0: secS.x - 2, y0: secS.y - 10, x1: secS.x + 2, y1: secS.y - 2 });
+  marks.push(tBox(secS.x + 8, secS.y - 8, 'start', 5 * 10 * 0.72, 10));
+}
+const AX_FS = 9.5;
+const axisText = 'co-rotating frame';
+const axisW = axisText.length * AX_FS * (0.72 + 0.14);
+const axisY = sy(0);
+const midPS = (priS.x + secS.x) / 2;
+const axisCands: { x: number; y: number; anchor: 'start' | 'middle' | 'end' }[] = [
+  { x: axisEndX, y: axisY - 6, anchor: 'end' },
+  { x: axisEndX, y: axisY + 14, anchor: 'end' },
+  { x: axisStartX, y: axisY - 6, anchor: 'start' },
+  { x: axisStartX, y: axisY + 14, anchor: 'start' },
+  { x: midPS, y: axisY - 6, anchor: 'middle' },
+  { x: midPS, y: axisY + 14, anchor: 'middle' },
+];
+let axisLbl = axisCands[0];
+let axisCost = Infinity;
+for (const c of axisCands) {
+  const b = tBox(c.x, c.y, c.anchor, axisW, AX_FS);
+  // never outside the viewBox: the SVG clips
+  if (b.x0 < 4 || b.x1 > VB_W - 4) continue;
+  const cost = marks.reduce((s, m) => s + (hit(b, m, 2) ? 1 + cover(b, m) : 0), 0);
+  if (cost < axisCost) { axisCost = cost; axisLbl = c; }
+  if (cost === 0) break;
+}
 ---
 
 <div class="px-viz px-lagr" data-reveal>
@@ -322,8 +392,8 @@ const axisEndX = 690;
     </g>
 
     <!-- co-rotating frame axis -->
-    <line class="px-lagr__axis" x1={sx(-1.28)} y1={sy(0)} x2={axisEndX} y2={sy(0)} />
-    <text class="px-lagr__axislbl" x={axisEndX} y={sy(0) - 6} text-anchor="end">co-rotating frame</text>
+    <line class="px-lagr__axis" x1={axisStartX} y1={sy(0)} x2={axisEndX} y2={sy(0)} />
+    <text class="px-lagr__axislbl" x={axisLbl.x} y={axisLbl.y} text-anchor={axisLbl.anchor}>{axisText}</text>
 
     <!-- the two masses (paper occluder ring + ink disc) -->
     <g class="px-lagr__mass">

@@ -900,22 +900,31 @@ scrubber-style SVG interactives (`transfer-window`, `queue-cliff`) work the
 same way. When you add one: **the no-JS state must be the finished answer,
 not an empty shell waiting for a click.**
 
-### Mobile chart legibility — an honest open residual
+### Mobile chart legibility — measured, and closed for the showcased kinds
 
 The 2026-07-14 responsive pass fixed the one reproducible 375px overflow —
 data tables. In `dataviz-v2.css` (tail, `@media (max-width: 640px)`), `.lt`
 and `[class$="__table"]` become `display: block; overflow-x: auto` so rows
 scroll **within** their card; desktop is untouched (still `display: table`
 above 640px). Safety nets: `.px-viz { max-width: 100% }`,
-`.px-viz > * { min-width: 0 }`, `.px-ireel { overflow-x: clip }`.
+`.px-viz > * { min-width: 0 }`. (`.px-ireel { overflow-x: clip }` was
+retired 2026-09-24: it only ever hid a negative margin's bleed and cut the
+second card's text on phones.)
 
-**Not fixed:** in-SVG fine print still renders at roughly 3.4–7px at a 375px
-viewport, because the SVG cards use a fixed `viewBox` with `width: 100%`.
-There is no clean blanket fix — a blanket `min-width` breaks the tall-narrow
-columns, discs and gauges. Today mobile legibility is carried by the **HTML**
-layer (the how-to-read panel, the plain line with its `Source ·` line, caption, and legends/tables at real px) plus the ⤢
-expand-modal study view. A per-component mobile-reflow round was scoped and
-**not** done; it is the obvious next move if small-screen charts matter.
+**The 2026-09-07 rule** for the scaling charts: each SVG drawn for the 720
+measure gets a `min-width` equal to its coordinate width and the CARD scrolls
+sideways at ≤ 900px, so every label lands at the size it was drawn at
+(`dataviz-v2.css`, the `min-width` block — read it before touching it).
+**The 2026-09-24 rule** for the kinds that cannot scroll — the WebGL mounts
+pin an aspect ratio, and a globe scrolled sideways hides its subject —
+is two label sets: the authored sizes for desktop and a phone set sized to
+print at ≥ 9.5px on a 335px plate, one or the other shown by a media query
+(`StormTrack`, `ConstellationSwarm`, `PlateMotion`, `TerrainRelief`,
+`NeuralFlow`, `PacketTrace`, `TerminatorGlobe`'s HTML labels). Either way
+the floor is **9.5px rendered**, and `check:render` reports TINY below it.
+The showcase sweep of 2026-09-24 brought every kind on the six showcases to
+zero findings at 375; a new kind picks one of the two rules in its first
+commit.
 
 ### CSS ownership
 

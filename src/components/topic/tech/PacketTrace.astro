@@ -95,6 +95,70 @@ const mapArcs = hops.filter((h) => h.kind !== 'compute').map((h) => arcPath(h));
 const computeHops = hops.filter((h) => h.kind === 'compute');
 const cs = cities(hops, originLabel);
 
+/* ── map city labels: two type tiers, one collision rule (2026-09-24) ──
+   The map is 720 units drawn at the column width — 335px on a 375px phone,
+   where the 9.5-unit city labels printed at 4.4px (probe TINY). It carries
+   them twice: the authored size, and 20.5 units for phones (≤640px, CSS),
+   ~9.5px on a 335px plate. Cities on one route are often close — Marseille
+   and Frankfurt sit 13 units apart — so each tier is placed on its own,
+   endpoints first: eight sides of the dot, then rings further out with a
+   hairline leader; the first spot clear of every dot, ring and label wins,
+   and crossing an arc costs a little (the paper halo keeps it legible). */
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Anchor = 'start' | 'middle' | 'end';
+const hitB = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const coverB = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+const CITY_TIERS = { d: 9.5, m: 20.5 } as const;
+const cityDots: Box[] = cs.map((c) => {
+  const r = (c.origin || c.dest ? 4 : 3) + 1.5;
+  return { x0: px(c.lon) - r, y0: py(c.lat) - r, x1: px(c.lon) + r, y1: py(c.lat) + r };
+});
+computeHops.forEach((h) => cityDots.push({ x0: px(h.fromLon) - 8, y0: py(h.fromLat) - 8, x1: px(h.fromLon) + 8, y1: py(h.fromLat) + 8 }));
+const arcSoft: Box[] = [];
+hops.filter((h) => h.kind !== 'compute').forEach((h) => {
+  greatCircle({ lat: h.fromLat, lon: h.fromLon }, { lat: h.toLat, lon: h.toLon }, 48).forEach((q) => {
+    const x = px(q.lon), y = py(q.lat);
+    arcSoft.push({ x0: x - 2, y0: y - 2, x1: x + 2, y1: y + 2 });
+  });
+});
+const CITY_DIRS: [number, number][] = [[1, -1], [1, 1], [-1, -1], [-1, 1], [1, 0], [-1, 0], [0, -1], [0, 1]];
+function cityLabels(fs: number) {
+  const placed: Box[] = [];
+  const order = cs.map((c, i) => ({ c, i })).sort((a, b) => Number(!!(b.c.origin || b.c.dest)) - Number(!!(a.c.origin || a.c.dest)));
+  const out: ({ lx: number; ly: number; anchor: Anchor; leader: number[] | null } | null)[] = new Array(cs.length).fill(null);
+  for (const { c, i } of order) {
+    const x = px(c.lon), y = py(c.lat), r = c.origin || c.dest ? 4 : 3;
+    const w = c.label.length * fs * 0.7, h = fs * 1.05;
+    let best: (typeof out)[number] = null, bestBox: Box | null = null, bestCost = Infinity;
+    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
+      const d = r + 4 + ring * fs * 1.5;
+      for (const [dx, dy] of CITY_DIRS) {
+        const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
+        const x0 = dx > 0 ? x + d * diag : dx < 0 ? x - d * diag - w : x - w / 2;
+        const y0 = dy < 0 ? y - d * diag - h : dy > 0 ? y + d * diag : y - h / 2;
+        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
+        if (b.x0 < 4 || b.x1 > MW - 4 || b.y0 < 4 || b.y1 > MH - 4) continue;
+        let cost = ring * 4 + CITY_DIRS.findIndex(([a, e]) => a === dx && e === dy) * 0.5;
+        for (const q of placed) if (hitB(b, q, 3)) cost += 1000 + coverB(b, q);
+        cityDots.forEach((q, j) => { if (j !== i && hitB(b, q, 1)) cost += 1000 + coverB(b, q); });
+        for (const q of arcSoft) if (hitB(b, q)) cost += 2;
+        if (cost < bestCost) {
+          bestCost = cost;
+          const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
+          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
+          const nx = Math.max(b.x0, Math.min(x, b.x1)), ny = Math.max(b.y0, Math.min(y, b.y1));
+          const len = Math.hypot(nx - x, ny - y) || 1;
+          best = { lx, ly: b.y1 - fs * 0.25, anchor, leader: ring > 0 ? [x + ((nx - x) / len) * (r + 1), y + ((ny - y) / len) * (r + 1), nx, ny] : null };
+          bestBox = b;
+        }
+      }
+    }
+    if (best && bestBox) { out[i] = best; placed.push(bestBox); }
+  }
+  return out;
+}
+const citySets = { d: cityLabels(CITY_TIERS.d), m: cityLabels(CITY_TIERS.m) };
+
 /* ── legend rows (AT-readable data source; collapse past 5 hops, §7) ── */
 const legend = bar.segments.map((s) => ({
   label: s.label,
@@ -146,17 +210,31 @@ const arrow = '→';
           <circle cx={px(h.fromLon)} cy={py(h.fromLat)} r="6" fill="none"
             stroke="var(--accent-alt)" stroke-width="1.6" opacity="0.9" />
         ))}
-        {/* city nodes + labels — endpoints accent-alt, others ink */}
+        {/* city nodes — endpoints accent-alt, others ink */}
         {cs.map((c) => (
-          <>
-            <circle cx={px(c.lon)} cy={py(c.lat)} r={c.origin || c.dest ? 4 : 3}
-              fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink)'}
-              opacity={c.origin || c.dest ? 1 : 0.9} />
-            <text x={px(c.lon) + 7} y={py(c.lat) - 5} style={MONO} font-size="9.5"
-              fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink-soft)'}
-              paint-order="stroke" stroke="var(--paper)" stroke-width="3"
-              letter-spacing="0.04em">{c.label}</text>
-          </>
+          <circle cx={px(c.lon)} cy={py(c.lat)} r={c.origin || c.dest ? 4 : 3}
+            fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink)'}
+            opacity={c.origin || c.dest ? 1 : 0.9} />
+        ))}
+        {/* city labels, once per type tier (see the frontmatter note) */}
+        {(['d', 'm'] as const).map((tier) => (
+          <g class={`px-pkt__cities px-pkt__cities--${tier}`}>
+            {cs.map((c, i) => {
+              const L = citySets[tier][i];
+              return L && (
+                <>
+                  {L.leader && (
+                    <line x1={L.leader[0].toFixed(1)} y1={L.leader[1].toFixed(1)} x2={L.leader[2].toFixed(1)} y2={L.leader[3].toFixed(1)}
+                      stroke="var(--ink)" stroke-width={tier === 'm' ? 1.4 : 0.8} opacity="0.5" />
+                  )}
+                  <text x={L.lx.toFixed(1)} y={L.ly.toFixed(1)} text-anchor={L.anchor} style={MONO} font-size={CITY_TIERS[tier]}
+                    fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink-soft)'}
+                    paint-order="stroke" stroke="var(--paper)" stroke-width={tier === 'm' ? 5 : 3}
+                    letter-spacing="0.04em">{c.label}</text>
+                </>
+              );
+            })}
+          </g>
         ))}
       </svg>
     </div>
@@ -326,6 +404,21 @@ const arrow = '→';
     -webkit-overflow-scrolling: touch;
   }
   .px-pkt__bar { width: 100%; min-width: 420px; height: auto; display: block; overflow: visible; }
+  /* Phones: the bar is drawn at 720 units, so it scrolls inside its own box at
+     full size rather than shrinking — at the 420px floor its 9.5-unit labels
+     printed at 5.5px (probe TINY, 2026-09-24). This is the card-scroll rule
+     dataviz-v2.css already declares for .px-pkt__bar; this scoped 420px floor
+     outranked it (attribute specificity), so it is restated here. */
+  @media (max-width: 900px) {
+    .px-pkt__bar { min-width: 720px; }
+  }
+
+  /* map city-label tiers — see the frontmatter note */
+  .px-pkt__cities--m { display: none; }
+  @media (max-width: 640px) {
+    .px-pkt__cities--d { display: none; }
+    .px-pkt__cities--m { display: inline; }
+  }
 
   .px-pkt__seg { cursor: pointer; }
   .px-pkt__hit { cursor: pointer; }

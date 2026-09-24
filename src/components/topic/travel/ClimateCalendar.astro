@@ -81,6 +81,29 @@ const shortMonth = (m: string) => m.slice(0, 3);
 // on a phone. It reads as a footnote under the strip, named by its month, so
 // the line stands on its own. (Declared and unrendered until 2026-09-15.)
 const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note));
+
+// ── values size to their cell (2026-09-24) ──────────────────────────────────
+// The temperature value is sized at build time so the LONGEST authored value
+// fits one column's share of the 720 measure: ~0.56em a figure in Literata
+// bold, the unit set at >= 9.5px beside it. Twelve months of "29.6°C" keep the
+// designed 17px; a "-10.5°F" year steps down rather than spilling into the
+// next month. Floor 11px.
+const n = data.length || 1;
+const cellW = (720 - 5 * (n - 1)) / n - 4;
+const longest = Math.max(1, ...temps.map((t) => fmtTemp(t).length));
+const unitW = tempUnit.length * 7;
+const tfs = Math.max(11, Math.min(17, Math.floor((cellW - unitW) / (longest * 0.56))));
+
+// The best / wettest tag is wider than a column. Centred by default; pinned to
+// its column's inner edge at either end of the strip (so it never crosses the
+// column rule) and when the two tags sit in neighbouring months (so they meet
+// at the gutter instead of printing on each other).
+function tagAlign(i: number): 'start' | 'end' | 'center' {
+  const other = i === bestIdx ? wettestIdx : bestIdx;
+  if (i === 0 || other === i - 1) return 'start';
+  if (i === n - 1 || other === i + 1) return 'end';
+  return 'center';
+}
 ---
 
 <div class="px-viz" data-reveal>
@@ -88,7 +111,7 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
 
   {hasData ? (
     <div class="px-ccal">
-      <div class="px-ccal__grid" style={`--cols:${data.length}`}>
+      <div class="px-ccal__grid" style={`--cols:${data.length};--tfs:${tfs}px`}>
         {data.map((m, i) => {
           const hl = i === bestIdx ? 'best' : i === wettestIdx ? 'wet' : null;
           return (
@@ -107,7 +130,7 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
               </div>
               <div class="px-ccal__rval">{Number.isFinite(m.rainfall) ? fmtRain(m.rainfall as number) : '·'}</div>
               <div class="px-ccal__m">{shortMonth(m.month)}</div>
-              {hl && <span class="px-ccal__tag">{hl === 'best' ? 'best' : 'wettest'}</span>}
+              {hl && <span class="px-ccal__tag" data-align={tagAlign(i)}>{hl === 'best' ? 'best' : 'wettest'}</span>}
             </div>
           );
         })}
@@ -170,10 +193,12 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
   }
   .px-ccal__tval {
     font-family: var(--issue-face, var(--font-display)); font-weight: 700;
-    font-size: 17px; line-height: 1; color: #ffffff;
+    font-size: var(--tfs, 17px); line-height: 1; color: #ffffff;
     text-shadow: 0 1px 2px rgba(0,0,0,0.32); font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
-  .px-ccal__tval i { font-size: 0.6em; font-style: normal; opacity: 0.85; }
+  /* the unit never drops under the 9.5px floor, whatever the value's size */
+  .px-ccal__tval i { font-size: max(9.5px, 0.6em); font-style: normal; opacity: 0.85; }
 
   .px-ccal__rain {
     height: 42px;
@@ -196,7 +221,7 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
 
   /* rainfall mini-readout — axis-role numeric: mono muted tabular */
   .px-ccal__rval {
-    font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.04em;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
     color: var(--muted); text-align: center; font-variant-numeric: tabular-nums;
   }
   /* month label — display serif (in-viz title), ink-soft */
@@ -210,11 +235,13 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
   .px-ccal__col[data-hl="wet"] .px-ccal__temp { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--accent); }
   .px-ccal__tag {
     position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
-    font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 0.1em;
-    text-transform: uppercase; font-weight: 700;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; font-weight: 700; line-height: 1.2;
     color: var(--paper); background: var(--ink);
     padding: 2px 6px; border-radius: var(--r-pill); white-space: nowrap; z-index: 2;
   }
+  .px-ccal__tag[data-align='start'] { left: 0; transform: none; }
+  .px-ccal__tag[data-align='end'] { left: auto; right: 0; transform: none; }
   .px-ccal__col[data-hl="wet"] .px-ccal__tag { background: var(--accent-deep, var(--accent)); }
 
   /* reveal: cells rise + scale up left→right (gated behind html.js) */
@@ -262,28 +289,32 @@ const noted = data.filter((m): m is Month & { note: string } => Boolean(m.note))
   }
 
   @media (max-width: 640px) {
-    /* 12 columns can't crush below a legible width at 375px, so let the grid
-       scroll horizontally and hold a per-column floor. overflow-x:auto forces
-       overflow-y to compute as auto, so reserve top room for the best/wettest
-       tag (top:-7px) and negate the side padding to bleed to the card edges. */
+    /* 12 columns can't crush below a legible width at 375px, so the strip
+       scrolls INSIDE its own box (the card-scroll pattern). overflow-x:auto
+       forces overflow-y to compute as auto, so reserve top room for the
+       best/wettest tag (top:-7px).
+       The grid is sized to its content (`max-content`, never narrower than the
+       box): intrinsic sizing makes every 1fr column as wide as the WIDEST
+       month, so the columns stay equal and no value is squeezed against its
+       neighbour (2026-09-24: `min-width: 360px` let the long values widen
+       their own columns only, and "5.3°C" ran into "6°C"). The rainfall
+       figures come back on phones, at the 9.5px floor, now there is room. */
     .px-ccal {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       padding-top: 10px;
-      margin-inline: calc(-1 * var(--gutter, 0px));
-      padding-inline: var(--gutter, 0px);
       scrollbar-width: none;
     }
     .px-ccal::-webkit-scrollbar { display: none; }
     .px-ccal__grid {
       gap: 3px;
-      min-width: 360px; /* ~28px per column + gaps — keeps temp values legible */
+      width: max-content;
+      min-width: 100%;
     }
     .px-ccal__tval { font-size: 13px; }
-    .px-ccal__temp { min-height: 46px; padding-left: 1px; padding-right: 1px; }
+    .px-ccal__temp { min-height: 46px; padding-left: 3px; padding-right: 3px; }
     .px-ccal__rain { height: 32px; }
-    .px-ccal__m { font-size: 9px; letter-spacing: 0; }
-    .px-ccal__rval { display: none; }
+    .px-ccal__m { font-size: 9.5px; letter-spacing: 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {

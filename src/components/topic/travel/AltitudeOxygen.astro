@@ -106,8 +106,59 @@ for (let a = 0; a <= maxElevM; a += 1000) ticks.push({ elevM: a, y: +y(a).toFixe
 const fmtElev = (m: number) => m.toLocaleString('en-US');
 const fmtO2 = (o2: number) => o2.toFixed(1);
 
-// ── stops, resolved + label-collision nudge (fixed-column pattern §4) ────────
-type Marker = Stop & { o2: number; dotX: number; dotY: number; ly: number; gap: number; };
+// ── stops → label BLOCKS in the fixed right column (fixed-column pattern §4) ─
+// A stop's label is a block of rows, not one line: an optional nights row
+// (tent + "2n"), the name (wraps to two lines), the readout, an optional note
+// (wraps to two lines). The column stacks WHOLE blocks with a gap, so no row
+// of one stop can land on a row of another, whatever the elevations.
+// (2026-09-24: the old 16px nudge moved one line's worth while each block is
+// 40–60 units tall, so close stops printed name over readout.)
+//
+// Width budget: the column runs LBL_X+4 → VB_W (164 units). Characters per
+// line are budgeted at a conservative 0.55em against that width, so a label
+// never leaves its own SVG.
+const COL_W = VB_W - (LBL_X + 4);                       // 164
+const NAME_PX = 13, NOTE_PX = 10.5;
+const NAME_CH = Math.floor(COL_W / (NAME_PX * 0.55));   // 22
+const NOTE_CH = Math.floor(COL_W / (NOTE_PX * 0.55));   // 28
+function wrap(text: string, budget: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= budget || !cur) cur = next;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    const last = kept[maxLines - 1];
+    kept[maxLines - 1] = (last.length > budget - 1 ? last.slice(0, budget - 1).trimEnd() : last) + '…';
+    return kept;
+  }
+  return lines.map((l) => (l.length > budget ? l.slice(0, budget - 1).trimEnd() + '…' : l));
+}
+
+// Row heights in user units (line box + air). Baselines sit inside them.
+const ROW_NIGHTS = 15, ROW_NAME = 15, ROW_READ = 14, ROW_NOTE = 13;
+const BLOCK_GAP = 7;                   // clear air between two stops' blocks
+// The column's usable height. It starts at the plot top, not the canvas top:
+// above it sits the SEA LEVEL label, and a connector climbing to a block up
+// there runs through that label.
+const COL_TOP = PLOT_T - 4, COL_BOT = VB_H - 4;
+
+type Marker = Stop & {
+  o2: number; dotX: number; dotY: number;
+  nameLines: string[]; noteLines: string[];
+  top: number; h: number; anchor: number; ly: number;
+};
+function blockMetrics(m: Marker) {
+  const nightsH = (m.nights ?? 0) >= 1 ? ROW_NIGHTS : 0;
+  m.h = nightsH + m.nameLines.length * ROW_NAME + ROW_READ + m.noteLines.length * ROW_NOTE;
+  m.anchor = nightsH + 7;              // the first name line's middle: the connector lands here
+}
+
 const resolved: Marker[] = stops
   .map((s) => {
     const o2 = o2At(s.elevM);
@@ -116,22 +167,66 @@ const resolved: Marker[] = stops
       o2,
       dotX: +x(o2).toFixed(2),
       dotY: +y(s.elevM).toFixed(2),
-      ly: Math.min(Math.max(+y(s.elevM).toFixed(2), 24), 436),
-      gap: Infinity,
+      nameLines: wrap(s.name, NAME_CH, 2),
+      noteLines: s.note ? wrap(s.note, NOTE_CH, 2) : [],
+      top: 0, h: 0, anchor: 0, ly: 0,
     };
   })
   .sort((a, b) => a.dotY - b.dotY);   // top of plate (small y) → floor
 
-// push overlapping labels DOWN by ≥16 px (blueprint: 16px nudge on collision)
-let prevLy = -Infinity;
-for (const m of resolved) {
-  m.ly = Math.max(m.ly, prevLy + 16);
-  prevLy = m.ly;
+// Place blocks: each wants its first name line level with its dot. Overlapping
+// neighbours merge into a cluster centred on the mean of what its members
+// want (least total displacement), clamped to the column; repeat until no
+// two clusters touch. If the whole stack is taller than the column, notes go
+// first, then second name lines.
+function place(ms: Marker[]): boolean {
+  ms.forEach(blockMetrics);
+  const total = ms.reduce((s, m) => s + m.h, 0) + BLOCK_GAP * (ms.length - 1);
+  if (total > COL_BOT - COL_TOP) return false;
+  type Cluster = { items: Marker[]; top: number; h: number };
+  const fit = (c: Cluster) => {
+    let off = 0, sum = 0;
+    for (const m of c.items) { sum += m.dotY - m.anchor - off; off += m.h + BLOCK_GAP; }
+    c.h = off - BLOCK_GAP;
+    c.top = Math.min(Math.max(sum / c.items.length, COL_TOP), COL_BOT - c.h);
+  };
+  let clusters: Cluster[] = ms.map((m) => { const c = { items: [m], top: 0, h: 0 }; fit(c); return c; });
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = 0; i < clusters.length - 1; i++) {
+      const a = clusters[i], b = clusters[i + 1];
+      if (a.top + a.h + BLOCK_GAP > b.top) {
+        const c = { items: [...a.items, ...b.items], top: 0, h: 0 };
+        fit(c);
+        clusters.splice(i, 2, c);
+        merged = true;
+        break;
+      }
+    }
+  }
+  for (const c of clusters) {
+    let t = c.top;
+    for (const m of c.items) { m.top = +t.toFixed(2); m.ly = +(t + m.anchor).toFixed(2); t += m.h + BLOCK_GAP; }
+  }
+  return true;
 }
-// how much room to the next label below — notes only render when there's space
-for (let i = 0; i < resolved.length; i++) {
-  resolved[i].gap = i < resolved.length - 1 ? resolved[i + 1].ly - resolved[i].ly : Infinity;
+if (!place(resolved)) {
+  resolved.forEach((m) => (m.noteLines = []));
+  if (!place(resolved)) {
+    resolved.forEach((m) => (m.nameLines = wrap(m.name, NAME_CH, 1)));
+    place(resolved);
+  }
 }
+// Baselines inside a block, from its top.
+const rowsOf = (m: Marker) => {
+  const nightsH = (m.nights ?? 0) >= 1 ? ROW_NIGHTS : 0;
+  const nameY = m.nameLines.map((_, k) => m.top + nightsH + k * ROW_NAME + 11);
+  const readY = m.top + nightsH + m.nameLines.length * ROW_NAME + 10.5;
+  const noteTop = m.top + nightsH + m.nameLines.length * ROW_NAME + ROW_READ;
+  const noteY = m.noteLines.map((_, k) => noteTop + k * ROW_NOTE + 9.5);
+  return { nightsY: m.top + 5, nameY, readY, noteY };
+};
 ---
 
 <div class="px-viz px-altox" data-reveal>
@@ -183,28 +278,35 @@ for (let i = 0; i < resolved.length; i++) {
         </text>
 
         <!-- stops: dot · connector · label block -->
-        {resolved.map((m, i) => (
-          <g class="px-altox__stop" style={`--i:${i}`}>
-            <line class="px-altox__conn" x1={m.dotX} y1={m.dotY} x2={LBL_X} y2={m.ly} />
-            <circle class="px-altox__dot" cx={m.dotX} cy={m.dotY} r="4" />
+        {resolved.map((m, i) => {
+          const r = rowsOf(m);
+          return (
+            <g class="px-altox__stop" style={`--i:${i}`}>
+              <line class="px-altox__conn" x1={m.dotX} y1={m.dotY} x2={LBL_X} y2={m.ly} />
+              <circle class="px-altox__dot" cx={m.dotX} cy={m.dotY} r="4" />
 
-            {(m.nights ?? 0) >= 1 && (
-              <g class="px-altox__night" transform={`translate(${LBL_X + 5}, ${m.ly - 11})`}>
-                <path class="px-altox__tent" d="M -6,4 L 0,-5 L 6,4 Z" />
-                <line class="px-altox__tent" x1="0" y1="-5" x2="0" y2="4" />
-                <text class="px-altox__nights" x="12" y="3.5">{m.nights}n</text>
-              </g>
-            )}
+              {(m.nights ?? 0) >= 1 && (
+                <g class="px-altox__night" transform={`translate(${LBL_X + 10}, ${r.nightsY})`}>
+                  <path class="px-altox__tent" d="M -6,4 L 0,-5 L 6,4 Z" />
+                  <line class="px-altox__tent" x1="0" y1="-5" x2="0" y2="4" />
+                  <text class="px-altox__nights" x="11" y="3.5">{m.nights}n</text>
+                </g>
+              )}
 
-            <text class="px-altox__name" x={LBL_X + 4} y={m.ly + 2}>{m.name}</text>
-            <text class="px-altox__read" x={LBL_X + 4} y={m.ly + 16}>
-              {fmtElev(m.elevM)} m · O₂ {fmtO2(m.o2)}%
-            </text>
-            {m.note && m.gap >= 30 && (
-              <text class="px-altox__note" x={LBL_X + 4} y={m.ly + 29}>{m.note}</text>
-            )}
-          </g>
-        ))}
+              <text class="px-altox__name" x={LBL_X + 4} y={r.nameY[0]}>
+                {m.nameLines.map((l, k) => <tspan x={LBL_X + 4} y={r.nameY[k]}>{l}</tspan>)}
+              </text>
+              <text class="px-altox__read" x={LBL_X + 4} y={r.readY}>
+                {fmtElev(m.elevM)} m · O₂ {fmtO2(m.o2)}%
+              </text>
+              {m.noteLines.length > 0 && (
+                <text class="px-altox__note" x={LBL_X + 4} y={r.noteY[0]}>
+                  {m.noteLines.map((l, k) => <tspan x={LBL_X + 4} y={r.noteY[k]}>{l}</tspan>)}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   </div>

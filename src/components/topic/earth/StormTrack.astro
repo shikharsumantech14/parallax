@@ -136,6 +136,108 @@ const multi = validStorms.length > 1;
 /* centre label (coordinate margin, motif 2) */
 const centreLabel = `${latH(meanLat)} ${lonH(meanLon)}`;
 
+/* ── plate labels: two type tiers, one collision rule (2026-09-24) ──────────
+   The plate is a 720-unit square drawn at the column width: 718px at 1280,
+   335px on a 375px phone, where 9.5 units prints at 4.4px. So the plate
+   carries its labels twice — a DESKTOP set at the authored sizes and a PHONE
+   set sized to land at or above the 9.5px floor on a 335px plate — and CSS
+   shows one (≤640px: phone). The storm's own marks do not move; only the
+   type grows, so each set is placed separately against the same marks.
+
+   Placement, per set, in priority order (PEAK, LANDFALLs, the storm name):
+   each label tries eight sides of its mark, then the same eight a ring
+   further out with a hairline leader back to the mark, and takes the first
+   spot that clears every mark, every label already placed and the plate
+   edge. Crossing the track costs a little (the paper halo keeps it legible);
+   crossing a mark or a label is never chosen while a clear spot exists.
+   Widths are estimated wide on purpose: too wide costs air, too narrow a
+   collision. At 1280 this is what moved "Hurricane Katrina (2005)" off
+   "LANDFALL" (probe, 2026-09-24). */
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Anchor = 'start' | 'middle' | 'end';
+const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+interface Spec { key: string; text: string; x: number; y: number; r: number; kind: 'mono' | 'name' }
+interface Placed { key: string; text: string; kind: 'mono' | 'name'; lx: number; ly: number; anchor: Anchor; leader: [number, number, number, number] | null }
+const marksHard: Box[] = [];
+const trackSoft: Box[] = [];
+plateStorms.forEach((s) => {
+  s.marks.forEach((m) => {
+    const rr = (m.landfall ? m.r + 3.5 : m.r) + 1.5;
+    marksHard.push({ x0: m.x - rr, y0: m.y - rr, x1: m.x + rr, y1: m.y + rr });
+  });
+  if (s.peak) marksHard.push({ x0: s.peak.x - s.peak.r - 1.5, y0: s.peak.y - s.peak.r - 1.5, x1: s.peak.x + s.peak.r + 1.5, y1: s.peak.y + s.peak.r + 1.5 });
+  for (let i = 0; i < s.marks.length - 1; i++) {
+    const a = s.marks[i], b = s.marks[i + 1];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 5));
+    for (let k = 0; k < n; k++) {
+      const x = a.x + ((b.x - a.x) * (k + 0.5)) / n, y = a.y + ((b.y - a.y) * (k + 0.5)) / n;
+      trackSoft.push({ x0: x - 2, y0: y - 2, x1: x + 2, y1: y + 2 });
+    }
+  }
+});
+const specs: Spec[] = [];
+plateStorms.forEach((s, si) => {
+  if (s.peak) specs.push({ key: `p${si}`, text: s.peak.label, x: s.peak.x, y: s.peak.y, r: s.peak.r, kind: 'mono' });
+  s.landfalls.forEach((lf, li) => {
+    const m = s.marks.find((mm) => mm.landfall && Math.abs(mm.x - lf.x) < 0.01 && Math.abs(mm.y - lf.y) < 0.01);
+    specs.push({ key: `l${si}-${li}`, text: lf.label, x: lf.x, y: lf.y, r: (m ? m.r : 4) + 3.5, kind: 'mono' });
+  });
+  if (s.nameAt) specs.push({ key: `n${si}`, text: s.name, x: s.nameAt[0], y: s.nameAt[1], r: 5, kind: 'name' });
+});
+const TIERS = {
+  // desktop: the authored sizes
+  d: { mono: 9.5, name: 16, edge: 18 },
+  // phone: 9.5px ÷ (335 / 720) ≈ 20.5 units, so a 335px plate prints ≥ 9.5px
+  m: { mono: 20.5, name: 24, edge: 30 },
+};
+const DIRS: [number, number][] = [[1, 0], [1, -1], [1, 1], [-1, 0], [-1, -1], [-1, 1], [0, -1], [0, 1]];
+function placeSet(t: { mono: number; name: number; edge: number }): Placed[] {
+  const placed: Box[] = [];
+  const centreFs = t.mono;
+  const centreW = centreLabel.length * centreFs * 0.72;
+  placed.push({ x0: VW / 2 - centreW / 2, y0: VH - 6 - centreFs * 0.8, x1: VW / 2 + centreW / 2, y1: VH - 6 + centreFs * 0.25 });
+  const bounds: Box = { x0: 6, y0: 6, x1: VW - 6, y1: VH - t.edge };
+  return specs.map((s) => {
+    const fs = s.kind === 'name' ? t.name : t.mono;
+    const w = s.kind === 'name' ? s.text.length * fs * 0.52 : s.text.length * fs * 0.7;
+    const h = fs * 1.05;
+    let best: Placed | null = null, bestCost = Infinity;
+    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
+      const d = s.r + 4 + ring * fs * 1.6;
+      for (const [dx, dy] of DIRS) {
+        const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
+        const x0 = dx > 0 ? s.x + d * diag : dx < 0 ? s.x - d * diag - w : s.x - w / 2;
+        const y0 = dy < 0 ? s.y - d * diag - h : dy > 0 ? s.y + d * diag : s.y - h / 2;
+        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
+        if (b.x0 < bounds.x0 || b.x1 > bounds.x1 || b.y0 < bounds.y0 || b.y1 > bounds.y1) continue;
+        let cost = ring * 4 + DIRS.findIndex(([a, c]) => a === dx && c === dy) * 0.5;
+        for (const p of placed) if (hit(b, p, 3)) cost += 1000 + cover(b, p);
+        for (const m of marksHard) if (hit(b, m, 1.5)) cost += 1000 + cover(b, m);
+        for (const q of trackSoft) if (hit(b, q)) cost += 2;
+        if (cost < bestCost) {
+          bestCost = cost;
+          const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
+          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
+          const ly = b.y1 - fs * 0.25;
+          // a leader from the mark's edge to the nearest point of the box, for outer rings
+          const nx = Math.max(b.x0, Math.min(s.x, b.x1)), ny = Math.max(b.y0, Math.min(s.y, b.y1));
+          const len = Math.hypot(nx - s.x, ny - s.y) || 1;
+          const leader: Placed['leader'] = ring > 0
+            ? [s.x + ((nx - s.x) / len) * (s.r + 1), s.y + ((ny - s.y) / len) * (s.r + 1), nx, ny]
+            : null;
+          best = { key: s.key, text: s.text, kind: s.kind, lx, ly, anchor, leader };
+          (best as any).box = b;
+        }
+      }
+    }
+    if (!best) best = { key: s.key, text: s.text, kind: s.kind, lx: s.x + s.r + 4, ly: s.y - s.r - 4, anchor: 'start', leader: null };
+    if ((best as any).box) placed.push((best as any).box);
+    return best;
+  });
+}
+const labelSets = { d: placeSet(TIERS.d), m: placeSet(TIERS.m) };
+
 /* live-scene payload (inline JSON — the track is data, not a fetched asset) */
 const payload = JSON.stringify({ storms: validStorms, windScale, smooth });
 
@@ -189,25 +291,34 @@ const SERIF = "font-family:var(--font-display),Georgia,serif";
 
               {/* peak dot on top of the halo */}
               {s.peak && <circle cx={s.peak.x} cy={s.peak.y} r={s.peak.r} fill={s.peak.color} stroke="var(--paper)" stroke-width="1" />}
-
-              {/* labels — storm name (Fraunces italic), PEAK + LANDFALL (mono) */}
-              {s.nameAt && (
-                <text x={s.nameAt[0] + 9} y={s.nameAt[1] - 8} style={`${SERIF};font-style:italic`} font-size="16"
-                  fill="var(--ink)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{s.name}</text>
-              )}
-              {s.peak && (
-                <text x={s.peak.x + s.peak.r + 6} y={s.peak.y - s.peak.r - 4} style={MONO} font-size="9.5"
-                  fill="var(--ink)" letter-spacing="0.08em" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{s.peak.label}</text>
-              )}
-              {s.landfalls.map((lf) => (
-                <text x={lf.x + 8} y={lf.y + 14} style={MONO} font-size="9.5" fill="var(--ink)" letter-spacing="0.08em"
-                  paint-order="stroke" stroke="var(--paper)" stroke-width="3">{lf.label}</text>
-              ))}
             </>
           ))}
 
-          {/* basin-centre coordinate (motif 2) */}
-          <text x={VW / 2} y={VH - 6} text-anchor="middle" style={MONO} font-size="9.5" fill="var(--muted)" letter-spacing="0.1em">{centreLabel}</text>
+          {/* labels — storm name (Fraunces italic), PEAK + LANDFALL (mono) and the
+              basin-centre coordinate (motif 2), once per type tier (see the note
+              in the frontmatter); CSS shows the desktop set or the phone set */}
+          {(['d', 'm'] as const).map((tier) => (
+            <g class={`px-storm__lbls px-storm__lbls--${tier}`}>
+              {labelSets[tier].map((l) => (
+                <>
+                  {l.leader && (
+                    <line x1={l.leader[0].toFixed(1)} y1={l.leader[1].toFixed(1)} x2={l.leader[2].toFixed(1)} y2={l.leader[3].toFixed(1)}
+                      stroke="var(--ink)" stroke-width={tier === 'm' ? 1.6 : 0.8} opacity="0.55" />
+                  )}
+                  {l.kind === 'name' ? (
+                    <text x={l.lx.toFixed(1)} y={l.ly.toFixed(1)} text-anchor={l.anchor} style={`${SERIF};font-style:italic`}
+                      font-size={TIERS[tier].name} fill="var(--ink)" paint-order="stroke" stroke="var(--paper)"
+                      stroke-width={tier === 'm' ? 6 : 3.5}>{l.text}</text>
+                  ) : (
+                    <text x={l.lx.toFixed(1)} y={l.ly.toFixed(1)} text-anchor={l.anchor} style={MONO} font-size={TIERS[tier].mono}
+                      fill="var(--ink)" letter-spacing="0.08em" paint-order="stroke" stroke="var(--paper)"
+                      stroke-width={tier === 'm' ? 5 : 3}>{l.text}</text>
+                  )}
+                </>
+              ))}
+              <text x={VW / 2} y={VH - 6} text-anchor="middle" style={MONO} font-size={TIERS[tier].mono} fill="var(--muted)" letter-spacing="0.1em">{centreLabel}</text>
+            </g>
+          ))}
 
           {/* radial-gradient defs for each storm's peak halo (the ONE peak marker) */}
           <defs>
@@ -311,6 +422,13 @@ const SERIF = "font-family:var(--font-display),Georgia,serif";
       radial-gradient(ellipse 70% 68% at 50% 48%,
         color-mix(in oklab, var(--accent) 7%, transparent), transparent 72%),
       color-mix(in oklab, var(--paper) 78%, var(--bg));
+  }
+
+  /* plate label tiers: the phone set is sized for a ~335px plate */
+  .px-storm__lbls--m { display: none; }
+  @media (max-width: 640px) {
+    .px-storm__lbls--d { display: none; }
+    .px-storm__lbls--m { display: inline; }
   }
 
   /* ── Saffir-Simpson legend (the declared encoding) ── */

@@ -12,6 +12,11 @@
  * point, pins are visible (hidden rules sit behind `html.js`; reduced-motion
  * resets with !important).
  *
+ * Every in-plot label (event flags, phase-band names, the craft label) goes
+ * through ONE build-time collision rule — see "label placement" below. Flags
+ * that would overprint stack or swap sides of their leaders; a band name with
+ * no clear spot is dropped rather than printed on something (2026-09-24).
+ *
  * data: { points[]{ t, altKm, phase? }, events?[]{ t, label }, craftLabel?,
  *         caption?, source? }
  */
@@ -117,28 +122,6 @@ function bandArea(b: Band): string {
 }
 const bandGeo = bands.map((b) => ({ ...b, d: bandArea(b) })).filter((b) => b.d);
 
-// Band labels share one baseline at the bottom; declutter them so adjacent
-// labels (common when the curve compresses on one side) don't overprint, and
-// re-anchor the first/last so they don't clip the frame edges. A rough px/char
-// estimate gives each label a footprint; if it would overlap the previously
-// kept label we hide just the text (the band fill stays).
-const CHARW = 5.6;          // approx px per uppercase mono char at 8.5px
-const bandLabels = (() => {
-  let lastRight = -Infinity;
-  return bandGeo.map((b) => {
-    const w = Math.max(20, b.phase.length * CHARW);
-    let anchor: 'start' | 'middle' | 'end' = 'middle';
-    let lx = b.mid;
-    let left = b.mid - w / 2;
-    let right = b.mid + w / 2;
-    if (left < padL + 2) { anchor = 'start'; lx = padL + 2; left = lx; right = lx + w; }
-    else if (right > (W - padR) - 2) { anchor = 'end'; lx = (W - padR) - 2; right = lx; left = lx - w; }
-    const show = left >= lastRight + 6;
-    if (show) lastRight = right;
-    return { anchor, lx, show };
-  });
-})();
-
 // Axis ticks (mono).
 const xTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: tMin + tSpan * f, x: X(tMin + tSpan * f) }));
 const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ v: maxAlt * f, y: Y(maxAlt * f) }));
@@ -162,37 +145,137 @@ function altAt(t: number): number {
 }
 const eventGeo = evs.map((e) => ({ ...e, x: X(e.t), y: Y(altAt(e.t)) }));
 
-// ── event-label placement (declutter so labels don't clip or collide) ───────
-// Each event label is centred over its pin by default, but near the frame
-// edges we switch the anchor + clamp x so the text stays inside; when two
-// labels sit close in x we raise alternate ones onto a taller stem so they
-// don't overprint. Markup/data unchanged — only label/stem coords change.
-const EDGE = 64;            // px from a side edge within which we re-anchor
-const STEM_LO = 26;         // default stem length (matches the original)
-const STEM_HI = 46;         // raised tier for a clashing neighbour (clears the low row)
-const EV_TOP = padT + 8;    // never let a label baseline clip the plot top
-const evLabels = (() => {
-  const sorted = eventGeo.map((e, i) => ({ ...e, i })).sort((a, b) => a.x - b.x);
-  let prevX = -Infinity;
-  let prevHi = false;
-  const out: Record<number, { anchor: 'start' | 'middle' | 'end'; lx: number; stem: number }> = {};
-  for (const e of sorted) {
-    let anchor: 'start' | 'middle' | 'end' = 'middle';
-    let lx = e.x;
-    if (e.x < padL + EDGE) { anchor = 'start'; lx = Math.max(padL, e.x - 4); }
-    else if (e.x > (W - padR) - EDGE) { anchor = 'end'; lx = Math.min(W - padR, e.x + 4); }
-    // raise this label if the previous one is close in x and sat low
-    const hi = (e.x - prevX) < 130 && !prevHi;
-    out[e.i] = { anchor, lx, stem: hi ? STEM_HI : STEM_LO };
-    prevX = e.x;
-    prevHi = hi;
-  }
-  return out;
-})();
-
 const craft = nodes.length ? nodes[nodes.length - 1] : null;
 // keep the craft label inside the frame when the craft rests near the right edge
 const craftLabelFlip = craft ? craft.x > (W - padR) - 70 : false;
+
+// ── label placement: one collision rule for every label in the plot ─────────
+// The SVG scales uniformly (it is a card-scroll chart on phones, drawn at 640
+// units everywhere), so a placement that clears in user units clears at every
+// width. Three label families share the plot, placed in priority order:
+//   1. fixed — axis ticks and units, the craft glyph and its label;
+//   2. event flags — each tries rows above its pin (a dashed leader climbs to
+//      the label), then beside the pin, then below it, and at each row it
+//      tries centred, left of the leader and right of it. The first spot whose
+//      box clears every label, pin and leader already placed wins; its own
+//      leader must clear them too. Two flags that would overlap therefore
+//      STACK (the second climbs a row) or ALTERNATE SIDES of their leaders —
+//      whatever the data, never an overprint;
+//   3. phase-band names, on the lane just above the baseline, try centred in
+//      the band then pushed to either end of it; a name with no clear spot
+//      is dropped (the band fill stays, and the legend below lists the flags).
+// Widths are estimated: Literata capitals run ~0.70em plus the tracking. The
+// estimate leans wide on purpose — too wide costs air, too narrow a collision.
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Anchor = 'start' | 'middle' | 'end';
+const FS = 9.5;                                   // --viz-fs-axis
+const ASC = FS * 0.8, DESC = FS * 0.25;           // ink above / below the baseline
+const capsW = (s: string, track: number) => Math.max(12, s.length * FS * (0.72 + track));
+const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const area = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+// A label box from its anchor, pulled inside [lo, hi]; returns the x to render
+// at and the anchor to render with, so the text starts exactly where it was
+// measured to start (or ends exactly where it was measured to end).
+function labelBox(x: number, y: number, anchor: Anchor, w: number, lo: number, hi: number) {
+  let x0 = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+  let a: Anchor = anchor, lx = x;
+  if (x0 < lo) { x0 = lo; a = 'start'; lx = lo; }
+  else if (x0 + w > hi) { x0 = hi - w; a = 'end'; lx = hi; }
+  return { box: { x0, y0: y - ASC, x1: x0 + w, y1: y + DESC } as Box, anchor: a, lx };
+}
+
+const fixed: Box[] = [];
+yTicks.forEach((t) => {
+  const w = capsW(fmtAlt(t.v), 0.04);
+  fixed.push({ x0: padL - 8 - w, y0: t.y + 3 - ASC, x1: padL - 8, y1: t.y + 3 + DESC });
+});
+fixed.push({ x0: 2, y0: padT - 10 - ASC, x1: 2 + capsW('ALT km', 0.16), y1: padT - 10 + DESC });
+let craftBoxes: Box[] = [];
+if (craft) {
+  craftBoxes.push({ x0: craft.x - 7, y0: craft.y - 8, x1: craft.x + 7, y1: craft.y + 6 });
+  if (craftLabel) {
+    const w = capsW(craftLabel, 0.1);
+    const x0 = craftLabelFlip ? craft.x - 10 - w : craft.x + 10;
+    craftBoxes.push({ x0, y0: craft.y + 3 - ASC, x1: x0 + w, y1: craft.y + 3 + DESC });
+  }
+}
+fixed.push(...craftBoxes);
+
+const PIN_R = 3.4;
+const pinBox = (e: { x: number; y: number }): Box => ({ x0: e.x - PIN_R - 1, y0: e.y - PIN_R - 1, x1: e.x + PIN_R + 1, y1: e.y + PIN_R + 1 });
+const STEM_LO = 26;          // the first row sits this far above its pin
+const ROW = 13;              // one label line plus air
+const EV_TOP = padT + 8;     // no flag baseline above the plot top
+const EV_LO = padL, EV_HI = W - 4;
+type Flag = { lx: number; ly: number; anchor: Anchor; box: Box; stem: [number, number] | null };
+const flags: Flag[] = new Array(eventGeo.length);
+const placedBoxes: Box[] = [];
+const placedStems: Box[] = [];
+eventGeo
+  .map((e, i) => ({ ...e, i }))
+  .sort((a, b) => a.x - b.x)
+  .forEach((e) => {
+    const w = capsW(e.label, 0.08);
+    const pins = eventGeo.filter((_, j) => j !== e.i).map(pinBox);
+    type Cand = { ly: number; side: 'above' | 'beside' | 'below'; anchor: Anchor; ax: number };
+    const cands: Cand[] = [];
+    const sides: [Anchor, number][] = [['middle', e.x], ['end', e.x + 5], ['start', e.x - 5]];
+    // above: rows climbing from the pin; the top row may give a short leader
+    const firstAbove = e.y - STEM_LO - DESC;
+    for (let ly = firstAbove; ly >= EV_TOP; ly -= ROW) sides.forEach(([a, ax]) => cands.push({ ly, side: 'above', anchor: a, ax }));
+    if (firstAbove < EV_TOP && EV_TOP + DESC + 2 < e.y - PIN_R) sides.forEach(([a, ax]) => cands.push({ ly: EV_TOP, side: 'above', anchor: a, ax }));
+    // beside: on the pin's own line, no leader
+    cands.push({ ly: e.y + ASC / 2 - DESC / 2, side: 'beside', anchor: 'start', ax: e.x + PIN_R + 5 });
+    cands.push({ ly: e.y + ASC / 2 - DESC / 2, side: 'beside', anchor: 'end', ax: e.x - PIN_R - 5 });
+    // below: rows descending from the pin, kept off the baseline
+    for (let ly = e.y + STEM_LO + ASC; ly + DESC <= baseY - 3; ly += ROW) sides.forEach(([a, ax]) => cands.push({ ly, side: 'below', anchor: a, ax }));
+
+    let best: Flag | null = null;
+    let bestCost = Infinity;
+    for (const c of cands) {
+      const L = labelBox(c.ax, c.ly, c.anchor, w, EV_LO, EV_HI);
+      const stem: [number, number] | null =
+        c.side === 'above' ? [L.box.y1 + 1.5, e.y - PIN_R] : c.side === 'below' ? [e.y + PIN_R, L.box.y0 - 1.5] : null;
+      const stemBox: Box | null = stem ? { x0: e.x - 1, y0: stem[0], x1: e.x + 1, y1: stem[1] } : null;
+      // the leader has to reach the label: its x must sit inside the box
+      if (stem && (e.x < L.box.x0 - 0.5 || e.x > L.box.x1 + 0.5)) continue;
+      let cost = 0;
+      for (const b of [...placedBoxes, ...fixed]) {
+        if (hit(L.box, b, 3)) cost += 1000 + area(L.box, b);
+        if (stemBox && hit(stemBox, b, 1)) cost += 1000;
+      }
+      for (const b of pins) if (hit(L.box, b, 1)) cost += 1000;
+      for (const s of placedStems) if (hit(L.box, s, 1)) cost += 1000;
+      if (cost === 0) { best = { lx: L.lx, ly: c.ly, anchor: L.anchor, box: L.box, stem }; break; }
+      if (cost < bestCost) { bestCost = cost; best = { lx: L.lx, ly: c.ly, anchor: L.anchor, box: L.box, stem }; }
+    }
+    if (!best) {
+      const L = labelBox(e.x, Math.max(EV_TOP, firstAbove), 'middle', w, EV_LO, EV_HI);
+      best = { lx: L.lx, ly: Math.max(EV_TOP, firstAbove), anchor: L.anchor, box: L.box, stem: [L.box.y1 + 1.5, e.y - PIN_R] };
+    }
+    flags[e.i] = best;
+    placedBoxes.push(best.box);
+    if (best.stem) placedStems.push({ x0: e.x - 1, y0: best.stem[0], x1: e.x + 1, y1: best.stem[1] });
+  });
+
+// phase-band names, last: they yield to every flag, leader, pin and the craft
+const BAND_Y = baseY - 8;
+const pinsAll = eventGeo.map(pinBox);
+const bandKept: Box[] = [];
+const bandLabels = bandGeo.map((b) => {
+  const w = capsW(b.phase, 0.12);
+  const tries: [Anchor, number][] = [['middle', b.mid], ['start', b.from + 3], ['end', b.to - 3]];
+  for (const [a, x] of tries) {
+    const L = labelBox(x, BAND_Y, a, w, padL + 2, W - padR - 2);
+    const blocked =
+      bandKept.some((k) => hit(L.box, k, 6)) ||
+      [...placedBoxes, ...fixed].some((k) => hit(L.box, k, 3)) ||
+      placedStems.some((k) => hit(L.box, k, 2)) ||
+      pinsAll.some((k) => hit(L.box, k, 1.5));
+    if (!blocked) { bandKept.push(L.box); return { show: true, anchor: L.anchor, lx: L.lx }; }
+  }
+  return { show: false, anchor: 'middle' as Anchor, lx: b.mid };
+});
 const summary = nodes.length
   ? `${fmtAlt(nodes[0].altKm)}→${fmtAlt(nodes[nodes.length - 1].altKm)} km`
   : 'profile';
@@ -252,14 +335,14 @@ const summary = nodes.length
 
       <!-- event pins -->
       {eventGeo.map((e, i) => {
-        const L = evLabels[i];
-        const stemTop = e.y - L.stem;
-        const lblY = Math.max(EV_TOP, stemTop - 5);
+        const F = flags[i];
         return (
           <g class="px-desc__ev" style={`--i:${i}`}>
-            <line class="px-desc__ev-stem" x1={e.x.toFixed(1)} y1={e.y.toFixed(1)} x2={e.x.toFixed(1)} y2={stemTop.toFixed(1)} />
-            <circle class="px-desc__ev-dot" cx={e.x.toFixed(1)} cy={e.y.toFixed(1)} r="3.4" />
-            <text class="px-desc__ev-lbl" x={L.lx.toFixed(1)} y={lblY.toFixed(1)} text-anchor={L.anchor}>{e.label}</text>
+            {F.stem && (
+              <line class="px-desc__ev-stem" x1={e.x.toFixed(1)} y1={F.stem[0].toFixed(1)} x2={e.x.toFixed(1)} y2={F.stem[1].toFixed(1)} />
+            )}
+            <circle class="px-desc__ev-dot" cx={e.x.toFixed(1)} cy={e.y.toFixed(1)} r={PIN_R} />
+            <text class="px-desc__ev-lbl" x={F.lx.toFixed(1)} y={F.ly.toFixed(1)} text-anchor={F.anchor}>{e.label}</text>
           </g>
         );
       })}

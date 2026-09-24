@@ -167,6 +167,15 @@ const fromPin = projPin(from);
 const toPin = projPin(to);
 const subPin = (() => { const q = proj([sub.lon, sub.lat]); return q ? { x: q[0], y: q[1], vis: true } : { x: 0, y: 0, vis: false }; })();
 
+/* Fallback labels are HTML, not SVG text (2026-09-24). The plate is a 720-unit
+   drawing pinned to the mount's 720/460 aspect, so on a 375px phone it renders
+   at 0.46× and 9.5-unit SVG type lands at 4.4px; a min-width cannot help while
+   the mount's aspect is pinned. HTML labels positioned in % of the same box
+   keep their CSS size at every width. Each label sits on the side of its pin
+   that faces the globe's centre, so it never runs out of the clipped mount. */
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const side = (x: number) => (x > cx ? 'l' : 'r');
+
 /* ── stub-ledger numbers (the AT-readable data source, blueprint §7) ── */
 const distKm = groundDistanceKm({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon });
 const depClock = localClock(epochMs, from.tzOffsetH);
@@ -188,7 +197,6 @@ const rows = [from, to].map((c) => ({
 const arrLocalTo = localClock(arrivalMs, to.tzOffsetH);
 const arrChipLabel = `ARRIVAL — ${arrLocalTo.hhmm}${dayTag(arrLocalTo.dayDelta)}`;
 
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
 const payload = JSON.stringify({ epoch, from, to, flightHours, arcBulge: bulge });
 ---
 
@@ -221,27 +229,25 @@ const payload = JSON.stringify({ epoch, from, to, flightHours, arcBulge: bulge }
             stroke-linejoin="round" stroke-linecap="round" />
           {/* terminator line — the day/night boundary, --ink @ 0.9 */}
           {termPath && <path d={termPath} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.9" />}
-          {/* SUBSOLAR tick — where it is noon */}
+          {/* SUBSOLAR tick — where it is noon (its label is HTML, below) */}
           {subPin.vis && (
-            <>
-              <circle cx={subPin.x} cy={subPin.y} r="2.4" fill="var(--ink)" opacity="0.55" />
-              <text x={subPin.x + 6} y={subPin.y - 5} style={MONO} font-size="9.5"
-                letter-spacing="0.1em" fill="var(--muted)"
-                paint-order="stroke" stroke="var(--paper)" stroke-width="3">SUBSOLAR</text>
-            </>
+            <circle cx={subPin.x} cy={subPin.y} r="2.4" fill="var(--ink)" opacity="0.55" />
           )}
           {/* flight arc — --accent @ 0.85 */}
           {flightPath && <path d={flightPath} fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.85" />}
-          {/* endpoints — accent dots + Fraunces-italic place names with paper halo */}
-          {[{ p: fromPin, c: from }, { p: toPin, c: to }].map(({ p, c }) => p.vis && (
-            <>
-              <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />
-              <text x={p.x + 8} y={p.y + 3.5}
-                style="font-family:var(--font-display);font-style:italic" font-size="13"
-                fill="var(--accent-deep)" paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">{c.city}</text>
-            </>
+          {/* endpoints — accent dots (their place names are HTML, below) */}
+          {[fromPin, toPin].map((p) => p.vis && (
+            <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />
           ))}
         </svg>
+        {subPin.vis && (
+          <span class="px-tglobe__fl px-tglobe__fl--sub" data-side={side(subPin.x)}
+            style={`left:${pct(subPin.x, W)};top:${pct(subPin.y, H)}`}>SUBSOLAR</span>
+        )}
+        {[{ p: fromPin, c: from }, { p: toPin, c: to }].map(({ p, c }) => p.vis && (
+          <span class="px-tglobe__fl px-tglobe__fl--city" data-side={side(p.x)}
+            style={`left:${pct(p.x, W)};top:${pct(p.y, H)}`}>{c.city}</span>
+        ))}
       </div>
       <span class="viz3d__hint" aria-hidden="true">drag to spin · scroll to zoom</span>
       <script type="application/json" class="viz3d__data" set:html={payload}></script>
@@ -301,6 +307,28 @@ const payload = JSON.stringify({ epoch, from, to, flightHours, arcBulge: bulge }
 <style>
   .viz3d--tglobe { aspect-ratio: 720 / 460; }
   .px-tglobe__stage { position: relative; }
+
+  /* fallback labels — HTML over the plate, fixed CSS size at every width.
+     Anchored at the pin; `data-side` puts the text on the pin's inward side. */
+  .px-tglobe__fl {
+    position: absolute; z-index: 1;
+    white-space: nowrap; pointer-events: none; line-height: 1;
+    text-shadow:
+      0 0 2px var(--paper), 0 0 2px var(--paper),
+      1px 0 0 var(--paper), -1px 0 0 var(--paper), 0 1px 0 var(--paper), 0 -1px 0 var(--paper);
+  }
+  .px-tglobe__fl--city {
+    font-family: var(--font-display); font-style: italic; font-size: 13px;
+    color: var(--accent-deep);
+    transform: translate(8px, -50%);
+  }
+  .px-tglobe__fl--city[data-side='l'] { transform: translate(calc(-100% - 8px), -50%); }
+  .px-tglobe__fl--sub {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
+    color: var(--muted);
+    transform: translate(6px, calc(-100% - 4px));
+  }
+  .px-tglobe__fl--sub[data-side='l'] { transform: translate(calc(-100% - 6px), calc(-100% - 4px)); }
 
   /* state chips — shown only when the WebGL scene is live */
   .px-tglobe__chips {

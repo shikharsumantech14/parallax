@@ -4,8 +4,12 @@
  * card on a shared 3D stage; cards carry depth (layered shadow) and tilt toward
  * the pointer (core/Tilt.astro `data-tilt`), lifting + brightening on hover/
  * focus. On scroll-in they slide/fan in on a stagger (CSS, reveal-gated). On
- * desktop the cards sit in a row; on mobile they become a horizontal
- * scroll-snap rail (no JS — native overflow scrolling).
+ * desktop the cards sit in balanced rows of at most three (a 4-day reel is
+ * 2 × 2, a 5-day reel 3 + 2), so every card stays inside the column whatever
+ * the day count; on phones they become a horizontal scroll-snap rail that
+ * scrolls INSIDE its own root (no JS — native overflow scrolling).
+ * (2026-09-24: the row was a single `minmax(190px, 1fr)` track list, so four
+ * or more days pushed the last cards 21–227px past the column rule.)
  *
  * No-JS / reduced-motion: cards paint in their FINAL resting position (hidden
  * offsets sit behind `html.js`; reduced-motion resets with !important). The day
@@ -22,6 +26,9 @@ interface Props {
 const { days = [], caption, source } = Astro.props;
 
 const items = days.filter((d) => d && d.place);
+// Balanced rows: ≤ 3 per row, the rows as even as the count allows.
+const n = items.length;
+const cols = n <= 3 ? Math.max(n, 1) : Math.ceil(n / Math.ceil(n / 3));
 const fmtDay = (d: number | string) =>
   typeof d === 'number' ? `Day ${d}` : /^\d+$/.test(String(d)) ? `Day ${d}` : String(d);
 ---
@@ -31,7 +38,7 @@ const fmtDay = (d: number | string) =>
 
   {items.length > 0 ? (
     <div class="px-ireel px3d-stage">
-      <div class="px-ireel__rail">
+      <div class="px-ireel__rail" style={`--cols:${cols}`}>
         {items.map((d, i) => (
           <div class="px-ireel__card px3d-tilt" data-tilt="8" style={`--i:${i}`}>
             <div class="px-ireel__day">{fmtDay(d.day)}</div>
@@ -58,11 +65,10 @@ const fmtDay = (d: number | string) =>
   .px-ireel { width: 100%; }
   .px-ireel__rail {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(190px, 1fr);
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
     gap: 16px;
     align-items: stretch;
-    padding: 6px 2px 10px;
+    padding: 6px 0 10px;
   }
 
   .px-ireel__card {
@@ -104,6 +110,7 @@ const fmtDay = (d: number | string) =>
   .px-ireel__place {
     font-family: var(--issue-face, var(--font-display)); font-weight: 700;
     font-size: 22px; line-height: 1.12; color: var(--ink); letter-spacing: -0.01em;
+    overflow-wrap: break-word; hyphens: auto;
   }
   .px-ireel__items {
     list-style: none; margin: 0; padding: 0;
@@ -113,6 +120,7 @@ const fmtDay = (d: number | string) =>
     position: relative;
     font-family: var(--font-body); font-size: 13px; line-height: 1.45;
     color: var(--ink-soft); padding-left: 16px;
+    overflow-wrap: break-word;
   }
   .px-ireel__item::before {
     content: ''; position: absolute; left: 0; top: 0.62em;
@@ -133,10 +141,13 @@ const fmtDay = (d: number | string) =>
   }
   .px-viz.is-in .px-ireel__card { transition-delay: calc(var(--i) * 90ms); }
 
-  /* mobile: horizontal scroll-snap rail */
+  /* mobile: horizontal scroll-snap rail. The RAIL is the scroller and it sits
+     inside the reel's own box, so nothing bleeds past the column and no
+     ancestor has to clip it (a clipping ancestor cut the second card's text). */
   @media (max-width: 640px) {
-    .px-ireel { margin-inline: calc(-1 * var(--gutter, 0px)); }
     .px-ireel__rail {
+      grid-template-columns: none;
+      grid-auto-flow: column;
       grid-auto-columns: 78%;
       gap: 14px;
       overflow-x: auto;
