@@ -2,8 +2,8 @@
  * Story/issue OG image generator (STORY-MODE-SPEC §5).
  *
  * Renders one 1200×630 link-preview PNG per non-draft issue into
- * public/og/story/<slug>.png, using the brand card system (scripts/social/
- * cards.ts `ogCard`). Runs at BUILD time via the `prebuild` npm hook — no DB,
+ * public/og/story/<slug>.png, using the brand card renderer (./og-card.ts).
+ * Runs at BUILD time via the `prebuild` npm hook — no DB,
  * no secrets, fonts + fs only — so both story pages (/s/<slug>/) and issue
  * pages (/issues/<slug>/) can point og:image at a deterministic asset.
  *
@@ -12,9 +12,8 @@
 import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import matter from 'gray-matter';
-import { ogCard, toPng, type OgData } from '../social/cards.js';
+import { ogCard, toPng, TOPICS, type OgData, type Topic } from './og-card.js';
 import { stripEmphasis } from '../../src/lib/text.js';
-import { TOPICS, type Topic } from '../lib/social.js';
 
 const ISSUES_DIR = join(process.cwd(), 'src', 'content', 'issues');
 const OUT_DIR = join(process.cwd(), 'public', 'og', 'story');
@@ -62,7 +61,7 @@ function run(): void {
       dek: iss.dek,
       source: 'parallaxlens.com',
     };
-    const png = toPng(ogCard(d, iss.topic), 'og');
+    const png = toPng(ogCard(d, iss.topic));
     const path = join(OUT_DIR, `${iss.slug}.png`);
     writeFileSync(path, png);
     console.log(`story:og  wrote public/og/story/${iss.slug}.png (${png.length} bytes)`);

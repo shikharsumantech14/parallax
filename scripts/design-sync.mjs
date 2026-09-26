@@ -128,8 +128,8 @@ const MIRRORS = [
     deep: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent-deep:\\s*(#[0-9a-fA-F]{6})`),
   })),
   ...WORLDS.map((w) => ({
-    label: `scripts/social/cards.ts THEMES.${w}`,
-    file: 'scripts/social/cards.ts',
+    label: `scripts/story/og-card.ts THEMES.${w}`,
+    file: 'scripts/story/og-card.ts',
     world: w,
     accent: new RegExp(`\\b${w}:\\s*\\{[^}]*accent:\\s*'(#[0-9a-fA-F]{6})'`),
     deep: null,

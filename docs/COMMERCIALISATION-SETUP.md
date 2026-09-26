@@ -260,11 +260,8 @@ the first real test of the batch.
       endpoint sends people). A "You're on the dispatch." ribbon should
       appear above the masthead, be dismissible, and the query param
       should disappear from the URL.
-- [ ] **Admin story link.** With your address in `ADMIN_EMAILS`, open
-      `app.parallaxlens.com/admin/social`. Each post card should show a
-      "↗ story" link to `parallaxlens.com/s/<issue_id>/` and a "Copy story
-      link" button, and using either must not affect approve/reject.
-      Note: story pages only exist for issues that aren't `status: draft`.
+- [x] ~~**Admin story link.**~~ Retired 2026-09-27: `/admin/social` was deleted
+      with the social pipelines (`docs/archive/CONTENT-ENGINE.md`).
 
 Anything that fails here is a code fix, not a config one — send me the
 symptom and I'll take it.

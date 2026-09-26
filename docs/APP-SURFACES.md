@@ -42,9 +42,8 @@ time with no session — which is the failure mode to watch for here:
   `/api/subscribe`, `/api/subscribe/confirm`, `/api/account/prefs`,
   `/api/account/delete`.
 - **Moderation / editor** (admin-only): APIs `/api/admin/comments`,
-  `/api/admin/comments/[id]`, `/api/admin/social/[id]`; queue UIs at
-  `/admin/comments` (annotations + letters) and `/admin/social` (social
-  post approvals).
+  `/api/admin/comments/[id]`; queue UI at `/admin/comments` (annotations +
+  letters). `/admin/social` and its API were retired on 2026-09-27.
 - **Health.** `/api/health` returns env booleans + runtime info.
 - **`/api/join`** — Tier-1 unified "Join": one email → newsletter subscribe
   + Supabase magic-link account in a single step. The POST target of
@@ -117,7 +116,7 @@ for the full per-feature breakdown.
 | B-5 Annotations — moderation queue | ✅ UI shipped (code complete; operator `ADMIN_EMAILS` + live smoke test pending) |
 | B-4 Topic affinity heatmap | ⏳ Not started (waiting on reading-event data) |
 | B-6 Letters block | ✅ Shipped (code complete; operator must apply the letters migration to prod) |
-| Social approval queue (`/admin/social` + `/api/admin/social/[id]`) | ✅ In repo and committed, alongside the `20260621*` / `20260623*` social + RAG migrations. 2026-07-14 added a per-post story link (uncommitted) |
+| Social approval queue (`/admin/social` + `/api/admin/social/[id]`) | ❌ Retired 2026-09-27 with the social pipelines (`docs/archive/CONTENT-ENGINE.md`): page, API route and dashboard tile deleted; the `20260621*` / `20260623*` tables are dropped by `20260927000000_retire_content_engine.sql` (operator applies) |
 | Journey — `/welcome` + `/api/onboarding` | ⚠️ Code complete, `npm run build` green (2026-07-14). **Uncommitted**; the `20260705000000_journey_onboarding` migration is **not applied**; nothing runtime-verified |
 | Dashboard — "The Shelf" rebuild | ⚠️ Code complete, build green (2026-07-14). **Uncommitted**; richer modules deferred (see the 2026-07-14 change-log entry) |
 | C / D / E | ⏳ Not started |
@@ -151,12 +150,13 @@ app/
 │       ├── 20260524200000_phase_b_reading_events.sql  ← reading_events
 │       ├── 20260524300000_phase_b_comments.sql        ← comments (annotations + letters)
 │       ├── 20260601000000_phase_b_letters_author.sql  ← comments.author_name
-│       ├── 20260621000000_social_pipeline.sql         ← social pipeline (admin/cron-only tables)
-│       ├── 20260621010000_rag_chunks.sql              ← RAG corpus (pgvector + hybrid search)
-│       ├── 20260621020000_trend_items_clusters.sql    ← reactive news pipeline state
-│       ├── 20260623000000_social_post_images.sql      ← per-post thread images
-│       ├── 20260623010000_social_engagement.sql       ← social_posts.engagement (learning loop)
-│       └── 20260705000000_journey_onboarding.sql      ← profiles.welcomed_at + stated_interests — NOT YET APPLIED
+│       ├── 20260621000000_social_pipeline.sql         ← social pipeline tables — RETIRED 2026-09-27
+│       ├── 20260621010000_rag_chunks.sql              ← RAG corpus — RETIRED 2026-09-27
+│       ├── 20260621020000_trend_items_clusters.sql    ← reactive news state — RETIRED 2026-09-27
+│       ├── 20260623000000_social_post_images.sql      ← per-post thread images — RETIRED 2026-09-27
+│       ├── 20260623010000_social_engagement.sql       ← social_posts.engagement — RETIRED 2026-09-27
+│       ├── 20260705000000_journey_onboarding.sql      ← profiles.welcomed_at + stated_interests — NOT YET APPLIED
+│       └── 20260927000000_retire_content_engine.sql   ← drops the five retired loop tables, rag_hybrid_search, the social-cards bucket — NOT YET APPLIED
 └── src/
     ├── env.d.ts                  ← typed env + Astro.locals types
     ├── middleware.ts             ← session populate + no-store cache header
@@ -185,9 +185,7 @@ app/
         │   └── index.astro       ← "THE SHELF" — greeting, shelf tiles, reading log,
         │                           in the margins, prefs, account, admin tiles, danger
         ├── admin/
-        │   ├── comments.astro    ← MODERATION QUEUE UI ✓ (admin-gated)
-        │   └── social.astro      ← SOCIAL APPROVAL QUEUE ✓ (admin-gated); per-post
-        │                           "↗ story" link to <site>/s/<issue_id>/ + copy button
+        │   └── comments.astro    ← MODERATION QUEUE UI ✓ (admin-gated)
         └── api/
             ├── health.ts
             ├── join.ts           ← Tier-1 unified Join (newsletter + magic-link).
@@ -213,9 +211,7 @@ app/
             │   └── [issueId].ts
             └── admin/
                 ├── comments.ts
-                ├── comments/
-                │   └── [id].ts
-                └── social/
+                └── comments/
                     └── [id].ts
 ```
 
@@ -429,12 +425,13 @@ Stored at `supabase/migrations/<timestamp>_<phase>_<description>.sql`.
 | 20260524200000_phase_b_reading_events.sql | reading_events (auth + anon tracking) |
 | 20260524300000_phase_b_comments.sql | comments (annotations with anchor + letters without) |
 | 20260601000000_phase_b_letters_author.sql | comments.author_name (denormalised pen name for public letter attribution) |
-| 20260621000000_social_pipeline.sql | social pipeline tables — admin/cron-only, never reader-facing |
-| 20260621010000_rag_chunks.sql | RAG corpus for the editorial agents (pgvector + hybrid search) |
-| 20260621020000_trend_items_clusters.sql | reactive news pipeline state (trend_items + trend_clusters) |
-| 20260623000000_social_post_images.sql | social_posts.images — per-thread-post card {ref, alt} |
-| 20260623010000_social_engagement.sql | social_posts.engagement — the metrics/voice-refiner loop |
+| 20260621000000_social_pipeline.sql | social pipeline tables — admin/cron-only, never reader-facing — **retired 2026-09-27** |
+| 20260621010000_rag_chunks.sql | RAG corpus for the editorial agents (pgvector + hybrid search) — **retired 2026-09-27** |
+| 20260621020000_trend_items_clusters.sql | reactive news pipeline state (trend_items + trend_clusters) — **retired 2026-09-27** |
+| 20260623000000_social_post_images.sql | social_posts.images — per-thread-post card {ref, alt} — **retired 2026-09-27** |
+| 20260623010000_social_engagement.sql | social_posts.engagement — the metrics/voice-refiner loop — **retired 2026-09-27** |
 | 20260705000000_journey_onboarding.sql | **NOT YET APPLIED.** profiles.welcomed_at (timestamptz) + profiles.stated_interests (text[] NOT NULL DEFAULT '{}') |
+| 20260927000000_retire_content_engine.sql | **NOT YET APPLIED.** Drops social_posts, promotions, rag_chunks (+ rag_hybrid_search), trend_items, trend_clusters and the `social-cards` storage bucket — the June loops' state, ~114k dead rows |
 
 Apply via Supabase SQL editor (paste contents, click Run) OR
 `supabase db push` once the CLI is linked. Every migration is
@@ -481,8 +478,8 @@ derives from existing tables — `reading_events`, `saved_issues`,
   action, removes the card, and updates the count. Scoped `mq-` styles.
 - `src/pages/dashboard/index.astro` — the admin entry point, shown only
   when `isAdmin(user)`. Since the 2026-07-14 "Shelf" rebuild this is an
-  **Editor module of admin tiles** ("The comment queue" → `/admin/comments`,
-  "The social queue" → `/admin/social`), not the old eyebrow-level link.
+  **Editor module of admin tiles** ("The comment queue" → `/admin/comments`;
+  the social tile was removed 2026-09-27), not the old eyebrow-level link.
 - `src/env.d.ts` — `ADMIN_EMAILS` typed on `ImportMetaEnv`.
 
 **Pending (operator action, not code):**
@@ -576,7 +573,7 @@ deploys.
   per-issue reading-progress hairlines from `reading_events`, topic-
   affinity bars, and real issue titles via a cross-project issues
   manifest — tiles title-case the slug today.
-- `src/pages/admin/social.astro` — **MODIFIED.** Each post card gains a
+- `src/pages/admin/social.astro` (deleted 2026-09-27) — **MODIFIED.** Each post card gains a
   "↗ story" link to `<PUBLIC_SITE_URL>/s/<issue_id>/` and a "Copy story
   link" clipboard button, on a separate delegated handler so it can never
   interfere with approve/reject.

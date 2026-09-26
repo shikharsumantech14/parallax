@@ -25,7 +25,7 @@ const UA = 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefo
 // satori needs STATIC TTF instances (not variable fonts — those crash its font
 // parser). Try Google Fonts CSS2 for a single static weight (legacy UA → TTF),
 // then fall back to @fontsource static TTFs on jsDelivr.
-// `satisfied` must match the way scripts/social/cards.ts LOOKS UP each font
+// `satisfied` must match the way scripts/story/og-card.ts LOOKS UP each font
 // (a regex over assets/fonts), not the filename we would write. The static
 // Fraunces on disk today is `Fraunces_72pt-SemiBold.ttf`, so matching on the
 // literal `file` would re-download a second Fraunces under a different name and
@@ -54,8 +54,8 @@ const TARGETS = [
 // TTF), download a static "Fraunces SemiBold" TTF manually from
 // fonts.google.com (or the undercasetype/Fraunces repo) and drop it in
 // assets/fonts/Fraunces-SemiBold.ttf. JetBrains Mono fetches reliably (static).
-// The evergreen orchestrator degrades to text-only posts when a font is
-// missing. The CARD RENDERER DOES NOT: scripts/social/cards.ts is imported by
+// The card renderer does not degrade when a font is missing:
+// scripts/story/og-card.ts is imported by
 // scripts/story/og.ts, which runs as the `prebuild` hook, so a missing TTF
 // fails `npm run build` outright — including on Vercel. It throws with this
 // script's name in the message rather than an unreadable ENOENT.

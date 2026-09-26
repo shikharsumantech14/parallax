@@ -49,8 +49,9 @@ export interface RunResult {
  *   connectors — Gmail, ClickUp, Drive, Calendar… — 196 tool schemas instead
  *   of 28). None of them can be CALLED (an agent may only use the tools its
  *   frontmatter lists), but their schemas ride along in every run's context.
- *   `strictMcpConfig: true` keeps only the servers passed here (the RAG
- *   corpus), which is what a pipeline run should see.
+ *   `strictMcpConfig: true` keeps only the servers passed here (none today —
+ *   the RAG corpus that used the slot was retired 2026-09-27), which is what
+ *   a pipeline run should see.
  * - Every run writes its first turn (~35–50k tokens: the CLI's own prompt,
  *   the tool schemas, the agent definition) to a one-hour prompt cache and
  *   reads it on later turns. The footer prints the split so a cost that
@@ -62,8 +63,8 @@ export async function runAgent(opts: {
   model: string;
   cwd: string;
   verbose?: boolean;
-  /** In-process MCP servers (e.g. the RAG corpus). Only the editorial pipeline
-   *  passes this; an agent can call a tool only if its frontmatter lists it. */
+  /** In-process MCP servers. Nothing passes this today (the RAG corpus did,
+   *  until 2026-09-27); an agent can call a tool only if its frontmatter lists it. */
   mcpServers?: Record<string, McpServerConfig>;
   /** Safety cap on agent turns (MAX_TURNS in pipeline.config.ts). */
   maxTurns?: number;

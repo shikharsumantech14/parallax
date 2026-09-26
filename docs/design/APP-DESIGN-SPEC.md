@@ -134,7 +134,7 @@ cannot boot on the authoring box, so none of it is runtime-verified.
 ### Admin queues
 No structural redesign in this pass: they inherit restyled primitives. Only
 addition (P7): per-published-issue story-link row with a copy button in
-`admin/social.astro`. **Built 2026-07-14** — a per-post `↗ story` link to
+`admin/social.astro`. **Built 2026-07-14, deleted 2026-09-27 with the social queue** — a per-post `↗ story` link to
 `/s/<issue_id>/` plus a "Copy story link" clipboard button, on its own
 delegated handler so it can never touch the approve/reject flow.
 

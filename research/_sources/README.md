@@ -62,9 +62,9 @@ Pick sources that:
 
 Target **~50–80 vetted sources per category**, organised under the `_TAXONOMY.md`
 tiers. (The old "8–15, more dilutes focus" cap applied when the whole list was
-pasted into the agent prompt; retrieval now moves to the RAG layer, so a large
-*tiered* corpus gives breadth **and** focus. The allowlist still gates what
-Parallax will cite.) Curate for tier + viewpoint coverage, not raw count — admit
+pasted into the agent prompt; the agents now read the file and fetch what a
+candidate needs, so a large *tiered* list gives breadth **and** focus. The
+allowlist still gates what Parallax will cite.) Curate for tier + viewpoint coverage, not raw count — admit
 only sources that pass the `_TAXONOMY.md` §3 vetting rubric.
 
 ## Don't include
@@ -75,25 +75,27 @@ only sources that pass the `_TAXONOMY.md` §3 vetting rubric.
 
 ## Two-tier ingestion & quoting (copyright rule)
 
-The RAG corpus (see the plan / `scripts/rag/`) ingests sources at two physical
-tiers, set by each source's `ingest` field. **India is the binding worst-case**
+Each source's `ingest` field is its licence class. It was written to drive a
+RAG corpus that was retired on 2026-09-27 (`docs/archive/CONTENT-ENGINE.md`);
+the class still governs what an agent may quote, so it stays on every entry.
+**India is the binding worst-case**
 jurisdiction (no statutory text-and-data-mining exception; Copyright Act 1957
 s.52 fair dealing is *exhaustive*; the DPIIT working paper of 8 Dec 2025 favours
 mandatory licensing; *ANI v OpenAI* is reserved at the Delhi HC). So:
 
 - **`ingest: full`** — open / official / public-domain / CC-permissive / owned
-  full text only. These chunks are **retrievable *and* quotable**.
+  full text only. **Quotable** — a short, attributed excerpt may be taken from it.
 - **`ingest: metadata`** — closed / paywalled / non-commercially-licensed works
   (e.g. Semantic Scholar's default licence is non-commercial; Google Books /
-  HathiTrust snippet-only). Only title/abstract/citation is indexed. These chunks
-  **guide** an agent but are **non-quotable**.
+  HathiTrust snippet-only). **Cite-only, non-quotable** — it may point an agent
+  to a claim; the words come from a legally accessed original.
 
 **The rule, both for agents and the verifier:** *retrieve-to-guide, cite-the-
 original.* A published issue may quote **only** a short, attributed, s.52(1)-
 purpose (criticism / review / reporting) excerpt taken from a **legally accessed
-copy of the original** — never text reconstructed from the index, and never from
-a `metadata`-only chunk. The verifier rejects any quote backed by a `metadata`-
-only or non-permissive source. When a source's licence is unclear, set
+copy of the original** — never from a snippet, an abstract or a paraphrase, and
+never from a `metadata`-class source. The verifier rejects any quote backed by a
+`metadata`-class or non-permissive source. When a source's licence is unclear, set
 `ingest: metadata` (conservative default). Date-stamp and re-review this rule set
 quarterly — licences drift.
 

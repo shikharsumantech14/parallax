@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Claim-by-claim audit of a Parallax draft issue. Reads the draft MDX and the research dossier, verifies every factual claim traces to a sourced dossier entry, checks for brand voice compliance, and writes a verification report. Use this agent after /pipeline-draft has written a draft and the editor has done a first read. This is the brand-protection step before publish.
-tools: Read, Glob, Grep, Write, mcp__parallax_rag__search
+tools: Read, Glob, Grep, Write
 memory: project
 ---
 
@@ -86,17 +86,15 @@ For each claim extracted in Step 2:
    Any deviation from verbatim = **⚠️ PARAPHRASE** flag.
 4. For [UNVERIFIED] dossier items: check if the draft used them.
    If used without `# EDITOR:` flag = **❌ UNVERIFIED CLAIM USED**.
-5. **RAG corpus trace + quotability (copyright gate).** Where a claim or quote
-   traces to the research corpus, use `mcp__parallax_rag__search` to find the
-   backing chunk and confirm the draft's citation URL matches the chunk's
-   `cite:` source URL. Crucially, check **quotability**: a verbatim quote may
-   come **only** from a **QUOTABLE (open-fulltext)** source. If a quoted passage
-   is backed only by a **GUIDE-ONLY (metadata-only)** chunk — or any
-   non-permissive source — it must be re-sourced to a legally-accessible original
-   or cut: flag **❌ NON-QUOTABLE SOURCE**. (See `research/_sources/README.md`
-   "Two-tier ingestion & quoting": retrieve-to-guide, cite-the-original.) If the
-   RAG tool is unavailable, verify against the dossier's recorded source URLs as
-   usual.
+5. **Quotability (copyright gate).** A verbatim quote may come **only** from a
+   legally accessed copy of the original — a source whose allowlist entry is
+   `ingest: full` (open, official, public-domain, permissively licensed), or an
+   original the dossier records fetching. If a quoted passage rests on a
+   `metadata`-class source (closed, paywalled, non-commercially licensed), a
+   snippet, an abstract or a third party's paraphrase, it must be re-sourced to
+   a legally accessible original or cut: flag **❌ NON-QUOTABLE SOURCE**. (See
+   `research/_sources/README.md` "Two-tier ingestion & quoting":
+   retrieve-to-guide, cite-the-original.)
 
 ### Step 4 — Voice audit
 
@@ -282,9 +280,9 @@ Suggestions the editor may choose to act on — not blockers.
 - **❌ UNTRACED claims block publish.** The editor must either find
   a dossier source or remove the claim.
 - **❌ NON-QUOTABLE SOURCE blocks publish.** A verbatim quote backed only by a
-  GUIDE-ONLY (metadata-only) corpus chunk or a non-permissive source must be
-  re-sourced to a legally-accessible original or cut. Retrieve-to-guide,
-  cite-the-original (`research/_sources/README.md`).
+  `metadata`-class (closed, paywalled, non-commercial) source, a snippet or a
+  paraphrase must be re-sourced to a legally-accessible original or cut.
+  Retrieve-to-guide, cite-the-original (`research/_sources/README.md`).
 - **❌ ADVOCACY blocks publish.** Parallax is structural, not
   editorial. Any phrase that takes a side beyond what the sources
   establish must be removed or rewritten.

@@ -8,7 +8,7 @@
 > disagree, this file wins.** The anchors in §4 were confirmed at signing.
 >
 > **Every writing agent loads this file every run** — drafter, stylist,
-> composer, social-writer, reader-panel, voice-checker, news-classifier. It is
+> composer, reader-panel, voice-checker. It is
 > the single source of truth for how Parallax sounds at any length: an issue, a
 > section, a caption, a thread, one post. The leading underscore keeps it out
 > of any content collection.
@@ -61,7 +61,7 @@ where it fits — a Hindi word.
 |---|---|---|
 | **L1 · plain Indian English** | No Hindi. Short sentences, Indian examples, ₹ / lakh / crore. | **The default for every field.** The only level allowed in the precision layer: `caption`, `howToRead`, `plain`, `source`, data labels, legal and technical terms, all UI chrome. |
 | **L2 · a Hindi word where it is the natural word** | English carries the meaning; the Hindi carries warmth. | Allowed in prose fields only: `hook`, `dek`, `primer`, titles, `intro`, `prose`, `skimCaption`, quote follow-ups, story beats. |
-| **L3 · Hindi-dominant** | Hindi carries clauses. | Social posts and story hooks only, and only when `_voice-social.md` asks for it. **Never on the reading page.** |
+| **L3 · Hindi-dominant** | Hindi carries clauses. | Story hooks and any future social surface only, and only when a format contract asks for it. No surface asks today: the social format contract was archived on 2026-09-27 (`docs/archive/_voice-social.md`). **Never on the reading page.** |
 
 ### The four tests every Hindi word passes (fail one, cut it)
 
@@ -289,8 +289,10 @@ it. *Anchor (proposed):* a Lallantop headline.
 
 A post is one job at one breath. Compress the job, don't dilute it. Facts come
 only from an already-verified issue or a sourced dossier — never invent a
-number for a post. `_voice-social.md` governs format and platform; this file
-governs voice. Social may go to L3 (§2) where that contract asks for it.
+number for a post. This file governs voice at every length. The social format
+contract (thread shape, per-post limits, platform rules) was archived with the
+social pipelines on 2026-09-27 (`docs/archive/_voice-social.md`); a future
+social loop writes a new one, and this file still wins on voice.
 
 - **AWE →** one scale-anchor fact, flat, with its Indian conversion.
 - **CONVERSATIONAL →** the everyday-object door in one line, then the turn.
@@ -522,5 +524,5 @@ writer works from this file alone.
 - `research/_templates/storyboard.md` — the composer's output shape, including
   the three quiz questions the reader panel uses.
 - `research/_voice/mode-library.md` — v1 until rewritten; this file wins.
-- `_voice-social.md` — format and platform rules for posts; this file governs
-  voice there too.
+- `docs/archive/_voice-social.md` — the retired social format contract
+  (archived 2026-09-27), kept as the record for the next social loop.

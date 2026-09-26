@@ -284,7 +284,8 @@ research/                      ← editorial pipeline working space (see researc
 .claude/commands/              ← slash-command definitions that spawn the agents
 scripts/                       ← pipeline CLI (tsx-driven, bills to API key)
                                   + check-catalog.mjs, design-sync.mjs,
-                                  story/og.ts (the `prebuild` hook)
+                                  story/og.ts + og-card.ts (the `prebuild` hook
+                                  and the link-preview card it renders)
 ```
 
 **The reader-account surfaces live here now** (merged 2026-09-06; the design
@@ -760,6 +761,40 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-27 — The June background loops retired
+
+The operator asked whether the three loops of the 2026-06-22 content engine
+— the reactive news loop, the evergreen social loop, the RAG research corpus
+— could be scrapped without touching the publication or the backend. Measured
+first: every scheduled run had failed since the day they shipped (reactive
+380 of 380, on a Voyage key that was never a repo secret; evergreen 96 of 96,
+because the Agent SDK spawns a Claude Code CLI the runner does not have), the
+weekly corpus ingest had reported green for thirteen weeks while `|| true`
+masked the same missing key, the corpus held 4 chunks, 114k dead news rows sat
+in Supabase, and no dossier, draft or post ever consumed any of it. **Removed:**
+the five workflows, `scripts/{evergreen,rag,reactive,social}` and their
+`scripts/lib` helpers, the agents `news-classifier` / `social-writer` /
+`voice-refiner`, `/admin/social` + `/api/admin/social/[id]` + the dashboard
+tile, the `social:* rag:* reactive:*` npm scripts, `cheerio`. **Archived
+(CD-07):** `docs/archive/CONTENT-ENGINE.md`, `docs/archive/_voice-social.md`.
+**Kept, because the build depends on it:** the OG link-preview renderer, moved
+to `scripts/story/og-card.ts` — `story/og.ts` imports it at `prebuild` and
+`design:check` mirrors its THEMES. Also kept: the allowlists' `ingest` field
+(it is the licence class that decides what may be quoted; the quotability rule
+in `research/_sources/README.md` and the verifier's gate now say so without a
+corpus) and `voice-checker`. The five tables are dropped by
+`supabase/migrations/20260927000000_retire_content_engine.sql`, unapplied.
+
+**Two standing rules for whatever loops replace them** (also in
+`.claude/rules/pipeline-scripts.md`):
+
+- **An agent cannot run from a bare GitHub runner through the Agent SDK.** The
+  SDK spawns the Claude Code CLI; `npm install` does not provide it. A
+  scheduled job that needs a model installs the CLI or calls the Messages API.
+- **Never mask a scheduled step.** `|| true` on the corpus ingest turned a dead
+  loop into thirteen weeks of green. A step that may legitimately fail reports
+  and exits non-zero; the schedule is the retry.
 
 ### 2026-09-24 — Air on wide figures; the render gate becomes a wall
 

@@ -200,7 +200,7 @@ and **await ratification with this draft**.
 | **CD-03** | **AGENTS.md is trimmed in stages, verified at each step.** Target ~250 lines. One section per commit. A moved rule must be *proven to fire* (`InstructionsLoaded` hook + `/context`) **before** the AGENTS.md copy is deleted. A step that fails verification reverts alone and its content stays put. **~250 is a target, not a promise — correctness outranks the line count.** |
 | **CD-04** | **Never-moves list.** These stay always-loaded regardless of size: §1 identity, §4 the layout map, §7 hard rules (git discipline, no-hardcoded-names, the brand/legal naming split), and the standing greps. An agent cannot orient or stay safe without them. |
 | **CD-05** | **Autonomy split.** Generated artifacts (the project graph, the live-state block) are written automatically and gated. Prose requiring judgement — rulings, residuals, traps, change-log entries — is **drafted and shown for approval before writing**. Mirrors the existing "operator approves factual claims" rule. |
-| **CD-06** | **Scope: both sides, code first.** Phases A–D cover the code/design context. Phase E covers the editorial pipeline (`research/`, the 9 agents, voice contracts, RAG corpus) and is designed here but executed after D. |
+| **CD-06** | **Scope: both sides, code first.** Phases A–D cover the code/design context. Phase E covers the editorial pipeline (`research/`, the 9 agents, voice contracts, RAG corpus) and is designed here but executed after D. *(2026-09-27: the RAG corpus and three loop agents were retired; Layer E is `research/` and the eight remaining agents.)* |
 | **CD-07** | **Stale docs are archived, not deleted.** Move to `docs/archive/` with a header stating the freeze date and what superseded them. History preserved; entry-point competition ended. |
 | **CD-08** | **Windows is a first-class constraint.** Every skill that shells out uses `shell: powershell` or a `.mjs` script file. **No inline `python -c`, no complex quoted Bash one-liners** — this repo's own trap list records that they break in Git Bash, and it bit again while writing this plan. |
 | **CD-09** | **The graph is a build artifact, not a source.** `docs/generated/` is committed for readability but is never hand-edited; a `PreToolUse` hook blocks edits to it. If graph and repo disagree, the build fails — same contract as `check:catalog`. |
@@ -907,7 +907,8 @@ The same treatment for the publication side. Designed now, built after D.
   judgements. This is the native version of what the repo already hand-rolled:
   `research/_voice/_voice-social-learned.md`, which voice-refiner proposes into
   and social-writer reads — that loop keeps its editorial approval gate and
-  simply gains the native storage convention. Wave component agents preload the
+  simply gains the native storage convention. *(That loop was retired on
+  2026-09-27; the file and both agents are gone.)* Wave component agents preload the
   conventions skills the same way.
 - **Model policy** stays as-is: Claude Code route pins **every** phase to Opus;
   `pipeline.config.ts`'s Sonnet/Opus split is API-CLI only. Not to be

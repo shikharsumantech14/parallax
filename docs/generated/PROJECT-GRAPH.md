@@ -159,7 +159,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-04** | 2 files | 0 — _dangling_ |
 | **CD-05** | 2 files | 1 |
 | **CD-06** | 1 files | 0 — _dangling_ |
-| **CD-07** | 2 files | 1 |
+| **CD-07** | 4 files | 1 |
 | **CD-08** | 4 files | 1 |
 | **CD-09** | 5 files | 2 |
 | **CD-10** | 2 files | 1 |

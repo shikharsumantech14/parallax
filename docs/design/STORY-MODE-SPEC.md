@@ -192,13 +192,13 @@ compaction pass across all ~90 kinds was scoped out.
       argument), §5 paradox (the counterintuitive core — the share-worthy
       beat). Skipped: §0 prose (the hook card already carries the setup),
       §2 signal-readout (observation detail — depth, not tease). Beat voice:
-      `_voice-social.md` register; every claim traces to the issue's own
+      the short-form register (`_voice-core.md` §5; the social contract it once named is archived); every claim traces to the issue's own
       verified sections.
 - [x] `story` frontmatter schema (config.ts, additive/optional, 3–6 beats).
 - [x] **OG images + head wiring** — `scripts/story/og.ts` runs as the npm
       `prebuild` hook, rendering one 1200×630 PNG per non-draft issue into
       `public/og/story/<slug>.png` via `ogCard` + `toPng(..., 'og')` from
-      `scripts/social/cards.ts`. Regenerates on every build; 10 valid PNGs
+      `scripts/story/og-card.ts`. Regenerates on every build; 10 valid PNGs
       today (53–109KB). `og:image` + `twitter:card` tags live in
       `StoryLayout.astro`. (Built in P4; verified 2026-07-14, not rebuilt.)
 - [x] **`StoryShare`** — `navigator.share` → clipboard fallback →

@@ -5,11 +5,38 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-24.** Derived
+> **Last updated: 2026-09-27.** Derived
 > facts below are generated and gated — if they look wrong, run
 > `npm run graph`, do not hand-edit. Volatile facts (branch, unpushed, dirty)
 > are not in this file at all; read the session brief. Refresh the authored
 > sections with `/update-state`.
+
+---
+
+## 0a. Addendum, 2026-09-27 — the June background loops are retired
+
+The three loops of the 2026-06-22 content engine — the reactive news loop, the
+evergreen social loop and the RAG research corpus — are gone, on the
+operator's ruling after a measured audit. Every scheduled run had failed since
+the day they shipped (reactive 380 of 380, evergreen 96 of 96; the weekly corpus
+ingest reported green for thirteen weeks while a masked step did nothing), the
+corpus held 4 chunks, and no issue ever consumed any of their output. Deleted:
+the five workflows, `scripts/{evergreen,rag,reactive,social}`, the loop
+helpers in `scripts/lib`, the agents `news-classifier` / `social-writer` /
+`voice-refiner`, `/admin/social` and its API route, the dashboard tile, the
+loop npm scripts and `cheerio`. Archived (CD-07): `docs/archive/CONTENT-ENGINE.md`
+and `docs/archive/_voice-social.md`. Kept: the OG link-preview renderer, now
+`scripts/story/og-card.ts` (the prebuild share cards depend on it), the tiered
+allowlists with their `ingest` licence class, and `voice-checker`.
+
+**Operator actions still open:** apply
+`supabase/migrations/20260927000000_retire_content_engine.sql` (drops the five
+tables, the search function and the `social-cards` bucket — ~114k dead
+`trend_items` rows are the reason to do it soon); delete the Bluesky secrets
+and `POSTER_BACKEND` from the repository settings; the Bluesky handle
+`parallaxlens.com` (53 followers) is worth keeping. The next set of loops is
+the operator's to design; two rules for them are in `AGENTS.md` §10 and
+`.claude/rules/pipeline-scripts.md`.
 
 ---
 
@@ -138,7 +165,7 @@ Precisely (corrected 2026-09-01 — this section previously said "no
 premise):
 
 - **Root `.env.local` EXISTS** — the pipeline's `ANTHROPIC_API_KEY` etc. So the
-  API-CLI pipeline scripts (`npm run pipeline:*`, `rag:*`) can run here, and
+  API-CLI pipeline scripts (`npm run pipeline:*`) can run here, and
   running them **bills real money**. Gitignored; never commit it.
 - **`app/.env.local` is ABSENT** — no Supabase URL/keys, so the app cannot run
   or be runtime-tested on this box. `cd app && npm run build` is the entire

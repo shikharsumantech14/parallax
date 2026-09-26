@@ -1,4 +1,11 @@
-# Parallax — social voice contract (runtime)
+# Parallax — social voice contract (archived 2026-09-27)
+
+> **ARCHIVED 2026-09-27.** The social pipelines this format contract served
+> were retired (see `CONTENT-ENGINE.md` in this folder). No agent loads this
+> file now; `research/_voice/_voice-core.md` governs voice at every length and
+> its §5 carries the short-form rules. Kept because it is the only written
+> record of the social format decisions — thread shape, per-post limits, the
+> hashtag override, the issue link in the first reply — for the next social loop.
 
 > The **format** contract for social posts. The voice is `_voice-core.md` v2
 > (2026-09-13), which now governs the site and social alike — one reader,

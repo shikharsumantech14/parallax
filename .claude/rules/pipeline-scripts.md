@@ -9,8 +9,8 @@ paths:
 ## These scripts spend real money
 
 `.env.local` **exists at the repo root** on this machine (it holds
-`ANTHROPIC_API_KEY`, Voyage and Supabase keys). So `npm run pipeline:*`,
-`rag:*`, `social:*` and `reactive:*` **will actually run and actually bill**.
+`ANTHROPIC_API_KEY` and the Supabase keys). So `npm run pipeline:*` **will
+actually run and actually bill**.
 Never invoke one to "test" something.
 
 **What a run costs is measured, never estimated:** every run appends its
@@ -125,3 +125,17 @@ Definitions in `.claude/agents/`. A subagent receives the CLAUDE.md hierarchy
 `skills:` frontmatter field. It also does **not** inherit the main
 conversation's auto memory. Give a subagent that should accumulate know-how
 `memory: project` (CD-12), which writes to `.claude/agent-memory/<name>/`.
+
+## Background loops — two rules from the ones that failed (2026-09-27)
+
+The June 2026 content engine (reactive news, evergreen social, RAG corpus) ran
+on GitHub Actions for three months without one successful loop, and was retired
+(`docs/archive/CONTENT-ENGINE.md`). Whatever replaces it obeys two rules:
+
+- **An agent cannot run from a bare GitHub runner through the Agent SDK.** The
+  SDK spawns the Claude Code CLI; `npm install` does not provide it. A scheduled
+  job that needs a model installs the CLI or calls the Messages API directly.
+- **Never mask a scheduled step.** `|| true` on the corpus ingest turned a dead
+  loop into thirteen weeks of green checkmarks. A step that may legitimately
+  fail reports and exits non-zero; the schedule is the retry.
+

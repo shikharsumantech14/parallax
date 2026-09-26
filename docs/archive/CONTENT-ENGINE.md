@@ -1,5 +1,21 @@
 # Parallax content engine — operator guide
 
+> **ARCHIVED 2026-09-27 — nothing in this file is live.** The three background
+> loops it describes (P1 evergreen social, P2/P3 RAG corpus, P4 reactive news)
+> were retired that day. Every scheduled run had failed since 2026-06-22
+> (reactive 380 of 380 on a Voyage key that was never a repo secret; evergreen
+> 96 of 96 because the Agent SDK spawns a Claude Code CLI the runner does not
+> have; the weekly corpus ingest reported green while `|| true` masked the same
+> missing key), the corpus held 4 chunks, and no issue ever consumed any of
+> their output. The workflows, `scripts/{evergreen,rag,reactive,social}`, the
+> three loop agents, `/admin/social` and its API were deleted; the five tables
+> are dropped by `supabase/migrations/20260927000000_retire_content_engine.sql`.
+> Kept as the design record for the next set of loops: the human-approval gate,
+> the two-tier ingest / quotability rule (still live in `research/_sources/`),
+> and the card archetypes (the OG card survives as `scripts/story/og-card.ts`).
+> P0 — the voice contract, the tiered allowlists, `voice-checker` — is NOT
+> retired. Paths below are as they were; most no longer exist.
+
 > The voice + sources + RAG + social-automation engine built on top of the
 > editorial pipeline. Everything is in-repo and build-green; this guide is the
 > go-live checklist. Architecture + rationale + per-decision confidence scores

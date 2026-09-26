@@ -7,9 +7,10 @@
 > **Why this exists.** The old allowlists were deliberately small (8–15 sources)
 > because the whole list is pasted into the agent's prompt — past ~15 it crowds
 > the context. We are expanding to **~50–80 vetted sources/topic** to get more
-> perspective, deeper primary material, and case studies. That only works because
-> retrieval moves to the **RAG layer** (see `../README.md` and the plan) — the
-> allowlist becomes a *tiered, machine-readable config*, not a flat reading list.
+> perspective, deeper primary material, and case studies. That works because the
+> allowlist is a *tiered, machine-readable config* the agents read and fetch
+> from, not a flat reading list pasted into a prompt (the RAG layer this note
+> once named was retired 2026-09-27).
 > The allowlist still **gates** what Parallax will cite (the brand-protection
 > layer); it just got bigger and structured.
 >
@@ -30,11 +31,13 @@
 | **T6** | Case-study / postmortem / incident repositories — official inquiry reports, retrospectives, incident databases | `full` | The "hidden deep knowledge" + worked examples. |
 | **T7** | Named expert blogs / newsletters / data shops — individuals with a track record | `metadata` + `live` | Specialist signal. Named, never anonymous. |
 
-**`ingest` controls the RAG layer, not whether we cite.** `full` = the open/
-licensed full text is chunked into the corpus and is **quotable**. `metadata` =
-only title/abstract/citation is indexed — it can **guide** an agent but is
-**non-quotable**; the issue must quote the legally-accessed original. `live` =
-not pre-indexed; fetched on demand via the WebFetch allowlist. The copyright
+**`ingest` is the source's licence class, not whether we cite.** It was written
+to drive a RAG layer, retired 2026-09-27 (`docs/archive/CONTENT-ENGINE.md`); the
+class still governs quoting, so it stays on every entry. `full` = the open /
+licensed full text is **quotable**. `metadata` = closed or restrictively
+licensed — it can **guide** an agent to a claim but is **non-quotable**; the
+issue must quote the legally-accessed original. `live` = fetched on demand via
+the WebFetch allowlist. The copyright
 basis for this split (India worst-case, "retrieve-to-guide, cite-the-original")
 is in `../README.md` §"Two-tier ingestion & quoting".
 
@@ -54,9 +57,9 @@ Field values (keep them exact — the agents grep these):
 |---|---|---|
 | `tier` | `T0`–`T7` | the tier above |
 | `access` | `open` \| `reg` \| `paywall` | open / free-registration / paywalled |
-| `ingest` | `full` \| `metadata` \| `live` | RAG class (per §1) — **must respect licence** |
+| `ingest` | `full` \| `metadata` \| `live` | licence class (per §1) — **must respect licence** |
 | `viewpoint` | a cluster id from §4, or `n/a` | only T3/T4/T7 (interpretation sources) carry a cluster; primary/data/empirical = `n/a` |
-| `cadence` | `live` \| `weekly` \| `annual` \| `archival` | how often it refreshes (drives RAG re-index frequency) |
+| `cadence` | `live` \| `weekly` \| `annual` \| `archival` | how often it refreshes (how often a researcher should re-fetch) |
 
 Keep the existing **"WebFetch domains to allow"** code block at the bottom of each
 file, and add every new domain to it **and** to `.claude/settings.local.json` so
@@ -67,7 +70,7 @@ cron runs don't prompt per-domain.
 ## 3. Vetting rubric — what earns a place
 
 A source is admitted only if it passes a **two-axis** screen. Do not just "scrape
-everything" — a large but noisy corpus lowers retrieval precision.
+everything" — a large but noisy list buries the primary sources.
 
 **Axis A — reliability / provenance / transparency (the gate):**
 - **Reliability** — track record of factual accuracy (à la Ad Fontes' reliability
@@ -155,5 +158,6 @@ un-vetted source (which would get flagged `[UNVERIFIED]` downstream anyway).
   drift — e.g. FBref lost its Opta licence Jan 2026 → `ingest: metadata`,
   `cadence: archival`).
 - Keep `viewpoint` cluster ids stable once published.
-- When a tier's `ingest: full` set changes, the RAG re-index (P2/P3) must re-run
-  for that topic.
+- A change to a source's `ingest` class takes effect on the next run: the agents
+  read the field live (the RAG re-index this line once ordered was retired
+  2026-09-27).
