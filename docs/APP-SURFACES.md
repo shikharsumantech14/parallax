@@ -156,7 +156,7 @@ app/
 │       ├── 20260623000000_social_post_images.sql      ← per-post thread images — RETIRED 2026-09-27
 │       ├── 20260623010000_social_engagement.sql       ← social_posts.engagement — RETIRED 2026-09-27
 │       ├── 20260705000000_journey_onboarding.sql      ← profiles.welcomed_at + stated_interests — NOT YET APPLIED
-│       └── 20260927000000_retire_content_engine.sql   ← drops the five retired loop tables, rag_hybrid_search, the social-cards bucket — NOT YET APPLIED
+│       └── 20260927000000_retire_content_engine.sql   ← drops the five retired loop tables + rag_hybrid_search (the social-cards bucket goes via the dashboard) — NOT YET APPLIED
 └── src/
     ├── env.d.ts                  ← typed env + Astro.locals types
     ├── middleware.ts             ← session populate + no-store cache header
@@ -431,7 +431,7 @@ Stored at `supabase/migrations/<timestamp>_<phase>_<description>.sql`.
 | 20260623000000_social_post_images.sql | social_posts.images — per-thread-post card {ref, alt} — **retired 2026-09-27** |
 | 20260623010000_social_engagement.sql | social_posts.engagement — the metrics/voice-refiner loop — **retired 2026-09-27** |
 | 20260705000000_journey_onboarding.sql | **NOT YET APPLIED.** profiles.welcomed_at (timestamptz) + profiles.stated_interests (text[] NOT NULL DEFAULT '{}') |
-| 20260927000000_retire_content_engine.sql | **NOT YET APPLIED.** Drops social_posts, promotions, rag_chunks (+ rag_hybrid_search), trend_items, trend_clusters and the `social-cards` storage bucket — the June loops' state, ~114k dead rows |
+| 20260927000000_retire_content_engine.sql | **NOT YET APPLIED.** Drops social_posts, promotions, rag_chunks (+ rag_hybrid_search), trend_items, trend_clusters — the June loops' state, ~114k dead rows. The `social-cards` storage bucket is deleted from the dashboard: Supabase refuses SQL deletes on its storage tables |
 
 Apply via Supabase SQL editor (paste contents, click Run) OR
 `supabase db push` once the CLI is linked. Every migration is

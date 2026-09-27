@@ -31,8 +31,10 @@ allowlists with their `ingest` licence class, and `voice-checker`.
 
 **Operator actions still open:** apply
 `supabase/migrations/20260927000000_retire_content_engine.sql` (drops the five
-tables, the search function and the `social-cards` bucket — ~114k dead
-`trend_items` rows are the reason to do it soon); delete the Bluesky secrets
+tables and the search function — ~114k dead `trend_items` rows are the reason
+to do it soon); empty and delete the `social-cards` storage bucket from the
+Supabase dashboard (SQL cannot — Supabase guards its storage tables, which is
+what rolled back the first attempt on 2026-09-27); delete the Bluesky secrets
 and `POSTER_BACKEND` from the repository settings; the Bluesky handle
 `parallaxlens.com` (53 followers) is worth keeping. The next set of loops is
 the operator's to design; two rules for them are in `AGENTS.md` §10 and
