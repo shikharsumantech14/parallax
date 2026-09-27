@@ -307,7 +307,7 @@ src/pages/account/welcome.astro          ← post-signup "You're in." plate
 src/pages/api/onboarding.ts              ← its POST handler (save / skip)
 src/pages/dashboard/index.astro          ← "The Shelf"
 src/pages/admin/                         ← moderation queues (ADMIN_EMAILS)
-supabase/migrations/                     ← 11 files. APPLIED state is not
+supabase/migrations/                     ← 12 files. APPLIED state is not
                                            visible from the repo — ask before
                                            assuming a column exists.
 ```
@@ -783,8 +783,10 @@ to `scripts/story/og-card.ts` — `story/og.ts` imports it at `prebuild` and
 `design:check` mirrors its THEMES. Also kept: the allowlists' `ingest` field
 (it is the licence class that decides what may be quoted; the quotability rule
 in `research/_sources/README.md` and the verifier's gate now say so without a
-corpus) and `voice-checker`. The five tables are dropped by
-`supabase/migrations/20260927000000_retire_content_engine.sql`, unapplied.
+corpus) and `voice-checker`. The five tables were dropped by
+`supabase/migrations/20260927000000_retire_content_engine.sql` (applied
+2026-09-27; the storage bucket went via the dashboard, because Supabase
+guards its storage tables against SQL deletes).
 
 **Two standing rules for whatever loops replace them** (also in
 `.claude/rules/pipeline-scripts.md`):

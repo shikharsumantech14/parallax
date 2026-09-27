@@ -29,13 +29,13 @@ and `docs/archive/_voice-social.md`. Kept: the OG link-preview renderer, now
 `scripts/story/og-card.ts` (the prebuild share cards depend on it), the tiered
 allowlists with their `ingest` licence class, and `voice-checker`.
 
-**Operator actions still open:** apply
-`supabase/migrations/20260927000000_retire_content_engine.sql` (drops the five
-tables and the search function — ~114k dead `trend_items` rows are the reason
-to do it soon); empty and delete the `social-cards` storage bucket from the
-Supabase dashboard (SQL cannot — Supabase guards its storage tables, which is
-what rolled back the first attempt on 2026-09-27); delete the Bluesky secrets
-and `POSTER_BACKEND` from the repository settings; the Bluesky handle
+**Applied 2026-09-27, verified from the repo side:**
+`supabase/migrations/20260927000000_retire_content_engine.sql` ran — the five
+tables and `rag_hybrid_search` are gone — and the `social-cards` storage
+bucket was emptied and deleted from the dashboard (SQL cannot: Supabase guards
+its storage tables, which is what rolled back the first attempt). **Still
+open, operator-side:** delete the Bluesky secrets and `POSTER_BACKEND` from
+the repository settings and revoke the app password on Bluesky; the handle
 `parallaxlens.com` (53 followers) is worth keeping. The next set of loops is
 the operator's to design; two rules for them are in `AGENTS.md` §10 and
 `.claude/rules/pipeline-scripts.md`.

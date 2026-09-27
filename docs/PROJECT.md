@@ -891,8 +891,8 @@ weeks, the corpus held 4 chunks, and no issue ever consumed their output.
 Workflows, scripts, three agents, `/admin/social` and its API are gone; the
 design records are archived (`docs/archive/CONTENT-ENGINE.md`,
 `docs/archive/_voice-social.md`); the OG link-preview renderer survives as
-`scripts/story/og-card.ts`; `20260927000000_retire_content_engine.sql` drops
-the tables when the operator applies it. Detail and the two rules for the
+`scripts/story/og-card.ts`; `20260927000000_retire_content_engine.sql` dropped
+the tables (applied 2026-09-27, the bucket via the dashboard). Detail and the two rules for the
 next loops: `AGENTS.md` §10.
 
 ### 2026-09-21 → 2026-09-24 — Six new issues, the visual layer measured, the render gate
