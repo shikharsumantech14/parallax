@@ -33,10 +33,12 @@ allowlists with their `ingest` licence class, and `voice-checker`.
 `supabase/migrations/20260927000000_retire_content_engine.sql` ran — the five
 tables and `rag_hybrid_search` are gone — and the `social-cards` storage
 bucket was emptied and deleted from the dashboard (SQL cannot: Supabase guards
-its storage tables, which is what rolled back the first attempt). **Still
-open, operator-side:** delete the Bluesky secrets and `POSTER_BACKEND` from
-the repository settings and revoke the app password on Bluesky; the handle
-`parallaxlens.com` (53 followers) is worth keeping. The next set of loops is
+its storage tables, which is what rolled back the first attempt). The Bluesky
+secrets and `POSTER_BACKEND` were deleted from the repository settings the
+same day, both commits are pushed, and the live site was checked after the
+deploy (share-preview images serve, `/admin/social` is a 404). The handle
+`parallaxlens.com` (53 followers) is kept. **Nothing from this retirement is
+open.** The next set of loops is
 the operator's to design; two rules for them are in `AGENTS.md` §10 and
 `.claude/rules/pipeline-scripts.md`.
 
