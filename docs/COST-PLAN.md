@@ -807,7 +807,7 @@ sampling sentence was removed from the verifier prompt). The labelled set is
 5. The publisher floor on desks with one official publisher: a ruling. Either
    an "official record" class that counts once, or a second allowlisted
    publisher for league discipline (the Guardian was unreachable to the
-   fetch tool in both runs; LawInSport answered 403 three times).
+   fetch tool in both runs, and LawInSport answered 403 three times).
 6. Then the plan's remaining steps in order: Opus 5.5 at medium on one
    issue (CP-08), the Messages API with Batch for the passes (CP-03's second
    half), the research screen (CP-06 a) once the evidence pack exists.
