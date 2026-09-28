@@ -76,9 +76,14 @@ The SDK spawns a Claude Code CLI. Without `strictMcpConfig` that CLI loads
 every MCP server the desktop app registered on this machine (seven claude.ai
 connectors, 196 tools instead of 28) into the run — none callable, all
 paid for. `scripts/lib/runner.ts` sets it; keep it set. The agent runs under
-its own system prompt, not the Claude Code preset, so it does NOT see
-CLAUDE.md / AGENTS.md / these rules, and nothing tells it today's date unless
-the prompt does (`scripts/lib/prompts.ts` passes it to discovery and research).
+its own system prompt, not the Claude Code preset, and nothing tells it
+today's date unless the prompt does (`scripts/lib/prompts.ts` passes it to
+discovery and research). **It DOES see CLAUDE.md / AGENTS.md / these rules**
+(corrected 2026-09-27): the runner never sets `settingSources`, so the SDK
+loads user, project and local settings, which puts the root `CLAUDE.md` +
+`@AGENTS.md` (about 31k tokens) into every run's first request and hands the
+agent the operator's local allow rules, `Bash(npm run *)` included. Measured
+on 53 transcripts; the fix is CP-02 in `docs/COST-PLAN.md`.
 
 ## Gates live here
 
