@@ -14,8 +14,12 @@
  * data: { rows[]{ label, margin, winner?, color? }, caption?, source? }
  */
 interface Row { label: string; margin: number; winner?: string; color?: string; }
-interface Props { rows: Row[]; caption?: string; source?: string; }
-const { rows = [], caption, source } = Astro.props;
+interface Props { rows: Row[]; caption?: string; source?: string; unit?: string; }
+// `unit` is the chip beside the caption: what a rung's length measures. The
+// kind was built for match and seat margins, so "win margins" stays its
+// default; an issue that ranks anything else (an overspend in £m, 2026-09-28)
+// names its own unit. A card's copy is desk-neutral (AGENTS.md §7).
+const { rows = [], caption, source, unit = 'win margins' } = Astro.props;
 
 const sorted = [...rows].sort((a, b) => (b.margin || 0) - (a.margin || 0));
 const maxMargin = Math.max(1, ...sorted.map((r) => Math.abs(r.margin) || 0));
@@ -23,7 +27,7 @@ const fmt = (n: number) => n.toLocaleString();
 ---
 
 <div class="px-viz" data-reveal>
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>win margins</b></div>}
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}</b></div>}
 
   <div class="px-mladr px3d-stage">
     <div class="px-mladr__plane px3d-tilt" data-tilt="6">

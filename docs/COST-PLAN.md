@@ -702,7 +702,7 @@ approval for this one trial. Every phase ran on the API key at list price.
 | Research (C-01) | Opus 5, medium | 26 | 9.9 | 10k | $2.91 |
 | Check pass 1 (BLOCKED, 5 numbers corrected) | Opus 5, high | 2 | 7.4 | 35k | $1.83 |
 | Research top-up (spread and anchors) | Opus 5, medium | 14 | 4.2 | 10k | $1.48 |
-| Check pass 2 (BLOCKED, rewrite refused by the guard) | Opus 5, high | 3 | 10.3 | 43k | $2.39 |
+| Check pass 2 (BLOCKED, rewrite refused by a guard bug, fixed the same day) | Opus 5, high | 3 | 10.3 | 43k | $2.39 |
 | Storyboard | Opus 5, high | 2 | 6.5 | 108k | $2.26 |
 | Draft, with the check round (4 flags, 3 fixed) | Opus 5, high | 4 | 17.3 | 80k | $4.81 |
 | Panel 1 (REVISE) plus Jev grade | Sonnet 5, medium | 2 | 2.5 | 13k | $0.19 |
@@ -752,7 +752,9 @@ verifier's attention and gave a second reading of every quiz grade at no cost.
   built on, and a spread line that was wrong by six points. But the agent
   returns the whole corrected dossier as output (40k characters), which is
   most of its $1.83 to $2.39, and its second rewrite was refused by the
-  guard for losing sections. Fix: report only, with corrections as a
+  guard, wrongly: the guard cut the dossier at its first §10 heading and
+  misread a rewrite that had kept every section (fixed the same day). Fix
+  for the cost: report only, with corrections as a
   structured list the script applies (§12.5).
 - The draft's check round starts a fresh session and re-writes the 80k
   prompt to cache instead of reading it back: about $1 of the draft's $4.81.

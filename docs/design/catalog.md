@@ -362,7 +362,7 @@
 - **World/Tier:** politics · CSS-3D · `src/components/topic/politics/MarginLadder.astro`
 - **USE WHEN:** ranked win/loss margins across seats or races — how safe or knife-edge each contest was.
 - **DON'T USE:** one aggregate swing (→ `swing-dial`); party seat totals (→ `seat-chart`).
-- **DATA:** `{ rows: [{label, margin, winner?, color?}] }`
+- **DATA:** `{ rows: [{label, margin, winner?, color?}], unit? }`. `unit` is the chip beside the caption, what a rung's length measures. It defaults to "win margins", so name it whenever the rungs are not match or seat margins (an overspend in £m, a swing in points)
 - **PLAIN:** "Contests ranked as rungs on a tilted ladder; each rung's length is the margin it was won or lost by."
 - **NOTES:** worked example in `2026-06-03-politics-showcase`.
 

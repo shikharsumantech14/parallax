@@ -15,11 +15,11 @@
 |---|---|
 | kinds | 101 |
 | webgl | 14 |
-| issues | 29 |
-| published | 16 |
+| issues | 30 |
+| published | 17 |
 | blueprints | 40 |
-| neverUsedAnywhere | 4 |
-| neverInPublished | 67 |
+| neverUsedAnywhere | 3 |
+| neverInPublished | 64 |
 | danglingDecisions | 10 |
 
 ## Section kinds
@@ -29,7 +29,7 @@
 
 | kind | component | catalog | explain | priority | webgl | blueprint | used | published |
 |---|---|---|---|---|---|---|---|---|
-| `act-break` | — | ✓ | · | -1 |  |  |  |  |
+| `act-break` | — | ✓ | · | -1 |  |  | ✓ | ✓ |
 | `timeline` | Timeline | ✓ | ✓ | 66 |  |  | ✓ | ✓ |
 | `bill-breakdown` | BillBreakdown | ✓ | ✓ | 52 |  |  | ✓ | ✓ |
 | `vote-result` | VoteResult | ✓ | ✓ | 88 |  |  | ✓ | ✓ |
@@ -68,7 +68,7 @@
 | `swing-dial` | SwingDial | ✓ | ✓ | 80 |  |  | ✓ |  |
 | `bill-passage` | BillPassage | ✓ | ✓ | 78 |  |  | ✓ | ✓ |
 | `vote-flow` | VoteFlow | ✓ | ✓ | 80 |  |  | ✓ |  |
-| `margin-ladder` | MarginLadder | ✓ | ✓ | 78 |  |  | ✓ |  |
+| `margin-ladder` | MarginLadder | ✓ | ✓ | 78 |  |  | ✓ | ✓ |
 | `chamber` | Chamber | ✓ | ✓ | 100 | ✓ | ✓ | ✓ |  |
 | `power-flow` | PowerFlow | ✓ | ✓ | 92 |  | ✓ | ✓ | ✓ |
 | `coalition-calculus` | CoalitionCalculus | ✓ | ✓ | 86 |  | ✓ | ✓ |  |
@@ -98,7 +98,7 @@
 | `carbon-loop` | CarbonLoop | ✓ | ✓ | 66 |  | ✓ | ✓ |  |
 | `storm-track` | StormTrack | ✓ | ✓ | 84 | ✓ | ✓ | ✓ |  |
 | `arch-stack` | ArchStack | ✓ | ✓ | 80 |  |  | ✓ | ✓ |
-| `latency-waterfall` | LatencyWaterfall | ✓ | ✓ | 82 |  |  | ✓ |  |
+| `latency-waterfall` | LatencyWaterfall | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `version-graph` | VersionGraph | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `scaling-plot` | ScalingPlot | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `throughput-dial` | ThroughputDial | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
@@ -131,12 +131,12 @@
 | `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ | ✓ |
 | `finish-interval` | FinishInterval | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 
-## Never in a published issue — 67 of 101
+## Never in a published issue — 64 of 101
 
 The plan's argument for workstream B over Wave 2 rests on this number.
 It is computed here rather than asserted.
 
-`act-break` · `beat-sheet` · `plate` · `orbital-shells` · `commit-grid` · `journey-map` · `elevation-profile` · `carbon-gauge` · `approval-chart` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `vote-flow` · `margin-ladder` · `chamber` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `trajectory-arc` · `delta-v-ladder` · `signal-readout` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `latency-waterfall` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `finish-interval`
+`beat-sheet` · `plate` · `orbital-shells` · `commit-grid` · `journey-map` · `elevation-profile` · `carbon-gauge` · `approval-chart` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `vote-flow` · `chamber` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `trajectory-arc` · `delta-v-ladder` · `signal-readout` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `finish-interval`
 
 ## Decisions
 
@@ -224,4 +224,5 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-09-21-iss-retirement-set-by-contract` | space | published | 8 | 8 | 15 |
 | `2026-09-21-open-models-four-months-behind` | tech | published | 8 | 8 | 23 |
 | `2026-09-21-premier-league-squad-cost-ratio` | sports | published | 9 | 9 | 23 |
+| `2026-09-28-verdict-arrived-sentence-didnt` | sports | published | 11 | 10 | 17 |
 
