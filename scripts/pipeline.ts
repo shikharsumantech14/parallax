@@ -46,6 +46,7 @@ import { loadAgent }                                 from './lib/agent-loader.js
 import {
   buildDiscoverPrompt,
   buildResearchPrompt,
+  buildResearchTopupPrompt,
   buildCheckPrompt,
   buildStoryboardPrompt,
   buildDraftPrompt,
@@ -130,6 +131,8 @@ function printUsage(): void {
     --count <n>         discovery: surface exactly n candidates
     --focus "<subject>" discovery: every candidate a different structural angle on one
                         subject (exactly --count of them, 5 when --count is absent)
+    --topup             research: top up the existing dossier named by --slug with what
+                        its check pass asked for (spread, anchors), in place, no rewrite
     --bill <api|subscription>
                         api (default): the CLI is isolated from the machine's claude.ai
                         login so ANTHROPIC_API_KEY is its only credential. subscription:
@@ -220,6 +223,9 @@ async function main(): Promise<void> {
   // --dry-run: assemble the prompt, print its inventory and size, and exit
   // before the runner. No model is called, no ledger row is written.
   const dryRun  = rawArgs.includes('--dry-run');
+  // Research only: keep the existing dossier and add what its check pass
+  // asked for, instead of writing a new one (needs --slug).
+  const topup   = rawArgs.includes('--topup');
   const flagValue = (name: string): string | undefined => {
     const i = rawArgs.indexOf(`--${name}`);
     if (i !== -1) return rawArgs[i + 1];
@@ -343,15 +349,24 @@ async function main(): Promise<void> {
         `Run first: npm run pipeline:discover ${category}`);
     }
     const text = readFileSync(join(researchDir, candidatesFile), 'utf-8');
-    if (candidate) {
-      if (!new RegExp(`^##\\s+${candidate}\\b`, 'm').test(text)) {
-        fail(`Candidate ${candidate} is not in research/${category}/${candidatesFile}.`);
+    if (topup) {
+      if (!slug) fail('--topup needs --slug <dossier-slug>: it tops up one existing dossier.');
+      const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
+      if (!dossierFile) fail(`No dossier found in research/${category}/${slugHint}`);
+      const checkFile = findMostRecent(researchDir, '-check.md', slug);
+      targetSlug = slugOf(dossierFile, '-dossier.md');
+      prompt = buildResearchTopupPrompt(category, dossierFile, checkFile, candidatesFile);
+    } else {
+      if (candidate) {
+        if (!new RegExp(`^##\\s+${candidate}\\b`, 'm').test(text)) {
+          fail(`Candidate ${candidate} is not in research/${category}/${candidatesFile}.`);
+        }
+      } else if (!/^\s*-\s*\*\*status:\*\*\s*chosen\s*$/im.test(text)) {
+        fail(`No candidate with status: chosen in research/${category}/${candidatesFile}.`,
+          'Flip one `status: open` → `status: chosen`, or pass --candidate C-NN.');
       }
-    } else if (!/^\s*-\s*\*\*status:\*\*\s*chosen\s*$/im.test(text)) {
-      fail(`No candidate with status: chosen in research/${category}/${candidatesFile}.`,
-        'Flip one `status: open` → `status: chosen`, or pass --candidate C-NN.');
+      prompt = buildResearchPrompt(category, candidatesFile, candidate);
     }
-    prompt = buildResearchPrompt(category, candidatesFile, candidate);
 
   } else if (phase === 'check') {
     // The dossier check pass (COST-PLAN CP-09): after research, before the

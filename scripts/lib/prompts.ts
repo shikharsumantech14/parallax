@@ -209,6 +209,21 @@ export function buildResearchPrompt(category: string, candidatesFile: string, ca
 }
 
 /**
+ * A research top-up (added 2026-09-28, when the trial issue's first check pass
+ * BLOCKED its dossier for reasons one short fetch run clears: the publisher
+ * spread, an anchor cited to a statement that predates the fact, an
+ * [UNVERIFIED] with a named resolution path). The researcher keeps the dossier
+ * and adds to it in place instead of rewriting it. `--topup --slug <s>`.
+ */
+export function buildResearchTopupPrompt(category: string, dossierFile: string, checkFile: string | null, candidatesFile: string | null): string {
+  const today = todayIST();
+  const dossierRel = `research/${category}/${dossierFile}`;
+  const checkLine = checkFile ? ` The check pass that blocked it is at \`research/${category}/${checkFile}\`.` : '';
+  const candLine = candidatesFile ? ` The candidate it came from is in \`research/${category}/${candidatesFile}\`.` : '';
+  return `Top up an existing dossier for category **${category}**. Today is ${today} (IST). The dossier is at \`${dossierRel}\`.${checkLine}${candLine} Read the dossier's §9 and the check report's verdict, blocks and flags first: they name exactly what is missing. Do NOT rewrite the dossier and do NOT write a new one. Fetch only what clears the blocks, within a budget of at most 8 WebFetch and 6 WebSearch calls, issued three or four per turn: the sources §9 names for the publisher spread (the floor is no publisher above 40% of §8's rows, at least five publishers, at least three tiers), the anchors the check report marks as missing or as predating the fact they support, and any [UNVERIFIED] whose resolution path it names. Then Edit the dossier in place: append the new rows to §8 and recount its Spread line, add new facts to §4 (and §6 for primary documents) with their source URLs, replace a stale anchor with the correct one, resolve an [UNVERIFIED] only when a fetched allowlisted source settles it, and append a final section \`## §11 Top-up, ${today}\` listing every addition and change. Never invent a fact, never cite outside the allowlist at \`research/_sources/${category}.md\`, and write every derived number with its inputs and formula. Return a one-paragraph summary: what you fetched, what you added, the new Spread line, and which blocks remain.`;
+}
+
+/**
  * The dossier check pass (CP-09): a single-shot read of a fresh dossier that
  * recomputes every derived number, confirms the anchors, lists disagreements
  * and open [UNVERIFIED] items, writes a report, and rewrites the dossier in
@@ -256,8 +271,10 @@ export function buildStoryboardPrompt(category: string, dossierFile: string): As
   const slug = dossierSlug(dossierFile);
   const dossierRel = `research/${category}/${dossierFile}`;
   const outRel = `research/${category}/${today}-${slug}-storyboard.md`;
+  const check = checkReport(category, slug);
   const blocks: Part[] = [
     block('DOSSIER', dossierRel),
+    check && block('CHECK REPORT', check),
     voiceCore(),
     catalogShapes(),
     catalogFull(),
@@ -271,6 +288,8 @@ export function buildStoryboardPrompt(category: string, dossierFile: string): As
   const head = `Write the storyboard for the dossier inlined below (${dossierRel}).
 
 Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. The slug \`${slug}\` matches the dossier's. Follow the STORYBOARD TEMPLATE block exactly, with \`Status: draft\`, and fill every section, §9 the kind ledger included. Check the §9 floors before you write: drawn graphics on at least 40% of rows with at least three distinct graphic kinds, the four plain-language cards (you-think, number-sense, jargon-buster, three-steps) at most once each and at most three in total, and at least two graphic kinds new to the publication. "New" means on the NEVER-PUBLISHED LEDGER and not marked (NEW) by another storyboard in the OTHER STORYBOARDS block. The other floors and the ceilings are in your definition, Step 3. A storyboard that misses one goes back to Step 3, not to the operator.
+
+If a CHECK REPORT block is present, it binds you: never build a graphic on a number it marks contested, unreproduced or unsourced, treat its corrected values as the dossier's, and say in §8 how each of its blocks and flags was worked around (a different data shape, a hedge in the copy, a kind left out).
 
 ${SINGLE_SHOT}
 
