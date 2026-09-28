@@ -45,9 +45,12 @@ research/
 7. YOU AUDIT        manual review (~30 min)    → status: published, git commit
 ```
 
-Each step is an isolated Claude Code subagent under `.claude/agents/`,
-invoked via a slash command under `.claude/commands/`. The pipeline can
-be driven manually one step at a time or strung together (Phase 4+).
+Each step is an agent definition under `scripts/agents/`, run by
+`scripts/pipeline.ts` through the Claude Agent SDK from either door. It is
+not a Claude Code subagent. A slash command under `.claude/commands/`
+starts a step from Claude Code, and the same npm script starts it from a
+terminal. The pipeline can be driven manually one step at a time or strung
+together (Phase 4+).
 
 ## Current pipeline status
 

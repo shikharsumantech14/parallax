@@ -297,8 +297,9 @@ shared/design/                 ← tokens.css + worlds.css — the CANONICAL tok
                                   reason was app/, and app/ is gone.
 supabase/migrations/           ← the operator applies these; writing one does not
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
-.claude/agents/                ← agent system prompts (discovery, researcher,
-                                  drafter, stylist, verifier)
+.claude/agents/                ← Claude Code's own subagents. Since 2026-09-29 it
+                                  holds only voice-checker, a read-only voice gate.
+                                  The pipeline's agents are not here (scripts/agents/)
 .claude/commands/              ← slash-command wrappers that run the npm
                                   script with --bill subscription
 scripts/                       ← pipeline CLI (tsx-driven), bills the API
@@ -306,6 +307,12 @@ scripts/                       ← pipeline CLI (tsx-driven), bills the API
                                   + check-catalog.mjs, design-sync.mjs,
                                   story/og.ts + og-card.ts (the `prebuild` hook
                                   and the link-preview card it renders)
+scripts/agents/                ← the pipeline's eight agent definitions (discovery,
+                                  researcher, dossier-check, composer, drafter,
+                                  reader-panel, stylist, verifier), read by
+                                  scripts/lib/agent-loader.ts. Moved out of
+                                  .claude/agents/ on 2026-09-29 so Claude Code
+                                  lists none of them as a subagent type
 ```
 
 **The reader-account surfaces live here now** (merged 2026-09-06; the design
@@ -403,7 +410,9 @@ phases: `/pipeline-panel` re-grades the quiz answers after the panel, and
 reads it. It is a pre-pass, never a gate, and a missing `JEV_API_KEY` skips
 it with a warning.**
 
-Agents live in `.claude/agents/`. The slash commands in `.claude/commands/`
+The pipeline's agent definitions live in `scripts/agents/` (since 2026-09-29,
+when they left `.claude/agents/` so that Claude Code stops listing them as
+subagent types). The slash commands in `.claude/commands/`
 (`/pipeline-discover|research|check|storyboard|draft|panel|stylist|verify`)
 are wrappers since 2026-09-28: each runs
 `npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and reports
@@ -774,7 +783,7 @@ rule ever fails to fire, open the file directly.
 | Issue schema + build-breaking bounds | `src/content/issues/**/*.mdx` | `.claude/rules/issue-authoring.md` |
 | Voice modes, AI-tell catalog | `research/**`, `**/*.mdx` | `.claude/rules/editorial-voice.md` |
 | WebGL subsystem, scene registry | `src/scripts/viz3d/**` | `.claude/rules/viz3d.md` |
-| Pipeline cost, model policy, Windows traps | `scripts/**`, `.claude/agents/**` | `.claude/rules/pipeline-scripts.md` |
+| Pipeline cost, model policy, Windows traps | `scripts/**` (the agents are in `scripts/agents/`) | `.claude/rules/pipeline-scripts.md` |
 | Component map, SVG conventions | reading any component | `src/components/AGENTS.md` (via its CLAUDE.md shim) |
 | The verification checklist | on request | `/verify-done` |
 | The nine registry places | on request | `/add-section-kind` |
@@ -808,6 +817,40 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-29 — The closing request is gone, the agents leave `.claude/`, a prompt on every paid run
+
+Three of the four questions left open at the end of 2026-09-28 were answered
+yes, and the fourth was explained and tabled (COST-PLAN §12.6). Standing
+rules changed by the answers:
+
+- **A single-shot pass ends at its Write.** After every Write the agent sent
+  one more request to say it was done, and because the Write had outrun the
+  five-minute cache, that request re-wrote the whole context: about $3.70 an
+  issue on the trial, for replies nothing reads. `scripts/lib/runner.ts`
+  takes `stopAfterWrite`, the pass's planned output paths, and a PostToolUse
+  hook on Write returns `continue: false` once one of them is written.
+  `scripts/pipeline.ts` passes each single-shot prompt's declared `out`, the
+  check round's resumed call included. The loops never set it. Measured on
+  Haiku through the API door before it went in, for under a cent: 2 requests
+  became 1, the file was on disk, and a resumed session still carried its
+  earlier context, so the check round still works. A halted run is a
+  success with `stopped_after_write` in its ledger row. What it gives up: a
+  pass that would have Written twice in one response now ends at the first,
+  and corrections belong to the check round.
+- **The eight agent definitions live in `scripts/agents/`.** In
+  `.claude/agents/` Claude Code listed every one as a subagent type, so a
+  session could start the retired route with the Agent tool by mistake.
+  `scripts/lib/agent-loader.ts` reads the new path. `.claude/agents/` keeps
+  only `voice-checker`, and the memory digests stay in
+  `.claude/agent-memory/`. Do not move them back.
+- **A paid run started from Claude Code always prompts.** The operator's
+  `.claude/settings.local.json` (gitignored, theirs) gained an `ask` list for
+  the eight `npm run pipeline:<phase>` forms, `npm run jev:*` and the direct
+  `tsx scripts/pipeline.ts` forms. Claude Code evaluates deny, then ask, then
+  allow, and a matching ask rule prompts even when a broader allow rule
+  matches, so `Bash(npm run *)` no longer waves a phase through, the slash
+  commands included.
 
 ### 2026-09-28 — The cost plan lands: one pipeline, two wallets, a check pass, Jev
 

@@ -272,7 +272,7 @@ discretion.
   against this list.
 - **Quick-Reference Pattern Cards** at the bottom — runtime recipes.
 
-The stylist agent (`.claude/agents/stylist.md`) reads this file every
+The stylist agent (`scripts/agents/stylist.md`) reads this file every
 time it runs. The drafter keeps it open while writing.
 
 When updating the mode library: bump the `Last updated` date at the top

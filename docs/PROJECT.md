@@ -207,7 +207,7 @@ index` / `← cd ..` / `← Back to bureau index` / `← Fixture index`).
 ### 3.7 Editorial pipeline (agent-assisted)
 
 Parallax issues are produced via a multi-step agent pipeline that lives
-in `.claude/agents/` and `.claude/commands/`. The pipeline is invoked
+in `scripts/agents/` and `.claude/commands/`. The pipeline is invoked
 manually one step at a time via slash commands; the human (you) holds
 two control gates: the **candidate pick** between discovery and research,
 and the **final audit** before publish.

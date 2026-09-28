@@ -1,7 +1,7 @@
 ---
 paths:
   - "scripts/**"
-  - ".claude/agents/**"
+  - "scripts/agents/**"
 ---
 
 # Pipeline scripts and agents
@@ -184,15 +184,22 @@ unless you match `\r?\n`. That is why `wire-kind.mjs` exists.
 
 ## Subagents
 
-Definitions in `.claude/agents/`. A subagent receives the CLAUDE.md hierarchy
-(including these rules) but **never auto-loads skills** — preload them with the
-`skills:` frontmatter field. It also does **not** inherit the main
-conversation's auto memory. Give a subagent that should accumulate know-how
-`memory: project` (CD-12), which writes to `.claude/agent-memory/<name>/`.
+Claude Code's own subagents live in `.claude/agents/`: only `voice-checker`
+since 2026-09-29. A subagent receives the CLAUDE.md hierarchy (including
+these rules) but **never auto-loads skills**. Preload them with the `skills:`
+frontmatter field. It also does **not** inherit the main conversation's auto
+memory. Give a subagent that should accumulate know-how `memory: project`
+(CD-12), which writes to `.claude/agent-memory/<name>/`.
 
-This describes Claude Code's own subagents. The pipeline's agents do not run
-this way any more: the runner loads their definitions under the diet above,
-through either door, and Claude Code's Agent tool is not a door (2026-09-28).
+The pipeline's eight agent definitions are not subagents. They live in
+`scripts/agents/`, moved out of `.claude/agents/` on 2026-09-29 because
+Claude Code listed every file there as a subagent type, and a session could
+spawn a pipeline agent with the Agent tool: the retired route, with this
+repo's CLAUDE.md and every tool loaded and no check pass, Jev or ledger. Only
+`scripts/lib/agent-loader.ts` reads them, for `scripts/pipeline.ts`, under
+the diet above, through either door. Do not move them back. Their memory
+digests stay in `.claude/agent-memory/<agent>/DIGEST.md`, inlined into each
+prompt by `scripts/lib/assemble.ts`.
 
 ## Background loops — two rules from the ones that failed (2026-09-27)
 

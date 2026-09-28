@@ -41,12 +41,20 @@ function listField(frontmatter: string, field: string): string[] {
 }
 
 /**
- * Load and parse a Parallax agent definition from .claude/agents/<name>.md.
+ * Load and parse a Parallax agent definition from scripts/agents/<name>.md.
  * YAML frontmatter supplies name, description, tools and the optional allow.
  * Everything after the closing --- becomes the system prompt.
+ *
+ * The definitions lived in .claude/agents/ until 2026-09-29. There, Claude
+ * Code listed every one of them as a subagent type, so a session could spawn
+ * a pipeline agent with the Agent tool: the retired route, with CLAUDE.md and
+ * every tool loaded and no check pass, Jev or ledger (AGENTS.md §10,
+ * 2026-09-28). Under scripts/ the only way to run one is this loader, through
+ * scripts/pipeline.ts. Do not move them back. `.claude/agents/` keeps Claude
+ * Code's own subagents (voice-checker), which are not pipeline phases.
  */
 export function loadAgent(name: string): AgentDef {
-  const filePath = join(process.cwd(), '.claude', 'agents', `${name}.md`);
+  const filePath = join(process.cwd(), 'scripts', 'agents', `${name}.md`);
 
   let content: string;
   try {

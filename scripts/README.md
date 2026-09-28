@@ -2,7 +2,7 @@
 
 The scripts in this directory are the editorial pipeline. Every phase, from
 discovery to the verifier, runs through `scripts/pipeline.ts`, whichever door
-starts it. The agents' system prompts come from `.claude/agents/`, the
+starts it. The agents' system prompts come from `scripts/agents/`, the
 models, effort and budgets from `scripts/pipeline.config.ts`, and every run
 appends its measured cost to `research/_costs/ledger.jsonl`.
 
@@ -103,7 +103,7 @@ npm run pipeline:draft earth -- --bill subscription  # what that command runs
 |---|---|---|
 | `npm run pipeline:discover <cat>` | 1 | Discovery agent surveys allowlisted sources, writes `research/<cat>/<date>-candidates.md` |
 | `npm run pipeline:research <cat>` | 2 | Researcher agent deep-dives the chosen candidate, writes `research/<cat>/<date>-<slug>-dossier.md` |
-| `npm run pipeline:check <cat>` | 2.2 | The dossier check pass (`.claude/agents/dossier-check.md`, COST-PLAN CP-09): recomputes every derived number, confirms the anchors, writes `research/<cat>/<date>-<slug>-check.md` with CLEAN / CORRECTIONS / BLOCKED. The script applies the report's corrections to the dossier (see [The check pass and the check round](#the-check-pass-and-the-check-round)) |
+| `npm run pipeline:check <cat>` | 2.2 | The dossier check pass (`scripts/agents/dossier-check.md`, COST-PLAN CP-09): recomputes every derived number, confirms the anchors, writes `research/<cat>/<date>-<slug>-check.md` with CLEAN / CORRECTIONS / BLOCKED. The script applies the report's corrections to the dossier (see [The check pass and the check round](#the-check-pass-and-the-check-round)) |
 | `npm run pipeline:storyboard <cat>` | 2.5 | Composer agent maps every point the reader must get to the component that shows it (from all 98 kinds, by data shape), the word budgets, the head, the Indian ground and the three quiz questions → `research/<cat>/<date>-<slug>-storyboard.md`, `Status: draft`. **You flip it to `approved`** — the gate is `GATES.storyboard` in `pipeline.config.ts` (`'required'` now, `'auto'` later) |
 | `npm run pipeline:draft <cat>` | 3 | Drafter agent executes the storyboard and writes the full MDX issue to `src/content/issues/<date-slug>/index.mdx` with `status: draft`. Refuses an unapproved storyboard while the gate is `'required'` |
 | `npm run pipeline:panel <cat>` | 3.2 / 3.7 | Reader-panel agent reads the draft cold as four Indian reader personas, answers the storyboard's three questions from the draft alone, retells every section, quotes the sentence that lost each reader → `research/<cat>/<date>-<slug>-panel.md` with PASS / REVISE / BLOCK. Run after the draft and again after the stylist (the second pass writes `-panel-2.md`). Then the script runs the Jev quiz grade (see [Jev](#jev-the-decision-layer-cp-06)) |
@@ -314,7 +314,7 @@ again through SDK 0.3.283 on 2026-09-28):
 |---|---|---|---|---|---|
 | discover | discovery | `claude-sonnet-5` | `medium` | $5 | 60 |
 | research | researcher | `claude-opus-5` | `medium` | $12 | 90 |
-| check | check (`.claude/agents/dossier-check.md`) | `claude-opus-5` | `high` | $3 | 20 |
+| check | check (`scripts/agents/dossier-check.md`) | `claude-opus-5` | `high` | $3 | 20 |
 | storyboard | composer | `claude-opus-5` | `high` | $5 | 60 |
 | draft | drafter | `claude-opus-5` | `high` | $8 | 60 |
 | panel | reader-panel | `claude-sonnet-5` — deliberately not the drafter's model | `medium` | $3 | 40 |
@@ -510,8 +510,9 @@ scripts/
 ├── jev-verify.ts        # `npm run jev:verify`, the Jev pre-pass on its own
 ├── jev-panel.ts         # `npm run jev:panel`, the Jev quiz grade on its own
 ├── jev-pilot.ts         # `npm run jev:pilot`, Jev read against an issue already verified
+├── agents/              # The eight agent definitions, one <name>.md each (read by lib/agent-loader.ts)
 ├── lib/
-│   ├── agent-loader.ts  # Parses .claude/agents/<name>.md YAML frontmatter (tools, allow)
+│   ├── agent-loader.ts  # Parses scripts/agents/<name>.md YAML frontmatter (tools, allow)
 │   ├── runner.ts        # Claude Agent SDK wrapper: the harness diet, the billing door, streams tool calls, measures every request
 │   ├── pricing.ts       # Published list rates per model, and the token-split → dollars function
 │   ├── prompts.ts       # Prompt builders with resolved file paths per phase
@@ -525,14 +526,17 @@ scripts/
 ```
 
 Agent definitions (the system prompts the pipeline uses) live in
-`.claude/agents/`: `discovery.md`, `researcher.md`, `dossier-check.md`,
+`scripts/agents/`: `discovery.md`, `researcher.md`, `dossier-check.md`,
 `composer.md`, `drafter.md`, `reader-panel.md`, `stylist.md`,
-`verifier.md`. The runner loads them through the SDK on both doors. The
-slash commands in `.claude/commands/` do not: since 2026-09-28 each one runs
-its phase's npm line with `--bill subscription` and reports the footer.
-Claude Code still lists the agents as subagent types, but spawning one with
-the Agent tool is the retired route, outside the pipeline (no check pass, no
-Jev, no ledger row).
+`verifier.md`. They moved from `.claude/agents/` on 2026-09-29 so Claude Code
+lists none of them as a subagent type, and `.claude/agents/` keeps only
+`voice-checker.md`, a read-only voice gate that is not a pipeline phase. The
+runner loads them through the SDK on both doors. The slash commands in
+`.claude/commands/` do not: since 2026-09-28 each one runs its phase's npm
+line with `--bill subscription` and reports the footer. Spawning one of these
+agents with the Agent tool was the retired route, outside the pipeline (no
+check pass, no Jev, no ledger row). Run them through `scripts/pipeline.ts`,
+by either door.
 
 The writing agents (composer, drafter, stylist, reader-panel, verifier) read
 `research/_voice/_voice-core.md` v2 at runtime — the register contract: plain

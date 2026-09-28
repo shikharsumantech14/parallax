@@ -31,13 +31,13 @@ function walkSum(dir) {
 }
 
 const agentFiles = {
-  discovery: `${ROOT}/.claude/agents/discovery.md`,
-  researcher: `${ROOT}/.claude/agents/researcher.md`,
-  composer: `${ROOT}/.claude/agents/composer.md`,
-  drafter: `${ROOT}/.claude/agents/drafter.md`,
-  'reader-panel': `${ROOT}/.claude/agents/reader-panel.md`,
-  stylist: `${ROOT}/.claude/agents/stylist.md`,
-  verifier: `${ROOT}/.claude/agents/verifier.md`,
+  discovery: `${ROOT}/scripts/agents/discovery.md`,
+  researcher: `${ROOT}/scripts/agents/researcher.md`,
+  composer: `${ROOT}/scripts/agents/composer.md`,
+  drafter: `${ROOT}/scripts/agents/drafter.md`,
+  'reader-panel': `${ROOT}/scripts/agents/reader-panel.md`,
+  stylist: `${ROOT}/scripts/agents/stylist.md`,
+  verifier: `${ROOT}/scripts/agents/verifier.md`,
 };
 
 console.log('=== Agent definition files ===');

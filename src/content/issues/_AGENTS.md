@@ -166,7 +166,7 @@ topic.
   why."* / *"Here is what the data shows."* / *"This is the system underneath."*
 
 The drafter agent has the primer step at Step 2.5 of its instructions
-(`.claude/agents/drafter.md`). It estimates length poorly; verify before
+(`scripts/agents/drafter.md`). It estimates length poorly; verify before
 finalising.
 
 ---

@@ -26,14 +26,16 @@
   bills your Claude subscription. Same script, same agents, same
   `scripts/pipeline.config.ts`: the door decides only which wallet pays, and
   the ledger row's `billedTo` says which.
-- **Agent definitions** live in `.claude/agents/<name>.md` (discovery,
+- **Agent definitions** live in `scripts/agents/<name>.md` (discovery,
   researcher, dossier-check, composer, drafter, reader-panel, stylist,
-  verifier). The runner loads them under the harness diet. Claude Code also
-  lists them as subagent types, but spawning one with the Agent tool is the
-  retired route: this file and every tool come along, and the check pass,
-  Jev and the ledger do not. When the operator asks you for a phase, run its
-  npm script with `--bill subscription` (the Claude Code door) unless they
-  name the key, and run it in the background: a phase can outlast a
+  verifier). The runner loads them under the harness diet. Since 2026-09-29
+  Claude Code no longer lists them as subagent types, because they left
+  `.claude/agents/`, which now keeps only `voice-checker`. So the retired
+  route, spawning one with the Agent tool, cannot be started by mistake any
+  more. That route brought this file and every tool along, and left out the
+  check pass, Jev and the ledger. When the operator asks you for a phase, run
+  its npm script with `--bill subscription` (the Claude Code door) unless
+  they name the key, and run it in the background: a phase can outlast a
   foreground call.
 - **One config, two wallets (the operator's ruling of 2026-09-28).**
   `scripts/pipeline.config.ts` (models, effort, budgets) rules every run on

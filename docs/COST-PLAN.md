@@ -815,3 +815,44 @@ sampling sentence was removed from the verifier prompt). The labelled set is
 6. Then the plan's remaining steps in order: Opus 5.5 at medium on one
    issue (CP-08), the Messages API with Batch for the passes (CP-03's second
    half), the research screen (CP-06 a) once the evidence pack exists.
+
+### 12.6 The day after (2026-09-29): the approvals, and what was measured
+
+Items 1 to 3 above were approved and built on 2026-09-28 (`b29671d`). On
+2026-09-29 the operator answered the four questions left open at the end of
+that day.
+
+1. **The stop-after-Write hook: yes, "make sure it does not break anything
+   working".** After every single-shot Write the agent sent one more request
+   to say it was done, and because the Write had outrun the five-minute
+   cache, that request re-wrote the whole context: about $3.70 an issue on
+   the trial, for replies nothing reads. `scripts/lib/runner.ts` now takes
+   `stopAfterWrite`, the pass's planned output paths, and registers a
+   PostToolUse hook on Write that returns `continue: false` once one of them
+   is written. `scripts/pipeline.ts` passes each single-shot prompt's
+   declared `out`, the check round's resumed call included. The loops never
+   set it. Measured before it went in, on Haiku 4.5 through the API door,
+   three runs for $0.0093 at list: the control made 2 requests and answered
+   "DONE". With the hook the same task made 1 request, the file was on disk,
+   the CLI reported `terminal_reason: hook_stopped`, and the run counts as a
+   success with `stopped_after_write` in its ledger row. A third run resumed
+   that session, made 1 request, and wrote "alpha beta" into its file, which
+   proves a halted session still carries its earlier context, so the
+   drafter's check round still works. What the hook gives up: a pass that
+   would have Written twice in one response, correcting its own first Write,
+   now ends at the first. The check round, on the script side, is where
+   corrections belong.
+2. **The agent definitions moved to `scripts/agents/`: yes.** While they sat
+   in `.claude/agents/`, Claude Code listed each one as a subagent type, so a
+   session could start the retired route by mistake. `.claude/agents/` keeps
+   only `voice-checker`. `scripts/lib/agent-loader.ts` reads the new path.
+   Nothing else about the agents changed, and their memory digests stay in
+   `.claude/agent-memory/`.
+3. **The local allow-list: narrowed for them.** `.claude/settings.local.json`
+   (gitignored, the operator's) gained an `ask` list, which outranks its
+   `Bash(npm run *)` allow rule: the eight `npm run pipeline:<phase>` forms
+   (not `pipeline:costs`), `npm run jev:*`, and the direct
+   `tsx scripts/pipeline.ts` forms. A paid run started from a Claude Code
+   session now always prompts, the slash commands included.
+4. **The state-doc addendum and the memory note** were explained and tabled
+   for a yes, not written.

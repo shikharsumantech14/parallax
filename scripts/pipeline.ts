@@ -557,13 +557,17 @@ async function main(): Promise<void> {
   // One call, the same model, tools, effort, caps, cwd and billing every
   // time, so a resumed call finds its session (the transcript lives under
   // the billing route's config dir) and reads its prefix back from the cache.
-  const runOnce = (text: string, resume?: ResumeFrom) => runAgent({
+  const runOnce = (text: string, resume?: ResumeFrom, out: string[] | undefined = built?.out) => runAgent({
     agent, prompt: text, model, cwd, verbose,
     maxTurns: MAX_TURNS[agentName],
     maxBudgetUsd: MAX_BUDGET_USD[agentName],
     effort,
     allow: ALLOW[agentName],
     billing,
+    // A single-shot pass ends at the Write of its planned output (runner.ts,
+    // `stopAfterWrite`, 2026-09-29). The loops build no Assembled, so `out` is
+    // undefined for them and they run to their own end.
+    ...(out?.length ? { stopAfterWrite: out } : {}),
     ...(resume ? { resume: resume.sessionId, resumeFrom: resume.from } : {}),
   });
   // A single-shot pass Writes without reading, and the Write tool will not

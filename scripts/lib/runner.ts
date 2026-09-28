@@ -7,7 +7,7 @@ import {
   type SDKMessage,
   type SDKResultMessage,
 } from '@anthropic-ai/claude-agent-sdk';
-import { join } from 'path';
+import { basename, join, resolve } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import type { AgentDef } from './agent-loader.js';
 import type { EffortLevel } from '../pipeline.config.js';
@@ -300,6 +300,9 @@ function classify(text: string, assistantError: string | null): ErrorKind {
  *   subscription within plan usage. Nothing here asks for an hour (it would
  *   add about $6.20 an issue on the API route), so a run on `api` that writes
  *   1-hour entries is not billing the key, and the footer says so.
+ * - `stopAfterWrite` ends a single-shot pass at its Write through a
+ *   PostToolUse hook (`continue: false`), so the closing "done" request is
+ *   never sent (2026-09-29; the option's comment below has the measurement).
  * - `resume` continues an earlier run's session (COST-PLAN §12.5 item 2, the
  *   drafter's check round). The CLI finds the transcript under
  *   `$CLAUDE_CONFIG_DIR/projects/<encoded cwd>/` (the isolated config dir on
@@ -341,6 +344,15 @@ export async function runAgent(opts: {
    *  resume, so without them this run's cost would count the earlier run
    *  twice once the two are merged into one ledger row. */
   resumeFrom?: Pick<RunResult, 'usage' | 'modelUsage' | 'costUsdSdk'>;
+  /** Repo-relative paths of the run's planned output files. When the agent's
+   *  Write to one of them succeeds, a PostToolUse hook ends the run there
+   *  (the operator's ruling of 2026-09-29, COST-PLAN §12.5 item 3). Without
+   *  it a single-shot pass sends one more request after its Write, to say it
+   *  is done, and because the Write outran the five-minute cache that request
+   *  re-wrote the whole context: about $3.70 an issue on the trial for replies
+   *  nothing reads. The single-shot passes set it; the loops never do, they
+   *  Edit and re-read after they Write. */
+  stopAfterWrite?: string[];
 }): Promise<RunResult> {
   const startMs = Date.now();
   const billing = opts.billing ?? 'api';
@@ -372,6 +384,12 @@ export async function runAgent(opts: {
   // the prompt would reach a model that has none of the earlier context.
   const abort = new AbortController();
   let resumeRefused: string | null = null;
+  // The stop-after-Write hook (see `stopAfterWrite`): the planned outputs,
+  // normalised the way the Write tool's `file_path` arrives (absolute, either
+  // slash, any drive-letter case).
+  const normPath = (p: string) => resolve(opts.cwd, p).replace(/\\/g, '/').toLowerCase();
+  const stopTargets = new Set((opts.stopAfterWrite ?? []).map(normPath));
+  let stoppedAfterWrite: string | null = null;
 
   const noteRequest = (id: string, u: Record<string, unknown> | null | undefined) => {
     if (!u || requests.has(id)) return;
@@ -395,6 +413,20 @@ export async function runAgent(opts: {
     return {};
   };
 
+  // PostToolUse fires only for a Write that succeeded (a refused or failed
+  // Write is PostToolUseFailure, and the agent must see it and retry), so a
+  // halt here always leaves the file on disk. The tool result is recorded
+  // before the hooks run, which is what lets the session be resumed later
+  // (the drafter's check round). Measured 2026-09-29, COST-PLAN §12.5 item 3.
+  const onPostWrite: HookCallback = async (input) => {
+    if (input.hook_event_name !== 'PostToolUse' || input.tool_name !== 'Write') return {};
+    const filePath = (input.tool_input as { file_path?: unknown } | undefined)?.file_path;
+    if (typeof filePath !== 'string' || !stopTargets.has(normPath(filePath))) return {};
+    stoppedAfterWrite = filePath;
+    console.log(`\n\x1b[32m[written]\x1b[0m ${basename(filePath)} is on disk. The run ends here: no closing request.`);
+    return { continue: false, stopReason: `the pipeline ends a single-shot pass once ${basename(filePath)} is written` };
+  };
+
   const options: Options = {
     systemPrompt: opts.agent.systemPrompt,
     model: opts.model,
@@ -416,7 +448,10 @@ export async function runAgent(opts: {
     includePartialMessages: true,
     // No Co-Authored-By trailer or PR footer in the context (AGENTS.md §7).
     settings: { attribution: { commit: '', pr: '' } },
-    hooks: { InstructionsLoaded: [{ hooks: [onInstructions] }] },
+    hooks: {
+      InstructionsLoaded: [{ hooks: [onInstructions] }],
+      ...(stopTargets.size ? { PostToolUse: [{ matcher: 'Write', hooks: [onPostWrite] }] } : {}),
+    },
     stderr: (data: string) => { stderrTail = (stderrTail + data).slice(-4000); },
     ...(opts.effort ? { effort: opts.effort } : {}),
     ...(opts.maxBudgetUsd ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
@@ -656,10 +691,13 @@ export async function runAgent(opts: {
   // ── Outcome ───────────────────────────────────────────────────────────────
   const isErrorResult = !!res && (res.subtype !== 'success' || res.is_error);
   // A clean success result stands even if the SDK throws afterwards (the
-  // documented throw follows an ERROR result); the throw is still shown.
-  const success = !!res && !isErrorResult;
-  if (success && thrown) console.error(`\n\x1b[33mNote:\x1b[0m the SDK threw after a success result: ${thrown.slice(0, 300)}`);
-  let stopReason = res?.subtype ?? 'unknown';
+  // documented throw follows an ERROR result); the throw is still shown. A
+  // run the stop-after-Write hook ended is a success by design, whatever the
+  // halted loop reported: its output is on disk, and the ledger row says
+  // `stopped_after_write` so the two are never confused.
+  const success = !!stoppedAfterWrite || (!!res && !isErrorResult);
+  if (success && thrown) console.error(`\n\x1b[33mNote:\x1b[0m the SDK threw after ${stoppedAfterWrite ? 'the hook ended the run' : 'a success result'}: ${thrown.slice(0, 300)}`);
+  let stopReason = stoppedAfterWrite ? 'stopped_after_write' : (res?.subtype ?? 'unknown');
   let errorKind: ErrorKind | undefined;
   let errorMessage: string | undefined;
   if (!success) {

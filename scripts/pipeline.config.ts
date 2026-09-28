@@ -69,7 +69,7 @@ export interface PipelineConfig {
     discovery:      string;
     researcher:     string;
     /** The dossier check pass (COST-PLAN CP-09): single-shot, after research.
-     *  Its definition is .claude/agents/dossier-check.md (AGENT_FILE in
+     *  Its definition is scripts/agents/dossier-check.md (AGENT_FILE in
      *  scripts/pipeline.ts maps the key to the file). */
     check:          string;
     composer:       string;

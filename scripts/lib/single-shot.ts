@@ -187,13 +187,14 @@ export async function draftCheckRound(args: {
   first: RunResult;
   resumePrompt: Assembled;
   freshPrompt: () => Assembled;
-  run: (prompt: string, resume?: ResumeFrom) => Promise<RunResult>;
+  /** The runner call. `out` is the prompt's declared output, so the run ends at its Write. */
+  run: (prompt: string, resume?: ResumeFrom, out?: string[]) => Promise<RunResult>;
 }): Promise<{ result: RunResult; how: 'resumed' | 'fresh' }> {
   const { first } = args;
   // The round overwrites the first draft, which the session did not Read.
   const once = async (a: Assembled, resume?: ResumeFrom): Promise<RunResult> => {
     const aside = setAsideOutputs(a.out);
-    try { return await args.run(a.text, resume); } finally { settleOutputs(aside); }
+    try { return await args.run(a.text, resume, a.out); } finally { settleOutputs(aside); }
   };
   if (first.sessionId) {
     console.log(`  resuming session ${first.sessionId}: the new prompt is the flags alone, about ${args.resumePrompt.estTokens.toLocaleString('en-US')} tokens\n`);

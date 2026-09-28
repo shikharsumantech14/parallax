@@ -164,7 +164,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-09** | 5 files | 2 |
 | **CD-10** | 2 files | 1 |
 | **CD-11** | 5 files | 3 |
-| **CD-12** | 12 files | 2 |
+| **CD-12** | 12 files | 6 |
 | **RD-01** | 9 files | 3 |
 | **RD-01a** | 7 files | 5 |
 | **RD-01b** | 40 files | 7 |

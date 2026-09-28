@@ -151,7 +151,7 @@ export function readStatus(filePath: string): string | null {
 // ── Prompt builders ───────────────────────────────────────────────────────────
 // Each function builds the invocation prompt passed directly to the agent.
 //
-// The agent runs under its own system prompt (the body of .claude/agents/<name>.md),
+// The agent runs under its own system prompt (the body of scripts/agents/<name>.md),
 // not the Claude Code preset, so nothing tells it today's date unless the
 // prompt does. Every builder states it.
 //
