@@ -1,71 +1,69 @@
 ---
-description: Run the discovery agent for a Parallax category. Surfaces 5-10 candidate issue topics from the per-category source allowlist, written to research/<category>/<date>-candidates.md.
-allowed-tools: Read, Glob, Grep, WebSearch, WebFetch, Write, Agent
-argument-hint: <category — politics | space | earth | tech | travel | sports>
+description: Discovery for one desk on your Claude subscription. Runs npm run pipeline:discover <desk> -- --bill subscription and reports its footer. Writes research/<desk>/<date>-candidates.md.
+argument-hint: <desk> [--count <n>] [--focus "<subject>"] [--model <id>] [--effort <level>] [--dry-run]
+allowed-tools: Bash(npm run pipeline:discover *), Read
+disable-model-invocation: true
 ---
 
 # /pipeline-discover
 
-Step 1 of the Parallax editorial pipeline. Surfaces candidate issue
-topics for a single category.
+One action: run `npm run pipeline:discover <desk> -- --bill subscription <flags>`
+from the repo root, stream its output, and report its footer. The script is
+the pipeline, the same one a terminal runs: the same agent, the same
+`scripts/pipeline.config.ts` (models, effort, budgets), the same harness diet
+and the same cost ledger. This command does not spawn the agent itself
+(retired 2026-09-28).
 
-## Usage
+This bills your Claude subscription. For the API key, run the same npm script in a terminal without `--bill subscription`.
 
-```
-/pipeline-discover politics
-/pipeline-discover earth
-```
+**The phase.** Phase 1. The discovery agent surveys the desk's allowlist
+(`research/_sources/<desk>.md`) and writes
+`research/<desk>/<date>-candidates.md`. Desks: politics, space, earth, tech,
+travel, sports. Flags: `--count <n>` (exactly n candidates, 1 to 10),
+`--focus "<subject>"` (every candidate an angle on one subject, quoted),
+`--model <id>`, `--effort <level>`, `--dry-run` (assemble the prompt, send
+nothing, bill nothing).
 
-Argument is one of: `politics`, `space`, `earth`, `tech`, `travel`, `sports`.
-
-## What this does
-
-1. Validates the category argument
-2. Confirms `research/_sources/<category>.md` exists (the source allowlist)
-3. Spawns the **discovery** subagent with the category as input
-4. The agent surveys recent stories from allowlisted sources, filters
-   to the Parallax voice, writes a candidates file
-5. Returns the path to the file plus a top-pick summary
-
-## What you do next
-
-1. Open `research/<category>/<YYYY-MM-DD>-candidates.md`
-2. Read the candidates (5-10 of them, ranked)
-3. Pick exactly one by changing its `status: open` → `status: chosen`
-4. Save the file
-5. Run `/pipeline-research <category>` (Phase 2 — coming soon)
-
-## Cost
-
-This command runs once per category per week. Each run uses:
-- ~5-15 WebSearch calls
-- ~3-8 WebFetch calls (only on candidate-worthy headlines)
-- One Sonnet pass for synthesis
-
-Approx ₹15-40 per run on Anthropic API direct, or ~3-5% of a
-Claude Pro 5-hour limit window.
+**Next.** Pick one candidate (`status: open` to `status: chosen`), or pass
+`--candidate C-NN` to `/pipeline-research`.
 
 ---
 
 ## Instructions to Claude
 
-The user has invoked `/pipeline-discover` with argument: **$ARGUMENTS**
+The operator invoked `/pipeline-discover` with: **$ARGUMENTS**
 
-1. Validate that **$ARGUMENTS** is one of: politics, space, earth, tech,
-   travel, sports. If not, print the valid options and stop.
+1. The first word of the arguments is the desk. Everything after it is the
+   flags, passed through unchanged, quotes included. If there are no
+   arguments, run nothing and ask for the desk.
+2. If the flags contain `--bill`, run nothing. Say that this command always
+   bills the subscription, and that the API key door is the same npm script
+   in a terminal.
+3. Otherwise run exactly this, once, with the Bash tool, from the repo root,
+   in the background (`run_in_background: true`):
 
-2. Verify `research/_sources/$ARGUMENTS.md` exists. If not, tell the
-   user to populate it first and stop.
+   ```
+   npm run pipeline:discover <desk> -- --bill subscription <flags>
+   ```
 
-3. Verify `research/$ARGUMENTS/` directory exists. If not, create it.
+   A phase takes 2 to 18 minutes (the trial's draft took 17), longer than a
+   foreground call may last, so start it in the background: a run cut off
+   midway writes no ledger row. Do not read files, validate the desk or spawn an
+   agent first: the script checks everything itself before it spends
+   anything, and exits with a message when something is missing.
+4. Tell the operator the run has started and where its output is going.
+   While it runs, stream it: follow the output file if your tools can watch
+   a background task, and read it whenever the operator asks.
+5. When it exits, report from its output, quoting rather than paraphrasing:
+   - the `bills to:` line of the header,
+   - the outcome (`done` or `stopped: …`) and the exit code,
+   - the candidates file it wrote and the agent's closing summary (the top
+     pick), nothing more about the candidates: choosing one is the
+     operator's call,
+   - the footer: the `cost:`, `tokens:`, `prefix:`, `duration:` and
+     `ledger:` lines, and any `denied:` or `warning:` line.
 
-4. Spawn the **discovery** subagent with this prompt:
-
-   > Run discovery for category **$ARGUMENTS**. Read the source allowlist
-   > at `research/_sources/$ARGUMENTS.md`, survey recent stories per the
-   > rules in your agent definition, and write the candidates file to
-   > `research/$ARGUMENTS/<today-IST-YYYY-MM-DD>-candidates.md`. Return
-   > a one-paragraph summary with the file path and your top pick.
-
-5. When the subagent finishes, relay its summary to the user. Do not add
-   editorial commentary on the candidates — that's the user's job.
+   A `--dry-run` prints an inventory instead of a header and a footer: report
+   its size and say that nothing was sent and no ledger row was written.
+6. Stop there. Do not re-run a failed phase, do not switch `--bill` to finish
+   one, and do not start the next phase. Add no editorial comment.

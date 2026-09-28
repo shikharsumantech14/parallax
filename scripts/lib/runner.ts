@@ -224,11 +224,18 @@ export function childEnv(
   for (const [key, value] of Object.entries(source)) {
     if (STRIP_ALWAYS.test(key)) continue;
     if (billing === 'api' && STRIP_ON_API.test(key) && !KEEP_ON_API.test(key)) continue;
+    // `subscription`: the login is the only credential. With the key left in
+    // the environment a missing or expired login would fall back to the key
+    // and bill it while the ledger row said "subscription" (the mirror of the
+    // 2026-09-22 finding, closed 2026-09-29). Without it, a missing login
+    // fails with a 401 before anything is spent.
+    if (billing === 'subscription' && /^(ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN)$/.test(key)) continue;
     env[key] = value;
   }
   Object.assign(env, DIET_ENV);
   // `api`: isolated from the operator's login so the key is the only
-  // credential (see API_CONFIG_DIR). `subscription`: the login stays.
+  // credential (see API_CONFIG_DIR). `subscription`: the login stays, and the
+  // key is stripped above, so each door has exactly one credential.
   if (billing === 'api') env.CLAUDE_CONFIG_DIR = configDir;
   return env;
 }

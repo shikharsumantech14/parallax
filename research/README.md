@@ -51,15 +51,21 @@ be driven manually one step at a time or strung together (Phase 4+).
 
 ## Current pipeline status
 
-| Step | Built | How to invoke | Notes |
+| Step | Phase | How to invoke | Notes |
 |---|---|---|---|
-| 1. Discovery | ✅ Phase 1 | `/pipeline-discover <category>` | This phase |
-| 2. Pick | manual | edit candidates file | 5 min/week |
-| 3. Research | ⏳ Phase 2 | `/pipeline-research <slug>` | Next |
-| 4. Draft | ⏳ Phase 2 | `/pipeline-draft <slug>` | Next |
-| 5. Verify | ⏳ Phase 3 | `/pipeline-verify <slug>` | Brand-protection step |
-| 6. Visual | ⏳ Phase 4 | `/pipeline-visuals <slug>` | After verify works |
-| 7. Audit | manual | read draft + report, fix, publish | Always manual |
+| 1. Discovery | 1 | `/pipeline-discover <category>` | Runs `npm run pipeline:discover <category> -- --bill subscription` |
+| 2. Research | 2 | `/pipeline-research <category>` | Runs `npm run pipeline:research <category> -- --bill subscription` |
+| 3. Check | 2.2 | `/pipeline-check <category>` | Runs `npm run pipeline:check <category> -- --bill subscription` |
+| 4. Storyboard | 2.5 | `/pipeline-storyboard <category>` | Runs `npm run pipeline:storyboard <category> -- --bill subscription`. You approve the storyboard |
+| 5. Draft | 3 | `/pipeline-draft <category>` | Runs `npm run pipeline:draft <category> -- --bill subscription` |
+| 6. Panel | 3.2 / 3.7 | `/pipeline-panel <category>` | Runs `npm run pipeline:panel <category> -- --bill subscription`. Runs after the draft and again after the stylist |
+| 7. Stylist | 3.5 | `/pipeline-stylist <category>` | Runs `npm run pipeline:stylist <category> -- --bill subscription` |
+| 8. Verify | 4 | `/pipeline-verify <category>` | Runs `npm run pipeline:verify <category> -- --bill subscription` |
+
+Every slash command above runs on the Claude Code door and bills the
+operator's Claude subscription. The terminal door runs the same npm script
+directly, without `--bill subscription`, and bills `ANTHROPIC_API_KEY`
+instead. Full flag table and setup: `scripts/README.md`.
 
 ## Cadence target
 

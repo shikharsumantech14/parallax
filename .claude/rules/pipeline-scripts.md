@@ -31,22 +31,60 @@ assembles the prompt and exits without calling the runner (2026-09-28).
 `.env.local` is gitignored via `*.local`. Never commit it, never echo its
 contents.
 
-## Model routing — do NOT "optimise"
+The slash commands run these same scripts (below), so `/pipeline-<phase>`
+really bills too, on the subscription. The rule is the same on both doors:
+never start a phase to test something.
 
-`scripts/pipeline.config.ts` (discovery and research → `claude-sonnet-5`,
-the long tool loops; composer, drafter, stylist, verifier → `claude-opus-5`,
-the short passes; the reader panel → `claude-sonnet-5` so it never judges
-its own drafter's prose — the operator's ruling of 2026-09-21, after one
-round on all-Opus measured $65.91 for discovery + research alone; a run's
-cost is its loop length, not its thinking) applies to the **API-CLI route
-only**. Both loop prompts carry a search / fetch budget and every phase has
-a `maxTurns` cap (`MAX_TURNS`). On the Claude Code route
-the subscription absorbs cost, so **every** phase pins to Opus. Leave the
-split alone — it is the operator's API config; `--model <id>` overrides it
-for one run. Model IDs DO go stale: the config sat on `claude-opus-4-1` for
-six weeks after that model retired (2026-08-05), so a draft would have failed
-on its first call. When the pipeline has not run for a while, check the IDs
-against the current model list before anything bills.
+## One config, two wallets (the operator's ruling of 2026-09-28)
+
+**Two doors, one pipeline (ruled 2026-09-28).** The API door is a terminal:
+`npm run pipeline:<phase> <desk> -- <flags>` bills `ANTHROPIC_API_KEY`. The
+Claude Code door is the slash command: `/pipeline-<phase> <desk> <flags>`
+runs `npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and
+bills your Claude subscription. Same script, same agents, same
+`scripts/pipeline.config.ts`: the door decides only which wallet pays, and
+the ledger row's `billedTo` says which.
+
+- **One config for both doors.** `scripts/pipeline.config.ts` rules every
+  run: `CONFIG.models` (discovery and the reader panel on `claude-sonnet-5`,
+  research, the check pass, composer, drafter, stylist and verifier on
+  `claude-opus-5`, the panel kept off the drafter's model so it never judges
+  its own prose), `EFFORT`, `MAX_BUDGET_USD`, `MAX_TURNS`, `ALLOW` and
+  `GATES`. The rule that the Claude Code route ran every phase on Opus is
+  retired, and so is the rule that it must not be "optimised" to match the
+  API split: there is one pipeline now. `--model <id>` and `--effort <level>`
+  override one run on either door. Both loop prompts carry a search / fetch
+  budget. Model IDs DO go stale: the config sat on `claude-opus-4-1` for six
+  weeks after that model retired (2026-08-05), so a draft would have failed
+  on its first call. When the pipeline has not run for a while, check the IDs
+  against the current model list before anything bills.
+- **The flag is the door, not the place you type it.** `--bill subscription`
+  in a terminal bills the subscription, and `npm run pipeline:<phase>` typed
+  into Claude Code's shell without it bills the key. When the operator asks
+  for a phase inside Claude Code, run it through its slash command's npm
+  line, `--bill subscription` included.
+- **The slash commands are wrappers.** Each `.claude/commands/pipeline-<phase>.md`
+  (discover, research, check, storyboard, draft, panel, stylist, verify) runs
+  the npm line above in the background and reports the footer. It spawns no
+  agent, pins no model and reads no file list, and it carries
+  `disable-model-invocation`, so only the operator starts one. The old route,
+  which ran the agent inside Claude Code with the repo's `CLAUDE.md` and every
+  tool, and without the check pass, Jev or the ledger, is retired. Spawning a
+  pipeline agent with the Agent tool is that route by another name.
+- **The same diet on both doors** (below). The one difference is the
+  credential. On `api` the runner points the spawned CLI at an empty config
+  directory (`CLAUDE_CONFIG_DIR=.claude-api-home/`, gitignored) and strips
+  every other `CLAUDE_*` and `ANTHROPIC_*` variable, so the key is the only
+  credential it can find. On `subscription` the machine's claude.ai login
+  stays, and the CLI prefers it over the key: the plan's own usage first,
+  then extra usage at API rates. The ledger prices both at list, so a
+  subscription row's dollars are what the run would have cost on the key.
+- **Jev is a standing part** (the operator's ruling of 2026-09-28). The
+  script runs the claim pre-pass before the verifier and the quiz grade after
+  each panel, on both doors, through OpenRouter (`JEV_API_KEY`). A pre-pass,
+  never a gate: a missing key skips it with a `jev:` line and the phase runs
+  on. It spends no Anthropic money (about a cent an issue, on its own ledger,
+  `research/_costs/jev-ledger.jsonl`). Detail: `scripts/README.md`, Jev.
 
 ## Two issues per desk — the flags
 
@@ -54,24 +92,35 @@ Every phase after research finds its input by "most recent file in the
 folder", and two same-day files from one desk sort by slug, not age. Pass
 `--slug <dossier-slug>` to storyboard / draft / panel / stylist / verify and
 `--candidate C-NN` to research (no edit to the candidates file). `--count n`
-fixes how many candidates discovery surfaces. `scripts/README.md` has the
-table.
+fixes how many candidates discovery surfaces. Since 2026-09-28 also
+`--effort`, `--focus` (discovery), `--topup` (research, with `--slug`),
+`--dry-run` (assemble the prompt, send nothing) and `--bill`. The slash
+commands pass every flag through unchanged, except `--bill`, which they
+refuse. `scripts/README.md` has the table.
 
-## Which credential a run bills to — proven, not reported
+## Which credential paid: proven, not reported
 
 **The SDK's init message reports `apiKeySource: ANTHROPIC_API_KEY` whenever
 the env var is set, even when the CLI then bills the operator's claude.ai
 login.** Measured 2026-09-22: with the machine's `~/.claude` in play, a
 BOGUS key still answered "OK" (the login carried it) and the console key
-never moved; with `CLAUDE_CONFIG_DIR` pointed at an empty directory the same
+never moved. With `CLAUDE_CONFIG_DIR` pointed at an empty directory the same
 bogus key got a 401 and the real key answered. Every pipeline run from
 2026-09-16 to 2026-09-22 05:40 UTC (discovery, research, storyboards, three
 drafts, three panels) drew on the subscription's usage and extra usage, not
-the key, until it ran out mid-draft. `scripts/lib/runner.ts` now spawns the
-CLI with `CLAUDE_CONFIG_DIR=.claude-api-home/` (gitignored), so the key is
-the only credential it can find, and every ledger row since carries
-`billedTo`. To re-prove it after an SDK upgrade: run the runner with a bogus
-key and expect a 401 — a success means the login is back in the path.
+the key, until it ran out mid-draft. That is why the `api` door isolates the
+CLI (above), and why every ledger row since carries `billedTo`.
+
+`billedTo` records the door a run was pointed at. The proof of who paid is
+the row's cache split. The CLI writes 5-minute cache entries on an API key
+and 1-hour entries on a subscription login within the plan's usage, and
+nothing in the runner asks for an hour. **The standing trap: a run on `api`
+that writes 1-hour entries means the login is back in the path**, whatever
+`billedTo` says, and the footer prints a red warning. A `subscription` row
+with no 1-hour writes ran on extra usage or was answered by the key: check the
+plan's usage page and console.anthropic.com. To re-prove the `api` door after
+an SDK or CLI upgrade, run the runner with a bogus key and expect a 401. A
+success means the login is back in the path.
 
 ## What a run's context contains
 
@@ -87,7 +136,8 @@ and auto memory by environment, removes every built-in tool the frontmatter
 does not list (`disallowedTools`), runs `permissionMode: 'dontAsk'` with only
 the scoped rules in `ALLOW` (pipeline.config.ts) and the agent's own `allow:`,
 and records any instruction file that still loads in the ledger row
-(`instructionsLoaded`, the canary). Before that date the SDK loaded the root
+(`instructionsLoaded`, the canary). The diet is the same on both doors.
+Before that date the SDK loaded the root
 `CLAUDE.md` + `@AGENTS.md` (about 31k tokens) into every first request and
 handed the agent the operator's local allow rules, `Bash(npm run *)` included
 (measured on 53 transcripts, COST-PLAN §1.3). Writes under `.claude/` are
@@ -139,6 +189,10 @@ Definitions in `.claude/agents/`. A subagent receives the CLAUDE.md hierarchy
 `skills:` frontmatter field. It also does **not** inherit the main
 conversation's auto memory. Give a subagent that should accumulate know-how
 `memory: project` (CD-12), which writes to `.claude/agent-memory/<name>/`.
+
+This describes Claude Code's own subagents. The pipeline's agents do not run
+this way any more: the runner loads their definitions under the diet above,
+through either door, and Claude Code's Agent tool is not a door (2026-09-28).
 
 ## Background loops — two rules from the ones that failed (2026-09-27)
 

@@ -1,11 +1,12 @@
 /**
- * Pipeline model assignments — the API-CLI route's config.
+ * Pipeline model assignments: one config for both doors.
  *
- * This is the single place to tune which model runs each phase ON THE API
- * ROUTE (`npm run pipeline:*`, billed to ANTHROPIC_API_KEY). The Claude Code
- * route pins every phase to Opus via the Agent `model: 'opus'` override and
- * does not read this file — do NOT "optimise" that route to match this split
- * (CLAUDE.md, Claude Code specifics).
+ * This is the single place to tune which model runs each phase. Since the
+ * operator's ruling of 2026-09-28 (COST-PLAN §8) the same script runs behind
+ * both doors, the terminal (`npm run pipeline:*`, billed to ANTHROPIC_API_KEY)
+ * and the slash command (`/pipeline-*`, the same script with
+ * `--bill subscription`), and both read this file. The earlier rule that the
+ * Claude Code route pinned every phase to Opus is retired with that route.
  *
  * Model IDs — current generation, verified live on 2026-09-16 (a one-word
  * call through the Agent SDK answered from each):

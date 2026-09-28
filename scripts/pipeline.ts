@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Parallax pipeline CLI — API-direct runner.
+ * Parallax pipeline CLI: the one script behind both doors (terminal and
+ * slash command).
  *
  * Usage:
  *   npm run pipeline:discover    <category>
@@ -36,8 +37,12 @@
  * session), the stylist guard, applying the check pass's corrections to the
  * dossier behind the dossier guard, and the Jev hooks (CP-06).
  *
- * All agent work bills to ANTHROPIC_API_KEY (from .env.local),
- * not to your Claude Pro plan.
+ * Which wallet pays is the `--bill` flag (the operator's ruling, 2026-09-28):
+ * `api` (default) bills ANTHROPIC_API_KEY from .env.local with the CLI
+ * isolated from the claude.ai login; `subscription` bills the operator's
+ * Claude plan with the key stripped from the CLI's environment. The slash
+ * commands are wrappers that pass `--bill subscription`. The ledger row's
+ * `billedTo` says which door ran.
  */
 
 import { join } from 'path';
@@ -298,10 +303,14 @@ async function main(): Promise<void> {
   const phase    = phaseArg    as Phase;
   const category = categoryArg as Category;
 
-  if (!dryRun && !process.env.ANTHROPIC_API_KEY) {
+  // The API door needs the key. The subscription door needs the machine's
+  // claude.ai login instead, and the runner strips the key from that door's
+  // environment so the two can never be confused (COST-PLAN, 2026-09-29).
+  if (!dryRun && billing === 'api' && !process.env.ANTHROPIC_API_KEY) {
     fail('ANTHROPIC_API_KEY is not set.',
       '1. Copy .env.example → .env.local',
-      '2. Replace the placeholder value with your real key from console.anthropic.com');
+      '2. Replace the placeholder value with your real key from console.anthropic.com',
+      '   (or run with --bill subscription to use the claude.ai login instead)');
   }
 
   // ── Load agent + model ────────────────────────────────────────────────────

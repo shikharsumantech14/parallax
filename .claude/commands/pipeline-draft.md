@@ -1,114 +1,75 @@
 ---
-description: Run the drafter agent for a researched Parallax candidate. Reads the dossier and writes a complete MDX issue file at src/content/issues/<slug>/index.mdx with status draft.
-allowed-tools: Read, Glob, Grep, Write, Agent
-argument-hint: <category — politics | space | earth | tech | travel | sports>
+description: The draft for one desk on your Claude subscription. Runs npm run pipeline:draft <desk> -- --bill subscription and reports its footer. Writes src/content/issues/<date-slug>/index.mdx with status draft, from an approved storyboard.
+argument-hint: <desk> [--slug <slug>] [--model <id>] [--effort <level>] [--dry-run]
+allowed-tools: Bash(npm run pipeline:draft *), Read
+disable-model-invocation: true
 ---
 
 # /pipeline-draft
 
-Step 3 of the Parallax editorial pipeline. Writes a complete draft
-issue MDX file from the research dossier.
+One action: run `npm run pipeline:draft <desk> -- --bill subscription <flags>`
+from the repo root, stream its output, and report its footer. The script is
+the pipeline, the same one a terminal runs: the same agent, the same
+`scripts/pipeline.config.ts` (models, effort, budgets), the same harness diet
+and the same cost ledger. This command does not spawn the agent itself
+(retired 2026-09-28).
 
-## Usage
+This bills your Claude subscription. For the API key, run the same npm script in a terminal without `--bill subscription`.
 
-```
-/pipeline-draft politics
-/pipeline-draft space
-```
+**The phase.** Phase 3. The drafter executes the storyboard (its kinds,
+order, hero, word budgets and head) and writes
+`src/content/issues/<date-slug>/index.mdx` with `status: draft`. The script
+refuses a storyboard that is not `Status: approved` while `GATES.storyboard`
+is `'required'`, and `hold` always stops it. After the draft it runs the
+check round: `check:prose` and the schema check on the file, and one more
+request on the resumed session when either flags something. Flags:
+`--slug <slug>` (the dossier's slug, without the date), `--model <id>`,
+`--effort <level>`, `--dry-run` (assemble the prompt and preview the check
+round, send nothing, bill nothing).
 
-Argument is one of: `politics`, `space`, `earth`, `tech`, `travel`, `sports`.
-
-**Prerequisites:** `/pipeline-research <category>` has produced a dossier
-with `Status: ready-for-draft` (no blocking [UNVERIFIED] items), and
-`/pipeline-storyboard <category>` has produced a storyboard. While
-`GATES.storyboard` in `scripts/pipeline.config.ts` is `'required'`, the
-storyboard must say `Status: approved` (REGISTER-PLAN RG-07); when it is
-`'auto'`, `draft` is enough. `hold` always stops the draft.
-
-## What this does
-
-1. Validates the category argument
-2. Finds the most recent dossier for the category and confirms
-   `Status: ready-for-draft`
-3. Finds the most recent storyboard and checks the gate
-4. Spawns the **drafter** subagent with both paths
-5. The agent reads the dossier, the storyboard, the voice contract and the
-   schema, then writes a complete MDX issue file with `status: draft`,
-   executing the storyboard's kinds, order, hero and word budgets
-6. Returns the file path and a draft summary
-
-## What you do next
-
-1. Run `/pipeline-panel <category>` — the comprehension gate (first pass)
-2. Open `src/content/issues/<slug>/index.mdx` and read it with the panel
-   report beside it — apply its fixes (they are directions, not sentences)
-3. Resolve any `# EDITOR: verify before publish` comments
-4. Run the stylist (`npm run pipeline:stylist <category>`, API-CLI only),
-   then `/pipeline-panel <category>` again (second pass)
-5. Run `/pipeline-verify <category>` for the claim-by-claim audit before
-   flipping to published
-6. Or flip `status: draft → review` if you want to hold it before the
-   verifier pass
-
-## Cost
-
-Each run uses:
-- ~5-10 Read calls (dossier + schema + voice reference issues)
-- One Sonnet pass for writing (high-craft step — do not route to a
-  cheaper model)
-- No WebSearch or WebFetch — drafter works only from the dossier
-
-Approx ₹10-25 per run on Anthropic API direct, or ~2-4% of a
-Claude Pro 5-hour limit window.
+**Next.** `/pipeline-panel <desk> --slug <slug>`, the first pass, then read
+the draft with the panel report beside it and resolve the
+`# EDITOR: verify before publish` comments.
 
 ---
 
 ## Instructions to Claude
 
-The user has invoked `/pipeline-draft` with argument: **$ARGUMENTS**
+The operator invoked `/pipeline-draft` with: **$ARGUMENTS**
 
-1. Validate that **$ARGUMENTS** is one of: politics, space, earth, tech,
-   travel, sports. If not, print the valid options and stop.
+1. The first word of the arguments is the desk. Everything after it is the
+   flags, passed through unchanged, quotes included. If there are no
+   arguments, run nothing and ask for the desk.
+2. If the flags contain `--bill`, run nothing. Say that this command always
+   bills the subscription, and that the API key door is the same npm script
+   in a terminal.
+3. Otherwise run exactly this, once, with the Bash tool, from the repo root,
+   in the background (`run_in_background: true`):
 
-2. Glob `research/$ARGUMENTS/*-dossier.md`. Read the most recent file.
-   Check the header for `Status: ready-for-draft`.
-   - If no dossier exists: tell the user to run
-     `/pipeline-research $ARGUMENTS` first.
-   - If status is not `ready-for-draft`: tell the user to review the
-     dossier and confirm it's ready.
+   ```
+   npm run pipeline:draft <desk> -- --bill subscription <flags>
+   ```
 
-3. Glob `research/$ARGUMENTS/*-storyboard.md` and read the most recent
-   file's `- **Status:**` line. Read `GATES.storyboard` from
-   `scripts/pipeline.config.ts`.
-   - If no storyboard exists: tell the user to run
-     `/pipeline-storyboard $ARGUMENTS` first.
-   - If the status is `hold`: stop and say the storyboard is on hold.
-   - If the gate is `'required'` and the status is not `approved`: stop and
-     tell the user to read the storyboard and flip `Status: approved`.
+   A phase takes 2 to 18 minutes (the trial's draft took 17), longer than a
+   foreground call may last, so start it in the background: a run cut off
+   midway writes no ledger row. Do not read files, validate the desk, check the
+   storyboard gate or spawn an agent first: the script checks everything
+   itself before it spends anything, and exits with a message when something
+   is missing.
+4. Tell the operator the run has started and where its output is going.
+   While it runs, stream it: follow the output file if your tools can watch
+   a background task, and read it whenever the operator asks.
+5. When it exits, report from its output, quoting rather than paraphrasing:
+   - the `bills to:` line of the header,
+   - the outcome (`done` or `stopped: …`) and the exit code,
+   - the issue file it wrote, every `check round:` line (the flags, whether
+     the second request resumed the session, what remains for the operator)
+     and the agent's closing summary,
+   - the footer: the `cost:`, `tokens:`, `prefix:`, `duration:` and
+     `ledger:` lines, and any `denied:` or `warning:` line.
 
-4. Spawn the **drafter** subagent — pinned to **Opus** (`model: 'opus'`) per
-   the Claude Code route policy in `CLAUDE.md` — with this prompt:
-
-   > You are the Drafter Agent for Parallax. Your full agent definition
-   > is at `.claude/agents/drafter.md` — read it first.
-   >
-   > Write a complete draft issue from this dossier:
-   > `research/$ARGUMENTS/<dossier-filename>`
-   >
-   > Execute this storyboard — it fixes the kinds, the order, the hero, the
-   > word budgets and the head:
-   > `research/$ARGUMENTS/<storyboard-filename>`
-   >
-   > Follow all rules in your agent definition exactly. Write the
-   > output to `src/content/issues/<id>/index.mdx` where `<id>`
-   > matches the dossier slug and today's date.
-   >
-   > Working directory: D:\SideProjects\parallax
-   >
-   > Return: file path, issue title + hook, section count + read time,
-   > any [UNVERIFIED] items omitted or flagged, any place the draft departs
-   > from the storyboard and why.
-
-5. When the subagent finishes, relay its summary to the user. Include
-   the file path so the user can open it directly, and point them to
-   `/pipeline-panel $ARGUMENTS` as the next step.
+   A `--dry-run` prints an inventory instead of a header and a footer: report
+   its size and the check round's preview, and say that nothing was sent and
+   no ledger row was written.
+6. Stop there. Do not re-run a failed phase, do not switch `--bill` to finish
+   one, and do not start the next phase. Add no editorial comment.

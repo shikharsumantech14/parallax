@@ -1,38 +1,38 @@
 ---
-description: The storyboard for one desk on your Claude subscription. Runs npm run pipeline:storyboard <desk> -- --bill subscription and reports its footer. Writes research/<desk>/<date>-<slug>-storyboard.md with Status draft, for you to approve before /pipeline-draft.
+description: The stylist for one desk on your Claude subscription. Runs npm run pipeline:stylist <desk> -- --bill subscription and reports its footer. Rewrites the issue's prose into the voice contract, behind the stylist guard.
 argument-hint: <desk> [--slug <slug>] [--model <id>] [--effort <level>] [--dry-run]
-allowed-tools: Bash(npm run pipeline:storyboard *), Read
+allowed-tools: Bash(npm run pipeline:stylist *), Read
 disable-model-invocation: true
 ---
 
-# /pipeline-storyboard
+# /pipeline-stylist
 
-One action: run `npm run pipeline:storyboard <desk> -- --bill subscription <flags>`
+One action: run `npm run pipeline:stylist <desk> -- --bill subscription <flags>`
 from the repo root, stream its output, and report its footer. The script is
 the pipeline, the same one a terminal runs: the same agent, the same
 `scripts/pipeline.config.ts` (models, effort, budgets), the same harness diet
-and the same cost ledger. This command does not spawn the agent itself
-(retired 2026-09-28).
+and the same cost ledger. This command does not spawn the agent itself.
 
 This bills your Claude subscription. For the API key, run the same npm script in a terminal without `--bill subscription`.
 
-**The phase.** Phase 2.5 (REGISTER-PLAN RG-07). The composer reads the
-dossier and its check report and writes
-`research/<desk>/<date>-<slug>-storyboard.md` with `Status: draft`: every
-point the reader must get, the kind that shows it, the word budgets, the
-head, the Indian ground and the three quiz questions. Flags: `--slug <slug>`
-(the dossier's slug, without the date), `--model <id>`, `--effort <level>`,
-`--dry-run` (assemble the prompt, send nothing, bill nothing).
+**The phase.** Phase 3.5, between the two panel passes. The stylist rewrites
+the issue's prose fields into the runtime voice contract
+(`research/_voice/_voice-core.md` v2) with the latest panel report in hand,
+and assigns one rhetorical job per section. Facts, numbers, quotes and every
+structured data field stay as they are, and the script enforces it: the
+stylist guard compares every field outside the stylist's list with the issue
+as it stood before the run, and on any change restores the issue, keeps the
+stylist's version as `_index.rejected.mdx` and exits 4. Flags:
+`--slug <slug>`, `--model <id>`, `--effort <level>`, `--dry-run` (assemble
+the prompt, send nothing, bill nothing).
 
-**Next.** Read the table, edit a row if needed, and flip `Status: approved`
-(or `hold`). While `GATES.storyboard` in `scripts/pipeline.config.ts` is
-`'required'`, the draft refuses anything else. Then `/pipeline-draft`.
+**Next.** `/pipeline-panel <desk> --slug <slug>`, the second pass.
 
 ---
 
 ## Instructions to Claude
 
-The operator invoked `/pipeline-storyboard` with: **$ARGUMENTS**
+The operator invoked `/pipeline-stylist` with: **$ARGUMENTS**
 
 1. The first word of the arguments is the desk. Everything after it is the
    flags, passed through unchanged, quotes included. If there are no
@@ -44,7 +44,7 @@ The operator invoked `/pipeline-storyboard` with: **$ARGUMENTS**
    in the background (`run_in_background: true`):
 
    ```
-   npm run pipeline:storyboard <desk> -- --bill subscription <flags>
+   npm run pipeline:stylist <desk> -- --bill subscription <flags>
    ```
 
    A phase takes 2 to 18 minutes (the trial's draft took 17), longer than a
@@ -58,8 +58,9 @@ The operator invoked `/pipeline-storyboard` with: **$ARGUMENTS**
 5. When it exits, report from its output, quoting rather than paraphrasing:
    - the `bills to:` line of the header,
    - the outcome (`done` or `stopped: …`) and the exit code,
-   - the storyboard it wrote and the agent's closing summary, and that the
-     draft waits for `Status: approved`,
+   - the `stylist guard:` line (the prose fields it changed, or what it
+     refused and where the rejected version is) and the agent's closing
+     summary,
    - the footer: the `cost:`, `tokens:`, `prefix:`, `duration:` and
      `ledger:` lines, and any `denied:` or `warning:` line.
 

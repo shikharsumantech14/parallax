@@ -11,24 +11,36 @@
 
 ## Claude Code specifics
 
-- **Slash commands available:** `/pipeline-discover`, `/pipeline-research`,
-  `/pipeline-storyboard`, `/pipeline-draft`, `/pipeline-panel`,
-  `/pipeline-verify`. The stylist phase is API-CLI only
-  (`npm run pipeline:stylist <category>`). The storyboard gate
-  (`GATES.storyboard` in `scripts/pipeline.config.ts`) is read by both routes.
+- **Slash commands are wrappers (2026-09-28):** `/pipeline-discover`,
+  `/pipeline-research`, `/pipeline-check`, `/pipeline-storyboard`,
+  `/pipeline-draft`, `/pipeline-panel`, `/pipeline-stylist`,
+  `/pipeline-verify`. Each runs its phase's npm script with
+  `--bill subscription` in the background and reports the footer, nothing
+  else. It spawns no agent, and it carries `disable-model-invocation`, so
+  only the operator starts one.
+
+  **Two doors, one pipeline (ruled 2026-09-28).** The API door is a terminal:
+  `npm run pipeline:<phase> <desk> -- <flags>` bills `ANTHROPIC_API_KEY`. The
+  Claude Code door is the slash command: `/pipeline-<phase> <desk> <flags>`
+  runs `npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and
+  bills your Claude subscription. Same script, same agents, same
+  `scripts/pipeline.config.ts`: the door decides only which wallet pays, and
+  the ledger row's `billedTo` says which.
 - **Agent definitions** live in `.claude/agents/<name>.md` (discovery,
-  researcher, drafter, stylist, verifier). Spawning an agent in Claude
-  Code routes the cost through the Claude Pro/Max budget. To bill the API key
-  instead, use the `npm run pipeline:<phase>` scripts.
-- **Model policy by route — do NOT "optimise" this back to the cheap split.**
-  The `scripts/pipeline.config.ts` Sonnet/Opus split (discovery/researcher/
-  verifier → Sonnet, drafter/stylist → Opus) applies **only to the API-CLI
-  route**. When running the pipeline **from Claude Code** (subscription budget),
-  pin **every** phase — discovery, researcher, drafter, stylist, verifier — to
-  **Opus (max tier)** via the Agent `model: 'opus'` override. The subscription
-  absorbs the cost, so use the best model for all phases — never drop to Sonnet
-  on the Claude Code route. Leave `pipeline.config.ts` unchanged (it's the
-  API-route config the operator uses).
+  researcher, dossier-check, composer, drafter, reader-panel, stylist,
+  verifier). The runner loads them under the harness diet. Claude Code also
+  lists them as subagent types, but spawning one with the Agent tool is the
+  retired route: this file and every tool come along, and the check pass,
+  Jev and the ledger do not. When the operator asks you for a phase, run its
+  npm script with `--bill subscription` (the Claude Code door) unless they
+  name the key, and run it in the background: a phase can outlast a
+  foreground call.
+- **One config, two wallets (the operator's ruling of 2026-09-28).**
+  `scripts/pipeline.config.ts` (models, effort, budgets) rules every run on
+  both doors. The old rule that the Claude Code route runs every phase on
+  Opus is retired, so add no model override on this door unless the operator
+  asks for a `--model` run. The storyboard gate (`GATES.storyboard`) is the
+  script's, so it holds on both doors.
 - **Working directory** for all pipeline operations: `D:\SideProjects\parallax`
   (Windows). PowerShell does not chain commands with `&&`; use `;` or
   `; if ($?) { ... }`.

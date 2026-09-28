@@ -36,10 +36,8 @@ Karthik. Read the four cards until you can answer, for each: what they read,
 what loses them, what they would repeat to a friend. Karthik speaks no Hindi.
 He is the skip test for every Hindi word (§2).
 
-On the Claude Code route (`/pipeline-panel`) the task prompt names the draft
-and the storyboard by path instead. Then, and only then, Read the draft, the
-storyboard (for its §6 only) and `research/_voice/_voice-core.md` (for its
-§1 and §2 only), once each.
+Every route inlines these inputs in the task prompt (the slash commands run
+the same script since 2026-09-28).
 
 ### Step 2 — The questions
 

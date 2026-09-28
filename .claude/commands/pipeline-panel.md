@@ -1,81 +1,77 @@
 ---
-description: Run the reader-panel agent on a Parallax draft issue. Four Indian reader personas read the draft cold, answer the storyboard's three quiz questions from the draft alone, retell every section in one line and quote the sentence that lost them; the report at research/<category>/<date>-<slug>-panel.md carries a PASS / REVISE / BLOCK verdict. Run after /pipeline-draft and again after the stylist.
-allowed-tools: Read, Glob, Grep, Write, Agent
-argument-hint: <category — politics | space | earth | tech | travel | sports>
+description: The reader panel for one desk on your Claude subscription. Runs npm run pipeline:panel <desk> -- --bill subscription and reports its footer. Four Indian reader personas read the draft cold and answer the storyboard's quiz for a PASS, REVISE or BLOCK verdict, with the Jev quiz grade beside it. Run after the draft and again after the stylist.
+argument-hint: <desk> [--slug <slug>] [--model <id>] [--effort <level>] [--dry-run]
+allowed-tools: Bash(npm run pipeline:panel *), Read
+disable-model-invocation: true
 ---
 
 # /pipeline-panel
 
-The comprehension gate (REGISTER-PLAN RG-12, 2026-09-13). Runs twice per
-issue: after the draft, before the stylist; and again after the stylist.
+One action: run `npm run pipeline:panel <desk> -- --bill subscription <flags>`
+from the repo root, stream its output, and report its footer. The script is
+the pipeline, the same one a terminal runs: the same agent, the same
+`scripts/pipeline.config.ts` (models, effort, budgets), the same harness diet
+and the same cost ledger. This command does not spawn the agent itself
+(retired 2026-09-28).
 
-## Usage
+This bills your Claude subscription. For the API key, run the same npm script in a terminal without `--bill subscription`.
 
-```
-/pipeline-panel sports
-```
+**The phase.** The comprehension gate (REGISTER-PLAN RG-12), twice per issue.
+Four reader personas read the draft cold, answer the storyboard's three
+questions from the draft alone, retell every section and quote the sentence
+that lost them. The script picks the pass itself: the first run on an issue
+writes `research/<desk>/<date>-<slug>-panel.md`, any later run the second
+pass, `…-panel-2.md`. A `--pass second` flag is passed through and ignored
+here (it belongs to `npm run jev:panel`). After the panel the script runs the
+Jev quiz grade, which re-grades every answer beside the panel's own grades
+and writes `….jev.md`. Advisory only, never the verdict. Without a Jev key it
+is skipped with a note. Flags: `--slug <slug>`, `--model <id>`,
+`--effort <level>`, `--dry-run` (assemble the prompt, send nothing, bill
+nothing).
 
-Argument is one of: `politics`, `space`, `earth`, `tech`, `travel`, `sports`.
-
-**Prerequisite:** a draft issue for the category exists in
-`src/content/issues/`, and its storyboard (with §6, the three questions)
-exists in `research/<category>/`.
-
-## What this does
-
-1. Validates the category argument
-2. Finds the most recent draft issue for the category and its storyboard
-3. Spawns the **reader-panel** subagent with both paths
-4. The agent reads the draft as each of the four personas, answers the quiz
-   from the draft alone, retells each section, quotes the lost sentences,
-   scores, and writes the report
-5. Returns the verdict, the quiz results, the weakest sections and the top
-   three fixes
-
-## What you do next
-
-- **PASS** — run the stylist (or, on the second pass, the verifier).
-- **REVISE** — apply the fixes (they are directions, not sentences), then
-  re-run.
-- **BLOCK** — the draft is not teaching its own argument; go back to the
-  storyboard or the draft before spending anything else.
+**Next.** PASS: `/pipeline-stylist` (first pass) or `/pipeline-verify`
+(second pass). REVISE: apply the fixes, they are directions, not sentences.
+BLOCK: back to the storyboard or the draft before anything else is spent.
 
 ---
 
 ## Instructions to Claude
 
-The user has invoked `/pipeline-panel` with argument: **$ARGUMENTS**
+The operator invoked `/pipeline-panel` with: **$ARGUMENTS**
 
-1. Validate that **$ARGUMENTS** is one of: politics, space, earth, tech,
-   travel, sports. If not, print the valid options and stop.
+1. The first word of the arguments is the desk. Everything after it is the
+   flags, passed through unchanged, quotes included. If there are no
+   arguments, run nothing and ask for the desk.
+2. If the flags contain `--bill`, run nothing. Say that this command always
+   bills the subscription, and that the API key door is the same npm script
+   in a terminal.
+3. Otherwise run exactly this, once, with the Bash tool, from the repo root,
+   in the background (`run_in_background: true`):
 
-2. Find the most recent `src/content/issues/<slug>/index.mdx` whose
-   frontmatter has `topic: $ARGUMENTS` and `status: draft`. If none: tell the
-   user to run `/pipeline-draft $ARGUMENTS` first.
+   ```
+   npm run pipeline:panel <desk> -- --bill subscription <flags>
+   ```
 
-3. Glob `research/$ARGUMENTS/*-storyboard.md` and take the most recent. If
-   none: tell the user to run `/pipeline-storyboard $ARGUMENTS` first — the
-   panel needs its three questions.
+   A phase takes 2 to 18 minutes (the trial's draft took 17), longer than a
+   foreground call may last, so start it in the background: a run cut off
+   midway writes no ledger row. Do not read files, validate the desk, work out
+   the pass or spawn an agent first: the script does all of that itself
+   before it spends anything, and exits with a message when something is
+   missing.
+4. Tell the operator the run has started and where its output is going.
+   While it runs, stream it: follow the output file if your tools can watch
+   a background task, and read it whenever the operator asks.
+5. When it exits, report from its output, quoting rather than paraphrasing:
+   - the `bills to:` line of the header,
+   - the outcome (`done` or `stopped: …`) and the exit code,
+   - the report it wrote and the agent's closing summary: the verdict, one
+     line per quiz question, the weakest sections, the top fixes,
+   - the `jev:` line: the quiz grade's file and its agreement with the
+     panel, or why Jev was skipped,
+   - the footer: the `cost:`, `tokens:`, `prefix:`, `duration:` and
+     `ledger:` lines, and any `denied:` or `warning:` line.
 
-4. Ask nothing else. Spawn the **reader-panel** subagent — pinned to **Opus**
-   (`model: 'opus'`) per the Claude Code route policy in `CLAUDE.md` — with:
-
-   > You are the Reader Panel for Parallax. Your full agent definition is at
-   > `.claude/agents/reader-panel.md` — read it first.
-   >
-   > Read this draft: `src/content/issues/<slug>/index.mdx`
-   > The storyboard with the three questions: `research/$ARGUMENTS/<storyboard-filename>`
-   > This is the <first | second> pass.
-   >
-   > Follow all rules in your agent definition exactly. Write the report to
-   > `research/$ARGUMENTS/<today>-<slug>-panel.md`.
-   >
-   > Working directory: D:\SideProjects\parallax
-   >
-   > Return: the verdict, one line per quiz question, the three lowest-scoring
-   > sections, and the top three fixes.
-
-   Say "first pass" if no panel report for this slug exists yet, otherwise
-   "second pass".
-
-5. Relay the verdict and the summary to the user with the report path.
+   A `--dry-run` prints an inventory instead of a header and a footer: report
+   its size and say that nothing was sent and no ledger row was written.
+6. Stop there. Do not re-run a failed phase, do not switch `--bill` to finish
+   one, and do not start the next phase. Add no editorial comment.

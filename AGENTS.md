@@ -73,15 +73,24 @@ npm run preview           # serve .vercel/output/static — the 45 prerendered
                           # for those. `astro preview` cannot run under the
                           # Vercel adapter at all; this replaced it.
 npm run new-issue         # scaffold a new issue folder
-npm run pipeline:discover    <category>    # Phase 1 — discovery agent
-npm run pipeline:research    <category>    # Phase 2 — researcher agent
-npm run pipeline:storyboard  <category>    # Phase 2.5 — composer agent (you approve the storyboard)
-npm run pipeline:draft       <category>    # Phase 3 — drafter agent (refuses an unapproved storyboard)
-npm run pipeline:panel       <category>    # Phase 3.2 / 3.7 — reader-panel agent, the comprehension gate
-npm run pipeline:stylist     <category>    # Phase 3.5 — stylist agent
-npm run pipeline:verify      <category>    # Phase 4 — verifier agent
-#   flags (2026-09-16): -- --slug <s> (storyboard…verify) · --candidate C-NN
-#   (research) · --model <id> · --count <n> (discover) — two issues per desk
+npm run pipeline:discover    <category>    # Phase 1, discovery agent
+npm run pipeline:research    <category>    # Phase 2, researcher agent
+npm run pipeline:check       <category>    # Phase 2.2, the dossier check pass (the script applies its corrections)
+npm run pipeline:storyboard  <category>    # Phase 2.5, composer agent (you approve the storyboard)
+npm run pipeline:draft       <category>    # Phase 3, drafter agent (refuses an unapproved storyboard)
+npm run pipeline:panel       <category>    # Phase 3.2 / 3.7, reader-panel agent, then the Jev quiz grade
+npm run pipeline:stylist     <category>    # Phase 3.5, stylist agent, behind the stylist guard
+npm run pipeline:verify      <category>    # Phase 4, the Jev pre-pass, then the verifier agent
+#   flags (2026-09-16): -- --slug <s> (check…verify) · --candidate C-NN
+#   (research) · --model <id> · --count <n> (discover), two issues per desk.
+#   (2026-09-28): --effort <level> · --focus "<subject>" (discover) · --topup
+#   (research, with --slug) · --dry-run (assemble the prompt, send nothing)
+#   · --bill api|subscription (which wallet pays, api by default)
+npm run jev:verify           -- --slug <s> # Jev on its own: the claim pre-pass
+npm run jev:panel            -- --slug <s> # the quiz grade (--pass second for the -panel-2 report)
+npm run jev:pilot            -- --slug <s> # Jev read against an issue already verified
+                          # (TypeSafe's decision model through OpenRouter, billed
+                          # to JEV_API_KEY only, about a cent an issue)
 npm run pipeline:costs       [-- --since <date> | --category <cat>]
                           # what each agent ACTUALLY cost per issue, dollars and
                           # tokens, from research/_costs/ledger.jsonl (every run appends)
@@ -94,10 +103,19 @@ npm run check:render         [-- --slug <s> --widths 1280,375 --report]
                           # research/_ui/<date>/. Exit 1 on a blocking finding.
 ```
 
-The pipeline scripts bill to your `ANTHROPIC_API_KEY` (loaded from
-`.env.local`, which is gitignored). They do **not** consume the Claude Pro
-token budget. Same agents are also invoked as `/pipeline-<phase>` slash
-commands inside Claude Code — those routes through Pro.
+**Two doors, one pipeline (ruled 2026-09-28).** The API door is a terminal:
+`npm run pipeline:<phase> <desk> -- <flags>` bills `ANTHROPIC_API_KEY`. The
+Claude Code door is the slash command: `/pipeline-<phase> <desk> <flags>`
+runs `npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and
+bills your Claude subscription. Same script, same agents, same
+`scripts/pipeline.config.ts`: the door decides only which wallet pays, and
+the ledger row's `billedTo` says which.
+
+The key lives in `.env.local` (gitignored). Each `/pipeline-<phase>` is a
+wrapper around its npm script since 2026-09-28: it spawns no agent and
+changes no model, budget or step. How to prove which credential paid, and
+the one trap that matters: `scripts/README.md` ("Two doors, one pipeline")
+and `.claude/rules/pipeline-scripts.md`.
 
 **JS budget: rich on issues, lean everywhere else** (2026-07-05 policy). No
 framework, no client bundle; everything is tiny vanilla `is:inline` islands
@@ -281,8 +299,10 @@ supabase/migrations/           ← the operator applies these; writing one does 
 research/                      ← editorial pipeline working space (see research/AGENTS.md)
 .claude/agents/                ← agent system prompts (discovery, researcher,
                                   drafter, stylist, verifier)
-.claude/commands/              ← slash-command definitions that spawn the agents
-scripts/                       ← pipeline CLI (tsx-driven, bills to API key)
+.claude/commands/              ← slash-command wrappers that run the npm
+                                  script with --bill subscription
+scripts/                       ← pipeline CLI (tsx-driven), bills the API
+                                  key by default, the subscription with --bill subscription
                                   + check-catalog.mjs, design-sync.mjs,
                                   story/og.ts + og-card.ts (the `prebuild` hook
                                   and the link-preview card it renders)
@@ -343,6 +363,10 @@ holds two control gates; agents do everything else.
    ↓
 4. YOU REVIEW DOSSIER                  ← check [UNVERIFIED] items
    ↓
+4.5 /pipeline-check <category>        → research/<cat>/<date>-<slug>-check.md
+                                          (CLEAN / CORRECTIONS / BLOCKED, its
+                                          corrections applied to the dossier)
+   ↓
 5. /pipeline-draft <category>         → src/content/issues/<slug>/index.mdx
                                           (status: draft)
    ↓
@@ -350,37 +374,60 @@ holds two control gates; agents do everything else.
    ↓
 7. /pipeline-stylist <category>       → rhetorical-mode rewrites of prose
    ↓
-8. /pipeline-verify <category>        → research/<cat>/<date>-<slug>-verification.md
+8. /pipeline-verify <category>        → the Jev pre-pass (…-jevpass.md), then
+                                          research/<cat>/<date>-<slug>-verification.md
    ↓
 9. YOU AUDIT + PUBLISH                 ← read report, fix residuals,
                                           flip status to published, commit
 ```
 
 **Since 2026-09-13 (`docs/REGISTER-PLAN.md`) the diagram above has three more
-stops.** Between 4 and 5: `/pipeline-storyboard` writes
+stops.** Between 4.5 and 5: `/pipeline-storyboard` writes
 `research/<cat>/<date>-<slug>-storyboard.md` (every point the reader must
-get → the kind that shows it, from all 101 by data shape; the hero; the word
-budgets; the head; the three quiz questions) and **you approve it** — the
+get → the kind that shows it, from all 101 by data shape, the hero, the word
+budgets, the head, the three quiz questions) and **you approve it**. The
 gate is `GATES.storyboard` in `scripts/pipeline.config.ts`, `'required'` for
 the first ten issues, `'auto'` after. After 5 and again after 7:
-`/pipeline-panel` — four Indian reader personas read the draft cold, answer
-the three questions from the draft alone, and return PASS / REVISE / BLOCK.
-Before 9: `npm run check:prose -- <slug>`. The full v2 sequence is in
+`/pipeline-panel`, where four Indian reader personas read the draft cold,
+answer the three questions from the draft alone, and return PASS / REVISE /
+BLOCK. Before 9: `npm run check:prose -- <slug>`. The full v2 sequence is in
 `research/AGENTS.md` §2.
 
-Agents live in `.claude/agents/`; slash commands in `.claude/commands/`
-(`/pipeline-discover|research|storyboard|draft|panel|verify`; the stylist is
-API-CLI only).
+**Since 2026-09-28 (`docs/COST-PLAN.md`)** the check pass follows research
+(4.5 above). It recomputes the dossier's derived numbers and confirms its
+anchors in a clean context, and the script applies its corrections to the
+dossier. A BLOCKED check sends the dossier back to
+`/pipeline-research <category> --topup --slug <slug>`. **Jev runs inside two
+phases: `/pipeline-panel` re-grades the quiz answers after the panel, and
+`/pipeline-verify` scores every claim against the dossier before the verifier
+reads it. It is a pre-pass, never a gate, and a missing `JEV_API_KEY` skips
+it with a warning.**
+
+Agents live in `.claude/agents/`. The slash commands in `.claude/commands/`
+(`/pipeline-discover|research|check|storyboard|draft|panel|stylist|verify`)
+are wrappers since 2026-09-28: each runs
+`npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and reports
+the footer. The stylist has one now too, so every phase starts from either
+door.
 
 **Two hard rules that have been broken before:**
 
-- **Cost.** A full pipeline run is **$3–7** on the API-CLI route at the
-  September 2026 rates (it was $6–14 on the previous model generation) and
-  the root `.env.local` exists, so `npm run pipeline:*` really executes and
-  really bills. Never run one to test something.
-- **Model routing.** The Claude Code route pins **every** phase to Opus.
-  `scripts/pipeline.config.ts`'s Sonnet/Opus split is the API-CLI config —
-  **do not "optimise" the Claude Code route to match it.**
+- **Cost.** A full issue measured **$20.40** at list on the trial of
+  2026-09-28, the first on the cost plan's pipeline, against a corrected
+  baseline of $31.41 an issue before it. Like for like, without the three
+  phases the old pipeline did not have, it was $14.70, a 55% cut.
+  `npm run pipeline:costs` has the current figure. The root `.env.local`
+  exists, so `npm run pipeline:*` really executes and really bills, and so
+  does every `/pipeline-<phase>`, on the subscription. Never run one to test
+  something: `--dry-run` assembles the prompt and sends nothing.
+- **One config, two wallets.** `scripts/pipeline.config.ts` (models, effort,
+  budgets) rules every run on both doors, by the operator's ruling of
+  2026-09-28. The Claude Code route's old all-Opus pin is retired. The door
+  decides only who pays: a terminal run bills the API key, a slash command
+  (the same script with `--bill subscription`) bills the subscription.
+  **Never spawn a pipeline agent with the Agent tool**: that runs it outside
+  the pipeline, with `CLAUDE.md` loaded and no check pass, no Jev and no
+  ledger row.
 
 **No raster imagery** — the publication is type- and data-viz-led. No cover
 photos, no AI covers, no image service in the pipeline.
@@ -761,6 +808,79 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-28 — The cost plan lands: one pipeline, two wallets, a check pass, Jev
+
+`docs/COST-PLAN.md` v0.1 was signed (CP-01 to CP-10) and built the same day
+(`b31ae68`, `1f2071b`), and one trial issue ran through every phase of it
+(sports, the Manchester City verdict, `df7d747`). The plan started from a
+measurement: the bill was about $31 an issue at list, and 61% of it was four
+"short" writing passes that each made 18 to 41 requests, every one of them
+re-reading a fixed prefix of about 57,000 tokens that the Claude Code harness
+put in front of a 3,000-token agent prompt. About 31,000 of those tokens were
+this repo's `CLAUDE.md` and `AGENTS.md`.
+
+**What changed.**
+
+- **The harness diet.** `scripts/lib/runner.ts` runs every agent with
+  `settingSources: []`, only the tools its frontmatter lists,
+  `permissionMode: 'dontAsk'`, and an effort level and a dollar cap per
+  phase. The first request fell from about 57k tokens (54.6k to 58.5k
+  measured) to 4,199, and no `CLAUDE.md` reaches the model.
+- **Single-shot passes.** The script assembles each pass's inputs, the agent
+  answers once and writes one file, and the script does the rest: the
+  draft's check round (`check:prose` and the schema check, then one more
+  request on the resumed session when either flags), the stylist guard, the
+  dossier guard.
+- **The check pass**, `pipeline:check`, after research and before the
+  storyboard. It recomputes every derived number and confirms every anchor,
+  and the script applies its corrections to the dossier. `--topup --slug` on
+  research answers a BLOCKED check.
+- **Jev**, TypeSafe's decision model through OpenRouter, inside two phases:
+  the claim pre-pass before the verifier and the quiz grade after each
+  panel. A pre-pass, never a gate. A missing key skips it with a warning.
+- **The ledger priced at list**, from each run's token split and its
+  5-minute and 1-hour cache writes, with `billedTo` on every row.
+
+**Measured on the trial issue:** $20.40 at list for every phase, 69 requests
+in 79 agent-minutes. Like for like, without the three phases the old pipeline
+did not have (two check passes and a top-up, $5.70), it cost $14.70, a 55%
+cut on the September sports issue ($31 to $34). The verifier found **0
+untraced claims** (43 ✅ · 20 ⚠️ · 0 ❌, against 15 ❌ and BLOCKED in
+September), and no dossier error reached it: the check pass had corrected
+six numbers before the storyboard was drawn. Both panels returned REVISE
+with every quiz question right for all four readers. Jev's 71 calls cost
+$0.0024 and changed no verdict. The plan's estimate of $11 to $12 was not
+reached: the single-shot passes write more output, and their assembled
+prompts run about a third larger, than it assumed. The per-phase table is
+COST-PLAN §12.2.
+
+**Two things these docs had wrong.** The rules said the pipeline's agents
+never saw `CLAUDE.md`. They did, on every first request until the diet,
+together with the operator's local allow rules, `Bash(npm run *)` among
+them. And until 2026-09-22 05:40 UTC every API-route run drew on the
+subscription, not the key, while the SDK reported the key as its source.
+
+**The operator's rulings, the same day. Do not restore what they replaced:**
+
+1. **The slash route is retired.** `/pipeline-<phase>` used to run the agent
+   inside Claude Code, where Claude Code loads this file and every tool, and
+   where the check pass, Jev and the ledger do not exist. Each command is now
+   a wrapper: it runs `npm run pipeline:<phase> <desk> -- --bill subscription
+   <flags>` in the background and reports the footer. `/pipeline-check` and
+   `/pipeline-stylist` joined them. The commands carry
+   `disable-model-invocation`, so only the operator starts one.
+2. **One config for both routes, two wallets.** `scripts/pipeline.config.ts`
+   (models, effort, budgets) rules every run on both doors, and the Claude
+   Code route's all-Opus pin is retired. The door decides only who pays,
+   `billedTo` records it, and the cache split proves it: a run on `api` that
+   writes 1-hour cache entries has the login back in its path.
+3. **An official record sits outside the 40% publisher floor**, written up in
+   its own change the same day.
+4. **Jev stays**, as a standing part of the pipeline, never a gate.
+
+The detail: COST-PLAN §12, `scripts/README.md` ("Two doors, one pipeline" and
+"Jev"), `.claude/rules/pipeline-scripts.md`.
 
 ### 2026-09-27 — The June background loops retired
 

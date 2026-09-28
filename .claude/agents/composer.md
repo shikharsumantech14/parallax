@@ -43,8 +43,9 @@ read it, Read that file once and Write again.
 
 1. **The dossier.** Read every section: §1 the structural argument, §4 the
    facts and data, §5 the quotes, §7 the suggested structure, §9 the
-   researcher's notes on what could NOT be sourced, and §10 when a check pass
-   corrected it.
+   researcher's notes on what could NOT be sourced, and the `Check pass`
+   section at the end (§10 on a first pass, later after a top-up) when a
+   check pass corrected it.
 2. **`research/_voice/_voice-core.md`**, the runtime voice contract. Your
    one-line beat descriptions, the head, and the quiz are written in its
    register (plain Indian English, a Hindi word only where it is the natural
@@ -70,10 +71,8 @@ read it, Read that file once and Write again.
    three kinds.
 10. **Your memory digest** (`.claude/agent-memory/composer/DIGEST.md`).
 
-On the Claude Code route (`/pipeline-storyboard`) the task prompt names the
-dossier by path instead of inlining it. Then, and only then, Read the dossier
-and each file above once, at the paths given, and skip item 9 (you cannot
-list the other storyboards without a search tool). Say so in §8.
+Every route inlines these inputs in the task prompt (the slash commands run
+the same script since 2026-09-28).
 
 ### Step 2 — List the beats
 

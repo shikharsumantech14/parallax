@@ -67,9 +67,8 @@ Write call) are already in it. Only when the session cannot be resumed does
 the round arrive as a fresh prompt carrying every input again, plus YOUR
 FIRST DRAFT and the GATE FLAGS.
 
-On the Claude Code route (`/pipeline-draft`) the task prompt names the dossier
-and the storyboard by path instead of inlining them. Then, and only then,
-Read each input above once, at its path, the catalog blocks included.
+Every route inlines these inputs in the task prompt (the slash commands run
+the same script since 2026-09-28).
 
 ### Step 2 — Plan from the storyboard
 

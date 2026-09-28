@@ -22,12 +22,24 @@ research/
 │   └── sports.md
 ├── _templates/                     ← shapes that pipeline outputs follow
 │   ├── candidate.md                ← candidate list shape (one block per topic candidate)
-│   └── dossier.md                  ← researcher output shape
+│   ├── dossier.md                  ← researcher output shape
+│   ├── storyboard.md               ← composer output shape
+│   └── check.md                    ← dossier check pass output shape
 ├── _voice/
+│   ├── _voice-core.md              ← the runtime voice contract, v2
+│   ├── hinglish-lexicon.md         ← the Hindi-word rules and spellings
+│   ├── jargon.md                   ← the glossed-term list
 │   └── mode-library.md             ← 8 rhetorical modes + AI-tell catalog
 └── <topic>/                        ← per-topic working folder
     ├── YYYY-MM-DD-candidates.md            ← discovery output (Phase 1)
     ├── YYYY-MM-DD-<slug>-dossier.md        ← researcher output (Phase 2)
+    ├── YYYY-MM-DD-<slug>-check.md          ← dossier check pass output (Phase 2.2)
+    ├── YYYY-MM-DD-<slug>-storyboard.md     ← composer output (Phase 2.5)
+    ├── YYYY-MM-DD-<slug>-panel.md          ← reader-panel output, first pass (Phase 3.2)
+    ├── YYYY-MM-DD-<slug>-panel.jev.md      ← Jev's quiz grade on the first pass
+    ├── YYYY-MM-DD-<slug>-panel-2.md        ← reader-panel output, second pass (Phase 3.7)
+    ├── YYYY-MM-DD-<slug>-panel-2.jev.md    ← Jev's quiz grade on the second pass
+    ├── YYYY-MM-DD-<slug>-jevpass.md        ← Jev's claim pre-pass, before the verifier
     └── YYYY-MM-DD-<slug>-verification.md   ← verifier output (Phase 4)
 ```
 
@@ -40,16 +52,24 @@ research/
 2. YOU PICK 1                    ← change one candidate's status: open → chosen
 3. /pipeline-research <cat>     → research/<cat>/<date>-<slug>-dossier.md
 4. YOU REVIEW DOSSIER            ← check [UNVERIFIED], approve
+4.5 /pipeline-check <cat>       → research/<cat>/<date>-<slug>-check.md (CLEAN / CORRECTIONS / BLOCKED).
+                                    The script applies its corrections to the dossier behind the
+                                    dossier guard, and the composer reads the report. BLOCKED:
+                                    /pipeline-research <cat> --topup --slug <slug>, then check again
 5. /pipeline-storyboard <cat>   → research/<cat>/<date>-<slug>-storyboard.md (Status: draft)
 6. YOU APPROVE THE STORYBOARD    ← two minutes: move a row, swap a kind, flip Status: approved
                                     (the gate is GATES.storyboard in scripts/pipeline.config.ts:
                                     'required' now; 'auto' later — REGISTER-PLAN RG-07)
-7. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft)
-8. /pipeline-panel <cat>        → research/<cat>/<date>-<slug>-panel.md (first pass: PASS/REVISE/BLOCK)
+7. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft), then the check
+                                    round: check:prose and the schema check, and one more request on
+                                    the resumed session when either flags
+8. /pipeline-panel <cat>        → research/<cat>/<date>-<slug>-panel.md (first pass: PASS/REVISE/BLOCK),
+                                    then the Jev quiz grade → …-panel.jev.md
 9. YOU REVIEW DRAFT              ← with the panel report; resolve EDITOR comments
-10. (CLI only) npm run pipeline:stylist <cat>     → register + job rewrites
-11. /pipeline-panel <cat>       → second pass
-12. /pipeline-verify <cat>      → research/<cat>/<date>-<slug>-verification.md
+10. /pipeline-stylist <cat>     → register + job rewrites, behind the stylist guard
+11. /pipeline-panel <cat>       → second pass, …-panel-2.md, then the Jev quiz grade → …-panel-2.jev.md
+12. /pipeline-verify <cat>      → the Jev pre-pass → research/<cat>/<date>-<slug>-jevpass.md, then
+                                    research/<cat>/<date>-<slug>-verification.md
 13. npm run check:prose -- <slug>                → the deterministic register/composition report
 14. npm run check:render -- --slug <slug>        → the render gate: the issue as a signed-in reader
                                                     at 1280 AND 375, measured, with a screenshot per
@@ -61,6 +81,14 @@ Steps 5, 6, 8, 11 and 13 were added on 2026-09-13 under `docs/REGISTER-PLAN.md`
 (the plain Indian register + component-first composition). The voice
 contract every writing agent loads is `research/_voice/_voice-core.md` v2;
 the lexicon and the jargon list sit beside it.
+
+Step 4.5, the check round in 7, the Jev steps in 8, 11 and 12 and the
+stylist's slash command in 10 were added on 2026-09-28 under
+`docs/COST-PLAN.md`. **Jev, TypeSafe's decision model through OpenRouter,
+runs inside steps 8, 11 and 12: it re-grades the quiz answers after each
+panel and scores every claim against the dossier before the verifier reads
+it. It is a pre-pass that is never a gate, and a missing `JEV_API_KEY` skips
+it with a warning while the phase runs on.**
 
 > **Component palette.** The publication ships **101 section kinds** — the
 > editorial kinds plus a deep physics / data / geography-grounded interactive +
@@ -79,14 +107,23 @@ the lexicon and the jargon list sit beside it.
 > 3D/interactive set and its authoring shapes, but the catalog is what the
 > agents read. See §12 for how each agent uses it.
 
-Two paths run the same agents:
+**Two doors, one pipeline (ruled 2026-09-28).** The API door is a terminal:
+`npm run pipeline:<phase> <desk> -- <flags>` bills `ANTHROPIC_API_KEY`. The
+Claude Code door is the slash command: `/pipeline-<phase> <desk> <flags>`
+runs `npm run pipeline:<phase> <desk> -- --bill subscription <flags>` and
+bills your Claude subscription. Same script, same agents, same
+`scripts/pipeline.config.ts`: the door decides only which wallet pays, and
+the ledger row's `billedTo` says which.
 
-- **Slash commands** (`/pipeline-*`) inside Claude Code — bills to Pro budget.
-- **API CLI** (`npm run pipeline:*`) — bills to `ANTHROPIC_API_KEY` from
-  `.env.local`. See `scripts/README.md` for setup. **The stylist phase is
-  CLI-only** (no slash command equivalent today). Since 2026-09-16 the CLI
-  takes `--slug`, `--candidate`, `--model` and `--count`, so one desk can
-  carry two issues in a round without the phases picking the wrong file.
+- Every step above has both doors, the stylist included. A slash command
+  spawns no agent: it runs the npm line and reports the footer. The old
+  route, which ran the agents inside Claude Code without the check pass,
+  Jev or the ledger, is retired.
+- Since 2026-09-16 the phases take `--slug`, `--candidate`, `--model` and
+  `--count`, so one desk can carry two issues in a round without the phases
+  picking the wrong file. Since 2026-09-28 also `--effort`, `--focus`,
+  `--topup`, `--dry-run` and `--bill`. The slash commands take the same
+  flags, `--bill` excepted. Setup and the full table: `scripts/README.md`.
 
 **The diversity floors (2026-09-16).** After the register rewrites the ten
 published issues used `you-think` in all ten and the four plain-language
@@ -278,17 +315,35 @@ Average ~3.5 issues/week. Sustainable for solo + audit-quality.
 Since 2026-09-16 the per-issue figure is MEASURED: every run appends its
 actual dollars and tokens to `research/_costs/ledger.jsonl`, and
 `npm run pipeline:costs` prints each agent's cost per issue, subtotals,
-per-agent averages and the grand total. On the API route the long tool
-loops (discovery, research) run on Sonnet 5 and the short passes (composer,
-drafter, stylist, verifier) on Opus 5, with the reader panel on Sonnet 5 so
-it never judges its own drafter's prose (`scripts/pipeline.config.ts`, the
-operator's ruling of 2026-09-21 after an all-Opus round cost $65.91 for the
-two loops alone). Quote the report, not a range.
+per-agent averages and the grand total. Since 2026-09-28 (COST-PLAN CP-01)
+every row is priced at list: each request the run made, from its token split
+and its 5-minute and 1-hour cache writes, at the published rates in
+`scripts/lib/pricing.ts`, with the SDK's own estimate kept beside it. A run
+through the Claude Code door carries the same list price, what it would have
+cost on the key, and `billedTo` names the door. Jev's calls have their own
+ledger, `research/_costs/jev-ledger.jsonl`. Quote the report, not a range.
 
-Discovery and verify are cheap — re-run freely if results look off. Draft
-and stylist are expensive — review the dossier carefully before
-triggering draft, and review the draft carefully before triggering
-stylist.
+**The trial issue (2026-09-28)**, the first on the cost plan's pipeline
+(sports, the Manchester City verdict): $20.40 at list for every phase, 69
+requests in 79 agent-minutes, against a corrected baseline of $31.41 an
+issue. Without the three phases the old pipeline did not have (two check
+passes and a research top-up, $5.70) it cost $14.70, a 55% cut on the
+September sports issue. The verifier found 0 untraced claims, against 15 on
+the September issue. Per phase: discovery $0.77, research $2.91, the check
+passes $1.83 and $2.39, the top-up $1.48, the storyboard $2.26, the draft
+$4.81, the panels $0.19 and $0.17, the stylist $1.21, the verifier $2.39,
+Jev $0.0024 (COST-PLAN §12.2).
+
+The models are one config for both doors (`scripts/pipeline.config.ts`, the
+operator's ruling of 2026-09-28): discovery and the reader panel on Sonnet 5,
+research, the check pass, composer, drafter, stylist and verifier on Opus 5,
+and the panel on a different model from the drafter so it never judges its
+own prose.
+
+The panel and discovery are cheap. The draft, the check pass, the storyboard
+and the verifier are not. Read the dossier and its check report before the
+storyboard, and the storyboard before the draft. Never run a phase to test
+something: `--dry-run` assembles the prompt and sends nothing.
 
 ---
 

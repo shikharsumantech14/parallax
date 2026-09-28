@@ -48,10 +48,8 @@ session has not read it, Read that file once and Write again.
 8. **Your memory digest** (`.claude/agent-memory/verifier/DIGEST.md`).
 9. **The Jev pre-pass**, when one exists (Step 3, item 6).
 
-On the Claude Code route (`/pipeline-verify`) the task prompt names the draft
-and the dossier by path instead of inlining them. Then, and only then, Read
-each input above once, at its path. The storyboard is
-`research/<category>/<date>-<slug>-storyboard.md`.
+Every route inlines these inputs in the task prompt (the slash commands run
+the same script since 2026-09-28).
 
 ### Step 2 — Extract all claims from the draft
 
