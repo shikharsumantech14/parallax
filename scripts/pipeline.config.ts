@@ -39,21 +39,38 @@
  *   The 2026-09-16 ruling (every phase on Opus) stood for one round; the
  *   ledger showed discovery + research for six desks at $65.91.
  *
- * Cost: ESTIMATES belong nowhere — every run appends its actual dollars and
- * tokens to research/_costs/ledger.jsonl and `npm run pipeline:costs` totals
- * them per issue and per agent. Read that, not a guess.
+ * Cost: ESTIMATES belong nowhere — every run, failed runs included, appends
+ * its tokens to research/_costs/ledger.jsonl priced two ways: `costUsd` at
+ * list price from the token split (scripts/lib/pricing.ts, COST-PLAN CP-01)
+ * and `costUsdSdk`, the SDK's own client-side estimate. `npm run
+ * pipeline:costs` totals them per issue and per agent. Read that, not a guess.
  *
  * MAX_TURNS is a safety cap per phase, set well above each phase's budget so
- * a stuck agent cannot spend without bound. A run that hits it is reported
- * as failed (exit 3) and still lands in the ledger.
+ * a stuck agent cannot spend without bound. MAX_BUDGET_USD is the hard stop
+ * in dollars. A run that hits either is reported as failed (exit 3) and still
+ * lands in the ledger.
  *
- * Per-run override without editing this file:
+ * EFFORT is the SDK's `effort` option per phase (COST-PLAN CP-04 / CP-07,
+ * signed 2026-09-28): the loops and the panel at `medium`, the passes and the
+ * check at `high`, which is also the models' own default. Effort is a trade;
+ * change a phase's level only after one measured issue reads clean against
+ * the panel, the verifier's untraced count, `check:prose` and the §4.5 bar.
+ *
+ * Per-run overrides without editing this file:
  *   npm run pipeline:<phase> <category> -- --model claude-sonnet-5
+ *   npm run pipeline:<phase> <category> -- --effort high
  */
+export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export const EFFORT_LEVELS: readonly EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
+
 export interface PipelineConfig {
   models: {
     discovery:      string;
     researcher:     string;
+    /** The dossier check pass (COST-PLAN CP-09): single-shot, after research.
+     *  Its definition is .claude/agents/dossier-check.md (AGENT_FILE in
+     *  scripts/pipeline.ts maps the key to the file). */
+    check:          string;
     composer:       string;
     drafter:        string;
     stylist:        string;
@@ -77,7 +94,8 @@ export interface PipelineConfig {
 export const CONFIG: PipelineConfig = {
   models: {
     discovery:      'claude-sonnet-5',  // long loop — 2026-09-21 ruling
-    researcher:     'claude-sonnet-5',  // longest loop — 2026-09-21 ruling
+    researcher:     'claude-opus-5',    // COST-PLAN CP-10 (signed 2026-09-28): Opus 5 at `medium` first, Opus 5.5 next, the Sonnet sweep + Opus judge split as the fallback
+    check:          'claude-opus-5',    // recompute and confirm in a clean context — CP-09
     composer:       'claude-opus-5',    // the diversity lever — see the header
     drafter:        'claude-opus-5',    // high-craft step
     stylist:        'claude-opus-5',    // high-craft step
@@ -91,17 +109,66 @@ export const CONFIG: PipelineConfig = {
 
 export const GATES = CONFIG.gates;
 
+export type AgentKey = keyof PipelineConfig['models'];
+
 /** Safety caps on agent turns per phase (the SDK's `maxTurns`). Measured
  *  first-round turns: discover 40–51, research 53–79 (before the budgets);
  *  composer 30–35 plus up to ten more spent on its agent-memory edits, which
  *  is where a cap of 40 caught the tech run on 2026-09-21 — after the
- *  storyboard was written, so nothing was lost but the ledger row. */
-export const MAX_TURNS: Record<keyof PipelineConfig['models'], number> = {
+ *  storyboard was written, so nothing was lost but the ledger row. The check
+ *  pass is single-shot by design; 20 leaves room for its reads. */
+export const MAX_TURNS: Record<AgentKey, number> = {
   discovery:      60,
   researcher:     90,
+  check:          20,
   composer:       60,
   drafter:        60,
   stylist:        60,
   'reader-panel': 40,
   verifier:       70,
+};
+
+/** The SDK's `effort` per phase (see the header). The models default to
+ *  `high` (Opus 5.5 to `medium`), so `high` here changes nothing but makes the
+ *  level explicit in the ledger row. */
+export const EFFORT: Record<AgentKey, EffortLevel> = {
+  discovery:      'medium',
+  researcher:     'medium',
+  check:          'high',
+  composer:       'high',
+  drafter:        'high',
+  stylist:        'high',
+  'reader-panel': 'medium',
+  verifier:       'high',
+};
+
+/** A hard stop per run, in dollars (the SDK's `maxBudgetUsd`, COST-PLAN
+ *  CP-02). It is checked against the SDK's own client-side estimate, not the
+ *  list price the ledger records, so leave headroom. Set above the measured
+ *  worst runs of September (research $7.38 average, drafter $6.71) so a
+ *  normal run never meets it and a runaway one stops. */
+export const MAX_BUDGET_USD: Record<AgentKey, number> = {
+  discovery:      5,
+  researcher:     12,
+  check:          3,
+  composer:       5,
+  drafter:        8,
+  stylist:        5,
+  'reader-panel': 3,
+  verifier:       5,
+};
+
+/** Scoped permission rules the runner grants per agent on top of its
+ *  frontmatter `tools:` (COST-PLAN CP-02). Every run is `permissionMode:
+ *  'dontAsk'`, so a call no rule approves is denied, not prompted. A rule's
+ *  tool (Bash below) is made available for that agent only, and only the
+ *  matching commands run, plus the read-only set Claude Code never asks
+ *  about (ls, cat, grep…). An agent's own `allow:` frontmatter adds to these;
+ *  `Bash(npm run check:prose *)` belongs there, for the agents that run it.
+ *  Never grant `Bash(npm run *)`: it would let an agent start a billing
+ *  `npm run pipeline:*`. */
+export const ALLOW: Partial<Record<AgentKey, string[]>> = {
+  // WebFetch saves a PDF under the run's tool-results folder; this reads it.
+  // Matches `pdftotext …` as written, not the full exe path or a `&&` chain.
+  researcher: ['Bash(pdftotext *)'],
 };

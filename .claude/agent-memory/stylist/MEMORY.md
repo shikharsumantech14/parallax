@@ -1,5 +1,7 @@
 # Stylist memory — Parallax
 
+> **Pipeline runs read [DIGEST.md](DIGEST.md), not these files** (COST-PLAN CP-05, 2026-09-28): the digest is inlined into every single-shot stylist pass, and these files are updated only after the operator's review, with the digest refreshed from them.
+
 One line per memory; detail lives in the topic files. Only what the repo cannot
 say about itself — not the contract, the lexicon, the mode library, or any
 issue's facts.

@@ -1,7 +1,17 @@
-import { query, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
+import {
+  query,
+  type HookCallback,
+  type McpServerConfig,
+  type ModelUsage,
+  type Options,
+  type SDKMessage,
+  type SDKResultMessage,
+} from '@anthropic-ai/claude-agent-sdk';
 import { join } from 'path';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 import type { AgentDef } from './agent-loader.js';
+import type { EffortLevel } from '../pipeline.config.js';
+import { canonicalModel, listCostUsd, WEB_SEARCH_USD_EACH, type TokenSplit } from './pricing.js';
 
 /**
  * The config directory the spawned CLI sees. The machine's own
@@ -14,48 +24,244 @@ import type { AgentDef } from './agent-loader.js';
  */
 export const API_CONFIG_DIR = '.claude-api-home';
 
+/**
+ * Every built-in tool the CLI can hand a session (code.claude.com/docs/en/
+ * tools-reference, read 2026-09-28), plus `Task`, the Agent tool's older wire
+ * name. The runner removes each one the agent is not granted with a bare-name
+ * `disallowedTools` entry, the documented way to take a tool out of the
+ * model's context; `allowedTools` alone only pre-approves, and a tool it does
+ * not name stays callable (measured September round: Bash 229 calls, Edit 61,
+ * PowerShell 16, ToolSearch 15, one $2.2 Agent subagent). `EndConversation`
+ * is absent on purpose: the CLI keeps it whatever the lists say.
+ */
+const BUILTIN_TOOLS = [
+  'Agent', 'Task', 'Artifact', 'AskUserQuestion', 'Bash', 'CronCreate', 'CronDelete', 'CronList',
+  'Edit', 'EnterPlanMode', 'EnterWorktree', 'ExitPlanMode', 'ExitWorktree', 'Glob', 'Grep',
+  'ListAgents', 'ListMcpResourcesTool', 'LSP', 'Monitor', 'NotebookEdit', 'PowerShell',
+  'PushNotification', 'Read', 'ReadMcpResourceTool', 'RemoteTrigger', 'ReportFindings',
+  'ScheduleWakeup', 'SendFeedback', 'SendMessage', 'SendUserFile', 'ShareOnboardingGuide', 'Skill',
+  'TaskCreate', 'TaskGet', 'TaskList', 'TaskOutput', 'TaskStop', 'TaskUpdate', 'TodoWrite',
+  'ToolSearch', 'WaitForMcpServers', 'WebFetch', 'WebSearch', 'Workflow', 'Write',
+] as const;
+
+/**
+ * The harness diet (COST-PLAN CP-02), as environment. Each is documented at
+ * code.claude.com/docs/en/env-vars. Measured before the diet: a first request
+ * of 54.6k–58.5k tokens, of which our own agent prompt was 1.3k–3.9k.
+ */
+const DIET_ENV: Record<string, string> = {
+  // Web tools load with the others instead of mid-run through ToolSearch,
+  // which re-wrote 66k–90k tokens of cache once per research run.
+  ENABLE_TOOL_SEARCH: 'false',
+  // No auto memory, no CLAUDE.md or rules, even if a setting source slipped in.
+  CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1',
+  CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1',
+  // No Explore / Plan / general-purpose subagents to spawn or list.
+  CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS: '1',
+  // No git status snapshot, no commit / PR instructions in the Bash schema.
+  CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS: '1',
+  // No skill listing, task nudges or file-changed notes in the conversation.
+  CLAUDE_CODE_DISABLE_ATTACHMENTS: '1',
+  // No background title-generation request.
+  CLAUDE_CODE_DISABLE_TERMINAL_TITLE: '1',
+  // A single-shot pass writes its reasoning and its whole file in one
+  // response (a storyboard is 12k to 17k tokens of file alone), so the
+  // default output cap could cut a Write off mid-file. 64k is the models'
+  // streaming default for agentic work (claude-api guidance, 2026-09-28).
+  CLAUDE_CODE_MAX_OUTPUT_TOKENS: '64000',
+};
+
+/**
+ * Inherited variables that would change what the spawned CLI loads, how it
+ * caches or which effort it sends, stripped on both billing routes. A
+ * terminal inside the Claude Code desktop app carries a dozen of these
+ * (session ids, a messaging socket, host auth refresh, CLAUDE_EFFORT…), and
+ * the cache-TTL ones would also make the ledger's 5-minute pricing false.
+ */
+const STRIP_ALWAYS = /^(CLAUDECODE|CLAUDE_EFFORT|CLAUDE_PID|CLAUDE_AGENT_SDK_VERSION|CLAUDE_CODE_(CHILD_SESSION|ENTRYPOINT|SESSION_ID|HOST_SESSION_ID|MESSAGING_SOCKET|MESSAGING_TOKEN|SDK_HAS_HOST_AUTH_REFRESH|EXECPATH|EFFORT_LEVEL|PROMPT_CACHE_TTL|SUBAGENT_PROMPT_CACHE_TTL|SUBAGENT_MODEL|SIMPLE|AUTO_COMPACT_WINDOW)|ENABLE_PROMPT_CACHING_1H|FORCE_PROMPT_CACHING_5M|DISABLE_PROMPT_CACHING.*|DISABLE_MICROCOMPACT|DISABLE_COMPACT|MAX_THINKING_TOKENS|CLAUDE_AUTOCOMPACT_PCT_OVERRIDE)$/;
+
+/**
+ * On the API route, every other CLAUDE_* / ANTHROPIC_* variable goes too:
+ * ANTHROPIC_AUTH_TOKEN outranks the API key in the CLI's credential order,
+ * CLAUDE_CODE_OAUTH_TOKEN is a login, CLAUDE_CODE_USE_* reroute to a cloud
+ * provider. The key stays; it is the only credential this route may use.
+ * So does the machine's plumbing (where Git Bash lives, the shell, the temp
+ * directory, TLS), which is neither a credential nor a route.
+ */
+const STRIP_ON_API = /^(CLAUDE|ANTHROPIC_)/;
+const KEEP_ON_API = /^(ANTHROPIC_API_KEY|CLAUDE_CODE_(GIT_BASH_PATH|SHELL|SHELL_PREFIX|TMPDIR|CERT_STORE|CLIENT_CERT|CLIENT_KEY|CLIENT_KEY_PASSPHRASE|PROXY_RESOLVES_HOSTS))$/;
+
+/** Main-loop tokens for one API response (one unique message id). */
+interface RequestUsage {
+  input: number;
+  cacheWrite5m: number;
+  cacheWrite1h: number;
+  cacheRead: number;
+  output: number;
+}
+
 export interface RunUsage {
+  /** Main-loop tokens (the result's `usage`, or the streamed per-request sums
+   *  when the run died without a result, whichever is larger per field).
+   *  Helper, compaction and subagent requests are in `modelUsage`, not here. */
   inputTokens: number;
   cacheWriteTokens: number;
   cacheReadTokens: number;
   outputTokens: number;
+  /** The main loop's cache writes by TTL, from `usage.cache_creation`. */
+  cacheWrite5mTokens: number;
+  cacheWrite1hTokens: number;
   /** WebSearch tool calls, counted from the stream (the SDK reports 0 for them). */
   webSearches: number;
   /** WebFetch tool calls, counted the same way. */
   webFetches: number;
+  /** The SDK's `num_turns`: tool-use round trips, not API requests. */
   turns: number;
 }
 
+/** One model's share of a run, compact for the ledger. */
+export interface ModelShare {
+  in: number;
+  cw: number;
+  cr: number;
+  out: number;
+  web: number;
+  /** The SDK's estimate for this model. */
+  usdSdk: number;
+  /** List price for this model (the SDK's figure where the table lacks the model). */
+  usdList: number;
+}
+
+export type ErrorKind = 'capped' | 'auth' | 'billing' | 'model' | 'rate_limit' | 'other';
+
 export interface RunResult {
-  /** True only when the SDK's result subtype is `success`; a run cut off by
-   *  `maxTurns` (subtype `error_max_turns`) returns false with `stopReason` set. */
+  /** True only when the result subtype is `success` and it is not an error. */
   success: boolean;
+  /** The result subtype (`success`, `error_max_turns`, `error_max_budget_usd`,
+   *  `error_during_execution`…), or `error_<kind>` when the run died without one. */
   stopReason: string;
+  errorKind?: ErrorKind;
+  errorMessage?: string;
   finalMessage: string;
+  /** List price of every request the run made (COST-PLAN CP-01). */
   costUsd: number;
+  /** The SDK's `total_cost_usd`; null when no result message arrived. */
+  costUsdSdk: number | null;
   durationMs: number;
   usage: RunUsage;
+  /** Main-loop API responses with usage (unique message ids). */
+  requests: number;
+  /** input + cache write + cache read of the first request: the fixed prefix. */
+  firstRequestTokens: number | null;
+  modelUsage: Record<string, ModelShare>;
+  /** Models the price table does not know (priced at the SDK's figure). */
+  unpricedModels: string[];
+  sessionId: string | null;
+  sdkVersion: string | null;
+  cliVersion: string | null;
+  /** The tool list the CLI reported at init: what the agent could see. */
+  toolsSeen: string[];
+  /** CLAUDE.md / rules files the CLI loaded (should be none — the diet's canary). */
+  instructionsLoaded: string[];
+  /** Tool names of every denied call; each one cost a request. */
+  permissionDenials: string[];
+  compactions: number;
+  terminalReason: string | null;
+}
+
+/** The installed SDK's version, read at run time for the ledger. */
+function installedSdkVersion(cwd: string): string | null {
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json'), 'utf-8'));
+    return typeof pkg.version === 'string' ? pkg.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A permission rule's tool: `Bash(pdftotext *)` → `Bash`. */
+const ruleTool = (rule: string) => rule.replace(/\(.*$/s, '').trim();
+
+/** The environment the spawned CLI gets: the inherited one, minus the
+ *  variables above, plus the diet, plus the isolated config dir on `api`. */
+export function childEnv(
+  billing: 'api' | 'subscription',
+  configDir: string,
+  source: NodeJS.ProcessEnv = process.env,
+): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (STRIP_ALWAYS.test(key)) continue;
+    if (billing === 'api' && STRIP_ON_API.test(key) && !KEEP_ON_API.test(key)) continue;
+    env[key] = value;
+  }
+  Object.assign(env, DIET_ENV);
+  // `api`: isolated from the operator's login so the key is the only
+  // credential (see API_CONFIG_DIR). `subscription`: the login stays.
+  if (billing === 'api') env.CLAUDE_CONFIG_DIR = configDir;
+  return env;
+}
+
+/** What the agent may see and call: its frontmatter tools plus each scoped
+ *  rule's tool; the rules pre-approve; every other built-in is removed. */
+export function toolSurface(
+  agent: Pick<AgentDef, 'tools' | 'allow'>,
+  extraAllow: string[] = [],
+  hasMcpServers = false,
+): { tools: string[]; allowedTools: string[]; disallowedTools: string[] } {
+  const allowRules = [...new Set([...extraAllow, ...agent.allow])];
+  const toolSet = new Set<string>([...agent.tools, ...allowRules.map(ruleTool)]);
+  const disallowedTools: string[] = BUILTIN_TOOLS.filter((t) => !toolSet.has(t));
+  if (!hasMcpServers) disallowedTools.push('mcp__*');
+  return {
+    tools: [...toolSet],
+    allowedTools: [...new Set([...agent.tools, ...allowRules])],
+    disallowedTools,
+  };
+}
+
+const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
+function classify(text: string, assistantError: string | null): ErrorKind {
+  const t = `${assistantError ?? ''} ${text}`;
+  if (/maximum number of turns|max_turns|max_budget|budget/i.test(t)) return 'capped';
+  if (/authentication|invalid.{0,12}api.?key|x-api-key|401|unauthori[sz]ed/i.test(t)) return 'auth';
+  if (/billing|credit balance|insufficient|out of extra usage|usage limit|402/i.test(t)) return 'billing';
+  if (/model_not_found|(not.?found|404).{0,80}model|model.{0,80}(not.?found|404)/i.test(t)) return 'model';
+  if (/rate.?limit|429|overloaded|529|too many/i.test(t)) return 'rate_limit';
+  return 'other';
 }
 
 /**
  * Run a Parallax pipeline agent via the Claude Agent SDK.
  * Streams tool calls and assistant text to stdout as the run progresses.
- * Returns cost, token usage and duration for the footer display.
+ * Never exits the process: every outcome, failed runs included, comes back as
+ * a RunResult so the caller can write the ledger row (COST-PLAN CP-01).
  *
- * Two things measured on 2026-09-16 that this wrapper now accounts for:
+ * What the SDK is told, and why (COST-PLAN CP-02, signed 2026-09-28; the
+ * measurements are in docs/cost/2026-09-27-cost-levers.md):
  *
- * - The SDK spawns a Claude Code CLI, and that CLI inherits every MCP server
- *   the desktop app has registered for this machine (seven claude.ai
- *   connectors — Gmail, ClickUp, Drive, Calendar… — 196 tool schemas instead
- *   of 28). None of them can be CALLED (an agent may only use the tools its
- *   frontmatter lists), but their schemas ride along in every run's context.
- *   `strictMcpConfig: true` keeps only the servers passed here (none today —
- *   the RAG corpus that used the slot was retired 2026-09-27), which is what
- *   a pipeline run should see.
- * - Every run writes its first turn (~35–50k tokens: the CLI's own prompt,
- *   the tool schemas, the agent definition) to a one-hour prompt cache and
- *   reads it on later turns. The footer prints the split so a cost that
- *   looks high for a short run can be read correctly.
+ * - `settingSources: []`. Without it the SDK loads user, project and local
+ *   settings: the root CLAUDE.md + AGENTS.md (about 31k tokens) rode in every
+ *   first request, nested CLAUDE.md files and rules loaded on first read, and
+ *   the operator's 415 local allow rules came along, `Bash(npm run *)` among
+ *   them, which would let an agent start a billing `npm run pipeline:*`.
+ * - `tools` is the frontmatter list (plus the tool of each `allow` rule), and
+ *   every other built-in is removed by bare-name `disallowedTools`.
+ * - `permissionMode: 'dontAsk'`: a call no rule approves is denied instead of
+ *   waiting on a prompt nobody answers. Writes under `.claude/` are protected
+ *   paths, which this mode always denies, agent-memory files included.
+ * - `strictMcpConfig: true`: the CLI otherwise inherits every MCP server the
+ *   desktop app registered on the machine (seven claude.ai connectors, 196
+ *   tool schemas instead of 28, measured 2026-09-16).
+ * - `verbatimPrompts: true`: no `@path` expansion, no `/command` parsing of
+ *   the prompt text, which carries whole inlined files.
+ * - `effort` and `maxBudgetUsd` per phase from pipeline.config.ts. The budget
+ *   is checked against the SDK's own estimate.
+ * - The cache TTL is the CLI's default: 5 minutes on an API key, 1 hour on a
+ *   subscription within plan usage. Nothing here asks for an hour (it would
+ *   add about $6.20 an issue on the API route), so a run on `api` that writes
+ *   1-hour entries is not billing the key, and the footer says so.
  */
 export async function runAgent(opts: {
   agent: AgentDef;
@@ -68,6 +274,12 @@ export async function runAgent(opts: {
   mcpServers?: Record<string, McpServerConfig>;
   /** Safety cap on agent turns (MAX_TURNS in pipeline.config.ts). */
   maxTurns?: number;
+  /** Hard stop in dollars on the SDK's estimate (MAX_BUDGET_USD). */
+  maxBudgetUsd?: number;
+  /** The `effort` option (EFFORT in pipeline.config.ts). */
+  effort?: EffortLevel;
+  /** Scoped rules granted on top of the agent's own `allow:` (ALLOW in pipeline.config.ts). */
+  allow?: string[];
   /** Which credential the spawned CLI may use. `api` (default) isolates the
    *  CLI from the operator's login so the key is the only credential;
    *  `subscription` leaves the machine's claude.ai login in play, which the
@@ -76,136 +288,333 @@ export async function runAgent(opts: {
   billing?: 'api' | 'subscription';
 }): Promise<RunResult> {
   const startMs = Date.now();
-  let lastAssistantText = '';
-  let costUsd = 0;
-  let stopReason = 'unknown';
-  const usage: RunUsage = { inputTokens: 0, cacheWriteTokens: 0, cacheReadTokens: 0, outputTokens: 0, webSearches: 0, webFetches: 0, turns: 0 };
   const billing = opts.billing ?? 'api';
 
+  // ── The environment and the tool surface the CLI gets ─────────────────────
   const configDir = join(opts.cwd, API_CONFIG_DIR);
   mkdirSync(configDir, { recursive: true });
-  const env = billing === 'api'
-    ? { ...process.env, CLAUDE_CONFIG_DIR: configDir }
-    : { ...process.env };
+  const env = childEnv(billing, configDir);
+  const { tools, allowedTools, disallowedTools } = toolSurface(opts.agent, opts.allow, !!opts.mcpServers);
 
+  // ── What the run reports ──────────────────────────────────────────────────
+  let lastAssistantText = '';
+  let lastAssistantError: string | null = null;
+  let result: SDKResultMessage | null = null;
+  let sessionId: string | null = null;
+  let cliVersion: string | null = null;
+  let toolsSeen: string[] = [];
+  let mainModelSeen: string | null = null;
+  let compactions = 0;
+  let webSearches = 0;
+  let webFetches = 0;
+  let stderrTail = '';
+  const instructionsLoaded: string[] = [];
+  const deniedStream: string[] = [];
+  const requests = new Map<string, RequestUsage>();
+  let firstRequestId: string | null = null;
+  let streamingId: string | null = null;
+
+  const noteRequest = (id: string, u: Record<string, unknown> | null | undefined) => {
+    if (!u || requests.has(id)) return;
+    const cc = u.cache_creation as Record<string, unknown> | null | undefined;
+    const cacheWrite = n(u.cache_creation_input_tokens);
+    const cacheWrite1h = n(cc?.ephemeral_1h_input_tokens);
+    requests.set(id, {
+      input:        n(u.input_tokens),
+      cacheWrite1h,
+      cacheWrite5m: Math.max(n(cc?.ephemeral_5m_input_tokens), cacheWrite - cacheWrite1h),
+      cacheRead:    n(u.cache_read_input_tokens),
+      output:       n(u.output_tokens), // a placeholder until message_delta reports the real count
+    });
+    firstRequestId ??= id;
+  };
+
+  const onInstructions: HookCallback = async (input) => {
+    if (input.hook_event_name === 'InstructionsLoaded') {
+      instructionsLoaded.push(`${input.file_path} (${input.load_reason})`);
+    }
+    return {};
+  };
+
+  const options: Options = {
+    systemPrompt: opts.agent.systemPrompt,
+    model: opts.model,
+    cwd: opts.cwd,
+    env,
+    settingSources: [],
+    tools,
+    allowedTools,
+    disallowedTools,
+    permissionMode: 'dontAsk',
+    // Only the MCP servers passed below — never the machine's connectors.
+    strictMcpConfig: true,
+    // The prompt is delivered as written: an `@path` in inlined text is not
+    // expanded into a file read, and a line starting with `/` is not run as a
+    // command. The single-shot passes inline whole files, catalog and all.
+    verbatimPrompts: true,
+    // Stream events carry each response's final output count (the assistant
+    // message only has a placeholder), so a run that dies still has its totals.
+    includePartialMessages: true,
+    // No Co-Authored-By trailer or PR footer in the context (AGENTS.md §7).
+    settings: { attribution: { commit: '', pr: '' } },
+    hooks: { InstructionsLoaded: [{ hooks: [onInstructions] }] },
+    stderr: (data: string) => { stderrTail = (stderrTail + data).slice(-4000); },
+    ...(opts.effort ? { effort: opts.effort } : {}),
+    ...(opts.maxBudgetUsd ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
+    ...(opts.maxTurns ? { maxTurns: opts.maxTurns } : {}),
+    ...(opts.mcpServers ? { mcpServers: opts.mcpServers } : {}),
+  };
+
+  let thrown: string | null = null;
   try {
-    for await (const msg of query({
-      prompt: opts.prompt,
-      options: {
-        systemPrompt: opts.agent.systemPrompt,
-        allowedTools: opts.agent.tools,
-        model: opts.model,
-        cwd: opts.cwd,
-        // `api`: isolated from the operator's login so the key is the only
-        // credential (see API_CONFIG_DIR). `subscription`: the login stays.
-        env,
-        // Only the MCP servers passed below — never the machine's connectors.
-        strictMcpConfig: true,
-        ...(opts.maxTurns ? { maxTurns: opts.maxTurns } : {}),
-        ...(opts.mcpServers ? { mcpServers: opts.mcpServers } : {}),
-      },
-    })) {
-      const type = (msg as { type?: string }).type;
+    for await (const msg of query({ prompt: opts.prompt, options }) as AsyncIterable<SDKMessage>) {
+      switch (msg.type) {
+        case 'system': {
+          if (msg.subtype === 'init') {
+            sessionId = msg.session_id;
+            cliVersion = msg.claude_code_version;
+            toolsSeen = msg.tools;
+            console.log(`\x1b[90m[init] CLI ${cliVersion} · tools: ${toolsSeen.join(', ') || '(none)'}${msg.mcp_servers.length ? ` · mcp: ${msg.mcp_servers.map((s) => s.name).join(', ')}` : ''}\x1b[0m`);
+          } else if (msg.subtype === 'compact_boundary') {
+            compactions++;
+            console.log(`\n\x1b[33m[compacted]\x1b[0m at ${msg.compact_metadata.pre_tokens} tokens`);
+          } else if (msg.subtype === 'permission_denied') {
+            deniedStream.push(msg.tool_name);
+            console.log(`\n\x1b[31m[denied]\x1b[0m ${msg.tool_name}: ${msg.message.slice(0, 160)}`);
+          }
+          break;
+        }
 
-      if (type === 'assistant') {
-        // Content is an array of blocks: text | tool_use | tool_result
-        const content = (msg as Record<string, unknown>).message as Record<string, unknown> | undefined;
-        const blocks = content?.content as Array<Record<string, unknown>> | undefined;
+        case 'stream_event': {
+          // Main session only (the SDK never streams subagent events).
+          const ev = msg.event;
+          if (ev.type === 'message_start') {
+            streamingId = ev.message.id;
+            noteRequest(ev.message.id, ev.message.usage as unknown as Record<string, unknown>);
+          } else if (ev.type === 'message_delta' && streamingId) {
+            const r = requests.get(streamingId);
+            const u = ev.usage as unknown as Record<string, unknown>;
+            if (r && u) {
+              r.output = Math.max(r.output, n(u.output_tokens));
+              r.input = Math.max(r.input, n(u.input_tokens));
+              r.cacheRead = Math.max(r.cacheRead, n(u.cache_read_input_tokens));
+            }
+          }
+          break;
+        }
 
-        if (Array.isArray(blocks)) {
-          for (const block of blocks) {
-            if (block.type === 'text' && typeof block.text === 'string') {
+        case 'assistant': {
+          if (msg.error) lastAssistantError = msg.error;
+          if (msg.parent_tool_use_id === null) {
+            mainModelSeen ??= msg.message.model;
+            noteRequest(msg.message.id, msg.message.usage as unknown as Record<string, unknown>);
+          }
+          for (const block of msg.message.content) {
+            if (block.type === 'text') {
               // Dim the running assistant text so tool lines stand out
               process.stdout.write('\x1b[2m' + block.text + '\x1b[0m');
               lastAssistantText += block.text;
             } else if (block.type === 'tool_use') {
-              const name   = String(block.name ?? 'tool');
-              const input  = JSON.stringify(block.input ?? {});
-              const trunc  = input.length > 140 ? input.slice(0, 140) + '…' : input;
-              console.log(`\n\x1b[36m[${name}]\x1b[0m ${trunc}`);
+              const input = JSON.stringify(block.input ?? {});
+              const trunc = input.length > 140 ? input.slice(0, 140) + '…' : input;
+              console.log(`\n\x1b[36m[${block.name}]\x1b[0m ${trunc}`);
               // Counted here because the SDK's usage.server_tool_use reports 0
               // for the CLI's WebSearch tool (measured 2026-09-16: 13 searches, 0 reported).
-              if (name === 'WebSearch') usage.webSearches++;
-              else if (name === 'WebFetch') usage.webFetches++;
-            }
-            // tool_result suppressed unless --verbose
-            else if (block.type === 'tool_result' && opts.verbose) {
-              const content = JSON.stringify(block.content ?? '');
-              const trunc = content.length > 200 ? content.slice(0, 200) + '…' : content;
-              console.log(`\x1b[90m[result] ${trunc}\x1b[0m`);
+              if (block.name === 'WebSearch') webSearches++;
+              else if (block.name === 'WebFetch') webFetches++;
             }
           }
+          break;
         }
 
-      } else if (type === 'result') {
-        // SDKResultMessage — total_cost_usd is the billed cost for this run
-        const result = msg as Record<string, unknown>;
-        stopReason = String(result.subtype ?? 'unknown');
-        if (typeof result.total_cost_usd === 'number') {
-          costUsd = result.total_cost_usd;
+        case 'user': {
+          // Tool results come back in user messages; print them with --verbose.
+          const content = msg.message.content;
+          if (opts.verbose && Array.isArray(content)) {
+            for (const block of content) {
+              if (block.type !== 'tool_result') continue;
+              const text = JSON.stringify(block.content ?? '');
+              console.log(`\x1b[90m[result${block.is_error ? ' · error' : ''}] ${text.length > 200 ? text.slice(0, 200) + '…' : text}\x1b[0m`);
+            }
+          }
+          break;
         }
-        if (typeof result.num_turns === 'number') usage.turns = result.num_turns;
-        const u = result.usage as Record<string, unknown> | undefined;
-        if (u) {
-          usage.inputTokens      = Number(u.input_tokens ?? 0);
-          usage.cacheWriteTokens = Number(u.cache_creation_input_tokens ?? 0);
-          usage.cacheReadTokens  = Number(u.cache_read_input_tokens ?? 0);
-          usage.outputTokens     = Number(u.output_tokens ?? 0);
-          const stu = u.server_tool_use as Record<string, unknown> | undefined;
-          // Keep whichever count is larger: the stream count is the honest one
-          // for the CLI's WebSearch tool, the server figure for a server tool.
-          usage.webSearches      = Math.max(usage.webSearches, Number(stu?.web_search_requests ?? 0));
+
+        case 'result': {
+          result = msg;
+          break;
         }
+
+        default:
+          break;
       }
     }
-
-    // Ensure stdout ends on a clean newline after streaming
-    if (lastAssistantText && !lastAssistantText.endsWith('\n')) {
-      process.stdout.write('\n');
-    }
-
-    return {
-      success:      stopReason === 'success',
-      stopReason,
-      finalMessage: lastAssistantText.trim(),
-      costUsd,
-      durationMs:   Date.now() - startMs,
-      usage,
-    };
-
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    // A single-shot query() throws AFTER yielding an error result (max turns,
+    // max budget, an execution error), so `result` is usually set by now; a
+    // connection or process failure yields none. Either way the caller gets a
+    // RunResult and writes the ledger row.
+    thrown = err instanceof Error ? err.message : String(err);
+    if (opts.verbose && err instanceof Error && err.stack) console.error(err.stack);
+  }
 
-    // The SDK THROWS on an error result rather than yielding it (measured
-    // 2026-09-21: the tech composer hit maxTurns after writing its storyboard,
-    // while looping on its memory file). Return a failed result so the caller
-    // still writes the ledger row; the cost is not reported on this path.
-    if (/maximum number of turns|out of extra usage|usage limit|returned an error result/i.test(message)) {
-      console.error(`\n\x1b[31mStopped:\x1b[0m ${message}`);
-      return {
-        success:      false,
-        stopReason:   /maximum number of turns/i.test(message) ? 'error_max_turns' : `error: ${message.slice(0, 120)}`,
-        finalMessage: lastAssistantText.trim(),
-        costUsd:      0,
-        durationMs:   Date.now() - startMs,
-        usage,
-      };
-    }
+  // Ensure stdout ends on a clean newline after streaming
+  if (lastAssistantText && !lastAssistantText.endsWith('\n')) process.stdout.write('\n');
 
-    if (/authentication|api.?key|401|unauthorized/i.test(message)) {
-      console.error('\n\x1b[31mError:\x1b[0m ANTHROPIC_API_KEY is missing or invalid.');
-      console.error('Add it to .env.local:  ANTHROPIC_API_KEY=sk-ant-...');
-    } else if (/not.?found|404/i.test(message) && /model/i.test(message)) {
-      console.error(`\n\x1b[31mError:\x1b[0m the model "${opts.model}" is not served. Check scripts/pipeline.config.ts against the current model list.`);
-    } else if (/rate.?limit|429|too many/i.test(message)) {
-      console.error('\n\x1b[31mError:\x1b[0m Rate limit hit. Wait a moment and retry.');
-      process.exit(2);
-    } else {
-      console.error('\n\x1b[31mAgent error:\x1b[0m', message);
-      if (opts.verbose && err instanceof Error && err.stack) {
-        console.error(err.stack);
+  // ── Totals ────────────────────────────────────────────────────────────────
+  // The main loop, two ways: the result's `usage` (authoritative for output)
+  // and the per-request sums from the stream (all there is if the run died,
+  // and complete when `error_max_budget_usd` leaves the last response out).
+  const streamed: RequestUsage = { input: 0, cacheWrite5m: 0, cacheWrite1h: 0, cacheRead: 0, output: 0 };
+  for (const r of requests.values()) {
+    streamed.input += r.input;
+    streamed.cacheWrite5m += r.cacheWrite5m;
+    streamed.cacheWrite1h += r.cacheWrite1h;
+    streamed.cacheRead += r.cacheRead;
+    streamed.output += r.output;
+  }
+  const res = result as SDKResultMessage | null;
+  const ru = (res?.usage ?? null) as unknown as Record<string, unknown> | null;
+  const rcc = ru?.cache_creation as Record<string, unknown> | null | undefined;
+  const resultWrite = n(ru?.cache_creation_input_tokens);
+  const resultWrite1h = n(rcc?.ephemeral_1h_input_tokens);
+  const main: RequestUsage = {
+    input:        Math.max(streamed.input, n(ru?.input_tokens)),
+    cacheWrite1h: Math.max(streamed.cacheWrite1h, resultWrite1h),
+    cacheWrite5m: Math.max(streamed.cacheWrite5m, n(rcc?.ephemeral_5m_input_tokens), resultWrite - resultWrite1h),
+    cacheRead:    Math.max(streamed.cacheRead, n(ru?.cache_read_input_tokens)),
+    output:       Math.max(streamed.output, n(ru?.output_tokens)),
+  };
+  const stu = ru?.server_tool_use as Record<string, unknown> | null | undefined;
+  webSearches = Math.max(webSearches, n(stu?.web_search_requests));
+
+  // Every request of the run, per model, at list price. `modelUsage` covers
+  // the main loop plus compaction, WebFetch / WebSearch helpers and any
+  // subagent; its cache writes are not split by TTL, so the main loop's
+  // measured 1-hour writes are attributed to the main model and the rest is
+  // priced at 5 minutes (the only TTL outside the main loop on an API key).
+  const mainKey = canonicalModel(mainModelSeen ?? opts.model);
+  const modelUsage: Record<string, ModelShare> = {};
+  const unpricedModels: string[] = [];
+  let costUsd = 0;
+  let reportedSearches = 0;
+  let mainPriced = false;
+  const entries = Object.entries((res?.modelUsage ?? {}) as Record<string, ModelUsage>);
+  for (const [name, mu] of entries) {
+    const key = canonicalModel(mu.canonicalModel ?? name);
+    let split: TokenSplit = {
+      input:        n(mu.inputTokens),
+      cacheWrite5m: n(mu.cacheCreationInputTokens),
+      cacheWrite1h: 0,
+      cacheRead:    n(mu.cacheReadInputTokens),
+      output:       n(mu.outputTokens),
+      webSearches:  n(mu.webSearchRequests),
+    };
+    if (key === mainKey && !mainPriced) {
+      mainPriced = true;
+      // A crashed run's result can come back zeroed: then the stream is the record.
+      if (split.input + split.cacheWrite5m + split.cacheRead < main.input + main.cacheWrite5m + main.cacheWrite1h + main.cacheRead) {
+        split = { ...main, webSearches: split.webSearches };
+      } else {
+        const oneHour = Math.min(main.cacheWrite1h, split.cacheWrite5m);
+        split = { ...split, cacheWrite5m: split.cacheWrite5m - oneHour, cacheWrite1h: oneHour };
       }
     }
-    process.exit(1);
+    reportedSearches += split.webSearches ?? 0;
+    const list = listCostUsd(key, split);
+    if (list === null) unpricedModels.push(name);
+    const usdList = list ?? n(mu.costUSD);
+    costUsd += usdList;
+    const prev = modelUsage[key];
+    modelUsage[key] = {
+      in:  (prev?.in ?? 0) + split.input,
+      cw:  (prev?.cw ?? 0) + split.cacheWrite5m + split.cacheWrite1h,
+      cr:  (prev?.cr ?? 0) + split.cacheRead,
+      out: (prev?.out ?? 0) + split.output,
+      web: (prev?.web ?? 0) + (split.webSearches ?? 0),
+      usdSdk:  (prev?.usdSdk ?? 0) + n(mu.costUSD),
+      usdList: (prev?.usdList ?? 0) + usdList,
+    };
   }
+  if (!mainPriced && requests.size > 0) {
+    // No result, or a result without the main model: price the streamed main loop.
+    const list = listCostUsd(mainKey, main);
+    if (list === null) unpricedModels.push(mainModelSeen ?? opts.model);
+    costUsd += list ?? 0;
+    modelUsage[mainKey] = {
+      in: main.input, cw: main.cacheWrite5m + main.cacheWrite1h, cr: main.cacheRead, out: main.output,
+      web: 0, usdSdk: 0, usdList: list ?? 0,
+    };
+  }
+  // WebSearch calls the stream saw but no model reported: $10 per 1,000.
+  costUsd += Math.max(0, webSearches - reportedSearches) * WEB_SEARCH_USD_EACH;
+  for (const share of Object.values(modelUsage)) {
+    share.usdSdk = Math.round(share.usdSdk * 1e6) / 1e6;
+    share.usdList = Math.round(share.usdList * 1e6) / 1e6;
+  }
+
+  const first = firstRequestId ? requests.get(firstRequestId) : undefined;
+  const firstRequestTokens = first ? first.input + first.cacheWrite5m + first.cacheWrite1h + first.cacheRead : null;
+
+  // ── Outcome ───────────────────────────────────────────────────────────────
+  const isErrorResult = !!res && (res.subtype !== 'success' || res.is_error);
+  // A clean success result stands even if the SDK throws afterwards (the
+  // documented throw follows an ERROR result); the throw is still shown.
+  const success = !!res && !isErrorResult;
+  if (success && thrown) console.error(`\n\x1b[33mNote:\x1b[0m the SDK threw after a success result: ${thrown.slice(0, 300)}`);
+  let stopReason = res?.subtype ?? 'unknown';
+  let errorKind: ErrorKind | undefined;
+  let errorMessage: string | undefined;
+  if (!success) {
+    const resultText = res
+      ? (res.subtype === 'success' ? res.result : (res.errors ?? []).join('; '))
+      : '';
+    errorMessage = [thrown, resultText, stderrTail.trim().split(/\r?\n/).slice(-3).join(' | ')]
+      .filter(Boolean).join(' — ').slice(0, 600) || 'no result message';
+    errorKind = res?.subtype === 'error_max_turns' || res?.subtype === 'error_max_budget_usd'
+      ? 'capped'
+      : classify(errorMessage, lastAssistantError);
+    if (!res) stopReason = `error_${errorKind}`;
+    console.error(`\n\x1b[31mStopped:\x1b[0m ${stopReason} — ${errorMessage}`);
+  }
+
+  if (instructionsLoaded.length) {
+    console.error(`\x1b[31m  diet leak:\x1b[0m the CLI loaded instruction files: ${instructionsLoaded.join(', ')}`);
+  }
+
+  const denials = res?.permission_denials?.map((d) => d.tool_name) ?? deniedStream;
+
+  return {
+    success,
+    stopReason,
+    ...(errorKind ? { errorKind } : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+    finalMessage: lastAssistantText.trim(),
+    costUsd:      Math.round(costUsd * 1e6) / 1e6,
+    costUsdSdk:   res ? n(res.total_cost_usd) : null,
+    durationMs:   Date.now() - startMs,
+    usage: {
+      inputTokens:        main.input,
+      cacheWriteTokens:   main.cacheWrite5m + main.cacheWrite1h,
+      cacheReadTokens:    main.cacheRead,
+      outputTokens:       main.output,
+      cacheWrite5mTokens: main.cacheWrite5m,
+      cacheWrite1hTokens: main.cacheWrite1h,
+      webSearches,
+      webFetches,
+      turns: n(res?.num_turns),
+    },
+    requests: requests.size,
+    firstRequestTokens,
+    modelUsage,
+    unpricedModels,
+    sessionId,
+    sdkVersion: installedSdkVersion(opts.cwd),
+    cliVersion,
+    toolsSeen,
+    instructionsLoaded,
+    permissionDenials: denials,
+    compactions,
+    terminalReason: (res?.terminal_reason as string | undefined) ?? null,
+  };
 }

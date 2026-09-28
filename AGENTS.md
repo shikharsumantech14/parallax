@@ -57,7 +57,7 @@ auto-deploys on push to `main`.
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
-| Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.2.x (for pipeline CLI) |
+| Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.3.x (for pipeline CLI; upgraded from 0.2.126 on 2026-09-28, COST-PLAN CP-02) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
 | Section library | **101 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15), and runs in `prebuild` — so a half-wired kind fails the build. |

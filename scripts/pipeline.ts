@@ -5,6 +5,7 @@
  * Usage:
  *   npm run pipeline:discover    <category>
  *   npm run pipeline:research    <category>
+ *   npm run pipeline:check       <category>     the dossier check pass (CP-09)
  *   npm run pipeline:storyboard  <category>
  *   npm run pipeline:draft       <category>
  *   npm run pipeline:panel       <category>
@@ -20,7 +21,19 @@
  *                        (storyboard, draft, panel, stylist, verify)
  *   --candidate C-NN     research this candidate regardless of its status line
  *   --model <id>         override the phase's model from pipeline.config.ts
+ *   --effort <level>     override the phase's effort (low | medium | high | xhigh | max)
  *   --count <n>          discovery: surface exactly n candidates (default 5–10)
+ *   --focus "<subject>"  discovery: every candidate an angle on one subject
+ *                        (exactly --count of them, 5 when --count is absent)
+ *   --dry-run            assemble the prompt, print what it inlines and its size in
+ *                        tokens, and exit without calling the model (bills nothing)
+ *
+ * The passes after research (check, storyboard, draft, panel, stylist, verify)
+ * are single-shot since 2026-09-28 (docs/COST-PLAN.md CP-03): every input is
+ * inlined into one prompt (scripts/lib/assemble.ts) and the agent writes its
+ * one file once. The script does what the agent no longer can, in
+ * scripts/lib/single-shot.ts: the drafter's check round, the stylist guard,
+ * the dossier guard, and the Jev hooks (CP-06).
  *
  * All agent work bills to ANTHROPIC_API_KEY (from .env.local),
  * not to your Claude Pro plan.
@@ -33,9 +46,10 @@ import { loadAgent }                                 from './lib/agent-loader.js
 import {
   buildDiscoverPrompt,
   buildResearchPrompt,
+  buildCheckPrompt,
   buildStoryboardPrompt,
   buildDraftPrompt,
-  buildStylePrompt,
+  buildStylistPrompt,
   buildPanelPrompt,
   buildVerifyPrompt,
   findMostRecent,
@@ -44,11 +58,32 @@ import {
   readStatus,
 }                                                    from './lib/prompts.js';
 import { runAgent }                                  from './lib/runner.js';
-import { CONFIG, GATES, MAX_TURNS }                  from './pipeline.config.js';
+import {
+  type Assembled,
+  assembled,
+  draft as issueFileOf,
+  panelReport,
+  todayIST,
+}                                                    from './lib/assemble.js';
+import {
+  draftGateFlags,
+  enforceDossierGuard,
+  enforceStylistGuard,
+  freshJevPass,
+  jevPanelGrade,
+  jevVerifyPrePass,
+  mergeRunResults,
+  printDryRun,
+  setAsideOutputs,
+  settleOutputs,
+}                                                    from './lib/single-shot.js';
+import {
+  CONFIG, GATES, MAX_TURNS, EFFORT, MAX_BUDGET_USD, ALLOW, EFFORT_LEVELS, type EffortLevel,
+}                                                    from './pipeline.config.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const VALID_PHASES     = ['discover', 'research', 'storyboard', 'draft', 'stylist', 'panel', 'verify'] as const;
+const VALID_PHASES     = ['discover', 'research', 'check', 'storyboard', 'draft', 'stylist', 'panel', 'verify'] as const;
 const VALID_CATEGORIES = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 
 type Phase    = typeof VALID_PHASES[number];
@@ -57,6 +92,7 @@ type Category = typeof VALID_CATEGORIES[number];
 const PHASE_TO_AGENT: Record<Phase, keyof typeof CONFIG.models> = {
   discover:    'discovery',
   research:    'researcher',
+  check:       'check',
   storyboard:  'composer',
   draft:       'drafter',
   stylist:     'stylist',
@@ -64,7 +100,13 @@ const PHASE_TO_AGENT: Record<Phase, keyof typeof CONFIG.models> = {
   verify:      'verifier',
 };
 
-const VALUED_FLAGS = ['slug', 'candidate', 'model', 'count', 'bill'] as const;
+/** The agent definition file, where it differs from the config key: the
+ *  check pass is `check` in pipeline.config.ts and `dossier-check.md` on disk. */
+const AGENT_FILE: Partial<Record<Phase, string>> = {
+  check: 'dossier-check',
+};
+
+const VALUED_FLAGS = ['slug', 'candidate', 'model', 'count', 'bill', 'effort', 'focus'] as const;
 
 const LINE = '─'.repeat(48);
 
@@ -84,21 +126,29 @@ function printUsage(): void {
                         (storyboard, draft, panel, stylist, verify)
     --candidate C-NN    research this candidate regardless of its status line
     --model <id>        override the phase's model from pipeline.config.ts
+    --effort <level>    override the phase's effort: ${EFFORT_LEVELS.join(' | ')}
     --count <n>         discovery: surface exactly n candidates
+    --focus "<subject>" discovery: every candidate a different structural angle on one
+                        subject (exactly --count of them, 5 when --count is absent)
     --bill <api|subscription>
                         api (default): the CLI is isolated from the machine's claude.ai
                         login so ANTHROPIC_API_KEY is its only credential. subscription:
                         the login stays and the CLI bills the operator's Claude plan.
     --verbose           print tool results as they stream
+    --dry-run           assemble the prompt, print what it inlines and its size, send nothing
+                        (bills nothing; panel and verify also accept a non-draft issue with --slug)
 
   Examples:
     npm run pipeline:discover    earth -- --count 5
+    npm run pipeline:discover    sports -- --count 3 --focus "Manchester City and the financial rules"
     npm run pipeline:research    earth -- --candidate C-03
+    npm run pipeline:check       earth -- --slug glacier-lake-outburst   # recompute the dossier's numbers, confirm its anchors
     npm run pipeline:storyboard  earth -- --slug glacier-lake-outburst   # then flip its Status: approved
     npm run pipeline:draft       earth -- --slug glacier-lake-outburst
     npm run pipeline:panel       earth -- --slug glacier-lake-outburst   # the comprehension gate (run again after stylist)
     npm run pipeline:stylist     earth -- --slug glacier-lake-outburst
     npm run pipeline:verify      earth -- --slug glacier-lake-outburst
+    npm run pipeline:draft       earth -- --slug glacier-lake-outburst --dry-run   # the prompt, not the run
 
   Or generic form:
     npm run pipeline -- discover earth --verbose
@@ -167,6 +217,9 @@ async function main(): Promise<void> {
   // next token (`--slug foo`) or an `=` form (`--slug=foo`).
   const rawArgs = process.argv.slice(2);
   const verbose = rawArgs.includes('--verbose');
+  // --dry-run: assemble the prompt, print its inventory and size, and exit
+  // before the runner. No model is called, no ledger row is written.
+  const dryRun  = rawArgs.includes('--dry-run');
   const flagValue = (name: string): string | undefined => {
     const i = rawArgs.indexOf(`--${name}`);
     if (i !== -1) return rawArgs[i + 1];
@@ -179,6 +232,11 @@ async function main(): Promise<void> {
     if (i !== -1) consumed.add(i + 1);
   }
   const args = rawArgs.filter((a, i) => !a.startsWith('--') && !consumed.has(i));
+  // A valued flag with nothing after it would otherwise be dropped in silence.
+  for (const name of VALUED_FLAGS) {
+    const i = rawArgs.indexOf(`--${name}`);
+    if (i !== -1 && (rawArgs[i + 1] === undefined || rawArgs[i + 1].startsWith('--'))) fail(`--${name} needs a value.`);
+  }
 
   const slug          = flagValue('slug');
   const candidate     = flagValue('candidate')?.toUpperCase();
@@ -188,6 +246,18 @@ async function main(): Promise<void> {
   const billArg       = flagValue('bill') ?? 'api';
   if (billArg !== 'api' && billArg !== 'subscription') fail(`--bill must be api or subscription (got "${billArg}").`);
   const billing       = billArg as 'api' | 'subscription';
+  const effortArg     = flagValue('effort');
+  if (effortArg !== undefined && !(EFFORT_LEVELS as readonly string[]).includes(effortArg)) {
+    fail(`--effort must be one of ${EFFORT_LEVELS.join(', ')} (got "${effortArg}").`);
+  }
+  const effortOverride = effortArg as EffortLevel | undefined;
+  // `--focus` takes the next argv token, so quote a subject of several words.
+  const focusArg      = flagValue('focus');
+  const focus         = focusArg?.replace(/\s+/g, ' ').trim();
+  if (focusArg !== undefined && !focus) {
+    fail('--focus needs a subject in quotes, e.g. --focus "Manchester City and the financial rules".');
+  }
+  if (focus && focus.length > 300) fail(`--focus is a subject, not a brief: keep it under 300 characters (got ${focus.length}).`);
 
   const [phaseArg, categoryArg] = args;
 
@@ -211,11 +281,14 @@ async function main(): Promise<void> {
   if (slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     fail(`--slug is the kebab-case slug without the date (got "${slug}").`);
   }
+  if (focus && phaseArg !== 'discover') {
+    fail('--focus applies to the discover phase only.');
+  }
 
   const phase    = phaseArg    as Phase;
   const category = categoryArg as Category;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!dryRun && !process.env.ANTHROPIC_API_KEY) {
     fail('ANTHROPIC_API_KEY is not set.',
       '1. Copy .env.example → .env.local',
       '2. Replace the placeholder value with your real key from console.anthropic.com');
@@ -225,14 +298,31 @@ async function main(): Promise<void> {
 
   const agentName   = PHASE_TO_AGENT[phase];
   const model       = modelOverride ?? CONFIG.models[agentName];
+  const effort      = effortOverride ?? EFFORT[agentName];
   const cwd         = process.cwd();
-  const agent       = loadAgent(agentName);
+  const agent       = loadAgent(AGENT_FILE[phase] ?? agentName);
   const researchDir = join(cwd, 'research', category);
   const slugHint    = slug ? ` matching --slug ${slug}` : '';
 
   // ── Build prompt (with pre-flight checks) ────────────────────────────────
 
   let prompt: string;
+  // The single-shot passes build an Assembled (the text plus an inventory of
+  // what it inlined, for --dry-run); the two loops build a plain string.
+  let built: Assembled | null = null;
+  // What the script checks after a single-shot pass (scripts/lib/single-shot.ts).
+  let draftPlan: { dossierFile: string; storyboardFile: string } | null = null;
+  let stylistSnapshot: { issueRel: string; text: string } | null = null;
+  let dossierSnapshot: { dossierRel: string; text: string } | null = null;
+  let panelPlan: { storyboardRel: string; slug: string } | null = null;
+  // Panel and verify read a DRAFT issue. A dry run may inspect any issue that
+  // --slug names, so a published one can be measured without a real run.
+  const issueToRead = (): { dir: string | null; nonDraft: boolean } => {
+    const d = findDraftIssue(cwd, category, slug);
+    if (d || !dryRun || !slug) return { dir: d, nonDraft: false };
+    const any = findIssueByTopic(cwd, category, slug);
+    return { dir: any, nonDraft: !!any };
+  };
   // The issue this run belongs to, for the cost ledger. Known before the run
   // for every phase except research (its dossier does not exist yet) and
   // discovery (which belongs to the desk, not an issue).
@@ -244,7 +334,7 @@ async function main(): Promise<void> {
       fail(`Source allowlist not found: research/_sources/${category}.md`,
         'Populate the allowlist before running discovery.');
     }
-    prompt = buildDiscoverPrompt(category, count);
+    prompt = buildDiscoverPrompt(category, count, focus);
 
   } else if (phase === 'research') {
     const candidatesFile = findMostRecent(researchDir, '-candidates.md');
@@ -263,6 +353,21 @@ async function main(): Promise<void> {
     }
     prompt = buildResearchPrompt(category, candidatesFile, candidate);
 
+  } else if (phase === 'check') {
+    // The dossier check pass (COST-PLAN CP-09): after research, before the
+    // storyboard, on every dossier. It may rewrite the dossier in place, so a
+    // snapshot lets the dossier guard undo a rewrite that lost anything.
+    const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
+    if (!dossierFile) {
+      fail(`No dossier found in research/${category}/${slugHint}`,
+        `Run first: npm run pipeline:research ${category}`);
+    }
+    targetSlug = slugOf(dossierFile, '-dossier.md');
+    built = buildCheckPrompt(category, dossierFile);
+    prompt = built.text;
+    const dossierRel = `research/${category}/${dossierFile}`;
+    if (!dryRun) dossierSnapshot = { dossierRel, text: readFileSync(join(cwd, dossierRel), 'utf-8') };
+
   } else if (phase === 'storyboard') {
     const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
     if (!dossierFile) {
@@ -270,7 +375,8 @@ async function main(): Promise<void> {
         `Run first: npm run pipeline:research ${category}`);
     }
     targetSlug = slugOf(dossierFile, '-dossier.md');
-    prompt = buildStoryboardPrompt(category, dossierFile);
+    built = buildStoryboardPrompt(category, dossierFile);
+    prompt = built.text;
 
   } else if (phase === 'draft') {
     const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
@@ -296,11 +402,16 @@ async function main(): Promise<void> {
         'switches this to "auto" once the new rules have settled.)');
     }
     targetSlug = slugOf(dossierFile, '-dossier.md');
-    prompt = buildDraftPrompt(category, dossierFile, storyboardFile);
+    built = buildDraftPrompt(category, dossierFile, storyboardFile);
+    prompt = built.text;
+    draftPlan = { dossierFile, storyboardFile };
 
   } else if (phase === 'panel') {
-    const draftSlug      = findDraftIssue(cwd, category, slug);
-    const storyboardFile = findMostRecent(researchDir, '-storyboard.md', slug);
+    const { dir: draftSlug, nonDraft } = issueToRead();
+    // The draft's own storyboard: its §6 is the quiz. Without --slug the
+    // desk's newest storyboard could belong to the other issue of the round.
+    const storyboardFile = findMostRecent(researchDir, '-storyboard.md', slug ?? (draftSlug ? slugOf(draftSlug) : undefined));
+    if (nonDraft) console.log(`  dry run: ${draftSlug} is not a draft. Measuring it anyway.`);
     if (!draftSlug) {
       fail(`No draft issue found with topic: ${category}${slugHint}`,
         `Run first: npm run pipeline:draft ${category}`);
@@ -313,7 +424,9 @@ async function main(): Promise<void> {
     // A prior first-pass report, under either naming (the date-doubled form
     // was written before 2026-09-22).
     const priorReport = findMostRecent(researchDir, `-${targetSlug}-panel.md`) ?? findMostRecent(researchDir, `-${draftSlug}-panel.md`);
-    prompt = buildPanelPrompt(category, draftSlug, storyboardFile, priorReport ? 'second' : 'first');
+    built = buildPanelPrompt(category, draftSlug, storyboardFile, priorReport ? 'second' : 'first');
+    prompt = built.text;
+    panelPlan = { storyboardRel: `research/${category}/${storyboardFile}`, slug: targetSlug };
 
   } else if (phase === 'stylist') {
     const issueSlug = findIssueByTopic(cwd, category, slug);
@@ -322,13 +435,22 @@ async function main(): Promise<void> {
         `Run first: npm run pipeline:draft ${category}`);
     }
     targetSlug = slugOf(issueSlug);
-    const panelFile = findMostRecent(researchDir, `-${targetSlug}-panel.md`) ?? findMostRecent(researchDir, `-${issueSlug}-panel.md`);
-    prompt = buildStylePrompt(category, issueSlug, panelFile ?? undefined);
+    // The issue's most recent reader-panel report, first or second pass.
+    const panelPath = panelReport(category, targetSlug, 'latest');
+    built = buildStylistPrompt(category, issueSlug, panelPath);
+    prompt = built.text;
+    // The stylist guard compares every non-prose field with this afterwards.
+    const issueRel = `src/content/issues/${issueSlug}/index.mdx`;
+    if (!dryRun) stylistSnapshot = { issueRel, text: readFileSync(join(cwd, issueRel), 'utf-8') };
 
   } else {
     // verify
-    const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
-    const draftSlug   = findDraftIssue(cwd, category, slug);
+    const { dir: draftSlug, nonDraft } = issueToRead();
+    // The draft's own dossier first: without --slug the desk's newest dossier
+    // could belong to the other issue of the round.
+    const dossierFile = findMostRecent(researchDir, '-dossier.md', slug ?? (draftSlug ? slugOf(draftSlug) : undefined))
+      ?? (slug ? null : findMostRecent(researchDir, '-dossier.md'));
+    if (nonDraft) console.log(`  dry run: ${draftSlug} is not a draft. Measuring it anyway.`);
 
     if (!dossierFile) {
       fail(`No dossier found in research/${category}/${slugHint}`);
@@ -338,7 +460,43 @@ async function main(): Promise<void> {
         `Run first: npm run pipeline:draft ${category}`);
     }
     targetSlug = slugOf(draftSlug);
-    prompt = buildVerifyPrompt(category, draftSlug, dossierFile);
+    const draftRel = `src/content/issues/${draftSlug}/index.mdx`;
+    // The Jev claim-support pre-pass (COST-PLAN CP-06 b), when Agent C's
+    // module is present and Jev is configured. A dry run calls nothing.
+    if (!dryRun) {
+      await jevVerifyPrePass({
+        draftRel,
+        dossierRel: `research/${category}/${dossierFile}`,
+        outRel: `research/${category}/${todayIST()}-${targetSlug}-jevpass.md`,
+      });
+    }
+    built = buildVerifyPrompt(category, draftSlug, dossierFile, { jevPassPath: freshJevPass(category, targetSlug, draftRel) });
+    prompt = built.text;
+  }
+
+  // ── Dry run ───────────────────────────────────────────────────────────────
+  // The prompt as it would be sent, measured, and nothing else: no model is
+  // called and no ledger row is written.
+  if (dryRun) {
+    printDryRun(`${phase} · ${category}${targetSlug ? ` · ${targetSlug}` : ''} · ${agentName} on ${model}`, built ?? assembled([prompt]));
+    if (built?.out?.length) console.log(`  writes: ${built.out.join(', ')}`);
+    if (phase === 'draft' && draftPlan) {
+      // The check round, previewed on the issue already on disk for this
+      // slug: its gates run for real (they are local and free), and the
+      // second request is assembled and measured, not sent.
+      const existing = targetSlug ? issueFileOf(targetSlug) : null;
+      if (existing) {
+        const gates = await draftGateFlags(existing);
+        for (const t of gates.toolErrors) console.log(`  check round: ${t}`);
+        const flags = gates.lines.length ? gates.lines.join('\n') : '(no flags on the issue on disk: this measures the round as if there were some)';
+        printDryRun(`draft check round, previewed on ${existing}, ${gates.lines.length} flag(s) on it now`,
+          buildDraftPrompt(category, draftPlan.dossierFile, draftPlan.storyboardFile, { firstDraft: existing, flags }));
+        for (const l of gates.lines) console.log(`    ${l}`);
+      } else {
+        console.log('  (no issue file exists for this slug yet, so the check round cannot be previewed)');
+      }
+    }
+    return;
   }
 
   // ── Header ────────────────────────────────────────────────────────────────
@@ -352,17 +510,92 @@ async function main(): Promise<void> {
   if (candidate) console.log(`  candidate: ${candidate}`);
   console.log(`  agent:    ${agentName}`);
   console.log(`  model:    \x1b[36m${model}\x1b[0m${modelOverride ? ' (--model override)' : ''}`);
+  console.log(`  effort:   ${effort}${effortOverride ? ' (--effort override)' : ''} · stops at $${MAX_BUDGET_USD[agentName]} (SDK estimate) or ${MAX_TURNS[agentName]} turns`);
+  if (focus) console.log(`  focus:    ${focus}`);
   console.log(`  bills to: ${billing === 'api' ? 'ANTHROPIC_API_KEY (CLI isolated from the login)' : '\x1b[33mthe operator\'s Claude subscription (--bill subscription)\x1b[0m'}`);
   console.log(`  cwd:      ${cwd}`);
   console.log(`${LINE}\n`);
 
   // ── Run ───────────────────────────────────────────────────────────────────
 
-  const result = await runAgent({
-    agent, prompt, model, cwd, verbose,
+  const runOnce = (text: string) => runAgent({
+    agent, prompt: text, model, cwd, verbose,
     maxTurns: MAX_TURNS[agentName],
+    maxBudgetUsd: MAX_BUDGET_USD[agentName],
+    effort,
+    allow: ALLOW[agentName],
     billing,
   });
+  // A single-shot pass Writes without reading, and the Write tool will not
+  // overwrite an unread file, so an output that already exists is set aside
+  // for the run and put back if the agent did not replace it.
+  const runStartedMs = Date.now();
+  const setAside = setAsideOutputs(built?.out);
+  let result = await runOnce(prompt).finally(() => settleOutputs(setAside));
+
+  // ── After a single-shot pass (scripts/lib/single-shot.ts) ─────────────────
+
+  // The drafter's check round (CP-03): check:prose and the schema check on
+  // the first draft. If either flags something, one more request carries the
+  // flags. Both runs land in this invocation's one ledger row.
+  if (phase === 'draft' && draftPlan && result.success) {
+    const planned = built?.out?.[0];
+    // The planned path, or else this slug's newest issue file if THIS run
+    // wrote it (never an older issue that happens to share the slug).
+    const fallback = targetSlug ? issueFileOf(targetSlug) : null;
+    const written = planned && existsSync(join(cwd, planned))
+      ? planned
+      : (fallback && statSync(join(cwd, fallback)).mtimeMs >= runStartedMs ? fallback : null);
+    if (!written) {
+      console.log(`\n  \x1b[33mcheck round:\x1b[0m the drafter wrote no issue file for ${targetSlug}. Nothing to check.`);
+    } else {
+      const gates = await draftGateFlags(written);
+      for (const t of gates.toolErrors) console.log(`\n  \x1b[33mcheck round:\x1b[0m ${t}`);
+      if (!gates.lines.length) {
+        console.log(`\n  check round: check:prose and the schema check are clean on ${written}. No second request.`);
+      } else {
+        console.log(`\n  check round: ${gates.lines.length} flag(s) on ${written}. One more drafter request carries them:`);
+        for (const l of gates.lines) console.log(`    ${l}`);
+        const round = buildDraftPrompt(category, draftPlan.dossierFile, draftPlan.storyboardFile, { firstDraft: written, flags: gates.lines.join('\n') });
+        console.log(`  (about ${round.estTokens.toLocaleString('en-US')} tokens)\n`);
+        const roundAside = setAsideOutputs(round.out);
+        result = mergeRunResults(result, await runOnce(round.text).finally(() => settleOutputs(roundAside)));
+        const after = await draftGateFlags(written);
+        console.log(after.lines.length ? `\n  check round: ${after.lines.length} flag(s) remain, for the operator:` : '\n  check round: clean after the second request.');
+        for (const l of after.lines) console.log(`    ${l}`);
+      }
+    }
+  }
+
+  // The stylist guard: every field outside the stylist's list must match the
+  // snapshot, or the snapshot is restored and the rewrite kept aside.
+  if (phase === 'stylist' && stylistSnapshot) {
+    const g = enforceStylistGuard(stylistSnapshot.issueRel, stylistSnapshot.text);
+    console.log(`\n  ${g.outcome === 'rejected' ? '\x1b[31m' : ''}${g.report}\x1b[0m`);
+    if (g.outcome === 'rejected') process.exitCode = 4;
+  }
+
+  // The check pass: a dossier rewrite must keep every heading, URL and
+  // [UNVERIFIED] marker, and carry its §10.
+  if (phase === 'check' && dossierSnapshot) {
+    const g = enforceDossierGuard(dossierSnapshot.dossierRel, dossierSnapshot.text);
+    console.log(`\n  ${g.outcome === 'rejected' ? '\x1b[31m' : ''}${g.report}\x1b[0m`);
+    if (g.outcome === 'rejected') process.exitCode = 4;
+    const reportRel = built?.out?.[0];
+    console.log(reportRel && existsSync(join(cwd, reportRel)) ? `  check report: ${reportRel}` : `  \x1b[33mcheck report: none was written${reportRel ? ` at ${reportRel}` : ''}\x1b[0m`);
+  }
+
+  // The Jev quiz grade after a panel (CP-06 c): advisory, beside the panel's
+  // own grades, never instead of them.
+  if (phase === 'panel' && panelPlan && result.success && built?.out?.[0]) {
+    await jevPanelGrade({
+      storyboardRel: panelPlan.storyboardRel,
+      panelRel: built.out[0],
+      // The name scripts/jev-panel.ts gives it too: the panel report's, with .jev.md.
+      outRel: built.out[0].replace(/\.md$/, '.jev.md'),
+      slug: panelPlan.slug,
+    });
+  }
 
   // ── Footer ────────────────────────────────────────────────────────────────
 
@@ -371,18 +604,21 @@ async function main(): Promise<void> {
   const secs     = totalSec % 60;
   const duration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
-  const costStr  = result.costUsd > 0
-    ? `$${result.costUsd.toFixed(4)} (actual)`
-    : (result.success ? 'check console.anthropic.com' : 'NOT REPORTED (the SDK throws on a capped run) — check console.anthropic.com');
   const u = result.usage;
   const k = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+  const usd = (n: number) => `$${n.toFixed(4)}`;
 
   // ── Cost ledger ───────────────────────────────────────────────────────────
-  // One JSON line per agent run → research/_costs/ledger.jsonl, the actual
-  // dollars and tokens the SDK reports. `npm run pipeline:costs` totals it per
-  // issue and per agent (operator's request, 2026-09-16: ground truth, not
-  // the estimate). Research learns its slug only now, from the dossier it
-  // just wrote; discovery belongs to the desk.
+  // One JSON line per agent run, FAILED RUNS INCLUDED → research/_costs/
+  // ledger.jsonl. `npm run pipeline:costs` totals it per issue and per agent
+  // (operator's request, 2026-09-16: ground truth, not the estimate).
+  // COST-PLAN CP-01 (signed 2026-09-28): `costUsd` (= `costUsdList`) is the
+  // LIST price of every request the run made — main loop, compaction, web
+  // helpers — from the token split and the 5-minute / 1-hour cache split
+  // (scripts/lib/pricing.ts). `costUsdSdk` keeps the SDK's own client-side
+  // estimate beside it. Rows before 2026-09-28 carry only the SDK's estimate,
+  // in `costUsd`. Research learns its slug only now, from the dossier it just
+  // wrote; discovery belongs to the desk.
   if (phase === 'research') {
     const written = newestByMtime(researchDir, '-dossier.md');
     targetSlug = written ? slugOf(written, '-dossier.md') : null;
@@ -398,15 +634,37 @@ async function main(): Promise<void> {
     model,
     candidate: candidate ?? null,
     costUsd: result.costUsd,
+    costUsdList: result.costUsd,
+    costUsdSdk: result.costUsdSdk,
+    // Main-loop tokens (compaction, web helpers and subagents are in modelUsage).
     inputTokens: u.inputTokens,
     cacheWriteTokens: u.cacheWriteTokens,
     cacheReadTokens: u.cacheReadTokens,
     outputTokens: u.outputTokens,
+    cacheWrite5mTokens: u.cacheWrite5mTokens,
+    cacheWrite1hTokens: u.cacheWrite1hTokens,
+    // API requests (not turns) and the fixed prefix the first one carried.
+    requests: result.requests,
+    firstRequestTokens: result.firstRequestTokens,
     webSearches: u.webSearches,
     webFetches: u.webFetches,
     turns: u.turns,
     durationMs: result.durationMs,
     stopReason: result.stopReason,
+    ...(result.errorKind ? { errorKind: result.errorKind, error: result.errorMessage } : {}),
+    ...(result.terminalReason ? { terminalReason: result.terminalReason } : {}),
+    effort,
+    maxBudgetUsd: MAX_BUDGET_USD[agentName],
+    ...(focus ? { focus } : {}),
+    sdkVersion: result.sdkVersion,
+    cliVersion: result.cliVersion,
+    sessionId: result.sessionId,
+    // Per model, every request: { in, cw, cr, out, web, usdSdk, usdList }.
+    modelUsage: result.modelUsage,
+    ...(result.unpricedModels.length ? { unpricedModels: result.unpricedModels } : {}),
+    ...(result.permissionDenials.length ? { denied: result.permissionDenials } : {}),
+    ...(result.instructionsLoaded.length ? { instructionsLoaded: result.instructionsLoaded } : {}),
+    ...(result.compactions ? { compactions: result.compactions } : {}),
     // Rows before 2026-09-22 05:40 UTC carry no field here: the CLI was
     // drawing on the operator's claude.ai login, not the key (see
     // API_CONFIG_DIR in runner.ts). Their dollars are token-accurate but were
@@ -419,16 +677,54 @@ async function main(): Promise<void> {
   console.log(`\n\x1b[1m${LINE}\x1b[0m`);
   if (result.success) {
     console.log(`\x1b[32m  done\x1b[0m`);
+  } else if (result.stopReason === 'error_max_budget_usd') {
+    console.log(`\x1b[31m  stopped: the $${MAX_BUDGET_USD[agentName]} budget for ${agentName}\x1b[0m (SDK estimate) — the run is in the ledger; check whether its output file was written before re-running`);
+  } else if (result.stopReason === 'error_max_turns') {
+    console.log(`\x1b[31m  stopped: the turn cap of ${MAX_TURNS[agentName]} for ${agentName}\x1b[0m — the run is in the ledger; check whether its output file was written before re-running`);
   } else {
-    console.log(`\x1b[31m  stopped: ${result.stopReason}\x1b[0m  (turn cap ${MAX_TURNS[agentName]} for ${agentName} — the run is in the ledger; check whether its output file was written before re-running)`);
+    console.log(`\x1b[31m  stopped: ${result.stopReason}${result.errorKind ? ` (${result.errorKind})` : ''}\x1b[0m — the run is in the ledger`);
   }
   console.log(`${LINE}`);
-  console.log(`  cost:     \x1b[33m${costStr}\x1b[0m`);
-  console.log(`  tokens:   in ${k(u.inputTokens)} · cache write ${k(u.cacheWriteTokens)} · cache read ${k(u.cacheReadTokens)} · out ${k(u.outputTokens)} · ${u.turns} turns${u.webSearches ? ` · ${u.webSearches} web searches` : ''}${u.webFetches ? ` · ${u.webFetches} fetches` : ''}`);
+  console.log(`  cost:     \x1b[33m${usd(result.costUsd)} at list price\x1b[0m · SDK estimate ${result.costUsdSdk === null ? 'not reported (no result message)' : usd(result.costUsdSdk)}`);
+  console.log(`  tokens:   in ${k(u.inputTokens)} · cache write ${k(u.cacheWriteTokens)}${u.cacheWrite1hTokens ? ` (1h ${k(u.cacheWrite1hTokens)})` : ''} · cache read ${k(u.cacheReadTokens)} · out ${k(u.outputTokens)} · ${result.requests} requests · ${u.turns} turns${u.webSearches ? ` · ${u.webSearches} web searches` : ''}${u.webFetches ? ` · ${u.webFetches} fetches` : ''}`);
+  console.log(`  prefix:   first request ${result.firstRequestTokens === null ? 'n/a' : k(result.firstRequestTokens)} tokens · effort ${effort} · SDK ${result.sdkVersion ?? '?'} / CLI ${result.cliVersion ?? '?'}`);
+  const models = Object.entries(result.modelUsage);
+  if (models.length > 1) {
+    console.log(`  models:   ${models.map(([m, s]) => `${m} ${usd(s.usdList)}`).join(' · ')}`);
+  }
+  if (result.permissionDenials.length) {
+    const byTool = [...new Set(result.permissionDenials)].map(t => `${t} ×${result.permissionDenials.filter(d => d === t).length}`);
+    console.log(`  \x1b[33mdenied:\x1b[0m   ${result.permissionDenials.length} call(s), each a paid request: ${byTool.join(', ')}`);
+  }
+  if (billing === 'api' && u.cacheWrite1hTokens > 0) {
+    console.log(`  \x1b[31mwarning:\x1b[0m  1-hour cache writes on the API route. The CLI requests an hour only on a subscription login, so the key may not be what this run billed — check console.anthropic.com and scripts/lib/runner.ts (API_CONFIG_DIR).`);
+  }
+  if (result.instructionsLoaded.length) {
+    console.log(`  \x1b[31mwarning:\x1b[0m  the CLI loaded instruction files despite settingSources: [] — ${result.instructionsLoaded.join(', ')}`);
+  }
   console.log(`  duration: ${duration}`);
   console.log(`  ledger:   research/_costs/ledger.jsonl (${entry.category} · ${entry.slug} · ${entry.agent}) — npm run pipeline:costs`);
   console.log(`${LINE}\n`);
-  if (!result.success) process.exit(3);
+
+  if (!result.success) {
+    if (result.errorKind === 'auth') {
+      console.error('\x1b[31mError:\x1b[0m ANTHROPIC_API_KEY is missing or invalid.');
+      console.error('Add it to .env.local:  ANTHROPIC_API_KEY=sk-ant-...');
+      process.exit(1);
+    }
+    if (result.errorKind === 'model') {
+      console.error(`\x1b[31mError:\x1b[0m the model "${model}" is not served. Check scripts/pipeline.config.ts against the current model list.`);
+      process.exit(1);
+    }
+    if (result.errorKind === 'rate_limit') {
+      console.error('\x1b[31mError:\x1b[0m Rate limit hit. Wait a moment and retry.');
+      process.exit(2);
+    }
+    if (result.errorKind === 'billing') {
+      console.error('\x1b[31mError:\x1b[0m the account behind this run is out of credit or usage. Top up at console.anthropic.com (API route); do not switch routes to finish the run.');
+    }
+    process.exit(result.errorKind === 'other' ? 1 : 3);
+  }
 }
 
 main().catch(err => {

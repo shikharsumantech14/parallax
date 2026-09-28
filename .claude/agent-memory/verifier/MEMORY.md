@@ -1,5 +1,7 @@
 # Verifier memory — Parallax
 
+> **Pipeline runs read [DIGEST.md](DIGEST.md), not these files** (COST-PLAN CP-05, 2026-09-28): the digest is inlined into every single-shot verifier pass, and these files are updated only after the operator's review, with the digest refreshed from them.
+
 One line per memory. Detail lives in the topic files, read on demand.
 Only what the repo cannot say about itself: the schema, the mode library, the
 source allowlists and the agent definition all have better homes.

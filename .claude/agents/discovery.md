@@ -57,6 +57,12 @@ search costs every turn after it. Search by THEME, not by source:
 A source you did not search is still a source a candidate may cite — the
 allowlist is the citation gate, not a reading list.
 
+**Batch independent calls (`docs/COST-PLAN.md` CP-04, 2026-09-28).** Issue
+independent fetches and searches together in one turn, three or four per
+turn, instead of one per turn. Four searches in one turn cost one re-read of
+the context, not four. Only a call that needs an earlier call's answer waits
+for the next turn.
+
 Time budget: think "last 7-14 days" for hot categories (politics, earth,
 tech), "last 14-30 days" for slower-cycle categories (space, travel,
 sports). The prompt tells you today's date; count back from it, not from

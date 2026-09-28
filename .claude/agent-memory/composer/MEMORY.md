@@ -1,5 +1,7 @@
 # Composer agent memory
 
+> **Pipeline runs read [DIGEST.md](DIGEST.md), not these files** (COST-PLAN CP-05, 2026-09-28): the digest is inlined into every single-shot composer pass, and these files are updated only after the operator's review, with the digest refreshed from them.
+
 One line per memory; detail lives in the topic files, read on demand. Scope:
 only what the repo cannot say about itself. The schema, the catalog, the voice
 contract and the floors are all in the repo — do not copy them here.

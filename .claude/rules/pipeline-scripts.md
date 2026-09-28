@@ -17,13 +17,16 @@ Never invoke one to "test" something.
 actual dollars and tokens to `research/_costs/ledger.jsonl`, and
 `npm run pipeline:costs` totals them per issue and per agent (2026-09-16).
 Quote that report, not a range. Running a phase is an editorial decision,
-never a technical one. A one-word SDK call costs ~$0.25
-because every run writes its first turn (~35–50k tokens) to a one-hour cache;
-that is the floor, not a leak. The draft phase refuses
+never a technical one. Since the harness diet (COST-PLAN CP-02, 2026-09-28) a
+run's first request is about 4k to 15k tokens (measured 4,199 on a one-word
+probe, down from 54.6k to 58.5k), written to a 5-minute cache on the API key;
+a one-word call costs about a cent. The draft phase refuses
 an unapproved storyboard while `GATES.storyboard` is `'required'`
 (`pipeline.config.ts`, REGISTER-PLAN RG-07) — that check runs before any
 agent is loaded, so `npx tsx scripts/pipeline.ts draft <cat>` with no
-storyboard is a free smoke test.
+storyboard is a free smoke test ONLY when no approved storyboard exists for
+that desk; pass `--slug <no-such-issue>` to be sure, or use `--dry-run`, which
+assembles the prompt and exits without calling the runner (2026-09-28).
 
 `.env.local` is gitignored via `*.local`. Never commit it, never echo its
 contents.
@@ -78,12 +81,18 @@ connectors, 196 tools instead of 28) into the run — none callable, all
 paid for. `scripts/lib/runner.ts` sets it; keep it set. The agent runs under
 its own system prompt, not the Claude Code preset, and nothing tells it
 today's date unless the prompt does (`scripts/lib/prompts.ts` passes it to
-discovery and research). **It DOES see CLAUDE.md / AGENTS.md / these rules**
-(corrected 2026-09-27): the runner never sets `settingSources`, so the SDK
-loads user, project and local settings, which puts the root `CLAUDE.md` +
-`@AGENTS.md` (about 31k tokens) into every run's first request and hands the
-agent the operator's local allow rules, `Bash(npm run *)` included. Measured
-on 53 transcripts; the fix is CP-02 in `docs/COST-PLAN.md`.
+discovery and research). It does NOT see CLAUDE.md / AGENTS.md / these rules since 2026-09-28:
+`scripts/lib/runner.ts` sets `settingSources: []`, disables CLAUDE.md loading
+and auto memory by environment, removes every built-in tool the frontmatter
+does not list (`disallowedTools`), runs `permissionMode: 'dontAsk'` with only
+the scoped rules in `ALLOW` (pipeline.config.ts) and the agent's own `allow:`,
+and records any instruction file that still loads in the ledger row
+(`instructionsLoaded`, the canary). Before that date the SDK loaded the root
+`CLAUDE.md` + `@AGENTS.md` (about 31k tokens) into every first request and
+handed the agent the operator's local allow rules, `Bash(npm run *)` included
+(measured on 53 transcripts, COST-PLAN §1.3). Writes under `.claude/` are
+denied in this mode, so an agent cannot update its memory in-run: the digest
+in its prompt is what it reads (CP-05).
 
 ## Gates live here
 

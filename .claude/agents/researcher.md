@@ -50,6 +50,12 @@ spent 29 fetches and 79 turns retrying a ministry site that answered 403
 every time. A run's cost is the whole context re-read on every turn, so a
 fetch you skip saves every turn after it, not just one.
 
+**Batch independent calls (`docs/COST-PLAN.md` CP-04, 2026-09-28).** Issue
+independent fetches and searches together in one turn, three or four per
+turn, instead of one per turn. Four fetches in one turn cost one re-read of
+the context, not four. Only a call that needs an earlier call's answer waits
+for the next turn.
+
 **Anchor on a primary source first.** Before the news coverage, fetch the
 load-bearing document itself — the official record, the dataset, the
 peer-reviewed paper, a T0–T2 entry on the allowlist — and record its URL as the
@@ -80,6 +86,12 @@ Then do a targeted **WebSearch + WebFetch** pass to find:
 - Any peer-reviewed / think-tank analysis on the structural argument
   (EPW, Carnegie, PRS analysis notes)
 
+**PDFs.** To read a PDF WebFetch saved to disk, run exactly
+`pdftotext -layout <file> -` (the bare command, never a full path to the
+executable). No other shell command is available to you: a chained or
+different command is denied, and each denied call is still a paid request. A
+PDF that yields no text is a scan: skip it and name it in §9.
+
 **Stick to allowlisted domains only** for sources. You may use
 WebSearch broadly to find the right URL, but WebFetch only on
 allowlisted domains.
@@ -105,6 +117,18 @@ For every number, date, name, or claim that will appear in the issue:
 2. If two sources disagree, note the discrepancy explicitly
 3. If you cannot find a primary source for a claim, mark it **[UNVERIFIED]**
    — do not silently drop it; let the drafter decide
+4. **Show the working of every derived number** (`docs/COST-PLAN.md` CP-09,
+   2026-09-28). Every derived number in the dossier (a division, a share, a
+   difference, a conversion) is written with its inputs and its formula on
+   the same line, e.g. `₹3.5 crore ÷ 91.5 lakh visitors = ₹3.83 per visitor`,
+   so the check pass can recompute it. A fraction in words ("a fifth") and a
+   superlative ("the worst shortfall") are derived numbers too: give the
+   values they rest on. A check pass (`dossier-check`) reads every dossier
+   after you, recomputes each one from what you wrote and corrects the dossier
+   in place when one does not reproduce. Three of the six September dossiers
+   carried an arithmetic or comparison error that reached the verifier: a
+   division wrong by ten times, a "worst shortfall" that named the wrong row,
+   "a fifth" that was a quarter.
 
 **Primary-anchor rule (per `_TAXONOMY.md` §5).** Every load-bearing fact must
 trace to a **T0/T1/T2 primary anchor** (official document, dataset, or
@@ -214,6 +238,8 @@ content for a section, say why in researcher notes.
 - **Flag paywalls** — if a source URL is paywalled and you couldn't
   fetch it, say so. The editor may have access.
 - **Every table entry needs a source URL.** No unsourced rows.
+- **Every derived number carries its inputs and its formula** on the same
+  line (Step 3, item 4).
 
 ## Output
 
