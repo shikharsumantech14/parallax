@@ -32,8 +32,9 @@
  * are single-shot since 2026-09-28 (docs/COST-PLAN.md CP-03): every input is
  * inlined into one prompt (scripts/lib/assemble.ts) and the agent writes its
  * one file once. The script does what the agent no longer can, in
- * scripts/lib/single-shot.ts: the drafter's check round, the stylist guard,
- * the dossier guard, and the Jev hooks (CP-06).
+ * scripts/lib/single-shot.ts: the drafter's check round (on the resumed
+ * session), the stylist guard, applying the check pass's corrections to the
+ * dossier behind the dossier guard, and the Jev hooks (CP-06).
  *
  * All agent work bills to ANTHROPIC_API_KEY (from .env.local),
  * not to your Claude Pro plan.
@@ -50,6 +51,7 @@ import {
   buildCheckPrompt,
   buildStoryboardPrompt,
   buildDraftPrompt,
+  buildDraftCheckRoundPrompt,
   buildStylistPrompt,
   buildPanelPrompt,
   buildVerifyPrompt,
@@ -63,17 +65,19 @@ import {
   type Assembled,
   assembled,
   draft as issueFileOf,
+  nextDossierSection,
   panelReport,
   todayIST,
 }                                                    from './lib/assemble.js';
 import {
+  type ResumeFrom,
+  applyCheckPass,
+  draftCheckRound,
   draftGateFlags,
-  enforceDossierGuard,
   enforceStylistGuard,
   freshJevPass,
   jevPanelGrade,
   jevVerifyPrePass,
-  mergeRunResults,
   printDryRun,
   setAsideOutputs,
   settleOutputs,
@@ -319,7 +323,7 @@ async function main(): Promise<void> {
   // What the script checks after a single-shot pass (scripts/lib/single-shot.ts).
   let draftPlan: { dossierFile: string; storyboardFile: string } | null = null;
   let stylistSnapshot: { issueRel: string; text: string } | null = null;
-  let dossierSnapshot: { dossierRel: string; text: string } | null = null;
+  let checkPlan: { dossierRel: string; snapshot: string } | null = null;
   let panelPlan: { storyboardRel: string; slug: string } | null = null;
   // Panel and verify read a DRAFT issue. A dry run may inspect any issue that
   // --slug names, so a published one can be measured without a real run.
@@ -370,18 +374,19 @@ async function main(): Promise<void> {
 
   } else if (phase === 'check') {
     // The dossier check pass (COST-PLAN CP-09): after research, before the
-    // storyboard, on every dossier. It may rewrite the dossier in place, so a
-    // snapshot lets the dossier guard undo a rewrite that lost anything.
+    // storyboard, on every dossier. It writes only its report. After the run
+    // the script applies the report's §6 corrections to this snapshot of the
+    // dossier, behind the dossier guard (COST-PLAN §12.5 item 1).
     const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
     if (!dossierFile) {
       fail(`No dossier found in research/${category}/${slugHint}`,
         `Run first: npm run pipeline:research ${category}`);
     }
     targetSlug = slugOf(dossierFile, '-dossier.md');
+    const dossierRel = `research/${category}/${dossierFile}`;
+    checkPlan = { dossierRel, snapshot: readFileSync(join(cwd, dossierRel), 'utf-8') };
     built = buildCheckPrompt(category, dossierFile);
     prompt = built.text;
-    const dossierRel = `research/${category}/${dossierFile}`;
-    if (!dryRun) dossierSnapshot = { dossierRel, text: readFileSync(join(cwd, dossierRel), 'utf-8') };
 
   } else if (phase === 'storyboard') {
     const dossierFile = findMostRecent(researchDir, '-dossier.md', slug);
@@ -495,16 +500,23 @@ async function main(): Promise<void> {
   if (dryRun) {
     printDryRun(`${phase} · ${category}${targetSlug ? ` · ${targetSlug}` : ''} · ${agentName} on ${model}`, built ?? assembled([prompt]));
     if (built?.out?.length) console.log(`  writes: ${built.out.join(', ')}`);
+    if (checkPlan) {
+      console.log(`  then:   the script applies the report's §6 corrections to ${checkPlan.dossierRel} and appends \`## §${nextDossierSection(checkPlan.snapshot)} Check pass, ${todayIST()}\`, behind the dossier guard`);
+    }
     if (phase === 'draft' && draftPlan) {
       // The check round, previewed on the issue already on disk for this
       // slug: its gates run for real (they are local and free), and the
-      // second request is assembled and measured, not sent.
+      // second request is assembled and measured, not sent. It resumes the
+      // first run's session, so only the flags go out. The fresh-session
+      // form is the fallback when the session cannot be resumed.
       const existing = targetSlug ? issueFileOf(targetSlug) : null;
       if (existing) {
         const gates = await draftGateFlags(existing);
         for (const t of gates.toolErrors) console.log(`  check round: ${t}`);
         const flags = gates.lines.length ? gates.lines.join('\n') : '(no flags on the issue on disk: this measures the round as if there were some)';
-        printDryRun(`draft check round, previewed on ${existing}, ${gates.lines.length} flag(s) on it now`,
+        printDryRun(`draft check round on the resumed session, previewed on ${existing}, ${gates.lines.length} flag(s) on it now (the session's transcript supplies everything else)`,
+          buildDraftCheckRoundPrompt(existing, flags));
+        printDryRun('draft check round, the fallback when the session cannot be resumed (a fresh session, every input again)',
           buildDraftPrompt(category, draftPlan.dossierFile, draftPlan.storyboardFile, { firstDraft: existing, flags }));
         for (const l of gates.lines) console.log(`    ${l}`);
       } else {
@@ -533,13 +545,17 @@ async function main(): Promise<void> {
 
   // ── Run ───────────────────────────────────────────────────────────────────
 
-  const runOnce = (text: string) => runAgent({
+  // One call, the same model, tools, effort, caps, cwd and billing every
+  // time, so a resumed call finds its session (the transcript lives under
+  // the billing route's config dir) and reads its prefix back from the cache.
+  const runOnce = (text: string, resume?: ResumeFrom) => runAgent({
     agent, prompt: text, model, cwd, verbose,
     maxTurns: MAX_TURNS[agentName],
     maxBudgetUsd: MAX_BUDGET_USD[agentName],
     effort,
     allow: ALLOW[agentName],
     billing,
+    ...(resume ? { resume: resume.sessionId, resumeFrom: resume.from } : {}),
   });
   // A single-shot pass Writes without reading, and the Write tool will not
   // overwrite an unread file, so an output that already exists is set aside
@@ -552,7 +568,8 @@ async function main(): Promise<void> {
 
   // The drafter's check round (CP-03): check:prose and the schema check on
   // the first draft. If either flags something, one more request carries the
-  // flags. Both runs land in this invocation's one ledger row.
+  // flags, on the first run's resumed session (COST-PLAN §12.5 item 2). Both
+  // runs land in this invocation's one ledger row, with `resumed` set.
   if (phase === 'draft' && draftPlan && result.success) {
     const planned = built?.out?.[0];
     // The planned path, or else this slug's newest issue file if THIS run
@@ -571,10 +588,14 @@ async function main(): Promise<void> {
       } else {
         console.log(`\n  check round: ${gates.lines.length} flag(s) on ${written}. One more drafter request carries them:`);
         for (const l of gates.lines) console.log(`    ${l}`);
-        const round = buildDraftPrompt(category, draftPlan.dossierFile, draftPlan.storyboardFile, { firstDraft: written, flags: gates.lines.join('\n') });
-        console.log(`  (about ${round.estTokens.toLocaleString('en-US')} tokens)\n`);
-        const roundAside = setAsideOutputs(round.out);
-        result = mergeRunResults(result, await runOnce(round.text).finally(() => settleOutputs(roundAside)));
+        const flags = gates.lines.join('\n');
+        const plan = draftPlan;
+        ({ result } = await draftCheckRound({
+          first: result,
+          resumePrompt: buildDraftCheckRoundPrompt(written, flags),
+          freshPrompt: () => buildDraftPrompt(category, plan.dossierFile, plan.storyboardFile, { firstDraft: written, flags }),
+          run: runOnce,
+        }));
         const after = await draftGateFlags(written);
         console.log(after.lines.length ? `\n  check round: ${after.lines.length} flag(s) remain, for the operator:` : '\n  check round: clean after the second request.');
         for (const l of after.lines) console.log(`    ${l}`);
@@ -590,14 +611,20 @@ async function main(): Promise<void> {
     if (g.outcome === 'rejected') process.exitCode = 4;
   }
 
-  // The check pass: a dossier rewrite must keep every heading, URL and
-  // [UNVERIFIED] marker, and carry its §10.
-  if (phase === 'check' && dossierSnapshot) {
-    const g = enforceDossierGuard(dossierSnapshot.dossierRel, dossierSnapshot.text);
-    console.log(`\n  ${g.outcome === 'rejected' ? '\x1b[31m' : ''}${g.report}\x1b[0m`);
-    if (g.outcome === 'rejected') process.exitCode = 4;
+  // The check pass wrote its report only. The script applies the report's §6
+  // corrections to the dossier as it stood before the run, appends the
+  // `## §N Check pass` section, and writes the dossier only when the dossier
+  // guard accepts the result. Only this run's report counts: an earlier one
+  // put back by settleOutputs was applied by its own run.
+  if (phase === 'check' && checkPlan) {
     const reportRel = built?.out?.[0];
-    console.log(reportRel && existsSync(join(cwd, reportRel)) ? `  check report: ${reportRel}` : `  \x1b[33mcheck report: none was written${reportRel ? ` at ${reportRel}` : ''}\x1b[0m`);
+    const reportFresh = !!reportRel && existsSync(join(cwd, reportRel)) && statSync(join(cwd, reportRel)).mtimeMs >= runStartedMs;
+    console.log(reportRel && existsSync(join(cwd, reportRel)) ? `\n  check report: ${reportRel}${reportFresh ? '' : ' (not written by this run)'}` : `\n  \x1b[33mcheck report: none was written${reportRel ? ` at ${reportRel}` : ''}\x1b[0m`);
+    if (reportRel) {
+      const c = applyCheckPass({ dossierRel: checkPlan.dossierRel, reportRel, snapshot: checkPlan.snapshot, date: todayIST(), reportFresh });
+      for (const l of c.lines) console.log(`  ${c.outcome === 'rejected' && l.startsWith('dossier guard') ? '\x1b[31m' : ''}${l}\x1b[0m`);
+      if (c.needsOperator) process.exitCode = 4;
+    }
   }
 
   // The Jev quiz grade after a panel (CP-06 c): advisory, beside the panel's
@@ -674,6 +701,9 @@ async function main(): Promise<void> {
     sdkVersion: result.sdkVersion,
     cliVersion: result.cliVersion,
     sessionId: result.sessionId,
+    // The drafter's check round: true when it ran on the first run's resumed
+    // session, false when it fell back to a fresh one. Absent without a round.
+    ...(result.resumed !== undefined ? { resumed: result.resumed } : {}),
     // Per model, every request: { in, cw, cr, out, web, usdSdk, usdList }.
     modelUsage: result.modelUsage,
     ...(result.unpricedModels.length ? { unpricedModels: result.unpricedModels } : {}),

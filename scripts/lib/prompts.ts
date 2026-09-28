@@ -23,6 +23,8 @@ import {
   memoryDigestBlock,
   modeLibrary,
   neverPublishedLedger,
+  nextDossierSection,
+  readRepo,
   recentStoryboardLedgers,
   sectionKindsBlock,
   storyboard as findStoryboard,
@@ -218,16 +220,21 @@ export function buildResearchPrompt(category: string, candidatesFile: string, ca
 export function buildResearchTopupPrompt(category: string, dossierFile: string, checkFile: string | null, candidatesFile: string | null): string {
   const today = todayIST();
   const dossierRel = `research/${category}/${dossierFile}`;
+  // §11 after one check pass, later when the dossier already carries more.
+  const n = nextDossierSection(readRepo(dossierRel));
   const checkLine = checkFile ? ` The check pass that blocked it is at \`research/${category}/${checkFile}\`.` : '';
   const candLine = candidatesFile ? ` The candidate it came from is in \`research/${category}/${candidatesFile}\`.` : '';
-  return `Top up an existing dossier for category **${category}**. Today is ${today} (IST). The dossier is at \`${dossierRel}\`.${checkLine}${candLine} Read the dossier's §9 and the check report's verdict, blocks and flags first: they name exactly what is missing. Do NOT rewrite the dossier and do NOT write a new one. Fetch only what clears the blocks, within a budget of at most 8 WebFetch and 6 WebSearch calls, issued three or four per turn: the sources §9 names for the publisher spread (the floor is no publisher above 40% of §8's rows, at least five publishers, at least three tiers), the anchors the check report marks as missing or as predating the fact they support, and any [UNVERIFIED] whose resolution path it names. Then Edit the dossier in place: append the new rows to §8 and recount its Spread line, add new facts to §4 (and §6 for primary documents) with their source URLs, replace a stale anchor with the correct one, resolve an [UNVERIFIED] only when a fetched allowlisted source settles it, and append a final section \`## §11 Top-up, ${today}\` listing every addition and change. Never invent a fact, never cite outside the allowlist at \`research/_sources/${category}.md\`, and write every derived number with its inputs and formula. Return a one-paragraph summary: what you fetched, what you added, the new Spread line, and which blocks remain.`;
+  return `Top up an existing dossier for category **${category}**. Today is ${today} (IST). The dossier is at \`${dossierRel}\`.${checkLine}${candLine} Read the dossier's §9 and the check report's verdict, blocks and flags first: they name exactly what is missing. Do NOT rewrite the dossier and do NOT write a new one. Fetch only what clears the blocks, within a budget of at most 8 WebFetch and 6 WebSearch calls, issued three or four per turn: the sources §9 names for the publisher spread (the floor is no publisher above 40% of §8's rows, at least five publishers, at least three tiers), the anchors the check report marks as missing or as predating the fact they support, and any [UNVERIFIED] whose resolution path it names. Then Edit the dossier in place: append the new rows to §8 and recount its Spread line, add new facts to §4 (and §6 for primary documents) with their source URLs, replace a stale anchor with the correct one, resolve an [UNVERIFIED] only when a fetched allowlisted source settles it, and append a final section \`## §${n} Top-up, ${today}\` listing every addition and change. Never invent a fact, never cite outside the allowlist at \`research/_sources/${category}.md\`, and write every derived number with its inputs and formula. Return a one-paragraph summary: what you fetched, what you added, the new Spread line, and which blocks remain.`;
 }
 
 /**
  * The dossier check pass (CP-09): a single-shot read of a fresh dossier that
  * recomputes every derived number, confirms the anchors, lists disagreements
- * and open [UNVERIFIED] items, writes a report, and rewrites the dossier in
- * place only when it corrected something.
+ * and open [UNVERIFIED] items, and writes a report. Since the trial issue
+ * (COST-PLAN §12.5 item 1) it never writes the dossier: its corrections go in
+ * the report's §6 as a JSON block, and `applyCheckPass` in single-shot.ts
+ * applies them. Writing the whole dossier back was most of the pass's cost,
+ * and the guard refused the trial's second rewrite.
  */
 export function buildCheckPrompt(category: string, dossierFile: string): Assembled {
   const today = todayIST();
@@ -235,6 +242,7 @@ export function buildCheckPrompt(category: string, dossierFile: string): Assembl
   const dossierRel = `research/${category}/${dossierFile}`;
   const reportRel = `research/${category}/${today}-${slug}-check.md`;
   const candidate = candidateEntry(category, dossierRel);
+  const n = nextDossierSection(readRepo(dossierRel));
   const blocks: Part[] = [
     block('DOSSIER', dossierRel),
     candidate,
@@ -244,10 +252,9 @@ export function buildCheckPrompt(category: string, dossierFile: string): Assembl
   ];
   const head = `Run the dossier check pass on the dossier inlined below (${dossierRel}).
 
-Today is ${today} (IST). You write at most two files, each once, with the Write tool:
+Today is ${today} (IST). You write one file, once, with the Write tool: the check report, to \`${absPath(reportRel)}\`, following the CHECK TEMPLATE block, with the verdict CLEAN, CORRECTIONS or BLOCKED. You never write the dossier.
 
-1. The check report, always, to \`${absPath(reportRel)}\`, following the CHECK TEMPLATE block, with the verdict CLEAN, CORRECTIONS or BLOCKED.
-2. The corrected dossier, only when you corrected something, written in full to the path it came from, \`${absPath(dossierRel)}\`: each corrected number replaced in place, every other line exactly as it stands, and a new final section \`## §10 Check pass, ${today}\` listing every change (the same list as the report's §6). When the verdict is CLEAN, do not rewrite the dossier. The script compares a rewrite with the original and restores the original if a heading, a URL or an [UNVERIFIED] marker went missing, or if the text before §10 changed by more than a few per cent.
+Every correction goes in the report's §6, in one fenced \`\`\`json block of the shape \`{"corrections":[{"section":"§4i","was":"...","now":"...","why":"..."}]}\`, and the list is empty when the verdict is CLEAN. \`was\` is the dossier's text copied character for character from the DOSSIER block (text that runs over a line break goes on one line, with single spaces), and it must occur exactly once in the dossier: take the whole table cell or the clause around the number, and add neighbouring words until nothing else matches. \`now\` is the same text with only the wrong value changed. The script replaces each \`was\` with its \`now\`, refuses one it finds nowhere or more than once, appends \`## §${n} Check pass, ${today}\` to the dossier listing what it applied, and runs the dossier guard, which refuses a correction that touches a heading or drops a URL or an [UNVERIFIED] marker.
 
 Your jobs, in this order (your definition has the detail):
 1. Recompute every derived number (a division, a share, a difference, a sum, a rate, a conversion) from the inputs the dossier states beside it. Flag each one that does not reproduce, with the correct value.
@@ -262,8 +269,10 @@ ${SINGLE_SHOT}
 
 The inputs, in this order:
 ${inputList(blocks)}`;
-  const tail = endOfInputs(`Now write the check report to \`${absPath(reportRel)}\` with one Write call, and only if you corrected something, the corrected dossier to \`${absPath(dossierRel)}\` with one more. Then reply with four things. The verdict. The counts: derived numbers checked, reproduced, corrected and with inputs not stated, load-bearing facts without a T0 to T2 anchor, disagreements, and [UNVERIFIED] items without a resolution path. Whether you rewrote the dossier. The three lines the operator should read first.`);
-  return { ...assembled([head, ...blocks, tail]), out: [reportRel, dossierRel] };
+  const tail = endOfInputs(`Now write the check report to \`${absPath(reportRel)}\` with one Write call, its §6 corrections block included. Do not write the dossier. Then reply with four things. The verdict. The counts: derived numbers checked, reproduced, corrected and with inputs not stated, load-bearing facts without a T0 to T2 anchor, disagreements, and [UNVERIFIED] items without a resolution path. How many corrections your §6 block carries. The three lines the operator should read first.`);
+  // The report is the one output. The dossier is not set aside: the agent
+  // never writes it, and the script applies §6 to it after the run.
+  return { ...assembled([head, ...blocks, tail]), out: [reportRel] };
 }
 
 export function buildStoryboardPrompt(category: string, dossierFile: string): Assembled {
@@ -307,11 +316,37 @@ export interface DraftCheckRound {
   flags: string;
 }
 
+/** What the check round asks, in either form of the round. */
+const ROUND_RULES = 'Fix every flag, change nothing the flags do not touch, and Write the whole file again, once, with the Write tool, to the same path';
+const ROUND_JUDGEMENT = 'A schema error always needs a fix, because the build fails on it. A check:prose flag you judge a false positive of its heuristic: leave that text as it is and name the flag in your summary with the reason. Every rule of your definition still holds, and every fix still traces to the dossier.';
+const roundReply = (outRel: string): string => `Now write the whole corrected file to \`${absPath(outRel)}\` with one Write call. Then reply with each flag and what you did about it (fixed, or left as a false positive and why), and any departure from the storyboard a fix caused.`;
+const gateFlagsBlock = (flags: string): Block =>
+  textBlock('GATE FLAGS from check:prose and the schema check on your first draft', 'scripts/check-prose.mjs and scripts/lib/validate-issue.ts', flags);
+
 /**
- * The drafter. Without `round` it writes the first draft. With `round`
- * (pipeline.ts runs check:prose and the schema check on the first draft and
- * found something) it gets the same inputs plus its first draft and the
- * flags, and writes the whole file again.
+ * The drafter's check round on the RESUMED session (COST-PLAN §12.5 item 2):
+ * the flags and the task, nothing else. The session's transcript already
+ * holds the dossier, the storyboard, every reference block and the first
+ * draft (the drafter's own Write call), and the cache holds them for five
+ * minutes after the first run's last request, so inlining them again would
+ * only write them to the cache a second time. The trial issue's round did
+ * that on a fresh session: 78k tokens written at 1.25 times the input price,
+ * where a resumed session reads about 127k at a tenth of it. pipeline.ts
+ * falls back to `buildDraftPrompt` with a `round` when the session cannot be
+ * resumed.
+ */
+export function buildDraftCheckRoundPrompt(firstDraft: string, flags: string): Assembled {
+  const head = `This is the check round of the draft you just wrote to \`${absPath(firstDraft)}\`. The script ran \`check:prose\` and the schema check on that file, and they raised the GATE FLAGS below. The file on disk is exactly what your Write call above wrote, and every input you drafted from is above in this conversation. Do not read files.
+
+${ROUND_RULES}. ${ROUND_JUDGEMENT}`;
+  return { ...assembled([head, gateFlagsBlock(flags), endOfInputs(roundReply(firstDraft))]), out: [firstDraft] };
+}
+
+/**
+ * The drafter. Without `round` it writes the first draft. With `round` it is
+ * the check round's fallback, used when the first run's session cannot be
+ * resumed: the same inputs plus its first draft and the flags, on a fresh
+ * session, and it writes the whole file again.
  */
 export function buildDraftPrompt(category: string, dossierFile: string, storyboardFile: string, round?: DraftCheckRound): Assembled {
   const today = todayIST();
@@ -337,15 +372,15 @@ export function buildDraftPrompt(category: string, dossierFile: string, storyboa
     issueAuthoringRule(),
     memoryDigestBlock('drafter'),
     round && block('YOUR FIRST DRAFT', round.firstDraft),
-    round && textBlock('GATE FLAGS from check:prose and the schema check on your first draft', 'scripts/check-prose.mjs and scripts/lib/validate-issue.ts', round.flags),
+    round && gateFlagsBlock(round.flags),
   ];
   const checkLine = check
-    ? `\nA dossier check pass ran on this dossier. Its CHECK REPORT is inlined after the dossier, and the dossier you have is the corrected one (its §10, when present, lists what changed). A fact the report marks as unanchored, not reproducible or disputed is not stated as fact: drop it, or carry it the way the report says the dossier should.\n`
+    ? `\nA dossier check pass ran on this dossier. Its CHECK REPORT is inlined after the dossier, and the dossier you have is the corrected one (its last "Check pass" section, when present, lists what the script changed). A fact the report marks as unanchored, not reproducible or disputed is not stated as fact: drop it, or carry it the way the report says the dossier should.\n`
     : '';
   const task = round
     ? `This is the check round of the draft you wrote from the dossier inlined below (${dossierRel}) and its storyboard (${storyboardRel}). The script ran \`check:prose\` and the schema check on YOUR FIRST DRAFT, inlined near the end, and they raised the GATE FLAGS inlined after it.
 
-Fix every flag, change nothing the flags do not touch, and Write the whole file again, once, with the Write tool, to the same path: \`${absPath(outRel)}\`. A schema error always needs a fix, because the build fails on it. A check:prose flag you judge a false positive of its heuristic: leave that text as it is and name the flag in your summary with the reason. Every rule of your definition still holds, and every fix still traces to the dossier.`
+${ROUND_RULES}: \`${absPath(outRel)}\`. ${ROUND_JUDGEMENT}`
     : `Write a complete draft issue from the dossier inlined below (${dossierRel}), executing the approved storyboard inlined after it (${storyboardRel}). The storyboard fixes the kinds, the order, the hero, the word budgets and the head.
 
 Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. Its frontmatter carries \`id: "${id}"\`, \`topic: ${category}\`, \`publishedAt: ${today}\` and \`status: draft\`, and the standard empty body follows it.
@@ -358,7 +393,7 @@ ${SINGLE_SHOT}
 The inputs, in this order:
 ${inputList(blocks)}`;
   const tail = endOfInputs(round
-    ? `Now write the whole corrected file to \`${absPath(outRel)}\` with one Write call. Then reply with each flag and what you did about it (fixed, or left as a false positive and why), and any departure from the storyboard a fix caused.`
+    ? roundReply(outRel)
     : `Now write the issue file to \`${absPath(outRel)}\` with one Write call. Then reply with: the file path, the title and hook, the section count, the spine (kinds in order), the reader-facing word count and read time, any [UNVERIFIED] dossier items omitted or flagged, any departure from the storyboard and why, ${MEMORY_LINE}.`);
   return { ...assembled([head, ...blocks, tail]), out: [outRel] };
 }

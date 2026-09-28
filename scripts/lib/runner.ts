@@ -167,6 +167,37 @@ export interface RunResult {
   permissionDenials: string[];
   compactions: number;
   terminalReason: string | null;
+  /** Set only on a run asked to `resume`: true when the CLI continued that
+   *  session (its init message carried the same id), false when it did not. */
+  resumed?: boolean;
+}
+
+/** in + cache write + cache read + output. */
+const shareTokens = (s: Pick<ModelShare, 'in' | 'cw' | 'cr' | 'out'>): number => s.in + s.cw + s.cr + s.out;
+
+/**
+ * Whether a resumed call's reported figure carries the session's earlier run
+ * as well as its own. The stream holds only this call's requests, so the
+ * figure is compared with it twice, as it stands and with the earlier run
+ * taken out, and the closer reading wins. Exported for the tests.
+ */
+export function carriesEarlierRun(figure: number, earlier: number, streamed: number): boolean {
+  return earlier > 0 && Math.abs(figure - earlier - streamed) < Math.abs(figure - streamed);
+}
+
+/** A model's reported usage minus the earlier run's share of it, floored at 0. */
+function minusEarlierShare(mu: ModelUsage, e: ModelShare | undefined): ModelUsage {
+  if (!e) return mu;
+  const less = (v: unknown, by: number) => Math.max(0, n(v) - by);
+  return {
+    ...mu,
+    inputTokens:              less(mu.inputTokens, e.in),
+    cacheCreationInputTokens: less(mu.cacheCreationInputTokens, e.cw),
+    cacheReadInputTokens:     less(mu.cacheReadInputTokens, e.cr),
+    outputTokens:             less(mu.outputTokens, e.out),
+    webSearchRequests:        less(mu.webSearchRequests, e.web),
+    costUSD:                  less(mu.costUSD, e.usdSdk),
+  };
 }
 
 /** The installed SDK's version, read at run time for the ledger. */
@@ -262,6 +293,16 @@ function classify(text: string, assistantError: string | null): ErrorKind {
  *   subscription within plan usage. Nothing here asks for an hour (it would
  *   add about $6.20 an issue on the API route), so a run on `api` that writes
  *   1-hour entries is not billing the key, and the footer says so.
+ * - `resume` continues an earlier run's session (COST-PLAN §12.5 item 2, the
+ *   drafter's check round). The CLI finds the transcript under
+ *   `$CLAUDE_CONFIG_DIR/projects/<encoded cwd>/` (the isolated config dir on
+ *   `api`, the login's on `subscription`), so a resumed run must use the same
+ *   `billing` and `cwd` as the run it continues, which pipeline.ts does. It
+ *   also restores the session's saved totals (CLI 2.1.277 and later), so the
+ *   result's `total_cost_usd` and `modelUsage` count the earlier run again,
+ *   and `resumeFrom` lets the runner take them back out. `maxBudgetUsd` counts
+ *   only the call's own spend either way (code.claude.com/docs/en/agent-sdk/
+ *   cost-tracking and /sessions, read 2026-09-28).
  */
 export async function runAgent(opts: {
   agent: AgentDef;
@@ -286,6 +327,13 @@ export async function runAgent(opts: {
    *  CLI prefers over the key — the operator's choice when the key is short
    *  (2026-09-22). The ledger row records which. */
   billing?: 'api' | 'subscription';
+  /** The session id of an earlier run to continue (the SDK's `resume`): the
+   *  prompt is then only what is new. Same `billing` and `cwd` as that run. */
+  resume?: string;
+  /** That earlier run's figures. The CLI restores the session's totals on
+   *  resume, so without them this run's cost would count the earlier run
+   *  twice once the two are merged into one ledger row. */
+  resumeFrom?: Pick<RunResult, 'usage' | 'modelUsage' | 'costUsdSdk'>;
 }): Promise<RunResult> {
   const startMs = Date.now();
   const billing = opts.billing ?? 'api';
@@ -313,6 +361,10 @@ export async function runAgent(opts: {
   const requests = new Map<string, RequestUsage>();
   let firstRequestId: string | null = null;
   let streamingId: string | null = null;
+  // Stops a resumed run whose CLI did not continue the session it was given:
+  // the prompt would reach a model that has none of the earlier context.
+  const abort = new AbortController();
+  let resumeRefused: string | null = null;
 
   const noteRequest = (id: string, u: Record<string, unknown> | null | undefined) => {
     if (!u || requests.has(id)) return;
@@ -363,6 +415,9 @@ export async function runAgent(opts: {
     ...(opts.maxBudgetUsd ? { maxBudgetUsd: opts.maxBudgetUsd } : {}),
     ...(opts.maxTurns ? { maxTurns: opts.maxTurns } : {}),
     ...(opts.mcpServers ? { mcpServers: opts.mcpServers } : {}),
+    // The earlier run's session, continued under its own id (no forkSession).
+    ...(opts.resume ? { resume: opts.resume } : {}),
+    abortController: abort,
   };
 
   let thrown: string | null = null;
@@ -374,7 +429,14 @@ export async function runAgent(opts: {
             sessionId = msg.session_id;
             cliVersion = msg.claude_code_version;
             toolsSeen = msg.tools;
-            console.log(`\x1b[90m[init] CLI ${cliVersion} · tools: ${toolsSeen.join(', ') || '(none)'}${msg.mcp_servers.length ? ` · mcp: ${msg.mcp_servers.map((s) => s.name).join(', ')}` : ''}\x1b[0m`);
+            console.log(`\x1b[90m[init] CLI ${cliVersion} · tools: ${toolsSeen.join(', ') || '(none)'}${msg.mcp_servers.length ? ` · mcp: ${msg.mcp_servers.map((s) => s.name).join(', ')}` : ''}${opts.resume ? ` · resuming ${opts.resume}` : ''}\x1b[0m`);
+            if (opts.resume && sessionId !== opts.resume) {
+              // A resume continues the session under its own id. Any other id
+              // means the earlier context is not there: stop before a request.
+              resumeRefused = `the CLI opened session ${sessionId}, not the session ${opts.resume} it was asked to resume`;
+              console.log(`\x1b[31m[resume]\x1b[0m ${resumeRefused}. Stopping before the first request.`);
+              abort.abort();
+            }
           } else if (msg.subtype === 'compact_boundary') {
             compactions++;
             console.log(`\n\x1b[33m[compacted]\x1b[0m at ${msg.compact_metadata.pre_tokens} tokens`);
@@ -474,7 +536,19 @@ export async function runAgent(opts: {
     streamed.output += r.output;
   }
   const res = result as SDKResultMessage | null;
-  const ru = (res?.usage ?? null) as unknown as Record<string, unknown> | null;
+  // A resumed run: the CLI restores the session's saved totals (2.1.277 and
+  // later), so the result may count the earlier run again. The stream never
+  // does, so each reported figure is tested against it below and, when it
+  // carries the earlier run, reduced to this call's own share.
+  const earlier = opts.resume ? opts.resumeFrom : undefined;
+  const streamedTokens = streamed.input + streamed.cacheWrite5m + streamed.cacheWrite1h + streamed.cacheRead + streamed.output;
+  let ru = (res?.usage ?? null) as unknown as Record<string, unknown> | null;
+  if (earlier && ru) {
+    const figure = n(ru.input_tokens) + n(ru.cache_creation_input_tokens) + n(ru.cache_read_input_tokens) + n(ru.output_tokens);
+    const u0 = earlier.usage;
+    // Documented as the call's own. If it ever carries the earlier run, the stream is the record.
+    if (carriesEarlierRun(figure, u0.inputTokens + u0.cacheWriteTokens + u0.cacheReadTokens + u0.outputTokens, streamedTokens)) ru = null;
+  }
   const rcc = ru?.cache_creation as Record<string, unknown> | null | undefined;
   const resultWrite = n(ru?.cache_creation_input_tokens);
   const resultWrite1h = n(rcc?.ephemeral_1h_input_tokens);
@@ -499,7 +573,23 @@ export async function runAgent(opts: {
   let costUsd = 0;
   let reportedSearches = 0;
   let mainPriced = false;
-  const entries = Object.entries((res?.modelUsage ?? {}) as Record<string, ModelUsage>);
+  let entries = Object.entries((res?.modelUsage ?? {}) as Record<string, ModelUsage>);
+  let sdkCost: number | null = res ? n(res.total_cost_usd) : null;
+  if (earlier && res) {
+    const keyOf = (name: string, mu: ModelUsage) => canonicalModel(mu.canonicalModel ?? name);
+    const mainNow = entries.find(([name, mu]) => keyOf(name, mu) === mainKey)?.[1];
+    const mainBefore = earlier.modelUsage[mainKey];
+    const figure = mainNow ? n(mainNow.inputTokens) + n(mainNow.cacheCreationInputTokens) + n(mainNow.cacheReadInputTokens) + n(mainNow.outputTokens) : 0;
+    if (mainNow && mainBefore && carriesEarlierRun(figure, shareTokens(mainBefore), streamedTokens)) {
+      entries = entries
+        .map(([name, mu]) => [name, minusEarlierShare(mu, earlier.modelUsage[keyOf(name, mu)])] as [string, ModelUsage])
+        // A model only the earlier run used has nothing left: no row for it.
+        .filter(([, mu]) => n(mu.inputTokens) + n(mu.cacheCreationInputTokens) + n(mu.cacheReadInputTokens) + n(mu.outputTokens) + n(mu.webSearchRequests) + n(mu.costUSD) > 0);
+      const restoredUsd = earlier.costUsdSdk ?? Object.values(earlier.modelUsage).reduce((s, m) => s + m.usdSdk, 0);
+      sdkCost = Math.max(0, n(res.total_cost_usd) - restoredUsd);
+      console.log(`\x1b[90m[resume] the result carried the session's earlier spend (SDK estimate $${restoredUsd.toFixed(4)}). This run's figures are its own.\x1b[0m`);
+    }
+  }
   for (const [name, mu] of entries) {
     const key = canonicalModel(mu.canonicalModel ?? name);
     let split: TokenSplit = {
@@ -569,7 +659,7 @@ export async function runAgent(opts: {
     const resultText = res
       ? (res.subtype === 'success' ? res.result : (res.errors ?? []).join('; '))
       : '';
-    errorMessage = [thrown, resultText, stderrTail.trim().split(/\r?\n/).slice(-3).join(' | ')]
+    errorMessage = [resumeRefused && `resume: ${resumeRefused}`, thrown, resultText, stderrTail.trim().split(/\r?\n/).slice(-3).join(' | ')]
       .filter(Boolean).join(' — ').slice(0, 600) || 'no result message';
     errorKind = res?.subtype === 'error_max_turns' || res?.subtype === 'error_max_budget_usd'
       ? 'capped'
@@ -591,7 +681,7 @@ export async function runAgent(opts: {
     ...(errorMessage ? { errorMessage } : {}),
     finalMessage: lastAssistantText.trim(),
     costUsd:      Math.round(costUsd * 1e6) / 1e6,
-    costUsdSdk:   res ? n(res.total_cost_usd) : null,
+    costUsdSdk:   sdkCost,
     durationMs:   Date.now() - startMs,
     usage: {
       inputTokens:        main.input,
@@ -616,5 +706,6 @@ export async function runAgent(opts: {
     permissionDenials: denials,
     compactions,
     terminalReason: (res?.terminal_reason as string | undefined) ?? null,
+    ...(opts.resume ? { resumed: sessionId === opts.resume } : {}),
   };
 }

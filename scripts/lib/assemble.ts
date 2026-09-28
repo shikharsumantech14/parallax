@@ -173,6 +173,22 @@ function numberedSection(text: string, n: number, level = 2): string | null {
   return mdSection(text, h => new RegExp(`^(?:§\\s*)?${n}(?:\\.|\\s|$)`).test(h), level);
 }
 
+/**
+ * The number the next section appended to a dossier takes: one past the
+ * highest `## N.` or `## §N` heading outside a code fence. A fresh dossier
+ * ends at `## 9.`, so its first check pass is §10, a top-up after it §11, and
+ * a second check pass after that §12.
+ */
+export function nextDossierSection(text: string): number {
+  let max = 0;
+  for (const h of headingsOf(normalise(text).split('\n'))) {
+    if (h.level !== 2) continue;
+    const m = /^(?:§\s*(\d+)\b|(\d+)\.)/.exec(h.text);
+    if (m) max = Math.max(max, Number(m[1] ?? m[2]));
+  }
+  return max + 1;
+}
+
 interface MdTable { header: string[]; rows: string[][] }
 
 function splitRow(line: string): string[] {
