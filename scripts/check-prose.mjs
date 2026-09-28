@@ -77,7 +77,7 @@ const T = {
   newKinds: 2,
   sourcesMin: 8,
   sourceHosts: 5,
-  sourceTopShare: 0.4,
+  sourceTopShare: 0.4, // an official record (T0) may pass it, 2026-09-28: see sourceSpread()
 };
 
 // Kinds that carry no graphic. `paradox` is two blocks of prose (REGISTER-PLAN §1.3).
@@ -207,6 +207,96 @@ function names(text) {
   return found;
 }
 
+// ── Source spread (REGISTER-PLAN §5.1) ─────────────────────────────────────
+// The floor (2026-09-16): at least 8 sources from at least 5 publishers, none
+// behind more than 40% of them. A publisher is a source's host, `www.` dropped.
+// Amended 2026-09-28 by the operator's ruling: an official-record publisher,
+// one whose domain sits at T0 on the desk's allowlist, sits outside the 40%
+// ceiling and counts once, provided at least five other publishers are cited.
+// T0 only. _TAXONOMY.md §1 files official statistics under T0, while T1 mixes
+// public data portals with private data shops (Transfermarkt, Understat and
+// all of github.com on the sports list), the one-publisher lean the ceiling
+// exists to catch. A host that is not on the allowlist is never official.
+const OFFICIAL_TIERS = new Set(['T0']);
+const allowlists = new Map();
+/** A desk's allowlist as `{ host, path, tier }`, one per source line that carries a URL and a `tier:`. */
+function allowlist(topic) {
+  const desk = String(topic ?? '');
+  if (allowlists.has(desk)) return allowlists.get(desk);
+  const entries = [];
+  const file = join(root, 'research', '_sources', `${desk}.md`);
+  if (/^[a-z]+$/.test(desk) && existsSync(file)) {
+    for (const line of readFileSync(file, 'utf-8').split(/\r?\n/)) {
+      const url = line.match(/https?:\/\/[^\s)>\]]+/)?.[0];
+      const tier = line.match(/\btier:\s*\**\s*(T[0-7])\b/i)?.[1];
+      if (!url || !tier) continue; // politics.md's format example carries `<url>`, not a URL
+      try {
+        const u = new URL(url);
+        entries.push({ host: u.hostname.replace(/^www[.]/, ''), path: u.pathname, tier: tier.toUpperCase() });
+      } catch { /* not a URL */ }
+    }
+  }
+  allowlists.set(desk, entries);
+  return entries;
+}
+/** The allowlist on one source: its tier (null when off the list) and whether its publisher is an official record. */
+function allowlistTier(host, path, entries) {
+  // The most specific host on the list wins: the source's own host, else its nearest parent.
+  const hits = entries.filter((e) => host === e.host || host.endsWith(`.${e.host}`));
+  if (!hits.length) return { tier: null, official: false };
+  const longest = Math.max(...hits.map((e) => e.host.length));
+  const own = hits.filter((e) => e.host.length === longest);
+  // Official by host, whichever page is cited. eci.gov.in files its statistical
+  // reports at T6 and cag.gov.in its audits, and each is still the official body.
+  const official = own.some((e) => OFFICIAL_TIERS.has(e.tier));
+  // The tier shown: the entry whose path prefixes the source's, else the host's most primary tier.
+  const byPath = own.filter((e) => path.startsWith(e.path)).sort((a, b) => b.path.length - a.path.length)[0];
+  return { tier: byPath?.tier ?? own.map((e) => e.tier).sort()[0], official };
+}
+const pct = (x) => `${Math.round(x * 100)}%`;
+const plural = (k, one) => `${k} ${one}${k === 1 ? '' : 's'}`;
+/**
+ * An issue's sources against the floor, and the line that reports them in the
+ * dossier's `Spread:` format. An official record that carries more than 40% is
+ * set aside and counted once. The publisher count and the top share are then
+ * taken on the sources that remain, where an official record is never held to
+ * the ceiling. With nothing set aside this is the 2026-09-16 rule unchanged, so
+ * an issue that met the old floor meets this one.
+ */
+function sourceSpread(srcs, entries) {
+  const n = srcs.length;
+  const groups = new Map();
+  for (const s of srcs) {
+    let key, path = '/';
+    try { const u = new URL(String(s.url)); key = u.hostname.replace(/^www[.]/, ''); path = u.pathname; } catch { key = String(s.publisher ?? s.url ?? '?'); }
+    const { tier, official } = allowlistTier(key, path, entries);
+    const g = groups.get(key) ?? { key, rows: 0, official, tiers: new Set(), offList: 0, names: new Map() };
+    groups.set(key, g);
+    g.rows += 1;
+    if (tier) g.tiers.add(tier); else g.offList += 1;
+    const name = String(s.publisher ?? '').trim();
+    if (name) g.names.set(name, (g.names.get(name) ?? 0) + 1);
+  }
+  const nameOf = (g) => [...g.names].sort((a, b) => b[1] - a[1])[0]?.[0] ?? g.key;
+  const all = [...groups.values()];
+  const aside = all.filter((g) => g.official && g.rows / n > T.sourceTopShare);
+  const rest = all.filter((g) => !aside.includes(g));
+  const restRows = n - aside.reduce((a, g) => a + g.rows, 0);
+  // The ceiling holds every remaining publisher, or every non-official one once an official record is set aside.
+  const top = rest.filter((g) => !(aside.length && g.official)).sort((a, b) => b.rows - a.rows)[0];
+  const topShare = top ? top.rows / restRows : 0;
+  const narrow = n < T.sourcesMin || rest.length < T.sourceHosts || topShare > T.sourceTopShare;
+  const tiers = [...new Set(all.flatMap((g) => [...g.tiers]))].sort();
+  const offList = all.reduce((a, g) => a + g.offList, 0);
+  const which = aside.length ? 'non-official publisher' : 'publisher';
+  const line = [
+    `${plural(n, 'source')} · ${plural(rest.length, 'publisher')}${aside.length ? ` + ${plural(aside.length, 'official record')} (${aside.map((g) => `${nameOf(g)}, ${plural(g.rows, 'row')}`).join(' · ')})` : ''}`,
+    `tiers ${tiers.join(', ') || 'none'}${offList ? ` (${offList} off the allowlist)` : ''}`,
+    top ? `top ${which} ${pct(topShare)} (${nameOf(top)})` : `no ${which}`,
+  ].join(' · ');
+  return { n, publishers: rest.length, official: aside.length, narrow, line };
+}
+
 // ── The walk ────────────────────────────────────────────────────────────────
 const issuesDir = join(root, 'src', 'content', 'issues');
 const slugs = readdirSync(issuesDir, { withFileTypes: true })
@@ -289,11 +379,8 @@ for (const slug of slugs) {
   const newKinds = graphicKinds.filter((k) => !seenElsewhere.has(k));
   if (kinds.length && newKinds.length < T.newKinds) flag(status === 'published' ? 'ℹ' : '⚠️', 'NO-NEW-KIND', 'sections', `${newKinds.length} graphic kind(s) new to the publication (${newKinds.join(', ') || '—'}), floor ${T.newKinds} — the ledger is docs/generated/PROJECT-GRAPH.md`);
   const srcs = Array.isArray(fm.sources) ? fm.sources : [];
-  const hosts = new Map();
-  for (const s of srcs) { let h; try { h = new URL(String(s.url)).hostname.replace(/^www[.]/, ''); } catch { h = String(s.publisher ?? s.url ?? '?'); } hosts.set(h, (hosts.get(h) ?? 0) + 1); }
-  const topHost = [...hosts].sort((a, b) => b[1] - a[1])[0];
-  const topShare = srcs.length && topHost ? topHost[1] / srcs.length : 0;
-  if (srcs.length < T.sourcesMin || hosts.size < T.sourceHosts || topShare > T.sourceTopShare) flag('⚠️', 'SOURCE-NARROW', 'sources', `${srcs.length} sources from ${hosts.size} publisher(s)${topHost ? `, ${topHost[0]} carries ${Math.round(topShare * 100)}%` : ''} — floor ${T.sourcesMin} sources, ${T.sourceHosts} publishers, none above ${Math.round(T.sourceTopShare * 100)}%`);
+  const spread = sourceSpread(srcs, allowlist(fm.topic));
+  if (spread.narrow) flag('⚠️', 'SOURCE-NARROW', 'sources', `${spread.line}. Floor ${T.sourcesMin} sources from ${T.sourceHosts} publishers, none above ${pct(T.sourceTopShare)}, and an official record (T0 on the ${fm.topic ? `${fm.topic} ` : ''}allowlist) may pass ${pct(T.sourceTopShare)} when ${T.sourceHosts} other publishers are cited`);
 
   // words before the first graphic: head + everything up to and including the first visual section's intro
   let before = wc(head.title) + wc(head.dek) + wc(head.hook) + wc(head.primer);
@@ -497,8 +584,8 @@ for (const slug of slugs) {
   const blocking = flags.filter((f) => f.sev === '❌').length;
   blockingTotal += blocking;
   const warn = flags.filter((f) => f.sev === '⚠️').length;
-  summary.push({ slug, status, readerWords, sections: kinds.length, visual: `${visual}/${kinds.length}`, graphics: `${graphics}/${kinds.length}`, newKinds: newKinds.length, sources: `${srcs.length}/${hosts.size}`, before, names: nameSet.size, blocking, warn });
-  console.log(`\n${status === 'published' ? '●' : '○'} ${slug}  [${status}]  ${readerWords} reader words · ${kinds.length} sections, ${visual} visual, ${graphics} drawn, ${newKinds.length} new kind(s) · ${srcs.length} sources / ${hosts.size} publishers · ${before} words before the first graphic · ${nameSet.size} names`);
+  summary.push({ slug, status, readerWords, sections: kinds.length, visual: `${visual}/${kinds.length}`, graphics: `${graphics}/${kinds.length}`, newKinds: newKinds.length, sources: `${spread.n}/${spread.publishers}${spread.official ? `+${spread.official}` : ''}`, before, names: nameSet.size, blocking, warn });
+  console.log(`\n${status === 'published' ? '●' : '○'} ${slug}  [${status}]  ${readerWords} reader words · ${kinds.length} sections, ${visual} visual, ${graphics} drawn, ${newKinds.length} new kind(s) · ${spread.line} · ${before} words before the first graphic · ${nameSet.size} names`);
   const order = { '❌': 0, '⚠️': 1, 'ℹ': 2 };
   for (const f of flags.sort((x, y) => order[x.sev] - order[y.sev] || x.code.localeCompare(y.code))) console.log(`   ${f.sev} ${f.code.padEnd(18)} ${f.where} — ${f.note}`);
   if (!flags.length) console.log('   clean');

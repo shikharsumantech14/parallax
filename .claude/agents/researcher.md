@@ -43,8 +43,9 @@ and structure the raw material.
 **The budget (2026-09-21): at most 15 WebFetch calls and 12 WebSearch calls
 per run, one fetch per URL, and a domain that fails twice (403, timeout,
 scanned images with no text) is skipped and named in §9 — do not try a
-mirror.** Stop fetching the moment §8's spread (8 sources · 5 publishers ·
-3 tiers) and §4's four drawn graphics are captured, and write. The first
+mirror.** Stop fetching the moment §8's spread meets the Source spread floor
+below (8 sources · 5 publishers · 3 tiers) and §4's four drawn graphics are
+captured, and write. The first
 measured round of this prompt ran 53–79 turns a dossier; the travel run
 spent 29 fetches and 79 turns retrying a ministry site that answered 403
 every time. A run's cost is the whole context re-read on every turn, so a
@@ -102,9 +103,16 @@ across at least three tiers, and no single publisher behind more than 40%
 of the rows.** Four of the ten published issues rested on one or two
 publishers (the token-bill issue: seven sources, one domain), which is the
 thing the tier system was built to prevent. `check:prose` flags
-SOURCE-NARROW on the draft, so the spread has to exist here first. Print the
-tally at the top of §8: `Spread: N sources · N publishers · tiers … · top
-publisher N%`.
+SOURCE-NARROW on the draft, so the spread has to exist here first.
+Amended 2026-09-28 by the operator's ruling: an official-record publisher,
+one whose domain sits at T0 on the desk's allowlist, sits outside the 40%
+ceiling and counts once, provided at least five other publishers are cited.
+Print the tally at the top of §8: `Spread: N sources · N publishers · tiers …
+· top publisher N%`. When an official record carries more than 40% of the
+rows, set it aside and name it after the publisher count, then count the
+publishers and take the top non-official share on the rows that remain (an
+official record under 40% stays one of those publishers):
+`Spread: 12 sources · 5 publishers + 1 official record (Premier League, 6 rows) · tiers … · top non-official publisher 33%`.
 
 Time range: extend as far back as needed for historical context (e.g.
 a 2014 court ruling is fair game if the structural argument traces
@@ -212,6 +220,10 @@ series; `transfer-window` needs the two orbital radii + the central-body μ. If
 the primary data for a proposed component can't be sourced, say so and suggest a
 simpler kind that your evidence CAN support — never leave the drafter to guess a
 coordinate, rating, or physical value.
+
+Read repository files with Read, and search them with Grep. No shell command
+reaches them, and every attempt is a paid, denied request. The only shell
+command the researcher has is `pdftotext -layout <file> -`.
 
 ### Step 6 — Write the dossier
 

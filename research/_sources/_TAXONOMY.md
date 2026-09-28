@@ -161,3 +161,5 @@ un-vetted source (which would get flagged `[UNVERIFIED]` downstream anyway).
 - A change to a source's `ingest` class takes effect on the next run: the agents
   read the field live (the RAG re-index this line once ordered was retired
   2026-09-27).
+
+- **T0 is also an exemption (operator's ruling, 2026-09-28).** A domain filed at T0 is an official record, and an official record that carries more than 40% of an issue's sources is set aside and counts once, with five other publishers still required (the SOURCE-NARROW gate in `scripts/check-prose.mjs`). File a domain at T0 only when it is the official record of its subject, never for reach or convenience: on tech and space that already covers company sites such as openai.com and spacex.com.

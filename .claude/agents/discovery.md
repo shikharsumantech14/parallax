@@ -168,14 +168,21 @@ For each candidate, fill:
   DRAWN from sourced data is a weaker candidate — say so in its notes rather
   than pad the list. Don't force a 3D showpiece where a plain chart reads
   clearer.
+
+  Read repository files with Read, and search them with Grep. No shell
+  command reaches them, and every attempt is a paid, denied request. The
+  only shell command the researcher has is `pdftotext -layout <file> -`.
 - Estimated read time (5-8 minutes typical)
 - 4-6 source URLs from **at least three distinct publishers and two tiers**
   (must be from the allowlist) that **pass the Step 3.5 diversity gate** —
   note each one's `tier` and `viewpoint` cluster, and confirm ≥1 primary
   anchor (T0/T1/T2) + ≥2 viewpoint clusters are present. An issue that rests
   on one or two publishers is what the researcher's floor (8 sources, 5
-  publishers) exists to prevent; the seeds you give it decide whether it can
-  be met
+  publishers, none above 40%) exists to prevent; the seeds you give it decide
+  whether it can be met. Amended 2026-09-28 by the operator's ruling: an
+  official-record publisher, one whose domain sits at T0 on the desk's
+  allowlist, sits outside the 40% ceiling and counts once, provided at least
+  five other publishers are cited.
 - Notes (paywall flags, sparse data, contested facts, breaking story, and any
   diversity-gate gap)
 

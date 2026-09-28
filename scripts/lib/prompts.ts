@@ -368,7 +368,10 @@ export function buildDraftPrompt(category: string, dossierFile: string, storyboa
     sectionKindsBlock(),
     issueSchemaBlock(),
     issueTemplate(),
-    catalogBlocks(kinds),
+    // The storyboard's kinds plus act-break, which the drafter adds between
+    // acts on its own and which needs its `act` numeral (a bare act-break
+    // printed "ACT I" twice on the 2026-09-28 trial issue).
+    catalogBlocks([...new Set([...kinds, 'act-break'])]),
     issueAuthoringRule(),
     memoryDigestBlock('drafter'),
     round && block('YOUR FIRST DRAFT', round.firstDraft),

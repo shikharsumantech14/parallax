@@ -106,7 +106,16 @@ yourself, and you never remove a marker.
 Count §8 yourself: sources, distinct publishers, tiers, and the top
 publisher's share. Compare the count with the dossier's own `Spread:` line and
 with the floors (at least 8 sources, 5 publishers and 3 tiers, no publisher
-above 40%). A line that does not match your count is corrected (a §6 entry
+above 40%). Amended 2026-09-28 by the operator's ruling: an official-record
+publisher, one whose domain sits at T0 on the desk's allowlist, sits outside
+the 40% ceiling and counts once, provided at least five other publishers are
+cited. The SOURCE ALLOWLIST block gives each domain's tier. When an official
+record carries more than 40% of the rows, set it aside and name it after the
+publisher count, then count the publishers and take the top non-official
+share on the rows that remain (an official record under 40% stays one of
+those publishers), so this line meets the floor:
+`Spread: 12 sources · 5 publishers + 1 official record (Premier League, 6 rows) · tiers … · top non-official publisher 33%`.
+A line that does not match your count is corrected (a §6 entry
 like any other). A spread that misses a floor is BLOCKED.
 
 ### Step 6. Write the report

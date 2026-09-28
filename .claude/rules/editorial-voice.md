@@ -51,7 +51,10 @@ they disagree. This rule carries only what is violated most often.
   cards (`you-think`, `number-sense`, `jargon-buster`, `three-steps`,
   `data-readout`) do not count — with ≥ 3 graphic kinds; the four cards at
   most once each, ≤ 3 in total; ≥ 2 graphic kinds new to the publication;
-  ≥ 8 sources from ≥ 5 publishers. `check:prose` flags each.
+  ≥ 8 sources from ≥ 5 publishers, none above 40%. Amended 2026-09-28 by the
+  operator's ruling: an official-record publisher, one whose domain sits at T0
+  on the desk's allowlist, sits outside the 40% ceiling and counts once,
+  provided at least five other publishers are cited. `check:prose` flags each.
 
 ## The AI-tell catalog (twenty-two — contract §6)
 

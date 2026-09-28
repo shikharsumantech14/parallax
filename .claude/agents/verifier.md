@@ -31,7 +31,9 @@ session has not read it, Read that file once and Write again.
 
 1. **The draft issue** (`src/content/issues/<slug>/index.mdx`).
 2. **The research dossier.** When a check pass ran it is the corrected one,
-   and its §10 lists what changed.
+   and its last `Check pass` section (§10 on a first pass, a later number
+   after a top-up) lists what changed, and any correction the script could
+   not apply.
 3. **The storyboard**, when one exists: the kinds, order, hero, names list
    and three questions the draft was meant to execute.
 4. **`research/_voice/_voice-core.md`** (the runtime contract, v2) and
@@ -189,6 +191,17 @@ Flags added 2026-09-13. Check every prose field against the contract:
   "Never in a published issue"). The storyboard's §9 ledger is the reference.
 - **⚠️ SOURCE-NARROW** (added 2026-09-16) — fewer than 8 sources, fewer than
   5 distinct publishers, or one publisher behind more than 40% of them.
+  Amended 2026-09-28 by the operator's ruling: an official-record publisher,
+  one whose domain sits at T0 on the desk's allowlist, sits outside the 40%
+  ceiling and counts once, provided at least five other publishers are cited.
+  The SOURCE ALLOWLIST block gives each domain's tier. Count the draft's
+  `sources` as the dossier's `Spread:` line counts §8 and quote the count in
+  the flag: `N sources · N publishers · tiers … · top publisher N%`. When an
+  official record carries more than 40% of the rows, set it aside and name it
+  after the publisher count, then count the publishers and take the top
+  non-official share on the rows that remain (an official record under 40%
+  stays one of those publishers), so this line meets the floor:
+  `12 sources · 5 publishers + 1 official record (Premier League, 6 rows) · tiers … · top non-official publisher 33%`.
 - **⚠️ STORYBOARD-DRIFT** — kinds, order or hero not as the storyboard has
   them and the departure not named in the draft's summary.
 - **⚠️ QUESTION-UNANSWERED** — one of the storyboard's three questions cannot
@@ -221,7 +234,7 @@ Confirm:
 - [ ] All source URLs use `https://`
 - [ ] Source `kind` values are only `primary`, `secondary`, or `analysis`
 - [ ] At least 8 sources, from at least 5 distinct publishers, none behind
-      more than 40% of them
+      more than 40% of them except an official record (Step 4b, 2026-09-28)
 
 ### Step 6 — Write the verification report
 

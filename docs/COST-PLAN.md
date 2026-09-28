@@ -419,7 +419,7 @@ values (zero verifier flags) Opus does not clear either.
 
 | Check | Floor |
 |---|---|
-| Sources, publishers, tiers, top-publisher share | ≥ 8, ≥ 5, ≥ 3, ≤ 40% (the 2026-09-16 floors. September ran 11 to 25, 8 to 12, 3 to 6, 27% to 37.5%) |
+| Sources, publishers, tiers, top-publisher share | ≥ 8, ≥ 5, ≥ 3, ≤ 40% (the 2026-09-16 floors. September ran 11 to 25, 8 to 12, 3 to 6, 27% to 37.5%). Since the operator's ruling of 2026-09-28 an official-record publisher (T0 on the desk's allowlist) above 40% is set aside and counts once, with five other publishers required |
 | Drawn-graphic kinds named beside captured data in §4 | ≥ 4, or 3 with a note that a fourth kind's data is folded into another's table |
 | `[UNVERIFIED]` markers | ≤ 15, each naming its resolution path |
 | §1 structural argument | present, 200 to 350 words |
@@ -777,7 +777,9 @@ verifier's attention and gave a second reading of every quiz grade at no cost.
    published award.
 2. The 40% publisher floor is counted on the dossier's §8 rows, as the rule
    is written (exactly 40.0% after the top-up). The draft's own citations are
-   50% and carry the SOURCE-NARROW warning for the operator.
+   50%. The operator then ruled (2026-09-28) that an official-record
+   publisher sits outside the ceiling, so the published issue clears the
+   source floor under the amended gate.
 3. Nine sections, not ten.
 
 ### 12.4 The Jev pilot on the September issues (Agent C, 2026-09-28)

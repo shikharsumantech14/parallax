@@ -84,6 +84,7 @@ Complete list of every source consulted, whether cited or not.
 
 Spread: N sources · N publishers · tiers T0…T4 · top publisher N%
 (floors, added 2026-09-16: ≥ 8 sources · ≥ 5 publishers · ≥ 3 tiers · no publisher above 40%)
+(Amended 2026-09-28 by the operator's ruling: an official-record publisher, one whose domain sits at T0 on the desk's allowlist, sits outside the 40% ceiling and counts once, provided at least five other publishers are cited. When one carries more than 40% of the rows, set it aside, name it after the publisher count and take the rest on the remaining rows, as in 12 sources · 5 publishers + 1 official record (Premier League, 6 rows) · tiers … · top non-official publisher 33%)
 
 - [Title](URL) — Publisher, accessed YYYY-MM-DD — `tier: T0` · `viewpoint: n/a` · `kind: primary|secondary|analysis`
 

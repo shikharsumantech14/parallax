@@ -40,7 +40,8 @@ Write creates the file. If the Write tool still refuses because the file
 exists and this session has not read it, Read that file once and Write again.
 
 1. **The dossier**, every section. When a check pass ran it is the corrected
-   one, and its §10 lists what changed.
+   one, and its last `Check pass` section (§10 on a first pass, a later
+   number after a top-up) lists what changed.
 2. **The check report**, when a check pass ran. A fact it marks as
    unanchored, not reproducible or disputed is not stated as fact.
 3. **The storyboard**, every section. Its `Status` line was checked by the
@@ -60,8 +61,11 @@ exists and this session has not read it, Read that file once and Write again.
     bounds Zod enforces at build time.
 11. **Your memory digest** (`.claude/agent-memory/drafter/DIGEST.md`).
 
-In the check round (Step 7) the prompt also carries YOUR FIRST DRAFT and the
-GATE FLAGS.
+The check round (Step 7) continues this conversation: its message carries the
+GATE FLAGS alone, because every input above and your first draft (your own
+Write call) are already in it. Only when the session cannot be resumed does
+the round arrive as a fresh prompt carrying every input again, plus YOUR
+FIRST DRAFT and the GATE FLAGS.
 
 On the Claude Code route (`/pipeline-draft`) the task prompt names the dossier
 and the storyboard by path instead of inlining them. Then, and only then,
@@ -153,6 +157,11 @@ allowed.
 **Intro:** ≤ 45 words, in the register. Frames the graphic without narrating
 its data. One question allowed as its first sentence. Never "As we can see",
 "The following shows".
+
+**Act dividers:** an `act-break` is never bare. It carries `data: { act: "II" }`
+for the divider that opens Act II and `act: "III"` for Act III (the page prints
+the numeral and "ACT n", and a missing `act` prints "I" twice, which shipped
+on 2026-09-28). Its catalog block is always inlined for you.
 
 **Data:** the catalog DATA shape, exactly; the storyboard's word budgets on
 every note, detail and cell; the in-graphic callout (`annotations`) where the
@@ -252,8 +261,11 @@ order cited; `title`, `publisher`, `url` exact and unmodified;
 sources actually cited. Minimum 8, maximum 15, from at least five distinct
 publishers, no single publisher behind more than 40% of them (`check:prose`
 flags SOURCE-NARROW, added 2026-09-16 — four of the ten published issues
-rested on one or two publishers). The dossier's §8 carries the spread; if it
-does not, say so in your summary rather than pad the list.
+rested on one or two publishers). Amended 2026-09-28 by the operator's
+ruling: an official-record publisher, one whose domain sits at T0 on the
+desk's allowlist, sits outside the 40% ceiling and counts once, provided at
+least five other publishers are cited. The dossier's §8 carries the spread;
+if it does not, say so in your summary rather than pad the list.
 
 ### Step 7 — Check, then write the file once
 
@@ -282,13 +294,16 @@ sections).
 - [ ] The three questions are answerable from the draft
 - [ ] `status: draft`; no invented facts; no [UNVERIFIED] claim stated as
       fact (drop it or flag `# EDITOR: verify before publish`); ≥ 8 sources
-      from ≥ 5 publishers; `publishedAt` valid
+      from ≥ 5 publishers, none above 40% except an official record (Step 6);
+      `publishedAt` valid
 - [ ] ≥ 40% of sections drawn graphics, ≥ 3 graphic kinds, cards ≤ 3 and one
       of each, ≥ 2 kinds new to the publication — as the storyboard's §9 had it
 
 **The check round.** After you write, the script runs `npm run check:prose`
 and a schema check on the file. If either flags something, you get one more
-request carrying YOUR FIRST DRAFT and the GATE FLAGS. Then fix every flag,
+message in this conversation carrying the GATE FLAGS (or, when the session
+cannot be resumed, a fresh request carrying YOUR FIRST DRAFT and the GATE
+FLAGS with every input again). Then fix every flag,
 change nothing the flags do not touch, and Write the whole file again, once,
 to the same path. A schema error always needs a fix, because the build fails
 on it. A check:prose flag you judge a false positive of its heuristic: leave

@@ -70,8 +70,8 @@ rests on, with the source the dossier cites for it and that source's tier
 ## 5. The spread line
 
 - **As written in §8:** <the dossier's line>
-- **Counted from §8:** N sources · N publishers · tiers … · top publisher N%
-- **Floors:** ≥ 8 sources · ≥ 5 publishers · ≥ 3 tiers · no publisher above 40%
+- **Counted from §8:** N sources · N publishers · tiers … · top publisher N%, or, with an official record above 40% set aside, N sources · N publishers + 1 official record (<publisher>, N rows) · tiers … · top non-official publisher N%
+- **Floors:** ≥ 8 sources · ≥ 5 publishers · ≥ 3 tiers · no publisher above 40%. Amended 2026-09-28 by the operator's ruling: an official-record publisher, one whose domain sits at T0 on the desk's allowlist, sits outside the 40% ceiling and counts once, provided at least five other publishers are cited.
 - **Result:** matches | corrected to <line> | misses a floor (<which>)
 
 ## 6. Corrections for the dossier

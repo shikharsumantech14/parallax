@@ -145,6 +145,9 @@ and the human or the drafter fixes. Report under **"Structure flags"**:
   than once or more than three of the four in one issue; fewer than two
   graphic kinds new to the publication (the storyboard's §9 ledger); fewer
   than 8 sources or 5 publishers, or one publisher behind more than 40%.
+  Amended 2026-09-28 by the operator's ruling: an official-record publisher,
+  one whose domain sits at T0 on the desk's allowlist, sits outside the 40%
+  ceiling and counts once, provided at least five other publishers are cited.
 - **Ceilings** (CANON §2–3): more than one hero; > 3 loud sections; adjacent
   WebGL kinds; a loud section followed by a loud one.
 - **Head:** a title that names the subject rather than the finding, or uses
