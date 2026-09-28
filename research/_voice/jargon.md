@@ -133,6 +133,17 @@ plain description.
 | PSR (Profitability and Sustainability Rules) | premier-league-squad-cost-ratio | the old rule: a club could lose at most £105m over three seasons, whatever its size | |
 | amortisation | premier-league-squad-cost-ratio | a transfer fee counted in the books a slice at a time over the years of the contract, not all at once | |
 | football revenue | premier-league-squad-cost-ratio | the money a club earns from playing: broadcast, matchday and commercial income, not owner money and not player sales | |
+| independent Commission | verdict-arrived-sentence-didnt | a private panel of outsiders — lawyers and accountants — that decides whether a club broke the league's rules | like a Supreme Court-appointed committee, not a league officer |
+| Judicial Panel | verdict-arrived-sentence-didnt | the standing pool of independent lawyers and experts the league draws each Commission from | |
+| Rule W.82 | verdict-arrived-sentence-didnt | the Premier League rule that makes these hearings private but requires the final decision to be published | |
+| final award | verdict-arrived-sentence-didnt | the Commission's written, published decision — the finding and the punishment together | a court's written judgment, not just the verdict |
+| sanction | verdict-arrived-sentence-didnt | the punishment: points taken off, a fine, or a ban on signing players | |
+| points deduction | verdict-arrived-sentence-didnt | points struck off a club's league total, which can drop it down the table or into relegation | |
+| Appeal Board | verdict-arrived-sentence-didnt | a second independent panel that can be asked to overturn or soften the first one's decision | |
+| sanction agreement | verdict-arrived-sentence-didnt | a settlement: the club admits the breach and agrees the punishment, so no hearing is needed | a plea bargain |
+| Court of Arbitration for Sport (CAS) | verdict-arrived-sentence-didnt | the private tribunal in Lausanne that hears sport's biggest disputes, outside the ordinary courts | |
+| arbitration | verdict-arrived-sentence-didnt | settling a dispute before a private panel the two sides accept, instead of in a public court | |
+| mitigation | verdict-arrived-sentence-didnt | reasons a club offers for a lighter punishment — owning up early, helping the investigation | |
 
 ## How to add a row
 

@@ -669,3 +669,145 @@ Primary sources used directly in this plan:
 - DeepResearch Bench II: https://arxiv.org/abs/2601.08536
 - Zyte: https://www.zyte.com/blog/jev-the-model-that-cannot-write-a-word-and-where-it-fits-in-web-scraping-does-it/
 - The community MCP server: https://github.com/jkudish/jev-mcp
+
+---
+
+## 12. Implementation log and the trial issue (2026-09-28)
+
+### 12.1 What landed (commits `b31ae68`, `1f2071b`)
+
+CP-01, CP-02, CP-03 (the Agent SDK step, not yet the Messages API or Batch),
+CP-04, CP-05, CP-06 (the verifier pre-pass and the panel grade, not yet the
+research screen), CP-09 and CP-10 are implemented. Three Opus agents built
+them in parallel and each hand-back was rated 9 of 10. Measured on the
+runner's own probe: the first request fell from 54.6k to 58.5k tokens to
+**4,199**, no CLAUDE.md reaches the model, cache writes are 5-minute on the
+key, and the SDK's cost estimate now matches the list price. The Jev pilot
+on two verified September issues routed every blocking finding of the old
+verifier into the pre-pass's worklist for a third of a cent each (§12.4).
+
+Added during the trial: `--topup --slug <s>` on research (the check pass
+blocked a dossier for reasons one short fetch run clears), and the check
+report as an input to the composer.
+
+### 12.2 The trial issue: sports, "Nothing has been published in 1,330 days"
+
+The operator chose the subject (Manchester City and the Premier League's
+financial rules), signed CP-01 to CP-10, and authorised the storyboard
+approval for this one trial. Every phase ran on the API key at list price.
+
+| Phase | Model, effort | Requests | Minutes | First request | Cost |
+|---|---|---|---|---|---|
+| Discovery (`--focus`, 4 candidates) | Sonnet 5, medium | 10 | 4.7 | 10k | $0.77 |
+| Research (C-01) | Opus 5, medium | 26 | 9.9 | 10k | $2.91 |
+| Check pass 1 (BLOCKED, 5 numbers corrected) | Opus 5, high | 2 | 7.4 | 35k | $1.83 |
+| Research top-up (spread and anchors) | Opus 5, medium | 14 | 4.2 | 10k | $1.48 |
+| Check pass 2 (BLOCKED, rewrite refused by the guard) | Opus 5, high | 3 | 10.3 | 43k | $2.39 |
+| Storyboard | Opus 5, high | 2 | 6.5 | 108k | $2.26 |
+| Draft, with the check round (4 flags, 3 fixed) | Opus 5, high | 4 | 17.3 | 80k | $4.81 |
+| Panel 1 (REVISE) plus Jev grade | Sonnet 5, medium | 2 | 2.5 | 13k | $0.19 |
+| Stylist (guard: 5 prose fields changed, no data field) | Opus 5, high | 2 | 4.7 | 68k | $1.21 |
+| Panel 2 (REVISE) plus Jev grade | Sonnet 5, medium | 2 | 2.0 | 13k | $0.17 |
+| Verifier, with the Jev pre-pass (NEEDS REVISION, 0 untraced) | Opus 5, high | 2 | 9.1 | 81k | $2.39 |
+| Jev, 71 calls | jev-1.13 via OpenRouter | | | | $0.0024 |
+| **Total** | | **69** | **79** | | **$20.40** |
+
+Against the September sports issue (`premier-league-squad-cost-ratio`), same
+desk, same phases where they existed: about $31 to $34 at list once the two
+runs the old ledger never recorded (a draft and a failed verifier) are priced,
+in about 80 agent-minutes. Like for like, without the three phases the old
+pipeline did not have (two check passes and a top-up, $5.70), the trial cost
+**$14.70, a 55% cut**. The plan's end-state estimate of $11 to $12 was not
+reached because the single-shot passes emit more output than estimated (a
+storyboard, a corrected dossier or a verification report is 30k to 58k tokens
+with its reasoning) and the assembled prompts measured about a third larger
+than the 2.7-characters-per-token rule (the drafter's 59.7k estimate ran at
+79.8k).
+
+**Quality, measured by the same gates as September:**
+
+| Measure | September sports issue | The trial issue |
+|---|---|---|
+| Verifier | 71 ✅ · 39 ⚠️ · **15 ❌** · BLOCKED | 43 ✅ · 20 ⚠️ · **0 ❌** · NEEDS REVISION |
+| Panel, first and second pass | REVISE, REVISE | REVISE, REVISE (all three quiz questions correct for all four readers, both passes) |
+| `check:prose` on the draft as the pipeline left it | 0 ❌ · 2 ⚠️ (as published, after the operator's fixes) | 0 ❌ · 3 ⚠️ (5 words over the ceiling, a gloss the heuristic misses, SOURCE-NARROW) |
+| Reader-facing words · names · words before the first graphic | 1,089 · 10 · 78 | 1,105 · 9 · 78 |
+| Drawn graphics · distinct graphic kinds · new to the publication | 5 of 9 · 5 · 1 | 5 of 9 · 5 · 2 (`latency-waterfall`, `margin-ladder`) |
+| Dossier: sources · publishers · tiers · top publisher | 24 · 12 · 5 · 37.5% | 20 · 13 · 6 · 40.0% after the top-up |
+| Draft citations: sources · publishers · top publisher | 17 · 5 · 53% (Swiss Ramble) | 12 · 6 · 50% (Premier League) |
+| Dossier-caused errors reaching the verifier | 1 (a wrong "furthest" row) | 0 (the check pass corrected six numbers before the storyboard) |
+| Compaction during research | yes | none (peak context stayed under the threshold) |
+
+Jev's contribution, measured: the pre-pass scored 47 claims against 179
+dossier passages (24 confident support, 1 contradicted, 22 low confidence)
+for $0.0019 in 30 seconds, and the two panel grades agreed with the panel on
+11 of 12 answers each for $0.0003. It changed no verdict. It ordered the
+verifier's attention and gave a second reading of every quiz grade at no cost.
+
+**What the trial found that the plan did not predict:**
+
+- The check pass is worth having and costs too much as written. It caught
+  five wrong derived numbers, three anchors cited to statements that predate
+  the facts they support, a contested charge count the hero was about to be
+  built on, and a spread line that was wrong by six points. But the agent
+  returns the whole corrected dossier as output (40k characters), which is
+  most of its $1.83 to $2.39, and its second rewrite was refused by the
+  guard for losing sections. Fix: report only, with corrections as a
+  structured list the script applies (§12.5).
+- The draft's check round starts a fresh session and re-writes the 80k
+  prompt to cache instead of reading it back: about $1 of the draft's $4.81.
+  Fix: resume the session for the second request.
+- Two phases still need the operator's ruling in every run of this desk:
+  the publisher floor, because the Premier League is the only allowlisted
+  publisher of its own disciplinary record (the September issue carried the
+  same flag with Swiss Ramble at 53%), and how a reported-but-unpublished
+  finding may be referenced. Both are editorial rules, not pipeline faults.
+- The researcher reached for `sed` and `awk` on repo files twice (two paid,
+  denied requests). Its prompt should say Read and Grep.
+- The rupee conversion of the £105m loss cap is about ₹1,330 crore, which
+  sat beside "1,330 days" and confused three of four panel readers. No gate
+  finds a coincidence. The panel did.
+
+### 12.3 Rulings made for the trial by the agent, each the operator's to overturn
+
+1. The reported verdict may be referenced, attributed "as reported" every
+   time and never as fact. The argument rests on the anchored absence of a
+   published award.
+2. The 40% publisher floor is counted on the dossier's §8 rows, as the rule
+   is written (exactly 40.0% after the top-up). The draft's own citations are
+   50% and carry the SOURCE-NARROW warning for the operator.
+3. Nine sections, not ten.
+
+### 12.4 The Jev pilot on the September issues (Agent C, 2026-09-28)
+
+| | Sports | Politics |
+|---|---|---|
+| Claims extracted | 67 | 44 |
+| Old verifier's ❌ rows routed to the worklist | 5 of 5 | 2 of 2 |
+| Old verifier's ⚠️ and ❌ rows routed, Jev plus code checks | 17 of 22 | 5 of 7 |
+| ✅ rows Jev also called confident support | 34 of 44 | 30 of 43 |
+| Panel grade agreement, pass 1 and 2 | 11 of 12, 11 of 12 | 11 of 12, 10 of 12 |
+| Cost, calls, time | $0.0034, 91, 9.7 s | $0.0023, 68, 7.6 s |
+
+8% of confident-support claims were still imprecise in the old reports, so
+the pre-pass orders the verifier's attention and does not cut it (the
+sampling sentence was removed from the verifier prompt). The labelled set is
+`research/_costs/jev-pilot/`.
+
+### 12.5 Post-trial fixes, for the operator's approval
+
+1. Check pass: report only, corrections as `{section, was, now, why}` rows
+   the script applies with the dossier guard. Expected: about $0.80 a run.
+2. Draft check round and any second request: resume the session (cache read
+   at 0.1x) instead of a new one. Expected: about $1 a draft.
+3. Researcher prompt: Read and Grep for repo files, never a shell tool.
+4. The rupee-days coincidence: an editorial rule for the stylist ("when a
+   converted figure lands on a number the issue already uses, say so or
+   round differently").
+5. The publisher floor on desks with one official publisher: a ruling. Either
+   an "official record" class that counts once, or a second allowlisted
+   publisher for league discipline (the Guardian was unreachable to the
+   fetch tool in both runs; LawInSport answered 403 three times).
+6. Then the plan's remaining steps in order: Opus 5.5 at medium on one
+   issue (CP-08), the Messages API with Batch for the passes (CP-03's second
+   half), the research screen (CP-06 a) once the evidence pack exists.
