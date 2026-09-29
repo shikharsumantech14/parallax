@@ -5,11 +5,33 @@
 > `docs/REVAMP-PLAN.md` is the revamp's decision record and execution sequence;
 > this file tells you **where things stand right now and what to do next**.
 >
-> **Last updated: 2026-09-27.** Derived
+> **Last updated: 2026-09-29.** Derived
 > facts below are generated and gated — if they look wrong, run
 > `npm run graph`, do not hand-edit. Volatile facts (branch, unpushed, dirty)
 > are not in this file at all; read the session brief. Refresh the authored
 > sections with `/update-state`.
+
+---
+
+## 0b. Addendum, 2026-09-28 / 29 — the cost plan's pipeline, and the trial issue
+
+`docs/COST-PLAN.md` was signed and built on 2026-09-28, and one trial issue
+(sports, the Manchester City verdict, published as `a66cb33`) ran through
+every phase: the harness diet, single-shot passes, the dossier check pass,
+Jev as a pre-pass in two phases, and a ledger priced at list. It cost $20.40
+at list, $14.70 like for like against about $31 before, with zero untraced
+claims. The slash commands are wrappers: `/pipeline-<phase>` runs the npm
+script with `--bill subscription`, a terminal run bills the key, and one
+config rules both (`586777d`). On 2026-09-29 the closing request after every
+Write was removed by a hook, the agent definitions moved to `scripts/agents/`,
+and the operator's local settings prompt on every paid run (`43ead9a`).
+**Open.** The next two or three issues run on this pipeline before any model
+change, by the operator's ruling, then Opus 5.5 at medium on one issue
+(CP-08). The verifier and panel still find drafts only, so a published issue
+needs a status flip to re-verify. The commit guard does not yet run
+`graph:check` when an issue is staged, which is what failed the `80ae941`
+deploy. `check:catalog` does not yet catch a dispatcher that drops a field,
+which is how the ladder chip slipped through.
 
 ---
 
