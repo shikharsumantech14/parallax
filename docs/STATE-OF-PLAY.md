@@ -115,7 +115,7 @@ Parallax is a visual explainer publication, one Astro project in
 `output: 'hybrid'` since the 2026-09-06 merge: the publication prerenders,
 the reader-account routes render on demand, Supabase-backed. The launch
 design (2026-09-08) is committed and deployed; the announcement date is open,
-the operator will set one. The current effort is the **register plan**,
+the operator will set one. September's effort was the **register plan**,
 `docs/REGISTER-PLAN.md`, **v1 signed 2026-09-13**, RG-01…RG-22: reader
 feedback was measured rather than assumed, and the fix is a register change
 (plain Indian English, Hindi only where it fits and never load-bearing) plus
@@ -134,9 +134,13 @@ transgender-ratchet, the token bill, amazon, asteroid, cockroach), so **all
 ten published issues are now in the register** and every one clears all four
 composition floors. A sweep the same day found **thirteen catalog-documented
 fields that no component rendered**, two of them live, and `check:catalog`
-gained check 5 so the class cannot recur. Next is promoting
-`check:prose:gate` into `prebuild`, whose condition is now met, then the copy
-deck and the EXPLAIN batch. The design-system revamp
+gained check 5 so the class cannot recur. Still open from it: promoting
+`check:prose:gate` into `prebuild`, whose condition is met, then the copy
+deck and the EXPLAIN batch. **The current effort is the cost plan's
+pipeline** (`docs/COST-PLAN.md`, signed and built 2026-09-28, addendum 0b):
+one trial issue published at $20.40 at list, the next two or three issues
+run on it as it stands, and the engineering items wait until they are
+published (§5 item 2). The design-system revamp
 (`docs/REVAMP-PLAN.md` v3) stands at its Phase 5/7 residuals, with Waves 2–4
 reassessed against usage rather than count; the context system
 (`docs/CONTEXT-PLAN.md`) Phases A–E are in.
@@ -190,12 +194,15 @@ Precisely (corrected 2026-09-01 — this section previously said "no
 `.env.local`" flatly, which is wrong and was caught by `doc-audit`'s own
 premise):
 
-- **Root `.env.local` EXISTS** — the pipeline's `ANTHROPIC_API_KEY` etc. So the
-  API-CLI pipeline scripts (`npm run pipeline:*`) can run here, and
-  running them **bills real money**. Gitignored; never commit it.
-- **`app/.env.local` is ABSENT** — no Supabase URL/keys, so the app cannot run
-  or be runtime-tested on this box. `cd app && npm run build` is the entire
-  local gate — write "build green, runtime unverified".
+- **Root `.env.local` EXISTS** — the pipeline's `ANTHROPIC_API_KEY`, the Jev
+  key and the Supabase keys. So the pipeline scripts (`npm run pipeline:*`,
+  `jev:*`) can run here, and running them **bills real money**. From a
+  Claude Code session they prompt first (the operator's ask rules,
+  2026-09-29). Gitignored; never commit it.
+- **`app/` is gone since the 2026-09-06 merge** and there is one build (§9).
+  Whether the reader-account routes run locally against the root keys has
+  not been verified this cycle, so for them still write "build green,
+  runtime unverified".
 
 Publication work is browser-verifiable via `npm run dev`.
 
@@ -275,7 +282,20 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    admin) still run `app.css` and were only re-fonted, not redesigned; the
    design rules in `docs/design/CANON.md` describe the pre-launch look and are
    to be re-hardened after launch (operator's stated intent).
-2. **Register plan, what is left after Phase 6.** All ten issues are in the
+2. **The pipeline round (the operator's ruling of 2026-09-29).** Publish the
+   next two or three issues on the cost plan's pipeline as it stands
+   (`docs/COST-PLAN.md` §12, addendum 0b), with no model change until then.
+   Then, in this order. (a) The commit guard runs `graph:check` whenever an
+   issue is staged, which is what failed the `80ae941` deploy. (b)
+   `check:catalog` check 5 catches a dispatcher that fails to forward a
+   field, which is how `margin-ladder`'s chip shipped wrong on the trial
+   issue's first render. (c) The verifier and the panel accept a published
+   issue by `--slug`, so re-verifying one no longer needs a temporary status
+   flip. (d) CP-08, Opus 5.5 at medium on one issue, measured against the
+   trial. (e) The Batch runner for the single-shot passes, API door only,
+   about a day's work for about $3 an issue. (f) Tidy-ups: the visual plan
+   page still shows the plan's estimates, not the trial's numbers.
+3. **Register plan, what is left after Phase 6.** All ten issues are in the
    register as of 2026-09-15, so **promote `check:prose:gate` into
    `prebuild`** — the condition it was waiting on is met. Then the copy deck
    and the EXPLAIN batch (8.2, 8.3), the `hi-Latn` span for justified prose
@@ -294,14 +314,14 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    politics prorogation and committee-referral source, travel ₹3.5 crore
    source, the three allowlist edits), and credits on the API key, which the
    pipeline now bills correctly.
-3. **Phase 5 — closed 2026-09-24 by the render gate and the showcase sweep.**
+4. **Phase 5 — closed 2026-09-24 by the render gate and the showcase sweep.**
    Every published issue and every showcase measures clean at 375;
    `region-map` labels are 9.5px since `c725bf3`; the WebGL fallbacks and
    aspect-pinned mounts carry two label sets or a real-pixel label layer.
    Three design calls remain for the operator: `storm-track`'s hemisphere
    framing, `fare-terrain`'s paper fill under the ridges, and whether phone
    charts drawn for 720 should keep scrolling inside their card.
-4. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
+5. **Phase 3 Waves 2–4** — **reassess at the look's exit**: 21 kinds, ~22
    days, against 81 of 101 unused. The register plan's finding was that
    usage, not count, is the problem, and its four plain-language kinds now
    exist; reassess after Phase 4 puts kinds into published issues. When they
@@ -313,11 +333,11 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    **with a standing corrections header — read it first; it overrides the
    handoff**. The editorial review flagged Wave 4's kinds as the least
    defensible spend.
-5. **Schema tightening** — make `source` required now the gap is 0. Its own
+6. **Schema tightening** — make `source` required now the gap is 0. Its own
    revertible commit. The 22 missing *captions* are **deliberate**: all 22
    carry an `intro` that already states the finding; adding captions would trip
    the verifier's new REDUNDANT rule. Recorded in `37a6f7d`.
-6. **TWA (Android) — BLOCKED on the operator, not on the repo.** The PWA is
+7. **TWA (Android) — BLOCKED on the operator, not on the repo.** The PWA is
    live and installable from the browser today; a Trusted Web Activity is the
    Play-Store wrapper on top of it. `scripts/twa-assetlinks.mjs` writes and
    validates `/.well-known/assetlinks.json` (verified: a dot-folder under
@@ -336,10 +356,10 @@ ruling); an authored `howToRead` on any of the 87 non-VizCard kinds was
    Also gating: Play charges a one-time $25 registration, and a new personal
    developer account needs 12 testers on a closed test for 14 days before
    production access.
-7. **Still rejected/deferred**: photography and the lens (five grounds).
+8. **Still rejected/deferred**: photography and the lens (five grounds).
    (`/subscribe` with the ₹149 → ₹0 beta price shipped with the launch design;
    the line that listed it here was stale and was cut on 2026-09-13.)
-8. **Operator-optional, still open**: OG filename fingerprinting (cheapest
+9. **Operator-optional, still open**: OG filename fingerprinting (cheapest
    at 10 published issues). The apex-vs-`www` item that sat here is
    **settled** — the apex is Production and `www` 308s to it since
    2026-09-06. It was never merely cosmetic: `canonical`, RSS and OG all
@@ -523,14 +543,24 @@ likely complete and instance coverage is not).
   restatement site and six restatements in the queue rewrite were invisible
   on the normal page (2026-09-13). Restate in the following section's intro,
   or the caption; `skimCaption` on `prose` only.
-- **`graph:check` goes stale whenever a `sourceRefs[]` list changes**, not
-  only when a decision is cited. Three builds in one day failed at the gate
-  after rewrites touched citations (2026-09-14). Run `npm run graph` before
-  the build whenever an issue's sources moved.
+- **`graph:check` goes stale whenever a published issue changes**, not only
+  when a decision is cited. A `sourceRefs[]` list: three builds in one day
+  failed at the gate after rewrites touched citations (2026-09-14). A title:
+  `80ae941` failed the Vercel deploy on 2026-09-28 after the trial issue's
+  title gained its accent, and `4c97c32` regenerated the graph. Run
+  `npm run graph` before committing any change to an issue. The commit guard
+  does not check this yet (§5 item 2a).
 - **`wire-kind.mjs` skips its KIND_PRIORITY step whenever the kind's name
   already appears anywhere in `story.ts`** — a TRIM entry written before
   wiring triggers the skip, silently; `check:catalog` caught it as a missing
   score (2026-09-13). Wire first, or add the score by hand.
+- **`check:catalog` check 5 accepts a field the kind's own component reads,
+  so a dispatcher that fails to forward it passes the gate while nothing
+  renders.** `margin-ladder` gained a `unit` prop on 2026-09-28. The component
+  read it, `SectionBody.astro` did not pass it, the gate stayed green, and
+  the chip printed "WIN MARGINS" over an overspend chart on the trial
+  issue's first render. Forward the prop in the dispatcher and look at the
+  render (`check:render --slug`) before believing the gate (§5 item 2b).
 - **One YAML list item at column 0 inside `sections:` takes every issue page
   down** ("end of the stream or a document separator is expected", 500s on
   every route for three minutes on 2026-09-13). A scratch inserter had
