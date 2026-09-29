@@ -881,6 +881,28 @@ valid 7-candidate file. Operator guide: `scripts/README.md`.
 
 ## 12. Change log
 
+### 2026-09-28 → 2026-09-29 — The cost plan's pipeline, the trial issue, one pipeline with two wallets
+
+`docs/COST-PLAN.md` v0.1 was signed and built in a day (`4003a67`,
+`b31ae68`, `1f2071b`): the harness diet in `scripts/lib/runner.ts` (a first
+request of 4.2k tokens, down from about 57k), single-shot passes with the
+script doing the guards and the check round, a dossier check pass after
+research, Jev (TypeSafe's decision model, through OpenRouter) as a pre-pass
+in the panel and verify phases, and a ledger priced at list. One trial
+issue ran through every phase and was published (sports, the Manchester
+City verdict, `a66cb33`): $20.40 at list, $14.70 like for like against
+about $31, and 0 untraced claims. The operator's rulings the same day,
+committed as `586777d`: the slash commands are wrappers that run the npm
+script with `--bill subscription`, so the old in-Claude-Code route is
+retired. One config rules both doors. An official record sits outside the
+40% publisher floor. Jev stays as a pre-pass, never a gate. On 2026-09-29 a
+PostToolUse hook ends every single-shot pass at its Write (2 requests
+became 1, measured before it went in), the eight agent definitions moved
+from `.claude/agents/` to `scripts/agents/` so Claude Code lists none of
+them as a subagent, and the operator's local settings prompt on every paid
+run (`43ead9a`). Detail: COST-PLAN §12 and `AGENTS.md` §10 (the 2026-09-28
+and 2026-09-29 entries).
+
 ### 2026-09-27 — The June background loops retired
 
 The reactive news loop, the evergreen social loop and the RAG research corpus

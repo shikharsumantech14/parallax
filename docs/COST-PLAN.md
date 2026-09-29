@@ -854,5 +854,14 @@ that day.
    (not `pipeline:costs`), `npm run jev:*`, and the direct
    `tsx scripts/pipeline.ts` forms. A paid run started from a Claude Code
    session now always prompts, the slash commands included.
-4. **The state-doc addendum and the memory note** were explained and tabled
-   for a yes, not written.
+4. **The state-doc addendum and the memory note** were explained, tabled,
+   approved and written (`4c5c766`).
+5. **The order of what is left**, the operator's ruling after reading the
+   list: the next two or three issues run on the pipeline as it stands, and
+   the engineering items wait until they are published, in the order
+   STATE-OF-PLAY §5 gives them (the commit guard's graph check, the catalog
+   gate's dispatcher check, the published-issue resolvers, CP-08, the Batch
+   runner, the tidy-ups). The Batch API question was answered the same day:
+   half price on every token, results usually within an hour and at most a
+   day, the API key only, a second runner of about a day's work, worth about
+   $3 an issue on top of CP-08's roughly $2. Third in line.

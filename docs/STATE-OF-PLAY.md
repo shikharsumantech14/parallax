@@ -162,8 +162,8 @@ are deliberately not written down anywhere (CD-11).
 |---|---|
 | Section kinds | **101** (14 WebGL) |
 | Blueprinted | 40 of 101 |
-| Issues | 29 (16 published, 13 draft) |
-| Kinds never in a published issue | **67** |
+| Issues | 30 (17 published, 13 draft) |
+| Kinds never in a published issue | **64** |
 | Registry gaps | none |
 | Decisions tracked | 37 (10 decided-but-unbuilt) |
 
@@ -175,7 +175,7 @@ Refresh with `npm run graph`; `npm run graph:check` gates it in `prebuild`.
 
 | Fact | Attested | On |
 |---|---|---|
-| Deployed | everything through `c0887a3` is **live on Vercel** | 2026-08-28 |
+| Deployed | the trial issue (`a66cb33`) is **live on Vercel**, read by the operator; the pushes after it, through `4c5c766`, are pushed but their deploys are not yet attested | 2026-09-29 |
 | Migration | `20260705000000_journey_onboarding.sql` **applied** | 2026-08-28 |
 | Live smoke | signup → `/welcome` → Shelf, `/api/join`, app favicon 200, published og:image 200, draft og:image absent | 2026-08-28 |
 
@@ -653,6 +653,7 @@ likely complete and instance coverage is not).
 | Issue authoring incl. new fields | `src/content/issues/_AGENTS.md` |
 | The design handoff (delivered artifact) | `Parallax Design System Revamp/` — authority: AGENTS → INTEGRATION → blueprints; README is stale background |
 | Standing rules / the reader-account surfaces / pipeline | `AGENTS.md`, `docs/APP-SURFACES.md` (formerly `app/AGENTS.md`), `research/AGENTS.md` |
+| The pipeline's cost plan, its measured trial, the two doors, the agents | `docs/COST-PLAN.md` (§12), `scripts/README.md`, `scripts/agents/` |
 | How context reaches a session | `docs/CONTEXT-PLAN.md` (CD-01…CD-12 §3; §10 in plain terms) |
 | Frozen history — **not current** | `docs/archive/` — read its README before citing anything there |
 
@@ -677,6 +678,8 @@ npm run check:prose      # the register + composition report; check:prose:gate i
 npm run design:check     # 30 mirrors + 6 in-world deeps + 18 record tokens
 npm run graph:check      # the derived graph matches the repo
 npm run hooks:test       # the enforcement hooks still decide correctly
+npm run check:render     # the render gate at 1280 AND 375 (RD-15): required before a
+                         # status flip and after any component, style or layout change
 ```
 
 The old `cd app && npm run build` line retired with the merge — there is one

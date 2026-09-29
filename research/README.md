@@ -49,8 +49,9 @@ Each step is an agent definition under `scripts/agents/`, run by
 `scripts/pipeline.ts` through the Claude Agent SDK from either door. It is
 not a Claude Code subagent. A slash command under `.claude/commands/`
 starts a step from Claude Code, and the same npm script starts it from a
-terminal. The pipeline can be driven manually one step at a time or strung
-together (Phase 4+).
+terminal. The pipeline is driven one step at a time. The operator holds the
+gates between steps: the candidate pick, the storyboard approval, and the
+audit before a status flip.
 
 ## Current pipeline status
 

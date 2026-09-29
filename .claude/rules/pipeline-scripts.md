@@ -144,6 +144,17 @@ handed the agent the operator's local allow rules, `Bash(npm run *)` included
 denied in this mode, so an agent cannot update its memory in-run: the digest
 in its prompt is what it reads (CP-05).
 
+**A single-shot pass ends at its Write (2026-09-29).** The runner's
+`stopAfterWrite` hook ends the run once the pass's planned output is on
+disk, so a pass is one request: the closing "done" request, which re-wrote
+the whole context after the Write had outrun the five-minute cache (about
+$3.70 an issue on the trial), is never sent. A halted run counts as a
+success and its ledger row reads `stopped_after_write`. The loops run to
+their own end. And from a Claude Code session every paid npm script prompts
+first: the operator's local ask rules (Claude Code evaluates deny, then ask,
+then allow), which the slash commands go through too. The prompt is theirs
+to answer.
+
 ## Gates live here
 
 - `check-catalog.mjs` — SECTION_KINDS ↔ catalog.md 1:1 and in order, plus

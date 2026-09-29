@@ -466,6 +466,17 @@ doors. Only the credential differs (above).
 - `verbatimPrompts: true` — the prompt reaches the model as written: an
   `@path` inside inlined text is not expanded into a file read, and a line
   starting with `/` is not run as a command.
+- `stopAfterWrite` (2026-09-29): a single-shot pass ends at the Write of its
+  planned output. A PostToolUse hook on Write returns `continue: false` once
+  the file is on disk, so the closing request (the agent saying it is done,
+  which re-wrote the whole context because the Write had outrun the
+  five-minute cache, about $3.70 an issue on the trial) is never sent.
+  `pipeline.ts` passes each single-shot prompt's declared `out`, the check
+  round's resumed call included. The loops never set it. Measured on Haiku
+  before it went in: 2 requests became 1, the file was on disk, and a
+  resumed session still carried its context, so the check round still
+  works. A halted run counts as a success and its ledger row reads
+  `stopped_after_write` (COST-PLAN §12.6).
 - The cache TTL is left at the CLI's default: **5 minutes on an API key**,
   1 hour on a subscription within plan usage. Nothing asks for an hour (on
   the API route it would add about $6.20 an issue), so an `api` run that

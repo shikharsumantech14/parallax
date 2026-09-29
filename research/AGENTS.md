@@ -397,11 +397,15 @@ Uncommitted at the time of writing, like the rest of the 2026-07-14 work.
   trace, and audits `plain` lines, flagging **⚠️ PLAIN-CLAIM** where one asserts
   data instead of describing form. See §6.
 
-**Not yet demonstrated.** The P8 retrofit — pulling the new components into two
-already-published issues, plus one fresh `pipeline:draft` run to prove
-catalog-driven selection works end to end — has **not been run**. It touches live
-content and bills a full draft phase, so it's an editorial call. Until it
-happens, the wiring above is verified by reading the prompts, not by output.
+**Demonstrated since.** The retrofit this paragraph once waited on (two
+published issues re-drawn with the new components, plus one fresh draft run)
+was overtaken: every issue since the v2 pipeline of 2026-09-14 has been
+drafted from the catalog through storyboard, draft, panel, stylist and
+verifier, and the trial issue of 2026-09-28 drew two kinds never published
+before (`latency-waterfall`, `margin-ladder`). The wiring above is verified
+by output now. Its prompts have since moved to `scripts/agents/` and been
+rewritten as single-shot passes (COST-PLAN CP-03, 2026-09-28); the catalog
+blocks reach them inlined by `scripts/lib/assemble.ts`, not by a Read.
 
 ---
 

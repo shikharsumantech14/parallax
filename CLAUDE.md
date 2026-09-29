@@ -17,7 +17,10 @@
   `/pipeline-verify`. Each runs its phase's npm script with
   `--bill subscription` in the background and reports the footer, nothing
   else. It spawns no agent, and it carries `disable-model-invocation`, so
-  only the operator starts one.
+  only the operator starts one. Expect a permission prompt when one starts:
+  the operator's local settings ask before every paid run since 2026-09-29,
+  the slash commands included, and the prompt is theirs to answer, never
+  yours to work around.
 
   **Two doors, one pipeline (ruled 2026-09-28).** The API door is a terminal:
   `npm run pipeline:<phase> <desk> -- <flags>` bills `ANTHROPIC_API_KEY`. The

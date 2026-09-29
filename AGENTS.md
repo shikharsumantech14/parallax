@@ -446,7 +446,7 @@ canonical component palette they read at runtime: the researcher captures each
 component's `DATA:` line so the dossier carries sourced values; the drafter
 picks kinds from it and authors `plain` / `skimCaption` / `layout`; the stylist
 runs a structure+plain audit; the verifier treats component `data` as traceable
-claims. **Not yet exercised on a real run.**
+claims. Exercised on every issue since the v2 pipeline of 2026-09-14.
 
 **NotebookLM** sits upstream as the editor's judgment layer, one notebook per
 category, seeded from the same `research/_sources/<category>.md` allowlists.
