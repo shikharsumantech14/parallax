@@ -175,7 +175,7 @@ Refresh with `npm run graph`; `npm run graph:check` gates it in `prebuild`.
 
 | Fact | Attested | On |
 |---|---|---|
-| Deployed | the trial issue (`a66cb33`) is **live on Vercel**, read by the operator; the pushes after it, through `4c5c766`, are pushed but their deploys are not yet attested | 2026-09-29 |
+| Deployed | the trial issue (`a66cb33`) is **live on Vercel**, read by the operator. The pushes after it, through `4c5c766`, are pushed but their deploys are not yet attested | 2026-09-29 |
 | Migration | `20260705000000_journey_onboarding.sql` **applied** | 2026-08-28 |
 | Live smoke | signup → `/welcome` → Shelf, `/api/join`, app favicon 200, published og:image 200, draft og:image absent | 2026-08-28 |
 

@@ -404,7 +404,7 @@ drafted from the catalog through storyboard, draft, panel, stylist and
 verifier, and the trial issue of 2026-09-28 drew two kinds never published
 before (`latency-waterfall`, `margin-ladder`). The wiring above is verified
 by output now. Its prompts have since moved to `scripts/agents/` and been
-rewritten as single-shot passes (COST-PLAN CP-03, 2026-09-28); the catalog
+rewritten as single-shot passes (COST-PLAN CP-03, 2026-09-28). The catalog
 blocks reach them inlined by `scripts/lib/assemble.ts`, not by a Read.
 
 ---
