@@ -81,5 +81,5 @@ grep -rn 'font-family="var(' src/components/ --include="*.astro" --include="*.ts
 
 Every component owns a unique `px-<abbrev>` prefix (≤6 chars). Check `meta.css`
 for collisions first. Reserved: `px-strip` (TopicStrip — the climate strip uses
-`px-cstrip`), `px-intro`, `px-xp`, `px-gate`, `px-acct`, `px-wb`, `px-nnote`,
+`px-cstrip`), `px-gate`, `px-acct`, `px-wb`, `px-nnote`,
 `pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`.

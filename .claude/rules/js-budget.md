@@ -97,15 +97,13 @@ that reason.
 
 ## The one exception
 
-**The onboarding surface** — `/welcome` plus the home first-visit overlay
-("The Second Angle"). A deliberately cinematic, distinct-identity marketing
-surface with its own `intro.css` palette that never touches article styles, so
-it carries more JS: the `intro/IntroStory.astro` 5-scene player and
-`intro/IntroExperience.astro` (gated by `localStorage px_intro_seen_v1`;
-`?intro=1` replays). **It still honours the fallback contract** — no-JS stacks
-the scenes and shows nothing for the overlay; reduced-motion drops auto-advance.
+**None at present.** The one exception was the onboarding surface ("The
+Second Angle": `/welcome`, the home first-visit overlay, `intro.css`), which
+the operator removed on 2026-09-30; the new design will bring its own intro.
+Whatever replaces it earns an exception here on its own terms and still
+honours the fallback contract.
 
-> **`/welcome` is the intro story, and nothing else.** Before the merge two
+> **`/welcome` was the intro story, and nothing else.** Before the merge two
 > projects each owned a `/welcome`: this one, and the app's post-signup
 > plate. One namespace has room for one, so the plate moved to
 > `src/pages/account/welcome.astro` — served at **`/account/welcome`**.

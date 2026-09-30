@@ -164,18 +164,17 @@ src/
 ├── layouts/
 │   ├── HomeLayout.astro       ← used by / and /topics/* and /about
 │   ├── IssueLayout.astro      ← used by /issues/*
-│   ├── StoryLayout.astro      ← used by /s/* (story mode) — carries the
-│   │                            OG/Twitter head tags for the share cards
-│   └── IntroLayout.astro      ← minimal full-bleed shell for the onboarding
-│                                surface (no .px-wrap/masthead; loads only the
-│                                trio fonts + intro.css). Used by /welcome.
+│   └── StoryLayout.astro      ← used by /s/* (story mode) — carries the
+│                                OG/Twitter head tags for the share cards
+│                                (IntroLayout, the onboarding shell, was
+│                                removed with the intro on 2026-09-30)
 ├── pages/
 │   ├── index.astro            ← home: chord + strip + category grid + archive
-│   │                            + <IntroExperience/> first-visit overlay
 │   │                            + <NewsletterNotice/> above the masthead
-│   ├── about.astro
-│   ├── welcome.astro          ← standalone full-screen auto-playing intro
-│   │                            story (IntroLayout + IntroStory)
+│   ├── about.astro            (the /welcome intro story and the home
+│   │                            first-visit overlay were removed on
+│   │                            2026-09-30 by the operator's ruling; the
+│   │                            new design brings its own intro)
 │   ├── rss.xml.ts
 │   ├── issues/[slug].astro    ← dynamic issue route (one per published+draft);
 │   │                            mounts core/ReadingGate.astro (soft signup
@@ -211,10 +210,6 @@ src/
 │   │                            AccountEntry / WelcomeBack / NewsletterNotice)
 │   ├── story/                 ← story mode: StoryShell, StoryHookCard,
 │   │                            StoryCard, StoryCtaCard, StoryShare
-│   ├── intro/                 ← onboarding ("The Second Angle"): IntroStory
-│   │                            (5-scene player), IntroExperience (home
-│   │                            first-visit overlay + spotlight tour),
-│   │                            WorldViz (per-category mini data-viz)
 │   ├── home/                  ← IssueRows — the ONE list-row implementation
 │   │                            (home, archive, desks). The old home pieces
 │   │                            (cards, plate, wire, chord, strips) retired
@@ -239,11 +234,6 @@ src/
 │   ├── story.css              ← story mode (.pxs-*), incl. the beat-card
 │   │                            chrome-hide compaction rule — see §7
 │   ├── modal.css              ← ExpandModal lightbox (in-page expand-to-modal study view)
-│   ├── intro.css              ← onboarding design system (px-intro scenes/player
-│   │                            + px-xp home overlay/tour). Own palette tokens;
-│   │                            loaded only where the intro/overlay render.
-│   │                            (welcome.css is now largely superseded — survives
-│   │                            only for AccountLine + the About px-abt bits.)
 │   └── themes/<topic>.css     ← Layer B — full theme per topic, incl. `--viz-edge`
 │                                (ink on light desks, accent on dark — the
 │                                figure's 3px top rule)
@@ -326,9 +316,9 @@ src/middleware.ts                        ← session + the AUTH_ROUTES /
 src/pages/login.astro                    ← magic link + Google OAuth
 src/pages/auth/callback.ts               ← routes first-time users to
                                            /account/welcome. NOT /welcome —
-                                           that is the publication's intro
-                                           story, and the collision shipped
-                                           broken once already
+                                           that was the publication's intro
+                                           story (removed 2026-09-30), and
+                                           the collision shipped broken once
 src/pages/account/welcome.astro          ← post-signup "You're in." plate
                                            (name + six world-interest chips)
 src/pages/api/onboarding.ts              ← its POST handler (save / skip)
@@ -817,6 +807,17 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-30 — The onboarding intro is removed
+
+The operator ruled "scrap this whole intro page". Deleted: `/welcome`
+(`src/pages/welcome.astro`), `src/layouts/IntroLayout.astro`, the
+`src/components/intro/` set (`IntroStory`, `IntroExperience`, `WorldViz`) and
+`src/styles/intro.css`; the home page no longer mounts the first-visit
+overlay. The new design will bring a new intro. `/account/welcome`, the
+post-signup plate, is untouched and still where `auth/callback.ts` sends a
+first-time reader. `/welcome` now 404s; nothing in the repo linked to it.
+The `px-intro` / `px-xp` prefixes are free.
 
 ### 2026-09-29 — The closing request is gone, the agents leave `.claude/`, a prompt on every paid run
 

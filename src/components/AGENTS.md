@@ -584,9 +584,6 @@ These render directly in templates, not via the dispatcher:
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
 | `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. The ⤢ button (`.px-vexp`) has two shapes: on a hover-capable screen wider than 768px, a hover-revealed 30px square at the card's top-right (`.px-viz__cap` keeps a 44px reserve for it); under `(hover: none), (pointer: coarse), (max-width: 768px)` it is `position: static`, the card's LAST row, right-aligned, 44px tall, labelled "Study this figure ⤢" (2026-09-23). The corner shape covered captions, first timeline events and readout captions on 16 issues at 375; appended last and in flow, it cannot cover anything. **Do not put it back in the corner on phones, and do not add per-component corner reserves** — the in-flow row is the fix. Because the source line renders from `core/Section.astro` rather than inside the card, **the modal shows no source** — ruled as-is on 2026-09-04, not a bug. The modal keeps its glass; it is the only surface that does. |
-| `intro/IntroStory.astro` | `welcome.astro` (and inside `IntroExperience`) — the 5-scene "The Second Angle" onboarding player. Vanilla `is:inline` player (auto/manual, prev/next/dots/skip/keyboard); no-JS scenes stack + scroll. `px-intro`. |
-| `intro/IntroExperience.astro` | `index.astro`, once — home first-visit overlay. Auto-plays the story, then an optional spotlight tour of the real home. Gated by localStorage `px_intro_seen_v1`; `?intro=1` force-replays; `[hidden]` by default (no-JS shows nothing). `px-xp`. |
-| `intro/WorldViz.astro` | inside `IntroStory` — per-category mini data-viz on the six worlds cards (vote split / orbit / stripes / commit grid / route / momentum wave) |
 | `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. `px-rows`. |
 | `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). `px-desk__`. |
 
@@ -612,8 +609,6 @@ experience.
 | `px-mstrip` | ManifestoStrip (home, three editorial promises — v2 `.mf-strip` port) |
 | `px-sub` | SubscribeStrip (home, editorial `.sub` framing wrapping NewsletterForm) |
 | `px-col` | Colophon (editorial footer, replaces Footer in both layouts — v2 `.col` port) |
-| `px-intro` | "The Second Angle" onboarding (scenes/player/controls, in `intro.css`) |
-| `px-xp` | home first-visit overlay + spotlight tour (`IntroExperience`, in `intro.css`) |
 | `px-gate` | ReadingGate (metered signup wall, scoped in `ReadingGate.astro`) |
 | `px-wb` | WelcomeBack (post-auth return toast on issues, scoped in `WelcomeBack.astro`) |
 | `px-nnote` | NewsletterNotice (home `?newsletter=confirmed` ribbon, scoped in `NewsletterNotice.astro`) |
@@ -699,13 +694,13 @@ The finish sentinel for `ReadingTracker` is a
 just before the closing `</article>` tag. `AnnotationLayer.astro` and
 `ReactionsBar.astro` render **outside** the article, after it.
 
-**Orphaned/retired (2026-06-21).** An earlier "issue-like" onboarding pass is
-superseded by `intro/`: the `welcome/Beat*.astro` set and most of `welcome/`
-are now unused. (`intro/` itself holds only `IntroExperience`, `IntroStory` and
-`WorldViz` — an earlier `RegistrationMark.astro` was deleted, not merely
-orphaned.) `welcome.css`
-survives only for `AccountLine` (`px-wj-join`, used on home + welcome) and the
-About `px-abt` / `px-wj-reg` bits.
+**Removed (2026-09-30).** The onboarding intro ("The Second Angle") is gone
+by the operator's ruling: `intro/` (`IntroStory`, `IntroExperience`,
+`WorldViz`), `src/pages/welcome.astro`, `src/layouts/IntroLayout.astro` and
+`src/styles/intro.css` were deleted, and the home page no longer mounts the
+first-visit overlay. The new design will bring a new intro. The earlier
+`welcome/` onboarding pass it had superseded is gone from the tree too, and
+there is no `welcome.css` any more.
 
 When adding a meta-brand or layout-chrome piece, render it directly. Only
 narrative section components flow through `SectionRenderer.astro`.
