@@ -1,11 +1,25 @@
 ---
 /**
- * Timeline — v2 vertical rail (.tl): a hairline rail and state-coloured nodes
- * (default / key / fail / now). Faithful port of publication-v2
- * Components.jsx <Timeline>. The rail and node are pure CSS
- * (.tl__row::before). THE BUILD (Lens Phase 5, LENS §6.4): the .tl root is a
- * `data-build-scene` and its rows drop in, in date order, 80ms apart
- * (src/scripts/build.ts). No JS or reduced motion: every row in place.
+ * Timeline — dated events down a spine. Lens Phase 6 (2026-09-30), to the
+ * Lib-timeline board: a vertical spine with the year set against it wherever
+ * the year turns, a node on the spine for every event (paper with an ink ring;
+ * the `key` events filled in the desk mark and ringed; a `fail` event a mark
+ * ring; the `now` event filled in the desk text ink), and the event's label
+ * beside it. From the first `key` event on, the spine is drawn thick in the
+ * desk mark: the stretch the story is about.
+ *
+ * In the reading system's figure panel (`compact`, set by SectionBody) the
+ * article carries each event's full sentence, so the figure keeps the year
+ * ticks and the labels. Story mode renders it whole: the full date in the
+ * axis column, the note and any annotation under the label.
+ *
+ * Cue anchors (LENS §5.2): each event row is `data-cue="<n>"`, numbered from
+ * 1 in DATA order; the empty `.px-cue-tag` is the numeral's slot, filled by
+ * core/Section.astro when a cue names the row.
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the rows drop in, in date
+ * order, 80ms apart (src/scripts/build.ts). No JS or reduced motion: every
+ * row in place. A hover changes nothing: the node never scales (LENS §6.5).
  */
 import { renderInline } from '../../../lib/text';
 
@@ -29,19 +43,19 @@ interface Props {
   events: TimelineEvent[];
   annotations?: Annotation[];
   /* Optional — promoted onto the section schema in Phase 2 and merged
-     down in SectionBody. CANON §7: no source, no section. */
+     down in SectionBody. The source line is core/Section.astro's. */
   source?: string;
   /* The Lens reading system (Phase 3): the article column beside the figure
      carries each event's full sentence (label, note, annotation, with its
-     cue), so the figure keeps the date and the label only. */
+     cue), so the figure keeps the year and the label only. */
   compact?: boolean;
 }
-const { events = [], annotations = [], source, compact = false } = Astro.props;
+const { events = [], annotations = [], compact = false } = Astro.props;
 
 /* Resolve each annotation to one row: a number is the 0-based index, a string
    is the event's `date` — the FIRST row carrying it, since two events may
-   share a date (the showcase has two on "6 May 2025"); index form addresses
-   the second. An `at` that matches nothing is a silent no-op, per spec §2. */
+   share a date; index form addresses the second. An `at` that matches nothing
+   is a silent no-op, per spec §2. */
 const annotRows = new Map<number, string[]>();
 for (const a of annotations ?? []) {   // `annotations:` with no items parses as null
   if (!a || !a.text) continue;
@@ -49,24 +63,138 @@ for (const a of annotations ?? []) {   // `annotations:` with no items parses as
   if (i < 0 || i >= events.length) continue;
   annotRows.set(i, [...(annotRows.get(i) ?? []), a.text]);
 }
+
+const yearOf = (d: string) => (String(d).match(/\b(1[5-9]\d{2}|20\d{2}|21\d{2})\b/) ?? [])[1] ?? String(d);
+const firstKey = events.findIndex((e) => e.state === 'key');
+const rows = events.map((e, i) => {
+  const yr = yearOf(e.date);
+  const tick = compact ? (i === 0 || yr !== yearOf(events[i - 1].date) ? yr : '') : e.date;
+  const hot = firstKey >= 0 && i >= firstKey;
+  const seg = !hot ? 'plain' : i === firstKey ? 'start' : 'hot';
+  return { ...e, i, tick, seg, first: i === 0, last: i === events.length - 1 };
+});
 ---
 
-{/* Cue anchors (LENS §5.2): each row is `data-cue="<n>"`, numbered from 1 in
-    data order; the empty `.px-cue-tag` is the numeral's slot, filled by
-    core/Section.astro when a cue names the row. */}
+{/* Cue anchors (LENS §5.2): each row is `data-cue="<n>"`. */}
 <div class="tl" data-build-scene data-compact={compact ? 'true' : undefined}>
-  {events.map((e, i) => (
-    <div class="tl__row" data-state={e.state ?? 'default'} data-cue={i + 1} data-build="1" data-build-kind="drop">
-      <div class="tl__date">{e.date}</div>
-      <div>
-        <div class="tl__label"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><Fragment set:html={renderInline(e.label)} /></div>
+  {rows.map((e) => (
+    <div
+      class="tl__row"
+      data-state={e.state ?? 'default'}
+      data-seg={e.seg}
+      data-first={e.first ? 'true' : undefined}
+      data-last={e.last ? 'true' : undefined}
+      data-cue={e.i + 1}
+      data-build="1"
+      data-build-kind="drop"
+    >
+      <div class="tl__date">{e.tick}</div>
+      <div class="tl__node" aria-hidden="true"></div>
+      <div class="tl__body">
+        <div class="tl__label"><span class="px-cue-tag" data-cue-tag={e.i + 1} hidden></span><span set:html={renderInline(e.label)} /></div>
         {!compact && e.note && <div class="tl__note" set:html={renderInline(e.note)} />}
-        {!compact && (annotRows.get(i) ?? []).map((t) => (
-          <span class="tl__annot vz-annot" style="display:block;margin-top:6px">
-            <span class="tl__annot-dot" style="display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--accent);vertical-align:middle"></span>{t}
-          </span>
+        {!compact && (annotRows.get(e.i) ?? []).map((t) => (
+          <span class="tl__annot vz-annot">{t}</span>
         ))}
       </div>
     </div>
   ))}
 </div>
+
+<style>
+  .tl { position: relative; display: flex; flex-direction: column; min-width: 0; font-family: var(--font-ui); }
+  .tl__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 24px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+  }
+  .tl:not([data-compact]) .tl__row { grid-template-columns: 92px 24px minmax(0, 1fr); padding: 16px 0; }
+
+  /* the spine: each row draws its own stretch, so the thick part can start
+     at the first key event's node and the ends stop at the first and last */
+  .tl__row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(44px + 12px + 11px);
+    width: 2px;
+    background: var(--hair-2);
+  }
+  .tl:not([data-compact]) .tl__row::before { left: calc(92px + 12px + 11px); }
+  .tl__row[data-first]::before { top: 22px; }
+  .tl__row[data-last]::before { bottom: calc(100% - 22px); }
+  .tl__row[data-seg='hot']::before { width: 4px; margin-left: -1px; background: var(--accent); }
+  .tl__row[data-seg='start']::before { top: 22px; width: 4px; margin-left: -1px; background: var(--accent); }
+  .tl__row[data-seg='start']:not([data-first])::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    height: 22px;
+    left: calc(44px + 12px + 11px);
+    width: 2px;
+    background: var(--hair-2);
+  }
+  .tl:not([data-compact]) .tl__row[data-seg='start']:not([data-first])::after { left: calc(92px + 12px + 11px); }
+
+  .tl__date {
+    padding-top: 2px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .tl:not([data-compact]) .tl__date { text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .tl__node {
+    position: relative;
+    z-index: 1;
+    justify-self: center;
+    width: 12px;
+    height: 12px;
+    margin-top: 5px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    background: var(--paper-2);
+    border: 2px solid var(--ink-2);
+  }
+  .tl__row[data-state='key'] .tl__node {
+    width: 14px;
+    height: 14px;
+    margin-top: 4px;
+    background: var(--accent);
+    border: 0;
+    box-shadow: 0 0 0 3px var(--paper-2), 0 0 0 5px var(--accent);
+  }
+  .tl__row[data-state='fail'] .tl__node { border-color: var(--accent); }
+  .tl__row[data-state='now'] .tl__node { background: var(--accent-deep); border-color: var(--accent-deep); }
+
+  .tl__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .tl__label { display: flex; align-items: flex-start; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+  .tl__label .px-cue-tag { margin-top: 0; }
+  .tl__label :global(strong) { font-weight: 600; }
+  .tl__row[data-state='key'] .tl__label { color: var(--accent-deep); }
+  .tl__note { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+  .tl__annot {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--accent-tint);
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--accent-deep);
+  }
+
+  @media (max-width: 560px) {
+    .tl:not([data-compact]) .tl__row { grid-template-columns: 64px 24px minmax(0, 1fr); column-gap: 8px; }
+    .tl:not([data-compact]) .tl__row::before,
+    .tl:not([data-compact]) .tl__row[data-seg='start']:not([data-first])::after { left: calc(64px + 8px + 11px); }
+  }
+</style>

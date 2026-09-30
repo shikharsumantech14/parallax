@@ -1,14 +1,28 @@
 ---
 /**
- * LaunchStats — v2 grouped launch-count bars (.ls) inside the elevated .px-viz
- * card. One column per year, one bar per operator. Faithful port of
- * publication-v2 <LaunchStats>. Build-time, zero runtime JS. Static since
- * Lens Phase 5; its build order (LENS §6.4) arrives in Phase 6.
+ * LaunchStats (space) — launches per year as stacked columns, one column per
+ * year, one band per operator, each band's count printed inside it where it
+ * fits, each year's total above its column, and the latest year's total set
+ * large. Drawn for the pinned figure panel (Lens Phase 6, 2026-09-30; board
+ * Lib-launch-stats): a 470-unit SVG with 12px type, the key in HTML above it.
  *
- * props (unchanged — see SectionRenderer 'launch-stats'):
- *   years[] — { year: number, bars: { label, value, color? }[] }
- *   caption · source
+ * Cue anchors: `1`…`n` — each year in authored order (its column, its bands,
+ * its total); `series-1`…`series-k` — each operator in the first year's order
+ * (its key entry and its band in every year; a lit series keeps its bands at
+ * full strength inside the dimmed columns); `axis`. The headline carries the
+ * last year's anchor.
+ *
+ * THE BUILD (LENS §6.4): 1 the axis fades, 2 the bands grow up, year by year,
+ * 3 the counts and totals rise, 4 the headline counts up.
+ *
+ * Colour: a bar's `color` is honoured as a fixed encoding; otherwise the
+ * operators step through the desk inks (text, mark, a tint of the mark,
+ * hair-2). A count inside a band takes paper on the dark ink, ink elsewhere.
+ *
+ * data: { years[]{ year, bars[]{ label, value, color? } }, caption?, source? }
  */
+import { SANS, nf, svgTag, niceTicks } from './_fig';
+
 interface Bar { label: string; value: number; color?: string; }
 interface YearData { year: number; bars: Bar[]; }
 interface Props {
@@ -16,44 +30,111 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { years = [], caption, source } = Astro.props;
+const { years = [], caption } = Astro.props;
+/* Drawn twice (Lens Phase 6): at 470 for the panel and at 290 for a phone,
+   one shown by the .px-sfig__dual rule in dataviz-v2.css, so every label
+   prints at 12px or more at both widths and nothing has to scroll. */
+const W: number = (Astro.props as any).w ?? 470;
+const dual = (Astro.props as any).w == null;
 
-// Fallback palette for bars without an explicit color.
-const DEFAULT_COLORS = [
-  '#00d4ff', '#ff6b6b', '#b47dff', '#7a8a92',
-  '#ffb347', '#4dffb0', '#ff9ecd', '#fff47a',
-];
-const colorOf = (b: Bar, bi: number) => b.color ?? DEFAULT_COLORS[bi % DEFAULT_COLORS.length];
+const ys = (Array.isArray(years) ? years : []).map((y, i) => ({ id: String(i + 1), year: y?.year, bars: Array.isArray(y?.bars) ? y.bars : [] }));
+const series: { label: string; color?: string }[] = [];
+for (const y of ys) for (const b of y.bars) if (!series.some((s) => s.label === b.label)) series.push({ label: b.label, color: b.color });
+const TONES = ['var(--accent-deep)', 'var(--accent)', 'color-mix(in oklab, var(--accent) 45%, var(--paper-2))', 'var(--hair-2)'];
+const DARK = [true, false, false, false];
+const sIdx = (label: string) => series.findIndex((s) => s.label === label);
+const fillOf = (b: Bar) => b.color ?? TONES[sIdx(b.label) % TONES.length];
+const darkOf = (b: Bar) => !b.color && DARK[sIdx(b.label) % TONES.length];
 
-// Max single-bar value across every year — identical to the kit.
-const max = Math.max(1, ...years.flatMap((y) => y.bars.map((b) => b.value)));
-
-// Legend taken from the first year's bars (kit: years[0].bars).
-const legend = years.length
-  ? years[0].bars.map((b, bi) => ({ label: b.label, color: colorOf(b, bi) }))
-  : [];
+// ── frame ───────────────────────────────────────────────────────────────────
+const H = 310, L = 40, R = W - 4, T = 44, B = H - 28;
+const totals = ys.map((y) => y.bars.reduce((a, b) => a + Math.max(0, b.value || 0), 0));
+const yt = niceTicks(Math.max(1, ...totals) * 1.06, 4);
+const yMax = yt[yt.length - 1];
+const Y = (v: number) => B - (v / yMax) * (B - T);
+const slot = (R - L - 8) / Math.max(1, ys.length);
+const bw = Math.min(64, slot * 0.66);
+const cols = ys.map((y, k) => {
+  const x = L + 8 + k * slot + (slot - bw) / 2;
+  let acc = 0;
+  const bands = y.bars.map((b) => {
+    const v = Math.max(0, b.value || 0);
+    const y0 = Y(acc), y1 = Y(acc + v);
+    acc += v;
+    return { ...b, v, y: y1, h: y0 - y1, s: `series-${sIdx(b.label) + 1}` };
+  });
+  return { ...y, x, bands, total: totals[k] };
+});
+const last = cols[cols.length - 1];
+const aria = caption ? `Launches per year: ${caption}` : 'Launches per year';
 ---
-
-<div class="px-viz" role="img"
-  aria-label={caption ?? 'Orbital launches per year'}>
-  <div class="px-viz__cap"><span>{caption}</span><b>launches / yr</b></div>
-  <div class="ls__chart">
-    {years.map((yr, yi) => (
-      <div class="ls__year">
-        <div class="ls__bars">
-          {yr.bars.map((b, bi) => (
-            <div class="ls__bar"
-              style={`--h:${(b.value / max) * 100}%;background:${colorOf(b, bi)};transition-delay:${yi * 60 + bi * 30}ms`}
-              title={`${yr.year} · ${b.label}: ${b.value}`} />
-          ))}
-        </div>
-        <span class="ls__yr">{String(yr.year).slice(2)}</span>
-      </div>
-    ))}
+{dual ? (
+  <div class="px-sfig__dual">
+    <Astro.self {...Astro.props} w={470} />
+    <Astro.self {...Astro.props} w={290} />
   </div>
-  <div class="ls__legend">
-    {legend.map((l) => (
-      <span class="key"><span class="sw" style={`background:${l.color}`}></span>{l.label}</span>
+) : (
+<Fragment>
+
+<div class="px-viz px-lst" data-build-scene>
+  {last && (
+    <div class="px-sfig__head" data-cue={last.id}>
+      <span class="px-sfig__num" data-build="4" data-build-kind="counter" data-to={last.total}>{nf(last.total)}</span>
+      <span class="px-sfig__lbl"><span class="px-cue-tag" data-cue-tag={last.id} hidden></span>in {last.year}</span>
+    </div>
+  )}
+
+  <ul class="px-sfig__key px-lst__key" data-build="1">
+    {series.map((s, i) => (
+      <li data-cue={`series-${i + 1}`}>
+        <span class="px-sfig__sw" style={`background:${s.color ?? TONES[i % TONES.length]}`}></span>
+        <span class="px-cue-tag" data-cue-tag={`series-${i + 1}`} hidden></span>{s.label}
+      </li>
     ))}
+  </ul>
+
+  <div class="px-sfig__plot">
+    <svg class="px-sfig__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      <g data-cue="axis" data-build="1">
+        {yt.map((v) => (
+          <>
+            <line class="px-sfig__grid" x1={L} x2={R} y1={Y(v).toFixed(1)} y2={Y(v).toFixed(1)} />
+            <text class="px-sfig__ax" x={L - 8} y={(Y(v) + 4).toFixed(1)} text-anchor="end" style={SANS}>{nf(v)}</text>
+          </>
+        ))}
+        <line class="px-sfig__base" x1={L} x2={R} y1={B} y2={B} />
+        {cols.map((c) => (
+          <text class="px-sfig__ax px-lst__yr" x={(c.x + bw / 2).toFixed(1)} y={B + 18} text-anchor="middle" style={SANS}>{c.year}</text>
+        ))}
+      </g>
+
+      {cols.map((c) => (
+        <g data-cue={c.id}>
+          {c.bands.map((b) => (
+            <g data-cue={b.s}>
+              <title>{c.year} · {b.label}: {nf(b.v)}</title>
+              <rect class="px-lst__band" x={c.x.toFixed(1)} y={b.y.toFixed(1)} width={bw.toFixed(1)} height={Math.max(0, b.h).toFixed(1)} style={`fill:${fillOf(b)}`} data-build="2" data-build-kind="grow-y" />
+              {b.h >= 20 && (
+                <text class={`px-lst__v${darkOf(b) ? ' px-lst__v--on' : ''}`} x={(c.x + bw / 2).toFixed(1)} y={(b.y + b.h / 2 + 4.5).toFixed(1)} text-anchor="middle" style={SANS} data-build="3" data-build-kind="rise">{nf(b.v)}</text>
+              )}
+            </g>
+          ))}
+          <g data-build="3" data-build-kind="rise">
+            <text class="px-sfig__t px-sfig__b" x={(c.x + bw / 2).toFixed(1)} y={(Y(c.total) - 8).toFixed(1)} text-anchor="middle" style={SANS}>{nf(c.total)}</text>
+            <Fragment set:html={svgTag(c.id, c.x + bw / 2, Y(c.total) - 32)} />
+          </g>
+        </g>
+      ))}
+    </svg>
   </div>
 </div>
+</Fragment>
+)}
+
+<style>
+  .px-lst__key { margin: 0 0 8px; }
+  .px-lst__band { stroke: var(--paper-2); stroke-width: 1; }
+  .px-lst__v { font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .px-lst__v--on { fill: var(--paper-2); }
+  .px-lst__yr { fill: var(--ink-2); }
+</style>

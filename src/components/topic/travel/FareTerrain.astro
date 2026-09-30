@@ -1,24 +1,33 @@
 ---
 /**
- * FareTerrain (travel) — the booking-curve ridgeline. A build-time SVG "contour
- * plate": median fare plotted against days-before-departure, one or several
- * routes stacked as an overlapping joyplot, with the cheapest-booking window cut
- * through the terrain as a shaded gorge. The x-axis is REVERSED — far-out at the
- * left, departure at the right — so the reader watches time run toward the
- * flight; the reversal is declared by the auto-rendered `time → departure` chip.
+ * FareTerrain (`fare-terrain`) — when to book (Lens Phase 6, the
+ * Lib-fare-terrain board). The sweet-spot fare set large and the last-minute
+ * fare beside it; under them the fare against days before departure, time
+ * running left to right toward the flight (a reversed axis, declared by the
+ * `time → departure` chip), the focal route as a line over a tinted ground
+ * with a dot at each sample, any other routes as thinner ink lines, and the
+ * booking window shaded and named SWEET SPOT.
  *
- * The reader learns *when* to buy: fares drift down from the speculative far-out
- * highs, pool in a three-to-five-week valley (marked SWEET SPOT), then rocket in
- * the final fortnight (the cliff tag).
+ * The window is `sweetSpotDays` when authored; otherwise the contiguous run
+ * of the focal route's samples at or under 1.05 × its lowest fare. The focal
+ * route is the one marked `highlight`, else the first.
  *
- * Static print plate — no runtime data JS, and no motion since Lens Phase 5:
- * the axes, valley, ridge strokes and labels all rest in their final painted
- * state (the Phase 6 build brings them in). The plate is the final ridgeline,
- * valley gorge shaded + labelled, and the cliff tag. Blueprint:
- * docs/design/blueprints/travel/fare-terrain.md.
+ * Drawn for the figure panel: a 460-unit viewBox, text at 12 units and more;
+ * on a phone it keeps 460px and scrolls inside its card. The cue numerals are
+ * an HTML layer over the drawing.
  *
- * data: { routes[]{ label, points[]{ daysBefore, fare }, highlight? }, unit,
- *         sweetSpotDays?, caption?, source? }
+ * Cue anchors:
+ *   band    the sweet-spot window
+ *   low     the lowest fare (its point, and the number above)
+ *   last    the fare nearest departure (its point, and its number)
+ *   1…n     each route's line, in authored order
+ *   axis    the fare and day axes
+ *
+ * Build (src/scripts/build.ts, LENS §6.4): 1 the axes, 2 the window, 3 the
+ * ground fades and the lines draw, 4 the points and labels, 5 the numbers
+ * count up. No JS or reduced motion: the chart as drawn.
+ *
+ * data: { routes: [{label, points: [{daysBefore, fare}], highlight?}], unit, sweetSpotDays? }
  */
 interface FarePoint { daysBefore: number; fare: number; }
 interface Route { label: string; points: FarePoint[]; highlight?: boolean; }
@@ -29,338 +38,196 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { routes = [], unit = 'index', sweetSpotDays, caption, source } = Astro.props;
+const { routes = [], unit = 'index', sweetSpotDays } = Astro.props;
 
 // ── validation (blueprint §11: 1–5 routes; ≥6 samples each) ──────────────────
 if (routes.length < 1 || routes.length > 5) {
-  throw new Error(
-    `fare-terrain: routes.length must be 1–5 (got ${routes.length}). ` +
-    `A ridgeline holds one to five booking curves.`
-  );
+  throw new Error(`fare-terrain: routes.length must be 1–5 (got ${routes.length}). A booking chart holds one to five curves.`);
 }
 routes.forEach((r, i) => {
   const n = Array.isArray(r.points) ? r.points.length : 0;
-  if (n < 6) {
-    throw new Error(
-      `fare-terrain: route ${i} ("${r.label}") has ${n} points; ` +
-      `each route needs ≥6 fare samples for a legible booking curve.`
-    );
-  }
+  if (n < 6) throw new Error(`fare-terrain: route ${i} ("${r.label}") has ${n} points; each route needs ≥6 fare samples.`);
 });
 
-// ── geometry constants (blueprint §4) ────────────────────────────────────────
-const W = 720;
-const ROW = 48;                 // ridgeline row pitch
-const AMP = ROW * 2.4;          // 115.2px — tallest fare rises this far; ridges overlap ~2.4 rows
-// Label strip (2026-09-24): two tag rows ABOVE the terrain. The tallest peak
-// rises to within 5 units of the row-0 headroom's top, so a tag printed
-// inside the headroom lands on the ridge or on the other tag (the SWEET SPOT
-// label and the cliff tag both sat at y≈22 and crossed). The strip gives the
-// two plate tags their own rows; §4's geometry below it is unchanged.
-// The band starts at the strip's foot, so its dashed edges never run through
-// a tag, and the caret over the highest possible anchor clears row 1.
-const STRIP = 36;
-const ROW0_Y = 12, ROW1_Y = 26; // tag baselines in the strip
-const TOP = STRIP + 120;        // row-0 baseline; peaks rise into STRIP..TOP (AMP < 120)
-const PLOT_L = 72, PLOT_R = 648;
-const PLOT_W = PLOT_R - PLOT_L; // 576
-const n = routes.length;
-const y0 = (r: number) => TOP + r * ROW;        // baseline of route row r (top → down)
-const axisY = y0(n - 1) + 30;
-const H = STRIP + 120 + n * ROW + 60;            // §4 viewBox height formula + the strip
+const FF = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const W = 460, H = 254;
+const PL = 44, PR = 452, PT = 26, PB = 222;
 
-// ── x scale: REVERSED, linear (§4) — maxDays → left, 0 → right ───────────────
-const maxDays = Math.max(...routes.flatMap((r) => r.points.map((p) => p.daysBefore)));
-const x = (d: number) => PLOT_R - (d / maxDays) * PLOT_W;
-
-// ── amplitude scale keyed off the GLOBAL max fare (§4) ───────────────────────
-const globalMaxFare = Math.max(...routes.flatMap((r) => r.points.map((p) => p.fare)));
-const yFor = (r: number, fare: number) => y0(r) - (fare / globalMaxFare) * AMP;
-
-// ── smooth path: Catmull-Rom → cubic Bézier through sorted points ────────────
-function smoothLine(p: { x: number; y: number }[]): string {
-  if (p.length === 0) return '';
-  if (p.length === 1) return `M ${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
-  let d = `M ${p[0].x.toFixed(1)} ${p[0].y.toFixed(1)}`;
-  for (let i = 0; i < p.length - 1; i++) {
-    const p0 = p[i - 1] || p[i];
-    const p1 = p[i];
-    const p2 = p[i + 1];
-    const p3 = p[i + 2] || p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-  }
-  return d;
-}
-
-// Build each route's screen geometry. Points sorted by daysBefore DESCENDING so
-// the path runs left→right (high days at the left, departure at the right).
-const built = routes.map((route, r) => {
-  const pts = [...route.points]
-    .filter((p) => Number.isFinite(p.daysBefore) && Number.isFinite(p.fare) && p.daysBefore >= 1)
+const clean = (r: Route) =>
+  [...r.points].filter((p) => Number.isFinite(p.daysBefore) && Number.isFinite(p.fare) && p.daysBefore >= 0)
     .sort((a, b) => b.daysBefore - a.daysBefore);
-  const xy = pts.map((p) => ({ ...p, x: x(p.daysBefore), y: yFor(r, p.fare) }));
-  const line = smoothLine(xy);
-  const base = y0(r);
-  // area fill: close the curve down to its own baseline (paper occluder → layered terrain)
-  const area = xy.length
-    ? `${line} L ${xy[xy.length - 1].x.toFixed(1)} ${base.toFixed(1)} L ${xy[0].x.toFixed(1)} ${base.toFixed(1)} Z`
-    : '';
-  const rightEnd = xy[xy.length - 1];   // nearest-to-departure point (smallest daysBefore)
-  return { route, r, pts, xy, line, area, base, rightEnd, isHi: !!route.highlight };
-});
+const built = routes.map((r, i) => ({ r, i, pts: clean(r) }));
+const focal = built.find((b) => b.r.highlight) ?? built[0];
 
-// generous stroke-draw budget (over-estimate; the browser clamps to path length)
-const pathLen = Math.round(PLOT_W * 1.9);
+const maxDays = Math.max(...built.flatMap((b) => b.pts.map((p) => p.daysBefore)));
+const allFares = built.flatMap((b) => b.pts.map((p) => p.fare));
+const fMin = Math.min(...allFares), fMax = Math.max(...allFares);
+const fStep = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000].find((s) => (fMax - fMin) / s <= 4) ?? 10000;
+const fLo = Math.max(0, Math.floor((fMin - fStep * 0.4) / fStep) * fStep);
+const fHi = fMax;
+const x = (d: number) => PL + ((maxDays - d) / maxDays) * (PR - PL);
+const y = (f: number) => PB - ((f - fLo) / (fHi - fLo || 1)) * (PB - PT - 8);
 
-// ── the highlighted (focal) route — drives valley detection + the cliff tag ──
-const focal = built.find((b) => b.isHi) ?? built[0];
+const yTicks: number[] = [];
+for (let f = Math.ceil((fLo + 1e-9) / fStep) * fStep; f <= fHi + 1e-9; f += fStep) yTicks.push(f);
+const dStep = [7, 14, 15, 30, 60, 90, 180].find((s) => maxDays / s <= 4) ?? 365;
+const xTickVals = [...new Set([maxDays, ...Array.from({ length: Math.floor(maxDays / dStep) }, (_, k) => (k + 1) * dStep).filter((d) => d < maxDays - dStep * 0.5), 0])].sort((a, b) => b - a);
 
-// ── sweet-spot window (§4): authored override, else the CONTIGUOUS run of days
-//    (containing the global min) whose fares ≤ 1.05 × the focal route's min ────
-const focalSorted = [...focal.route.points].sort((a, b) => b.daysBefore - a.daysBefore); // days desc
-const globalMin = Math.min(...focalSorted.map((p) => p.fare));
+const path = (pts: FarePoint[]) => pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.daysBefore).toFixed(1)} ${y(p.fare).toFixed(1)}`).join('');
 
-function computeWindow() {
-  const threshold = 1.05 * globalMin;
-  // index of the min-fare point (first occurrence)
-  let mi = 0;
-  focalSorted.forEach((p, i) => { if (p.fare < focalSorted[mi].fare) mi = i; });
-  let lo = mi, hi = mi;
-  while (lo - 1 >= 0 && focalSorted[lo - 1].fare <= threshold) lo--;
-  while (hi + 1 < focalSorted.length && focalSorted[hi + 1].fare <= threshold) hi++;
-  // days desc, so lo has the LARGER daysBefore
-  return { maxD: focalSorted[lo].daysBefore, minD: focalSorted[hi].daysBefore };
-}
+// ── the window ───────────────────────────────────────────────────────────────
+const fp = focal.pts;
+const low = Math.min(...fp.map((p) => p.fare));
 let winMaxD: number, winMinD: number;
 if (sweetSpotDays && Number.isFinite(sweetSpotDays[0]) && Number.isFinite(sweetSpotDays[1])) {
   winMaxD = Math.max(sweetSpotDays[0], sweetSpotDays[1]);
   winMinD = Math.min(sweetSpotDays[0], sweetSpotDays[1]);
 } else {
-  const w = computeWindow();
-  winMaxD = w.maxD; winMinD = w.minD;
+  let mi = fp.findIndex((p) => p.fare === low), lo = mi, hi = mi;
+  while (lo > 0 && fp[lo - 1].fare <= low * 1.05) lo--;
+  while (hi < fp.length - 1 && fp[hi + 1].fare <= low * 1.05) hi++;
+  winMaxD = fp[lo].daysBefore; winMinD = fp[hi].daysBefore;
 }
+if (winMaxD === winMinD) { winMaxD += Math.max(2, dStep / 6); winMinD = Math.max(0, winMinD - Math.max(2, dStep / 6)); }
+const inWin = fp.filter((p) => p.daysBefore <= winMaxD && p.daysBefore >= winMinD);
+const valley = inWin.length ? inWin.reduce((m, p) => (p.fare < m.fare ? p : m), inWin[0]) : fp.find((p) => p.fare === low)!;
+const lastPt = fp[fp.length - 1];
+const firstPt = fp[0];
 
-// valley-floor fare = min fare of the focal route WITHIN the window
-const inWin = focalSorted.filter((p) => p.daysBefore <= winMaxD && p.daysBefore >= winMinD);
-const valleyMin = inWin.length ? Math.min(...inWin.map((p) => p.fare)) : globalMin;
-const valleyMinDay = (inWin.find((p) => p.fare === valleyMin) ?? focalSorted[0]).daysBefore;
+const bandL = x(winMaxD), bandR = x(winMinD), bandMid = (bandL + bandR) / 2;
+const SPOT = 'SWEET SPOT';
+const spotW = SPOT.length * 7.6;
+const spotX = Math.min(Math.max(bandMid, PL + spotW / 2), W - 2 - spotW / 2);
 
-// valley band screen box (maxD is further left, minD nearer departure/right)
-const bandL = x(winMaxD);
-const bandR = x(winMinD);
-const bandTopY = STRIP - 4;
+const fmt = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(1));
+const isIndex = /^index$/i.test(unit);
+const axisTitle = isIndex ? 'fare index' : `fare, ${unit}`;
+const dayWord = (d: number) => (d === 1 ? 'day before' : `${fmt(d)} days before`);
+const firstLabel = `${fmt(firstPt.fare)} · ${fmt(firstPt.daysBefore)} days`;
 
-// ── cliff: last-minute premium on the focal route (§4) ───────────────────────
-const departureFare = focal.rightEnd ? focal.rightEnd.fare : globalMaxFare; // nearest-to-departure fare
-const cliffPct = valleyMin > 0 ? Math.round((departureFare / valleyMin - 1) * 100) : 0;
-const cliffAnchor = focal.rightEnd;
-
-// ── day ticks (§4): 90,60,30,14,7,1 filtered to ≤ maxDays; mobile keeps a subset
-const TICKS = [90, 60, 30, 14, 7, 1];
-const MOBILE_TICKS = new Set([90, 30, 7, 1]);
-const ticks = TICKS.filter((d) => d <= maxDays).map((d) => ({ d, x: x(d), mobile: MOBILE_TICKS.has(d) }));
-
-// per-route build stagger (Phase 6), capped so the whole sweep still lands ≤1.6s (§5)
-const stagMs = n > 1 ? Math.min(120, Math.floor(200 / (n - 1))) : 0;
-
-// route-label y, clamped below the strip and above the axis chips; dashed
-// connector if it pulls off the curve end
-const clampLabelY = (yv: number) => Math.max(STRIP + 10, Math.min(H - 16, yv));
-const isIndex = unit === 'index' || unit === 'INDEX';
-const fareAxisChip = isIndex ? 'fare index' : `fare · ${unit}`;
-const bandLabel = `SWEET SPOT · ${winMaxD}–${winMinD} DAYS`;
-const cliffLabel = `+${cliffPct}% last 14 days`;
-
-// ── the two plate tags, placed in the strip ─────────────────────────────────
-// Widths are budgeted, not measured: 10px caps at 0.12em tracking run ≈ 8.1
-// units a character in Literata (measured 2026-09-24); 0.86em keeps a margin.
-const TAG_CH = 10 * 0.86;
-const tagW = (t: string) => t.length * TAG_CH;
-// SWEET SPOT: centred on the band, clamped inside the viewBox.
-const spotW = tagW(bandLabel);
-const spotX = Math.min(Math.max((bandL + bandR) / 2, spotW / 2 + 2), W - 2 - spotW / 2);
-// Cliff tag: right-aligned on its anchor, clamped inside the viewBox; row 0
-// unless it would print on the SWEET SPOT label, then row 1. A dashed leader
-// drops from the tag to the caret over the anchor.
-const cliffW = tagW(cliffLabel);
-const cliffEnd = cliffAnchor ? Math.min(Math.max(cliffAnchor.x + 4, cliffW + 2), W - 2) : 0;
-const spotBox = [spotX - spotW / 2 - 10, spotX + spotW / 2 + 10];
-const cliffHits = cliffEnd - cliffW < spotBox[1] && cliffEnd > spotBox[0];
-const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const tagPos = [
+  { id: 'band', x: Math.max(12, spotX - spotW / 2 - 18), y: 10 },
+  { id: 'low', x: x(valley.daysBefore), y: Math.min(H - 12, y(valley.fare) + 20) },
+  { id: 'last', x: Math.max(12, x(lastPt.daysBefore) - 20), y: y(lastPt.fare) + 8 },
+  { id: 'axis', x: 14, y: PB + 18 },
+  ...built.map((b) => {
+    const p = b.pts[Math.floor(b.pts.length / 3)];
+    return { id: String(b.i + 1), x: x(p.daysBefore), y: Math.max(12, y(p.fare) - 16) };
+  }),
+];
 ---
 
-<div class="px-viz px-fterr">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>when to book</b></div>}
-
-  <div class="px-fterr__wrap">
-    <svg
-      class="px-fterr__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={`Median fare against days before departure for ${n} route${n > 1 ? 's' : ''}; the cheapest window is ${winMaxD} to ${winMinD} days out, and booking in the last two weeks costs about ${cliffPct}% more.`}
-    >
-      <!-- valley gorge: the sweet-spot booking window, full height -->
-      <g class="px-fterr__valley">
-        <rect
-          class="px-fterr__valley-band"
-          x={Math.min(bandL, bandR).toFixed(1)} y={bandTopY}
-          width={Math.abs(bandR - bandL).toFixed(1)}
-          height={(axisY - bandTopY).toFixed(1)}
-        />
-        <line class="px-fterr__valley-edge" x1={bandL.toFixed(1)} y1={bandTopY} x2={bandL.toFixed(1)} y2={axisY.toFixed(1)} />
-        <line class="px-fterr__valley-edge" x1={bandR.toFixed(1)} y1={bandTopY} x2={bandR.toFixed(1)} y2={axisY.toFixed(1)} />
-      </g>
-
-      <!-- ridgeline: drawn top→bottom so nearer (lower) ridges paint over farther ones -->
-      {built.map((b) => (
-        <g class={`px-fterr__route${b.isHi ? ' is-hi' : ''}`} style={`--i:${b.r}; --stag:${stagMs}`}>
-          <path class="px-fterr__area" d={b.area} />
-          <path class="px-fterr__line" d={b.line} style={`--len:${pathLen}`} />
-        </g>
-      ))}
-
-      <!-- x-axis (shared) + day ticks -->
-      <line class="px-fterr__axis" x1={PLOT_L} y1={axisY.toFixed(1)} x2={PLOT_R} y2={axisY.toFixed(1)} />
-      {ticks.map((t) => (
-        <g class="px-fterr__tick" data-mobile={t.mobile ? '1' : '0'}>
-          <line x1={t.x.toFixed(1)} y1={axisY.toFixed(1)} x2={t.x.toFixed(1)} y2={(axisY + 5).toFixed(1)} />
-          <text x={t.x.toFixed(1)} y={(axisY + 16).toFixed(1)} text-anchor="middle">{t.d}</text>
-        </g>
-      ))}
-
-      <!-- reversed-axis honesty chips (§3): direction + relative-index disclosure -->
-      <g class="px-fterr__chips">
-        <text class="px-fterr__chip" x={PLOT_L} y={(axisY + 32).toFixed(1)} text-anchor="start">time → departure</text>
-        <text class="px-fterr__chip" x={PLOT_R} y={(axisY + 32).toFixed(1)} text-anchor="end">{fareAxisChip}</text>
-      </g>
-
-      <!-- labels + tags (built last in Phase 6) -->
-      <g class="px-fterr__labels">
-        <!-- SWEET SPOT band label -->
-        <text
-          class="px-fterr__spot"
-          x={spotX.toFixed(1)} y={ROW0_Y}
-          text-anchor="middle"
-        >{bandLabel}</text>
-
-        <!-- route labels (fixed right column) -->
-        {built.map((b) => {
-          if (!b.rightEnd) return null;
-          const ly = clampLabelY(b.rightEnd.y);
-          const needConnector = Math.abs(ly - b.rightEnd.y) > 6;
-          return (
-            <g class={`px-fterr__rlabel${b.isHi ? ' is-hi' : ''}`}>
-              {needConnector && (
-                <line class="px-fterr__connector" x1={b.rightEnd.x.toFixed(1)} y1={b.rightEnd.y.toFixed(1)} x2="652" y2={ly.toFixed(1)} />
-              )}
-              <text x="656" y={(ly + 3.5).toFixed(1)} text-anchor="start">{b.route.label}</text>
-            </g>
-          );
-        })}
-
-        <!-- cliff tag on the focal route -->
-        {cliffAnchor && Number.isFinite(cliffPct) && (
-          <g class="px-fterr__cliff">
-            {cliffAnchor.y - 10 > cliffY + 5 && (
-              <line
-                class="px-fterr__leader"
-                x1={cliffAnchor.x.toFixed(1)} y1={(cliffY + 5).toFixed(1)}
-                x2={cliffAnchor.x.toFixed(1)} y2={(cliffAnchor.y - 10).toFixed(1)}
-              />
-            )}
-            <path
-              class="px-fterr__caret"
-              d={`M ${(cliffAnchor.x - 4).toFixed(1)} ${(cliffAnchor.y - 10).toFixed(1)} L ${(cliffAnchor.x + 4).toFixed(1)} ${(cliffAnchor.y - 10).toFixed(1)} L ${cliffAnchor.x.toFixed(1)} ${(cliffAnchor.y - 4).toFixed(1)} Z`}
-            />
-            <text
-              class="px-fterr__clifftag"
-              x={cliffEnd.toFixed(1)} y={cliffY}
-              text-anchor="end"
-            >{cliffLabel}</text>
-          </g>
-        )}
-      </g>
-    </svg>
+<div class="px-fterr" data-viz-root data-build-scene>
+  <div class="px-fterr__head">
+    <span class="px-fterr__fig" data-cue="low">
+      <b class="px-fterr__n" data-build="5" data-build-kind="counter" data-to={valley.fare} data-format={Number.isInteger(valley.fare) ? 'int' : '1dp'}>{fmt(valley.fare)}</b>
+      <span class="px-fterr__u">at {fmt(valley.daysBefore)} days<span class="px-cue-tag" data-cue-tag="low" hidden></span></span>
+    </span>
+    <span class="px-fterr__fig px-fterr__fig--2" data-cue="last">
+      <b class="px-fterr__n2" data-build="5" data-build-kind="counter" data-to={lastPt.fare} data-format={Number.isInteger(lastPt.fare) ? 'int' : '1dp'}>{fmt(lastPt.fare)}</b>
+      <span class="px-fterr__u">{dayWord(lastPt.daysBefore)}<span class="px-cue-tag" data-cue-tag="last" hidden></span></span>
+    </span>
   </div>
 
+  <div class="px-fterr__key">
+    <span class="px-fterr__routes">
+      {built.map((b) => (
+        <span class="px-fterr__route" data-focal={b === focal ? 'true' : undefined}><i></i>{b.r.label}</span>
+      ))}
+    </span>
+    <span class="px-fterr__chip">time → departure</span>
+  </div>
+
+  <div class="px-fterr__stage">
+    <svg
+      class="px-fterr__plot"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label={`${axisTitle} against days before departure for ${built.map((b) => b.r.label).join(', ')}; lowest ${fmt(valley.fare)} at ${fmt(valley.daysBefore)} days, ${fmt(lastPt.fare)} ${dayWord(lastPt.daysBefore)}`}
+      style={`font-family:${FF}`}
+    >
+      <g data-cue="axis" data-build="1">
+        <text x={PL} y="14" font-size="12" fill="var(--muted)">{axisTitle}</text>
+        {yTicks.map((f) => (
+          <g>
+            <line x1={PL} x2={PR} y1={y(f).toFixed(1)} y2={y(f).toFixed(1)} stroke="var(--hair)" stroke-width="1" />
+            <text x={PL - 8} y={(y(f) + 4).toFixed(1)} text-anchor="end" font-size="12" fill="var(--muted)">{fmt(f)}</text>
+          </g>
+        ))}
+        <line x1={PL} x2={PR} y1={PB} y2={PB} stroke="var(--hair-2)" stroke-width="1" />
+        {xTickVals.map((d, k) => (
+          <g>
+            <line x1={x(d).toFixed(1)} x2={x(d).toFixed(1)} y1={PB} y2={PB + 6} stroke="var(--hair-2)" />
+            <text x={x(d).toFixed(1)} y={PB + 22} text-anchor={k === 0 ? 'start' : d === 0 ? 'end' : 'middle'} font-size="12" fill="var(--muted)">{d === 0 ? 'departure' : k === 0 ? `${fmt(d)} days` : fmt(d)}</text>
+          </g>
+        ))}
+      </g>
+
+      <g data-cue="band" data-build="2">
+        <rect x={bandL.toFixed(1)} y={PT} width={(bandR - bandL).toFixed(1)} height={PB - PT} fill="var(--accent-deep)" fill-opacity="0.12" />
+        <text x={spotX.toFixed(1)} y="14" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="0.72" fill="var(--accent-deep)">{SPOT}</text>
+      </g>
+
+      {built.filter((b) => b !== focal).map((b) => (
+        <path d={path(b.pts)} fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round" data-cue={b.i + 1} data-build="3" data-build-kind="draw" />
+      ))}
+      <g data-cue={focal.i + 1}>
+        <path d={`${path(fp)}L${x(lastPt.daysBefore).toFixed(1)} ${PB}L${x(firstPt.daysBefore).toFixed(1)} ${PB}Z`} fill="var(--accent-tint)" fill-opacity="0.85" data-build="3" />
+        <path d={path(fp)} fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" data-build="3" data-build-kind="draw" />
+        <g data-build="4">
+          {fp.map((p) => <circle cx={x(p.daysBefore).toFixed(1)} cy={y(p.fare).toFixed(1)} r="2.5" fill="var(--accent)" />)}
+          <text x={(x(firstPt.daysBefore) + 2).toFixed(1)} y={(y(firstPt.fare) - 10).toFixed(1)} font-size="12" fill="var(--ink-2)"
+            stroke="var(--paper-2)" stroke-width="3" stroke-linejoin="round" paint-order="stroke">{firstLabel}</text>
+        </g>
+      </g>
+      <circle cx={x(valley.daysBefore).toFixed(1)} cy={y(valley.fare).toFixed(1)} r="5.5" fill="var(--accent-deep)" stroke="var(--paper-2)" stroke-width="1.5" data-cue="low" data-build="4" data-build-kind="drop" />
+      <circle cx={x(lastPt.daysBefore).toFixed(1)} cy={y(lastPt.fare).toFixed(1)} r="5" fill="var(--ink)" stroke="var(--paper-2)" stroke-width="1.5" data-cue="last" data-build="4" data-build-kind="drop" />
+    </svg>
+
+    <div class="px-fterr__tags" aria-hidden="true" data-build="4">
+      {tagPos.map((t) => (
+        <span class="px-fterr__tag" data-cue={t.id} style={`left:${pct(t.x, W)};top:${pct(t.y, H)}`}>
+          <span class="px-cue-tag" data-cue-tag={t.id} hidden></span>
+        </span>
+      ))}
+    </div>
+  </div>
 </div>
 
 <style>
-  .px-fterr { width: 100%; }
-  .px-fterr__wrap { padding: 0 56px; }
-  .px-fterr__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  /* ── valley gorge ─────────────────────────────────────────────────────── */
-  .px-fterr__valley-band { fill: var(--accent); fill-opacity: 0.10; }
-  .px-fterr__valley-edge {
-    stroke: var(--accent-deep, var(--accent)); stroke-opacity: 0.6;
-    stroke-width: 1; stroke-dasharray: 3 3;
+  .px-fterr { font-family: var(--font-ui); }
+  .px-fterr__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 8px 16px; margin-bottom: 14px; }
+  /* the low fare is the ONE headline number, 96 (72 on phones); the
+     departure fare a secondary figure at 48; each label 8px below (LENS §7) */
+  .px-fterr__fig { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .px-fterr__n {
+    font-weight: 600; font-size: 96px; line-height: 0.92; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--accent-deep);
   }
-
-  /* ── ridge curves ─────────────────────────────────────────────────────── */
-  .px-fterr__area { fill: var(--paper); fill-opacity: 1; }
-  .px-fterr__line {
-    fill: none;
-    stroke: var(--ink); stroke-opacity: 0.55;   /* field routes = ink */
-    stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round;
-    /* resting = fully drawn */
-    stroke-dasharray: var(--len); stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1400ms var(--ease);
+  .px-fterr__n2 {
+    font-weight: 600; font-size: 48px; line-height: 0.92; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--ink);
   }
-  .px-fterr__route.is-hi .px-fterr__line {
-    stroke: var(--accent-deep, var(--accent)); stroke-opacity: 0.9;  /* focal = terracotta-deep */
-    stroke-width: 2;
+  .px-fterr__u {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--ink-2);
   }
-
-  /* ── axis + ticks (system axis role: mono muted tabular) ──────────────── */
-  .px-fterr__axis { stroke: var(--ink); stroke-opacity: 0.42; stroke-width: 1; }
-  .px-fterr__tick line { stroke: var(--ink); stroke-opacity: 0.42; stroke-width: 1; }
-  .px-fterr__tick text {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
-    fill: var(--ink); fill-opacity: 0.55; font-variant-numeric: tabular-nums;
-  }
-
-  /* ── honesty chips ────────────────────────────────────────────────────── */
+  .px-fterr__u .px-cue-tag { margin: 0; }
+  @media (max-width: 640px) { .px-fterr__n { font-size: 72px; } }
+  .px-fterr__key { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+  .px-fterr__routes { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .px-fterr__route { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .px-fterr__route i { display: inline-block; width: 20px; height: 2px; border-radius: 2px; background: var(--ink-2); }
+  .px-fterr__route[data-focal] i { height: 3px; background: var(--accent); }
   .px-fterr__chip {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-    text-transform: uppercase; fill: var(--ink); fill-opacity: 0.55;
+    display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px;
+    background: var(--paper-3); color: var(--ink-2); font-size: 12px; font-weight: 500;
   }
-
-  /* ── SWEET SPOT + cliff tags (mono, accent-deep) ──────────────────────── */
-  .px-fterr__spot, .px-fterr__clifftag {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-    text-transform: uppercase; fill: var(--accent-deep, var(--accent)); fill-opacity: 0.9;
-    font-weight: 600;
-    paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
-  }
-  .px-fterr__caret { fill: var(--accent-deep, var(--accent)); fill-opacity: 0.9; }
-  .px-fterr__leader {
-    stroke: var(--accent-deep, var(--accent)); stroke-opacity: 0.6;
-    stroke-width: 1; stroke-dasharray: 2 3;
-  }
-
-  /* ── route labels (fixed right column) ────────────────────────────────── */
-  .px-fterr__rlabel text {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
-    fill: var(--ink); fill-opacity: 0.7;
-    paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
-  }
-  .px-fterr__rlabel.is-hi text { fill: var(--accent-deep, var(--accent)); fill-opacity: 1; font-weight: 600; }
-  .px-fterr__connector { stroke: var(--ink); stroke-opacity: 0.4; stroke-width: 1; stroke-dasharray: 2 3; }
-
-  /* ── final state: valley, labels and routes rest shown (Phase 6 build order: valley → curves → labels) ── */
-  .px-fterr__valley, .px-fterr__labels { opacity: 1; transition: opacity var(--t-soft) var(--ease); }
-  .px-fterr__route { opacity: 1; transition: opacity var(--t-soft) var(--ease); }
-
-  @media (max-width: 560px) {
-    .px-fterr__wrap { padding: 0 18px; }
-    .px-fterr__rlabel text, .px-fterr__spot, .px-fterr__clifftag, .px-fterr__chip { font-size: 9.5px; }
-    /* thin the day ticks to 90 / 30 / 7 / 1 */
-    .px-fterr__tick[data-mobile='0'] { display: none; }
-  }
+  .px-fterr__stage { position: relative; min-width: 460px; }
+  .px-fterr__plot { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-fterr__tags { position: absolute; inset: 0; pointer-events: none; }
+  .px-fterr__tag { position: absolute; translate: -50% -50%; line-height: 0; }
+  .px-fterr__tag .px-cue-tag { margin: 0; }
+  .px-fterr__tag[data-cue] { outline: none !important; }
 </style>

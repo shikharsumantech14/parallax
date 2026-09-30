@@ -13,13 +13,14 @@
  * `source` is accepted and handed on exactly as its siblings do, so the
  * dispatch line reads the same; VizCard ignores it. VizCard's root is the
  * `data-build-scene` (Lens Phase 5, LENS §6.4), so this component only
- * declares its order: 1 the belief drops in, 2 the record, 3 the record's
- * figure counts up to the value in the HTML when it is one plain number
- * (else it rises). No motion of its own (src/scripts/build.ts runs it).
+ * declares its order: 1 the belief drops in, 2 the slash fades, 3 the
+ * record drops, 4 its figure counts up to the value in the HTML when it is one
+ * plain number (else it rises). No motion of its own (src/scripts/build.ts).
  *
- * Two-panel shape after topic/politics/Paradox.astro; number treatment after
- * core/DataReadout.astro — both via the shared `.vz-*` roles in viz-type.css
- * rather than restated sizes (CANON §5).
+ * Cue anchors:
+ *   1  the belief panel
+ *   2  the record panel
+ *   3  the record's figure
  */
 import VizCard from './VizCard.astro';
 import { renderInline } from '../../lib/text';
@@ -44,10 +45,12 @@ const tag = (k: number) => `<span class="px-cue-tag" data-cue-tag="${k}" hidden>
 /* The figure counts up only when it is ONE plain number with any text around
    it ("1,330", "£120m", "28.3%"); a range or a phrase ("1 in 3") rises. */
 const numOf = (v?: string) => {
-  const m = /^[^d]*?(d{1,3}(?:,d{3})+|d+)(.d)?[^d]*$/.exec(v ?? '');
+  const m = /^[^\d]*?(\d{1,3}(?:,\d{3})+|\d+)(\.\d)?[^\d]*$/.exec(v ?? '');
   return m ? { n: parseFloat((m[1] + (m[2] ?? '')).replace(/,/g, '')), dp: !!m[2] } : null;
 };
 const num = numOf(actually?.value);
+/* The figure never prints a cue button: those belong to the article. */
+const noCue = (t: string) => String(t ?? '').replace(/\[\[\d+\]\]\s*/g, '');
 
 /* A belief with no correction — or a correction with no belief — is half an
    argument, and would publish as a full panel beside an empty one. Loud at
@@ -61,22 +64,28 @@ if (!actually?.text) {
 ---
 
 <VizCard prefix="px-yt" caption={caption} source={source} class={compact ? 'px-yt--compact' : undefined}>
-  <div class="px-yt__grid">
+  <div class="px-yt__card">
     <div class="px-yt__panel px-yt__panel--think" data-cue="1" data-build="1" data-build-kind="drop">
-      <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(1)} />{think.label ?? 'What most people think'}</p>
-      {!compact && <p class="px-yt__t" set:html={renderInline(think.text)} />}
+      <p class="px-yt__k"><Fragment set:html={tag(1)} />{think.label ?? 'What most people think'}</p>
+      <p class="px-yt__t px-yt__t--struck" set:html={renderInline(noCue(think.text))} />
     </div>
 
-    <div class="px-yt__panel px-yt__panel--act" data-cue="2" data-build="2" data-build-kind="drop">
-      <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(2)} />{actually.label ?? 'What the data shows'}</p>
-      {/* Value and unit on ONE line on purpose: the 10px gap is the unit's
-          margin, so an authored line break must not add to it. */}
+    {/* The slash: the belief above, the record below, one mark between. */}
+    <svg class="px-yt__slash" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-build="2">
+      <polygon points="0,0 100,0 100,18 0,82" style="fill:var(--paper-3)" />
+      <polygon points="0,82 100,18 100,100 0,100" style="fill:var(--accent-tint)" />
+      <line x1="0" y1="82" x2="100" y2="18" vector-effect="non-scaling-stroke" style="stroke:var(--accent);stroke-width:5" />
+      <line x1="0" y1="96" x2="100" y2="32" vector-effect="non-scaling-stroke" style="stroke:var(--accent);stroke-width:1.5" />
+    </svg>
+
+    <div class="px-yt__panel px-yt__panel--act" data-cue="2" data-build="3" data-build-kind="drop">
+      <p class="px-yt__k"><Fragment set:html={tag(2)} />{actually.label ?? 'What the data shows'}</p>
       {actually.value && (
-        <p class="px-yt__v vz-value" data-cue="3" data-build={num ? undefined : '3'} data-build-kind={num ? undefined : 'rise'}>
-          <Fragment set:html={tag(3)} />{num ? <span class="px-yt__n" data-build="3" data-build-kind="counter" data-to={num.n} data-format={num.dp ? '1dp' : undefined}>{actually.value}</span> : actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}
+        <p class="px-yt__v" data-cue="3">
+          <Fragment set:html={tag(3)} />{num ? <span class="px-yt__n" data-build="4" data-build-kind="counter" data-to={num.n} data-format={num.dp ? '1dp' : undefined}>{actually.value}</span> : <span class="px-yt__n" data-build="4" data-build-kind="rise">{actually.value}</span>}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}
         </p>
       )}
-      {!compact && <p class="px-yt__t" set:html={renderInline(actually.text)} />}
+      {!compact && <p class="px-yt__t" set:html={renderInline(noCue(actually.text))} />}
     </div>
   </div>
 
@@ -84,77 +93,101 @@ if (!actually?.text) {
 </VizCard>
 
 <style>
-  /* ── the two panels (blueprint §4) ────────────────────────────────────── */
-  .px-yt__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-  .px-yt__panel { padding: 18px 20px; }
-  /* A hairline separates the two readings; the 3px accent rule marks which one
-     is the evidence. A rule, never a fill — no type sits on the vivid accent
-     (CANON §6, TD-06). */
-  .px-yt__panel--think { border-right: 1px solid var(--rule); }
-  .px-yt__panel--act { border-left: 3px solid var(--accent); }
-
-  /* Size, weight, case and tracking come from `.vz-eyebrow` in viz-type.css;
-     only the colour is this kind's. Think keeps the role's `--muted`. */
-  .px-yt__k { margin: 0 0 10px; }
-  .px-yt__panel--act .px-yt__k { color: var(--accent-deep); }
-
-  /* `.vz-value` carries the display face, 700, ink, tabular figures and the
-     -0.01em tracking; it sets no size, which is this component's to choose. */
-  .px-yt__v {
-    margin: 0 0 12px;
-    font-size: clamp(36px, 6vw, 52px);
-    line-height: 1;
+  /* Lens Phase 6 (2026-09-30), the board Lib-you-think: ONE card cut by a
+     diagonal slash. Above it, on the well, the belief, struck through; below
+     it, on the desk tint, the record and its figure at up to 96px (LENS §7).
+     In the reading system (`compact`) the record's sentence is the article's,
+     so the figure keeps the label and the number; the belief stays, struck,
+     because the strike IS the drawing. */
+  .px-yt__card {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--r-card);
+    overflow: hidden;
+    container-type: inline-size;
   }
-  .px-yt__u {
-    margin-left: 10px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: var(--viz-ls-mono);
+  .px-yt__panel { padding: 20px 22px; min-width: 0; }
+  .px-yt__panel--think { background: var(--paper-3); padding-bottom: 6px; }
+  .px-yt__panel--act { background: var(--accent-tint); padding-top: 4px; padding-left: max(22px, 30cqi); }
+  .px-yt__slash { display: block; width: 100%; height: 72px; margin: 0; }
+  /* The card clips its corners, so a lit panel's ring is drawn inside it. */
+  :global(.px-rs > .px-fig) .px-yt__panel[data-cue] { outline-offset: -4px; }
+
+  .px-yt__k {
+    display: flex;
+    align-items: center;
+    margin: 0 0 10px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--ink-2);
   }
+  .px-yt__panel--act .px-yt__k { color: var(--accent-deep); }
 
   .px-yt__t {
     margin: 0;
-    max-width: 34ch;
     font-family: var(--font-body);
-    font-size: 17.5px;
-    line-height: 1.55;
-    color: var(--ink-soft);
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink);
+    overflow-wrap: break-word;
   }
-  .px-yt__panel--act .px-yt__t { color: var(--ink); }
+  .px-yt__t--struck {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 20px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-decoration: line-through;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+  }
+  .px-yt__panel--act .px-yt__t { font-family: var(--font-ui); font-size: 15px; margin-top: 12px; }
+
+  .px-yt__v {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .px-yt__v :global(.px-cue-tag) { align-self: center; }
+  .px-yt__n {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: min(96px, 21cqi);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+    overflow-wrap: anywhere;
+  }
+  .px-yt__u {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ink);
+  }
 
   .px-yt__note {
     margin: 0;
-    padding: 10px 20px 0;
-    border-top: 1px solid var(--rule);
-    font-family: var(--font-body);
-    font-size: 13.5px;
+    padding: 12px 0 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
     line-height: 1.5;
     color: var(--muted);
   }
 
-  /* ── compact (the reading system's figure) ─────────────────────────────
-     The texts live in the article column. The belief is a dashed box (a
-     claim nobody recorded), the record a solid one with the figure. */
-  /* `:global` on the modifier: it sits on VizCard's root, which carries
-     VizCard's scope attribute, not this component's. */
-  :global(.px-yt--compact) .px-yt__grid { gap: 16px; align-items: stretch; }
-  :global(.px-yt--compact) .px-yt__panel { border-radius: var(--r-ctl); }
-  :global(.px-yt--compact) .px-yt__panel--think { border: 1.5px dashed var(--hair-2); }
-  :global(.px-yt--compact) .px-yt__panel--act { border: 1.5px solid var(--ink); }
-  :global(.px-yt--compact) .px-yt__v { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
-  :global(.px-yt--compact) .px-yt__u { margin-left: 0; }
-
-  /* ── 640px: one column, the evidence panel second (blueprint §4) ──────── */
-  @media (max-width: 640px) {
-    .px-yt__note { padding-inline: 16px; }
-    .px-yt__grid { grid-template-columns: 1fr; }
-    .px-yt__panel { padding: 14px 16px; }
-    .px-yt__panel--think { border-right: 0; }
-    /* The accent rule turns the corner with the stack, so it always sits on
-       the edge the evidence panel is entered from. */
-    .px-yt__panel--act { border-left: 0; border-top: 3px solid var(--accent); }
+  /* The record's figure is the headline number (LENS §7): 96, 72 on phones. */
+  @media (max-width: 1023px) { .px-yt__n { font-size: min(72px, 22cqi); } }
+  @container (max-width: 380px) {
+    .px-yt__panel { padding: 16px; }
+    .px-yt__panel--think { padding-bottom: 4px; }
+    .px-yt__panel--act { padding-left: 16px; padding-top: 2px; }
+    .px-yt__slash { height: 48px; }
+    .px-yt__t--struck { font-size: 18px; }
   }
 </style>

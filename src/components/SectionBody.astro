@@ -176,7 +176,7 @@ const data: any = {
       </>
     )}
 
-    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} caption={data.caption} source={data.source} />}
+    {section.kind === 'paradox' && <Paradox sides={data.sides ?? []} figure={data.figure} caption={data.caption} source={data.source} />}
 
     {section.kind === 'analogy' && (
       <BrothersAnalogy
@@ -528,7 +528,7 @@ const data: any = {
       <FareTerrain routes={data.routes ?? []} unit={data.unit} sweetSpotDays={data.sweetSpotDays} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'attrition-waffle' && (
-      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} caption={authored.caption ?? (authored.data as any)?.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'flight-of-the-ball' && (
       <FlightOfTheBall sport={data.sport} shot={data.shot} goal={data.goal} showGhost={data.showGhost} slowmo={data.slowmo} caption={data.caption} source={data.source} />

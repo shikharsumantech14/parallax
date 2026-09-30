@@ -1,193 +1,126 @@
 ---
 /**
- * CoreSample (earth) — an ice / sediment core column read top→bottom. A tall
- * vertical column is split into equal-height layer bands, each tinted by its
- * own `color` (or a stepwise earth-tone tint derived from the accent), with the
- * depth marker + label + optional value sitting beside it. A depth axis runs
- * down the left rail. The column lives on a CSS-3D stage (core/Tilt.astro
- * `data-tilt`) so it reads as a recovered core lifted from the ground.
+ * CoreSample (earth) — a drilled column read top down (Lens Phase 6, the
+ * Lib-core-sample board). Each `layers` entry is a mark at its depth on the
+ * column, with its depth on the left and its label (and value) on the right;
+ * the band below a mark is that layer, tinted from the desk tint at the top to
+ * the desk deep at the bottom (an authored `color` wins). When every depth
+ * reads as a number and they run downward, the marks sit at their true depth;
+ * otherwise they are spaced evenly. The column always continues below the last
+ * mark (a torn edge). The first layer that carries a value is the figure's
+ * headline number, with `unit` as its label.
  *
- * Every band always paints in its FINAL state (static since Lens Phase 5).
- * The depth + label + value text carries the reading regardless.
+ * Cue anchors: `1`…`n` (each layer: its band, mark, depth and label, in
+ * authored order) · `head` (the headline number).
+ * Build: bands grow down (1) · marks and depths (2) · labels (3) · the
+ * headline number (4).
  *
  * data: { layers[]{ depth, label, value?, color? }, unit?, caption?, source? }
  */
+import FigHead from './FigHead.astro';
+import CueLayer from './CueLayer.astro';
+import { SANS, wrapWords, stack, fmt } from './_fig';
+
 interface Layer { depth: string; label: string; value?: number; color?: string; }
-interface Props {
-  layers: Layer[];
-  unit?: string;
-  caption?: string;
-  source?: string;
-}
-const { layers = [], unit = '', caption, source } = Astro.props;
+interface Props { layers: Layer[]; unit?: string; caption?: string; source?: string; }
+const { layers = [], unit = '', caption } = Astro.props;
 
 const n = layers.length;
+const W = 320, FS = 13.5, LH = 16;
+const CX0 = 64, CX1 = 136, TAG_X = 151, LX = 166, LW = W - LX;
+const TOP = 10, SCALE_H = 290;
 
-// Stepwise earth-tone tint for layers without an explicit colour. Darker /
-// richer toward the bottom (older, deeper material), built off the accent +
-// ink so it re-themes cleanly. t runs 0 (top) → 1 (deepest).
-function tintFor(i: number): string {
+/* depth → number, when it reads as one ("0–120 m", "25 cm", "3,000 m+") */
+const num = (s: string) => {
+  const m = /-?\d[\d,]*(\.\d+)?/.exec(String(s ?? ''));
+  return m ? parseFloat(m[0].replace(/,/g, '')) : NaN;
+};
+const unitOf = (s: string) => /\d\s*([a-zA-Zµ]+)/.exec(String(s ?? ''))?.[1] ?? '';
+const nums = layers.map((l) => num(l.depth));
+const proportional = n > 1 && nums.every((v) => Number.isFinite(v)) && nums.every((v, i) => i === 0 || v > nums[i - 1]);
+const d0 = proportional ? nums[0] : 0;
+const dMax = proportional ? nums[n - 1] : 1;
+/* the last mark sits at 82% of the scale; the column runs on below it */
+const yOf = (i: number) =>
+  TOP + (proportional ? ((nums[i] - d0) / (dMax - d0 || 1)) * SCALE_H * 0.82 : n > 1 ? (i / (n - 1)) * SCALE_H * 0.82 : 0);
+const COL_BOTTOM = TOP + SCALE_H;
+
+const tint = (i: number, l: Layer) => {
+  if (l.color) return l.color;
   const t = n > 1 ? i / (n - 1) : 0;
-  const accentPct = Math.round(74 - t * 30);          // 74% → 44% accent
-  const inkPct = Math.round(8 + t * 34);              // mix in more ink lower down
-  return `color-mix(in oklab, color-mix(in oklab, var(--accent) ${accentPct}%, var(--paper)) ${100 - inkPct}%, var(--ink) ${inkPct}%)`;
-}
+  return t < 0.5
+    ? `color-mix(in oklab, var(--accent-tint) ${Math.round(100 - t * 200)}%, var(--accent))`
+    : `color-mix(in oklab, var(--accent) ${Math.round(200 - t * 200)}%, var(--deep, var(--ink)))`;
+};
+const valueText = (v: number) => `${fmt(v, 2)}${unit ? ' ' + unit : ''}`;
 
-const bands = layers.map((l, i) => ({
-  ...l,
-  fill: l.color || tintFor(i),
-}));
+/* labels on the right: the label wrapped to three lines, the value under it */
+const blocks = layers.map((l, i) => {
+  const lines = wrapWords(String(l.label ?? ''), LW, FS, false, 3);
+  const val = l.value != null ? wrapWords(valueText(l.value), LW, FS, false, 2) : [];
+  const size = (lines.length + val.length) * LH;
+  return { i, lines, val, size, want: yOf(i) - 5 };
+});
+const placed = stack(blocks, TOP - 5, 10_000, 8);
+/* the depths on the left, one line each */
+const ticks = stack(layers.map((l, i) => ({ i, want: yOf(i) - LH / 2, size: LH, text: proportional ? `${fmt(nums[i])} ${unitOf(l.depth)}`.trim() : String(l.depth) })), TOP - 8, 10_000, 2);
 
-const fmtVal = (v: number) => `${v}${unit ? ' ' + unit : ''}`;
+const H = Math.ceil(Math.max(COL_BOTTOM + 14, ...placed.map((p) => p.at + p.size + 6), ...ticks.map((t) => t.at + t.size + 4)));
 
-const topDepth = layers[0]?.depth ?? '';
-const bottomDepth = layers[n - 1]?.depth ?? '';
+const head = layers.find((l) => l.value != null);
+const zig = (() => {
+  const pts: string[] = [];
+  for (let x = CX0, k = 0; x <= CX1 + 0.1; x += 9, k++) pts.push(`${x.toFixed(1)},${COL_BOTTOM + (k % 2 ? 5 : 0)}`);
+  return pts.join(' ');
+})();
+const aria = `A drilled column with ${n} marks, top to bottom: ${layers.map((l) => `${l.depth}, ${l.label}${l.value != null ? `, ${valueText(l.value)}` : ''}`).join('; ')}.`;
 ---
 
-<div class="px-viz">
-  {/* No chip: the kind's own name is not a label a reader can use (2026-09-23). */}
+<div class="px-viz px-core" data-build-scene>
   {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  {head && <FigHead value={fmt(head.value!, 2)} label={unit || undefined} n={4} />}
 
-  <div class="px-core">
-    <!-- depth axis rail -->
-    <div class="px-core__axis" aria-hidden="true">
-      <span class="px-core__axis-top">{topDepth || '0'}</span>
-      <span class="px-core__axis-cap">depth ↓</span>
-      <span class="px-core__axis-btm">{bottomDepth}</span>
-    </div>
-
-    <!-- the core column, on a 3D stage -->
-    <div class="px-core__stage px3d-stage">
-      <div class="px-core__col px3d-tilt" data-tilt="6"
-        role="img"
-        aria-label={caption ? `Core sample column: ${caption}` : 'Core sample column'}>
-        {bands.map((b, i) => (
-          <div class="px-core__band" style={`--i:${i}; --fill:${b.fill}`}>
-            <span class="px-core__swatch" style={`background:${b.fill}`}></span>
-            <span class="px-core__meta">
-              <span class="px-core__depth">{b.depth}</span>
-              <span class="px-core__label">{b.label}</span>
-            </span>
-            {b.value != null && <span class="px-core__val">{fmtVal(b.value)}</span>}
-          </div>
-        ))}
-      </div>
-    </div>
+  <div class="px-core__plot" style={`--vbw:${W}px`}>
+    <svg class="px-core__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      {layers.map((l, i) => {
+        const y = yOf(i);
+        const yNext = i < n - 1 ? yOf(i + 1) : COL_BOTTOM;
+        const b = placed[i];
+        const t = ticks[i];
+        return (
+          <g class="px-core__layer" data-cue={i + 1}>
+            <rect class="px-core__band" x={CX0} y={y.toFixed(1)} width={CX1 - CX0} height={Math.max(0, yNext - y).toFixed(1)} style={`fill:${tint(i, l)}`} data-build="1" data-build-kind="grow-y" />
+            <line class="px-core__mark" x1={CX0 - 6} y1={y.toFixed(1)} x2={CX1 + 6} y2={y.toFixed(1)} data-build="2" />
+            <text class="px-core__depth" x={CX0 - 10} y={(t.at + 12).toFixed(1)} text-anchor="end" style={SANS} data-build="2">{t.text}</text>
+            <g data-build="3" data-build-kind="rise">
+              {Math.abs(b.at + 5 - y) > 2 && <polyline class="px-core__lead" points={`${CX1 + 6},${y.toFixed(1)} ${TAG_X - 2},${(b.at + 7).toFixed(1)} ${LX - 4},${(b.at + 7).toFixed(1)}`} />}
+              <text class="px-core__lbl" x={LX} y={(b.at + 12).toFixed(1)} style={SANS}>
+                {b.lines.map((ln, k) => <tspan x={LX} dy={k ? LH : 0}>{ln}</tspan>)}
+                {b.val.map((ln, k) => <tspan class="px-core__val" x={LX} dy={LH}>{ln}</tspan>)}
+              </text>
+            </g>
+          </g>
+        );
+      })}
+      <polyline class="px-core__torn" points={zig} />
+      <rect class="px-core__edge" x={CX0} y={TOP} width={CX1 - CX0} height={COL_BOTTOM - TOP} />
+    </svg>
+    <CueLayer w={W} h={H} tags={placed.map((b) => ({ id: b.i + 1, x: TAG_X, y: b.at + 7 }))} />
   </div>
-
 </div>
 
 <style>
-  .px-core {
-    display: grid;
-    grid-template-columns: 52px 1fr;
-    gap: 18px;
-    align-items: stretch;
-  }
-
-  /* ── depth axis rail ─────────────────────────────────────────────────── */
-  .px-core__axis {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 4px 10px 4px 0;
-    border-right: 1px solid var(--rule);
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-  }
-  .px-core__axis-cap {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    letter-spacing: var(--viz-ls-wide, 0.2em);
-    text-transform: uppercase;
-    font-size: 9px;
-    color: var(--muted);
-    margin: auto 0;
-  }
-  .px-core__axis-top,
-  .px-core__axis-btm { color: var(--ink-soft); font-weight: 700; }
-
-  /* ── the 3D core column ──────────────────────────────────────────────── */
-  .px-core__stage { perspective-origin: 50% 30%; }
-  .px-core__col {
-    display: flex;
-    flex-direction: column;
-    border-radius: var(--r-tile);
-    overflow: hidden;
-    border: 1px solid var(--rule);
-    transform-origin: 50% 0%;     /* recede from the top — lifted from ground */
-    box-shadow:
-      0 1px 0 0 color-mix(in oklab, var(--ink) 8%, transparent),
-      0 22px 48px -28px color-mix(in oklab, var(--ink) 55%, transparent);
-  }
-
-  .px-core__band {
-    position: relative;
-    display: grid;
-    grid-template-columns: 16px 1fr auto;
-    gap: 14px;
-    align-items: center;
-    min-height: 58px;
-    padding: 12px 16px;
-    background: color-mix(in oklab, var(--fill) 26%, var(--paper));
-    border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
-    /* resting = final visible state; Phase 6 builds from here */
-    transform: scaleY(1);
-    transform-origin: top;
-    opacity: 1;
-    transition: transform 620ms var(--ease), opacity var(--t-soft) var(--ease);
-  }
-  .px-core__band:last-child { border-bottom: none; }
-
-  .px-core__swatch {
-    width: 14px;
-    height: 100%;
-    min-height: 34px;
-    border-radius: 3px;
-    align-self: stretch;
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 18%, transparent);
-  }
-
-  .px-core__meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  .px-core__depth {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-eyebrow, 10px);
-    letter-spacing: var(--viz-ls-mono, 0.16em);
-    text-transform: uppercase;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    /* long depth ranges must wrap, not overflow the narrow meta column */
-    overflow-wrap: anywhere;
-  }
-  .px-core__label {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 1.2;
-    letter-spacing: -0.005em;
-    color: var(--ink);
-    overflow-wrap: anywhere;
-  }
-  .px-core__val {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 560px) {
-    .px-core { grid-template-columns: 40px 1fr; gap: 12px; }
-    .px-core__band { min-height: 52px; padding: 10px 13px; gap: 11px; }
-    .px-core__label { font-size: 15px; }
-  }
+  .px-core__plot { position: relative; width: 100%; max-width: 380px; margin: 0 auto; }
+  .px-core__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-core__band { stroke: none; transform-origin: 50% 0; }
+  .px-core__edge { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .px-core__torn { fill: none; stroke: var(--paper-2); stroke-width: 4; }
+  .px-core__mark { stroke: var(--ink); stroke-width: 1.5; }
+  .px-core__lead { fill: none; stroke: var(--hair-2); stroke-width: 1; }
+  .px-core__depth { font-size: 13.5px; font-weight: 500; fill: var(--ink-2, var(--ink-soft)); font-variant-numeric: tabular-nums; }
+  .px-core__lbl { font-size: 13.5px; font-weight: 500; fill: var(--ink); }
+  .px-core__val { font-weight: 600; fill: var(--accent-deep); font-variant-numeric: tabular-nums; }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>

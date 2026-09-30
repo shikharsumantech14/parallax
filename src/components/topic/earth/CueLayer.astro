@@ -1,0 +1,28 @@
+---
+/**
+ * CueLayer — the cue numerals over an SVG figure (Lens Phase 6). An SVG cannot
+ * hold the `.px-cue-tag` span core/Section.astro fills, so each earth SVG kind
+ * sits in a positioned box with this layer over it: one slot per anchor, at
+ * the anchor's point in viewBox units (as a percentage, so it tracks the
+ * drawing at any width), printed in real pixels (12px, never scaled down).
+ * Each slot carries the anchor's own `data-cue`, so it lights with the mark.
+ * Unnamed slots stay empty and take no room.
+ */
+interface Tag { id: string | number; x: number; y: number }
+interface Props { tags: Tag[]; w: number; h: number; x0?: number; y0?: number }
+const { tags, w, h, x0 = 0, y0 = 0 } = Astro.props;
+const pct = (v: number, o: number, s: number) => (((v - o) / s) * 100).toFixed(2);
+---
+
+<div class="px-ecl">
+  {tags.map((t) => (
+    <span class="px-ecl__t" data-cue={String(t.id)} style={`left:${pct(t.x, x0, w)}%;top:${pct(t.y, y0, h)}%`}><span class="px-cue-tag" data-cue-tag={String(t.id)} hidden></span></span>
+  ))}
+</div>
+
+<style>
+  .px-ecl { position: absolute; inset: 0; pointer-events: none; }
+  .px-ecl__t { position: absolute; display: block; translate: -50% -50%; line-height: 0; border-radius: 999px; }
+  .px-ecl__t:empty { display: none; }
+  .px-ecl__t :global(.px-cue-tag) { margin: 0; }
+</style>

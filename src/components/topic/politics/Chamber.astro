@@ -12,6 +12,24 @@
  * the no-JS / reduced-motion / no-WebGL reader gets the identical chamber as
  * a composed SVG still, plus a second static division plate when one exists.
  *
+ * Lens Phase 6 (2026-09-30), to the Lib-chamber board: the scene sits on the
+ * desk's deep plate (LENS §8.3), with the chamber's size at 40 in the bowl of
+ * the arc, the majority over its apex and a one-line legend of every party
+ * and its seats under it. The labels are HTML over the fallback drawing, in
+ * percent of its frame and set in real pixels (12px and up at any width). The
+ * cue anchors and the build live on the FALLBACK (LENS §5.2, §6.4; PHASE 6
+ * rule 9), never on the canvas; the scene keeps its one idle loop.
+ *
+ * Cue anchors: 1 … n each party (its seats and its legend entry), numbered
+ * from 1 in DATA order; `line` the majority arc; `total` the seat count;
+ * `aye`, `no` the division's lobbies when there is one.
+ *
+ * THE BUILD: the legend is the scene; its entries drop in, 80ms apart. The
+ * drawing itself does not build: the fallback is hidden the moment the WebGL
+ * scene takes over, and a build inside it would end on a box the static page
+ * never shows (the render gate's BUILD check). No JS, no WebGL or reduced
+ * motion: the chamber as drawn.
+ *
  * data: { chamber?: {rows?, arcDeg?}, parties[]{name, seats, color?, side?,
  *         short?}, majority?, division?: {label?, aye{}, no{}},
  *         caption?, source? }
@@ -80,29 +98,21 @@ const seatParty: number[] = new Array(total);
 /* ── build-time fallback geometry: front-facing 2D projection ──
    x → x, z → y·0.72 foreshortening (blueprint §7)
 
-   TWO LAYERS (2026-09-24). The seats, arc and lobby grids are a W×H viewBox
-   scaled to the card; the LABELS are a second, viewBox-less SVG laid over
-   it, positioned in percent of the same frame and set in real pixels. The
-   mount pins its aspect ratio to the drawing (the WebGL canvas takes the
-   same box), so on a 375 phone the 680-unit drawing scales by ~0.49 and every
-   label drawn inside it rendered at 4.7px. In the overlay a 9.5px label is
-   9.5px at any card width. Each label hangs from a drawing anchor by an
-   offset in em, and the drawing reserves the units that offset needs at the
-   smallest card (320px, scale ≈ 0.47) — so text and dots never meet at any
-   width:
+   TWO LAYERS (2026-09-24; HTML since Lens Phase 6). The seats, arc and
+   lobby grids are a W×H viewBox scaled to the card; the LABELS are HTML laid
+   over it, positioned in percent of the same frame and set in real pixels,
+   so a 12px label is 12px at any card width. The drawing reserves the units
+   each label needs at the smallest card (a 260px panel):
      - MAJORITY sits just above the arc's apex;
-     - the division title heads its plate (wrapped to a width that fits the
-       smallest card, never clipped), the lobby grids start under it;
-     - AYE / NO tallies sit UNDER their lobby grids. Above the grids they
-       shared a row with the centred title that only 18 units separated,
-       which is 8.5px on a phone. */
+     - the division title heads its plate, the lobby grids start under it;
+     - AYE / NO tallies sit UNDER their lobby grids. */
 const W = 680;
 const M = 22;
 const FORE = 0.72;
 const theta = (arcDeg * Math.PI) / 180;
 const rArc = R0 + rows * ROW_GAP + 0.12;
 const S = (W - 2 * M) / (2 * rArc);
-const cy0 = M + 18 + rArc * S * FORE; // room above the arc apex for its label
+const cy0 = M + 36 + rArc * S * FORE; // room above the arc apex for its label
 const dip = rArc * S * FORE * Math.max(0, -Math.cos(theta / 2)); // arc tips below center when θ > 180°
 let H = cy0 + dip + M;
 
@@ -122,10 +132,10 @@ const dashOff = (0.03 * S).toFixed(1);
 /* ── division: a second static plate (the fallback can't animate the walk) ── */
 interface PlateDot { cx: number; cy: number; k: number; }
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-// label budget, in px at the smallest card (320px wide → 320 / W units per px)
-const MIN_SCALE = 320 / W;
-const LINE_PX = 12;                         // one 9.5px label line + air
-const TITLE_CHARS = 40;                     // ≈ 262px of 9.5px mono at .14em
+// label budget, in px at the smallest card (a 260px panel on a phone)
+const MIN_SCALE = 260 / W;
+const LINE_PX = 22;                         // one 12px label line, its padding and air
+const TITLE_CHARS = 34;                     // about 260px of 12px capitals at .06em
 const wrapTitle = (t: string): string[] => {
   const out: string[] = [];
   for (const word of t.split(/\s+/).filter(Boolean)) {
@@ -178,7 +188,7 @@ if (division) {
   };
   // room under the grids for the AYE / NO tallies (hung 1.5em below the last
   // row) at the smallest card
-  H = depth + Math.max(M, Math.ceil((1.5 * 10.5 + 4) / MIN_SCALE));
+  H = depth + Math.max(M, Math.ceil((20 + 8 + 4) / MIN_SCALE));
 }
 const Hpx = Math.round(H);
 
@@ -192,22 +202,18 @@ const ledger = parties.map((p, k) => ({
   no: division ? Math.round(division.no[p.name] ?? 0) : 0,
 }));
 
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
 // overlay coordinates: percent of the W×Hpx frame the drawing fills exactly
 const pctX = (x: number) => `${((x / W) * 100).toFixed(3)}%`;
 const pctY = (y: number) => `${((y / Hpx) * 100).toFixed(3)}%`;
 const apexY = cy0 - rArc * S * FORE;
 const payload = JSON.stringify({ chamber: { rows, arcDeg }, parties, majority, division });
+/* a party's cue id is its place in the AUTHORED list, from 1 */
+const cueOf = (k: number) => rawParties.indexOf(parties[k]) + 1;
+const byParty = parties.map((_, k) => seats2d.filter((s) => s.k === k));
+const fmt = (n: number) => n.toLocaleString('en-US');
 ---
 
-<div class="px-viz">
-  {caption && (
-    <div class="px-viz__cap">
-      <span>{caption}</span>
-      <b>{total} seats · majority {majority}</b>
-    </div>
-  )}
-
+<div class="px-chmbr" data-viz-root>
   <div class="px-chmbr__stage">
     <div
       class="viz3d viz3d--chmbr"
@@ -215,75 +221,76 @@ const payload = JSON.stringify({ chamber: { rows, arcDeg }, parties, majority, d
       data-viz3d-state="composition"
       style={`aspect-ratio: ${W} / ${Hpx}`}
       role="img"
-      aria-label={caption ? `Chamber diagram: ${caption}` : 'Chamber seat diagram'}
+      aria-label={`Chamber of ${total} seats by party; ${majority} make a majority.`}
     >
       <div class="viz3d__fallback">
         <svg viewBox={`0 0 ${W} ${Hpx}`} preserveAspectRatio="xMidYMid meet">
-          {/* dashed majority arc (ink @ 0.42, blueprint §6); its label is in
-               the overlay below */}
-          <path d={arcPath} fill="none" stroke="var(--ink)" stroke-width="1.2"
-            stroke-dasharray={`${dashOn} ${dashOff}`} opacity="0.42" />
-
-          {/* every seat, 3.2px dots — contiguous wedges gov→cross→opp */}
-          {seats2d.map((s) => (
-            <circle cx={s.cx} cy={s.cy} r="3.2"
-              fill={partyFill[s.k].fill} fill-opacity={partyFill[s.k].opacity} />
+          <path class="px-chmbr__arc" d={arcPath} data-cue="line"
+            stroke-dasharray={`${dashOn} ${dashOff}`} />
+          {byParty.map((dots, k) => (
+            <g data-cue={cueOf(k)} fill={partyFill[k].fill} fill-opacity={partyFill[k].opacity}>
+              {dots.map((s) => <circle cx={s.cx} cy={s.cy} r="3.4" />)}
+            </g>
           ))}
-
-          {/* the division as its own static plate (aye/no lobby dot grids; the
-               title and tallies are in the overlay below) */}
           {plate && (
             <>
-              {plate.aye.dots.map((d) => (
-                <circle cx={d.cx} cy={d.cy} r="2.6"
-                  fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
-              ))}
-              {plate.no.dots.map((d) => (
-                <circle cx={d.cx} cy={d.cy} r="2.6"
-                  fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
-              ))}
-            </>
-          )}
-        </svg>
-
-        {/* the label layer: no viewBox, so its type is set in real pixels;
-            x/y are percent of the frame the drawing fills (see the header) */}
-        <svg class="px-chmbr__lbls" aria-hidden="true">
-          <text x="50%" y={pctY(apexY)} dy="-0.55em" text-anchor="middle"
-            style={MONO} font-size="9.5" letter-spacing="0.08em" fill="var(--ink)" opacity="0.42"
-            paint-order="stroke" stroke="var(--paper)" stroke-width="3">MAJORITY · {majority}</text>
-          {plate && (
-            <>
-              <text x="50%" y={pctY(plate.y0)} text-anchor="middle"
-                style={MONO} font-size="9.5" letter-spacing="0.14em" fill="var(--muted)">
-                {plate.lines.map((line, i) => (
-                  <tspan x="50%" dy={i ? '1.26em' : '1.1em'}>{line}</tspan>
+              <g data-cue="aye">
+                {plate.aye.dots.map((d) => (
+                  <circle cx={d.cx} cy={d.cy} r="2.8" fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
                 ))}
-              </text>
-              <text x={pctX(plate.aye.x)} y={pctY(plate.tallyY)} dy="1.5em" text-anchor="middle"
-                style={MONO} font-size="10.5" letter-spacing="0.1em" fill="var(--ink-soft)"
-                paint-order="stroke" stroke="var(--paper)" stroke-width="3">AYE · {plate.aye.tally}</text>
-              <text x={pctX(plate.no.x)} y={pctY(plate.tallyY)} dy="1.5em" text-anchor="middle"
-                style={MONO} font-size="10.5" letter-spacing="0.1em" fill="var(--ink-soft)"
-                paint-order="stroke" stroke="var(--paper)" stroke-width="3">NO · {plate.no.tally}</text>
+              </g>
+              <g data-cue="no">
+                {plate.no.dots.map((d) => (
+                  <circle cx={d.cx} cy={d.cy} r="2.8" fill={partyFill[d.k].fill} fill-opacity={partyFill[d.k].opacity} />
+                ))}
+              </g>
             </>
           )}
         </svg>
+
+        {/* the label layer: HTML over the drawing, in percent of its frame and
+            set in real pixels, so a label is 12px at any card width */}
+        <div class="px-chmbr__over" aria-hidden="true">
+          <span class="px-chmbr__maj" data-cue="line" style={`top:${pctY(apexY)}`}>
+            <span class="px-cue-tag" data-cue-tag="line" hidden></span>Majority · {fmt(majority)}
+          </span>
+          <span class="px-chmbr__total" data-cue="total" style={`top:${pctY(cy0)}`}>
+            <span class="px-chmbr__tn"><span class="px-cue-tag" data-cue-tag="total" hidden></span><b>{fmt(total)}</b></span>
+            <span class="px-chmbr__tl">seats</span>
+          </span>
+          {plate && (
+            <>
+              <span class="px-chmbr__ptitle" style={`top:${pctY(plate.y0)}`}>{plate.label}</span>
+              <span class="px-chmbr__tally" data-cue="aye" style={`left:${pctX(plate.aye.x)};top:${pctY(plate.tallyY)}`}>
+                <span class="px-cue-tag" data-cue-tag="aye" hidden></span>Aye · {fmt(plate.aye.tally)}
+              </span>
+              <span class="px-chmbr__tally" data-cue="no" style={`left:${pctX(plate.no.x)};top:${pctY(plate.tallyY)}`}>
+                <span class="px-cue-tag" data-cue-tag="no" hidden></span>No · {fmt(plate.no.tally)}
+              </span>
+            </>
+          )}
+        </div>
       </div>
-      <span class="viz3d__hint" aria-hidden="true">drag to look around · hover a bloc</span>
+      <span class="viz3d__hint" aria-hidden="true">drag to look around</span>
       <script type="application/json" class="viz3d__data" set:html={payload}></script>
     </div>
 
     {division && (
       <div class="px-chmbr__chips">
-        <button type="button" class="px-chmbr__chip is-on" data-state="composition" aria-pressed="true">
-          Composition
-        </button>
-        <button type="button" class="px-chmbr__chip" data-state="division" aria-pressed="false">
-          Division{division.label ? ` — ${division.label}` : ''}
-        </button>
+        <button type="button" class="px-chmbr__chip is-on" data-state="composition" aria-pressed="true">Composition</button>
+        <button type="button" class="px-chmbr__chip" data-state="division" aria-pressed="false">Division</button>
       </div>
     )}
+
+    <ul class="px-chmbr__legend" data-build-scene>
+      {ledger.map((r, k) => (
+        <li data-cue={cueOf(k)} data-build="1" data-build-kind="drop">
+          <i class="px-chmbr__sw" style={`background:${r.fill.fill};opacity:${r.fill.opacity}`}></i>
+          <span class="px-cue-tag" data-cue-tag={cueOf(k)} hidden></span>
+          <span>{parties[k].short ?? r.name} <b>{fmt(r.seats)}</b></span>
+        </li>
+      ))}
+    </ul>
   </div>
 
   {division && (
@@ -311,63 +318,105 @@ const payload = JSON.stringify({ chamber: { rows, arcDeg }, parties, majority, d
     </script>
   )}
 
-  <ul class="pol-ledger px-chmbr__ledger">
-    {ledger.map((r) => (
-      <li>
-        <span class="px-chmbr__swatch" style={`background:${r.fill.fill};opacity:${r.fill.opacity}`}></span>
-        <span class="pol-ledger__k">{r.name}</span>
-        <span class="pol-ledger__dots"></span>
-        <span class="pol-ledger__v">
-          <b>{r.seats}</b> seats · {r.pct}%{division ? ` · Aye ${r.aye} · No ${r.no}` : ''}
-        </span>
-      </li>
-    ))}
-  </ul>
-
+  {/* the AT-readable data source (blueprint §7): every party, its share and
+      its division vote */}
+  <table class="px-chmbr__table">
+    <caption>Seats by party{division ? ', with the division' : ''}</caption>
+    <tbody>
+      {ledger.map((r) => (
+        <tr>
+          <th scope="row">{r.name}</th>
+          <td>{fmt(r.seats)} seats, {r.pct}%{division ? `, aye ${r.aye}, no ${r.no}` : ''}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
 </div>
 
 <style>
-  .px-chmbr__stage { position: relative; }
-  /* the label layer sits exactly over the drawing (the shared
-     `.viz3d__fallback svg` rule makes both SVGs block-level 100% boxes, so
-     this one is lifted out of flow onto the same frame) */
-  .px-chmbr__lbls { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
-
-  /* State chips — hidden until the WebGL scene is live (the fallback shows
-     the division as its own static plate instead). Real buttons: focusable,
-     aria-pressed, mono pill per CANON §9. */
-  .px-chmbr__chips {
-    display: none;
-    position: absolute; top: 10px; right: 12px; z-index: 3;
-    gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  .px-chmbr { min-width: 0; font-family: var(--font-ui); }
+  /* The WebGL scene sits on the desk's deep plate (LENS §8.3). The scene
+     reads --ink / --paper / --rule / --muted off its mount, so the mount
+     re-points them onto the on-deep set: the majority arc and the absent
+     seats draw light on the plate. */
+  .px-chmbr__stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 16px 16px;
+    border-radius: var(--r-card, 6px);
+    background: var(--deep);
+    color: var(--on-deep);
   }
+  .viz3d--chmbr {
+    --ink: var(--on-deep);
+    --paper: var(--deep);
+    --rule: var(--on-deep-hair);
+    --muted: var(--on-deep-2);
+  }
+  .viz3d--chmbr { background: transparent; }
+  .px-chmbr__arc { fill: none; stroke: var(--on-deep-2); stroke-width: 1.4; }
+
+  .px-chmbr__over { position: absolute; inset: 0; pointer-events: none; }
+  .px-chmbr__over > * { position: absolute; }
+  .px-chmbr__maj {
+    left: 50%;
+    translate: -50% -100%;
+    display: inline-flex;
+    align-items: center;
+    padding-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--on-deep);
+  }
+  .px-chmbr__total { left: 50%; translate: -50% -100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .px-chmbr__total b { font-size: 40px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--on-deep); }
+  .px-chmbr__tn { display: inline-flex; align-items: center; gap: 6px; }
+  .px-chmbr__tl { display: inline-flex; align-items: center; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-deep-2); }
+  .px-chmbr__ptitle { left: 50%; translate: -50% 0; width: max-content; max-width: 90%; padding-top: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; text-align: center; color: var(--on-deep-2); }
+  .px-chmbr__tally { translate: -50% 8px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--on-deep); }
+  .px-chmbr__over .px-cue-tag { box-shadow: 0 0 0 2px var(--deep); }
+
+  .viz3d--chmbr .viz3d__hint { color: var(--on-deep-2); }
+
+  /* State chips: shown only while the WebGL scene is live (the fallback shows
+     the division as its own static plate instead). */
+  .px-chmbr__chips { display: none; gap: 8px; flex-wrap: wrap; }
   .viz3d--live + .px-chmbr__chips { display: flex; }
-
   .px-chmbr__chip {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
-    text-transform: uppercase; font-variant-numeric: tabular-nums;
-    color: var(--ink-soft);
-    background: color-mix(in oklab, var(--paper) 88%, transparent);
-    border: 1px solid var(--rule); border-radius: 999px;
-    padding: 7px 12px; min-height: 30px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--on-deep-hair);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--on-deep-2);
+    font: 500 13px/1 var(--font-ui);
     cursor: pointer;
-    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+    transition: color 160ms var(--ease), border-color 160ms var(--ease);
   }
-  .px-chmbr__chip:active { transform: scale(0.98); } /* pressDown */
-  .px-chmbr__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
-  @media (pointer: coarse) {
-    .px-chmbr__chip { min-height: 44px; padding: 10px 14px; } /* 44px touch floor */
+  .px-chmbr__chip.is-on { color: var(--on-deep); border-color: var(--on-deep); }
+  .px-chmbr__chip:focus-visible { outline: 2px solid var(--on-deep); outline-offset: 2px; }
+  @media (pointer: coarse) { .px-chmbr__chip { min-height: 44px; } }
+
+  .px-chmbr__legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+  .px-chmbr__legend li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--on-deep-2); }
+  .px-chmbr__legend b { font-weight: 600; color: var(--on-deep); font-variant-numeric: tabular-nums; }
+  .px-chmbr__legend .px-cue-tag { margin-right: 0; }
+  .px-chmbr__sw { display: block; width: 10px; height: 10px; border-radius: 50%; }
+
+  @media (max-width: 560px) {
+    /* the bowl of the arc is about 90px wide on a phone: the count alone fits */
+    .px-chmbr__total b { font-size: 22px; }
+    .px-chmbr__tl { display: none; }
   }
 
-  /* ledger legend (politics `.pol-ledger` rows, themes/politics.css) + swatch key */
-  .px-chmbr__ledger { margin-top: 18px; }
-  .px-chmbr__swatch {
-    width: 9px; height: 9px; border-radius: 2px;
-    align-self: center; flex: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-chmbr__chip { transition: none; }
-    .px-chmbr__chip:active { transform: none; }
+  .px-chmbr__table {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
 </style>

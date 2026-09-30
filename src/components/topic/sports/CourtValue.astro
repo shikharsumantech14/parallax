@@ -1,32 +1,34 @@
 ---
 /**
- * CourtValue (sports) — the spatial value SURFACE over a pitch/court.
+ * CourtValue (sports) — the spatial value SURFACE over a pitch or a court
+ * (Lens Phase 6, 2026-09-30; the board is Lib-court-value).
  *
- * A penalty-box / half-court washed with filled contour bands of expected
- * value (xG per shot location, eFG / points-per-shot across the floor), so the
- * reader sees the GEOGRAPHY of a good chance — the heat map drawn as a contour
- * map, "the elevation of danger" — with the raw shots optionally plotted on top.
+ * The penalty box (or half-pitch, or half-court) washed with filled contour
+ * bands of expected value, from the desk tint at the lowest band through the
+ * mark to the text ink at the highest, so the reader sees the geography of a
+ * good chance; the raw shots optionally plotted on top as hollow dots, the
+ * best spot ringed and its value set at 48 over the figure. One ramp row
+ * under it names the bands; one muted line names the model, the smoothing
+ * and the domain.
  *
- * Tier: SVG, build-time only. The value field, the marching-squares contour
- * extraction and the filled bands are all computed here in the frontmatter;
- * there is no client JS and, since Lens Phase 5, no motion (its build order
- * arrives in Phase 6). Zero runtime compute, no three.js,
- * no d3-contour (an inlined marching-squares routine is used — see §4 of the
- * blueprint / the CONTOUR block below).
- *
- * The complete surface — bands, iso-lines, chalk court, peak marker + value
- * label, in-SVG ramp legend, and (if enabled) the shot cloud — always paints
- * in its FINAL state. This IS the print plate.
+ * SVG, build-time only: the value field, the marching-squares contours and
+ * the bands are computed here. The drawing carries NO text: the two pitch
+ * words and the cue numerals are an HTML layer over it (placed by percent,
+ * sized in real pixels), and the legend is HTML, so the surface scales to any
+ * width without a sideways scroll and every word prints at 12px.
  *
  * Coordinate convention (the ShotMap convention): shot x,y are 0–100 pitch
- * coords — x toward goal (depth), y across — mapped into the selected surface's
- * true metre bbox by (x·1.05, y·0.68) [a 105 m × 68 m pitch], then to px. The
- * grid path and the shots path therefore place identically.
+ * coords — x toward goal (depth), y across — mapped into the selected
+ * surface's true metre bbox by (x·1.05, y·0.68) [a 105 m × 68 m pitch].
  *
- * data: CourtValueData (see the interface below).
+ * Cue anchors:
+ *   peak    the best spot (its ring and the headline value)
+ *   shots   the sampled shots (when shown)
+ *   1..k    each contour band, lowest first (the band and its legend step)
+ *
+ * The build (LENS §6.4): 1 the turf and the chalk, 2 the bands, 3 the shots,
+ * the ring, the words and the legend, 4 the value.
  */
-import { renderInline } from '../../../lib/text';
-
 interface CourtValueData {
   surface?: 'football-box' | 'football-half' | 'basketball-half';
   model: string;               // the value model NAMED (honesty)
@@ -258,8 +260,9 @@ const nBands = levels.length;
 // --paper-2 (turf) through --accent-deep to --accent (hot volt). Only intensity
 // carries value — never a rainbow. Colour interpolated across the three token
 // stops; opacities follow the declared reference ramp.
-const RAMP = ['var(--paper-2)', 'var(--accent-deep)', 'var(--accent)'];
-const OP_REF = [0.14, 0.30, 0.48, 0.68, 0.90];
+/* The ramp: the desk tint at the lowest band, the mark in the middle, the
+   text ink at the highest, all opaque (the board's five steps). */
+const RAMP = ['var(--accent-tint)', 'var(--accent)', 'var(--accent-deep)'];
 function bandColor(k: number) {
   const t = nBands > 1 ? k / (nBands - 1) : 1;
   const p = t * (RAMP.length - 1);
@@ -267,17 +270,7 @@ function bandColor(k: number) {
   const f = p - seg;
   return `color-mix(in oklab, ${RAMP[seg + 1]} ${Math.round(f * 100)}%, ${RAMP[seg]})`;
 }
-function bandOpacity(k: number) {
-  const t = nBands > 1 ? k / (nBands - 1) : 1;
-  const p = t * (OP_REF.length - 1);
-  const seg = Math.min(OP_REF.length - 2, Math.floor(p));
-  const f = p - seg;
-  return OP_REF[seg] + (OP_REF[seg + 1] - OP_REF[seg]) * f;
-}
 
-// Each band k = { v ≥ levels[k] } minus { v ≥ levels[k+1] }, drawn once as an
-// even-odd annulus (outer ring + inner ring hole) so band opacities never
-// compound. The last band has no hole. Rings clipped to the plot outline.
 const levelRings = levels.map((L) => contourRings(L));
 const bands = levels.map((L, k) => {
   const outer = levelRings[k];
@@ -285,7 +278,6 @@ const bands = levels.map((L, k) => {
   return {
     d: ringsToPath(outer) + (inner.length ? ' ' + ringsToPath(inner) : ''),
     color: bandColor(k),
-    opacity: bandOpacity(k),
     level: L,
   };
 });
@@ -384,237 +376,115 @@ if (surface === 'basketball-half') {
 }
 
 // ── LEGEND (in-SVG, lower-left ramp) ─────────────────────────────────────────
-const SW = 18, SH = 12, SG = 4, ROW = SH + SG;
-const LEG_TOP = 42;                       // title + domain line above the swatches
-const LEG_H = nBands * ROW + LEG_TOP + 6;
-const LEG_W = 158;
-const LX = OX + 6;
-const LY = OY + plotH - LEG_H - 6;
-const domLabel = `${fmt(vMin)}–${fmt(vMax)} ${valueLabel}`;
-// rows: highest band on top → lowest at bottom
-const legendRows = levels.map((L, k) => ({
-  color: bandColor(k),
-  opacity: bandOpacity(k),
-  label: fmt(L),
-  y: LY + LEG_TOP + (nBands - 1 - k) * ROW,
-}));
-
-// ── A11Y + META ───────────────────────────────────────────────────────────────
+const pc = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const meta = [model, smoothed ? 'kernel-smoothed' : '', `${fmt(vMin)}–${fmt(vMax)} ${valueLabel}`].filter(Boolean).join(' · ');
 const ariaLabel =
-  `${valueLabel} value surface from ${model}: brightest at ${fmt(peakV)} ${valueLabel} ` +
-  `at the goalward heart of the shot cloud, fading to ${fmt(vMin)} ${valueLabel} at the edges. ` +
-  `${nBands} contour value bands.`;
-const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
-// The source line now renders from core/Section.astro (Phase 6.1). What
-// stays here is the MODEL name — data, not chrome — on its own class.
+  `${valueLabel} value surface from ${model}: highest at ${fmt(peakV)} ${valueLabel}, ` +
+  `fading to ${fmt(vMin)} ${valueLabel} at the edges. ${nBands} contour bands.`;
+const clipId = `px-cval-${Math.abs([...`${surface}|${model}|${levels.join(',')}|${dots.length}`].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)).toString(36)}`;
+/* Where the two words sit on a football surface: inside the six-yard box and
+   under the edge of the box. */
+const boxWords = surface === 'basketball-half' ? [] : [
+  { t: 'Six-yard box', x: px(clamp(cy0 - 9.16, surf.ymMin, surf.ymMax)) + 6, y: py(surf.xmMax - 5.5) - 6, on: 'deep' },
+  { t: 'Edge of box', x: px(clamp(cy0 - 20.16, surf.ymMin, surf.ymMax)) + 6, y: py(surf.xmMax - 16.5) + 16, on: 'paper' },
+];
 ---
 
-<div class="px-viz">
-  {caption && (
-    <div class="px-viz__cap"><span set:html={renderInline(caption)} /><b>court value</b></div>
-  )}
-
-  <div class="px-cval__chips">
-    <span class="px-cval__chip">{nBands} value bands</span>
-    {smoothed && <span class="px-cval__chip">kernel-smoothed</span>}
-    <span class="px-cval__chip px-cval__chip--dom">{fmt(vMin)}–{fmt(vMax)} {valueLabel}</span>
+<div class="px-viz px-cval" data-build-scene>
+  <div class="px-cval__head" data-cue="peak">
+    <span class="px-cval__big" data-build="4" data-build-kind="rise">{fmt(peakV)}</span>
+    <span class="px-cval__nl"><span class="px-cue-tag" data-cue-tag="peak" hidden></span>{valueLabel}, the best spot</span>
   </div>
 
-  <div class="px-cval">
-    <svg
-      class="px-cval__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      style={`--vbw:${W}px`}
-      {/* --vbw feeds the Phase 5 mobile min-width in dataviz-v2.css. It is set
-          here rather than in the stylesheet because this component's viewBox
-          is per-SURFACE (a pitch and a court are different widths), so no
-          single literal would be right. */}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={ariaLabel}
-    >
+  <div class="px-cval__fig">
+    <svg class="px-cval__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel}>
       <defs>
-        <clipPath id={clipId}>
-          <rect x={OX} y={OY} width={plotW} height={plotH} />
-        </clipPath>
+        <clipPath id={clipId}><rect x={OX} y={OY} width={plotW} height={plotH} /></clipPath>
       </defs>
-
-      <!-- turf backing (lowest band = bare turf) -->
-      <rect class="px-cval__turf" x={OX} y={OY} width={plotW} height={plotH} rx="2" />
-
-      <!-- filled contour bands (clipped to the playing area) -->
+      <rect x={OX} y={OY} width={plotW} height={plotH} fill="var(--paper)" data-build="1" />
       <g clip-path={`url(#${clipId})`}>
         {bands.map((b, k) => (
-          <path
-            class="px-cval__band"
-            d={b.d}
-            style={`fill:${b.color};--k:${k}`}
-            fill-opacity={b.opacity.toFixed(3)}
-            fill-rule="evenodd"
-          />
+          <path data-cue={k + 1} d={b.d} style={`fill:${b.color}`} fill-rule="evenodd" data-build="2" />
         ))}
-
-        <!-- iso-lines: the contour line on each band boundary -->
-        {levelRings.map((rings) => (
-          <path class="px-cval__iso" d={ringsToPath(rings)} fill="none" />
-        ))}
-
-        <!-- shot overplot (the sample cloud under the surface) -->
-        {dots.map((d, i) => (
-          <circle class="px-cval__dot" cx={d.x.toFixed(1)} cy={d.y.toFixed(1)} r="2" style={`--i:${i}`} />
+        {levelRings.map((rings) => <path d={ringsToPath(rings)} fill="none" stroke="var(--accent)" stroke-opacity="0.5" stroke-width="1" data-build="2" />)}
+      </g>
+      <g fill="none" stroke="var(--ink)" stroke-opacity="0.55" stroke-width="1.25" data-build="1">
+        <rect x={OX} y={OY} width={plotW} height={plotH} />
+        {marks.map((m) => (
+          m.t === 'line' ? <line x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} />
+          : m.t === 'dot' ? <circle cx={m.cx.toFixed(1)} cy={m.cy.toFixed(1)} r={m.r} fill="var(--ink)" fill-opacity="0.55" stroke="none" />
+          : <path d={m.d} />
         ))}
       </g>
-
-      <!-- chalk pitch/court markings -->
-      <g class="px-cval__chalkset">
-        {marks.map((m, i) => (
-          m.t === 'line' ? (
-            <line class="px-cval__chalk" x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} pathLength="1" style={`--i:${i}`} />
-          ) : m.t === 'dot' ? (
-            <circle class="px-cval__spot" cx={m.cx.toFixed(1)} cy={m.cy.toFixed(1)} r={m.r} />
-          ) : (
-            <path class="px-cval__chalk" d={m.d} fill="none" pathLength="1" style={`--i:${i}`} />
-          )
-        ))}
-      </g>
-
-      <!-- goal frame (football surfaces) -->
       {goalPx && (
-        <g class="px-cval__goal">
-          <line class="px-cval__post" x1={goalPx.l.toFixed(1)} y1={goalPx.y.toFixed(1)} x2={goalPx.l.toFixed(1)} y2={goalPx.top.toFixed(1)} />
-          <line class="px-cval__post" x1={goalPx.r.toFixed(1)} y1={goalPx.y.toFixed(1)} x2={goalPx.r.toFixed(1)} y2={goalPx.top.toFixed(1)} />
-          <line class="px-cval__post" x1={goalPx.l.toFixed(1)} y1={goalPx.top.toFixed(1)} x2={goalPx.r.toFixed(1)} y2={goalPx.top.toFixed(1)} />
+        <rect x={goalPx.l.toFixed(1)} y={(goalPx.y - 12).toFixed(1)} width={(goalPx.r - goalPx.l).toFixed(1)} height="12" fill="none" stroke="var(--ink)" stroke-width="2" data-build="1" />
+      )}
+      {dots.length > 0 && (
+        <g data-cue="shots">
+          {dots.map((d) => <circle cx={d.x.toFixed(1)} cy={d.y.toFixed(1)} r="3.6" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="1.2" data-build="3" data-build-kind="drop" />)}
         </g>
       )}
-
-      <!-- peak marker (the hottest spot, named — stamps last) -->
-      <g class="px-cval__peak" style={`transform-origin:${peakX.toFixed(1)}px ${peakY.toFixed(1)}px`}>
-        <line class="px-cval__cross" x1={(peakX - 6).toFixed(1)} y1={peakY.toFixed(1)} x2={(peakX + 6).toFixed(1)} y2={peakY.toFixed(1)} />
-        <line class="px-cval__cross" x1={peakX.toFixed(1)} y1={(peakY - 6).toFixed(1)} x2={peakX.toFixed(1)} y2={(peakY + 6).toFixed(1)} />
-        <text
-          class="px-cval__peaklbl"
-          x={clamp(peakX, OX + 30, OX + plotW - 30).toFixed(1)}
-          y={(peakY - 12 < OY + 8 ? peakY + 22 : peakY - 12).toFixed(1)}
-          text-anchor="middle"
-        >{peakLabel}</text>
-      </g>
-
-      <!-- in-SVG ramp legend (lower-left) -->
-      <g class="px-cval__legend">
-        <rect class="px-cval__legbg" x={LX - 6} y={LY - 4} width={LEG_W} height={LEG_H} rx="3" />
-        <text class="px-cval__legttl" x={LX} y={LY + 12}>{valueLabel} · {model}</text>
-        <text class="px-cval__legdom" x={LX} y={LY + 28}>{domLabel}</text>
-        {legendRows.map((r) => (
-          <>
-            <rect class="px-cval__legsw-bg" x={LX} y={r.y} width={SW} height={SH} rx="1.5" />
-            <rect x={LX} y={r.y} width={SW} height={SH} rx="1.5" style={`fill:${r.color}`} fill-opacity={r.opacity.toFixed(3)} />
-            <text class="px-cval__legval" x={LX + SW + 8} y={r.y + SH - 2}>{r.label}</text>
-          </>
-        ))}
+      <g data-cue="peak" data-build="3">
+        <circle cx={peakX.toFixed(1)} cy={peakY.toFixed(1)} r="9" fill="none" stroke="var(--paper-2)" stroke-width="2.5" />
+        <circle cx={peakX.toFixed(1)} cy={peakY.toFixed(1)} r="9" fill="none" stroke="var(--ink)" stroke-width="1.25" />
       </g>
     </svg>
+    <div class="px-cval__layer" aria-hidden="true">
+      {boxWords.map((b) => <span class="px-cval__w" data-on={b.on} data-build="3" style={`left:${pc(b.x, W)};top:${pc(b.y, H)}`}>{b.t}</span>)}
+      <span class="px-cval__tag" style={`left:${pc(peakX + 12, W)};top:${pc(peakY, H)}`}><span class="px-cue-tag" data-cue-tag="peak" hidden></span></span>
+      {dots.length > 0 && <span class="px-cval__tag" style={`left:${pc(dots[dots.length - 1].x + 6, W)};top:${pc(dots[dots.length - 1].y, H)}`}><span class="px-cue-tag" data-cue-tag="shots" hidden></span></span>}
+    </div>
   </div>
 
-  {model && <div class="px-cval__model">{model}</div>}
+  <div class="px-cval__key" data-build="3">
+    <span class="px-cval__kl">{valueLabel}</span>
+    <div class="px-cval__ramp">
+      {bands.map((b, k) => (
+        <div class="px-cval__step" data-cue={k + 1}>
+          <span class="px-cval__sw" style={`background:${b.color}`}></span>
+          <span class="px-cval__sv"><span class="px-cue-tag" data-cue-tag={k + 1} hidden></span>{fmt(b.level)}{k === nBands - 1 ? ' +' : ''}</span>
+        </div>
+      ))}
+    </div>
+    {dots.length > 0 && <span class="px-cval__kd"><i></i>Sampled shot</span>}
+  </div>
+  <p class="px-cval__meta" data-build="3">{meta}</p>
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
 
 <style>
-  .px-cval { width: 100%; max-width: 640px; margin: 4px auto 0; }
-  .px-cval__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  /* ── data-flag chips (CANON §7 honesty) ─────────────────────────────── */
-  .px-cval__chips {
-    display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px;
+  .px-cval { container-type: inline-size; }
+  .px-cval__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+  .px-cval__big { font-family: var(--font-ui); font-size: 96px; font-weight: 600; line-height: 0.92; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--accent-deep); }
+  .px-cval__nl { display: inline-flex; align-items: center; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--muted); }
+  .px-cval__nl .px-cue-tag { margin-right: 8px; }
+  .px-cval__fig { position: relative; }
+  .px-cval__svg { display: block; width: 100%; height: auto; }
+  .px-cval__layer { position: absolute; inset: 0; pointer-events: none; }
+  .px-cval__w {
+    position: absolute;
+    translate: 0 -100%;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--ink-2);
   }
-  .px-cval__chip {
-    font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
-    letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    background: color-mix(in oklab, var(--accent) 11%, transparent);
-    padding: 3px 9px; border-radius: var(--r-pill, 999px); white-space: nowrap;
-  }
-  .px-cval__chip--dom {
-    color: var(--muted);
-    background: color-mix(in oklab, var(--ink) 7%, transparent);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ── surface ────────────────────────────────────────────────────────── */
-  .px-cval__turf { fill: color-mix(in oklab, var(--ink) 4%, transparent); }
-
-  /* value bands — the fixed volt elevation ramp. Fill colour + fill-opacity
-     are presentation values (the FINAL plate); `opacity` rests at 1 and the
-     transition waits for the Phase 6 build. */
-  .px-cval__band { opacity: 1; transition: opacity 480ms var(--ease, ease); }
-
-  /* iso-lines — the contour lines that make it read as a map, not a blur */
-  .px-cval__iso {
-    stroke: color-mix(in oklab, var(--ink) 22%, transparent);
-    stroke-width: 0.75; stroke-linejoin: round; opacity: 1;
-    transition: opacity 250ms var(--ease, ease);
-  }
-
-  /* shot cloud under the surface */
-  .px-cval__dot { fill: color-mix(in oklab, var(--ink) 50%, transparent); opacity: 1; }
-
-  /* chalk markings */
-  .px-cval__chalk, .px-cval__spot { stroke: color-mix(in oklab, var(--ink) 35%, transparent); }
-  .px-cval__chalk {
-    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none;
-  }
-  .px-cval__spot { fill: color-mix(in oklab, var(--ink) 35%, transparent); stroke: none; }
-  .px-cval__post { stroke: color-mix(in oklab, var(--ink) 90%, transparent); stroke-width: 2.4; stroke-linecap: round; }
-
-  /* peak marker — the verdict beat */
-  .px-cval__cross { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
-  .px-cval__peaklbl {
-    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
-    letter-spacing: 0.04em; fill: var(--ink);
-    paint-order: stroke; stroke: var(--bg); stroke-width: 3.4px; stroke-linejoin: round;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* in-SVG legend */
-  .px-cval__legbg {
-    fill: color-mix(in oklab, var(--bg) 82%, transparent);
-    stroke: color-mix(in oklab, var(--ink) 14%, transparent); stroke-width: 0.75;
-  }
-  .px-cval__legttl {
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
-    text-transform: uppercase; fill: var(--ink-soft);
-  }
-  .px-cval__legdom {
-    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
-    fill: var(--muted); font-variant-numeric: tabular-nums;
-  }
-  .px-cval__legsw-bg { fill: color-mix(in oklab, var(--ink) 6%, transparent); }
-  .px-cval__legval {
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
-    fill: var(--muted); font-variant-numeric: tabular-nums;
-  }
-
-  /* ── final state (static since Lens Phase 5; transitions wait for Phase 6) ── */
-  /* the chalk rests fully drawn; bands, iso-lines, dots and peak rest fully shown. */
-  .px-cval__chalk { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 700ms var(--ease, ease); }
-  .px-cval__dot { transition: opacity 220ms var(--ease, ease); }
-
-  .px-cval__peak { transform: scale(1); transition: transform 220ms var(--ease-snap, ease-out), opacity 220ms var(--ease, ease); }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-cval__chalk { stroke-dashoffset: 0 !important; }
-    .px-cval__band, .px-cval__iso, .px-cval__dot { opacity: 1 !important; }
-    .px-cval__peak { transform: none !important; opacity: 1 !important; }
-  }
-
-  @media (max-width: 420px) {
-    .px-cval__dot { r: 1.5; }
-  }
-
-  /* the value-model line — keeps the look the old in-card source line had */
-  .px-cval__model {
-    margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--rule);
-    font-family: var(--font-mono); font-size: var(--viz-fs-src, 10px);
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-    font-style: italic;
-  }
+  .px-cval__w[data-on='deep'] { color: var(--paper-2); }
+  .px-cval__w[data-on='paper'] { translate: 0 0; text-shadow: 0 0 3px var(--paper-2), 0 0 3px var(--paper-2); }
+  .px-cval__tag { position: absolute; translate: 0 -50%; }
+  .px-cval__tag .px-cue-tag { margin: 0; }
+  .px-cval__key { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; margin-top: 12px; }
+  .px-cval__kl { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px-cval__ramp { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+  .px-cval__step { display: flex; flex-direction: column; gap: 4px; min-width: 44px; }
+  .px-cval__sw { display: block; height: 12px; }
+  .px-cval__sv { display: inline-flex; align-items: center; font-family: var(--font-ui); font-size: 12px; line-height: 1.2; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-cval__sv .px-cue-tag { margin-right: 4px; }
+  .px-cval__kd { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 12px; color: var(--muted); }
+  .px-cval__kd i { flex: none; box-sizing: border-box; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--ink); background: var(--paper-2); }
+  .px-cval__meta { margin: 10px 0 0; font-family: var(--font-ui); font-size: 12px; line-height: 1.4; color: var(--muted); }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-cval__big { font-size: 72px; } }
 </style>

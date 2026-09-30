@@ -1,10 +1,29 @@
 ---
 /**
- * ApprovalChart — v2 dual-line approval/disapproval chart (.ac), wrapped in the
- * .px-viz card: two lines, the area behind, end dots. Faithful port of
- * publication-v2 DataViz1.jsx <ApprovalChart>. Build-time SVG, zero runtime
- * JS. Since Lens Phase 5 (2026-09-30) it paints its final state; its build
- * order (LENS §6.4) arrives in Phase 6.
+ * ApprovalChart (politics) — approve against disapprove over time. Lens Phase
+ * 6 (2026-09-30), to the Lib-approval-chart board: drawn for the figure panel
+ * (a 440-unit viewBox, text at 12 and 13), the y axis fitted to the data in
+ * steps of 5, the band between the two lines tinted, a dot on every point,
+ * the first crossing ringed, the lines named at their ends with their last
+ * values, and the months along the foot with the year under the first month
+ * of each year. The legend is the end labels.
+ *
+ * Every word and numeral that a cue can name is HTML laid over the SVG in
+ * percent (`.ac__over`), so the numerals print where Section.astro puts them
+ * and nothing scales below 12px. On a phone the drawing keeps its 440 units
+ * and scrolls sideways inside the panel (the 2026-09-07 rule, kept here).
+ *
+ * Cue anchors (LENS §5.2):
+ *   1 … n        each point (both of its dots), numbered from 1 in DATA order
+ *   approve      the approve line and its end label
+ *   disapprove   the disapprove line and its end label
+ *   cross        the first crossing, ringed
+ *   note1 …      each annotation, in DATA order
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the grid and the axis fade in,
+ * 2 the band fades in, 3 both lines draw, 4 the dots fade in, 5 the end
+ * labels, the crossing and the notes rise. No JS or reduced motion: the chart
+ * as drawn.
  *
  * props: points[] { date, approve, disapprove } · subject · caption · source
  *        · annotations[] (docs/design/blueprints/_ANNOTATIONS.md)
@@ -23,137 +42,206 @@ interface Props {
   source?: string;
   annotations?: Annotation[];
 }
-const { points = [], subject, caption, source, annotations = [] } = Astro.props;
+const { points = [], subject, annotations = [] } = Astro.props;
 
-const W = 640, H = 280, padL = 36, padR = 16, padT = 16, padB = 28;
-const iw = W - padL - padR, ih = H - padT - padB;
+const W = 440, H = 292, padL = 30, plotR = 312, padT = 16, baseY = 250;
 const n = points.length;
-const x = (i: number) => padL + (n > 1 ? i / (n - 1) : 0.5) * iw;
-const y = (v: number) => padT + (1 - Math.max(0, Math.min(100, v)) / 100) * ih;
+const vals = points.flatMap((p) => [p.approve, p.disapprove]).filter((v) => Number.isFinite(v));
+const lo = vals.length ? Math.max(0, Math.floor((Math.min(...vals) - 1) / 5) * 5) : 0;
+const hi = vals.length ? Math.min(100, Math.ceil((Math.max(...vals) + 1) / 5) * 5) : 100;
+const span = Math.max(5, hi - lo);
+const x = (i: number) => padL + (n > 1 ? i / (n - 1) : 0.5) * (plotR - padL);
+const y = (v: number) => padT + (1 - (v - lo) / span) * (baseY - padT);
+const step = span <= 30 ? 5 : span <= 60 ? 10 : 25;
+const ticks: number[] = [];
+for (let v = lo; v <= hi; v += step) ticks.push(v);
 
-const lineApprove = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.approve).toFixed(1)}`).join(' ');
-const lineDisapprove = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.disapprove).toFixed(1)}`).join(' ');
-const areaApprove = n > 1 ? `${lineApprove} L${x(n - 1).toFixed(1)} ${padT + ih} L${padL} ${padT + ih} Z` : '';
-const len = 1400;
-const last = points[n - 1];
-const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
-const capText = caption ?? subject ?? 'Approval';
+const pts = (k: 'approve' | 'disapprove') => points.map((p, i) => `${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ');
+const band = n > 1
+  ? [...points.map((p, i) => `${x(i).toFixed(1)},${y(p.disapprove).toFixed(1)}`), ...points.map((p, i) => `${x(i).toFixed(1)},${y(p.approve).toFixed(1)}`).reverse()].join(' ')
+  : '';
 
-/* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
-   `at` matches a point's `date` exactly, or the short label the x-axis prints
-   for that point (`date.split(' ')[1]`), so `at: 2026` finds the first "… 2026".
-   `series: 'disapprove'` reads off the muted line; anything else — the default
-   — reads off the approve line. A non-matching `at` is a silent no-op.
-
-   All geometry, no state: the callout is part of the composed still, so it
-   paints under no-JS and reduced motion with no motion of its own. Positions
-   come from the chart's own x() / y() scales. */
-const A_FS = 12;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
-const A_LH = 15;     // leading between the two wrapped lines
-const A_LEAD = 16;   // leader length (spec §3: 14–22)
-const A_GAP = 5;     // clearance between the marker dot and the leader
-const A_L = padL, A_R = W - padR, A_T = padT, A_B = H - padB;
-const aEst = (s: string) => 0.52 * A_FS * s.length;
-// Two lines once the estimate passes 40% of the viewBox, split at the nearest
-// space past the midpoint.
-const aWrap = (s: string): string[] => {
-  if (aEst(s) <= W * 0.4) return [s];
-  const past = s.indexOf(' ', Math.floor(s.length / 2));
-  const cut = past >= 0 ? past : s.lastIndexOf(' ');
-  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
-};
-
-interface PlacedAnnot {
-  lines: string[]; cx: number; cy: number;
-  x1: number; y1: number; x2: number; y2: number;
-  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
-}
-const annots: PlacedAnnot[] = [];
-for (const a of annotations) {
-  if (!a || !a.text) continue;
-  const i = points.findIndex(
-    (p) => String(a.at) === p.date || String(a.at) === (p.date.split(' ')[1] || p.date),
-  );
-  if (i < 0) continue;
-  const cx = x(i);
-  const cy = y(a.series === 'disapprove' ? points[i].disapprove : points[i].approve);
-  const lines = aWrap(a.text);
-  const wEst = Math.max(...lines.map(aEst));
-  const blockH = (lines.length - 1) * A_LH;
-
-  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
-  let side: 'above' | 'below' | 'left' | 'right' = a.side || 'above';
-  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
-  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
-
-  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
-  let anchor: 'start' | 'middle' | 'end' = 'middle';
-  if (side === 'left' || side === 'right') {
-    // mirror the leader rather than run the text off the edge
-    let dir = side === 'right' ? 1 : -1;
-    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
-    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
-    x1 = cx + dir * A_GAP;
-    x2 = cx + dir * (A_GAP + A_LEAD);
-    tx = x2 + dir * 3;
-    anchor = dir > 0 ? 'start' : 'end';
-    ty = cy + A_FS * 0.34 - blockH / 2;
-  } else {
-    const dir = side === 'above' ? -1 : 1;
-    y1 = cy + dir * A_GAP;
-    y2 = cy + dir * (A_GAP + A_LEAD);
-    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
-    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
-    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
+/* the first crossing, interpolated between two points */
+let cross: { cx: number; cy: number } | undefined;
+for (let i = 0; i < n - 1 && !cross; i++) {
+  const d0 = points[i].approve - points[i].disapprove;
+  const d1 = points[i + 1].approve - points[i + 1].disapprove;
+  if (d0 === 0) { cross = { cx: x(i), cy: y(points[i].approve) }; break; }
+  if (d0 * d1 < 0) {
+    const t = d0 / (d0 - d1);
+    const v = points[i].approve + t * (points[i + 1].approve - points[i].approve);
+    cross = { cx: x(i) + t * (x(i + 1) - x(i)), cy: y(v) };
   }
-  annots.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor });
 }
+
+/* the months: every `every`-th point and the last; the year under the first
+   point and under the first point of each new year */
+const every = Math.max(1, Math.ceil(n / 7));
+const part = (d: string) => {
+  const m = String(d).trim().split(/\s+/);
+  return m.length > 1 ? { m: m[0].slice(0, 3), yr: m[m.length - 1] } : { m: m[0], yr: '' };
+};
+const xLabels = points.map((p, i) => {
+  const { m, yr } = part(p.date);
+  const prev = i > 0 ? part(points[i - 1].date).yr : '';
+  const show = i % every === 0 || i === n - 1;
+  return { i, m, yr: yr && (i === 0 || yr !== prev) ? yr : '', show: show || (yr && i > 0 && yr !== prev) };
+}).filter((l) => l.show);
+
+const last = points[n - 1];
+/* end labels: keep them 18 units apart */
+let yA = last ? y(last.approve) : 0;
+let yD = last ? y(last.disapprove) : 0;
+if (last && Math.abs(yA - yD) < 18) {
+  const mid = (yA + yD) / 2;
+  const up = last.approve >= last.disapprove;
+  yA = mid + (up ? -9 : 9);
+  yD = mid + (up ? 9 : -9);
+}
+
+/* annotations: `at` is a point's date, or the short label the axis prints */
+const notes = (annotations ?? [])
+  .filter((a) => a && a.text)
+  .map((a, k) => {
+    const i = points.findIndex((p) => String(a.at) === p.date || String(a.at) === part(p.date).yr || String(a.at) === part(p.date).m);
+    if (i < 0) return undefined;
+    const v = a.series === 'disapprove' ? points[i].disapprove : points[i].approve;
+    const cy = y(v);
+    return { id: `note${k + 1}`, text: a.text, side: a.side, cx: x(i), cy };
+  })
+  .filter((a): a is NonNullable<typeof a> => !!a);
+
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const svgStack = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 ---
 
-<div class="px-viz">
-  <div class="px-viz__cap"><span>{capText}</span><b>approve / disapprove</b></div>
-  <div class="ac__plot">
+<div class="ac" data-viz-root data-build-scene>
+  {subject && <p class="ac__subject">{subject}</p>}
+  <div class="ac__canvas">
     <svg class="ac__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
-      aria-label={subject ? `Approval over time: ${subject}` : 'Approval over time'}>
-      <g class="ac__grid">
-        {[0, 25, 50, 75, 100].map((v) => (
+      aria-label={subject ? `Approve and disapprove over time: ${subject}` : 'Approve and disapprove over time'}>
+      <g class="ac__grid" data-build="1">
+        {ticks.map((v) => (
           <g>
-            <line x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
-            <text class="ac__axis" x={padL - 8} y={y(v) + 3} text-anchor="end">{v}</text>
+            <line x1={padL} y1={y(v)} x2={plotR} y2={y(v)} />
+            <text x={padL - 6} y={y(v) + 4} text-anchor="end" style={`${svgStack};font-size:12px`}>{v}</text>
+          </g>
+        ))}
+        {xLabels.map((l) => (
+          <g>
+            <text class="ac__m" x={x(l.i)} y={baseY + 20} text-anchor="middle" style={`${svgStack};font-size:12px`}>{l.m}</text>
+            {l.yr && <text class="ac__yr" x={x(l.i)} y={baseY + 36} text-anchor="middle" style={`${svgStack};font-size:12px;font-weight:600`}>{l.yr}</text>}
           </g>
         ))}
       </g>
-      <defs>
-        <linearGradient id="acFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18" />
-          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-      {areaApprove && <path class="ac__area" d={areaApprove} fill="url(#acFill)" />}
-      <path class="ac__line" d={lineDisapprove} stroke="var(--muted)" style={`--len:${len}`} />
-      <path class="ac__line" d={lineApprove} stroke="var(--accent)" style={`--len:${len}`} />
-      {xShow.map((i) => (
-        <text class="ac__axis" x={x(i)} y={H - 8} text-anchor="middle">{points[i].date.split(' ')[1] || points[i].date}</text>
+      {band && <polygon class="ac__band" points={band} data-build="2" />}
+      <polyline class="ac__line ac__line--dis" points={pts('disapprove')} data-cue="disapprove" data-build="3" data-build-kind="draw" />
+      <polyline class="ac__line ac__line--app" points={pts('approve')} data-cue="approve" data-build="3" data-build-kind="draw" />
+      {points.map((p, i) => (
+        <g class="ac__pt" data-cue={i + 1} data-build="4">
+          <circle class="ac__dot--dis" cx={x(i).toFixed(1)} cy={y(p.disapprove).toFixed(1)} r="2.5" />
+          <circle class="ac__dot--app" cx={x(i).toFixed(1)} cy={y(p.approve).toFixed(1)} r="3" />
+        </g>
       ))}
-      {last && <circle class="ac__dot" cx={x(n - 1)} cy={y(last.approve)} r="4" fill="var(--accent)" />}
-      {last && <circle class="ac__dot" cx={x(n - 1)} cy={y(last.disapprove)} r="4" fill="var(--muted)" />}
-      {/* annotations — styled inline on purpose: this component has no scoped
-          style block (its CSS is the kit's `.ac` in dataviz-v2.css), and adding
-          one would stamp Astro's scope attribute on every element in here */}
-      {annots.length > 0 && annots.map((a) => (
-        <g class="ac__annot">
-          <circle class="ac__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" fill="var(--accent)" />
-          <line class="ac__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} stroke="var(--rule)" stroke-width="1" />
-          <text
-            class="ac__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-            style="font-family:'Newsreader',Georgia,'Times New Roman',serif;font-size:12px;font-style:italic;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:2.5px;stroke-linejoin:round"
-          >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+      {cross && (
+        <g class="ac__cross" data-cue="cross" data-build="5">
+          <circle cx={cross.cx.toFixed(1)} cy={cross.cy.toFixed(1)} r="7" />
+        </g>
+      )}
+      {notes.map((a) => (
+        <g class="ac__note" data-cue={a.id} data-build="5">
+          <circle cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="5" />
         </g>
       ))}
     </svg>
+
+    <div class="ac__over">
+      {points.map((p, i) => (
+        <span class="ac__pt-tag" data-cue={i + 1} style={`left:${pct(x(i), W)};top:${pct(Math.min(y(p.approve), y(p.disapprove)) - 8, H)}`}><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span></span>
+      ))}
+      {last && (
+        <>
+          <span class="ac__end ac__end--dis" data-cue="disapprove" data-build="5" data-build-kind="rise" style={`left:${pct(plotR + 10, W)};top:${pct(yD, H)}`}><span class="px-cue-tag" data-cue-tag="disapprove" hidden></span>Disapprove {last.disapprove}</span>
+          <span class="ac__end ac__end--app" data-cue="approve" data-build="5" data-build-kind="rise" style={`left:${pct(plotR + 10, W)};top:${pct(yA, H)}`}><span class="px-cue-tag" data-cue-tag="approve" hidden></span>Approve {last.approve}</span>
+        </>
+      )}
+      {cross && (
+        <span class="ac__pt-tag ac__pt-tag--below" data-cue="cross" style={`left:${pct(cross.cx, W)};top:${pct(cross.cy + 12, H)}`}><span class="px-cue-tag" data-cue-tag="cross" hidden></span></span>
+      )}
+      {notes.length > 1 && notes.map((a, k) => (
+        <span class="ac__pt-tag ac__nt-k" data-cue={a.id} style={`left:${pct(a.cx, W)};top:${pct(a.cy + 9, H)}`}><b>{String.fromCharCode(65 + k)}</b></span>
+      ))}
+    </div>
   </div>
-  <div class="ac__legend">
-    <span class="ac__key"><i style="background:var(--accent)"></i>Approve{last ? ` · now ${last.approve}%` : ''}</span>
-    <span class="ac__key"><i style="background:var(--muted)"></i>Disapprove{last ? ` · now ${last.disapprove}%` : ''}</span>
-  </div>
+  {notes.length > 0 && (
+    <ul class="ac__notes">
+      {notes.map((a, k) => (
+        <li data-cue={a.id} data-build="5" data-build-kind="rise">
+          <span class="px-cue-tag" data-cue-tag={a.id} hidden></span>
+          {notes.length > 1 && <b>{String.fromCharCode(65 + k)}</b>}
+          <span>{a.text}</span>
+        </li>
+      ))}
+    </ul>
+  )}
 </div>
+
+<style>
+  .ac { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .ac__subject {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .ac__canvas { position: relative; }
+  .ac__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .ac__grid line { stroke: var(--hair); stroke-width: 1; }
+  .ac__grid text { fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .ac__grid .ac__m { fill: var(--ink-2); }
+  .ac__band { fill: var(--accent-tint); }
+  .ac__line { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .ac__line--dis { stroke: var(--ink-2); stroke-width: 2; }
+  .ac__line--app { stroke: var(--accent); stroke-width: 2.5; }
+  .ac__dot--dis { fill: var(--ink-2); }
+  .ac__dot--app { fill: var(--accent); }
+  .ac__cross circle { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .ac__note circle { fill: none; stroke: var(--accent-deep); stroke-width: 1.5; }
+
+  /* the HTML layer over the drawing, in the drawing's own percent */
+  .ac__over { position: absolute; inset: 0; pointer-events: none; }
+  .ac__over > * { position: absolute; }
+  .ac__pt-tag { translate: -50% -100%; line-height: 0; }
+  .ac__pt-tag--below { translate: -50% 0; }
+  .ac__pt-tag .px-cue-tag { margin: 0; }
+  .ac__end {
+    display: inline-flex;
+    align-items: center;
+    translate: 0 -50%;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .ac__end--dis { color: var(--ink-2); }
+  .ac__end--app { color: var(--accent-deep); }
+  .ac__end .px-cue-tag { margin-right: 6px; }
+  .ac__nt-k { translate: -50% 0; }
+  .ac__nt-k b { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--accent-deep); line-height: 1; }
+  .ac__notes { margin: 0; padding: 10px 0 0; list-style: none; border-top: 1px solid var(--hair); display: flex; flex-direction: column; gap: 6px; }
+  .ac__notes li { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 15px; font-style: italic; line-height: 1.4; color: var(--ink); }
+  .ac__notes li b { font-family: var(--font-ui); font-style: normal; font-size: 12px; font-weight: 600; color: var(--accent-deep); }
+  .ac__notes .px-cue-tag { align-self: center; margin-right: 0; }
+
+  /* A phone keeps the drawing at its 440 units and scrolls it. */
+  @media (max-width: 1023px) {
+    .ac { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+    .ac__canvas { min-width: 440px; }
+  }
+</style>

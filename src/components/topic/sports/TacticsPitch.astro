@@ -1,26 +1,34 @@
 ---
 /**
- * TacticsPitch (sports) — a receding 3D football pitch. The pitch plane carries
- * the standard markings (touchlines, halfway, center circle, both penalty
- * boxes + 6-yard boxes) drawn as an SVG, sat on a fixed base `rotateX` (~52°)
- * inside a CSS-3D stage so it reads as a pitch viewed from behind a goal. The
- * global core/Tilt.astro `data-tilt` island adds a small pointer-tilt on top of
- * the base recline. Player markers (numbered disc + optional name) sit at their
- * x,y pitch coords; faint heat blobs glow under each. Markers rest in place
- * (static since Lens Phase 5; the build order arrives in Phase 6). Build-time
- * only; the only motion is CSS.
+ * TacticsPitch (sports) — a team's shape on a pitch seen from behind its own
+ * goal (Lens Phase 6, 2026-09-30; the board is Lib-tactics-pitch). The
+ * formation set at 48 with the team under it, a two-key legend, then the
+ * pitch drawn in perspective on paper (markings in hair-2, the own goal at
+ * the foot), the outfield block as one soft tint shape, each line of the team
+ * joined by a thin rule, and a disc per player: the shirt number (or the
+ * position code when there is none) in the disc, the surname under it.
  *
- * Markers always paint in their FINAL position.
- * The pitch + every marker is in the DOM regardless of JS.
+ * The pitch is an SVG of lines only; the discs and every word are an HTML
+ * layer over it, placed by percent and sized in real pixels, so the pitch
+ * scales to any width and the discs keep their size and 12px type. The
+ * CSS-3D recline and the pointer tilt are retired: the perspective is drawn.
  *
- * Coords: x,y in 0..100. x = pitch WIDTH (0 = left touchline, 100 = right),
- * y = pitch LENGTH (0 = own goal-line at the back, 100 = far/attacking line).
+ * Coords: x, y in 0..100. x = pitch WIDTH (0 = left touchline), y = pitch
+ * LENGTH (0 = own goal line, 100 = the far one).
  *
- * data: { players[]{ x, y, num?, name?, role? }, formation?, team?, caption?, source? }
+ * data: { players[]{ x, y, num?, name?, role? }, formation?, team? }
  *   num  — shirt number, shown in the disc
- *   name — surname shown in the chip below the disc (hidden under 560px)
- *   role — position code ("GK", "RB"); shown IN the disc when there is no
- *          `num`, and always in the marker's hover title
+ *   name — surname shown under the disc (hidden in a box under 360px)
+ *   role — position code ("GK", "RB"); in the disc when there is no `num`,
+ *          always in the marker's label; a GK disc is drawn in ink-2
+ *
+ * Cue anchors:
+ *   formation  the formation headline
+ *   shape      the outfield block
+ *   1..n       each player, in authored order
+ *
+ * The build (LENS §6.4): 1 the pitch, 2 the block fades and the lines draw,
+ * 3 the players drop, 4 the formation and the legend.
  */
 interface Player { x: number; y: number; num?: number | string; name?: string; role?: string; }
 interface Props {
@@ -30,240 +38,198 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { players = [], formation, team, caption, source } = Astro.props;
+const { players = [], formation, team } = Astro.props;
 
-const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v ?? 0));
-// Keep discs off the touchlines/goal-lines: a marker centred on x=0/100 or
-// y=0/100 would hang half a disc-width past the plane edge (and the recline
-// pushes the back line up against the top). Inset the placement band so the
-// whole disc — and the name chip under it — stays on the field.
-const PAD_X = 6;   // horizontal inset (disc ≈ 6% of the 520px plane)
-const PAD_Y = 6;   // vertical inset (also clears the reclined back edge)
-// Names collide in a tight line (a back four, a midfield three). Defensively
-// reduce to the last token (surname) so the chip is short; the CSS caps width
-// + truncates as a final guard, and chips are hidden under 560px.
+/* The pitch in perspective: the own goal line 420 units across at the foot,
+   the far line narrower and higher. y maps through a foreshortening curve so
+   the far half recedes. */
+const W = 440, H = 400, BOT = 368, TOPY = 26, K = 0.55;
+const wAt = (t: number) => 420 / (1 + K * t);
+const yAt = (t: number) => BOT - (BOT - TOPY) * ((t * (1 + K)) / (1 + K * t));
+const P = (x: number, y: number) => {
+  const t = Math.max(0, Math.min(1, y / 100));
+  return { x: W / 2 + (x / 100 - 0.5) * wAt(t), y: yAt(t) };
+};
+const f = (n: number) => n.toFixed(1);
+const poly = (pts: [number, number][]) => pts.map(([x, y]) => { const p = P(x, y); return `${f(p.x)},${f(p.y)}`; }).join(' ');
+/* An ellipse on the turf, traced as a polyline through the projection. */
+const ring = (cx: number, cy: number, rx: number, ry: number, a0 = 0, a1 = 360) =>
+  poly(Array.from({ length: 37 }, (_, k) => {
+    const a = ((a0 + ((a1 - a0) * k) / 36) * Math.PI) / 180;
+    return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)] as [number, number];
+  }));
+// markings, in pitch percent (68 x 105 m)
+const bx = (m: number) => (m / 68) * 100, by = (m: number) => (m / 105) * 100;
+const lines = [
+  poly([[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]]),
+  poly([[0, 50], [100, 50]]),
+  ring(50, 50, bx(9.15), by(9.15)),
+  poly([[50 - bx(20.16), 0], [50 - bx(20.16), by(16.5)], [50 + bx(20.16), by(16.5)], [50 + bx(20.16), 0]]),
+  poly([[50 - bx(9.16), 0], [50 - bx(9.16), by(5.5)], [50 + bx(9.16), by(5.5)], [50 + bx(9.16), 0]]),
+  poly([[50 - bx(20.16), 100], [50 - bx(20.16), 100 - by(16.5)], [50 + bx(20.16), 100 - by(16.5)], [50 + bx(20.16), 100]]),
+  poly([[50 - bx(9.16), 100], [50 - bx(9.16), 100 - by(5.5)], [50 + bx(9.16), 100 - by(5.5)], [50 + bx(9.16), 100]]),
+];
+const g0 = P(50 - bx(3.66), 0), g1 = P(50 + bx(3.66), 0);
+
 const surname = (name?: string) => {
   if (!name) return undefined;
   const t = name.trim().split(/\s+/);
   return t[t.length - 1] || name.trim();
 };
-// The disc carries the shirt number when there is one, and otherwise the
-// position code — which for a schematic shape (no squad named) is the ONLY
-// thing identifying a marker. Before 2026-09-15 `role` was declared and never
-// read, so a pitch authored with x/y/role alone painted eleven blank discs.
-const placed = (players || []).map((p, i) => ({
-  ...p,
-  short: surname(p.name),
-  label: [p.num, p.name, p.role].filter((v) => v != null && v !== '').join(' · ') || undefined,
-  left: clamp(p.x, PAD_X, 100 - PAD_X),
-  top: clamp(100 - clamp(p.y), PAD_Y, 100 - PAD_Y),
-  i,
-}));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v ?? 0));
+const placed = players.map((p, i) => {
+  const s = P(clamp(p.x, 4, 96), clamp(p.y, 3, 97));
+  const gk = /^gk$/i.test(String(p.role ?? '').trim());
+  return {
+    ...p, i, gk, sx: s.x, sy: s.y,
+    short: surname(p.name),
+    disc: p.num != null && p.num !== '' ? String(p.num) : (p.role ?? ''),
+    label: [p.num != null ? `No ${p.num}` : '', p.name, p.role].filter(Boolean).join(', '),
+  };
+});
+const field = placed.filter((p) => !p.gk);
+
+/* The block: the convex hull of the outfield players (monotone chain). */
+const hull = (() => {
+  const pts = field.map((p) => [p.sx, p.sy] as [number, number]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (pts.length < 3) return [];
+  const cr = (o: number[], a: number[], b: number[]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo: number[][] = [], up: number[][] = [];
+  for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of [...pts].reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  return [...lo.slice(0, -1), ...up.slice(0, -1)];
+})();
+/* The lines of the team: outfield players grouped by depth (a gap of more
+   than ten points of pitch length starts a new line), each joined across. */
+const bands: (typeof field)[] = [];
+for (const p of [...field].sort((a, b) => a.y - b.y)) {
+  const last = bands[bands.length - 1];
+  if (last && p.y - last[last.length - 1].y <= 10) last.push(p);
+  else bands.push([p]);
+}
+const joins = bands.filter((b) => b.length > 1).map((b) => [...b].sort((a, c) => a.sx - c.sx).map((p) => `${f(p.sx)},${f(p.sy)}`).join(' '));
+const pc = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>tactics</b></div>}
-
-  <div class="px-pitch px3d-stage">
-    <div class="px-pitch__tilt px3d-tilt" data-tilt="3">
-      <div class="px-pitch__plane">
-        <!-- pitch markings (drawn under the markers) -->
-        <svg class="px-pitch__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <!-- touchlines + goal-lines -->
-          <rect class="px-pitch__ln" x="2" y="2" width="96" height="96" />
-          <!-- halfway line -->
-          <line class="px-pitch__ln" x1="2" y1="50" x2="98" y2="50" />
-          <!-- center circle + spot -->
-          <ellipse class="px-pitch__ln" cx="50" cy="50" rx="13" ry="10" fill="none" />
-          <circle class="px-pitch__spot" cx="50" cy="50" r="0.9" />
-          <!-- top (attacking) penalty box + 6-yard + spot -->
-          <rect class="px-pitch__ln" x="26" y="2" width="48" height="16" />
-          <rect class="px-pitch__ln" x="38" y="2" width="24" height="6" />
-          <circle class="px-pitch__spot" cx="50" cy="13" r="0.9" />
-          <!-- bottom (own) penalty box + 6-yard + spot -->
-          <rect class="px-pitch__ln" x="26" y="82" width="48" height="16" />
-          <rect class="px-pitch__ln" x="38" y="92" width="24" height="6" />
-          <circle class="px-pitch__spot" cx="50" cy="87" r="0.9" />
-        </svg>
-
-        <!-- faint heat blobs under markers -->
-        {placed.map((p) => (
-          <span class="px-pitch__heat" style={`left:${p.left}%;top:${p.top}%`} aria-hidden="true"></span>
-        ))}
-
-        <!-- player markers -->
-        {placed.map((p) => (
-          <span class="px-pitch__mk" style={`left:${p.left}%;top:${p.top}%;--i:${p.i}`} title={p.label}>
-            <span class="px-pitch__disc" data-role={p.num == null && p.role ? 'true' : 'false'}>{p.num ?? p.role ?? ''}</span>
-            {p.short && <span class="px-pitch__name" title={p.name}>{p.short}</span>}
-          </span>
-        ))}
+<div class="px-viz px-pitch" data-build-scene>
+  {(formation || team) && (
+    <div class="px-pitch__head">
+      <div class="px-pitch__f" data-cue="formation" data-build="4">
+        {formation && <span class="px-pitch__big">{formation}</span>}
+        <span class="px-pitch__team"><span class="px-cue-tag" data-cue-tag="formation" hidden></span>{team ?? 'Formation'}</span>
+      </div>
+      <div class="px-pitch__key" data-build="4">
+        <span class="px-pitch__k"><i class="px-pitch__kd"></i>One player</span>
+        {hull.length > 2 && <span class="px-pitch__k"><i class="px-pitch__ks"></i>Block shape</span>}
       </div>
     </div>
+  )}
 
-    <div class="px-pitch__foot">
-      {team && <span class="px-pitch__team">{team}</span>}
-      {formation && <span class="px-pitch__form">{formation}</span>}
+  <div class="px-pitch__fig">
+    <svg class="px-pitch__svg" viewBox={`0 0 ${W} ${H}`} role="img"
+      aria-label={`${team ?? 'The team'}${formation ? `, ${formation}` : ''}: ${placed.map((p) => p.label).join('; ')}`}>
+      <g data-build="1" fill="none" stroke="var(--hair-2)" stroke-width="1.5" stroke-linejoin="round">
+        <polygon points={lines[0]} fill="var(--paper)" />
+        {lines.slice(1).map((d) => <polyline points={d} />)}
+        <rect x={f(g0.x)} y={BOT} width={f(g1.x - g0.x)} height="10" stroke="var(--ink-2)" />
+      </g>
+      {hull.length > 2 && (
+        <g data-cue="shape">
+          <polygon class="px-pitch__hull" points={hull.map(([x, y]) => `${f(x)},${f(y)}`).join(' ')} data-build="2" />
+        </g>
+      )}
+      {joins.map((d) => <polyline class="px-pitch__join" points={d} data-build="2" data-build-kind="draw" />)}
+    </svg>
+    <div class="px-pitch__layer">
+      {hull.length > 2 && (
+        <span class="px-pitch__tag" style={`left:${pc(Math.max(...hull.map((h) => h[0])) + 6, W)};top:${pc(hull.reduce((a, h) => a + h[1], 0) / hull.length, H)}`}><span class="px-cue-tag" data-cue-tag="shape" hidden></span></span>
+      )}
+      {placed.map((p) => (
+        <span class="px-pitch__mk" data-cue={p.i + 1} data-gk={p.gk ? 'true' : undefined} data-build="3" data-build-kind="drop"
+          style={`left:${pc(p.sx, W)};top:${pc(p.sy, H)}`} role="img" aria-label={p.label}>
+          <span class="px-pitch__disc">{p.disc}</span>
+          {p.short && <span class="px-pitch__name">{p.short}</span>}
+          <span class="px-pitch__mt"><span class="px-cue-tag" data-cue-tag={p.i + 1} hidden></span></span>
+        </span>
+      ))}
     </div>
   </div>
-
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
 
 <style>
-  /* --recline is the base pitch tilt; --counter is its negative so markers
-     stay flat-facing; --lift raises each marker off the turf so its lower
-     half is not buried in the plane once it stands up. --reclaim is the empty
-     band the recline leaves above the pitch (the transform never shrinks the
-     layout box), as a share of the width: measured 54% at 52° and 38–40% at
-     40°, less a little air. Single source of truth → mobile overrides
-     --recline / --reclaim (below) and every rule follows. */
-  .px-pitch {
-    width: 100%; max-width: 520px; margin: 0 auto;
-    --recline: 52deg; --counter: -52deg; --lift: 24px; --reclaim: 52%;
+  .px-pitch { container-type: inline-size; }
+  .px-pitch__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin-bottom: 8px; }
+  .px-pitch__f { display: flex; flex-direction: column; gap: 8px; }
+  .px-pitch__big {
+    font-family: var(--font-ui);
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
   }
-
-  /* The tilt wrapper carries ONLY the pointer tilt (core/Tilt writes --rx/--ry
-     via .px3d-tilt). The recline lives on the plane, because
-     components-3d.css resets `.px3d-tilt` to `transform: none` under
-     prefers-reduced-motion: with the recline here, reduced motion flattened
-     the pitch while the markers kept their counter-rotation, so every disc
-     and name printed at 62% height. The reclined pitch is the composed still,
-     not motion; only the pointer tilt is. The box is pulled up by --reclaim
-     so the pitch does not sit under a ~280px hole; it lets pointer events
-     through where it is empty, the plane takes them back. */
-  .px-pitch__tilt {
-    transform-origin: 50% 88%;
-    margin: calc(6px - var(--reclaim)) auto 30px;
-    pointer-events: none;
-  }
-
-  /* The pitch plane — green field with a subtle mow-stripe gradient. Reclined
-     here (see above), and a 3D context of its own so the counter-rotated
-     markers actually stand up: without preserve-3d they were flattened INTO
-     the plane first and then foreshortened with it — discs drawn as slivers
-     and names at ~40% height, in every mode. */
-  .px-pitch__plane {
-    transform: rotateX(var(--recline));
-    transform-origin: 50% 88%;
-    transform-style: preserve-3d;
-    pointer-events: auto;
-    position: relative;
-    width: 100%;
-    aspect-ratio: 68 / 100;            /* width : length (real pitch ratio) */
-    border-radius: 4px;
-    background:
-      repeating-linear-gradient(
-        0deg,
-        color-mix(in oklab, var(--accent) 6%, var(--paper)) 0,
-        color-mix(in oklab, var(--accent) 6%, var(--paper)) 9.9%,
-        color-mix(in oklab, var(--ink) 6%, var(--paper)) 10%,
-        color-mix(in oklab, var(--ink) 6%, var(--paper)) 19.9%
-      );
-    border: 1px solid var(--rule);
-    box-shadow: 0 30px 60px -34px color-mix(in oklab, var(--ink) 70%, transparent);
-  }
-
-  .px-pitch__lines {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    display: block;
-  }
-  .px-pitch__ln {
-    fill: none;
-    stroke: color-mix(in oklab, var(--ink) 22%, transparent);
-    stroke-width: 0.6;
-    vector-effect: non-scaling-stroke;
-  }
-  .px-pitch__spot { fill: color-mix(in oklab, var(--ink) 30%, transparent); }
-
-  /* Heat blob — soft accent glow under each marker. */
-  .px-pitch__heat {
-    position: absolute;
-    width: 64px; height: 64px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in oklab, var(--accent) 30%, transparent) 0%, transparent 68%);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* Player marker — counter-rotated so the disc faces the reader despite the
-     reclined plane (keeps numbers legible), lifted so none of it sinks below
-     the turf. */
+  .px-pitch__team { display: inline-flex; align-items: center; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--muted); }
+  .px-pitch__key { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .px-pitch__k { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 12px; line-height: 1.3; color: var(--muted); }
+  .px-pitch__kd { flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-deep); }
+  .px-pitch__ks { flex: none; width: 22px; height: 14px; border-radius: 7px; background: color-mix(in oklab, var(--accent) 28%, transparent); }
+  .px-pitch__fig { position: relative; }
+  .px-pitch__svg { display: block; width: 100%; height: auto; }
+  .px-pitch__hull { fill: var(--accent); fill-opacity: 0.2; stroke: var(--accent); stroke-opacity: 0.2; stroke-width: 40; stroke-linejoin: round; }
+  .px-pitch__join { fill: none; stroke: var(--ink-2); stroke-opacity: 0.6; stroke-width: 1.8; }
+  .px-pitch__layer { position: absolute; inset: 0; pointer-events: none; }
+  .px-pitch__tag { position: absolute; translate: 0 -50%; }
+  .px-pitch__tag .px-cue-tag { margin: 0; }
   .px-pitch__mk {
     position: absolute;
-    z-index: 2;
-    transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter));
-    transform-origin: 50% 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    /* resting = final visible state */
-    opacity: 1;
-    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease-snap);
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border-radius: 999px;
   }
   .px-pitch__disc {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700; font-size: 14px;
-    color: var(--bg);
-    background: var(--accent);
-    border: 1.5px solid color-mix(in oklab, var(--ink) 30%, var(--accent));
-    box-shadow: 0 4px 10px -3px color-mix(in oklab, var(--ink) 70%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    border: 2px solid var(--paper-2);
+    border-radius: 999px;
+    background: var(--accent-deep);
+    color: var(--paper-2);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  /* A position code is 2–3 letters where a number is 1–2 digits, so it needs
-     the narrower mono cut to sit inside the same 30px disc. */
-  .px-pitch__disc[data-role="true"] {
-    font-family: var(--font-mono);
-    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
-  }
+  .px-pitch__mk[data-gk] .px-pitch__disc { background: var(--ink-2); }
   .px-pitch__name {
-    font-family: var(--font-mono);
-    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; /* the 9.5px floor */
-    color: var(--ink);
-    /* the chip floats over the green field + heat glow — keep the paper
-       backing near-opaque so the surname stays legible on the pitch */
-    background: color-mix(in oklab, var(--paper) 94%, transparent);
-    padding: 1px 5px; border-radius: var(--r-pill);
-    white-space: nowrap;
-    /* final guard against a long surname colliding with a neighbour: cap the
-       chip and ellipsis the overflow (full name stays in the title attr). */
-    max-width: 84px;
+    position: absolute;
+    top: 31px;
+    left: 50%;
+    translate: -50% 0;
+    max-width: 96px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--paper-2) 85%, transparent);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--ink);
   }
-
-  .px-pitch__foot {
-    display: flex; align-items: baseline; justify-content: center; gap: 16px;
-    flex-wrap: wrap;
-  }
-  .px-pitch__team {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700; font-size: 18px; text-transform: uppercase;
-    letter-spacing: 0.02em; color: var(--ink);
-  }
-  .px-pitch__form {
-    font-family: var(--font-mono); font-size: 11px;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    color: var(--accent);
-    border: 1px solid var(--rule); border-radius: var(--r-pill);
-    padding: 4px 11px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* mobile: shrink the recline so the pitch reads on a small viewport. Only the
-     recline vars change — every marker rule reads --counter, so discs stay
-     flat-facing automatically. Names are hidden at this width to avoid
-     collisions. */
-  @media (max-width: 560px) {
-    .px-pitch { --recline: 40deg; --counter: -40deg; --reclaim: 36%; }
-    .px-pitch__disc { width: 26px; height: 26px; font-size: 12px; }
-    .px-pitch__disc[data-role="true"] { font-size: 9.5px; }
+  .px-pitch__mt { position: absolute; left: 24px; top: -14px; }
+  .px-pitch__mt .px-cue-tag { margin: 0; }
+  @container (max-width: 400px) {
     .px-pitch__name { display: none; }
-    .px-pitch__heat { width: 48px; height: 48px; }
   }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-pitch__big { font-size: 72px; } }
 </style>

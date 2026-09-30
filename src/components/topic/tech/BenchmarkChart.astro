@@ -1,28 +1,42 @@
 ---
 /**
- * BenchmarkChart — v2 horizontal comparison bars (.bc) inside the .px-viz
- * card, with an optional dashed reference line over the track grid. Faithful
- * port of the publication-v2 kit <BenchmarkChart>. Build-time, zero JS of its
- * own. THE BUILD (Lens Phase 5, LENS §6.4): the card is a
- * `data-build-scene`: 1 the axis (the row labels and the reference line)
- * fades in, 2 the bars grow from the left, 80ms apart, 3 the values rise,
- * 4 any annotation (src/scripts/build.ts). No JS or reduced motion: the chart
- * as drawn.
+ * BenchmarkChart — horizontal comparison bars (.bc) inside the .px-viz card,
+ * with an optional dashed reference line through every track and the largest
+ * value set large above them. Build-time, zero JS of its own.
  *
- * Use for: LLM benchmark scores, hardware performance, framework speed
- * comparisons, pricing tables.
+ * LENS PHASE 6 (2026-09-30, the board Lib-benchmark-chart): redrawn for the
+ * figure panel. The rows share ONE grid (a label column, the track, a value
+ * column sized to the widest value) through `subgrid`, so every track starts
+ * and ends on the same line and the reference line, its label and the
+ * annotations are placed by a percentage of the TRACK itself, never by a
+ * pixel sum of the other columns (which is what broke on a phone). Below
+ * 640px the label goes on its own line above its bar, so the track keeps
+ * the panel's width. Bars are the desk mark; where some items are
+ * highlighted, the others fall back to the desk tint. All of the kind's CSS
+ * lives here (the dataviz-v2.css block was retired in Phase 6).
+ *
+ * Cue anchors:
+ *   1..n   each item's row, numbered from 1 in DATA order (before the sort),
+ *          so an author counts from the list they wrote.
+ *   ref    the reference line and its label.
+ *   top    the largest value, the large number.
+ *
+ * THE BUILD (LENS §6.4): the card is the scene. 1 the labels and the
+ * reference fade in, 2 the bars grow from the left, 80ms apart, 3 the
+ * values rise, 4 any annotation, 5 the large number counts up
+ * (src/scripts/build.ts). No JS or reduced motion: the chart as drawn.
+ *
+ * Use for: benchmark scores, hardware performance, speed comparisons,
+ * penalties, any ranked set of one quantity.
  *
  * props:
  *   items[]   — { label, value, sublabel?, highlight?, color? }
- *               sublabel renders as a second line under the label, in the
- *               fixed 150px column (the track collapses on a phone; it does not)
  *   maxValue  — right-end of scale (default: auto from data × 1.05)
- *   unit      — caption unit chip (e.g. "tokens/s", "pts", "%")
+ *   unit      — the unit (the panel head prints it)
  *   refValue  — optional reference line value (e.g. human baseline)
  *   refLabel  — label for the reference line
  *   sortDesc  — sort items descending by value (default true)
- *   caption
- *   source
+ *   caption, source
  */
 interface Item {
   label: string;
@@ -61,23 +75,30 @@ const {
   refLabel,
   sortDesc = true,
   caption,
-  source,
 } = Astro.props;
 
-/* Cue anchors (LENS §5.2) are numbered in DATA order, before the sort, so an
-   author counts from the list they wrote: the first item is "1". */
+/* Cue anchors are numbered in DATA order, before the sort. */
 const numbered = items.map((it, k) => ({ ...it, cue: k + 1 }));
 const rows = sortDesc ? [...numbered].sort((a, b) => b.value - a.value) : numbered;
-// Honor an explicit maxValue; otherwise derive as the kit does (data peak × 1.05).
+// Honor an explicit maxValue; otherwise the data peak × 1.05.
 const dataMax = Math.max(refValue ?? 0, ...items.map((i) => i.value), 1) * 1.05;
 const max = maxValue ?? dataMax;
+const pct = (v: number) => Math.max(0, Math.min(100, (v / max) * 100));
 
 const hasRef = refValue != null;
+/* A highlight dims the other bars only when a highlighted bar is drawn: a
+   highlighted zero (the City issue's empty bar) leaves every bar in the mark. */
+const anyHl = items.some((i) => i.highlight && i.value > 0);
+
+/* The largest value is the figure's one large number. */
+const top = items.length ? numbered.reduce((a, b) => (b.value > a.value ? b : a)) : undefined;
+const topWhole = top ? Number.isInteger(top.value) : true;
+const fmt = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 // ── Annotations ─────────────────────────────────────────────────────────────
-// `at` is the item's LABEL (string). A label not in `items` is a silent no-op
-// (spec §2). The callout attaches to the end of that bar, on its own grid line
-// under the row, so it never fights the 150px / 1fr / 52px row geometry.
+// `at` is the item's LABEL. A label not in `items` is a silent no-op (spec
+// §2). The callout sits on its own line under its bar, starting at the bar's
+// end in the left half of the track and ending there in the right half.
 const annotFor = new Map<string, string[]>();
 for (const a of annotations ?? []) {   // `annotations:` with no items parses as null
   if (!a || !a.text) continue;
@@ -85,46 +106,36 @@ for (const a of annotations ?? []) {   // `annotations:` with no items parses as
   if (!rows.some((r) => r.label === label)) continue;
   annotFor.set(label, [...(annotFor.get(label) ?? []), a.text]);
 }
-// The track's own scale — the same expression the reference line is placed by,
-// so the dot lands exactly where `--w` ends.
-const TRACK = '(100% - 150px - 14px - 52px - 14px)';
-const barEnd = (v: number) => `calc(150px + 14px + ${TRACK} * ${(v / max).toFixed(4)})`;
-// Past half the scale the callout mirrors: right-aligned so it ENDS on the mark
-// rather than running off the card (the HTML twin of text-anchor="end"). The
-// min() floor keeps at least 140px of text column on a phone, where the row's
-// fixed 150px label column leaves the track only a sliver.
-const annotPad = (v: number) => {
-  const f = v / max;
-  return f > 0.5
-    ? `padding-right:min(calc(52px + 14px + ${TRACK} * ${(1 - f).toFixed(4)} + 8px), calc(100% - 140px));text-align:right`
-    : `padding-left:min(calc(150px + 14px + ${TRACK} * ${f.toFixed(4)} + 8px), calc(100% - 140px))`;
-};
+/* Place a label on the track at `p`%: from there rightwards in the left half,
+   ending there in the right half. Percent padding is of the track's width. */
+const place = (p: number) =>
+  p > 50 ? `padding-right:${(100 - p).toFixed(2)}%;text-align:right` : `padding-left:${p.toFixed(2)}%`;
 ---
 
-<div class="px-viz" data-build-scene>
+<div class="px-viz bc" data-build-scene data-anyhl={anyHl ? 'true' : undefined}>
   <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
-  {/* The reference label owns its own row between the caption and the bars,
-      in flow, so it can never ride up into the caption row or the unit chip
-      (it used to hang 28px above a zero-height box and printed into both:
-      the sports caption at 1280, the earth chip at 375, 2026-09-23). It
-      starts beside the line when the line sits in the left half of the
-      track and ends beside it in the right half — the annotation's own
-      placement rule — and it wraps rather than running past the card (the
-      value is bound to its separator by no-break spaces, so it never wraps
-      onto a line of its own). The
-      dashed tick drops from under the label to the first bar. */}
-  {hasRef && (
-    <div class="bc__ref" data-build="1" style={annotPad(refValue!)}>
-      <span class="bc__reflabel">{refLabel ? `${refLabel}\u00a0·\u00a0${refValue}` : refValue}</span>
-      <span class="bc__refline" style={`left:${barEnd(refValue!)}`}></span>
+  {top && (
+    <div class="bc__head" data-cue="top" style={`--ch:${fmt(top.value).length}`}>
+      <span class="px-cue-tag" data-cue-tag="top" hidden></span>
+      <span class="bc__big"><span data-build="5" data-build-kind="counter" data-to={top.value} data-format={topWhole ? 'int' : '1dp'}>{fmt(top.value)}</span></span>
+      <span class="bc__biglab">{top.label}</span>
     </div>
   )}
 
   <div
+    class="bc__rows"
     role="img"
     aria-label={caption ? `Benchmark comparison: ${caption}` : 'Benchmark comparison chart'}
   >
+    {hasRef && (
+      <div class="bc__ref" data-cue="ref" data-build="1">
+        <span class="bc__reflabel" style={place(pct(refValue!))}>
+          <span class="px-cue-tag" data-cue-tag="ref" hidden></span>{refLabel ? `${refLabel} · ${refValue}` : refValue}
+        </span>
+      </div>
+    )}
+
     {rows.map((it) => (
       <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'} data-cue={it.cue}>
         <span class="bc__label" data-build="1">
@@ -136,19 +147,155 @@ const annotPad = (v: number) => {
             class="bc__fill"
             data-build="2"
             data-build-kind="grow-x"
-            style={`--w:${(it.value / max) * 100}%${it.color ? `;background:${it.color}` : ''}`}
+            style={`width:${pct(it.value).toFixed(2)}%${it.color ? `;background:${it.color}` : ''}`}
           ></span>
+          {hasRef && <span class="bc__refline" style={`left:${pct(refValue!).toFixed(2)}%`}></span>}
         </span>
-        <span class="bc__val" data-build="3" data-build-kind="rise">{it.value}</span>
+        <span class="bc__val" data-build="3" data-build-kind="rise">{fmt(it.value)}</span>
         {(annotFor.get(it.label) ?? []).map((t) => (
-          <span class="bc__annot" data-build="4" style={`grid-column:1/-1;position:relative;display:block;padding-top:6px;${annotPad(it.value)}`}>
-            <span class="bc__annot-d" style={`position:absolute;left:${barEnd(it.value)};top:-17px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)`}></span>
-            <span class="bc__annot-l" style={`position:absolute;left:${barEnd(it.value)};top:-11px;width:1px;height:14px;margin-left:-0.5px;background:var(--rule)`}></span>
-            <span class="bc__annot-t vz-annot" style="display:block">{t}</span>
+          <span class="bc__annot" data-build="4" style={place(pct(it.value))}>
+            <span class="bc__annot-t vz-annot">{t}</span>
           </span>
         ))}
       </div>
     ))}
   </div>
-
 </div>
+
+<style>
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .bc__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .bc__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .bc__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .bc__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .bc__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .bc__biglab {
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+
+  /* ONE grid for every row: the tracks share their start and end lines. */
+  .bc__rows {
+    display: grid;
+    grid-template-columns: [lab] minmax(96px, 34%) [trk] minmax(0, 1fr) [val] max-content [end];
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+  .bc__row,
+  .bc__ref {
+    grid-column: lab / end;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    row-gap: 6px;
+  }
+  .bc__label {
+    grid-column: lab;
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--ink-2);
+  }
+  .bc__row[data-hl='true'] .bc__label { color: var(--accent-deep); font-weight: 600; }
+  /* The bar's second line, in the label column. Not `__cap`/`__src`: story.css
+     hides those inside a beat (AGENTS.md §7). */
+  .bc__sub {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .bc__track {
+    grid-column: trk;
+    position: relative;
+    height: 20px;
+    background: var(--paper-3);
+    border-radius: 3px;
+  }
+  .bc__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+    border-radius: 3px;
+    transform-origin: left center;
+  }
+  /* Some items highlighted: those keep the mark, the rest take the tint. */
+  .bc[data-anyhl] .bc__row[data-hl='false'] .bc__fill {
+    background: color-mix(in oklab, var(--accent) 38%, var(--paper-2));
+  }
+  .bc__refline {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    margin-left: -1px;
+    border-left: 2px dashed var(--ink-2);
+    pointer-events: none;
+  }
+  .bc__val {
+    grid-column: val;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .bc__ref { margin-bottom: -4px; }
+  .bc__reflabel {
+    grid-column: trk;
+    display: block;
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .bc__annot {
+    grid-column: trk / end;
+    display: block;
+    min-width: 0;
+  }
+  .bc__annot-t { display: block; }
+
+  /* Phones: the label takes its own line, so the track keeps the width. */
+  @media (max-width: 640px) {
+    .bc__rows { grid-template-columns: [lab trk] minmax(0, 1fr) [val] max-content [end]; column-gap: 10px; }
+    .bc__label { grid-column: lab / end; }
+    .bc__track, .bc__reflabel { grid-column: trk; }
+    .bc__annot { grid-column: trk / end; }
+  }
+  @media (max-width: 640px) {
+    .bc__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
+  }
+</style>

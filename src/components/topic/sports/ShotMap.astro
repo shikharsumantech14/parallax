@@ -1,227 +1,178 @@
 ---
 /**
- * ShotMap (sports) — shots fired toward a goal. The goal frame + penalty-area
- * arc sit at the top of a vertical attacking-third plane; each shot is a circle
- * with radius proportional to its xG and a treatment by outcome (goal = accent
- * fill + ring, saved = outline, miss = faint with a drawn ✕, blocked = muted). A
- * faint 3D goal frame floats on a CSS-3D stage above the flat, readable shot
- * plane. Circles rest in place (static since Lens Phase 5; their build order
- * arrives in Phase 6); hovering a shot scales it and surfaces its xG via a
- * native <title>. A small legend + a goals/xG summary sit below. Build-time
- * only; the only motion is CSS.
+ * ShotMap (sports) — every shot at the spot it was taken from (Lens Phase 6,
+ * 2026-09-30; the board is Lib-shot-map). The goals set at 48 over the
+ * figure; the attacking third drawn on paper, goal at the top, with the
+ * penalty box, the six-yard box, the spot and the arc; one circle per shot,
+ * its area in proportion to its xG, its treatment by outcome: a goal filled
+ * in the desk text ink, a save on the tint with a mark edge, a miss dashed,
+ * a block on hair with a drawn cross (two strokes, never a glyph). One legend
+ * row with the counts.
  *
- * Shots always paint in their FINAL state. Every shot + its <title> is in
- * the DOM regardless of JS.
+ * The drawing carries NO text: the three pitch words and the cue numerals are
+ * an HTML layer over it, placed by percent and sized in real pixels, so they
+ * print at 12px at any width and the pitch scales freely (it never scrolls on
+ * a phone). The CSS-3D goal tilt and the hover scale are retired.
  *
- * Coords: x,y in 0..100 of the attacking-third / goal-mouth area. x = width
- * (0 = left post side, 100 = right), y = depth (0 = on the goal-line, 100 =
- * edge of the third furthest from goal).
+ * Coords: x, y in 0..100 of the attacking third. x across the pitch (0 = the
+ * left touchline), y the depth from the goal line (0) to the edge of the
+ * third (100), a third being 35 m deep on a 68 m pitch; the drawing is
+ * cropped to the depth the shots use (24 m at the least).
  *
- * data: { shots[]{ x, y, xg, outcome }, caption?, source? }
+ * Cue anchors:
+ *   goals   the headline count and every goal circle
+ *   box     the penalty box
+ *   1..n    each shot, in authored order
+ *
+ * The build (LENS §6.4): 1 the pitch and its words, 2 the shots drop, 3 the
+ * legend, 4 the goals count up.
  */
 type Outcome = 'goal' | 'saved' | 'miss' | 'blocked';
 interface Shot { x: number; y: number; xg: number; outcome: Outcome; }
 interface Props { shots: Shot[]; caption?: string; source?: string; }
-const { shots = [], caption, source } = Astro.props;
+const { shots = [] } = Astro.props;
 
-// ── viewBox ─────────────────────────────────────────────────────────────────
-const W = 360, H = 300;
-const padX = 24;
-const goalY = 30;                 // y of the goal-line inside the viewBox
-const fieldTop = goalY;
-const fieldBot = H - 18;
-const fieldL = padX, fieldR = W - padX;
-const fieldW = fieldR - fieldL;
-const fieldH = fieldBot - fieldTop;
+/* The third: 68 m across and 35 m deep (y = 100). The drawing is cropped
+   to the depth the shots use, 24 m at the least, so a cluster in the box is
+   not left above an empty half. 420 units across. */
+const clamp = (v: number) => Math.max(0, Math.min(100, v ?? 0));
+const DEPTH = Math.min(35, Math.max(24, (Math.max(0, ...shots.map((s) => clamp(s.y))) / 100) * 35 + 4));
+const W = 440, M = 10, PW = W - 2 * M, PD = (PW * DEPTH) / 68, TOP = 22, H = TOP + PD + M;
+const X = (m: number) => M + (m / 68) * PW;            // metres across → units
+const Y = (m: number) => TOP + (m / DEPTH) * PD;       // metres deep → units
+const f = (n: number) => n.toFixed(1);
+const cx = X(34);
+const box = { x1: X(34 - 20.16), x2: X(34 + 20.16), y: Y(16.5) };
+const six = { x1: X(34 - 9.16), x2: X(34 + 9.16), y: Y(5.5) };
+const spot = Y(11);
+const goal = { x1: X(34 - 3.66), x2: X(34 + 3.66) };
+/* The arc: the part of the 9.15 m circle round the spot outside the box. */
+const R915 = (9.15 / 35) * PD;
+const dy = box.y - spot;
+const half = Math.sqrt(Math.max(0, R915 * R915 - dy * dy));
+const arc = `M ${f(cx - half)} ${f(box.y)} A ${f(R915)} ${f(R915)} 0 0 0 ${f(cx + half)} ${f(box.y)}`;
 
-const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v ?? 0));
-// pitch coord → svg point. y grows DOWN-field (away from goal) in data; on
-// screen the goal sits at top, so depth maps directly downward.
-const sx = (x: number) => fieldL + (clamp(x) / 100) * fieldW;
-const sy = (y: number) => fieldTop + (clamp(y) / 100) * fieldH;
-
-// goal frame geometry (centered on the goal-line)
-const goalW = 96, goalH = 18;
-const goalL = W / 2 - goalW / 2;
-const goalR = W / 2 + goalW / 2;
-
-// penalty-area arc — a shallow curve bowing down toward midfield
-const arcY = fieldTop + fieldH * 0.46;
-const arcPath = `M ${fieldL + fieldW * 0.16} ${fieldTop} ` +
-  `C ${fieldL + fieldW * 0.16} ${arcY} ${fieldR - fieldW * 0.16} ${arcY} ${fieldR - fieldW * 0.16} ${fieldTop}`;
-
-// radius ∝ xg (xg in 0..1). floor so a near-zero xg is still visible.
-const rOf = (xg: number) => 5 + Math.sqrt(Math.max(0, Math.min(1, xg ?? 0))) * 16;
-
-// Keep each circle (incl. the goal-ring halo at r+3.5) inside the viewBox so a
-// big near-edge shot doesn't poke past the frame. Clamp toward the viewBox
-// edges, not the field box — a tap-in right on the goal-line keeps its cy.
-const clampC = (v: number, r: number, lo: number, hi: number) =>
-  Math.max(lo + r, Math.min(hi - r, v));
-const placed = (shots || []).map((s, i) => {
+const rOf = (xg: number) => 4 + Math.sqrt(Math.max(0, Math.min(1, xg ?? 0))) * 11;
+const placed = shots.map((s, i) => {
   const r = rOf(s.xg);
-  const halo = r + 4;       // goal-ring radius for goals; safe for all
-  return {
-    ...s,
-    r,
-    cx: clampC(sx(s.x), halo, 0, W),
-    cy: clampC(sy(s.y), halo, 0, H),
-    xgTxt: (Math.max(0, Math.min(1, s.xg ?? 0))).toFixed(2),
-    i,
-  };
+  const x = Math.max(r + 2, Math.min(W - r - 2, M + (clamp(s.x) / 100) * PW));
+  const y = Math.max(TOP + r, Math.min(H - r - 2, Y((clamp(s.y) / 100) * 35)));
+  return { ...s, i, r, x, y, xgTxt: Math.max(0, Math.min(1, s.xg ?? 0)).toFixed(2) };
 });
-
-/* The miss marker is DRAWN, not typed (2026-09-30). It was a "✕" glyph at
-   10px, which is text: on a 375 phone the 360-unit viewBox scales to about
-   0.8 and the glyph printed at 8.1px, under the render gate's 9.5px floor and
-   LENS's 12px one. A mark is not a label, so it is two strokes, sized in
-   viewBox units like the circle it sits in, with the same paper halo. */
-const X_ARM = 3.6;
+const ARM = 3.4;
+const cross = (x: number, y: number) =>
+  `M ${f(x - ARM)} ${f(y - ARM)} L ${f(x + ARM)} ${f(y + ARM)} M ${f(x + ARM)} ${f(y - ARM)} L ${f(x - ARM)} ${f(y + ARM)}`;
 
 const OUTS: { key: Outcome; label: string }[] = [
   { key: 'goal', label: 'Goal' },
   { key: 'saved', label: 'Saved' },
-  { key: 'blocked', label: 'Blocked' },
   { key: 'miss', label: 'Off target' },
+  { key: 'blocked', label: 'Blocked' },
 ];
-const activeOuts = OUTS.filter((o) => placed.some((s) => s.outcome === o.key));
-
-const goals = placed.filter((s) => s.outcome === 'goal').length;
+const count = (k: Outcome) => placed.filter((s) => s.outcome === k).length;
+const goals = count('goal');
 const totXg = placed.reduce((a, s) => a + Math.max(0, Math.min(1, s.xg ?? 0)), 0);
-const shotCount = placed.length;
+const pc = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const others = placed.filter((s) => s.outcome !== 'goal').sort((a, b) => b.r - a.r);
+const goalShots = placed.filter((s) => s.outcome === 'goal').sort((a, b) => b.r - a.r);
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>shot map</b></div>}
+<div class="px-viz px-shot" data-build-scene>
+  <div class="px-shot__head" data-cue="goals">
+    <span class="px-shot__big" data-build="4" data-build-kind="counter" data-to={goals}>{goals}</span>
+    <span class="px-shot__big-l"><span class="px-cue-tag" data-cue-tag="goals" hidden></span>{goals === 1 ? 'goal' : 'goals'} from {placed.length} shots · {totXg.toFixed(2)} xG</span>
+  </div>
 
-  <div class="px-shot px3d-stage">
-    <svg
-      class="px-shot__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Shot map: ${caption}` : 'Shot map'}
-    >
-      <!-- pitch markings -->
-      <line class="px-shot__ln" x1={fieldL} y1={fieldTop} x2={fieldR} y2={fieldTop} />
-      <path class="px-shot__ln" d={arcPath} fill="none" />
-
-      <!-- faint 3D goal frame (tilts with the pointer; purely decorative) -->
-      <g class="px-shot__goal px3d-tilt" data-tilt="6" style={`transform-origin:${W / 2}px ${goalY}px`}>
-        <line class="px-shot__post" x1={goalL} y1={goalY} x2={goalL} y2={goalY - goalH} />
-        <line class="px-shot__post" x1={goalR} y1={goalY} x2={goalR} y2={goalY - goalH} />
-        <line class="px-shot__post" x1={goalL} y1={goalY - goalH} x2={goalR} y2={goalY - goalH} />
-        <line class="px-shot__net" x1={goalL} y1={goalY} x2={goalR} y2={goalY} />
+  <div class="px-shot__fig">
+    <svg class="px-shot__svg" viewBox={`0 0 ${W} ${f(H)}`} role="img"
+      aria-label={`Shot map: ${placed.length} shots, ${goals} ${goals === 1 ? 'goal' : 'goals'}, ${totXg.toFixed(2)} expected goals`}>
+      <g data-build="1">
+        <rect x={M} y={TOP} width={PW} height={f(PD)} fill="var(--paper)" stroke="var(--hair-2)" stroke-width="1.5" />
+        <polyline points={`${f(six.x1)},${TOP} ${f(six.x1)},${f(six.y)} ${f(six.x2)},${f(six.y)} ${f(six.x2)},${TOP}`} fill="none" stroke="var(--hair-2)" stroke-width="1.5" />
+        <path d={arc} fill="none" stroke="var(--hair-2)" stroke-width="1.5" />
+        <circle cx={f(cx)} cy={f(spot)} r="2.5" fill="var(--hair-2)" />
+        <rect x={f(goal.x1)} y={TOP - 12} width={f(goal.x2 - goal.x1)} height="12" fill="none" stroke="var(--ink-2)" stroke-width="2" />
       </g>
-
-      <!-- shots -->
-      <g class="px-shot__pts">
-        {placed.map((s) => (
-          <g class="px-shot__pt" data-out={s.outcome} style={`--i:${s.i}`}>
-            <circle class="px-shot__c" cx={s.cx.toFixed(1)} cy={s.cy.toFixed(1)} r={s.r.toFixed(1)}>
-              <title>{s.outcome} · xG {s.xgTxt}</title>
-            </circle>
-            {s.outcome === 'goal' && (
-              <circle class="px-shot__ring" cx={s.cx.toFixed(1)} cy={s.cy.toFixed(1)} r={(s.r + 3.5).toFixed(1)} />
-            )}
-            {s.outcome === 'miss' && (() => {
-              const d = `M ${(s.cx - X_ARM).toFixed(1)} ${(s.cy - X_ARM).toFixed(1)} L ${(s.cx + X_ARM).toFixed(1)} ${(s.cy + X_ARM).toFixed(1)} M ${(s.cx + X_ARM).toFixed(1)} ${(s.cy - X_ARM).toFixed(1)} L ${(s.cx - X_ARM).toFixed(1)} ${(s.cy + X_ARM).toFixed(1)}`;
-              return (
-                <g class="px-shot__x" aria-hidden="true">
-                  <path class="px-shot__x-halo" d={d} />
-                  <path class="px-shot__x-mark" d={d} />
-                </g>
-              );
-            })()}
+      <polyline data-cue="box" data-build="1" points={`${f(box.x1)},${TOP} ${f(box.x1)},${f(box.y)} ${f(box.x2)},${f(box.y)} ${f(box.x2)},${TOP}`} fill="none" stroke="var(--hair-2)" stroke-width="1.5" />
+      {others.map((s) => (
+        <g class="px-shot__pt" data-out={s.outcome} data-cue={s.i + 1} data-build="2" data-build-kind="drop">
+          <circle class="px-shot__c" cx={f(s.x)} cy={f(s.y)} r={f(s.r)}><title>{s.outcome} · xG {s.xgTxt}</title></circle>
+          {s.outcome === 'blocked' && <path class="px-shot__x" d={cross(s.x, s.y)} />}
+        </g>
+      ))}
+      {/* The goals draw last, so a big goal circle never hides a small attempt
+          under it, and they share a wrapper: the `goals` anchor. */}
+      <g data-cue="goals">
+        {goalShots.map((s) => (
+          <g class="px-shot__pt" data-out="goal" data-cue={s.i + 1} data-build="2" data-build-kind="drop">
+            <circle class="px-shot__c" cx={f(s.x)} cy={f(s.y)} r={f(s.r)}><title>goal · xG {s.xgTxt}</title></circle>
           </g>
         ))}
       </g>
     </svg>
-
-    <div class="px-shot__legend">
-      {activeOuts.map((o) => (
-        <span class="px-shot__key" data-out={o.key}><i></i>{o.label}</span>
+    <div class="px-shot__layer" aria-hidden="true">
+      <span class="px-shot__w" data-build="1" style={`left:${pc(goal.x2 + 8, W)};top:${pc(TOP - 6, H)}`}>Goal</span>
+      <span class="px-shot__w" data-build="1" style={`left:${pc(box.x1 + 6, W)};top:${pc(box.y + 12, H)}`}><span class="px-cue-tag" data-cue-tag="box" hidden></span>Penalty box</span>
+      {placed.map((s) => (
+        <span class="px-shot__tag" style={`left:${pc(s.x + s.r * 0.7, W)};top:${pc(s.y - s.r * 0.7, H)}`}><span class="px-cue-tag" data-cue-tag={s.i + 1} hidden></span></span>
       ))}
-      <span class="px-shot__sum">{shotCount} shots · {goals} {goals === 1 ? 'goal' : 'goals'} · {totXg.toFixed(2)} xG</span>
     </div>
   </div>
 
+  <div class="px-shot__legend" data-build="3">
+    {OUTS.filter((o) => count(o.key) > 0).map((o) => (
+      <span class="px-shot__key" data-out={o.key}><i></i>{o.label} · {count(o.key)}</span>
+    ))}
+    <span class="px-shot__key">Size shows xG</span>
+  </div>
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
 
 <style>
-  .px-shot { width: 100%; max-width: 440px; margin: 0 auto; }
-  .px-shot__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  .px-shot__ln {
-    stroke: color-mix(in oklab, var(--ink) 26%, transparent);
-    stroke-width: 1.5;
-    stroke-linecap: round;
+  .px-shot__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+  .px-shot__big {
+    font-family: var(--font-ui);
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
   }
-
-  /* goal frame — faint, decorative, pointer-tilts */
-  .px-shot__post { stroke: var(--ink-soft); stroke-width: 2.5; stroke-linecap: round; }
-  .px-shot__net {
-    stroke: color-mix(in oklab, var(--ink) 18%, transparent);
-    stroke-width: 6; stroke-linecap: round;
+  .px-shot__big-l { display: inline-flex; align-items: center; min-width: 0; font-family: var(--font-ui); font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+  .px-shot__big-l .px-cue-tag { margin-right: 8px; }
+  .px-shot__fig { position: relative; }
+  .px-shot__svg { display: block; width: 100%; height: auto; }
+  .px-shot__layer { position: absolute; inset: 0; pointer-events: none; }
+  .px-shot__w {
+    position: absolute;
+    translate: 0 -50%;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
   }
-
-  /* shots — resting = final visible state */
-  .px-shot__pt {
-    transform: scale(1);
-    transform-box: fill-box;
-    transform-origin: center;
-    opacity: 1;
-    transition: transform var(--t-quick) var(--ease-snap), opacity var(--t-soft) var(--ease);
-  }
-  .px-shot__c { stroke-width: 2; transition: transform var(--t-quick) var(--ease-snap); }
-  .px-shot__pt:hover { transform: scale(1.18); }
-
-  /* outcome treatments */
-  .px-shot__pt[data-out="goal"] .px-shot__c { fill: var(--accent); stroke: var(--accent); }
-  .px-shot__ring { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.7; }
-
-  .px-shot__pt[data-out="saved"] .px-shot__c {
-    fill: color-mix(in oklab, var(--ink) 8%, transparent);
-    stroke: var(--ink-soft);
-  }
-  .px-shot__pt[data-out="blocked"] .px-shot__c {
-    fill: color-mix(in oklab, var(--muted) 40%, transparent);
-    stroke: var(--muted);
-  }
-  .px-shot__pt[data-out="miss"] .px-shot__c {
-    fill: none;
-    stroke: color-mix(in oklab, var(--muted) 70%, transparent);
-    stroke-dasharray: 2.5 2.5;
-  }
-  /* the ✕ sits inside a miss circle over the shot plane: a paper halo under
-     the mark keeps it crisp against the dashed outline and any overlap */
-  .px-shot__x { pointer-events: none; }
-  .px-shot__x path { fill: none; stroke-linecap: round; }
-  .px-shot__x-halo { stroke: var(--paper); stroke-width: 4.5; }
-  .px-shot__x-mark { stroke: var(--muted); stroke-width: 1.8; }
-
-  .px-shot__legend {
-    display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
-    margin-top: 18px;
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
-  }
-  .px-shot__key { display: inline-flex; align-items: center; gap: 8px; }
-  .px-shot__key i { width: 13px; height: 13px; border-radius: 50%; display: inline-block; }
-  .px-shot__key[data-out="goal"] i { background: var(--accent); }
-  .px-shot__key[data-out="saved"] i { background: color-mix(in oklab, var(--ink) 8%, transparent); border: 2px solid var(--ink-soft); }
-  .px-shot__key[data-out="blocked"] i { background: var(--muted); }
-  .px-shot__key[data-out="miss"] i { background: transparent; border: 2px dashed color-mix(in oklab, var(--muted) 70%, transparent); }
-  /* summary readout — display serif so the goal/xG figures carry the in-viz
-     value voice rather than reading as another mono legend chip */
-  .px-shot__sum {
-    margin-left: auto;
-    font-family: var(--font-display); font-weight: 500;
-    font-size: 13.5px; letter-spacing: -0.005em; text-transform: none;
-    color: var(--ink-soft); font-variant-numeric: tabular-nums;
-  }
-
-  @media (max-width: 560px) {
-    .px-shot__sum { margin-left: 0; flex-basis: 100%; }
-  }
+  .px-shot__w .px-cue-tag { margin-right: 6px; }
+  .px-shot__tag { position: absolute; translate: -2px -18px; }
+  .px-shot__tag .px-cue-tag { margin: 0; }
+  .px-shot__c { stroke-width: 1.5; }
+  .px-shot__pt[data-out='goal'] .px-shot__c { fill: var(--accent-deep); fill-opacity: 0.92; stroke: var(--paper-2); }
+  .px-shot__pt[data-out='saved'] .px-shot__c { fill: color-mix(in oklab, var(--accent) 40%, var(--paper-2)); stroke: var(--accent); }
+  .px-shot__pt[data-out='miss'] .px-shot__c { fill: none; stroke: var(--muted); stroke-dasharray: 3 2; }
+  .px-shot__pt[data-out='blocked'] .px-shot__c { fill: var(--hair); stroke: var(--ink-2); }
+  .px-shot__x { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; }
+  .px-shot__legend { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 14px; }
+  .px-shot__key { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 12px; line-height: 1.3; color: var(--muted); }
+  .px-shot__key i { flex: none; box-sizing: border-box; width: 13px; height: 13px; border-radius: 50%; }
+  .px-shot__key[data-out='goal'] i { background: var(--accent-deep); }
+  .px-shot__key[data-out='saved'] i { background: color-mix(in oklab, var(--accent) 40%, var(--paper-2)); border: 1.5px solid var(--accent); }
+  .px-shot__key[data-out='miss'] i { border: 1.5px dashed var(--muted); }
+  .px-shot__key[data-out='blocked'] i { background: var(--hair); border: 1.5px solid var(--ink-2); }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-shot__big { font-size: 72px; } }
 </style>

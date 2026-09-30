@@ -1,193 +1,132 @@
 ---
 /**
- * BillPassage (politics) — a horizontal sequence of legislative-stage cards on
- * a shallow 3D plane. The connecting track runs behind a row of stage cards;
- * each card carries a status treatment (passed / current / failed / pending)
- * and rests in its final place (static since Lens Phase 5; the build order
- * arrives in Phase 6). Build-time only; the global core/Tilt.astro `data-tilt`
- * island supplies the pointer-tilt, everything else is CSS.
+ * BillPassage (politics) — one bill, stage by stage. Lens Phase 6
+ * (2026-09-30), to the Lib-bill-passage board: a headline number at 96, then
+ * the stages as a column of rows, each with its status drawn as a glyph (a
+ * filled check for passed, a ring for the stage it sits at now, a crossed ring
+ * on a tinted, dashed row for a stage that failed or never happened, a dashed
+ * clock for one still to come), the stage name, its date on the right and its
+ * note under the name.
  *
- * The cards always paint in their FINAL position. The status dot + glyph +
- * text label carry the meaning without animation.
+ * The board's number was one issue's own fact ("45 minutes of debate"). A
+ * component cannot know that, so it sets the count it CAN derive: how many of
+ * the stages the bill has cleared. The 3D tilt of the old card track is gone:
+ * a hover never moves layout (LENS §6.5).
+ *
+ * Cue anchors (LENS §5.2): each stage row is `data-cue="<n>"`, numbered from 1
+ * in DATA order; `cleared` is the headline number.
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the rows drop in, 80ms apart,
+ * 2 the status glyphs fade in, 3 the number counts up. No JS or reduced
+ * motion: every stage as drawn.
  *
  * data: { stages[]{ label, status, date?, note? }, caption?, source? }
  */
 type Status = 'passed' | 'failed' | 'pending' | 'current';
 interface Stage { label: string; status: Status; date?: string; note?: string; }
 interface Props { stages: Stage[]; caption?: string; source?: string; }
-const { stages = [], caption, source } = Astro.props;
+const { stages = [] } = Astro.props;
 
-const glyph: Record<Status, string> = {
-  passed: '✓',
-  failed: '✕',
-  current: '◆',
-  pending: '',
-};
+const cleared = stages.filter((s) => s.status === 'passed').length;
+const WORD: Record<Status, string> = { passed: 'Passed', failed: 'Failed', current: 'Now', pending: 'Pending' };
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>passage</b></div>}
-
-  <div class="px-billp px3d-stage">
-    <div class="px-billp__row px3d-tilt" data-tilt="5">
-      <div class="px-billp__track" aria-hidden="true"></div>
-      {stages.map((s, i) => (
-        <div class="px-billp__stage" data-status={s.status} style={`--i:${i}`}>
-          <span class="px-billp__dot">{glyph[s.status]}</span>
-          <div class="px-billp__card">
-            {s.date && <div class="px-billp__date">{s.date}</div>}
-            <div class="px-billp__label">{s.label}</div>
-            {s.note && <div class="px-billp__note">{s.note}</div>}
-            <div class="px-billp__status">{s.status}</div>
-          </div>
-        </div>
-      ))}
-    </div>
+<div class="px-billp" data-viz-root data-build-scene>
+  <div class="px-billp__head" data-cue="cleared">
+    <span class="px-billp__big" data-build="3" data-build-kind="counter" data-to={cleared}>{cleared}</span>
+    <span class="px-billp__big-u"><span class="px-cue-tag" data-cue-tag="cleared" hidden></span>of {stages.length} stages cleared</span>
   </div>
 
+  <ol class="px-billp__list">
+    {stages.map((s, i) => (
+      <li class="px-billp__row" data-status={s.status} data-cue={i + 1} data-build="1" data-build-kind="drop">
+        <span class="px-billp__glyph" data-build="2" aria-hidden="true">
+          {s.status === 'passed' && (
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" class="g-fill" /><path d="M7 12.5l3.2 3.2L17 9" class="g-tick" /></svg>
+          )}
+          {s.status === 'failed' && (
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" class="g-ring" /><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" class="g-x" /></svg>
+          )}
+          {s.status === 'current' && (
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" class="g-ring" /><circle cx="12" cy="12" r="5" class="g-dot" /></svg>
+          )}
+          {s.status === 'pending' && (
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" class="g-dash" /><path d="M12 7v5.5l3.5 2" class="g-hand" /></svg>
+          )}
+        </span>
+        <span class="px-billp__main">
+          <span class="px-billp__label">{s.label}</span>
+          {s.note && <span class="px-billp__note">{s.note}</span>}
+        </span>
+        <span class="px-billp__meta">
+          <span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>
+          <span>{s.date ?? WORD[s.status]}</span>
+        </span>
+      </li>
+    ))}
+  </ol>
 </div>
 
 <style>
-  /* The box decides, not the screen (Lens Phase 3, 2026-09-30): in the 520px
-     figure panel on a 1280 screen the viewport rule never fired and a stage
-     card crossed the column by 55px. `.px-billp` is a size container, and
-     under 640px of its OWN width the stages stack into the vertical list. */
-  .px-billp { width: 100%; container-type: inline-size; }
+  .px-billp { display: flex; flex-direction: column; gap: 18px; min-width: 0; font-family: var(--font-ui); }
+  .px-billp__head { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+  .px-billp__big {
+    font-size: 96px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--accent-deep);
+  }
+  .px-billp__big-u { display: inline-flex; align-items: center; padding-bottom: 6px; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+
+  .px-billp__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
   .px-billp__row {
-    position: relative;
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 14px;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
     align-items: start;
-    /* extra side padding gives the outer cards room under the 3D tilt + the
-       dot's 4px paper ring + card shadow, so neither clips the card edge */
-    padding: 26px 12px 8px;
+    column-gap: 14px;
+    padding: 12px 14px;
+    border-radius: var(--r-card, 6px);
+    background: var(--paper-3);
+    border: 1px solid var(--hair);
   }
+  .px-billp__row[data-status='failed'] { background: var(--accent-tint); border: 1px dashed var(--accent); }
+  .px-billp__row[data-status='current'] { background: var(--paper-2); border-color: var(--accent); }
+  .px-billp__row[data-status='pending'] { background: var(--paper-2); }
 
-  /* connecting track behind the dots */
-  .px-billp__track {
-    position: absolute;
-    /* dot center = row padding-top (26px) + half the 30px dot = 41px */
-    top: 41px;
-    left: 8%;
-    right: 8%;
-    height: 2px;
-    background: repeating-linear-gradient(
-      90deg,
-      var(--rule), var(--rule) 6px,
-      transparent 6px, transparent 12px
-    );
-    z-index: 0;
-  }
+  .px-billp__glyph { display: block; width: 24px; height: 24px; }
+  .px-billp__glyph svg { display: block; width: 24px; height: 24px; }
+  .g-fill { fill: var(--accent); }
+  .g-tick { fill: none; stroke: var(--paper); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .g-ring { fill: none; stroke: var(--accent-deep); stroke-width: 1.6; }
+  .g-x { fill: none; stroke: var(--accent-deep); stroke-width: 1.8; stroke-linecap: round; }
+  .g-dot { fill: var(--accent); }
+  .g-dash { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 2.5 2.5; }
+  .g-hand { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-  .px-billp__stage {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
+  .px-billp__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 2px; }
+  .px-billp__label { font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+  .px-billp__note { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+  .px-billp__meta {
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
-    /* base/resting = final visible state (no-JS safe) */
-    opacity: 1;
-    transform: none;
-    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+    justify-content: flex-end;
+    padding-top: 2px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
+  .px-billp__meta .px-cue-tag { margin-right: 8px; }
+  .px-billp__row[data-status='failed'] .px-billp__meta { color: var(--accent-deep); }
+  .px-billp__row[data-status='pending'] .px-billp__meta,
+  .px-billp__row[data-status='pending'] .px-billp__label { color: var(--muted); }
 
-  .px-billp__dot {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
-    background: color-mix(in oklab, var(--ink) 6%, var(--bg));
-    border: 2px solid var(--rule);
-    color: var(--muted);
-    box-shadow: 0 0 0 4px var(--paper);
-  }
-
-  .px-billp__card {
-    width: 100%;
-    border-radius: var(--r-tile);
-    border: 1px solid var(--rule);
-    background: var(--paper);
-    padding: 13px 14px 12px;
-    text-align: center;
-    box-shadow: 0 14px 30px -24px color-mix(in oklab, var(--ink) 50%, transparent);
-  }
-  /* date — axis-tick role: mono muted tabular */
-  .px-billp__date {
-    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px); letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--muted);
-    font-variant-numeric: tabular-nums; margin-bottom: 5px;
-  }
-  /* stage label — in-viz title role: display serif, readable */
-  .px-billp__label {
-    font-family: var(--font-display); font-weight: 600; font-size: 14px;
-    line-height: 1.25; color: var(--ink);
-    overflow-wrap: anywhere;
-  }
-  .px-billp__note {
-    font-family: var(--font-body); font-size: 11.5px; line-height: 1.45;
-    color: var(--ink-soft); margin-top: 6px;
-  }
-  /* status tag — legend role: mono uppercase muted */
-  .px-billp__status {
-    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px); letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--muted); margin-top: 9px;
-  }
-
-  /* ── status treatments ───────────────────────────────────────────────── */
-  .px-billp__stage[data-status="passed"] .px-billp__dot {
-    background: var(--accent); border-color: var(--accent); color: var(--paper);
-  }
-  .px-billp__stage[data-status="passed"] .px-billp__card { border-color: color-mix(in oklab, var(--accent) 45%, var(--rule)); }
-  .px-billp__stage[data-status="passed"] .px-billp__status { color: var(--accent-deep, var(--accent)); }
-
-  .px-billp__stage[data-status="failed"] .px-billp__dot {
-    background: #c0392b; border-color: #c0392b; color: #fff;
-  }
-  .px-billp__stage[data-status="failed"] .px-billp__card { border-color: color-mix(in oklab, #c0392b 45%, var(--rule)); }
-  .px-billp__stage[data-status="failed"] .px-billp__status { color: #c0392b; }
-
-  .px-billp__stage[data-status="current"] .px-billp__dot {
-    background: var(--paper); border-color: var(--accent); color: var(--accent);
-    animation: lensPulse 2s infinite;
-  }
-  .px-billp__stage[data-status="current"] .px-billp__card {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent), 0 14px 30px -22px color-mix(in oklab, var(--accent) 60%, transparent);
-  }
-  .px-billp__stage[data-status="current"] .px-billp__status { color: var(--accent); }
-
-  .px-billp__stage[data-status="pending"] .px-billp__card { opacity: 0.62; }
-  .px-billp__stage[data-status="pending"] .px-billp__label { color: var(--ink-soft); }
-
-  /* ── narrow box: stack to a vertical list with a left rail ─────────────── */
-  @container (max-width: 640px) {
-    .px-billp__row {
-      grid-auto-flow: row;
-      grid-auto-columns: auto;
-      gap: 0;
-      padding: 6px 0 6px 0;
-    }
-    .px-billp__track {
-      top: 8px; bottom: 8px; left: 14px; right: auto;
-      width: 2px; height: auto;
-      background: repeating-linear-gradient(
-        180deg,
-        var(--rule), var(--rule) 6px,
-        transparent 6px, transparent 12px
-      );
-    }
-    .px-billp__stage {
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 9px 0;
-    }
-    /* dot keeps its size; card takes the remaining row width without forcing
-       overflow (width:100% as a flex-basis + the dot would exceed 100%) */
-    .px-billp__dot { flex: 0 0 auto; }
-    .px-billp__card { flex: 1 1 auto; width: auto; min-width: 0; text-align: left; }
+  @media (max-width: 560px) {
+    .px-billp__big { font-size: 72px; }
+    .px-billp__row { grid-template-columns: 24px minmax(0, 1fr); column-gap: 12px; padding: 10px 12px; }
+    .px-billp__meta { grid-column: 2; justify-content: flex-start; text-align: left; padding-top: 4px; }
   }
 </style>

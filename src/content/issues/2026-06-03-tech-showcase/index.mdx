@@ -25,12 +25,16 @@ sections:
   - kind: arch-stack
     eyebrow: "THE STACK"
     title: "Anatomy of a *production* web app"
-    intro: "Each slab is one layer of a typical request-serving stack, top (what the browser touches) to bottom (what it all runs on) — hover a slab to lift it."
+    intro: "Each slab is one layer of a typical request-serving stack, top to bottom. [[1]] The client is what the browser touches. [[2]] The API gateway routes, authenticates and rate-limits every request. [[3]] Everything runs on Kubernetes in one cloud region."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "3" }
+      - { n: 3, at: "7" }
     data:
       caption: "Reference architecture · edge-to-database request path"
       source: "Composite of common production stacks (Vercel / AWS reference architectures), 2026"
       layers:
-        - { label: "Client", sublabel: "Browser · React SPA", color: "#c6f432" }
+        - { label: "Client", sublabel: "Browser · React SPA" }
         - { label: "Edge / CDN", sublabel: "Static assets · cache · WAF" }
         - { label: "API Gateway", sublabel: "Routing · auth · rate limit" }
         - { label: "Application", sublabel: "Stateless service nodes" }
@@ -41,7 +45,11 @@ sections:
   - kind: latency-waterfall
     eyebrow: "THE TRACE"
     title: "One HTTPS request, *millisecond* by millisecond"
-    intro: "A single cold request to an API endpoint, broken into network and server phases, each bar starting where the previous ends."
+    intro: "A single cold request to an API endpoint, broken into network and server phases, each bar starting where the previous ends. [[1]] The DNS lookup, TCP connect and TLS handshake take 85 ms before a byte of the request is sent. [[2]] The server takes 142 ms to answer, more than half the trace. [[3]] The whole request takes 264 ms."
+    cues:
+      - { n: 1, at: "1 2 3" }
+      - { n: 2, at: "5" }
+      - { n: 3, at: "total" }
     data:
       unit: "ms"
       caption: "Cold GET /api/v1/feed · single request trace"
@@ -57,7 +65,11 @@ sections:
   - kind: version-graph
     eyebrow: "THE HISTORY"
     title: "A release branch, *merged*"
-    intro: "A git-style commit graph reading newest-first from the top, with main in lane 0 and a feature branch merging back in lane 1."
+    intro: "A git-style commit graph reading newest-first from the top, with main in lane 0 and a feature branch in lane 1. [[1]] Main starts at the v2.3.0 release. [[2]] A branch for streaming responses forks off v2.3.1. [[3]] It merges back as v2.4.0."
+    cues:
+      - { n: 1, at: "7" }
+      - { n: 2, at: "3" }
+      - { n: 3, at: "1" }
     data:
       caption: "Service repository · last seven commits"
       source: "Illustrative semantic-versioned release history (semver.org conventions)"
@@ -73,7 +85,11 @@ sections:
   - kind: scaling-plot
     eyebrow: "THE LAW"
     title: "More parameters, *lower* loss"
-    intro: "Language-model test loss against parameter count on a log x-axis, the fitted line tracing the power law scaling papers describe."
+    intro: "Language-model test loss against parameter count on a log x-axis, the fitted line tracing the power law scaling papers describe. [[1]] The smallest model, 125M parameters, sits at a loss of 3.32. [[2]] The fitted line runs straight on this axis. [[3]] The 70B model reaches 2.10."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "fit" }
+      - { n: 3, at: "8 head" }
     howToRead: "A straight fit on this axis means each step to the right is a multiplication rather than an addition, which is the shape a power law makes. Press Linear for the proportional view, where seven of the eight models crowd into the left sixth and the largest sits alone at the right."
     data:
       annotations:
@@ -114,7 +130,11 @@ sections:
   - kind: benchmark-chart
     eyebrow: "THE BENCHMARK"
     title: "Reasoning models on *GPQA Diamond*"
-    intro: "Accuracy on GPQA Diamond, a set of graduate-level science questions written to resist web lookup."
+    intro: "Accuracy on GPQA Diamond, a set of graduate-level science questions written to resist web lookup. [[1]] o1 scores 78%, the only model above the line. [[2]] The PhD expert baseline sits at 65.4%. [[3]] Claude 3.5 Sonnet reaches 65%, just under it."
+    cues:
+      - { n: 1, at: "1 top" }
+      - { n: 2, at: "ref" }
+      - { n: 3, at: "2" }
     data:
       annotations:
         - at: "o1"
@@ -138,7 +158,11 @@ sections:
   - kind: adoption-curve
     eyebrow: "THE DIFFUSION"
     title: "Electric cars cross *the* threshold"
-    intro: "Battery and plug-in electric vehicles as a share of new car sales worldwide — a classic diffusion S-curve."
+    intro: "Battery and plug-in electric vehicles as a share of new car sales worldwide, a classic diffusion S-curve. [[1]] The share stayed under 1% until 2016. [[2]] In 2021 it doubled, from 4.2% to 8.7%. [[3]] By 2024 one new car in five was electric."
+    cues:
+      - { n: 1, at: "4 m1" }
+      - { n: 2, at: "9 head" }
+      - { n: 3, at: "12 m4" }
     data:
       annotations:
         - at: 2021
@@ -168,7 +192,12 @@ sections:
   - kind: commit-grid
     eyebrow: "THE CADENCE"
     title: "A year of *deploys*"
-    intro: "A GitHub-style heatmap of deployment activity, one column per week and one cell per day."
+    intro: "One column per week and one square per day, across a year of production deploys. The darker the square, the more went out. [[1]] The year opens on a Friday deploy day. [[2]] A hotfix burst opens October at the top level. [[3]] The holiday freeze leaves a blank Friday in December. [[4]] The quarter close opens June at full level."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "3" }
+      - { n: 3, at: "4" }
+      - { n: 4, at: "6" }
     data:
       meta: "412 deploys · 52 weeks"
       caption: "Production deployment frequency, trailing 12 months"
@@ -232,7 +261,11 @@ sections:
   - kind: neural-flow
     eyebrow: "THE FLAGSHIP · A FORWARD PASS"
     title: "The machine, *thinking* once."
-    intro: "A real network at true layer sizes — every dot one unit — with a single forward-pass wave sweeping input to answer; hover a column for its counts."
+    intro: "A real network at true layer sizes, every dot one unit. [[1]] The input is the 28 by 28 grid of pixels, 784 units. [[2]] One forward-pass wave sweeps from input to answer. [[3]] The ten outputs are the digits 0 to 9."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "wave" }
+      - { n: 3, at: "4" }
     plain: "Each column is one layer and every dot one unit, at true sizes; the lime wave is one forward pass moving from input to output."
     skimCaption: "The classic MNIST classifier rendered as instanced layers with a live activation wave — the tech desk's flagship."
     data:
@@ -248,7 +281,11 @@ sections:
   - kind: packet-trace
     eyebrow: "WHERE THE TIME GOES"
     title: "Why a *Mumbai* request to Frankfurt takes 176 ms."
-    intro: "One real request's path drawn on the globe, locked above a budget bar that splits the round-trip into the speed-of-light floor (green) and everything routing, servers and handshakes add (pink)."
+    intro: "One real request's path drawn on the globe, above a bar that splits the round trip into the speed-of-light floor and everything routing, servers and handshakes add. [[1]] The cable from Mumbai to Marseille takes 96 ms. [[2]] The light floor for the whole route is about 74 ms. [[3]] The round trip takes 176 ms."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "floor" }
+      - { n: 3, at: "head" }
     plain: "A globe with the request's route drawn as arcs, above a bar that splits the round-trip time into the speed-of-light minimum (green) and the delay that routing, servers and handshakes add (pink)."
     skimCaption: "The physical minimum is ~75 ms; the round trip takes 176 ms — more than half the delay is overhead, not distance."
     layout: wide
@@ -266,7 +303,11 @@ sections:
   - kind: queue-cliff
     eyebrow: "THE CLIFF"
     title: "Why you can't run the servers at *100%*."
-    intro: "Drag the offered load from calm to busy and watch the average wait stay flat, flat, flat — then go vertical as utilization nears full. The curve is the exact M/M/1 law, not a hand-drawn swoop."
+    intro: "Drag the offered load from calm to busy and watch the average wait stay flat, then go vertical as utilization nears full. [[1]] On a normal day, at 50% load, a request waits twice as long as on an idle system. [[2]] At the Black Friday peak of 95% it waits 20 times as long. [[3]] The curve is the exact M/M/1 law, not a hand-drawn swoop."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "3 head" }
+      - { n: 3, at: "curve" }
     plain: "One slider raises the load; the live curve shows the average wait staying flat until it snaps vertical near full capacity, with a readout of the exact multiplier, latency, and queue length."
     skimCaption: "The utilization cliff made draggable — the tech desk's flagship interactive."
     data:
@@ -283,7 +324,11 @@ sections:
   - kind: chip-die
     eyebrow: "THE FLOORPLAN"
     title: "Where an *M1* actually spends its silicon."
-    intro: "Every tile is one functional block of the Apple M1 die, sized to its true share of the silicon — hover a tile to lift it and read its area. The 8-core GPU alone outweighs all eight CPU cores combined."
+    intro: "Every tile is one functional block of the Apple M1 die, sized to its true share of the silicon. [[1]] The 8-core GPU takes 30.5 mm². [[2]] The four performance cores and the four efficiency cores together take 21.7 mm². [[3]] The 16-core Neural Engine fits in 6 mm²."
+    cues:
+      - { n: 1, at: "1 head" }
+      - { n: 2, at: "2 8" }
+      - { n: 3, at: "7" }
     plain: "An exploded chip floorplan drawn to scale; each tile is one block of the chip, and its size on screen is its real share of the silicon."
     skimCaption: "The 8-core GPU is the single largest block — bigger than the performance and efficiency CPU cores put together."
     data:
@@ -305,7 +350,11 @@ sections:
   - kind: moore-ladder
     eyebrow: "THE LAW"
     title: "Moore's Law, drawn *straight*."
-    intro: "Fifty years of transistor counts on a base-2 log ruler, where the exponential becomes a straight climb and the fitted line states the doubling time."
+    intro: "Fifty years of transistor counts on a base-2 log ruler, where the exponential becomes a straight climb. [[1]] The 4004 of 1971 held 2,300 transistors. [[2]] The fitted line states the doubling time. [[3]] The M1 Max of 2021 holds 57 billion."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "fit head" }
+      - { n: 3, at: "8" }
     plain: "Each dot is one chip at its year and transistor count, on a ruler where every step up means twice as many; the straight line is the steady doubling that turns the curve into a climb."
     skimCaption: "From 2,300 to 57 billion transistors in fifty years — a straight line on a log ruler, doubling every ~2 years."
     data:
@@ -326,7 +375,11 @@ sections:
   - kind: state-timeline
     eyebrow: "FOUR HOURS OF SILENCE"
     title: "The alert was four hours *late*."
-    intro: "Five services, one day, and three states each: healthy, degraded, down. The lanes are the machines' account of that day. The numbered markers are ours."
+    intro: "Five services, one day, and three states each: healthy, degraded, down. The lanes are the machines' account of that day. The numbered markers are ours. [[1]] Entitlements degrades at 09:30, the minute the deploy lands. [[2]] The first alert fires at 13:36, four hours and six minutes later. [[3]] The rollback completes at 17:06."
+    cues:
+      - { n: 1, at: "1 m1" }
+      - { n: 2, at: "m2 head" }
+      - { n: 3, at: "m4" }
     howToRead: "Read across a lane for one service's whole day, and down the stack for what was breaking at the same moment. The markers below the tracks are the incident's official timeline, so the gap between where a lane first changes colour and marker 2 is how long the failure ran unattended."
     caption: "Entitlements was degraded for four hours and six minutes before the first alert fired."
     source:

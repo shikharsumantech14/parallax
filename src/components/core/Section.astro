@@ -17,8 +17,11 @@
  * Below 1024px the figure panel comes first and pins at the top of the screen
  * while the article scrolls beneath it (the island decides whether it fits;
  * without JS it simply sits above the article). A NARRATIVE section (prose,
- * quote, analogy, jargon-buster, three-steps) is the article column alone,
- * with its component inside it. The class names `__copy` / `__stage` are the
+ * quote, analogy) is the article column alone, with its component inside it.
+ * `jargon-buster` and `three-steps` left that set in Lens Phase 6 (their
+ * boards draw a figure with cues): the article carries each term's meaning,
+ * each step's text, as sentences with their cue buttons, and the figure
+ * panel carries the cards. The class names `__copy` / `__stage` are the
  * ones scripts/ui-probe.mjs already compares apart.
  *
  * CUES. A cue's `at` names anchors the component exposes as `data-cue="<id>"`
@@ -56,7 +59,7 @@ const kind = section.kind;
 /* Kept in step with LENS §5.1. The reading gate's own NARRATIVE list also
    carries `comparison` (it decides which sections count as a free graphic),
    which is a different question from which ones get a figure panel. */
-const NARRATIVE = new Set(['act-break', 'prose', 'quote', 'analogy', 'jargon-buster', 'three-steps']);
+const NARRATIVE = new Set(['act-break', 'prose', 'quote', 'analogy']);
 const narrative = NARRATIVE.has(kind);
 
 const pad = (x: number) => String(x).padStart(2, '0');
@@ -120,6 +123,21 @@ if (!narrative && kind === 'data-readout') {
     return { html: lead(String(i + 1), html, t.note) };
   });
 }
+if (!narrative && kind === 'jargon-buster') {
+  blocks = ((data.terms ?? []) as any[]).filter((t) => t && t.term).map((t, i) => {
+    const gloss = t.hindi ? ` (${t.hindi})` : '';
+    const html = `<strong>${renderInline(sentenceEnd(String(t.term) + gloss))}</strong>${t.meaning ? ' ' + renderInline(t.meaning) : ''}`;
+    itemText.set(String(i + 1), plain(html));
+    return { html: lead(String(i + 1), html, t.meaning) };
+  });
+}
+if (!narrative && kind === 'three-steps') {
+  blocks = ((data.steps ?? []) as any[]).map((st, i) => {
+    const html = `<strong>${renderInline(sentenceEnd(String(st?.title ?? '')))}</strong>${st?.text ? ' ' + renderInline(st.text) : ''}`;
+    itemText.set(String(i + 1), plain(html));
+    return { html: lead(String(i + 1), html, st?.text) };
+  });
+}
 if (!narrative && kind === 'timeline') {
   const events: any[] = data.events ?? [];
   const notes = new Map<number, string[]>();
@@ -143,6 +161,8 @@ if (!narrative && kind === 'timeline') {
 const rawProse: string[] = [
   section.intro, caption, data.think?.text, data.actually?.text, data.note,
   ...((data.events ?? []) as any[]).map((e) => e?.note),
+  ...((data.terms ?? []) as any[]).map((t) => t?.meaning),
+  ...((data.steps ?? []) as any[]).map((st) => st?.text),
 ].filter((x): x is string => typeof x === 'string');
 const cueText = (c: Cue): string => {
   if (c.text) return c.text;

@@ -3,29 +3,39 @@
  * ScalingPlot (tech) — a scaling scatter (e.g. params vs. performance) with a
  * LOG ⇄ LINEAR axis toggle.
  *
- * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). The props already carried
- * `logX` / `logY` at build time; the reader could not see what the log axis was
- * doing to the shape. Now they can press Linear and watch the lower points
- * collapse toward the axis — which is the whole claim a log scale makes.
+ * LENS PHASE 6 (2026-09-30, the board Lib-scaling-plot): REDRAWN FOR THE
+ * FIGURE PANEL. The coordinate width is 460 units (the panel body is about
+ * 470px at 1280), so every label authored at 12 prints at 12px or a hair
+ * more at 1280 with no sideways scroll; on a phone the SVG keeps those 460
+ * units and scrolls inside its card (the standing min-width rule in
+ * dataviz-v2.css), so 12 is still 12. The y title moved from a rotated
+ * gutter to a horizontal line above the plot (the board's), which gives the
+ * width back to the data. The figure's one large number is the point the
+ * section is about: the annotated point, else the highest.
  *
- * HOW IT WORKS, AND WHY THIS WAY. Both projections are computed in frontmatter
- * and both are in the DOM. No scale math ships to the client: the island swaps
- * one attribute, CSS moves the points. That keeps the component's build-time
- * character, honours the JS budget (no bundle, one tiny is:inline island), and
- * means the no-JS state is the authored projection, fully painted.
+ * HOW THE TOGGLE WORKS. Both projections are computed in frontmatter and both
+ * are in the DOM. No scale math ships to the client: the island swaps one
+ * attribute, CSS moves the points. The no-JS state is the authored
+ * projection, fully painted. The control renders ONLY when an axis is
+ * authored log. Points translate between projections (that motion IS the
+ * comprehension); gridlines, ticks, fit lines and point labels are
+ * per-projection layers that cross-fade, because each projection runs its own
+ * label placement and can legitimately drop a different label.
  *
- * The control renders ONLY when an axis is authored log. On a linear payload
- * this component behaves exactly as it did before — there is nothing to toggle.
+ * Cue anchors:
+ *   1..n   each point, numbered from 1 in data order (its numeral prints
+ *          beside the dot, on a corner its label left free).
+ *   fit    the fitted line (when `fit`).
+ *   axis   the gridlines and tick labels.
+ *   head   the large number.
  *
- * Points translate between projections (that motion IS the comprehension);
- * gridlines, ticks, fit lines and point labels are per-projection layers that
- * cross-fade, because each projection runs its own label placement and
- * de-clutter pass and can legitimately drop a different label.
- *
- * The fit line always paints fully drawn, points fully shown, axes in the
- * authored projection (static since Lens Phase 5). Reduced-motion keeps the
- * toggle working — it is comprehension, not decoration — and only drops the
- * tween.
+ * THE BUILD (LENS §6.4). The scene is the plot and its number, NOT the card:
+ * the card holds the html.js-gated Log / Linear control, which a scene must
+ * not (the render gate's BUILD check). 1 the axis fades in, 2 the fitted
+ * line draws, 3 the points drop, 80ms apart, 4 the labels and notes fade
+ * in, 5 the large number counts up (src/scripts/build.ts). No JS or reduced
+ * motion: the chart as drawn. Reduced motion keeps the toggle working (it is
+ * comprehension, not decoration) and only drops the tween.
  *
  * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
  *         howToRead?, caption?, source?, annotations? }
@@ -64,10 +74,10 @@ const {
   annotations = [],
 } = Astro.props;
 
-const W = 640, H = 340, padR = 22, padT = 22, padB = 46;
-const ih = H - padT - padB;
-// padL is measured from the widest y-tick label and the y title's line count
-// (the gutter block below), so it is declared further down, before project().
+/* The panel's coordinate system. W is the width the chart is drawn for; the
+   y title sits on its own line(s) above the plot, so padT grows with it. */
+const W = 460, padR = 14, padB = 44;
+const PLOT_H = 236;          // the plot's own height, gridline to gridline
 
 // Domain in transformed space, padded so points don't sit on the frame.
 const safeMinMax = (arr: number[]) => {
@@ -80,17 +90,10 @@ const safeMinMax = (arr: number[]) => {
 
 // Point labels: their size and width model. Placement is the collision pass
 // inside project(): every candidate spot is a box estimated from the label's
-// width, and a spot that leaves the frame is never taken, so no label can run
-// past the viewBox (the 2026-09-23 failure the old anchor clamp fixed).
-/* 12px since 2026-09-30 (LENS §3, the 12px floor). This chart keeps its
-   640-unit coordinate width in the figure panel and on a phone (the card
-   scrolls, dataviz-v2.css), so an authored 12 prints at 12px at 1280 and 375.
-   It was 9, which the render gate measured as FLOOR on two issues. */
+// width, and a spot that leaves the frame is never taken.
 const LBL_FS = 12;           // matches .px-scale__plabel font-size
-// Per-character advance of a point label, in em. Measured 2026-09-30 in
-// Chrome: Instrument Sans 400 at 0.02em tracking runs 0.43 to 0.54 em a
-// character ("GPT-5 Codex task (measured)" 151.7 units at 12px, "West Ham"
-// the widest per character). Rounded up so the box errs wide, never narrow.
+// Per-character advance of a point label, in em (Instrument Sans 400 runs
+// 0.43 to 0.54 em a character, measured 2026-09-30); rounded up.
 const LBL_CW = 0.55;
 const lblW = (s?: string) => LBL_CW * LBL_FS * String(s ?? '').length;
 const LBL_UP = 10;           // dot centre up to the baseline
@@ -98,78 +101,91 @@ const LBL_DOWN = 19;         // dot centre down to the baseline (clears the dot)
 const LBL_SIDE = 10;         // dot centre out to a side label's anchor
 const LBL_STACK = 15;        // one more line of offset when the first is taken
 const LBL_AIR = 3;           // air kept between two labels
+const TAG_R = 11;            // half the cue numeral's disc, in units
+const TAG_OFF = 15;          // dot centre out to the numeral's centre, each axis
 
-// A padded domain may sit below zero — harmless in log space (the values are
-// exponents) but on a linear count axis it prints a negative quantity, which is
-// not a thing that exists. When the raw data is non-negative, the linear floor
-// is zero. Surfaced by the linear projection; the log-only render never showed it.
+// A padded linear domain never prints a negative quantity for data that
+// cannot be negative.
 const floorAtZero = (
   d: { lo: number; hi: number },
   raws: number[],
   isLog: boolean,
 ) => (!isLog && d.lo < 0 && raws.every((v) => v >= 0) ? { lo: 0, hi: d.hi } : d);
 
-// Gridlines — 5 ticks each axis. Tick labels show the value in the ORIGINAL
-// space (un-log) so the reader sees real magnitudes; log ticks step by powers.
-const TICKS = 5;
-const fmtTick = (vT: number, isLog: boolean, digits = 0) => {
-  const real = isLog ? Math.pow(10, vT) : vT;
+// Gridlines at ROUND values (Lens Phase 6: the old five even ticks printed
+// "114.31" and "8e7"). Linear: a step of 1, 2, 2.5 or 5 × 10^k giving three
+// to six ticks inside the padded domain. Log: the powers of ten inside it,
+// with the 3× ticks added when fewer than three powers fit. Labels show the
+// ORIGINAL value, large ones compact (10K, 1.4M, 70B).
+function tickAt(lo: number, hi: number, isLog: boolean): number[] {
+  if (isLog) {
+    const out: number[] = [];
+    for (let k = Math.ceil(lo); k <= Math.floor(hi); k++) out.push(k);
+    if (out.length < 3) {
+      const more: number[] = [];
+      for (let k = Math.floor(lo); k <= Math.ceil(hi); k++) {
+        for (const m of [1, 3]) {
+          const v = k + Math.log10(m);
+          if (v >= lo && v <= hi) more.push(v);
+        }
+      }
+      return more.length >= 2 ? more : [lo, hi];
+    }
+    return out;
+  }
+  const span = hi - lo || 1;
+  const raw = span / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((v) => span / v <= 5) ?? raw;
+  const out: number[] = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v / step) * step);
+  return out;
+}
+const compact = (real: number): string => {
   const abs = Math.abs(real);
-  if (abs !== 0 && (abs >= 1e4 || abs < 1e-2)) return real.toExponential(digits).replace('e+', 'e');
-  if (abs >= 1000) return Math.round(real).toLocaleString();
+  const units: Array<[number, string]> = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e4, 'K']];
+  for (const [u, sfx] of units) {
+    if (abs >= u) {
+      const n = real / (u === 1e4 ? 1e3 : u);
+      return `${Math.round(n * 10) / 10}${u === 1e4 ? 'K' : sfx}`;
+    }
+  }
+  if (abs >= 1000) return Math.round(real).toLocaleString('en-US');
+  if (abs !== 0 && abs < 1e-2) return real.toExponential(0);
   return (Math.round(real * 100) / 100).toString();
 };
-// Format the whole tick SET, not each tick alone: one mantissa digit is plenty
-// until two ticks collapse to the same string (1.07e6 and 1.47e6 both read
-// "1e6"), and an axis that labels two different gridlines identically is worse
-// than a noisier one. Decided per set so the clean form survives where it can.
-const fmtTicks = (vTs: number[], isLog: boolean) => {
-  const at = (digits: number) => vTs.map((v) => fmtTick(v, isLog, digits));
-  const zero = at(0);
-  return new Set(zero).size === zero.length ? zero : at(1);
-};
+const fmtTicks = (vTs: number[], isLog: boolean) => vTs.map((v) => compact(isLog ? Math.pow(10, v) : v));
 
-/* ── The y gutter, measured (2026-09-30) ──────────────────────────────────
-   padL used to be a fixed 60, with the y title at x=14 and the tick labels
-   right-aligned at padL−8. At the 12px axis size a six-character tick
-   ("114.31") starts near x=17 and touched the title's glyphs (the render
-   gate's TOUCH on the squad-cost issue). So the gutter is built from what it
-   holds: the title's lines from the left edge, 6 units of air, the widest
-   tick label of either projection, and the 8-unit tick gap, never narrower
-   than 60. Widths are Instrument Sans measured in Chrome: ticks 0.55em a
-   character at 12px (0.04em tracking, tabular figures), axis titles 0.86em
-   at 12px (700, capitals, 0.16em tracking). */
-const TICK_CH = 12 * 0.55;               // units per tick-label character
-const AXT_CHARS_PER_UNIT = 12 * 0.86;    // units per axis-title character
-const AXT_LINE = 17;                     // leading between two rotated title lines (12px glyph boxes need > 15 to not touch)
-const AXT_X0 = 13;                       // the outer line's baseline (cap height 8.7 + 4 air)
-
+/* ── The y title and the y gutter, measured ───────────────────────────────
+   The y title is a horizontal line above the plot (up to two lines, budgeted
+   in characters against the full width); the gutter holds only the tick
+   labels. Widths are Instrument Sans at 12px: ticks 0.55em a character
+   (tabular figures), axis titles 0.62em (500, capitals, 0.06em tracking). */
+const TICK_CH = 12 * 0.55;
+const AXT_CH = 12 * 0.62;
+const AXT_LINE = 16;
 const yTitleLog = yLabel ? `${yLabel}${logY ? ' (log)' : ''}` : '';
 const yTitleLin = yLabel ?? '';
-const yTitleChars = Math.max(1, Math.floor(ih / AXT_CHARS_PER_UNIT));
+const yTitleChars = Math.max(1, Math.floor((W - 4) / AXT_CH));
 const yTitleLogLines = wrapAxisTitle(yTitleLog, yTitleChars);
 const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
 const yTitleN = Math.max(yTitleLogLines.length, (logX || logY) ? yTitleLinLines.length : 0);
+const padT = 14 + (yTitleN ? yTitleN * AXT_LINE + 6 : 0);
+const ih = PLOT_H;
+const H = padT + ih + padB;
 
 function yTickLabels(lgY: boolean): string[] {
   const txY = (v: number) => (lgY ? Math.log10(Math.max(v, 1e-9)) : v);
   const yD = floorAtZero(safeMinMax(points.map((p) => txY(p.y))), points.map((p) => p.y), lgY);
-  const yAt = Array.from({ length: TICKS }, (_, i) => yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo));
-  return fmtTicks(yAt, lgY);
+  return fmtTicks(tickAt(yD.lo, yD.hi, lgY), lgY);
 }
 const tickLabelsAll = [...yTickLabels(logY), ...((logX || logY) ? yTickLabels(false) : [])];
 const tickW = Math.max(0, ...tickLabelsAll.map((t) => t.length * TICK_CH));
-const titleRight = yTitleN > 0 ? AXT_X0 + (yTitleN - 1) * AXT_LINE + 3 : 0;
-const padL = Math.max(60, Math.ceil(titleRight + 6 + tickW + 8));
+const padL = Math.max(34, Math.ceil(tickW + 10));
 const iw = W - padL - padR;
-// The x each rotated title line sits on: line 0 outermost, because a title
-// turned −90° reads bottom to top and its next line falls to the right.
-const yTitleX = (li: number) => AXT_X0 + li * AXT_LINE;
 
 /* ── Label geometry, shared by the point labels and the annotations ───── */
 interface LblBox { l: number; r: number; t: number; b: number; }
-/* The box a point's own label occupies, in viewBox units, at the label's font
-   size, measured advance (LBL_CW) and anchor. */
 const lblBoxOf = (q: { label?: string; lx: number; ly: number; anchor: string }): LblBox => {
   const w = lblW(q.label);
   const l = q.anchor === 'start' ? q.lx : q.anchor === 'end' ? q.lx - w : q.lx - w / 2;
@@ -179,11 +195,11 @@ const dotBox = (x: number, y: number): LblBox => ({ l: x - 6, r: x + 6, t: y - 6
 const boxesHit = (a: LblBox, b: LblBox, pad = 0) =>
   a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
 // Where a point label may sit: right of the tick gutter, inside the viewBox,
-// above the x-tick row. The empty top pad is allowed.
-const L_FRAME = { l: padL + 2, r: W - 4, t: 3, b: padT + ih - 2 };
+// above the x-tick row, below the y title.
+const L_FRAME = { l: padL + 2, r: W - 2, t: padT - 10, b: padT + ih - 2 };
 // Which label wins a collision: a lower rank places first.
 const annotatedIdx = new Set<number>();
-for (const a of annotations) {
+for (const a of annotations ?? []) {
   if (!a || !a.text) continue;
   const num = typeof a.at === 'number' ? a.at : Number(String(a.at).trim() || NaN);
   const i = points.findIndex(
@@ -198,10 +214,8 @@ const rankOf = (i: number) =>
   (annotatedIdx.has(i) ? 0 : i === iMaxY || i === iMinY ? 1 : 2) * 10000 + i;
 
 /* ── One projection of the data ───────────────────────────────────────────
-   Everything downstream of the axis mapping — pixel positions, label
-   placement, de-clutter, ticks, the least-squares fit — depends on whether an
-   axis is log. So the whole pipeline is a function of (logX, logY) and we run
-   it twice. Nothing is shared between the two results by reference. */
+   Everything downstream of the axis mapping depends on whether an axis is
+   log, so the whole pipeline is a function of (logX, logY), run twice. */
 function project(lgX: boolean, lgY: boolean) {
   const txX = (v: number) => (lgX ? Math.log10(Math.max(v, 1e-9)) : v);
   const txY = (v: number) => (lgY ? Math.log10(Math.max(v, 1e-9)) : v);
@@ -211,7 +225,6 @@ function project(lgX: boolean, lgY: boolean) {
   const xD = floorAtZero(safeMinMax(xs), points.map((p) => p.x), lgX);
   const yD = floorAtZero(safeMinMax(ys), points.map((p) => p.y), lgY);
 
-  // Transformed value → pixel.
   const px = (vT: number) => padL + ((vT - xD.lo) / (xD.hi - xD.lo)) * iw;
   const py = (vT: number) => padT + (1 - (vT - yD.lo) / (yD.hi - yD.lo)) * ih;
 
@@ -222,19 +235,15 @@ function project(lgX: boolean, lgY: boolean) {
     lx: 0, ly: 0,
     anchor: 'middle' as 'start' | 'middle' | 'end',
     showLabel: false,
+    tx: 0, ty: 0,
   }));
 
-  /* Collision-aware label placement (2026-09-30). Each label tries, in
-     order: above the dot, below it, to its right, to its left, then hung off
-     each of the dot's four corners, then one line further out above and
-     below. The first spot that stays inside the frame and clears every dot
-     and every label already placed wins. A label with no clean spot is
-     DROPPED: its dot stays. Labels place most important first (a point an
-     annotation names, then the highest and lowest values, then authored
-     order), so the least important is the one that yields; its dot keeps
-     the name as a <title>. Runs per projection: linear crowds points the
-     log axis had spread out. The x-tick row sits 19 below the plot so its
-     first label clears the lowest y tick in the corner. */
+  /* Collision-aware label placement. Each label tries, in order: above the
+     dot, below it, right, left, hung off each corner, then one line further
+     out above and below. The first spot inside the frame that clears every
+     dot and every label already placed wins; a label with no clean spot is
+     DROPPED (its dot keeps the name as a <title>). Most important first: a
+     point an annotation names, then the highest and lowest, then data order. */
   const dots = plotted.map((q) => dotBox(q.cx, q.cy));
   const order = [...plotted].sort((a, b) => rankOf(a.i) - rankOf(b.i));
   const taken: LblBox[] = [];
@@ -259,14 +268,33 @@ function project(lgX: boolean, lgY: boolean) {
     }
   }
 
-  const xAt = Array.from({ length: TICKS }, (_, i) => xD.lo + (i / (TICKS - 1)) * (xD.hi - xD.lo));
-  const yAt = Array.from({ length: TICKS }, (_, i) => yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo));
+  /* The cue numeral's spot: a corner of the dot its label left free. */
+  const tagTaken: LblBox[] = [];
+  const tagBox = ([x, y]: [number, number]): LblBox => ({ l: x - TAG_R, r: x + TAG_R, t: y - TAG_R, b: y + TAG_R });
+  for (const q of plotted) {
+    const spots: Array<[number, number]> = [
+      [q.cx + TAG_OFF, q.cy + TAG_OFF], [q.cx + TAG_OFF, q.cy - TAG_OFF],
+      [q.cx - TAG_OFF, q.cy + TAG_OFF], [q.cx - TAG_OFF, q.cy - TAG_OFF],
+    ];
+    const ok = spots.find((sp) => {
+      const b = tagBox(sp);
+      return b.l >= padL && b.r <= W && b.t >= 0 && b.b <= padT + ih + 6 &&
+        !taken.some((t) => boxesHit(b, t, 1)) && !tagTaken.some((t) => boxesHit(b, t, 1)) &&
+        !dots.some((d, di) => di !== q.i && boxesHit(b, d));
+    }) ?? spots[0];
+    q.tx = ok[0]; q.ty = ok[1];
+    tagTaken.push(tagBox(ok));
+  }
+
+  const xAt = tickAt(xD.lo, xD.hi, lgX);
+  const yAt = tickAt(yD.lo, yD.hi, lgY);
   const xLbls = fmtTicks(xAt, lgX);
   const yLbls = fmtTicks(yAt, lgY);
-  const xTicks = xAt.map((vT, i) => ({ x: px(vT), label: xLbls[i] }));
+  const xTicks = xAt.map((vT, i) => ({ x: px(vT), label: xLbls[i], i }));
   const yTicks = yAt.map((vT, i) => ({ y: py(vT), label: yLbls[i] }));
 
-  // Least-squares fit in transformed space → a straight line across the domain.
+  // Least-squares fit in transformed space → a straight line, clipped to the
+  // plot box so it never runs into the title row.
   let fitLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
   if (fit && points.length >= 2) {
     const N = xs.length;
@@ -278,18 +306,39 @@ function project(lgX: boolean, lgY: boolean) {
     if (Math.abs(denom) > 1e-12) {
       const slope = (N * sxy - sx * sy) / denom;
       const intercept = (sy - slope * sx) / N;
-      const yAt = (vT: number) => slope * vT + intercept;
-      fitLine = {
-        x1: px(xD.lo), y1: py(yAt(xD.lo)),
-        x2: px(xD.hi), y2: py(yAt(xD.hi)),
-      };
+      const yOf = (vT: number) => slope * vT + intercept;
+      let a = xD.lo, b = xD.hi;
+      if (Math.abs(slope) > 1e-12) {
+        const xTop = (yD.hi - intercept) / slope, xBot = (yD.lo - intercept) / slope;
+        a = Math.max(a, Math.min(xTop, xBot));
+        b = Math.min(b, Math.max(xTop, xBot));
+      }
+      if (b > a) fitLine = { x1: px(a), y1: py(yOf(a)), x2: px(b), y2: py(yOf(b)) };
     }
   }
-  const fitLen = fitLine
-    ? Math.hypot(fitLine.x2 - fitLine.x1, fitLine.y2 - fitLine.y1).toFixed(0)
-    : '0';
 
-  return { plotted, xTicks, yTicks, fitLine, fitLen };
+  // The fit line's numeral: beside the line, on the first spot along it
+  // (from the middle outwards, either side) that clears labels, dots and
+  // the points' numerals.
+  let fitTag: [number, number] | null = null;
+  if (fitLine) {
+    const { x1, y1, x2, y2 } = fitLine;
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+    outer: for (const t of [0.55, 0.45, 0.65, 0.35, 0.75, 0.25, 0.85]) {
+      for (const sgn of [1, -1]) {
+        const x = x1 + (x2 - x1) * t + nx * 16 * sgn, y = y1 + (y2 - y1) * t + ny * 16 * sgn;
+        const b = tagBox([x, y]);
+        if (b.l < padL || b.r > W || b.t < padT - 4 || b.b > padT + ih) continue;
+        if (taken.some((o) => boxesHit(b, o, 1)) || tagTaken.some((o) => boxesHit(b, o, 1)) || dots.some((d) => boxesHit(b, d))) continue;
+        fitTag = [x, y];
+        break outer;
+      }
+    }
+    if (!fitTag) fitTag = [x1 + (x2 - x1) * 0.5, y1 + (y2 - y1) * 0.5 - 16];
+  }
+
+  return { plotted, xTicks, yTicks, fitLine, fitTag };
 }
 
 // A = the authored projection (what no-JS and first paint show).
@@ -298,6 +347,15 @@ const isLogged = logX || logY;
 const A = project(logX, logY);
 const B = isLogged ? project(false, false) : null;
 const layers = B ? [{ p: A, k: 'a' }, { p: B, k: 'b' }] : [{ p: A, k: 'a' }];
+
+/* The large number: the annotated point, else the highest. A value with one
+   decimal or none counts up; two decimals stay still (the island's counter
+   formats at most one). */
+const headIdx = annotatedIdx.size ? [...annotatedIdx][0] : iMaxY;
+const headPt = headIdx >= 0 ? points[headIdx] : undefined;
+const headDigits = headPt ? (String(headPt.y).split('.')[1] ?? '').length : 0;
+const headText = headPt ? headPt.y.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
+const headCounts = headPt ? headDigits <= 1 : false;
 
 /* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
    `at` matches a point's `label` exactly, or its raw `x` value; a non-match is
@@ -308,7 +366,7 @@ const layers = B ? [{ p: A, k: 'a' }, { p: B, k: 'b' }] : [{ p: A, k: 'a' }];
    with zero new JS and zero new state. Default side is `right`: the point's own
    label already owns the space directly above the dot. Geometry only — no
    motion of its own beyond the layer cross-fade it rides. */
-const A_FS = 12;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_FS = 13;     // SVG units — this chart runs at natural scale in the panel
 const A_LH = 15;     // leading between the two wrapped lines
 const A_LEAD = 16;   // leader length (spec §3: 14–22)
 const A_GAP = 5;     // clearance between the marker dot and the leader
@@ -317,7 +375,7 @@ const A_CLEAR = 3;   // air kept between a note and any label, dot or other note
 // y-tick gutter on the left and of the x-tick row below the plot. The empty
 // top pad is allowed, so a note beside a dot at the very top can rise above
 // its own point label instead of printing on it.
-const F_L = padL + 2, F_R = W - 4, F_T = 4, F_B = padT + ih - 2;
+const F_L = padL + 2, F_R = W - 4, F_T = padT - 10, F_B = padT + ih - 2;
 const aEst = (s: string) => 0.52 * A_FS * s.length;
 // Two lines once the estimate passes 40% of the viewBox, split at the nearest
 // space past the midpoint.
@@ -408,7 +466,7 @@ function placeAnnot(
       }
     } else {
       const dir = side === 'above' ? -1 : 1;
-      for (const extra of [0, 6]) {
+      for (const extra of [0, 6, 18, 36]) {
         const y1 = cy + dir * A_GAP, y2 = cy + dir * (A_GAP + A_LEAD + extra);
         const ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
         (['middle', 'end', 'start'] as const).forEach((anchor, ai) => {
@@ -509,13 +567,10 @@ const xTitleLin = xLabel ?? '';
 
 /* ── axis-title wrapping (AGENTS.md, 2026-09-22: an outward SVG label wraps
    or is budgeted in characters against the gutter it is drawn into) ──────
-   The y title runs the inner-height gutter (rotated -90°, up padT..padT+ih);
-   the x title runs the inner-width gutter (padL..padL+iw). Same font both
-   ways (the 12px eyebrow cut at 0.16em tracking), so the same per-character
-   estimate, AXT_CHARS_PER_UNIT in the gutter block above, sizes both
-   budgets against a different span. The y title's lines are wrapped up
-   there, because the gutter's width depends on how many there are. */
-const xTitleChars = Math.max(1, Math.floor(iw / AXT_CHARS_PER_UNIT));
+   The y title runs horizontally above the plot across the full width; the x
+   title runs the inner width (padL..padL+iw). Same cut both ways (12px,
+   500, capitals, 0.06em), so AXT_CH in the gutter block above sizes both. */
+const xTitleChars = Math.max(1, Math.floor(iw / AXT_CH));
 
 // Greedy word-wrap into AT MOST TWO lines, never breaking a word (a single
 // word longer than `max` is kept whole on its own line). Anything left over
@@ -570,119 +625,156 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
     data-read-log={readLog}
     data-read-linear={readLinear}
   >
-    <svg
-      class="px-scale__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Scaling plot: ${caption}` : 'Scaling scatter plot'}
-    >
-      {/* gridlines + axis ticks — one layer per projection, cross-faded */}
-      {layers.map(({ p, k }) => (
-        <g class:list={['px-scale__grid', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
-          {p.yTicks.map((t) => (
-            <g>
-              <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="var(--rule)" />
-              <text class="px-scale__tick" x={padL - 8} y={t.y + 3} text-anchor="end">{t.label}</text>
+    <div class="px-scale__scene" data-build-scene>
+      {headPt && (
+        <div class="px-scale__head" data-cue="head" style={`--ch:${headText.length}`}>
+          <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+          <span class="px-scale__big">{headCounts
+            ? <span data-build="5" data-build-kind="counter" data-to={headPt.y} data-format={headDigits === 1 ? '1dp' : 'int'}>{headText}</span>
+            : <span data-build="5" data-build-kind="rise">{headText}</span>}</span>
+          {headPt.label && <span class="px-scale__biglab">{headPt.label}</span>}
+        </div>
+      )}
+
+      <div class="px-scale__plot">
+        <svg
+          class="px-scale__svg"
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={caption ? `Scaling plot: ${caption}` : 'Scaling scatter plot'}
+        >
+          {/* gridlines + axis ticks — one layer per projection, cross-faded */}
+          {layers.map(({ p, k }) => (
+            <g class:list={['px-scale__grid', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-cue={k === 'a' ? 'axis' : undefined} data-build="1">
+              {p.yTicks.map((t) => (
+                <g>
+                  <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} />
+                  <text class="px-scale__tick" x={padL - 8} y={t.y + 4} text-anchor="end" style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif">{t.label}</text>
+                </g>
+              ))}
+              {p.xTicks.map((t) => (
+                <g>
+                  <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} opacity="0.55" />
+                  <text
+                    class="px-scale__tick" x={t.x} y={padT + ih + 18}
+                    text-anchor={t.x - padL < 16 ? 'start' : W - t.x < 22 ? 'end' : 'middle'}
+                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                  >{t.label}</text>
+                </g>
+              ))}
             </g>
           ))}
-          {p.xTicks.map((t) => (
-            <g>
-              <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} stroke="var(--rule)" opacity="0.55" />
-              <text class="px-scale__tick" x={t.x} y={padT + ih + 19} text-anchor="middle">{t.label}</text>
-            </g>
-          ))}
-        </g>
-      ))}
 
-      {/* fit line (under the points) — refitted per projection */}
-      {layers.map(({ p, k }) => (
-        p.fitLine && (
-          <line
-            class:list={['px-scale__fit', 'px-scale__lyr', `px-scale__lyr--${k}`]}
-            x1={p.fitLine.x1.toFixed(1)} y1={p.fitLine.y1.toFixed(1)}
-            x2={p.fitLine.x2.toFixed(1)} y2={p.fitLine.y2.toFixed(1)}
-            style={`--len:${p.fitLen}`}
-          />
-        )
-      ))}
-
-      {/* points — ONE set, translated between projections. That motion is the
-          argument the toggle exists to make, so it is never a cross-fade. */}
-      <g class="px-scale__pts">
-        {A.plotted.map((p) => (
-          <g
-            class="px-scale__pt"
-            style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(B ? B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(B ? B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
-          >
-            <g class="px-scale__pop" style={`transition-delay:${600 + p.i * 60}ms`}>
-              <circle cx="0" cy="0" r="5">{p.label && <title>{p.label}</title>}</circle>
-            </g>
-          </g>
-        ))}
-      </g>
-
-      {/* point labels — own layer per projection: placement, anchor AND which
-          labels survive de-clutter all differ once the axis changes */}
-      {layers.map(({ p, k }) => (
-        <g class:list={['px-scale__lbls', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
-          {p.plotted.map((q) => (
-            q.label && q.showLabel && (
-              <text class="px-scale__plabel" x={q.lx.toFixed(1)} y={q.ly.toFixed(1)} text-anchor={q.anchor}>{q.label}</text>
+          {/* fit line (under the points) — refitted per projection */}
+          {layers.map(({ p, k }) => (
+            p.fitLine && (
+              <line
+                class:list={['px-scale__fit', 'px-scale__lyr', `px-scale__lyr--${k}`]}
+                data-cue={k === 'a' ? 'fit' : undefined}
+                data-build="2" data-build-kind="draw"
+                x1={p.fitLine.x1.toFixed(1)} y1={p.fitLine.y1.toFixed(1)}
+                x2={p.fitLine.x2.toFixed(1)} y2={p.fitLine.y2.toFixed(1)}
+              />
             )
           ))}
-        </g>
-      ))}
 
-      {/* axis titles — budgeted in characters against their gutter (see the
-          wrap block in frontmatter). The x title stays on the original
-          data-axt text-swap (one line, never overruns iw); the y title
-          renders as one wrapped stack per projection layer, cross-faded by
-          the same .px-scale__lyr--a/--b rule the ticks/points/labels use
-          above, so the log⇄linear swap needs no extra client JS. */}
-      {xLabel && (
-        <text
-          class="px-scale__axis-title"
-          x={padL + iw / 2} y={H - 6} text-anchor="middle"
-          data-axt data-axt-log={xTitleLogText} data-axt-linear={xTitleLinText}
-        >{xTitleLogText}</text>
-      )}
-      {yLabel && layers.map(({ k }) => {
-        const lines = k === 'a' ? yTitleLogLines : yTitleLinLines;
-        const cy = padT + ih / 2;
-        return (
-          <g class:list={['px-scale__ytitle', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
-            {lines.map((ln, li) => {
-              const x = yTitleX(li);
-              return (
-                <text
-                  class="px-scale__axis-title"
-                  x={x} y={cy} text-anchor="middle"
-                  transform={`rotate(-90 ${x} ${cy})`}
-                >{ln}</text>
-              );
-            })}
+          {/* points — ONE set, translated between projections. That motion is
+              the argument the toggle exists to make, so never a cross-fade. */}
+          <g class="px-scale__pts">
+            {A.plotted.map((p) => (
+              <g
+                class="px-scale__pt"
+                data-cue={p.i + 1}
+                data-hl={p.i === headIdx ? 'true' : undefined}
+                style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(B ? B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(B ? B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
+              >
+                <g class="px-scale__pop" data-build="3" data-build-kind="drop">
+                  <circle cx="0" cy="0" r={p.i === headIdx ? 7 : 5.5}>{p.label && <title>{p.label}</title>}</circle>
+                </g>
+              </g>
+            ))}
           </g>
-        );
-      })}
 
-      {/* annotations — one set per projection, inside the layer groups the
-          toggle already cross-fades, so the callout follows the active scale */}
-      {annotAt.length > 0 && annotLayers.map(({ k, items }) => (
-        <g class:list={['px-scale__annots', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
-          {items.map((a) => (
-            <g class="px-scale__annot">
-              <circle class="px-scale__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" />
-              <line class="px-scale__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
-              <text
-                class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-                style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
-              >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+          {/* point labels — own layer per projection */}
+          {layers.map(({ p, k }) => (
+            <g class:list={['px-scale__lbls', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="4">
+              {p.plotted.map((q) => (
+                q.label && q.showLabel && (
+                  <text
+                    class="px-scale__plabel" data-hl={q.i === headIdx ? 'true' : undefined}
+                    x={q.lx.toFixed(1)} y={q.ly.toFixed(1)} text-anchor={q.anchor}
+                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                  >{q.label}</text>
+                )
+              ))}
             </g>
           ))}
-        </g>
-      ))}
-    </svg>
+
+          {/* axis titles — budgeted in characters against the width. The x
+              title swaps its "(log)" by the data-axt text-swap; the y title is
+              one stack per projection layer, cross-faded with the rest. */}
+          {xLabel && (
+            <text
+              class="px-scale__axis-title"
+              x={padL + iw / 2} y={H - 6} text-anchor="middle"
+              style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+              data-axt data-axt-log={xTitleLogText} data-axt-linear={xTitleLinText}
+              data-build="1"
+            >{xTitleLogText}</text>
+          )}
+          {yLabel && layers.map(({ k }) => {
+            const lines = k === 'a' ? yTitleLogLines : yTitleLinLines;
+            return (
+              <g class:list={['px-scale__ytitle', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="1">
+                {lines.map((ln, li) => (
+                  <text
+                    class="px-scale__axis-title"
+                    x="0" y={14 + li * AXT_LINE} text-anchor="start"
+                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                  >{ln}</text>
+                ))}
+              </g>
+            );
+          })}
+
+          {/* annotations — one set per projection, inside the layer groups
+              the toggle already cross-fades */}
+          {annotAt.length > 0 && annotLayers.map(({ k, items }) => (
+            <g class:list={['px-scale__annots', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="4">
+              {items.map((a) => (
+                <g class="px-scale__annot">
+                  <line class="px-scale__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
+                  <text
+                    class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
+                    style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
+                  >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+                </g>
+              ))}
+            </g>
+          ))}
+        </svg>
+
+        {/* The cue numerals, an HTML layer over the drawing at the authored
+            projection's spots (a numeral is never a hole in SVG text). They
+            follow the authored projection only: the linear view hides them. */}
+        <div class="px-scale__tags" aria-hidden="true">
+          {A.plotted.map((p) => (
+            <span class="px-scale__tag" style={`left:${((p.tx / W) * 100).toFixed(2)}%;top:${((p.ty / H) * 100).toFixed(2)}%`}>
+              <span class="px-cue-tag" data-cue-tag={p.i + 1} hidden></span>
+            </span>
+          ))}
+          {A.fitTag && (
+            <span class="px-scale__tag" style={`left:${((A.fitTag[0] / W) * 100).toFixed(2)}%;top:${((A.fitTag[1] / H) * 100).toFixed(2)}%`}>
+              <span class="px-cue-tag" data-cue-tag="fit" hidden></span>
+            </span>
+          )}
+          <span class="px-scale__tag" style={`left:${((padL / 2 / W) * 100).toFixed(2)}%;top:${(((padT + ih + 30) / H) * 100).toFixed(2)}%`}>
+            <span class="px-cue-tag" data-cue-tag="axis" hidden></span>
+          </span>
+        </div>
+      </div>
+    </div>
 
     {isLogged && (
       <div class="px-scale__ctl px-inst__controls" role="group" aria-label="Axis scale">
@@ -729,115 +821,138 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
 
 <style>
   .px-scale__box { width: 100%; }
+
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+
+     its label 8px below it. The size also fits the number to the panel:
+
+     --ch is its character count, the head a size container. */
+
+  .px-scale__head {
+
+    container-type: inline-size;
+
+    display: grid;
+
+    grid-template-columns: auto minmax(0, 1fr);
+
+    row-gap: 8px;
+
+    align-items: center;
+
+    margin-bottom: 20px;
+
+  }
+
+  .px-scale__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+
+  .px-scale__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+
+  .px-scale__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-scale__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-scale__biglab {
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+
+  .px-scale__plot { position: relative; }
   .px-scale__svg { width: 100%; height: auto; display: block; overflow: visible; }
 
+  .px-scale__grid line { stroke: var(--hair); stroke-width: 1; }
   .px-scale__tick {
-    /* axis ticks — mono muted, system axis scale + letter-spacing, tabular */
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
+    font-size: 12px;
     fill: var(--muted);
     font-variant-numeric: tabular-nums;
   }
   .px-scale__axis-title {
-    /* axis title — mono uppercase, ink-soft, eyebrow letter-spacing */
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-eyebrow, 10px);
-    letter-spacing: 0.16em;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    fill: var(--ink-soft);
-    font-weight: 700;
+    fill: var(--ink-2);
   }
 
   /* ── projection layers ──────────────────────────────────────────────────
      --a is the authored projection and paints by default, so the no-JS state
      is the authored one. --b sits at opacity 0 until the toggle asks for it. */
-  .px-scale__lyr { transition: opacity var(--t-soft) var(--ease); }
+  .px-scale__lyr { transition: opacity 420ms var(--ease); }
   .px-scale__lyr--b { opacity: 0; }
   .px-scale__box[data-scale='linear'] .px-scale__lyr--a { opacity: 0; }
   .px-scale__box[data-scale='linear'] .px-scale__lyr--b { opacity: 1; }
 
   .px-scale__fit {
     fill: none;
-    stroke: var(--accent-deep, var(--accent));
+    stroke: color-mix(in oklab, var(--accent) 55%, var(--paper-2));
     stroke-width: 2;
-    stroke-dasharray: var(--len);
-    stroke-dashoffset: 0;
-    /* carries the layer cross-fade too: `transition` is one property, so the
-       shared .px-scale__lyr rule above would otherwise be overwritten here */
-    transition: stroke-dashoffset 1300ms var(--ease), opacity var(--t-soft) var(--ease);
   }
 
   .px-scale__pt circle {
-    fill: var(--accent);
-    stroke: var(--paper);
+    fill: color-mix(in oklab, var(--accent) 45%, var(--paper-2));
+    stroke: var(--paper-2);
     stroke-width: 1.5;
   }
+  .px-scale__pt[data-hl] circle { fill: var(--accent-deep); }
   .px-scale__plabel {
-    /* point label — Instrument Sans, ink-soft, tabular (point names often
-       carry magnitudes). 12px, and it must equal LBL_FS: the placement pass
-       in project() sizes every label's box from it. The chart renders at its
-       coordinate width everywhere (the card scrolls), so 12 is 12. */
-    font-family: var(--font-mono);
+    /* 12px, and it must equal LBL_FS: the placement pass sizes every box by it */
     font-size: 12px;
-    letter-spacing: 0.02em;
-    fill: var(--ink-soft);
+    fill: var(--ink-2);
     font-variant-numeric: tabular-nums;
-    /* faint paper halo so a label crossing a gridline / dot stays legible */
     paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
+    stroke: var(--paper-2);
+    stroke-width: 3px;
     stroke-linejoin: round;
   }
+  .px-scale__plabel[data-hl] { fill: var(--ink); font-weight: 600; }
 
-  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ────────────────
-     The literal font stack is on the element (RD-01b); everything else is
-     here. No transition of its own — it rides the layer cross-fade above. */
-  .px-scale__annot-dot { fill: var(--accent); }
-  .px-scale__annot-lead { stroke: var(--rule); stroke-width: 1; }
+  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ──────────────── */
+  .px-scale__annot-lead { stroke: var(--hair-2); stroke-width: 1; }
   .px-scale__annot-t {
-    font-size: 12px;
+    font-size: 13px;
     font-style: italic;
     fill: var(--ink);
-    /* paper halo: the note crosses gridlines and the fit line */
     paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
+    stroke: var(--paper-2);
+    stroke-width: 3px;
     stroke-linejoin: round;
   }
 
   /* position: the dot travels between projections (the comprehension payload) */
   .px-scale__pt {
     transform: translate(var(--x), var(--y));
-    transition: transform var(--t-soft) var(--ease);
+    transition: transform 420ms var(--ease-move, var(--ease));
   }
   .px-scale__box[data-scale='linear'] .px-scale__pt {
     transform: translate(var(--x2), var(--y2));
   }
+  .px-scale__pop { transform-box: fill-box; transform-origin: center; }
 
-  /* the point group rests shown; its transition lives on an inner group so it never fights the
-     positional transform above */
-  .px-scale__pop {
-    opacity: 1;
-    transform: none;
-    transform-box: fill-box;
-    transform-origin: center;
-    transition: opacity var(--t-quick) var(--ease), transform var(--t-soft) var(--ease-snap);
-  }
+  /* the cue numerals over the drawing */
+  .px-scale__tags { position: absolute; inset: 0; pointer-events: none; transition: opacity 420ms var(--ease); }
+  .px-scale__tag { position: absolute; width: 0; height: 0; }
+  .px-scale__tag .px-cue-tag { position: absolute; left: 0; top: 0; translate: -50% -50%; margin: 0; }
+  .px-scale__box[data-scale='linear'] .px-scale__tags { opacity: 0; }
 
   /* controls are inert without JS, so they never render without it */
   .px-scale__ctl { display: none; }
   html.js .px-scale__ctl { display: flex; }
 
-  /* Mobile legibility (closed 2026-09-30). This SVG no longer scales down on
-     a phone: the min-width block in dataviz-v2.css keeps it at its 640-unit
-     coordinate width and the card scrolls sideways, in the figure panel too.
-     So the authored sizes are the rendered sizes: point labels 12, ticks and
-     titles at the 12px viz scale, and the y gutter measured to hold them
-     (the gutter block in frontmatter). */
-
   @media (prefers-reduced-motion: reduce) {
     /* the toggle still switches — it is comprehension. Only the tween goes. */
-    .px-scale__lyr, .px-scale__pt { transition: none; }
+    .px-scale__lyr, .px-scale__pt, .px-scale__tags { transition: none; }
+  }
+  @media (max-width: 640px) {
+    .px-scale__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

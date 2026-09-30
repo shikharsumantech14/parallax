@@ -8,9 +8,28 @@
  * Blueprint: docs/design/blueprints/tech/state-timeline.md
  * Pure HTML/CSS + one marker-select island. Prefix `px-stl`.
  *
- * Follows the WAVE-0 HTML/CSS exemplar (politics/BillFunnel.astro): flat named
- * props, build-time validation that throws, VizCard shell, px-inst primitives,
- * and a no-JS render that is already the finished figure.
+ * LENS PHASE 6 (2026-09-30, the board Lib-state-timeline): the figure's one
+ * large number is the lag the chart exists to show, derived (the first
+ * fault to the first event after it: "4h 06m"). Healthy is a pale green that
+ * recedes, degraded amber, down red (the fixed encoding, redrawn for the
+ * paper). Each event's hour runs as a dashed rule down through the lanes; the
+ * event markers are small numbered SQUARES (a cue is a round disc). The events
+ * are a compact list; the two tables moved into an "All the numbers"
+ * disclosure. 12px floor throughout, Instrument Sans.
+ *
+ * Cue anchors:
+ *   1..n     each service lane, numbered from 1 in data order.
+ *   m1..mK   each event, by its own `n`: the rule, the marker and the row.
+ *   legend   the state key.
+ *   head     the large number.
+ *
+ * THE BUILD (LENS §6.4): the scene is the figure above the marker lane, NOT
+ * the card (the markers become 44px controls under JS, which a scene must not
+ * hold). 1 the key, the head row and the service names fade in, 2 the tracks
+ * grow from the left, 80ms apart, 4 the uptimes rise, 5 the large number
+ * rises (src/scripts/build.ts). The event rules do not build (they are
+ * display:none on a phone, where the markers carry the hours). No JS or
+ * reduced motion: the lanes as drawn, the first-alert event selected.
  */
 import VizCard from '../../core/VizCard.astro';
 
@@ -222,61 +241,79 @@ const d = markList[defaultIdx];
 
 const axis = [0, 1, 2, 3, 4].map((i) => clock(win.fromHour + (span * i) / 4));
 
-/* DECLARED NON-THEMEABLE ENCODING (blueprint §6, CANON §6 "fixed data
-   encodings"). Green/amber/red is a cross-domain convention for service status;
-   re-tinting it per world would make "down" mean six different colours across
-   the publication. The three hexes therefore appear exactly ONCE — here — and
-   every paint site downstream is a var(). The encoding never carries meaning by
-   colour alone: the legend names all three and the readout says the state in
-   words. Passed through VizCard's documented style passthrough so the custom
-   properties live on the .px-viz root and survive the ExpandModal portal. */
-const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
+/* The figure's one large number: how long the first fault ran before the
+   composed-still event (the first one after it). Derived, never authored. */
+const lag = Number.isFinite(onset) && markList.length && d.atHour > onset ? d.atHour - onset : null;
+const lagParts = lag != null ? { h: Math.floor(Math.round(lag * 60) / 60), m: Math.round(lag * 60) % 60 } : null;
+
+/* DECLARED NON-THEMEABLE ENCODING (blueprint §6, a fixed data encoding).
+   Lens Phase 6 re-drew the three on the one paper: healthy is a pale green
+   that recedes, so the failures are what the eye finds; degraded an amber and
+   down a red, both dark enough to read as marks on paper. The hexes appear
+   exactly ONCE, here; every paint site downstream is a var(). The encoding
+   never carries meaning by colour alone: the key names all three and the
+   readout says the state in words. */
+const PALETTE = '--stl-s0:#D7E2BF;--stl-s1:#C97C22;--stl-s2:#A02D18';
 ---
 
 <VizCard prefix="px-stl" howToRead={howToRead} caption={caption} source={source} style={PALETTE}>
-  <div class="px-stl__legend">
-    {states.map((s, i) => (
-      <span class="px-stl__key">
-        <span class="px-inst__sw" style={`--fill:var(--stl-s${ci(i)})`} aria-hidden="true"></span>
-        <span class="px-stl__keylab">{s.label}</span>
-      </span>
-    ))}
-  </div>
-
-  {/* The lane grid is a picture of the table further down. Exposing both makes a
-      screen reader read every service twice, the second time with none of its
-      numbers — so the table is the AT path (blueprint §7) and this is decoration
-      over it. The marker lane below is NOT inside this, because its markers are
-      the one real control. */}
-  <div class="px-stl__lanes" aria-hidden="true">
-    <div class="px-stl__head">
-      <span>Service</span><span></span><span>Uptime</span>
-    </div>
-    {laneRows.map((r) => (
-      <div class="px-stl__lane">
-        <span class="px-stl__lab">{r.label}</span>
-        <span class="px-stl__track">
-          {r.segments.map((g) => (
-            <span
-              class="px-stl__seg"
-              data-last={g.last ? 'true' : 'false'}
-              style={`width:${g.width.toFixed(4)}%;--seg:var(--stl-s${g.ci})`}
-            ></span>
-          ))}
-        </span>
-        <span class="px-stl__up" data-band={r.band}>{r.uptime.toFixed(1)}%</span>
+  <div class="px-stl__fig" data-build-scene>
+    {lagParts && (
+      <div class="px-stl__head1" data-cue="head" style={`--ch:${lagParts ? (lagParts.h > 0 ? String(lagParts.h).length + 3.6 : 2.6) : 4}`}>
+        <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+        <span class="px-stl__big" data-build="5" data-build-kind="rise">{lagParts.h > 0 && <>{lagParts.h}<small>h</small> </>}{String(lagParts.m).padStart(lagParts.h > 0 ? 2 : 1, '0')}<small>m</small></span>
+        <span class="px-stl__biglab">from the first fault to “{d.label}”</span>
       </div>
-    ))}
+    )}
+
+    <div class="px-stl__legend" data-cue="legend" data-build="1">
+      {states.map((s, i) => (
+        <span class="px-stl__key">
+          <span class="px-stl__sw" style={`--fill:var(--stl-s${ci(i)})`} aria-hidden="true"></span>
+          <span class="px-stl__keylab">{s.label}</span>
+        </span>
+      ))}
+    </div>
+
+    {/* The lane grid is a picture of the table in the disclosure below; the
+        table is the screen reader's path (blueprint §7). */}
+    <div class="px-stl__lanes" aria-hidden="true">
+      <div class="px-stl__head" data-build="1">
+        <span>Service</span><span></span><span>Uptime</span>
+      </div>
+      <div class="px-stl__body">
+        {laneRows.map((r, li) => (
+          <div class="px-stl__lane" data-cue={li + 1}>
+            <span class="px-stl__lab" data-build="1"><span class="px-cue-tag" data-cue-tag={li + 1} hidden></span>{r.label}</span>
+            <span class="px-stl__track" data-build="2" data-build-kind="grow-x">
+              {r.segments.map((g) => (
+                <span
+                  class="px-stl__seg"
+                  data-last={g.last ? 'true' : 'false'}
+                  style={`width:${g.width.toFixed(4)}%;--seg:var(--stl-s${g.ci})`}
+                ></span>
+              ))}
+            </span>
+            <span class="px-stl__up" data-band={r.band} data-build="4" data-build-kind="rise">{r.uptime.toFixed(1)}%</span>
+          </div>
+        ))}
+        {/* each event's hour, drawn down through the lanes */}
+        <div class="px-stl__guides">
+          {markList.map((m) => (
+            <span class="px-stl__guide" data-cue={`m${m.n}`} style={`left:${m.left.toFixed(4)}%`}></span>
+          ))}
+        </div>
+      </div>
+    </div>
   </div>
 
   {markList.length > 0 && (
     <div class="px-stl__marks">
-      {/* Same three-column grid as the lanes, and the box sits in column 2, so a
-          marker's left% is a percentage of the TRACK rather than of the row. */}
       <div class="px-stl__markbox" style={`--rows:${markRows}`}>
         {markList.map((m, i) => (
           <span
             class="px-stl__mark"
+            data-cue={`m${m.n}`}
             data-stl-mark={i}
             data-stl-n={m.n}
             data-stl-label={m.label}
@@ -298,63 +335,77 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
   </div>
 
   {markList.length > 0 && (
-    <p class="px-stl__readout px-inst__readout" data-stl-readout aria-live="polite">
-      <span data-stl-out-label>{d.label}</span>{' — '}<b
+    <p class="px-stl__readout" data-stl-readout aria-live="polite">
+      <span data-stl-out-label>{d.label}</span>{', '}<b
         class="px-stl__clock"
         data-stl-out-time>{d.time}</b>{'. '}<span data-stl-out-note>{d.note ?? ''}</span>
     </p>
   )}
 
-  {/* Both tables are permanent content, not a JS-redundant fallback: the lag
-      argument is only checkable across the two together — when each service
-      LEFT healthy, against the clock time of the first event. */}
-  <table class="px-stl__table">
-    <caption class="px-stl__tcap">
-      Time in each state, and when each service left {okLabel.toLowerCase()}
-    </caption>
-    <thead>
-      <tr>
-        <th scope="col">Service</th>
-        {states.map((s) => <th scope="col">{s.label}</th>)}
-        <th scope="col">Left {okLabel.toLowerCase()}</th>
-        <th scope="col">Uptime</th>
-      </tr>
-    </thead>
-    <tbody>
-      {laneRows.map((r) => (
-        <tr>
-          <th scope="row">{r.label}</th>
-          {r.perState.map((p) => <td>{dur(p.hours)}</td>)}
-          <td>{r.leftOk ?? '—'}</td>
-          <td data-band={r.band}>{r.uptime.toFixed(1)}%</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-
+  {/* The events, in clock time: the rows mirror the markers (44px targets). */}
   {markList.length > 0 && (
-    <table class="px-stl__table" data-ev>
-      <caption class="px-stl__tcap">The incident timeline, in clock time</caption>
+    <ol class="px-stl__events">
+      {markList.map((m, i) => (
+        <li class="px-stl__ev" data-cue={`m${m.n}`} data-stl-row={i} data-selected={i === defaultIdx ? 'true' : 'false'}>
+          <span class="px-stl__evn">{m.n}</span>
+          <span class="px-stl__evt"><span class="px-cue-tag" data-cue-tag={`m${m.n}`} hidden></span>{m.time}</span>
+          <span class="px-stl__evl">{m.label}</span>
+        </li>
+      ))}
+    </ol>
+  )}
+
+  {/* The numbers, for a screen reader and anyone who wants them: time in each
+      state per service, and what happened at each event. */}
+  <details class="px-stl__more">
+    <summary>All the numbers</summary>
+    <table class="px-stl__table">
+      <caption class="px-stl__tcap">
+        Time in each state, and when each service left {okLabel.toLowerCase()}
+      </caption>
       <thead>
         <tr>
-          <th scope="col">#</th>
-          <th scope="col">Clock</th>
-          <th scope="col">Event</th>
-          <th scope="col">What happened</th>
+          <th scope="col">Service</th>
+          {states.map((s) => <th scope="col">{s.label}</th>)}
+          <th scope="col">Left {okLabel.toLowerCase()}</th>
+          <th scope="col">Uptime</th>
         </tr>
       </thead>
       <tbody>
-        {markList.map((m, i) => (
-          <tr data-stl-row={i} data-selected={i === defaultIdx ? 'true' : 'false'}>
-            <th scope="row">{m.n}</th>
-            <td>{m.time}</td>
-            <td>{m.label}</td>
-            <td class="px-stl__note">{m.note ?? '—'}</td>
+        {laneRows.map((r) => (
+          <tr>
+            <th scope="row">{r.label}</th>
+            {r.perState.map((p) => <td>{dur(p.hours)}</td>)}
+            <td>{r.leftOk ?? '—'}</td>
+            <td data-band={r.band}>{r.uptime.toFixed(1)}%</td>
           </tr>
         ))}
       </tbody>
     </table>
-  )}
+    {markList.length > 0 && (
+      <table class="px-stl__table" data-ev>
+        <caption class="px-stl__tcap">The incident timeline, in clock time</caption>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Clock</th>
+            <th scope="col">Event</th>
+            <th scope="col">What happened</th>
+          </tr>
+        </thead>
+        <tbody>
+          {markList.map((m) => (
+            <tr>
+              <th scope="row">{m.n}</th>
+              <td>{m.time}</td>
+              <td>{m.label}</td>
+              <td class="px-stl__note">{m.note ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </details>
 </VizCard>
 
 <script is:inline>
@@ -384,9 +435,9 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
         oN.textContent = marks[i].getAttribute('data-stl-note') || '';
       }
 
-      // The markers are plain <span>s in the markup and become operable ONLY
-      // here, so a no-JS reader is never shown an affordance that does nothing.
-      // Everything a press reveals is already in the events table.
+      // The markers become operable ONLY here, so a no-JS reader is never
+      // shown an affordance that does nothing; everything a press reveals is
+      // in the "All the numbers" disclosure.
       marks.forEach(function (m, n) {
         m.setAttribute('role', 'button');
         m.setAttribute('tabindex', '0');
@@ -408,11 +459,7 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
           }
         });
       });
-
-      // The events-table rows mirror the markers for pointer users — 44px-tall
-      // targets where the circle is 15px. They are deliberately NOT tab stops:
-      // the markers already carry the complete keyboard path, and duplicating it
-      // would double the tab order for one control.
+      // The event rows mirror the markers for pointer users (44px targets).
       rows.forEach(function (r, n) {
         r.classList.add('is-operable');
         r.addEventListener('click', function () { if (n !== cur) paint(n); });
@@ -422,67 +469,98 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
 </script>
 
 <style>
-  /* ── legend (mandatory: the encoding is categorical) ─────────────────── */
-  .px-stl__legend { display: flex; flex-wrap: wrap; gap: 7px 18px; margin: 2px 0 16px; }
-  .px-stl__key { display: inline-flex; align-items: center; gap: 7px; }
-  .px-stl__keylab {
-    font-family: var(--font-mono);
-    font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--ink-soft);
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .px-stl__head1 {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
   }
+  .px-stl__head1 > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .px-stl__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .px-stl__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-stl__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-stl__big small { font-size: 0.5em; font-weight: 600; margin-left: 2px; }
+  .px-stl__biglab { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--ink-2); }
+
+  /* ── key (mandatory: the encoding is categorical) ────────────────────── */
+  .px-stl__legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 14px; }
+  .px-stl__key { display: inline-flex; align-items: center; gap: 6px; }
+  .px-stl__sw { width: 12px; height: 12px; border-radius: 2px; background: var(--fill); }
+  .px-stl__keylab { font-family: var(--font-ui); font-size: 13px; color: var(--ink-2); }
 
   /* ── lanes ───────────────────────────────────────────────────────────── */
-  /* One shared template across the head, the lanes, the marker lane and the
-     axis, so all four align to the same track column. */
+  /* One template across the head, the lanes, the marker lane and the axis,
+     so all four align to the same track column. */
   .px-stl__head,
   .px-stl__lane,
   .px-stl__marks,
   .px-stl__axis {
     display: grid;
-    grid-template-columns: 118px 1fr 58px;
-    gap: 12px;
+    grid-template-columns: 116px 1fr 52px;
+    gap: 10px;
     align-items: center;
   }
-  .px-stl__lanes { display: flex; flex-direction: column; gap: 5px; }
-  .px-stl__head { margin-bottom: 7px; }
+  .px-stl__body { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .px-stl__head { margin-bottom: 6px; }
   .px-stl__head span {
-    font-family: var(--font-mono);
-    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--muted);
   }
   .px-stl__head span:last-child { text-align: right; }
 
   .px-stl__lab {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: color-mix(in oklab, var(--ink) 80%, transparent);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .px-stl__track { display: flex; height: 20px; background: var(--paper-deep); min-width: 0; }
+  .px-stl__track { display: flex; height: 22px; background: var(--paper-3); min-width: 0; border-radius: 2px; overflow: hidden; transform-origin: left center; }
   .px-stl__seg { flex: 0 0 auto; background: var(--seg); }
-  /* The last segment also grows, so sub-pixel rounding accumulated across up to
-     twelve widths lands there instead of leaving a sliver of bare track at the
-     right edge — which would read as a gap, the one thing this chart forbids. */
+  /* The last segment also grows, so sub-pixel rounding lands there instead
+     of leaving a sliver of bare track, which would read as a gap. */
   .px-stl__seg[data-last='true'] { flex-grow: 1; }
-
   .px-stl__up {
-    font-family: var(--font-mono);
-    font-size: 10.5px; font-weight: 700; text-align: right;
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 600; text-align: right; color: var(--ink);
     font-variant-numeric: tabular-nums;
   }
-  .px-stl__up[data-band='ok'] { color: var(--accent); }
-  .px-stl__up[data-band='warn'] { color: var(--stl-s1); }
-  .px-stl__up[data-band='bad'] { color: var(--stl-s2); }
+
+  /* each event's hour as a dashed rule down through the tracks */
+  .px-stl__guides {
+    position: absolute;
+    top: -4px; bottom: -4px;
+    left: calc(116px + 10px);
+    right: calc(52px + 10px);
+    pointer-events: none;
+  }
+  .px-stl__guide {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 0;
+    border-left: 1px dashed color-mix(in oklab, var(--ink) 45%, transparent);
+  }
 
   /* ── marker lane ─────────────────────────────────────────────────────── */
-  /* Barely a gap: the stalks have to read as attached to the track above them,
-     not as a second row of ornaments. */
-  .px-stl__marks { margin-top: 2px; }
+  .px-stl__marks { margin-top: 4px; }
   .px-stl__markbox {
     grid-column: 2;
     position: relative;
     min-width: 0;
-    height: calc(30px + (var(--rows, 1) - 1) * 18px);
+    height: calc(32px + (var(--rows, 1) - 1) * 22px);
   }
   .px-stl__mark {
     position: absolute;
@@ -490,12 +568,8 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
     transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center;
   }
-  /* The visible marker is a 15px disc on a hairline stalk — deliberately small,
-     because it points at one minute on a clock and a fat dot would lie about
-     the precision. But CANON's 44px target floor is about the FINGER, not the
-     ink, so the hit area is widened invisibly around it. Measured before this:
-     three marks were 23px tall and one 41px. `content-box` keeps the padding
-     from inflating the drawn stalk. */
+  /* The drawn marker is a small numbered square (a cue is a round disc, so
+     the two never read as one); the 44px target is widened invisibly. */
   html.js .px-stl__mark.is-operable {
     min-width: 44px;
     min-height: 44px;
@@ -503,129 +577,138 @@ const PALETTE = '--stl-s0:#2f6b3a;--stl-s1:#c6a132;--stl-s2:#f4623a';
     box-sizing: content-box;
     margin-left: -14px;
     justify-content: flex-start;
+    cursor: pointer;
   }
-  html.js .px-stl__mark.is-operable { cursor: pointer; }
   .px-stl__mark:focus-visible { outline: none; }
   .px-stl__mark:focus-visible .px-stl__num { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
-
-  /* The stalk grows with the row so a staggered marker still points at its own
-     hour on the track above. */
   .px-stl__stalk {
     width: 1px;
-    height: calc(var(--stl-stalk, 8px) + var(--row, 0) * 18px);
-    background: color-mix(in oklab, var(--ink) 35%, transparent);
+    height: calc(var(--stl-stalk, 6px) + var(--row, 0) * 22px);
+    background: color-mix(in oklab, var(--ink) 45%, transparent);
   }
   .px-stl__num {
     position: relative;
-    width: 15px; height: 15px; border-radius: 50%;
+    width: 20px; height: 20px; border-radius: 3px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 9.5px; font-weight: 700; line-height: 1;
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 600; line-height: 1;
     font-variant-numeric: tabular-nums;
-    background: color-mix(in oklab, var(--ink) 65%, transparent);
-    color: var(--paper-deep);
-    transition: background-color 120ms var(--ease, ease), color 120ms var(--ease, ease);
+    background: var(--muted);
+    color: var(--paper-2);
+    transition: background-color 160ms var(--ease, ease);
   }
-  /* --on-accent is the governed foreground on an accent fill (TD-04); the
-     blueprint's --paper-deep is its fallback, and the two agree in every world. */
-  /* --accent-DEEP, not --accent: --on-accent over the vivid accent measures
-     3.91:1 on travel (kinds are cross-world per CANON §2), while over
-     accent-deep it clears 6.21:1 in every world. When type sits ON a fill, the
-     fill has to be the type-safe sibling. */
-  .px-stl__mark[data-selected='true'] .px-stl__num {
-    background: var(--accent-deep);
-    color: var(--on-accent, var(--paper-deep));
-  }
-  html.js .px-stl__mark.is-operable:hover .px-stl__num { background: color-mix(in oklab, var(--ink) 85%, transparent); }
-  /* The circle is 15px because that is what reads as a timeline pin; the hit
-     area is a 31 × 35 pseudo-element, and it exists only once the marker is
-     actually operable. The 44px control surface is the events-table row. */
+  .px-stl__mark[data-selected='true'] .px-stl__num { background: var(--ink); }
   html.js .px-stl__mark.is-operable .px-stl__num::before { content: ''; position: absolute; inset: -10px -8px; }
 
   /* ── hour axis ───────────────────────────────────────────────────────── */
   .px-stl__ticks { grid-column: 2; display: flex; justify-content: space-between; min-width: 0; margin-top: 2px; }
   .px-stl__ticks span {
-    font-family: var(--font-mono);
-    font-size: 9.5px; letter-spacing: 0.08em;
+    font-family: var(--font-ui);
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
-    color: color-mix(in oklab, var(--ink) 45%, transparent);
+    color: var(--muted);
   }
 
   /* ── readout ─────────────────────────────────────────────────────────── */
-  .px-stl__readout { margin-top: 16px; }
-  /* CANON §6: accent-as-text takes --accent-deep so the clock stays legible when
-     this kind runs inside a light-paper world. */
-  .px-stl__clock { color: var(--accent-deep, var(--accent)); font-weight: 700; }
+  .px-stl__readout {
+    margin: 14px 0 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .px-stl__clock { color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-  /* ── tables (the AT path, and the pointer control) ───────────────────── */
+  /* ── the events list ─────────────────────────────────────────────────── */
+  .px-stl__events {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    column-gap: 16px;
+  }
+  .px-stl__ev {
+    display: grid;
+    grid-template-columns: 20px max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+  .px-stl__evn {
+    width: 20px; height: 20px; border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--muted); color: var(--paper-2);
+    font-size: 12px; font-weight: 600;
+  }
+  .px-stl__ev[data-selected='true'] .px-stl__evn { background: var(--ink); }
+  .px-stl__evt { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-stl__evl { color: var(--ink-2); min-width: 0; }
+  html.js .px-stl__ev.is-operable { cursor: pointer; }
+
+  /* ── the numbers ─────────────────────────────────────────────────────── */
+  .px-stl__more { margin-top: 8px; }
+  .px-stl__more > summary {
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-deep);
+  }
   .px-stl__table {
     width: 100%;
-    margin-top: 20px;
+    margin-top: 12px;
     border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
   .px-stl__tcap {
     text-align: left;
-    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--muted);
-    padding-bottom: 8px;
+    padding-bottom: 6px;
   }
   .px-stl__table th,
-  .px-stl__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
+  .px-stl__table td { padding: 6px; border-bottom: 1px solid var(--hair); text-align: right; }
   .px-stl__table thead th {
-    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--muted); font-weight: 600;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted);
   }
   .px-stl__table th[scope='row'],
   .px-stl__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
-  .px-stl__table td[data-band='ok'] { color: var(--accent); font-weight: 700; }
-  .px-stl__table td[data-band='warn'] { color: var(--stl-s1); font-weight: 700; }
-  .px-stl__table td[data-band='bad'] { color: var(--stl-s2); font-weight: 700; }
-
-  /* Events table: prose columns read left, and the rows are the 44px targets. */
   .px-stl__table[data-ev] thead th { text-align: left; }
-  .px-stl__table[data-ev] thead th:nth-child(2),
-  .px-stl__table[data-ev] td:nth-child(2) { text-align: right; }
   .px-stl__table[data-ev] td:nth-child(n + 3) { text-align: left; }
-  .px-stl__table[data-ev] th,
-  .px-stl__table[data-ev] td { padding: 14px 6px; }
-  .px-stl__note {
-    font-family: var(--font-body);
-    font-size: 12px; line-height: 1.45;
-    color: var(--ink-soft);
-    min-width: 22ch;
-  }
-  .px-stl__table[data-ev] tr[data-selected='true'] { background: var(--paper-warm); }
-  html.js .px-stl__table[data-ev] tbody tr.is-operable { cursor: pointer; }
+  .px-stl__note { font-family: var(--font-display); font-size: 14px; line-height: 1.45; color: var(--ink-2); min-width: 20ch; }
 
   @media (prefers-reduced-motion: reduce) {
     .px-stl__num { transition: none; }
   }
 
   @media (max-width: 640px) {
-    /* The track drops to its own full-width row (the bill-funnel reflow) rather
-       than sharing the row with a shrunken label column. At 375px the three-
-       column grid leaves ~107px of track — 4.5px per hour, where no marker can
-       be placed and no segment can be told from its neighbour. */
+    /* The track drops to its own full-width row rather than sharing the row
+       with a shrunken label column. */
     .px-stl__head,
-    .px-stl__lane { grid-template-columns: 1fr 58px; gap: 4px 10px; }
+    .px-stl__lane { grid-template-columns: 1fr 52px; gap: 4px 10px; }
     .px-stl__lab { grid-column: 1; grid-row: 1; }
     .px-stl__up { grid-column: 2; grid-row: 1; }
     .px-stl__track { grid-column: 1 / -1; grid-row: 2; }
     .px-stl__head span:nth-child(2) { display: none; }
-    .px-stl__lanes { gap: 12px; }
-    /* The marker lane and the axis follow the track to full width, or they stop
-       aligning to the thing they annotate. */
+    .px-stl__body { gap: 10px; }
     .px-stl__marks,
     .px-stl__axis { grid-template-columns: 1fr; gap: 0; }
     .px-stl__markbox,
     .px-stl__ticks { grid-column: 1; }
-    .px-stl__note { min-width: 20ch; }
+    /* the guides would cross the stacked labels: the markers carry the hours */
+    .px-stl__guides { display: none; }
   }
-
-  @media (max-width: 340px) {
-    .px-stl__mark { --stl-stalk: 4px; }
+  @media (max-width: 640px) {
+    .px-stl__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

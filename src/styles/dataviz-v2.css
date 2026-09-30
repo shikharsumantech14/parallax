@@ -326,10 +326,9 @@ html:not(.js) .px-cue { cursor: default; }
   background: var(--accent-deep);
   box-shadow: 0 0 0 2px var(--paper-2), 0 0 0 4px var(--accent);
 }
-/* A readout clips its tiles (`.tel` hides the last divider's overhang), so a
-   tile's ring is drawn inside it; four tiles sit two by two in the panel. */
-.px-rs > .px-fig .tel__tile[data-cue] { outline-offset: -4px; }
-.px-fig .tel__grid:has(> .tel__tile:nth-child(4):last-child) { --tel-cols: 2; }
+/* A readout's tiles are cards (Lens Phase 6): the ring sits just outside the
+   card's own edge, inside the 12px gap between cards. */
+.px-rs > .px-fig .tel__tile[data-cue] { outline-offset: 2px; }
 :where(.px-rs > .px-fig [data-cue]:not(.px-cue)) {
   transition: opacity var(--t-micro, 160ms) var(--ease), outline-color var(--t-micro, 160ms) var(--ease);
 }
@@ -375,163 +374,67 @@ html:not(.js) .px-cue { cursor: default; }
   .px-cue, .px-cue-s, .px-cue-tag, .px-rs > .px-fig [data-cue] { transition: none; }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   APPROVAL CHART (politics) — dual line, animated draw, gradient fill
-   ────────────────────────────────────────────────────────────────────────── */
-.ac__plot { position: relative; width: 100%; }
-.ac__svg { width: 100%; height: auto; display: block; overflow: visible; }
-.ac__line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
-  stroke-dasharray: var(--len); stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1500ms var(--ease); }
-.ac__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 700ms; }
-.ac__dot { opacity: 1; transition: opacity var(--t-quick) var(--ease); }
-.ac__legend { display: flex; gap: 24px; margin-top: 16px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); }
-.ac__key { display: inline-flex; align-items: center; gap: 8px; }
-.ac__key i { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
-.ac__grid line { stroke: var(--rule); stroke-width: 1; }
-.ac__axis { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; fill: var(--muted); text-transform: uppercase; }
+/* APPROVAL CHART (politics): its CSS lives in ApprovalChart.astro since Lens Phase 6. */
+
+/* POWER MATRIX (politics): its CSS lives in PowerMatrix.astro since Lens Phase 6. */
 
 /* ──────────────────────────────────────────────────────────────────────────
-   POWER MATRIX (politics) — institutional control grid
+   SPACE DESK FIGURES (Lens Phase 6, 2026-09-30): the shared parts of the
+   eleven space kinds, drawn for the pinned figure panel (470px body at 1280):
+   the one number set large, the two drawings (470 units for the panel, 290
+   for a phone, one shown), and the SVG text roles. Each kind's own rules live in its
+   component. Helpers: src/components/topic/space/_fig.ts. The old `.ot` and
+   `.ls` kit rules went with the redraw.
    ────────────────────────────────────────────────────────────────────────── */
-.pm__grid { display: grid; gap: 6px; }
-.pm__row { display: grid; grid-template-columns: 1.4fr repeat(var(--cols, 3), 1fr); gap: 6px; align-items: stretch; }
-.pm__inst { font-family: var(--font-ui); font-size: 14px; color: var(--ink); display: flex; align-items: center; padding: 10px 14px 10px 0; line-height: 1.3; }
-.pm__head { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); display: flex; align-items: flex-end; padding: 0 8px 10px; }
-.pm__cell {
-  border-radius: 6px; min-height: 46px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--paper); font-weight: 700;
-  opacity: 1; transform: none;
-  transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
-  position: relative; overflow: hidden;
+/* The pinned figure's headline number (LENS §7): 96, 72 on phones, its label
+   8px below it. */
+.px-sfig__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 16px; }
+.px-sfig__num {
+  font-family: var(--font-ui); font-size: 96px; line-height: 0.92; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep);
 }
-.pm__cell[data-control="full"]    { color: var(--paper); }
-.pm__cell[data-control="partial"] { color: var(--ink); }
-.pm__cell[data-control="partial"]::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(251,250,246,0.4) 5px, rgba(251,250,246,0.4) 6px); }
-.pm__cell[data-control="none"] { background: color-mix(in oklab, var(--ink) 5%, var(--bg)) !important; color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule); }
-.pm__cell span { position: relative; z-index: 1; }
-.pm__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.pm__legend .key { display: inline-flex; align-items: center; gap: 8px; }
-.pm__legend .sw { width: 14px; height: 14px; border-radius: 4px; }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   ORBIT TRACE (space) — concentric altitude rings, animated satellites
-   ────────────────────────────────────────────────────────────────────────── */
-.ot { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
-.ot__stage { position: relative; aspect-ratio: 1; width: 100%; }
-.ot__svg { width: 100%; height: 100%; overflow: visible; }
-.ot__ring { fill: none; stroke: color-mix(in oklab, var(--accent) 28%, transparent); stroke-width: 1; opacity: 1; transition: opacity var(--t-slow) var(--ease); }
-.ot__earth { fill: color-mix(in oklab, var(--accent) 80%, var(--ink)); }
-.ot__sat { transform-box: fill-box; transform-origin: center; }
-.ot__legend { display: flex; flex-direction: column; gap: 12px; }
-.ot__item { display: grid; grid-template-columns: 12px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px dashed var(--rule); cursor: default; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-.ot__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
-.ot__name { font-family: var(--font-ui); font-size: 15px; color: var(--ink); font-weight: 600; }
-.ot__alt { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-.ot__count { grid-column: 2 / -1; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
-@media (max-width: 720px) { .ot { grid-template-columns: 1fr; } }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   LAUNCH STATS (space) — grouped bars, grow-in
-   ────────────────────────────────────────────────────────────────────────── */
-.ls__chart { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 14px; align-items: end; height: 280px; padding-top: 12px; }
-.ls__year { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
-.ls__bars { display: flex; gap: 3px; align-items: flex-end; height: 100%; width: 100%; justify-content: center; }
-.ls__bar { width: 100%; max-width: 14px; border-radius: 3px 3px 0 0; height: var(--h); transition: height 900ms var(--ease); align-self: flex-end; position: relative; }
-.ls__yr { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-.ls__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.ls__legend .key { display: inline-flex; align-items: center; gap: 8px; }
-.ls__legend .sw { width: 12px; height: 12px; border-radius: 3px; }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   CLIMATE STRIP (earth) — warming stripes, reveal left→right + line overlay
-   ────────────────────────────────────────────────────────────────────────── */
-.cs__strip { display: flex; height: 150px; border-radius: 8px; overflow: hidden; position: relative; }
-.cs__bar { flex: 1; transform: scaleY(1); transform-origin: bottom; transition: transform 700ms var(--ease); }
-/* An absolutely positioned <svg> is a REPLACED element: `inset: 0` does not
-   stretch it, it takes its height from the viewBox ratio instead. At 1280 that
-   made the overlay 201px tall on a 150px strip and the strip cut the trend
-   line's lower 51px off; at 375 it was 78px tall and the line was squashed
-   into the top half (measured 2026-09-23). The explicit size is the fix —
-   preserveAspectRatio="none" then maps the viewBox onto the strip exactly. */
-.cs__overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.cs__path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1600ms var(--ease) 400ms; }
-.cs__axis { display: flex; justify-content: space-between; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-.cs__scale { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); align-items: center; }
-.cs__grad { width: 120px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2166ac, #67a9cf, #f7f7f7, #fddbc7, #ef8a62, #b2182b); }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   PARADOX (earth/politics) — two-panel comparison with center pivot
-   ────────────────────────────────────────────────────────────────────────── */
-.px2 { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; align-items: stretch; }
-.px2__panel { padding: 26px; }
-.px2__panel:first-child { border-right: 0; }
-.px2__pivot { width: 1px; background: var(--rule); position: relative; }
-.px2__pivot::before { content: 'vs'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--paper); padding: 8px 6px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); border: 1px solid var(--rule); border-radius: var(--r-pill); }
-.px2__label { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ margin-bottom: 12px; }
-.px2__claim { font-family: var(--font-display); font-size: 20px; line-height: 1.3; color: var(--ink); font-weight: 500; margin-bottom: 12px; }
-.px2__detail { font-family: var(--font-ui); font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
-.px2__detail strong { color: var(--ink); }
-@media (max-width: 720px) {
-  .px2 { grid-template-columns: 1fr; }
-  .px2__pivot { width: auto; height: 1px; }
+@media (max-width: 599px) { .px-sfig__num { font-size: 72px; } }
+.px-sfig__lbl {
+  display: inline-flex; align-items: center; min-width: 0;
+  font-family: var(--font-ui); font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--ink-2);
 }
+.px-sfig__plot { position: relative; }
+.px-sfig__svg { display: block; width: 100%; height: auto; overflow: visible; }
+.px-sfig__svg foreignObject .px-cue-tag { margin-right: 4px; }
+/* Each SVG kind renders twice: drawn at 470 units for the panel and at 290
+   for a phone (a 375 screen gives the figure 293px), one shown here, so a
+   12-unit label is 12px at both widths and no chart scrolls sideways. A
+   story card (312px at every viewport) always takes the phone drawing. */
+.px-sfig__dual > :nth-child(2) { display: none; }
+@media (max-width: 599px) {
+  .px-sfig__dual > :nth-child(1) { display: none; }
+  .px-sfig__dual > :nth-child(2) { display: block; }
+}
+.pxs-beat__viz .px-sfig__dual > :nth-child(1) { display: none; }
+.pxs-beat__viz .px-sfig__dual > :nth-child(2) { display: block; }
+/* SVG text roles; the face is a literal stack in each <text>'s style (RD-01b). */
+.px-sfig__ax { font-size: 12px; fill: var(--muted); }
+.px-sfig__at { font-size: 12px; font-weight: 500; fill: var(--muted); }
+.px-sfig__t { font-size: 13px; fill: var(--ink); paint-order: stroke; stroke: var(--paper-2); stroke-width: 4px; stroke-linejoin: round; }
+.px-sfig__b { font-weight: 600; }
+.px-sfig__m { fill: var(--muted); font-weight: 400; }
+.px-sfig__grid { stroke: var(--hair); stroke-width: 1; }
+.px-sfig__base { stroke: var(--ink-2); stroke-width: 1; }
+/* A key row under a figure: swatch + three words at most. */
+.px-sfig__key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; padding: 0; list-style: none; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--ink-2); }
+.px-sfig__key li { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.px-sfig__sw { flex: none; width: 12px; height: 12px; border-radius: 2px; background: var(--accent); }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   BENCHMARK CHART (tech) — horizontal bars, ref line, grow-in
-   ────────────────────────────────────────────────────────────────────────── */
-.bc__row { display: grid; grid-template-columns: 150px 1fr 52px; gap: 14px; align-items: center; padding: 5px 0; }
-.bc__label { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); text-align: right; letter-spacing: 0.02em; }
-/* The bar's second line — what is left of that bar's quantity, written on the
-   bar itself. It sits in the 150px label column rather than under the track,
-   because the track collapses to ~43px on a phone while this column does not.
-   Not `__cap`/`__src`: story.css hides those inside a beat (AGENTS.md §7). */
-.bc__sub { display: block; margin-top: 3px; font-size: 12px; line-height: 1.35; letter-spacing: 0.02em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.bc__row[data-hl="true"] .bc__label { color: var(--accent-deep); font-weight: 700; }
-.bc__row[data-hl="true"] .bc__sub { color: var(--muted); font-weight: 400; }
-.bc__track { position: relative; height: 22px; background: color-mix(in oklab, var(--ink) 5%, var(--bg)); border-radius: 4px; overflow: hidden; }
-.bc__fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--w); background: color-mix(in oklab, var(--ink) 30%, var(--bg)); border-radius: 4px; transition: width 1000ms var(--ease); }
-.bc__row[data-hl="true"] .bc__fill { background: var(--accent); }
-.bc__val { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
-/* The reference row: in flow between the caption and the bars (never hung
-   above a zero-height box, where it printed into the caption row and the
-   unit chip, 2026-09-23). The label wraps; the component pads it to start or
-   end beside the line. The dashed tick drops from under the label to the
-   first bar's track (5px row padding). */
-.bc__ref { position: relative; padding-bottom: 10px; }
-.bc__refline { position: absolute; bottom: -5px; height: 13px; margin-left: -1px; border-left: 2px dashed var(--accent); }
-.bc__reflabel { display: block; font-family: var(--font-mono); font-size: 12px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); }
+/* CLIMATE STRIP: its CSS lives in topic/earth/ClimateStrip.astro (`px-cstrip`)
+   since Lens Phase 6; the kit's `.cs` classes are retired. */
 
-/* ──────────────────────────────────────────────────────────────────────────
-   ADOPTION CURVE (tech) — S-curve, animated draw, milestone pins
-   ────────────────────────────────────────────────────────────────────────── */
-.adc__svg { width: 100%; height: auto; overflow: visible; }
-.adc__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 600ms; }
-.adc__line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1700ms var(--ease); }
-.adc__pin { opacity: 1; transform: none; transition: opacity var(--t-quick) var(--ease), transform var(--t-quick) var(--ease); }
-.adc__milestones { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 20px; }
-.adc__ms { padding: 10px 0 0; border-top: 2px solid var(--accent); }
-.adc__ms-yr { font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep); font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
-.adc__ms-lbl { font-family: var(--font-ui); font-size: 13px; color: var(--ink-soft); line-height: 1.4; margin-top: 4px; }
+/* PARADOX: its CSS lives in topic/politics/Paradox.astro since Lens Phase 6. */
 
-/* ──────────────────────────────────────────────────────────────────────────
-   ROUTE CARD (travel) — vertical multi-leg journey, mode glyphs
-   ────────────────────────────────────────────────────────────────────────── */
-.rc__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
-.rc__title { font-family: var(--issue-face); font-size: 24px; color: var(--ink); font-weight: 600; }
-.rc__count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); }
-.rc__legs { position: relative; }
-.rc__legs::before { content: ''; position: absolute; left: 21px; top: 14px; bottom: 14px; width: 2px; background: repeating-linear-gradient(var(--accent), var(--accent) 4px, transparent 4px, transparent 9px); }
-.rc__leg { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 12px 0; position: relative; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-.rc__node { width: 44px; height: 44px; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--accent-deep); z-index: 1; }
-.rc__node svg { width: 20px; height: 20px; }
-.rc__leg-body { padding-top: 2px; }
-.rc__cities { font-family: var(--font-display); font-size: 18px; color: var(--ink); font-weight: 500; }
-.rc__cities .arr { color: var(--accent-deep); margin: 0 8px; }
-.rc__meta { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
-.rc__note { font-family: var(--font-ui); font-size: 14px; color: var(--ink-2); line-height: 1.5; margin-top: 6px; }
+/* BENCHMARK CHART: its CSS lives in topic/tech/BenchmarkChart.astro since Lens Phase 6. */
+
+/* ADOPTION CURVE: its CSS lives in topic/tech/AdoptionCurve.astro since Lens Phase 6. */
+
+/* ITINERARY (was ROUTE CARD, `.rc`): its CSS lives in topic/travel/Itinerary.astro (`px-itin`) since Lens Phase 6. */
 
 /* ──────────────────────────────────────────────────────────────────────────
    CITY COMPARE (travel) — head-to-head metrics, winner highlight
@@ -552,304 +455,104 @@ html:not(.js) .px-cue { cursor: default; }
    the metric label and would squeeze both values if it grew. */
 .cc__note { grid-column: 1 / -1; margin-top: 8px; font-family: var(--font-display); font-style: italic; font-size: 13px; line-height: 1.5; color: var(--ink-soft); text-align: center; }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   LEAGUE TABLE (sports) — standings with qualify/relegation bands, form pills
-   ────────────────────────────────────────────────────────────────────────── */
-.lt { width: 100%; border-collapse: collapse; }
-.lt thead th { font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); padding: 0 10px 14px; text-align: center; font-weight: 600; }
-.lt thead th.l { text-align: left; }
-.lt tbody tr { border-top: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-.lt td { padding: 12px 10px; text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; vertical-align: middle; }
-.lt td.team { text-align: left; font-family: var(--font-ui); font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.lt td.pts { font-weight: 600; color: var(--ink); font-size: 15px; }
-.lt tr[data-band="top"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
-.lt tr[data-band="qualified"] td:first-child { box-shadow: inset 3px 0 0 color-mix(in oklab, var(--accent) 55%, var(--bg)); }
-.lt tr[data-band="relegation"] td:first-child { box-shadow: inset 3px 0 0 var(--pol-mark, #c8412a); }
-.lt__pos { display: inline-flex; align-items: center; gap: 5px; }
-.lt__chg { font-size: 12px; }
-.lt__chg--up { color: var(--spo-text, #33691e); }
-.lt__chg--dn { color: var(--pol-text, #a02d18); }
-.lt__form { display: inline-flex; gap: 3px; }
-.lt__fp { width: 16px; height: 16px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; color: var(--paper); }
-.lt__fp--W { background: var(--spo-text, #33691e); }
-.lt__fp--L { background: var(--pol-text, #a02d18); }
-.lt__fp--D { background: var(--muted); }
-.lt__badge { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.lt__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.lt__legend .key { display: inline-flex; align-items: center; gap: 7px; }
-.lt__legend .sw { width: 12px; height: 12px; border-radius: 3px; }
-@media (max-width: 720px) { .lt thead th.hide, .lt td.hide { display: none; } }
+/* LEAGUE TABLE and PLAYER RADAR (sports): their styles moved into
+   LeagueTable.astro (`px-lt`) and PlayerRadar.astro (`px-rdr`), scoped, in
+   Lens Phase 6 (2026-09-30). The kit's `.lt` / `.pr` names are retired. */
+
+/* VOTE RESULT (politics): its CSS lives in VoteResult.astro since Lens Phase 6. */
 
 /* ──────────────────────────────────────────────────────────────────────────
-   PLAYER RADAR (sports) — hexagonal radar, animated polygon
+   DATA READOUT (core/DataReadout.astro, `.tel`). Lens Phase 6 (2026-09-30),
+   the board Lib-data-readout: every tile is a card, label on top, the number
+   under it. The key tile (the hero) spans the row with its number at up to
+   96px; the others share the rows under it at up to 48px (LENS §7). Numerals
+   never wrap and are never cut: each group's size is its cell's width over
+   its widest value in em (`--tel-em`, `--tel-hero-em`, estimated by the
+   component), with container units on the grid.
    ────────────────────────────────────────────────────────────────────────── */
-.pr { display: grid; grid-template-columns: 1fr 0.9fr; gap: 28px; align-items: center; }
-.pr__stage { aspect-ratio: 1; width: 100%; max-width: 340px; margin: 0 auto; }
-.pr__svg { width: 100%; height: 100%; overflow: visible; }
-.pr__web { fill: none; stroke: var(--rule); stroke-width: 1; }
-.pr__axis { stroke: var(--rule); stroke-width: 1; }
-.pr__poly { fill: color-mix(in oklab, var(--accent) 28%, transparent); stroke: var(--accent); stroke-width: 2; transform: scale(1); transform-origin: center; transform-box: fill-box; opacity: 1; transition: transform 900ms var(--ease-snap), opacity var(--t-soft) var(--ease); }
-.pr__lbl { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); }
-.pr__stats { display: flex; flex-direction: column; gap: 0; }
-.pr__stat { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--rule); }
-.pr__stat-l { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
-.pr__stat-bar { grid-column: 1 / -1; height: 4px; background: color-mix(in oklab, var(--ink) 6%, var(--bg)); border-radius: 2px; overflow: hidden; margin-top: -4px; }
-.pr__stat-fill { height: 100%; background: var(--accent); width: var(--w); border-radius: 2px; transition: width 900ms var(--ease) 300ms; }
-.pr__stat-v { font-family: var(--font-ui); font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-.pr__name { font-family: var(--font-display); font-size: 22px; color: var(--ink); font-weight: 500; margin-bottom: 2px; }
-.pr__team { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
-@media (max-width: 720px) { .pr { grid-template-columns: 1fr; } }
-
-/* ──────────────────────────────────────────────────────────────────────────
-   VOTE BAR (politics) — segments, dashed threshold, slam stamp, and the
-   44-column MP-dot chamber. Standalone card (its own .vb root is the build
-   scene; the numbers count up). 108px prose offset dropped for our section grid.
-   ────────────────────────────────────────────────────────────────────────── */
-.vb {
-  background: var(--paper);
-  border-radius: var(--r-card);
-  padding: 28px;
-  /* No cap of its own (2026-09-23). The kit's 640px was set for a prose
-     column wider than the card; on the floor plan it left the card 78px
-     short of the 720 measure every other figure fills, flush left under
-     text that runs on. The section decides the width, as for any figure. */
-  border: 1px solid var(--rule);
-  position: relative;
-}
-.vb__cap {
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono); text-transform: uppercase;
-  color: var(--muted); margin-bottom: 22px;
-}
-.vb__rail { position: relative; margin-bottom: 22px; padding-top: 28px; }
-.vb__bar {
-  position: relative;
-  height: 56px;
-  background: color-mix(in oklab, var(--ink) 4%, var(--bg));
-  border-radius: var(--r-card);
-  overflow: hidden;
-  border: 1px solid var(--ink);
-}
-.vb__seg {
-  position: absolute; top: 0; bottom: 0;
-  display: flex; align-items: center; padding: 0 16px;
-  font-family: var(--font-mono);
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--on-deep);
-  transform: scaleX(1); transform-origin: left center;
-  transition: transform var(--t-page) var(--ease) 200ms;
-}
-.vb__seg--for { left: 0; background: var(--ear-text, #176357); }
-.vb__seg--against { right: 0; background: var(--accent-deep); transform-origin: right center; justify-content: flex-end; }
-.vb__th {
-  position: absolute; top: 0; bottom: -6px;
-  border-left: 2px dashed var(--ink);
-  opacity: 1; transform: none;
-  transition: opacity var(--t-soft) var(--ease) 800ms, transform var(--t-soft) var(--ease) 800ms;
-}
-.vb__th-label {
-  position: absolute; top: 0; transform: translateX(-50%);
-  font-family: var(--font-mono); font-size: 12px;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
-  white-space: nowrap;
-  /* the dashed threshold runs through the label's centre; the card's own
-     ground behind the text keeps it off the glyphs ("352 RE¦QUIRED") */
-  background: var(--paper); padding: 0 4px;
-}
-/* The stamp's own row, right-aligned under the bar (2026-09-23 — laid over the
-   bar it printed on the segment labels). Rotated −8°, the stamp's corners
-   reach ~14px above and below its box: the rail's 22px margin above and the
-   chamber's 20px below absorb them, and the 8px inset keeps the corner off
-   the card padding. */
-.vb__verdict { display: flex; justify-content: flex-end; padding-right: 8px; }
-.vb__stamp {
-  transform: rotate(-8deg) scale(1);
-  font-family: var(--font-mono); font-weight: 700;
-  font-size: 26px; letter-spacing: 0.06em;
-  color: var(--accent-deep, var(--accent));
-  border: 3px solid var(--accent-deep, var(--accent));
-  padding: 6px 14px;
-  background: var(--paper);
-  opacity: 0.92;
-  transition: opacity var(--t-soft) var(--ease) 1100ms,
-              transform var(--t-soft) var(--ease-snap) 1100ms;
-}
-.vb__chamber {
-  display: grid;
-  grid-template-columns: repeat(44, 1fr);
-  gap: 3px;
-  margin-top: 20px;
-  padding: 16px 12px;
-  background: color-mix(in oklab, var(--ink) 3%, var(--bg));
-  border-radius: var(--r-card);
-  border: 1px solid var(--rule);
-}
-.vb__mp {
-  aspect-ratio: 1; border-radius: 50%;
-  background: var(--rule);
-  opacity: 1; transform: scale(1);
-  transition: opacity 400ms var(--ease), transform 80ms var(--ease);
-}
-.vb__mp--for { background: var(--ear-text, #176357); }
-.vb__mp--against { background: var(--accent); }
-.vb__mp:hover { transform: scale(1.6); }
-.vb__legend {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-top: 20px;
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted);
-}
-.vb__n {
-  font-family: var(--font-ui); font-weight: 600;
-  font-size: var(--fs-num-2, 32px); color: var(--ink);
-  display: block; line-height: var(--lh-num, 0.92);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-  margin-bottom: 4px;
-}
-.vb__n--for { color: var(--ear-text, #176357); }
-.vb__n--neg { color: var(--accent-deep, var(--accent)); }
-@media (max-width: 720px) {
-  .vb__chamber { grid-template-columns: repeat(22, 1fr); }
-}
-
-/* ──────────────────────────────────────────────────────────────────────────
-   TELEMETRY (space) — animated count tiles with scan sweep
-   ────────────────────────────────────────────────────────────────────────── */
-.tel {
-  max-width: 760px;
-  background: var(--paper-2);
-  border: 1px solid var(--hair, var(--rule));
-  border-radius: var(--r-card);
-  overflow: hidden;
-  position: relative;
-}
+.tel { max-width: 760px; position: relative; }
 .tel__cap {
-  padding: 14px 22px;
-  font-family: var(--font-mono); font-size: 12px;
+  padding: 0 0 12px;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
   letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep);
-  border-bottom: 1px solid var(--rule);
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
 }
-.tel__cap-status { display: inline-flex; align-items: center; gap: 8px; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
-.tel__cap-status::before {
-  content: '';
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent);
-  animation: lensPulse 2s infinite;
-}
-/* The grid is the size container the numerals are fitted to (see `.tel__n`),
-   and `--tel-cols` / `--tel-padx` state the geometry that fit reads. */
+.tel__cap-status { display: inline-flex; align-items: center; gap: 8px; color: var(--accent-deep); }
+.tel__cap-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .tel__grid {
-  --tel-cols: 3; --tel-padx: 22px;
-  display: grid; grid-template-columns: repeat(var(--tel-cols), 1fr); position: relative;
+  --tel-padx: 14px; --tel-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(var(--tel-cols, 3), minmax(0, 1fr));
+  gap: var(--tel-gap);
   container-type: inline-size;
 }
-.tel[data-cols="2"] .tel__grid { --tel-cols: 2; }
-/* The divider hangs 1px into the next track, so the last column's rule lands
-   just outside the grid and `.tel`'s overflow clips it — whatever the column
-   count. Per-count `nth-child` rules left a doubled edge on tile 3 at three
-   columns and on tiles 4 and 6 at two. */
 .tel__tile {
-  padding: 28px var(--tel-padx);
-  border-right: 1px solid var(--rule);
-  margin-right: -1px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 0;
+  padding: 16px var(--tel-padx) 18px;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-card);
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
 }
-.tel__tile:last-child { border-right: none; margin-right: 0; }
-/* `emphasis` — the tile the section is actually about. The component has
-   written this attribute since the v2 port, but the CSS for it stayed behind
-   on the RETIRED `.px-readout__tile` prefix in the six theme files, so the
-   attribute painted nothing for anyone. Restored here, once, on the class the
-   component really emits (2026-09-15). An INSET rule, not a border: the tile
-   is `overflow: hidden` (the scan sweep on ::before was retired with the
-   reveals in Lens Phase 5), and an inset hairline is
-   what RD-05 leaves standing. The numeral may take the vivid accent because
-   it is 40px — CANON §6's accent-deep rule is about SMALL text. */
-.tel__tile[data-emphasis="key"] { box-shadow: inset 0 2px 0 var(--accent); }
+.tel__tile[data-hero] { grid-column: 1 / -1; order: -1; padding: 18px 22px 20px; }
+.tel__tile[data-emphasis="key"] { box-shadow: inset 0 3px 0 var(--accent); }
 .tel__tile[data-emphasis="key"] .tel__n { color: var(--accent-deep); }
-.tel__tile[data-emphasis="warn"] { box-shadow: inset 0 2px 0 var(--accent-alt, var(--accent)); }
+.tel__tile[data-emphasis="warn"] { box-shadow: inset 0 3px 0 var(--accent-alt, var(--accent)); }
 .tel__tile[data-emphasis="warn"] .tel__n { color: var(--accent-alt, var(--accent)); }
 
-.tel__val { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
-/* The numeral never wraps and is never cut (2026-09-23): its size is the
-   tile's content width over the readout's widest value in em (`--tel-em`,
-   estimated by core/DataReadout.astro), capped at the 40px design size — one
-   size for every tile in the readout. `cqi` is the grid's width; the 1px is
-   the divider. Where container units are unsupported the second declaration
-   drops and the 40px design size stands. */
+.tel__val { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
 .tel__n {
   font-family: var(--font-ui); font-weight: 600;
-  font-size: 40px;
-  font-size: clamp(22px, calc((100cqi / var(--tel-cols, 3) - 2 * var(--tel-padx, 22px) - 1px) / var(--tel-em, 1)), 40px);
+  font-size: 48px;
+  font-size: clamp(22px, calc(((100cqi - (var(--tel-cols, 3) - 1) * var(--tel-gap, 12px)) / var(--tel-cols, 3) - 2 * var(--tel-padx, 14px) - 2px) / var(--tel-em, 1)), 48px);
   color: var(--ink);
-  letter-spacing: 0; line-height: 1;
+  letter-spacing: -0.01em; line-height: 0.92;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.tel__u { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); color: var(--muted); text-transform: uppercase; }
-/* A label wraps inside its tile and is never cut (2026-09-30). The tile is
-   `overflow: hidden`, so a single capitalised word wider than a narrow tile
-   ("PUNISHMENTS" in a 360px story card's third of a row) was clipped at the
-   tile's edge. Hyphenation breaks it where the language allows, and
-   `overflow-wrap: anywhere` is the last resort, so no word can outrun the
-   tile. It never shrinks below LENS's 12px floor to fit. */
-.tel__l { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--ink-soft); line-height: 1.5; min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
-.tel__note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+.tel__tile[data-hero] .tel__n {
+  font-size: 96px;
+  font-size: clamp(40px, calc((100cqi - 46px) / var(--tel-hero-em, 1)), 96px);
+  letter-spacing: -0.02em;
+}
+/* The hero is the headline number (LENS §7): 96, 72 on phones, fitted. */
+@media (max-width: 1023px) {
+  .tel__tile[data-hero] .tel__n { font-size: clamp(32px, calc((100cqi - 30px) / var(--tel-hero-em, 1)), 72px); }
+}
+.tel__u { font-family: var(--font-ui); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+/* A zero, drawn: a dashed hollow ring the height of the numeral's cap. */
+.tel__zero {
+  flex: none;
+  width: 0.9em; height: 0.9em;
+  font-size: 44px;
+  border: 3px dashed var(--accent);
+  border-radius: 999px;
+}
+.tel__tile[data-hero] .tel__zero { font-size: 80px; }
+/* A label wraps inside its tile and is never cut; it never shrinks below
+   LENS's 12px floor to fit. */
+.tel__l {
+  display: flex; align-items: flex-start;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+  line-height: 1.4; min-width: 0; overflow-wrap: anywhere; hyphens: auto;
+}
+/* In a row tile the numeral sits in the tile's top corner (the board), so
+   the label keeps the tile's whole width; the hero keeps it inline. */
+.tel__tile:not([data-hero]) .tel__l { padding-right: 24px; }
+.tel__tile:not([data-hero]) .tel__l .px-cue-tag { position: absolute; top: 12px; right: 10px; margin: 0; }
+.tel__tile[data-hero] .tel__l .px-cue-tag { margin-top: -2px; }
+.tel__tile[data-emphasis="key"] .tel__l { color: var(--accent-deep); }
+.tel__note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); line-height: 1.5; }
 @media (max-width: 720px) {
-  .tel__grid, .tel[data-cols="2"] .tel__grid { --tel-cols: 2; --tel-padx: 16px; }
-  .tel__tile { padding-block: 22px; }
-  /* A value too long for half a phone card at ~32px takes the full width at
-     40px instead; stacked tiles are divided by a hairline under each. */
+  .tel__grid, .tel[data-cols="2"] .tel__grid { --tel-cols: 2; --tel-padx: 12px; --tel-gap: 10px; }
+  .tel__tile { padding-block: 12px 14px; }
   .tel[data-phone="stack"] .tel__grid { --tel-cols: 1; }
-  .tel[data-phone="stack"] .tel__tile { border-bottom: 1px solid var(--rule); }
-  .tel[data-phone="stack"] .tel__tile:last-child { border-bottom: none; }
+  .tel__zero { font-size: 36px; }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   TIMELINE — vertical rail, events, hover lifts connector
-   Standalone (.tl is the build scene; its rows drop in). 108px offset dropped.
-   ────────────────────────────────────────────────────────────────────────── */
-.tl { max-width: var(--col-prose); position: relative; }
-.tl::before { content: ''; position: absolute; left: 18px; top: 6px; bottom: 6px; width: 1px; background: var(--rule); }
-/* The date cell (2026-09-23): 80px with no gap let "Feb 18 2025" (79.4px)
-   print 0.6px from its title and wrapped "Mar 27 2019" (85.5px) while its
-   neighbours stayed on one line. Every day-month-year form in the published
-   issues measures 72–91px at this size, so 92px holds them all on one line
-   and the 14px gap keeps a longer date (it wraps at its spaces) off the title. */
-.tl__row {
-  display: grid; grid-template-columns: 92px minmax(0, 1fr); column-gap: 14px;
-  align-items: start;
-  padding: 18px 0 18px 56px;
-  position: relative;
-  cursor: default;
-  opacity: 1; transform: none;
-  transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
-}
-.tl__row::before {
-  content: '';
-  position: absolute; left: 12px; top: 22px;
-  width: 13px; height: 13px; border-radius: 50%;
-  background: var(--bg); border: 2px solid var(--muted);
-  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
-}
-.tl__row[data-state="key"]::before { background: var(--accent); border-color: var(--accent); }
-.tl__row[data-state="fail"]::before { background: var(--bg); border-color: var(--accent); }
-.tl__row[data-state="now"]::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 20%, transparent); }
-.tl__row:hover::before { transform: scale(1.2); }
-.tl__date { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 4px; }
-.tl__label { font-family: var(--font-display); font-size: 17px; line-height: 1.4; color: var(--ink); font-weight: 400; }
-.tl__label strong { font-weight: 600; }
-.tl__note { font-family: var(--font-ui); font-size: 14px; color: var(--ink-soft); line-height: 1.55; margin-top: 6px; max-width: 56ch; }
-@media (max-width: 720px) {
-  .tl__row { grid-template-columns: 1fr; gap: 4px; }
-  /* The node keeps its desktop `left: 12px`, centred on the rail at 18px. A
-     `left: -4px` here put every phone node 16px off the rail it marks. */
-}
+/* TIMELINE: its CSS lives in topic/politics/Timeline.astro since Lens Phase 6. */
 
 /* ============================================================================
    RESPONSIVE PASS (2026-07) — no viz content pushes the PAGE sideways.
@@ -860,7 +563,6 @@ html:not(.js) .px-cue { cursor: default; }
 @media (max-width: 640px) {
   /* Data tables become their own horizontal scroller (rows stay intact). */
   .px-viz table,
-  table.lt,
   [class$="__table"] {
     display: block;
     width: 100%;
@@ -964,38 +666,33 @@ html:not(.js) .px-cue { cursor: default; }
     overscroll-behavior-x: contain;
   }
 
-  .px-map__svg { min-width: 800px; }
+  .px-bflow__svg { min-width: 720px; }
 
-  .px-eriv__svg { min-width: 760px; }
+  /* The earth kinds (Lens Phase 6) keep their own phone min-width in their
+     component (region-map, quake-depth, carbon-loop scroll at 460 units;
+     climate-strip, core-sample, sea-level-tank, atmosphere-column and
+     climate-spiral fit a 305px panel at 12px or more). */
 
-  .px-bflow__svg,
-  .px-cloop__svg,
-  .px-eclp__svg,
-  .px-etrek__svg,
-  .px-fterr__svg,
-  .px-lagr__svg,
-  .px-mldr__svg,
+  /* The sports kinds redrawn for the figure panel (Lens Phase 6): a 452-unit
+     viewBox (552 for elo-river, a `wide` kind) with 12px text, so on a phone
+     they keep that width and scroll here. court-value, tactics-pitch and
+     shot-map carry no SVG text (an HTML label layer), so they scale and are
+     not listed. */
   .px-mom__svg,
-  .px-pflow__svg,
-  .px-pkt__bar,
   .px-prdg__svg,
-  .px-qc__svg,
-  .px-quake__svg,
-  .px-vflow__svg,
-  .px-xgr__svg { min-width: 720px; }
+  .px-xgr__svg { min-width: 452px; }
+  .px-eriv__svg { min-width: 552px; }
 
-  .px-altox__svg { min-width: 668px; }
 
-  .ac__svg,
+  /* The space kinds (Lens Phase 6) scroll inside their own `.px-sfig__plot`
+     at 470 units: the rule is in the SPACE DESK FIGURES block above. */
+
+  /* The tech kinds redrawn for the figure panel (Lens Phase 6): a 460-unit
+     viewBox, 12px text, so on a phone they keep 460 and scroll here. */
   .adc__svg,
-  .px-desc__svg,
-  .px-scale__svg,
-  .px-traj__svg { min-width: 640px; }
-
-  .px-atmc__svg { min-width: 560px; }
-
-  /* court-value carries its own width: its viewBox is per-surface. */
-  .px-cval__svg { min-width: var(--vbw); }
+  .px-mldr__svg,
+  .px-qc__svg,
+  .px-scale__svg { min-width: 460px; }
 }
 
 /* THE SAME RULE IN THE FIGURE PANEL, AT EVERY WIDTH (Lens Phase 3,
@@ -1019,11 +716,7 @@ html:not(.js) .px-cue { cursor: default; }
    no snapping. The root's 6px padding (given back by the margin) keeps a lit
    cue's ring inside the scroller. */
 .px-section__stage .px-fig__body > :is(.px-viz, [data-viz-root]):has(:is(
-  .px-map__svg, .px-eriv__svg, .px-bflow__svg, .px-cloop__svg, .px-eclp__svg,
-  .px-etrek__svg, .px-fterr__svg, .px-lagr__svg, .px-mldr__svg, .px-mom__svg,
-  .px-pflow__svg, .px-pkt__bar, .px-prdg__svg, .px-qc__svg, .px-quake__svg,
-  .px-vflow__svg, .px-xgr__svg, .px-altox__svg, .ac__svg, .adc__svg,
-  .px-desc__svg, .px-scale__svg, .px-traj__svg, .px-atmc__svg, .px-cval__svg
+  .px-bflow__svg
 )) {
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -1033,15 +726,5 @@ html:not(.js) .px-cue { cursor: default; }
   padding: 6px 6px 10px;
   margin: -6px -6px -4px;
 }
-.px-section__stage .px-map__svg { min-width: 800px; }
-.px-section__stage .px-eriv__svg { min-width: 760px; }
-.px-section__stage :is(
-  .px-bflow__svg, .px-cloop__svg, .px-eclp__svg, .px-etrek__svg, .px-fterr__svg,
-  .px-lagr__svg, .px-mldr__svg, .px-mom__svg, .px-pflow__svg, .px-pkt__bar,
-  .px-prdg__svg, .px-qc__svg, .px-quake__svg, .px-vflow__svg, .px-xgr__svg
-) { min-width: 720px; }
-.px-section__stage .px-altox__svg { min-width: 668px; }
-.px-section__stage :is(.ac__svg, .adc__svg, .px-desc__svg, .px-scale__svg, .px-traj__svg) { min-width: 640px; }
-.px-section__stage .px-atmc__svg { min-width: 560px; }
-.px-section__stage .px-cval__svg { min-width: var(--vbw); }
+.px-section__stage .px-bflow__svg { min-width: 720px; }
 

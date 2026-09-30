@@ -369,8 +369,11 @@ joined by cues.** Built in Lens Phase 3.
   or more (the island's `zoom`); otherwise, and without JS, it sits in flow
   above its article. Tapping a cue lights its mark above.
 - A section with no graphic (the narrative kinds: `act-break`, `prose`,
-  `quote`, `analogy`, `jargon-buster`, `three-steps`) runs in the article
-  column with no panel.
+  `quote`, `analogy`) runs in the article column with no panel.
+  `jargon-buster` and `three-steps` left that set in Phase 6 (2026-09-30),
+  because their boards draw a figure with cues: the article carries each
+  term's meaning or each step's text as a cue sentence, the panel carries
+  the cards (`core/Section.astro`).
 
 ### 5.2 The cue contract
 

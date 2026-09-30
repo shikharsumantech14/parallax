@@ -1,15 +1,27 @@
 ---
 /**
- * VoteFlow (politics) — a Sankey-style vote diagram. Source blocs (left) flow
- * through three vote categories (For / Against / Abstain, middle) into a single
- * outcome node (right). Node heights are proportional to seats; ribbon widths
- * match the seats they carry, attaching at running y-offsets on both ends so
- * the bands stack flush inside each node. All geometry is computed at build
- * time; the only motion is a CSS hover that raises a ribbon/node opacity.
+ * VoteFlow (politics) — where each bloc's seats went. Lens Phase 6
+ * (2026-09-30), to the Lib-vote-flow board: the seats for set at 96 with the
+ * outcome as a stamp beside it, then a two-column Sankey drawn for the figure
+ * panel (a 440-unit viewBox): the blocs as ink bars on the left, For, Against
+ * and Abstain as bars on the right, and one ribbon per bloc whose width is
+ * its seats, coloured by where it went (For in the desk mark, Against in ink,
+ * Abstain in a hair grey). A bloc's own `color` is the key dot beside its
+ * name.
  *
- * Every node + ribbon always paints in its FINAL state (static since Lens
- * Phase 5; the build order arrives in Phase 6). The legend states each
- * bloc's seats + vote textually.
+ * The SVG holds no text: every name and number is HTML laid over it in
+ * percent, with the left labels spaced so two small blocs never print on each
+ * other. On a phone the drawing keeps its 440 units and scrolls sideways
+ * inside the panel (the 2026-09-07 rule).
+ *
+ * Cue anchors (LENS §5.2):
+ *   1 … n                 each bloc (bar, ribbon, label), in DATA order
+ *   for, against, abstain each vote node and its label
+ *   outcome               the stamp
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the bars fade in, 2 the
+ * ribbons fade in, 80ms apart, 3 the labels rise, 4 the number counts up and
+ * the stamp fades in. No JS or reduced motion: the flow as drawn.
  *
  * data: { blocs[]{ name, seats, color?, vote }, outcome?{ label, passed },
  *         caption?, source? }
@@ -18,271 +30,208 @@ type Vote = 'for' | 'against' | 'abstain';
 interface Bloc { name: string; seats: number; color?: string; vote: Vote; }
 interface Outcome { label: string; passed: boolean; }
 interface Props { blocs: Bloc[]; outcome?: Outcome; caption?: string; source?: string; }
-const { blocs = [], outcome, caption, source } = Astro.props;
+const { blocs = [], outcome } = Astro.props;
 
-// ── viewBox + columns ──────────────────────────────────────────────────────
-const W = 720, H = 360, padT = 18, padB = 18;
+const W = 440, H = 300, padT = 4, padB = 4;
 const innerH = H - padT - padB;
-const nodeW = 26;
-const xBloc = 8;                 // left node x
-const xCat = (W - nodeW) / 2;    // middle node x (centered)
-const xOut = W - nodeW - 8;      // right node x
+const BAR = 10;
+const xL = 160;          // bloc bars
+const xR = 330;          // vote bars
+const GAP_L = 8, GAP_R = 14;
 
-const totalSeats = Math.max(1, blocs.reduce((s, b) => s + (b.seats || 0), 0));
-// seats → pixels (shared scale across all three columns so widths line up)
-// GAP doubles as the clearance for the middle column's above-node labels
-// (~9.5px tall): keeping it ≥16 stops a category label overlapping the
-// node stacked above it.
-const GAP = 16;                  // gap between stacked node segments
-const blocGapTotal = GAP * Math.max(0, blocs.length - 1);
-const px = (innerH - blocGapTotal) / totalSeats; // px per seat
+const total = Math.max(1, blocs.reduce((s, b) => s + (b.seats || 0), 0));
+const pxL = (innerH - GAP_L * Math.max(0, blocs.length - 1)) / total;
 
-// ── LEFT: bloc nodes, stacked top→bottom ───────────────────────────────────
-let by = padT;
-const blocNodes = blocs.map((b) => {
-  const h = (b.seats || 0) * px;
-  const node = {
-    ...b,
-    color: b.color || 'var(--accent)',
-    x: xBloc, y: by, h,
-    cy: by + h / 2,
-  };
-  by += h + GAP;
-  return node;
+let yy = padT;
+const left = blocs.map((b, i) => {
+  const h = Math.max(1, (b.seats || 0) * pxL);
+  const n = { ...b, cue: i + 1, y: yy, h, cy: yy + h / 2 };
+  yy += h + GAP_L;
+  return n;
 });
 
-// ── MIDDLE: three category nodes (For / Against / Abstain) ──────────────────
-const CATS: { key: Vote; label: string; color: string }[] = [
-  { key: 'for', label: 'For', color: '#1e5a3f' },
-  { key: 'against', label: 'Against', color: '#c0392b' },
-  { key: 'abstain', label: 'Abstain', color: 'var(--muted)' },
+const CATS: { key: Vote; label: string }[] = [
+  { key: 'for', label: 'For' },
+  { key: 'against', label: 'Against' },
+  { key: 'abstain', label: 'Abstain' },
 ];
-const catSeats: Record<Vote, number> = {
-  for: blocs.filter((b) => b.vote === 'for').reduce((s, b) => s + (b.seats || 0), 0),
-  against: blocs.filter((b) => b.vote === 'against').reduce((s, b) => s + (b.seats || 0), 0),
-  abstain: blocs.filter((b) => b.vote === 'abstain').reduce((s, b) => s + (b.seats || 0), 0),
-};
-// only render category nodes that carry seats (keeps gaps honest)
-const activeCats = CATS.filter((c) => catSeats[c.key] > 0);
-const catGapTotal = GAP * Math.max(0, activeCats.length - 1);
-const catStackH = activeCats.reduce((s, c) => s + catSeats[c.key] * px, 0) + catGapTotal;
-let cy = padT + (innerH - catStackH) / 2; // vertically center the middle stack
-const catNodes = activeCats.map((c) => {
-  const h = catSeats[c.key] * px;
-  const node = { ...c, x: xCat, y: cy, h, top: cy, cy: cy + h / 2 };
-  cy += h + GAP;
-  return node;
+const seatsOf = (k: Vote) => blocs.filter((b) => b.vote === k).reduce((s, b) => s + (b.seats || 0), 0);
+const active = CATS.filter((c) => seatsOf(c.key) > 0);
+const pxR = (innerH - GAP_R * Math.max(0, active.length - 1)) / total;
+let ry = padT;
+const right = active.map((c) => {
+  const seats = seatsOf(c.key);
+  const h = Math.max(1, seats * pxR);
+  const n = { ...c, seats, y: ry, h, cy: ry + h / 2 };
+  ry += h + GAP_R;
+  return n;
 });
-const catNodeByKey: Record<string, (typeof catNodes)[number]> = Object.fromEntries(
-  catNodes.map((n) => [n.key, n]),
-);
+const rightBy = Object.fromEntries(right.map((r) => [r.key, r]));
 
-// ── RIGHT: single outcome node (full active height) ─────────────────────────
-const outSeats = catNodes.reduce((s, c) => s + catSeats[c.key], 0);
-const outH = outSeats * px;
-const outTop = padT + (innerH - outH) / 2;
-const outNode = { x: xOut, y: outTop, h: outH, cy: outTop + outH / 2 };
-const outPassed = outcome?.passed ?? false;
-const outColor = outcome ? (outPassed ? '#1e5a3f' : '#c0392b') : 'var(--accent)';
-
-// ── RIBBONS — smooth cubic-bezier bands ─────────────────────────────────────
-// A band runs from (x0, y0)..(x0,y0+w) on the left edge to (x1,y1)..(x1,y1+w)
-// on the right edge. We trace top edge L→R, down the right, bottom edge R→L.
-function band(x0: number, y0: number, x1: number, y1: number, w: number) {
+/* one ribbon per bloc, stacked inside its vote node */
+const cursor: Record<string, number> = Object.fromEntries(right.map((r) => [r.key, r.y]));
+const band = (x0: number, t0: number, b0: number, x1: number, t1: number, b1: number) => {
   const mx = (x0 + x1) / 2;
-  const t0 = y0, t1 = y1;            // top edge endpoints
-  const b0 = y0 + w, b1 = y1 + w;    // bottom edge endpoints
-  return [
-    `M ${x0.toFixed(1)} ${t0.toFixed(1)}`,
-    `C ${mx.toFixed(1)} ${t0.toFixed(1)} ${mx.toFixed(1)} ${t1.toFixed(1)} ${x1.toFixed(1)} ${t1.toFixed(1)}`,
-    `L ${x1.toFixed(1)} ${b1.toFixed(1)}`,
-    `C ${mx.toFixed(1)} ${b1.toFixed(1)} ${mx.toFixed(1)} ${b0.toFixed(1)} ${x0.toFixed(1)} ${b0.toFixed(1)}`,
-    'Z',
-  ].join(' ');
-}
-
-// Bloc → category. Track running offsets on each side: the bloc's right edge
-// (full height consumed by its single category) and each category's left edge.
-const catLeftCursor: Record<string, number> = Object.fromEntries(catNodes.map((n) => [n.key, n.y]));
-const ribbonsA = blocNodes
-  .filter((b) => catNodeByKey[b.vote])
+  return `M${x0} ${t0.toFixed(1)} C${mx} ${t0.toFixed(1)} ${mx} ${t1.toFixed(1)} ${x1} ${t1.toFixed(1)} L${x1} ${b1.toFixed(1)} C${mx} ${b1.toFixed(1)} ${mx} ${b0.toFixed(1)} ${x0} ${b0.toFixed(1)}Z`;
+};
+const ribbons = left
+  .filter((b) => rightBy[b.vote])
   .map((b) => {
-    const cat = catNodeByKey[b.vote];
-    const w = b.h; // a bloc votes as one block → full bloc height flows
-    const y0 = b.y;
-    const y1 = catLeftCursor[b.vote];
-    catLeftCursor[b.vote] += w;
-    return {
-      d: band(b.x + nodeW, y0, cat.x, y1, w),
-      color: b.color,
-      key: `${b.name}-${b.vote}`,
-    };
+    const r = rightBy[b.vote];
+    const w = (b.seats || 0) * pxR;
+    const t1 = cursor[b.vote];
+    cursor[b.vote] += w;
+    return { cue: b.cue, vote: b.vote, d: band(xL + BAR, b.y, b.y + b.h, xR, t1, t1 + Math.max(w, 1)) };
   });
 
-// Category → outcome. Each category's full height flows into the outcome,
-// stacked top→bottom on the outcome's left edge in category order.
-let outLeftCursor = outNode.y;
-const ribbonsB = catNodes.map((c) => {
-  const w = c.h;
-  const y0 = c.y;
-  const y1 = outLeftCursor;
-  outLeftCursor += w;
-  return {
-    d: band(c.x + nodeW, y0, outNode.x, y1, w),
-    color: c.color,
-    key: `${c.key}-out`,
-  };
-});
+/* left labels: at their bar's middle, pushed apart to 20 units, and a label
+   estimated wider than the gutter takes two lines */
+const GUT = 150;
+const est = (b: Bloc) => (b.name.length + String(b.seats).length + 1) * 7.2 + (b.color ? 14 : 0);
+const lab = left.map((b) => ({ cue: b.cue, h: est(b) > GUT ? 36 : 20, y: b.cy }));
+for (let i = 1; i < lab.length; i++) {
+  const min = lab[i - 1].y + (lab[i - 1].h + lab[i].h) / 2;
+  if (lab[i].y < min) lab[i].y = min;
+}
+const over = lab.length ? lab[lab.length - 1].y + lab[lab.length - 1].h / 2 - H : 0;
+if (over > 0) {
+  lab[lab.length - 1].y -= over;
+  for (let i = lab.length - 2; i >= 0; i--) {
+    const max = lab[i + 1].y - (lab[i + 1].h + lab[i].h) / 2;
+    if (lab[i].y > max) lab[i].y = max;
+  }
+}
+const labY = new Map(lab.map((l) => [l.cue, l.y]));
+/* right labels hold two lines (the word and the count): 40 units apart */
+const rlab = right.map((r) => ({ key: r.key, y: r.cy }));
+for (let i = 1; i < rlab.length; i++) if (rlab[i].y < rlab[i - 1].y + 40) rlab[i].y = rlab[i - 1].y + 40;
+const rOver = rlab.length ? rlab[rlab.length - 1].y + 20 - H : 0;
+if (rOver > 0) for (const r of rlab) r.y -= rOver;
+const rY = new Map(rlab.map((r) => [r.key, r.y]));
 
-const fmt = (n: number) => n.toLocaleString();
+const forSeats = seatsOf('for');
+const fmt = (n: number) => n.toLocaleString('en-US');
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>vote flow</b></div>}
+<div class="px-vflow" data-viz-root data-build-scene>
+  <div class="px-vflow__head">
+    <div class="px-vflow__head-k">
+      <span class="px-vflow__big" data-build="4" data-build-kind="counter" data-to={forSeats}>{fmt(forSeats)}</span>
+      <span class="px-vflow__big-u">seats for</span>
+    </div>
+    {outcome && (
+      <span class:list={['px-vflow__stamp', outcome.passed ? 'is-pass' : 'is-fail']} data-cue="outcome" data-build="4">
+        <span class="px-cue-tag" data-cue-tag="outcome" hidden></span>{outcome.label}
+      </span>
+    )}
+  </div>
 
-  <div class="px-vflow">
-    <svg
-      class="px-vflow__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Vote-flow diagram: ${caption}` : 'Vote-flow diagram'}
-    >
-      <!-- ribbons (drawn first, under nodes) -->
-      <g class="px-vflow__ribbons">
-        {ribbonsA.map((r) => (
-          <path class="px-vflow__ribbon" d={r.d} style={`fill:${r.color}`} />
-        ))}
-        {ribbonsB.map((r) => (
-          <path class="px-vflow__ribbon" d={r.d} style={`fill:${r.color}`} />
-        ))}
-      </g>
-
-      <!-- left: bloc nodes -->
-      {blocNodes.map((b) => (
-        <g class="px-vflow__node">
-          <rect x={b.x} y={b.y.toFixed(1)} width={nodeW} height={Math.max(1, b.h).toFixed(1)} rx="3" style={`fill:${b.color}`} />
-          <text class="px-vflow__nlabel px-vflow__nlabel--l" x={b.x + nodeW + 8} y={(b.cy).toFixed(1)} dominant-baseline="middle">
-            {b.name} <tspan class="px-vflow__nseats">{fmt(b.seats)}</tspan>
-          </text>
-        </g>
+  <div class="px-vflow__canvas">
+    <svg class="px-vflow__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
+      aria-label={`Seats by bloc flowing to the vote: ${right.map((r) => `${r.label} ${fmt(r.seats)}`).join(', ')}`}>
+      {ribbons.map((r) => (
+        <path class={`px-vflow__rib px-vflow__rib--${r.vote}`} d={r.d} data-cue={r.cue} data-build="2" />
       ))}
-
-      <!-- middle: category nodes -->
-      {catNodes.map((c) => (
-        <g class="px-vflow__node">
-          <rect x={c.x} y={c.y.toFixed(1)} width={nodeW} height={Math.max(1, c.h).toFixed(1)} rx="3" style={`fill:${c.color}`} />
-          <text class="px-vflow__nlabel px-vflow__nlabel--c" x={c.x + nodeW / 2} y={Math.max(11, c.y - 6).toFixed(1)} text-anchor="middle">
-            {c.label} · {fmt(catSeats[c.key])}
-          </text>
-        </g>
+      {left.map((b) => (
+        <rect class="px-vflow__bar" x={xL} y={b.y.toFixed(1)} width={BAR} height={b.h.toFixed(1)} data-cue={b.cue} data-build="1" />
       ))}
-
-      <!-- right: outcome node -->
-      <g class="px-vflow__node">
-        <rect x={outNode.x} y={outNode.y.toFixed(1)} width={nodeW} height={Math.max(1, outNode.h).toFixed(1)} rx="3" style={`fill:${outColor}`} />
-        {outcome && (
-          <text class="px-vflow__nlabel px-vflow__nlabel--r" x={outNode.x - 8} y={(outNode.cy).toFixed(1)} text-anchor="end" dominant-baseline="middle">
-            <tspan class="px-vflow__outlbl">{outcome.label}</tspan>
-            <tspan class="px-vflow__outstat" x={outNode.x - 8} dy="16">{outPassed ? 'PASSED' : 'FAILED'}</tspan>
-          </text>
-        )}
-      </g>
+      {right.map((r) => (
+        <rect class={`px-vflow__node px-vflow__node--${r.key}`} x={xR} y={r.y.toFixed(1)} width={BAR} height={r.h.toFixed(1)} data-cue={r.key} data-build="1" />
+      ))}
     </svg>
 
-    <div class="px-vflow__legend">
-      {CATS.filter((c) => catSeats[c.key] > 0).map((c) => (
-        <span class="px-vflow__key"><i style={`background:${c.color}`}></i>{c.label} · {fmt(catSeats[c.key])}</span>
+    <div class="px-vflow__over">
+      {left.map((b) => (
+        <span class="px-vflow__l" data-cue={b.cue} data-build="3" data-build-kind="rise" style={`top:${pct(labY.get(b.cue) ?? b.cy, H)};width:${pct(GUT, W)}`}>
+          <span class="px-cue-tag" data-cue-tag={b.cue} hidden></span>
+          {b.color && <i class="px-vflow__dot" style={`background:${b.color}`}></i>}
+          <span class="px-vflow__ln">{b.name} <b>{fmt(b.seats)}</b></span>
+        </span>
+      ))}
+      {right.map((r) => (
+        <span class={`px-vflow__r px-vflow__r--${r.key}`} data-cue={r.key} data-build="3" data-build-kind="rise" style={`top:${pct(rY.get(r.key) ?? r.cy, H)};left:${pct(xR + BAR + 10, W)}`}>
+          <span class="px-vflow__rw"><span class="px-cue-tag" data-cue-tag={r.key} hidden></span>{r.label}</span>
+          <b>{fmt(r.seats)}</b>
+        </span>
       ))}
     </div>
   </div>
-
 </div>
 
 <style>
-  .px-vflow { width: 100%; }
-  .px-vflow__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  /* ribbons — translucent bands, raise on hover */
-  .px-vflow__ribbon {
-    fill-opacity: 0.34;
-    transition: fill-opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
-  }
-  .px-vflow__ribbon:hover { fill-opacity: 0.6; }
-
-  /* nodes */
-  .px-vflow__node rect {
-    transition: opacity var(--t-soft) var(--ease);
-  }
-  /* node labels — in-viz title role: display serif ink. They sit over the
-     ribbons/nodes, so every label text class carries a paper halo. */
-  .px-vflow__nlabel {
-    font-family: var(--font-display);
+  .px-vflow { display: flex; flex-direction: column; gap: 18px; min-width: 0; font-family: var(--font-ui); }
+  .px-vflow__head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px 16px; }
+  .px-vflow__head-k { display: flex; align-items: flex-end; gap: 12px; }
+  .px-vflow__big { font-size: 96px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep); }
+  .px-vflow__big-u { padding-bottom: 6px; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+  .px-vflow__stamp {
+    display: inline-flex;
+    align-items: center;
+    max-width: 16em;
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 2px solid var(--accent-deep);
+    border-radius: var(--r-ctl, 4px);
     font-size: 13px;
     font-weight: 600;
-    fill: var(--ink);
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
-    stroke-linejoin: round;
-  }
-  /* seats — axis-tick role inside the bloc label: mono muted tabular */
-  .px-vflow__nseats {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    fill: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  /* category labels — legend role (count appended): mono uppercase muted tabular */
-  .px-vflow__nlabel--c {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    fill: var(--muted);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
   }
-  /* outcome name — in-viz title role: display serif ink */
-  .px-vflow__outlbl {
-    font-family: var(--issue-face, var(--font-display));
-    font-size: 15px;
-    font-weight: 700;
-    fill: var(--ink);
-  }
-  /* PASSED / FAILED — legend role: mono uppercase muted */
-  .px-vflow__outstat {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    fill: var(--muted);
-  }
+  .px-vflow__stamp.is-fail { border-color: var(--ink); color: var(--ink); }
+  .px-vflow__stamp .px-cue-tag { margin-left: -2px; }
 
-  /* ribbons + nodes rest fully shown (transitions kept for the Phase 6 build) */
-  .px-vflow__ribbons,
-  .px-vflow__node {
-    opacity: 1;
-    transform: none;
-    transform-box: view-box;
-    transform-origin: center;
-    transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
-  }
+  .px-vflow__canvas { position: relative; }
+  .px-vflow__svg { display: block; width: 100%; height: auto; }
+  .px-vflow__bar { fill: var(--ink-2); }
+  .px-vflow__node--for { fill: var(--accent); }
+  .px-vflow__node--against { fill: var(--ink-2); }
+  .px-vflow__node--abstain { fill: var(--muted); }
+  .px-vflow__rib--for { fill: color-mix(in oklab, var(--accent) 72%, var(--paper-2)); }
+  .px-vflow__rib--against { fill: color-mix(in oklab, var(--ink-2) 48%, var(--paper-2)); }
+  .px-vflow__rib--abstain { fill: color-mix(in oklab, var(--hair-2) 80%, var(--paper-2)); }
 
-  /* legend — mono uppercase muted, tabular (carries seat counts) */
-  .px-vflow__legend {
+  .px-vflow__over { position: absolute; inset: 0; pointer-events: none; }
+  .px-vflow__l {
+    position: absolute;
+    left: 0;
     display: flex;
-    gap: 22px;
-    flex-wrap: wrap;
-    margin-top: 18px;
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    translate: 0 -50%;
+    font-size: 13px;
+    line-height: 16px;
+    color: var(--ink);
+    text-align: right;
   }
-  .px-vflow__key { display: inline-flex; align-items: center; gap: 8px; }
-  .px-vflow__key i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  .px-vflow__l .px-cue-tag { margin-right: 0; }
+  .px-vflow__ln { min-width: 0; }
+  .px-vflow__l b { font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .px-vflow__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+  .px-vflow__r {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    translate: 0 -50%;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    color: var(--ink);
+  }
+  .px-vflow__rw { display: inline-flex; align-items: center; gap: 6px; }
+  .px-vflow__rw .px-cue-tag { margin-right: 0; }
+  .px-vflow__r b { font-size: 20px; line-height: 22px; font-variant-numeric: tabular-nums; }
+  .px-vflow__r--for b { color: var(--accent-deep); }
+  .px-vflow__r--abstain b { color: var(--ink-2); }
+
+  @media (max-width: 1023px) {
+    .px-vflow { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+    .px-vflow__canvas { min-width: 440px; }
+  }
+  @media (max-width: 560px) {
+    .px-vflow__big { font-size: 72px; }
+  }
 </style>

@@ -1,23 +1,35 @@
 ---
 /**
- * AltitudeOxygen (travel) — the thinning-air cross-section. A build-time SVG:
- * the vertical axis is altitude (sea level at the floor), the horizontal axis
- * is the *effective oxygen* the air still carries at that height. A filled
- * "air column" (opacity-graded dense→thin) tapers leftward as you climb; each
- * named acclimatization stop is pinned at its elevation with its modelled O₂
- * readout, and the nights the body spends catching up carry a teal tent glyph.
+ * AltitudeOxygen (`altitude-oxygen`) — the air thinning on the way up (Lens
+ * Phase 6, the Lib-altitude-oxygen board). The oxygen left at the highest
+ * stop set large; under it a column of air, as wide at each height as the
+ * effective oxygen the air still carries there (21% at sea level, drawn as
+ * the full width), narrowing as it climbs. Each stop is a rule across the
+ * column at its height, with a leader to its name and its `{elevation} m ·
+ * {oxygen}%` in a column at the right; each night spent there is a small
+ * tent to the left of the rule.
  *
- * The barometric curve mirrors geodesy §7 (lapse-rate default, isothermal
- * option) — inline in this frontmatter (three expressions). The x-axis is a
- * MODELLED quantity, so a mono `model:` chip always renders (CANON §7).
+ * The oxygen is MODELLED (the barometric formula, geodesy §7: the lapse-rate
+ * atmosphere by default, isothermal on request), so a `model:` chip always
+ * prints under the column. A stop's `note` is its hover title and its
+ * screen-reader text, not a label on the figure (LENS §5.5).
  *
- * No-JS / reduced-motion: the print plate — column, curve, every stop's
- * `{elevM} m · O₂ {o2}%` readout, and the sea-level reference line paint their
- * final state, flat (the CSS-3D pointer-tilt simply never applies). The
- * per-stop readouts are the AT-readable data source.
+ * Drawn for the figure panel: a 460-unit viewBox, text at 12 and 13 units;
+ * on a phone it keeps 460px and scrolls inside its card. The cue numerals
+ * are an HTML layer over the drawing.
  *
- * data: { stops[]{ name, elevM, nights?, note? }, maxElevM?, model?,
- *         seaLevelO2Pct?, caption?, source? }
+ * Cue anchors:
+ *   column  the air column
+ *   1…n     each stop, in authored order (its rule, leader and label)
+ *   nights  the tents
+ *   peak    the highest stop's oxygen, the number above
+ *   axis    the height axis and the sea-level line
+ *
+ * Build (src/scripts/build.ts, LENS §6.4): 1 the axis, 2 the column grows up
+ * from sea level, 3 the stop rules and tents drop, 4 the labels rise, 5 the
+ * number counts up. No JS or reduced motion: the plate as drawn.
+ *
+ * data: { stops: [{name, elevM, nights?, note?}], maxElevM?, model?, seaLevelO2Pct? }
  */
 interface Stop { name: string; elevM: number; nights?: number; note?: string; }
 interface Props {
@@ -28,398 +40,208 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const {
-  stops = [],
-  model = 'lapse',
-  seaLevelO2Pct = 21,
-  caption,
-  source,
-} = Astro.props;
+const { stops = [], model = 'lapse', seaLevelO2Pct = 21 } = Astro.props;
 
 // ── data guard (2–8 stops; blueprint §3) ────────────────────────────────────
 if (stops.length < 2 || stops.length > 8) {
-  throw new Error(
-    `altitude-oxygen: needs 2–8 stops (got ${stops.length}). See the blueprint's 2–8 rule.`
-  );
+  throw new Error(`altitude-oxygen: needs 2–8 stops (got ${stops.length}). See the blueprint's 2–8 rule.`);
 }
 
-// ── barometric model (geodesy §7; inline per the sheet) ─────────────────────
-const T0 = 288;      // sea-level temperature, K
-const LAPSE = 6.5;   // K per km
-const EXP = 5.256;   // g·M / (R·Γ)
-const H = 8.4;       // isothermal scale height, km
+// ── barometric model (geodesy §7) ───────────────────────────────────────────
+const T0 = 288, LAPSE = 6.5, EXP = 5.256, HS = 8.4;
 function o2At(elevM: number): number {
-  const h = elevM / 1000;                 // km
-  let ratio: number;
-  if (model === 'isothermal') {
-    ratio = Math.exp(-h / H);             // P/P₀ = e^(−h/H)
-  } else {
-    const T = T0 - LAPSE * h;             // T = T₀ − Γ·h
-    ratio = Math.pow(T / T0, EXP);        // P/P₀ = (T/T₀)^5.256
-  }
-  return seaLevelO2Pct * ratio;           // effective O₂ %
+  const h = elevM / 1000;
+  const ratio = model === 'isothermal' ? Math.exp(-h / HS) : Math.pow((T0 - LAPSE * h) / T0, EXP);
+  return seaLevelO2Pct * ratio;
 }
 
-// ── axis top: ceil(max stop → next 500 m) + 500 ─────────────────────────────
 const maxStop = Math.max(...stops.map((s) => s.elevM));
 const maxElevM = Astro.props.maxElevM ?? Math.ceil(maxStop / 500) * 500 + 500;
 
-// ── plot geometry (blueprint §4) ────────────────────────────────────────────
-// Plot box exactly [x:96…496, y:40…400]; the canvas is widened past 560 only
-// on the RIGHT so the fixed label column lives INSIDE the viewBox (guarantees
-// zero horizontal overflow at any render width — NON-NEGOTIABLE #2). All plot
-// maths are untouched from the sheet.
-const VB_W = 668, VB_H = 460;
-const PLOT_L = 96, PLOT_R = 496, PLOT_T = 40, PLOT_B = 400;
-const PLOT_W = PLOT_R - PLOT_L;   // 400
-const PLOT_H = PLOT_B - PLOT_T;   // 360
-const LBL_X = 500;                // fixed right label column
+// ── geometry ────────────────────────────────────────────────────────────────
+const FF = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const W = 460, H = 330;
+const PT = 26, PB = 290;              // plot top / sea level
+const AX = 44;                        // the axis rule's x
+const CX = 150, HW = 80;              // column centre and half-width at sea level
+const LX = 258;                       // the label column
+const y = (e: number) => PB - (e / maxElevM) * (PB - PT);
+const hw = (e: number) => HW * (o2At(e) / seaLevelO2Pct);
 
-const x = (o2: number) => PLOT_L + (o2 / seaLevelO2Pct) * PLOT_W;   // 21%→496, 0%→96
-const y = (elevM: number) => PLOT_B - (elevM / maxElevM) * PLOT_H;  // 0m→400, top→40
+let left = '', right = '';
+const STEP = Math.max(50, Math.round(maxElevM / 60 / 50) * 50);
+for (let e = 0; e <= maxElevM + 1e-9; e += STEP) left += `${e ? 'L' : 'M'}${(CX - hw(e)).toFixed(1)} ${y(e).toFixed(1)}`;
+for (let e = Math.floor(maxElevM / STEP) * STEP; e >= 0; e -= STEP) right += `L${(CX + hw(e)).toFixed(1)} ${y(e).toFixed(1)}`;
+const column = `${left}${right}Z`;
 
-// ── the air column: sample every 100 m, floor → axis top ────────────────────
-const samples: { x: number; y: number }[] = [];
-for (let a = 0; a <= maxElevM; a += 100) {
-  samples.push({ x: +x(o2At(a)).toFixed(2), y: +y(a).toFixed(2) });
-}
-// right-edge curve (bottom→top so the Phase 6 draw runs upward)
-const curvePath =
-  `M ${samples[0].x} ${samples[0].y} ` +
-  samples.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
-// filled area: left axis + floor + curve + top edge back to the axis
-const areaPath =
-  `M ${PLOT_L},${PLOT_B} ` +
-  samples.map((p) => `L ${p.x} ${p.y}`).join(' ') +
-  ` L ${PLOT_L},${PLOT_T} Z`;
-// curve length for the stroke-draw budget
-let curveLen = 0;
-for (let i = 1; i < samples.length; i++) {
-  curveLen += Math.hypot(samples[i].x - samples[i - 1].x, samples[i].y - samples[i - 1].y);
-}
-curveLen = Math.ceil(curveLen);
+const tickStep = maxElevM > 6000 ? 2000 : 1000;
+const ticks: number[] = [];
+for (let e = 0; e <= maxElevM + 1e-9; e += tickStep) ticks.push(e);
 
-// ── altitude ticks every 1,000 m ────────────────────────────────────────────
-const ticks: { elevM: number; y: number }[] = [];
-for (let a = 0; a <= maxElevM; a += 1000) ticks.push({ elevM: a, y: +y(a).toFixed(2) });
+const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+const fmtO2 = (v: number) => v.toFixed(1);
 
-const fmtElev = (m: number) => m.toLocaleString('en-US');
-const fmtO2 = (o2: number) => o2.toFixed(1);
-
-// ── stops → label BLOCKS in the fixed right column (fixed-column pattern §4) ─
-// A stop's label is a block of rows, not one line: an optional nights row
-// (tent + "2n"), the name (wraps to two lines), the readout, an optional note
-// (wraps to two lines). The column stacks WHOLE blocks with a gap, so no row
-// of one stop can land on a row of another, whatever the elevations.
-// (2026-09-24: the old 16px nudge moved one line's worth while each block is
-// 40–60 units tall, so close stops printed name over readout.)
-//
-// Width budget: the column runs LBL_X+4 → VB_W (164 units). Characters per
-// line are budgeted at a conservative 0.55em against that width, so a label
-// never leaves its own SVG.
-const COL_W = VB_W - (LBL_X + 4);                       // 164
-const NAME_PX = 13, NOTE_PX = 10.5;
-const NAME_CH = Math.floor(COL_W / (NAME_PX * 0.55));   // 22
-const NOTE_CH = Math.floor(COL_W / (NOTE_PX * 0.55));   // 28
-function wrap(text: string, budget: number, maxLines: number): string[] {
-  const words = text.trim().split(/\s+/);
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w;
-    if (next.length <= budget || !cur) cur = next;
-    else { lines.push(cur); cur = w; }
-  }
-  if (cur) lines.push(cur);
-  if (lines.length > maxLines) {
-    const kept = lines.slice(0, maxLines);
-    const last = kept[maxLines - 1];
-    kept[maxLines - 1] = (last.length > budget - 1 ? last.slice(0, budget - 1).trimEnd() : last) + '…';
-    return kept;
-  }
-  return lines.map((l) => (l.length > budget ? l.slice(0, budget - 1).trimEnd() + '…' : l));
-}
-
-// Row heights in user units (line box + air). Baselines sit inside them.
-const ROW_NIGHTS = 15, ROW_NAME = 15, ROW_READ = 14, ROW_NOTE = 13;
-const BLOCK_GAP = 7;                   // clear air between two stops' blocks
-// The column's usable height. It starts at the plot top, not the canvas top:
-// above it sits the SEA LEVEL label, and a connector climbing to a block up
-// there runs through that label.
-const COL_TOP = PLOT_T - 4, COL_BOT = VB_H - 4;
-
-type Marker = Stop & {
-  o2: number; dotX: number; dotY: number;
-  nameLines: string[]; noteLines: string[];
-  top: number; h: number; anchor: number; ly: number;
-};
-function blockMetrics(m: Marker) {
-  const nightsH = (m.nights ?? 0) >= 1 ? ROW_NIGHTS : 0;
-  m.h = nightsH + m.nameLines.length * ROW_NAME + ROW_READ + m.noteLines.length * ROW_NOTE;
-  m.anchor = nightsH + 7;              // the first name line's middle: the connector lands here
-}
-
-const resolved: Marker[] = stops
-  .map((s) => {
-    const o2 = o2At(s.elevM);
-    return {
-      ...s,
-      o2,
-      dotX: +x(o2).toFixed(2),
-      dotY: +y(s.elevM).toFixed(2),
-      nameLines: wrap(s.name, NAME_CH, 2),
-      noteLines: s.note ? wrap(s.note, NOTE_CH, 2) : [],
-      top: 0, h: 0, anchor: 0, ly: 0,
-    };
-  })
-  .sort((a, b) => a.dotY - b.dotY);   // top of plate (small y) → floor
-
-// Place blocks: each wants its first name line level with its dot. Overlapping
-// neighbours merge into a cluster centred on the mean of what its members
-// want (least total displacement), clamped to the column; repeat until no
-// two clusters touch. If the whole stack is taller than the column, notes go
-// first, then second name lines.
-function place(ms: Marker[]): boolean {
-  ms.forEach(blockMetrics);
-  const total = ms.reduce((s, m) => s + m.h, 0) + BLOCK_GAP * (ms.length - 1);
-  if (total > COL_BOT - COL_TOP) return false;
-  type Cluster = { items: Marker[]; top: number; h: number };
-  const fit = (c: Cluster) => {
-    let off = 0, sum = 0;
-    for (const m of c.items) { sum += m.dotY - m.anchor - off; off += m.h + BLOCK_GAP; }
-    c.h = off - BLOCK_GAP;
-    c.top = Math.min(Math.max(sum / c.items.length, COL_TOP), COL_BOT - c.h);
+// ── labels in the right column: blocks of two lines, never on each other ────
+const NAME_CH = Math.floor((W - LX - 4) / 7.4);
+const cut = (s: string) => (s.length > NAME_CH ? s.slice(0, NAME_CH - 1).trimEnd() + '…' : s);
+const BLOCK = 30, GAP = 8;
+type M = Stop & { i: number; o2: number; sy: number; top: number };
+const marks: M[] = stops
+  .map((s, i) => ({ ...s, i, o2: o2At(s.elevM), sy: y(s.elevM), top: 0 }))
+  .sort((a, b) => a.sy - b.sy);
+{
+  type C = { items: M[]; top: number; h: number };
+  const COL_T = 2, COL_B = PB + 8;
+  const fit = (c: C) => {
+    c.h = c.items.length * BLOCK + (c.items.length - 1) * GAP;
+    let sum = 0;
+    c.items.forEach((m, k) => { sum += m.sy - 10 - k * (BLOCK + GAP); });
+    c.top = Math.min(Math.max(sum / c.items.length, COL_T), COL_B - c.h);
   };
-  let clusters: Cluster[] = ms.map((m) => { const c = { items: [m], top: 0, h: 0 }; fit(c); return c; });
-  let merged = true;
-  while (merged) {
-    merged = false;
-    for (let i = 0; i < clusters.length - 1; i++) {
-      const a = clusters[i], b = clusters[i + 1];
-      if (a.top + a.h + BLOCK_GAP > b.top) {
-        const c = { items: [...a.items, ...b.items], top: 0, h: 0 };
+  let cl: C[] = marks.map((m) => { const c = { items: [m], top: 0, h: 0 }; fit(c); return c; });
+  for (let again = true; again;) {
+    again = false;
+    for (let k = 0; k < cl.length - 1; k++) {
+      if (cl[k].top + cl[k].h + GAP > cl[k + 1].top) {
+        const c = { items: [...cl[k].items, ...cl[k + 1].items], top: 0, h: 0 };
         fit(c);
-        clusters.splice(i, 2, c);
-        merged = true;
+        cl.splice(k, 2, c);
+        again = true;
         break;
       }
     }
   }
-  for (const c of clusters) {
-    let t = c.top;
-    for (const m of c.items) { m.top = +t.toFixed(2); m.ly = +(t + m.anchor).toFixed(2); t += m.h + BLOCK_GAP; }
-  }
-  return true;
+  for (const c of cl) c.items.forEach((m, k) => { m.top = c.top + k * (BLOCK + GAP); });
 }
-if (!place(resolved)) {
-  resolved.forEach((m) => (m.noteLines = []));
-  if (!place(resolved)) {
-    resolved.forEach((m) => (m.nameLines = wrap(m.name, NAME_CH, 1)));
-    place(resolved);
-  }
-}
-// Baselines inside a block, from its top.
-const rowsOf = (m: Marker) => {
-  const nightsH = (m.nights ?? 0) >= 1 ? ROW_NIGHTS : 0;
-  const nameY = m.nameLines.map((_, k) => m.top + nightsH + k * ROW_NAME + 11);
-  const readY = m.top + nightsH + m.nameLines.length * ROW_NAME + 10.5;
-  const noteTop = m.top + nightsH + m.nameLines.length * ROW_NAME + ROW_READ;
-  const noteY = m.noteLines.map((_, k) => noteTop + k * ROW_NOTE + 9.5);
-  return { nightsY: m.top + 5, nameY, readY, noteY };
+const top = marks[0];   // the highest stop
+
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
+const tentsFor = (m: M) => {
+  const n = Math.max(0, Math.round(m.nights ?? 0));
+  const room = Math.max(0, Math.floor((CX - hw(m.elevM) - AX - 8) / 15));
+  return { draw: Math.min(n, room), more: n > room ? n : 0 };
 };
+const anyNights = marks.some((m) => (m.nights ?? 0) >= 1);
+const firstTent = marks.find((m) => (m.nights ?? 0) >= 1);
+const tagPos: { id: string; x: number; y: number }[] = [
+  { id: 'column', x: CX, y: y(maxElevM * 0.14) },
+  { id: 'axis', x: 16, y: PT },
+  ...marks.map((m) => ({ id: String(m.i + 1), x: Math.min(W - 12, LX + cut(m.name).length * 7.4 + 14), y: m.top + 6 })),
+  ...(firstTent ? [{ id: 'nights', x: Math.max(AX + 12, CX - hw(firstTent.elevM) - 12 - tentsFor(firstTent).draw * 15), y: firstTent.sy - 6 }] : []),
+];
 ---
 
-<div class="px-viz px-altox">
-  <div class="px-altox__head">
-    {caption && <div class="px-viz__cap"><span>{caption}</span><b>altitude</b></div>}
-    <span class="px-altox__chip" title="the curve is the standard-atmosphere approximation, not station data">model: {model}</span>
+<div class="px-altox" data-viz-root data-build-scene>
+  <div class="px-altox__head" data-cue="peak">
+    <b class="px-altox__n" data-build="5" data-build-kind="counter" data-to={fmtO2(top.o2)} data-format="1dp">{fmtO2(top.o2)}%</b>
+    <span class="px-altox__u">at {top.name}<span class="px-cue-tag" data-cue-tag="peak" hidden></span></span>
   </div>
 
-  <div class="px-altox__stage px3d-stage">
-    <div class="px-altox__tilt" data-tilt="7">
-      <svg
-        class="px-altox__svg"
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`Effective oxygen against altitude for ${stops.length} stops, sea level ${seaLevelO2Pct}% down to ${fmtO2(o2At(maxStop))}% at ${fmtElev(maxStop)} m (${model} barometric model)`}
-      >
-        <defs>
-          <linearGradient id="pxAltoxFill" gradientUnits="userSpaceOnUse"
-            x1="0" y1={PLOT_T} x2="0" y2={PLOT_B}>
-            <stop offset="0" class="px-altox__g-top" />
-            <stop offset="1" class="px-altox__g-base" />
-          </linearGradient>
-        </defs>
-
-        <!-- altitude ticks (mono, up the left margin) -->
-        {ticks.map((t) => (
-          <g class="px-altox__tick">
-            <line x1={PLOT_L} y1={t.y} x2={PLOT_R} y2={t.y} class="px-altox__grid" />
-            <text x={PLOT_L - 10} y={t.y + 3.2} text-anchor="end">
-              {fmtElev(t.elevM)} M
-            </text>
+  <div class="px-altox__stage">
+    <svg
+      class="px-altox__plot"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label={`Effective oxygen by altitude: ${marks.map((m) => `${m.name} ${fmt(m.elevM)} m, ${fmtO2(m.o2)}%`).join('; ')}`}
+      style={`font-family:${FF}`}
+    >
+      <g data-cue="axis" data-build="1">
+        <text x={AX - 6} y={PT - 12} text-anchor="end" font-size="12" fill="var(--muted)">metres</text>
+        {ticks.map((e) => (
+          <g>
+            <line x1={AX} x2={W} y1={y(e).toFixed(1)} y2={y(e).toFixed(1)} stroke={e === 0 ? 'var(--hair-2)' : 'var(--hair)'} stroke-width="1" />
+            <text x={AX - 6} y={(y(e) + 4).toFixed(1)} text-anchor="end" font-size="12" fill="var(--muted)">{fmt(e)}</text>
           </g>
         ))}
+        <text x={CX} y={PB + 22} text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink-2)">Sea level · {seaLevelO2Pct}%</text>
+      </g>
 
-        <!-- axes -->
-        <line class="px-altox__axis" x1={PLOT_L} y1={PLOT_T} x2={PLOT_L} y2={PLOT_B} />
-        <line class="px-altox__axis" x1={PLOT_L} y1={PLOT_B} x2={PLOT_R} y2={PLOT_B} />
+      <path d={column} fill="var(--accent-tint)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"
+        data-cue="column" data-build="2" data-build-kind="grow-y" />
 
-        <!-- the air column (full height; the Phase 6 build grows it upward) -->
-        <path class="px-altox__area" d={areaPath} fill="url(#pxAltoxFill)" />
-        <!-- right-edge curve = the air/space boundary (fully drawn) -->
-        <path class="px-altox__curve" d={curvePath} style={`--len:${curveLen}`} />
+      {marks.map((m) => {
+        const w = hw(m.elevM);
+        const ly = m.top + 11;
+        return (
+          <g data-cue={m.i + 1}>
+            <title>{m.name} · {fmt(m.elevM)} m · {fmtO2(m.o2)}% effective oxygen{m.nights ? ` · ${m.nights} night${m.nights === 1 ? '' : 's'}` : ''}{m.note ? ` · ${m.note}` : ''}</title>
+            <line x1={(CX - w).toFixed(1)} x2={(CX + w).toFixed(1)} y1={m.sy.toFixed(1)} y2={m.sy.toFixed(1)} stroke="var(--ink)" stroke-width="1.5" data-build="3" data-build-kind="drop" />
+            <path d={`M${(CX + w + 4).toFixed(1)} ${m.sy.toFixed(1)}L${LX - 22} ${m.sy.toFixed(1)}L${LX - 8} ${(ly - 4).toFixed(1)}`}
+              fill="none" stroke="var(--ink-2)" stroke-width="1" data-build="4" />
+            <text x={LX} y={ly.toFixed(1)} font-size="13" font-weight="600" fill="var(--ink)" data-build="4" data-build-kind="rise">
+              {cut(m.name)}
+              <tspan x={LX} dy="15" font-size="12" font-weight="400" fill="var(--ink-2)">{fmt(m.elevM)} m · {fmtO2(m.o2)}%</tspan>
+            </text>
+          </g>
+        );
+      })}
 
-        <!-- sea-level reference line at the right edge -->
-        <line class="px-altox__sea" x1={PLOT_R} y1={PLOT_T} x2={PLOT_R} y2={PLOT_B} />
-        <text class="px-altox__sea-lbl" x={PLOT_R - 6} y={PLOT_T - 8} text-anchor="end">
-          SEA LEVEL {seaLevelO2Pct}%
-        </text>
+      {anyNights && (
+        <g data-cue="nights" data-build="3" data-build-kind="drop">
+          {marks.map((m) => {
+            const t = tentsFor(m);
+            const w = hw(m.elevM);
+            return (
+              <g>
+                {Array.from({ length: t.draw }, (_, k) => {
+                  const tx = CX - w - 12 - k * 15;
+                  return <path d={`M${(tx - 6).toFixed(1)} ${(m.sy - 1).toFixed(1)}L${tx.toFixed(1)} ${(m.sy - 11).toFixed(1)}L${(tx + 6).toFixed(1)} ${(m.sy - 1).toFixed(1)}Z`} fill="var(--accent-deep)" />;
+                })}
+                {t.more > 0 && (
+                  <text x={(CX - w - 8 - t.draw * 15).toFixed(1)} y={(m.sy - 2).toFixed(1)} text-anchor="end" font-size="12" font-weight="600" fill="var(--accent-deep)">×{t.more}</text>
+                )}
+              </g>
+            );
+          })}
+        </g>
+      )}
+    </svg>
 
-        <!-- stops: dot · connector · label block -->
-        {resolved.map((m, i) => {
-          const r = rowsOf(m);
-          return (
-            <g class="px-altox__stop" style={`--i:${i}`}>
-              <line class="px-altox__conn" x1={m.dotX} y1={m.dotY} x2={LBL_X} y2={m.ly} />
-              <circle class="px-altox__dot" cx={m.dotX} cy={m.dotY} r="4" />
-
-              {(m.nights ?? 0) >= 1 && (
-                <g class="px-altox__night" transform={`translate(${LBL_X + 10}, ${r.nightsY})`}>
-                  <path class="px-altox__tent" d="M -6,4 L 0,-5 L 6,4 Z" />
-                  <line class="px-altox__tent" x1="0" y1="-5" x2="0" y2="4" />
-                  <text class="px-altox__nights" x="11" y="3.5">{m.nights}n</text>
-                </g>
-              )}
-
-              <text class="px-altox__name" x={LBL_X + 4} y={r.nameY[0]}>
-                {m.nameLines.map((l, k) => <tspan x={LBL_X + 4} y={r.nameY[k]}>{l}</tspan>)}
-              </text>
-              <text class="px-altox__read" x={LBL_X + 4} y={r.readY}>
-                {fmtElev(m.elevM)} m · O₂ {fmtO2(m.o2)}%
-              </text>
-              {m.noteLines.length > 0 && (
-                <text class="px-altox__note" x={LBL_X + 4} y={r.noteY[0]}>
-                  {m.noteLines.map((l, k) => <tspan x={LBL_X + 4} y={r.noteY[k]}>{l}</tspan>)}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
+    <div class="px-altox__tags" aria-hidden="true" data-build="4">
+      {tagPos.map((t) => (
+        <span class="px-altox__tag" data-cue={t.id} style={`left:${pct(t.x, W)};top:${pct(t.y, H)}`}>
+          <span class="px-cue-tag" data-cue-tag={t.id} hidden></span>
+        </span>
+      ))}
     </div>
   </div>
 
+  <div class="px-altox__foot" data-build="4">
+    {anyNights ? (
+      <span class="px-altox__key"><svg viewBox="0 0 14 12" width="14" height="12" aria-hidden="true"><path d="M1 11L7 1L13 11Z" fill="var(--accent-deep)" /></svg>one night acclimatizing</span>
+    ) : <span></span>}
+    <span class="px-altox__chip">model: {model}</span>
+  </div>
 </div>
 
 <style>
-  .px-altox { width: 100%; }
-  .px-altox__wrap { width: 100%; }
-
-  .px-altox__head {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap; margin-bottom: 10px;
+  .px-altox { font-family: var(--font-ui); }
+  /* the ONE headline number at 96 (72 on phones), its label 8px below it
+     (LENS §7) */
+  .px-altox__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+  .px-altox__n {
+    font-weight: 600; font-size: 96px; line-height: 0.92; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--accent-deep);
   }
-  /* the honesty chip — the x-axis is modelled, not measured (CANON §7) */
+  .px-altox__u {
+    display: inline-flex; align-items: center; gap: 8px; padding-bottom: 0;
+    font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--ink-2);
+  }
+  .px-altox__u .px-cue-tag { margin: 0; }
+  @media (max-width: 640px) { .px-altox__n { font-size: 72px; } }
+  .px-altox__stage { position: relative; min-width: 460px; }
+  .px-altox__plot { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-altox__tags { position: absolute; inset: 0; pointer-events: none; }
+  .px-altox__tag { position: absolute; translate: -50% -50%; line-height: 0; }
+  .px-altox__tag .px-cue-tag { margin: 0; }
+  .px-altox__tag[data-cue] { outline: none !important; }
+  .px-altox__foot {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px;
+    margin-top: 12px; min-width: 0;
+  }
+  .px-altox__key { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1.3; color: var(--ink-2); }
   .px-altox__chip {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
-    text-transform: lowercase; color: var(--accent-deep, var(--accent));
-    border: 1px solid color-mix(in oklab, var(--accent-deep, var(--accent)) 45%, transparent);
-    border-radius: 999px; padding: 3px 9px; white-space: nowrap; flex: none;
-    background: color-mix(in oklab, var(--accent) 8%, transparent);
-  }
-
-  .px-altox__stage { perspective: var(--persp, 1200px); perspective-origin: 50% 42%; }
-  .px-altox__tilt {
-    --rx: 0deg; --ry: 0deg;
-    /* composed still = FLAT (no-JS / reduced-motion): the print plate */
-    transform: none;
-    transform-style: preserve-3d;
-  }
-  /* JS + motion-OK → the column reads as a wall of air you climb into */
-  :global(html.js) .px-altox__stage .px-altox__tilt {
-    transform: rotateY(calc(-12deg + var(--ry))) rotateX(calc(4deg + var(--rx)));
-    transition: transform var(--t-soft, 420ms) var(--ease, ease);
-    will-change: transform;
-  }
-  .px-altox__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  /* axes + grid + ticks */
-  .px-altox__axis { stroke: var(--ink); opacity: 0.42; stroke-width: 1; }
-  .px-altox__grid { stroke: var(--ink); opacity: 0.08; stroke-width: 1; }
-  .px-altox__tick text {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
-    text-transform: uppercase; fill: var(--ink); opacity: 0.55;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* opacity-only fill gradient (dense base → thin top; CANON §11 no rainbow) */
-  .px-altox__g-top  { stop-color: var(--accent); stop-opacity: 0.10; }
-  .px-altox__g-base { stop-color: var(--accent); stop-opacity: 0.28; }
-
-  .px-altox__area {
-    /* resting = full height */
-    transform: scaleY(1);
-    transform-box: fill-box; transform-origin: bottom;
-    transition: transform 900ms var(--ease, ease);
-  }
-
-  .px-altox__curve {
-    fill: none; stroke: var(--accent-deep, var(--accent));
-    stroke-width: 1.5; stroke-opacity: 0.9;
-    stroke-linejoin: round; stroke-linecap: round;
-    /* resting = fully drawn */
-    stroke-dasharray: var(--len); stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1400ms var(--ease, ease) 300ms;
-  }
-
-  .px-altox__sea { stroke: var(--ink); opacity: 0.42; stroke-width: 1; stroke-dasharray: 3 4; }
-  .px-altox__sea-lbl {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; fill: var(--ink); opacity: 0.55;
-  }
-
-  /* stops */
-  .px-altox__conn { stroke: var(--ink); opacity: 0.3; stroke-width: 1; stroke-dasharray: 2 3; }
-  .px-altox__dot { fill: var(--accent-deep, var(--accent)); }
-  .px-altox__name {
-    font-family: var(--issue-face, var(--font-display)); font-style: italic;
-    font-size: 13px; fill: var(--ink); fill-opacity: 0.92;
-  }
-  .px-altox__read {
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
-    fill: var(--ink); fill-opacity: 0.85; font-variant-numeric: tabular-nums;
-  }
-  .px-altox__note {
-    font-family: var(--issue-face, var(--font-display)); font-style: italic;
-    font-size: 10.5px; fill: var(--ink); fill-opacity: 0.5;
-  }
-  /* teal acclimatization glyph — travel's sanctioned second role (the pause) */
-  .px-altox__tent {
-    fill: none; stroke: var(--accent-alt); stroke-width: 1.5; stroke-opacity: 0.9;
-    stroke-linejoin: round; stroke-linecap: round;
-  }
-  .px-altox__nights {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em;
-    fill: var(--accent-alt); fill-opacity: 0.9; font-variant-numeric: tabular-nums;
-  }
-
-  /* stops rest shown (the Phase 6 build settles them low→high) */
-  .px-altox__stop {
-    opacity: 1;
-    transition: opacity var(--t-soft, 420ms) var(--ease, ease);
-  }
-
-  /* 375px: labels shrink, altitude ticks stay ≥ 9.5px; SVG scales, no overflow */
-  @media (max-width: 560px) {
-    .px-altox__name   { font-size: 11px; }
-    .px-altox__read   { font-size: 9.5px; }
-    .px-altox__note   { font-size: 9.5px; }
-    .px-altox__tick text { font-size: 9.5px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-altox__tilt { transform: none !important; transition: none !important; }
+    display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px;
+    background: var(--paper-3); color: var(--ink-2); font-size: 12px; font-weight: 500;
   }
 </style>

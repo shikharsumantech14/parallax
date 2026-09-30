@@ -1,17 +1,27 @@
 ---
 /**
- * ThreeSteps — a mechanism in numbered cards, one idea each, read left to
- * right. Contract: docs/design/blueprints/core/three-steps.md.
+ * ThreeSteps — a mechanism in numbered steps, one idea each, read in order.
+ * Contract: docs/design/blueprints/core/three-steps.md.
  *
- * NARRATIVE kind: the component emits the steps and NOTHING else — no caption
- * row, no how-to-read, no plain line, no source line, no VizCard. `source` is
- * accepted so an authored section may carry one (core/Section.astro is the one
- * emitter, below the graphic) and is deliberately ignored here.
+ * LENS PHASE 6 (2026-09-30), the board Lib-three-steps: the steps are the
+ * figure, drawn as a chain. Each step is a card with its number set large
+ * (48px, LENS §7) beside "STEP n" and its title in Newsreader; a drawn arrow
+ * joins each card to the next. The kind now sits in the figure panel
+ * (core/Section.astro took it out of its narrative set): the article carries
+ * each step's text as a sentence with its cue, so inside the panel the cards
+ * show the number and the title only. Story mode, with no panel, shows the
+ * text on the card. The board's peat drawings belonged to one issue; the
+ * data carries no drawing, so the chain is the drawing.
  *
- * The steps always paint in their FINAL state (static since Lens Phase 5; the
- * `--i` index stays on each step for the Phase 6 build order).
- * The arrows are CSS `::after` glyphs — `→` in a row, `↓` stacked — so the
- * still frame carries the order with no JS and no SVG.
+ * Cue anchors: 1..n, one per step in data order (the whole card; its numeral
+ * prints beside the "STEP n" label).
+ *
+ * THE BUILD (LENS §6.4): the root is a `data-build-scene`: 1 the cards drop
+ * in, 80ms apart, 2 the arrows draw, 3 the step numbers rise
+ * (src/scripts/build.ts). No JS or reduced motion: the chain as drawn.
+ *
+ * No caption, no source (core/Section.astro prints both); `source` is
+ * accepted and ignored.
  *
  * data: { steps[]{ title, text }, source? }   2–4 steps; three is the shape.
  * Prefix: px-3s.
@@ -24,71 +34,94 @@ const { steps = [] } = Astro.props;
 ---
 
 {steps.length > 0 && (
-  <div class="px-3s">
-    <div class="px-3s__row" style={`--cols:${steps.length}`}>
+  <div class="px-3s" data-build-scene>
+    <ol class="px-3s__chain">
       {steps.map((s, i) => (
-        <div class="px-3s__step" style={`--i:${i}`}>
-          <div class="px-3s__n">{i + 1}</div>
-          <div class="px-3s__t">{s.title}</div>
-          <p class="px-3s__x" set:html={renderInline(s.text)} />
-        </div>
+        <li class="px-3s__li">
+          <div class="px-3s__step" data-cue={i + 1} data-build="1" data-build-kind="drop">
+            <span class="px-3s__n" data-build="3" data-build-kind="rise">{i + 1}</span>
+            <div class="px-3s__body">
+              <p class="px-3s__k"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>Step {i + 1}</p>
+              <p class="px-3s__t">{s.title}</p>
+              <p class="px-3s__x" set:html={renderInline(s.text)} />
+            </div>
+          </div>
+          {i < steps.length - 1 && (
+            <svg class="px-3s__arrow" viewBox="0 0 24 28" aria-hidden="true">
+              <path d="M12 2 V24" data-build="2" data-build-kind="draw" style="fill:none;stroke:var(--accent);stroke-width:2.5" />
+              <path d="M5 17 L12 25 L19 17" data-build="2" data-build-kind="draw" style="fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round" />
+            </svg>
+          )}
+        </li>
       ))}
-    </div>
+    </ol>
   </div>
 )}
 
 <style>
-  /* Flat per CANON §14 — a hairline is the only edge; no radius, no shadow. */
-  .px-3s { border-top: 1px solid var(--rule); }
-  .px-3s__row { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .px-3s { container-type: inline-size; min-width: 0; }
+  .px-3s__chain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .px-3s__li { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
 
   .px-3s__step {
-    position: relative;
-    padding: 16px 0;
-    /* resting = final visible state, so no-JS paints the finished component */
-    opacity: 1; transform: none;
-    transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 16px 18px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--r-card);
   }
-  .px-3s__step:not(:last-child) { border-bottom: 1px solid var(--rule); }
-
   .px-3s__n {
-    font-family: var(--font-display); font-weight: 700;
-    font-size: 26px; line-height: 1;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 48px;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
-    color: var(--accent-deep, var(--accent));
-    margin-bottom: 8px;
+    color: var(--accent-deep);
+    text-align: center;
+  }
+  .px-3s__body { min-width: 0; }
+  .px-3s__k {
+    display: flex;
+    align-items: center;
+    margin: 0 0 4px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
   .px-3s__t {
-    font-family: var(--font-display); font-weight: 700;
-    font-size: 16.5px; line-height: 1.3;
-    color: var(--ink); margin-bottom: 6px;
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--ink);
+    overflow-wrap: break-word;
   }
   .px-3s__x {
-    font-family: var(--font-body); font-size: 15.5px; line-height: 1.5;
-    color: var(--ink-soft); max-width: 30ch; margin: 0;
+    margin: 8px 0 0;
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-2);
   }
+  /* In the figure panel the step texts are the article's sentences. */
+  :global(.px-fig__body) .px-3s__x { display: none; }
 
-  /* The arrow — the one vivid mark. It straddles the hairline between two
-     steps, on a patch of ground so the rule does not run through the glyph. */
-  .px-3s__step:not(:last-child)::after {
-    content: '↓';
-    position: absolute; left: 50%; bottom: 0;
-    transform: translate(-50%, 50%);
-    font-family: var(--font-display); font-size: 20px; line-height: 1;
-    color: var(--accent); background: var(--bg); padding: 0 6px;
-  }
+  .px-3s__arrow { display: block; width: 24px; height: 28px; margin: 4px 0 4px 32px; overflow: visible; }
 
-  @media (min-width: 640px) {
-    .px-3s__row { grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
-    .px-3s__step { padding: 18px 20px 18px 0; }
-    .px-3s__step:not(:first-child) { padding-left: 20px; }
-    .px-3s__step:not(:last-child) { border-bottom: 0; border-right: 1px solid var(--rule); }
-    /* centred on the numeral row: 18px of padding + half the 26px numeral */
-    .px-3s__step:not(:last-child)::after {
-      content: '→';
-      left: auto; right: 0; bottom: auto; top: 31px;
-      transform: translate(50%, -50%);
-      padding: 6px 0;
-    }
+  @container (max-width: 360px) {
+    .px-3s__step { grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 12px 14px; }
+    .px-3s__n { font-size: 40px; }
+    .px-3s__t { font-size: 19px; }
+    .px-3s__arrow { margin-left: 22px; height: 22px; }
   }
 </style>

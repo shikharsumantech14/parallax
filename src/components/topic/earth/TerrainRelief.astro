@@ -13,6 +13,22 @@
  * as a composed top-down SVG still (§7): contours, ridgelines, named summits,
  * a survey scale bar, corner coordinates, and a specimen field-note legend.
  *
+ * LENS (Phase 6, the Lib-terrain-relief board). The figure sits on the desk's
+ * deep plate, the plate re-pointing `--ink` / `--paper` to the on-deep inks
+ * so the live scene and the still agree. The still is no longer a top-down
+ * contour map: it is the ridgeline view of the board, the DEM's rows drawn
+ * back (north) to front as profiles, true horizontal scale, height ×
+ * `exaggeration`, with the named summits on their ridge. The headline is the
+ * highest named summit. The height chip is in flow under the scene and shows
+ * only once the scene is live. The peak table sits under the plate.
+ *
+ * Cue anchors (on the fallback and its label layer, never the canvas): `1`…`n`
+ * (each peak, authored order: its dot and its name) · `ridges` (the relief)
+ * · `head`.
+ * Build: the headline number (1), in a scene of its own above the mount (the
+ * live scene replaces the still, and the chip that JS shows sits below). The
+ * scene keeps its one idle loop.
+ *
  * data: { dem (URL, REQUIRED), place (REQUIRED), exaggeration?, exaggerateTo?,
  *         contourInterval_m?, peaks?[{name,lat,lon,elev_m?}], seaLevel?,
  *         caption?, source? (REQUIRED) }
@@ -20,10 +36,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  decodeDEM, contourPolylines, ridgelines, autoInterval, tileAspect,
-  tileGroundWidthKm, niceScaleBar, fmtCoord, fmtElev,
-  type DEM, type Contour,
+  decodeDEM, autoInterval, tileGroundWidthKm, fmtCoord, fmtElev, type DEM,
 } from '../../../scripts/viz3d/terrain';
+import FigHead from './FigHead.astro';
 
 interface Peak { name: string; lat: number; lon: number; elev_m?: number; }
 interface Props {
@@ -67,90 +82,87 @@ const interval = dem
   : 0;
 const useSea = dem ? (typeof seaLevel === 'boolean' ? seaLevel : dem.minM < 0) : false;
 
-/* ── fallback plate geometry — top-down orthographic (blueprint §7) ── */
-const PAD = 24;
-const VW = 720;
-const aspect = dem ? tileAspect(dem.latN, dem.latS, dem.lonW, dem.lonE) : 1;
-const VH = Math.round(VW * aspect);
-
-const sx = (col: number) => dem ? PAD + (col / (dem.w - 1)) * (VW - 2 * PAD) : 0;
-const sy = (row: number) => dem ? PAD + (row / (dem.h - 1)) * (VH - 2 * PAD) : 0;
-const pathOf = (pts: { col: number; row: number }[]) => {
-  let d = '';
-  for (let i = 0; i < pts.length; i++) {
-    d += (i ? 'L' : 'M') + sx(pts[i].col).toFixed(1) + ' ' + sy(pts[i].row).toFixed(1);
-  }
-  return d;
-};
-
-/* Contours — split into index / intermediate / sea; decimate to ≤ ~40 loops
-   for the fallback if a dense DEM overflows the SVG-node budget (§7/§10).
-   Priority: keep index loops (heavier, labelled) + the longest intermediates. */
-let idxLoops: Contour[] = [];
-let intLoops: Contour[] = [];
-let seaLoops: Contour[] = [];
-let ridgePaths: string[] = [];
+/* ── the fallback plate: ridgelines, looking north (Lens Phase 6, the board) ──
+   Rows of the DEM drawn back (north) to front (south) as profiles, each
+   filled with the plate so a nearer ridge hides the one behind it. The
+   horizontal scale is true (the tile's ground width across the frame); the
+   height is `exaggeration` times true, and the key says so. Peaks sit on the
+   profile of their row; their names are an HTML layer over the drawing
+   (12px real; a desktop set and a phone set, one shown by a media query). */
+const VW = 720, VH = 440, PAD = 24;
+const NR = 34;
+const groundKm = dem ? tileGroundWidthKm(dem.latN, dem.latS, dem.lonW, dem.lonE) : 1;
+const kmU = (VW - 2 * PAD) / (groundKm || 1);
+const depth0 = 150, depth1 = VH - 44;            // baselines of the back and front rows
+const rowY = (row: number) => dem ? depth0 + (row / (dem.h - 1)) * (depth1 - depth0) : 0;
+const colX = (col: number) => dem ? PAD + (col / (dem.w - 1)) * (VW - 2 * PAD) : 0;
+const lift = (m: number) => dem ? ((m - dem.minM) / 1000) * kmU * EX_REST : 0;
+const ridges: { d: string; line: string; t: number }[] = [];
 if (dem) {
-  const all = contourPolylines(dem, interval);
-  for (const c of all) {
-    if (useSea && c.level_m === 0) seaLoops.push(c);
-    else if (c.isIndex) idxLoops.push(c);
-    else intLoops.push(c);
+  for (let k = 0; k < NR; k++) {
+    const row = Math.round((k / (NR - 1)) * (dem.h - 1));
+    const yb = rowY(row);
+    let line = '';
+    for (let c = 0; c < dem.w; c += 2) line += `${line ? ' L' : 'M'} ${colX(c).toFixed(1)} ${(yb - lift(dem.elevAt(c, row))).toFixed(1)}`;
+    const d = `${line} L ${colX(dem.w - 2).toFixed(1)} ${(yb + 40).toFixed(1)} L ${colX(0).toFixed(1)} ${(yb + 40).toFixed(1)} Z`;
+    ridges.push({ d, line, t: k / (NR - 1) });
   }
-  // decimation budget (blueprint §7 ≤ 40 loops / §10 ≤ 900 SVG nodes): index +
-  // sea loops always kept (labelled, load-bearing); intermediates trimmed by
-  // length. Total path count is held well under the 900-node cap; drop the
-  // shortest (noisiest) index loops too if a very dense DEM overflows.
-  const MAX_LOOPS = 220;
-  idxLoops.sort((a, b) => b.pts.length - a.pts.length);
-  intLoops.sort((a, b) => b.pts.length - a.pts.length);
-  const idxBudget = Math.min(idxLoops.length, MAX_LOOPS - seaLoops.length);
-  idxLoops = idxLoops.slice(0, Math.max(0, idxBudget));
-  const keepInt = Math.max(0, MAX_LOOPS - idxLoops.length - seaLoops.length);
-  intLoops = intLoops.slice(0, keepInt);
-
-  ridgePaths = ridgelines(dem).map((r) => pathOf(r.pts));
 }
 
-/* Peaks → screen dots + labels (sampled elev if omitted) */
-interface PlatePeak { name: string; x: number; y: number; elev_m: number; lat: number; lon: number; }
+interface PlatePeak { i: number; name: string; x: number; y: number; elev_m: number; lat: number; lon: number }
 const platePeaks: PlatePeak[] = dem
-  ? peaks.filter((p) => typeof p.lat === 'number' && typeof p.lon === 'number').slice(0, 6).map((p) => {
+  ? peaks.map((p, i) => ({ p, i })).filter(({ p }) => typeof p.lat === 'number' && typeof p.lon === 'number').slice(0, 6).map(({ p, i }) => {
       const elev = typeof p.elev_m === 'number' ? p.elev_m : dem!.elevLL(p.lat, p.lon);
       const col = clamp(((p.lon - dem!.lonW) / (dem!.lonE - dem!.lonW)) * (dem!.w - 1), 0, dem!.w - 1);
       const row = clamp(((dem!.latN - p.lat) / (dem!.latN - dem!.latS)) * (dem!.h - 1), 0, dem!.h - 1);
-      return { name: p.name, x: sx(col), y: sy(row), elev_m: elev, lat: p.lat, lon: p.lon };
+      return { i: i + 1, name: p.name, x: colX(col), y: rowY(row) - lift(elev), elev_m: elev, lat: p.lat, lon: p.lon };
     })
   : [];
 
-/* Corner coordinates (motif 2) — sign-aware, outside the frame */
-const corners = dem
-  ? {
-      nw: fmtCoord(dem.latN, dem.lonW), ne: fmtCoord(dem.latN, dem.lonE),
-      sw: fmtCoord(dem.latS, dem.lonW), se: fmtCoord(dem.latS, dem.lonE),
+type Box = { x0: number; y0: number; x1: number; y1: number };
+const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
+const DIRS: [number, number][] = [[0, -1], [-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]];
+function layout(fs: number) {
+  const placed: Box[] = [];
+  const dots: Box[] = platePeaks.map((pk) => ({ x0: pk.x - 6, y0: pk.y - 6, x1: pk.x + 6, y1: pk.y + 6 }));
+  return [...platePeaks].sort((a, b) => b.elev_m - a.elev_m).map((pk) => {
+    const elevTxt = `${fmtElev(pk.elev_m)} m`;
+    const w = Math.max(pk.name.length * 0.6, elevTxt.length * 0.56) * fs + 6, h = fs * 2.5;
+    let best: { b: Box; right: boolean; lead: number[] | null } | null = null, bestCost = Infinity;
+    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
+      const d = 10 + ring * fs * 1.3;
+      for (const [dx, dy] of DIRS) {
+        const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
+        const x0 = dx > 0 ? pk.x + d * diag : dx < 0 ? pk.x - d * diag - w : pk.x - w / 2;
+        const y0 = dy < 0 ? pk.y - d * diag - h : dy > 0 ? pk.y + d * diag : pk.y - h / 2;
+        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
+        if (b.x0 < 6 || b.x1 > VW - 6 || b.y0 < 4 || b.y1 > VH - 4) continue;
+        let cost = ring * 4 + DIRS.findIndex(([a, c]) => a === dx && c === dy) * 0.5;
+        for (const q of placed) if (hit(b, q, 4)) cost += 1000;
+        for (const q of dots) if (hit(b, q, 1)) cost += 1000;
+        if (cost < bestCost) {
+          bestCost = cost;
+          const nx = Math.max(b.x0, Math.min(pk.x, b.x1)), ny = Math.max(b.y0, Math.min(pk.y, b.y1));
+          const len = Math.hypot(nx - pk.x, ny - pk.y) || 1;
+          best = { b, right: dx < 0, lead: [pk.x + ((nx - pk.x) / len) * 5, pk.y + ((ny - pk.y) / len) * 5, nx, ny] };
+        }
+      }
     }
-  : null;
-
-/* Survey scale bar (motif 4) — km length from the tile's true ground width */
-const groundKm = dem ? tileGroundWidthKm(dem.latN, dem.latS, dem.lonW, dem.lonE) : 0;
-const bar = niceScaleBar(groundKm);
-const barPx = bar.frac * (VW - 2 * PAD);
-
-/* Specimen legend rows (field-note table) */
-const legendRows = platePeaks.map((p) => ({
-  name: p.name, elev: fmtElev(p.elev_m), coord: fmtCoord(p.lat, p.lon),
-}));
-const showAll = legendRows.length <= 5;
-
-/* index-contour elevation labels: at most 4, on the longest index loops */
-const idxLabels = idxLoops
-  .slice()
-  .sort((a, b) => b.pts.length - a.pts.length)
-  .slice(0, 4)
-  .map((c) => {
-    const mid = c.pts[Math.floor(c.pts.length / 2)];
-    return { x: sx(mid.col), y: sy(mid.row), t: `${fmtElev(c.level_m)} m` };
+    if (best && bestCost < 1000) placed.push(best.b);
+    return { pk, elevTxt, ...(best ?? { b: { x0: pk.x, y0: pk.y - h, x1: pk.x + w, y1: pk.y }, right: false, lead: null }), drop: bestCost >= 1000 };
   });
+}
+const labelSets = { d: layout(20), m: layout(31) };
+const pct = (v: number, of: number) => ((v / of) * 100).toFixed(2);
+
+const top = platePeaks.reduce((a, b) => (b.elev_m > (a?.elev_m ?? -Infinity) ? b : a), undefined as PlatePeak | undefined);
+const headValue = top ? fmtElev(top.elev_m) : dem ? fmtElev(dem.maxM) : '';
+const headLabel = top ? `m, ${top.name}` : 'm, highest point';
+
+/* the pole-free field table: every peak, on paper under the plate */
+const legendRows = platePeaks.map((p) => ({ name: p.name, elev: fmtElev(p.elev_m), coord: fmtCoord(p.lat, p.lon) }));
+const showAll = legendRows.length <= 5;
+const exLabel = (ex: number) => `Height ×${Math.round(ex * 10) / 10}`;
 
 /* payload for the live scene — the DEM URL (not the grid), EX flags, peaks,
    plus the earth brown / deep tokens injected for the scene (blueprint §6). */
@@ -164,89 +176,6 @@ const payload = JSON.stringify({
   _altColor: 'var(--accent-alt)',
   _deepColor: 'var(--accent-deep)',
 });
-
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
-const SERIF = "font-family:var(--font-display),Georgia,serif";
-
-/* ── plate labels: two type tiers, one collision rule (2026-09-24) ──────────
-   The plate is 720 units wide drawn at the column width — 335px on a 375px
-   phone, where 9.5 units printed at 4.4px (probe TINY: every contour value,
-   corner and elevation). So the plate carries its labels twice: a DESKTOP set
-   at the authored sizes and a PHONE set sized to print at or above the 9.5px
-   floor on a 335px plate; CSS shows one (≤640px: phone). The map does not
-   move, only the type grows, so each set is placed on its own:
-     1. peaks, highest first — the name over its elevation as one block,
-        tried on eight sides of the dot, then a ring further out with a
-        hairline leader; the first spot clear of every dot and block wins;
-     2. index-contour values, which stay on their loop or are dropped when
-        they would touch a peak block, a dot or another value;
-     3. corner coordinates on desktop only — the 24-unit margin cannot hold
-        9.5px type on a phone, and the legend rows carry each peak's
-        coordinates. The scale bar keeps its label at both sizes.
-   Widths lean wide: too wide costs air, too narrow a collision. */
-type Box = { x0: number; y0: number; x1: number; y1: number };
-type Anchor = 'start' | 'middle' | 'end';
-const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
-const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
-const TIERS = {
-  d: { name: 14, mono: 9.5, bar: 9, halo: 3 },
-  m: { name: 21, mono: 20.5, bar: 20.5, halo: 5 },
-} as const;
-type Tier = (typeof TIERS)[keyof typeof TIERS];
-const DIRS: [number, number][] = [[1, -1], [1, 1], [-1, -1], [-1, 1], [1, 0], [-1, 0], [0, -1], [0, 1]];
-const dotBoxes: Box[] = platePeaks.map((pk) => ({ x0: pk.x - 5, y0: pk.y - 5, x1: pk.x + 5, y1: pk.y + 5 }));
-function plateLabels(t: Tier) {
-  const inner: Box = { x0: PAD + 3, y0: PAD + 3, x1: VW - PAD - 3, y1: VH - PAD - 3 };
-  const barTxt = `${bar.km} km`;
-  const barBox: Box = { x0: PAD - 2, y0: VH - PAD - 10 - t.bar, x1: PAD + barPx + 8 + barTxt.length * t.bar * 0.7, y1: VH - PAD - 2 };
-  const placed: Box[] = [barBox];
-  const order = platePeaks.map((pk, i) => ({ pk, i })).sort((a, b) => b.pk.elev_m - a.pk.elev_m);
-  const peaksOut: { i: number; anchor: Anchor; lx: number; nameY: number; elevY: number; leader: number[] | null }[] = [];
-  for (const { pk, i } of order) {
-    const elevTxt = `${fmtElev(pk.elev_m)} m`;
-    const w = Math.max(pk.name.length * t.name * 0.5, elevTxt.length * t.mono * 0.66);
-    const h = t.name * 1.02 + 2 + t.mono * 1.05;
-    const others = dotBoxes.filter((_, j) => j !== i);
-    let best: (typeof peaksOut)[number] | null = null, bestBox: Box | null = null, bestCost = Infinity;
-    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
-      const d = 6 + ring * t.name * 1.4;
-      for (const [dx, dy] of DIRS) {
-        const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
-        const x0 = dx > 0 ? pk.x + d * diag : dx < 0 ? pk.x - d * diag - w : pk.x - w / 2;
-        const y0 = dy < 0 ? pk.y - d * diag - h : dy > 0 ? pk.y + d * diag : pk.y - h / 2;
-        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
-        if (b.x0 < inner.x0 || b.x1 > inner.x1 || b.y0 < inner.y0 || b.y1 > inner.y1) continue;
-        let cost = ring * 4 + DIRS.findIndex(([a, c]) => a === dx && c === dy) * 0.5;
-        for (const q of placed) if (hit(b, q, 3)) cost += 1000 + cover(b, q);
-        for (const q of others) if (hit(b, q, 1)) cost += 1000 + cover(b, q);
-        if (cost < bestCost) {
-          bestCost = cost;
-          const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
-          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
-          const nx = Math.max(b.x0, Math.min(pk.x, b.x1)), ny = Math.max(b.y0, Math.min(pk.y, b.y1));
-          const len = Math.hypot(nx - pk.x, ny - pk.y) || 1;
-          const leader = ring > 0 ? [pk.x + ((nx - pk.x) / len) * 4, pk.y + ((ny - pk.y) / len) * 4, nx, ny] : null;
-          best = { i, anchor, lx, nameY: b.y0 + t.name * 0.8, elevY: b.y0 + t.name * 1.02 + 2 + t.mono * 0.8, leader };
-          bestBox = b;
-        }
-      }
-    }
-    if (best && bestBox) { peaksOut.push(best); placed.push(bestBox); }
-  }
-  const contoursOut = idxLabels
-    .map((l) => {
-      const w = l.t.length * t.mono * 0.66;
-      const b: Box = { x0: l.x - w / 2, y0: l.y - t.mono * 0.8, x1: l.x + w / 2, y1: l.y + t.mono * 0.25 };
-      const ok = b.x0 >= inner.x0 && b.x1 <= inner.x1 && b.y0 >= inner.y0 && b.y1 <= inner.y1 &&
-        !placed.some((q) => hit(b, q, 3)) && !dotBoxes.some((q) => hit(b, q, 2));
-      if (ok) placed.push(b);
-      return ok ? l : null;
-    })
-    .filter(Boolean) as typeof idxLabels;
-  return { peaks: peaksOut, contours: contoursOut };
-}
-const labelSets = { d: plateLabels(TIERS.d), m: plateLabels(TIERS.m) };
-const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
 ---
 
 {dem && (
@@ -254,167 +183,107 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
     {caption && (
       <div class="px-viz__cap">
         <span>{caption}</span>
-        <b>vertical ×{Math.round(EX_REST * 10) / 10}</b>
+        <b>{exLabel(EX_REST)}</b>
       </div>
     )}
 
-    <div class="px-trrlf__stage">
+    <div class="px-trrlf__plate">
+      <div class="px-trrlf__head" data-build-scene>
+        {headValue && <FigHead value={headValue} label={headLabel} n={1} deep />}
+      </div>
       <div
         class="viz3d viz3d--trrlf"
         data-viz3d="terrain-relief"
         data-viz3d-state="rest"
         style={`aspect-ratio: ${VW} / ${VH}`}
         role="img"
-        aria-label={caption ? `Terrain relief map: ${caption}` : `Terrain relief map of ${place}`}
+        aria-label={`${place}: ridgelines looking north, height ×${Math.round(EX_REST * 10) / 10}${platePeaks.length ? `; ${platePeaks.map((p) => `${p.name} ${fmtElev(p.elev_m)} m`).join(', ')}` : ''}.`}
       >
         <div class="viz3d__fallback">
-          {/* The print plate — a top-down surveyor's contour map (blueprint §7).
-              overflow visible so corner coords + labels bleed outside the frame. */}
-          <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" style="overflow:visible">
-            {/* survey-plate frame */}
-            <rect x={PAD} y={PAD} width={VW - 2 * PAD} height={VH - 2 * PAD}
-              fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.30" />
-
-            {/* intermediate contours (ink @ 0.22) */}
-            {intLoops.map((c) => (
-              <path d={pathOf(c.pts)} fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.22" />
-            ))}
-            {/* index contours (ink @ 0.42, heavier) */}
-            {idxLoops.map((c) => (
-              <path d={pathOf(c.pts)} fill="none" stroke="var(--ink)" stroke-width="1.4" opacity="0.42" />
-            ))}
-            {/* sea / 0 m contour (accent green) */}
-            {seaLoops.map((c) => (
-              <path d={pathOf(c.pts)} fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.9" />
-            ))}
-            {/* ridgelines (USGS brown, over the contours) */}
-            {ridgePaths.map((d) => (
-              <path d={d} fill="none" stroke="var(--accent-alt)" stroke-width="1.4" opacity="0.85"
-                stroke-linecap="round" stroke-linejoin="round" />
-            ))}
-
-            {/* peak dots — accent-deep (specimen) */}
-            {platePeaks.map((p) => <circle cx={p.x} cy={p.y} r="3" fill="var(--accent-deep)" />)}
-
-            {/* labels, once per type tier (see the frontmatter note): index-contour
-                values (mono), peak names (Fraunces italic) over their elevations */}
+          <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+            <g data-cue="ridges">
+              {ridges.map((r) => (
+                <>
+                  <path d={r.d} fill="var(--deep)" />
+                  <path d={r.line} fill="none" stroke="var(--on-deep)" stroke-width="1.3" stroke-linejoin="round" style={`stroke-opacity:${(0.35 + r.t * 0.55).toFixed(2)}`} />
+                </>
+              ))}
+            </g>
             {(['d', 'm'] as const).map((tier) => (
-              <g class={`px-trrlf__lbls px-trrlf__lbls--${tier}`}>
-                {labelSets[tier].contours.map((l) => (
-                  <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} style={MONO} font-size={TIERS[tier].mono} fill="var(--muted)"
-                    text-anchor="middle" paint-order="stroke" stroke="var(--paper)" stroke-width={TIERS[tier].halo}>{l.t}</text>
+              <g class={`px-trrlf__leads px-trrlf__leads--${tier}`}>
+                {labelSets[tier].filter((l) => !l.drop && l.lead).map((l) => (
+                  <line x1={l.lead![0].toFixed(1)} y1={l.lead![1].toFixed(1)} x2={l.lead![2].toFixed(1)} y2={l.lead![3].toFixed(1)} />
                 ))}
-                {labelSets[tier].peaks.map((q) => {
-                  const pk = platePeaks[q.i];
-                  return (
-                    <>
-                      {q.leader && (
-                        <line x1={q.leader[0].toFixed(1)} y1={q.leader[1].toFixed(1)} x2={q.leader[2].toFixed(1)} y2={q.leader[3].toFixed(1)}
-                          stroke="var(--ink)" stroke-width={tier === 'm' ? 1.6 : 0.8} opacity="0.55" />
-                      )}
-                      <text x={q.lx.toFixed(1)} y={q.nameY.toFixed(1)} text-anchor={q.anchor} style={`${SERIF};font-style:italic`}
-                        font-size={TIERS[tier].name} fill="var(--ink)" paint-order="stroke" stroke="var(--paper)"
-                        stroke-width={TIERS[tier].halo + 0.5}>{pk.name}</text>
-                      <text x={q.lx.toFixed(1)} y={q.elevY.toFixed(1)} text-anchor={q.anchor} style={MONO}
-                        font-size={TIERS[tier].mono} fill="var(--accent-deep)" paint-order="stroke" stroke="var(--paper)"
-                        stroke-width={TIERS[tier].halo}>{fmtElev(pk.elev_m)} m</text>
-                    </>
-                  );
-                })}
               </g>
             ))}
-
-            {/* corner coordinates (motif 2) — sign-aware, outside the frame;
-                desktop tier only (the phone margin cannot hold 9.5px type) */}
-            {corners && (
-              <g class="px-trrlf__lbls--d">
-                <text x={PAD} y={PAD - 8} style={MONO} font-size="9.5" fill="var(--muted)"
-                  letter-spacing="0.06em">{corners.nw}</text>
-                <text x={VW - PAD} y={PAD - 8} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
-                  letter-spacing="0.06em">{corners.ne}</text>
-                <text x={PAD} y={VH - PAD + 16} style={MONO} font-size="9.5" fill="var(--muted)"
-                  letter-spacing="0.06em">{corners.sw}</text>
-                <text x={VW - PAD} y={VH - PAD + 16} text-anchor="end" style={MONO} font-size="9.5" fill="var(--muted)"
-                  letter-spacing="0.06em">{corners.se}</text>
-              </g>
-            )}
-
-            {/* survey scale bar (motif 4) — bottom-left, ruled ticks, km length */}
-            {barPx > 8 && (
-              <>
-                <line x1={PAD} y1={VH - PAD - 10} x2={PAD + barPx} y2={VH - PAD - 10}
-                  stroke="var(--accent-deep)" stroke-width="1.4" />
-                <line x1={PAD} y1={VH - PAD - 14} x2={PAD} y2={VH - PAD - 6}
-                  stroke="var(--accent-deep)" stroke-width="1.4" />
-                <line x1={PAD + barPx / 2} y1={VH - PAD - 13} x2={PAD + barPx / 2} y2={VH - PAD - 7}
-                  stroke="var(--accent-deep)" stroke-width="1" />
-                <line x1={PAD + barPx} y1={VH - PAD - 14} x2={PAD + barPx} y2={VH - PAD - 6}
-                  stroke="var(--accent-deep)" stroke-width="1.4" />
-                <text class="px-trrlf__bar" x={PAD + barPx + 6} y={VH - PAD - 6} style={MONO} font-size="9" fill="var(--muted)"
-                  letter-spacing="0.1em" paint-order="stroke" stroke="var(--paper)" stroke-width="3">{bar.km} km</text>
-              </>
-            )}
+            {platePeaks.map((p) => (
+              <circle data-cue={p.i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="5" fill="var(--accent-lime, var(--accent))" stroke="var(--deep)" stroke-width="2" />
+            ))}
           </svg>
+          {(['d', 'm'] as const).map((tier) => (
+            <div class={`px-trrlf__labels px-trrlf__labels--${tier}`}>
+              {labelSets[tier].filter((l) => !l.drop).map((l) => (
+                <span
+                  class:list={['px-trrlf__lbl', l.right && 'is-right']}
+                  data-cue={l.pk.i}
+                  style={l.right ? `right:${pct(VW - l.b.x1, VW)}%;top:${pct(l.b.y0, VH)}%` : `left:${pct(l.b.x0, VW)}%;top:${pct(l.b.y0, VH)}%`}
+                >
+                  <b><span class="px-cue-tag" data-cue-tag={l.pk.i} hidden></span>{l.pk.name}</b>
+                  <i>{l.elevTxt}</i>
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
-
         <span class="viz3d__hint" aria-hidden="true">drag to tilt · scroll to zoom</span>
         <script type="application/json" class="viz3d__data" set:html={payload}></script>
       </div>
 
-      {/* ONE control (CANON §9): the vertical-exaggeration chip. Hidden until
-          the WebGL scene is live (the fallback carries the honest rest EX). */}
+      {/* ONE control (CANON §9): the height chip, in flow under the scene and
+          shown only once the scene is live (the still states its height). */}
       {hasToggle && (
         <div class="px-trrlf__chips">
-          <button type="button" class="px-trrlf__chip"
-            data-ex-rest={EX_REST} data-ex-exag={EX_EXAG} aria-pressed="false">
+          <button type="button" class="px-trrlf__chip" data-ex-rest={EX_REST} data-ex-exag={EX_EXAG} aria-pressed="false">
             {exLabel(EX_REST)}
           </button>
         </div>
       )}
+
+      <div class="px-trrlf__key">
+        <span>Looking north</span>
+        <span>{exLabel(EX_REST)} · contour {interval} m</span>
+        <span>Valley {fmtElev(dem.minM)} m</span>
+      </div>
     </div>
 
-    {/* specimen legend / field-note table (AT-readable data source, motif 3) */}
-    {legendRows.length > 0 && (
+    {legendRows.length > 0 ? (
       <div class={`px-trrlf__legend${showAll ? '' : ' px-trrlf__legend--collapsed'}`}>
         <div class="px-trrlf__legend-head">
-          <span>contour interval {interval} m</span>
-          <span>vertical ×{Math.round(EX_REST * 10) / 10}</span>
+          <span>{place}</span>
+          <span>Elevation</span>
         </div>
         <ul class="px-trrlf__rows">
           {legendRows.map((r, i) => (
             <li class={`px-trrlf__row${!showAll && i >= 5 ? ' px-trrlf__row--extra' : ''}`}>
               <span class="px-trrlf__pk">{r.name}</span>
-              <span class="px-trrlf__pk-el">{r.elev} m</span>
               <span class="px-trrlf__pk-co">{r.coord}</span>
+              <span class="px-trrlf__pk-el">{r.elev} m</span>
             </li>
           ))}
         </ul>
-        {!showAll && (
-          <button type="button" class="px-trrlf__more" aria-expanded="false">show all {legendRows.length}</button>
-        )}
+        {!showAll && <button type="button" class="px-trrlf__more" aria-expanded="false">Show all {legendRows.length}</button>}
       </div>
+    ) : (
+      <p class="px-trrlf__place">{place}</p>
     )}
 
-    {legendRows.length === 0 && (
-      <div class="px-trrlf__legend">
-        <div class="px-trrlf__legend-head">
-          <span>contour interval {interval} m</span>
-          <span>vertical ×{Math.round(EX_REST * 10) / 10}</span>
-        </div>
-        <p class="px-trrlf__place">{place}</p>
-      </div>
-    )}
-
-
-    {/* chip + show-all bridge — sets data-viz3d-state; runtime mirrors it into
-        setState (runtime.ts state-chip bridge). The chip label re-inks live
-        from the scene's data-viz3d-ex once toggled. */}
+    {/* chip + show-all bridge: the chip sets data-viz3d-state, which the
+        runtime mirrors into setState; the scene re-inks the chip's label
+        through data-viz3d-ex. */}
     <script is:inline>
       (function () {
-        var root = document.currentScript && document.currentScript.previousElementSibling;
-        while (root && !(root.classList && root.classList.contains('px-trrlf'))) {
-          root = root.previousElementSibling;
-        }
+        var self = document.currentScript;
+        var root = self && self.closest ? self.closest('.px-trrlf') : null;
         if (!root) return;
         var mount = root.querySelector('[data-viz3d="terrain-relief"]');
         var chip = root.querySelector('.px-trrlf__chip');
@@ -422,7 +291,7 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
           var rest = chip.getAttribute('data-ex-rest');
           var exag = chip.getAttribute('data-ex-exag');
           var on = false;
-          var fmt = function (v) { return 'VERTICAL ×' + (Math.round(v * 10) / 10); };
+          var fmt = function (v) { return 'Height ×' + (Math.round(v * 10) / 10); };
           chip.addEventListener('click', function () {
             on = !on;
             mount.setAttribute('data-viz3d-state', on ? 'exaggerate' : 'rest');
@@ -430,14 +299,12 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
             chip.classList.toggle('is-on', on);
             chip.textContent = fmt(parseFloat(on ? exag : rest));
           });
-          // live re-ink: the scene writes data-viz3d-ex during the settle
           var mo = new MutationObserver(function () {
             var ex = mount.getAttribute('data-viz3d-ex');
             if (ex) chip.textContent = fmt(parseFloat(ex));
           });
           mo.observe(mount, { attributes: true, attributeFilter: ['data-viz3d-ex'] });
         }
-        // legend show-all
         var more = root.querySelector('.px-trrlf__more');
         var legend = root.querySelector('.px-trrlf__legend');
         if (more && legend) {
@@ -453,101 +320,73 @@ const exLabel = (ex: number) => `VERTICAL ×${Math.round(ex * 10) / 10}`;
 )}
 
 <style>
-  .px-trrlf__stage { position: relative; }
-
-  /* plate label tiers — see the frontmatter note */
-  .px-trrlf__lbls--m { display: none; }
+  /* the deep plate: on-deep inks for everything on it, the live scene too */
+  .px-trrlf__plate {
+    --ink: var(--on-deep);
+    --ink-2: var(--on-deep-2);
+    --ink-soft: var(--on-deep-2);
+    --muted: var(--on-deep-2);
+    --paper: var(--deep);
+    --paper-2: color-mix(in oklab, var(--deep) 86%, var(--on-deep));
+    --hair: var(--on-deep-hair);
+    background: var(--deep);
+    border-radius: var(--r-card, 6px);
+    padding: 20px;
+  }
+  .viz3d--trrlf { background: transparent; }
+  .px-trrlf__leads line { stroke: var(--on-deep-2); stroke-width: 1.5; }
+  .px-trrlf__labels { position: absolute; inset: 0; pointer-events: none; }
+  .px-trrlf__labels--m, .px-trrlf__leads--m { display: none; }
   @media (max-width: 640px) {
-    .px-trrlf__lbls--d { display: none; }
-    .px-trrlf__lbls--m { display: inline; }
-    .px-trrlf__bar { font-size: 20.5px; stroke-width: 5px; }
+    .px-trrlf__labels--d, .px-trrlf__leads--d { display: none; }
+    .px-trrlf__labels--m, .px-trrlf__leads--m { display: block; }
+    .px-trrlf__plate { padding: 14px; }
   }
-
-  /* survey-plate mount tint — atlas paper under the line-art */
-  .viz3d--trrlf {
-    background:
-      radial-gradient(ellipse 72% 64% at 50% 46%,
-        color-mix(in oklab, var(--ink) 5%, transparent), transparent 74%),
-      color-mix(in oklab, var(--paper) 70%, var(--bg));
-  }
-
-  /* the ONE control — mono pill, top-right; hidden until the scene is live
-     (the fallback plate already prints the honest rest EX). */
-  .px-trrlf__chips {
-    display: none;
-    position: absolute; top: 10px; right: 12px; z-index: 3;
-  }
-  .viz3d--live + .px-trrlf__chips { display: flex; }
-
-  .px-trrlf__chip {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
-    text-transform: uppercase; font-variant-numeric: tabular-nums;
-    color: var(--ink-soft);
-    background: color-mix(in oklab, var(--paper) 88%, transparent);
-    border: 1px solid var(--rule); border-radius: 999px;
-    padding: 7px 12px; min-height: 30px; cursor: pointer;
-    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
-  }
-  .px-trrlf__chip:active { transform: scale(0.98); }
-  .px-trrlf__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
-  @media (pointer: coarse) {
-    .px-trrlf__chip { min-height: 44px; padding: 10px 14px; } /* 44px touch floor */
-  }
-
-  /* specimen legend / field-note table (earth motif 3) */
-  .px-trrlf__legend {
-    margin-top: 18px;
-    border-top: 1px solid var(--rule);
-    padding-top: 14px;
-  }
-  .px-trrlf__legend-head {
-    display: flex; justify-content: space-between; gap: 16px;
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--accent-deep);
+  .px-trrlf__lbl {
+    position: absolute; display: flex; flex-direction: column; gap: 1px;
+    font-family: var(--font-ui); font-size: 12px; line-height: 1.2; white-space: nowrap;
+    text-shadow: 0 0 3px var(--deep), 0 0 6px var(--deep);
     font-variant-numeric: tabular-nums;
-    padding-bottom: 12px;
+  }
+  .px-trrlf__lbl.is-right { align-items: flex-end; text-align: right; }
+  .px-trrlf__lbl b { display: inline-flex; align-items: center; font-weight: 600; color: var(--on-deep); }
+  .px-trrlf__lbl i { font-style: normal; color: var(--on-deep-2); }
+  .px-trrlf__lbl :global(.px-cue-tag) { color: var(--on-deep); margin-right: 6px; }
+  .px-trrlf__chips { display: none; margin-top: 12px; }
+  .viz3d--live + .px-trrlf__chips { display: flex; }
+  .px-trrlf__chip {
+    font-family: var(--font-ui); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+    color: var(--on-deep); background: transparent;
+    border: 1px solid var(--on-deep-hair); border-radius: 999px;
+    padding: 0 14px; min-height: 44px; cursor: pointer;
+    transition: color 160ms var(--ease), border-color 160ms var(--ease);
+  }
+  .px-trrlf__chip.is-on { border-color: var(--on-deep); }
+  .px-trrlf__key { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 12px; font-family: var(--font-ui); font-size: 12px; color: var(--on-deep-2); font-variant-numeric: tabular-nums; }
+  .px-trrlf__key span:first-child { font-weight: 600; color: var(--on-deep); }
+
+  /* the peak table, on paper */
+  .px-trrlf__legend { margin-top: 16px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
+  .px-trrlf__legend-head {
+    display: flex; justify-content: space-between; gap: 16px; padding-bottom: 8px;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    border-bottom: 1px solid var(--hair);
   }
   .px-trrlf__rows { list-style: none; margin: 0; padding: 0; }
-  .px-trrlf__row {
-    display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline;
-    padding: 9px 0; border-bottom: 1px dashed var(--rule);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-trrlf__pk {
-    font-family: var(--font-display); font-style: italic; font-size: 16px;
-    color: var(--ink);
-  }
-  .px-trrlf__pk-el {
-    font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft);
-    letter-spacing: 0.02em;
-  }
-  .px-trrlf__pk-co {
-    font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
-    letter-spacing: 0.06em; text-align: right; min-width: 12ch;
-  }
-  .px-trrlf__place {
-    font-family: var(--font-display); font-style: italic; font-size: 15px;
-    color: var(--ink-soft); margin: 4px 0 0;
-  }
-
-  /* collapse behind "show all" past 5 rows (no-JS shows all; JS hides extras) */
+  .px-trrlf__row { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 13px; }
+  .px-trrlf__pk { font-weight: 600; color: var(--ink); }
+  .px-trrlf__pk-co { color: var(--ink-2, var(--ink-soft)); text-align: right; }
+  .px-trrlf__pk-el { font-weight: 600; color: var(--accent-deep); min-width: 7ch; text-align: right; }
+  .px-trrlf__place { margin: 12px 0 0; font-family: var(--font-ui); font-size: 13px; color: var(--ink-2, var(--ink-soft)); }
   html.js .px-trrlf__legend--collapsed .px-trrlf__row--extra { display: none; }
-  .px-trrlf__more {
-    margin-top: 12px;
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--accent-deep);
-    background: none; border: none; padding: 4px 0; cursor: pointer;
-    text-decoration: underline; text-underline-offset: 3px;
-  }
+  .px-trrlf__more { margin-top: 10px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--accent-deep); background: none; border: none; padding: 4px 0; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   html:not(.js) .px-trrlf__more { display: none; }
-
-  @media (max-width: 760px) {
+  @media (max-width: 560px) {
     .px-trrlf__row { grid-template-columns: 1fr auto; row-gap: 2px; }
-    .px-trrlf__pk-co { grid-column: 1 / -1; text-align: left; }
+    .px-trrlf__pk-co { grid-column: 1 / -1; order: 5; text-align: left; }
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-trrlf__chip { transition: none; }
-    .px-trrlf__chip:active { transform: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { .px-trrlf__chip { transition: none; } }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>

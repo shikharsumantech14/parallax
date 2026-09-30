@@ -1,28 +1,46 @@
 ---
 /**
- * AdoptionCurve — v2 technology S-curve (.adc) inside the elevated .px-viz
- * card: the curve, the gradient area behind it, milestone pins, and a
- * milestone strip listing the key moments below. Faithful port of the
- * publication-v2 kit <AdoptionCurve>. Build-time SVG, zero runtime JS; static
- * since Lens Phase 5 (its build order arrives in Phase 6). Reuses the shared .ac__grid / .ac__axis
- * classes (defined in dataviz-v2.css).
+ * AdoptionCurve — a diffusion curve (.adc): share of a population over time,
+ * the reported figures as dots on the line, the milestones as dashed rules
+ * with their names listed under the chart. Build-time SVG, zero JS of its own.
  *
- * Shows technology diffusion over time (Rogers' curve).
+ * LENS PHASE 6 (2026-09-30, the board Lib-adoption-curve): REDRAWN FOR THE
+ * FIGURE PANEL. A 460-unit viewBox with 12px text, so it prints at size in the
+ * ~470px panel at 1280 and scrolls inside its card on a phone (the standing
+ * min-width rule in dataviz-v2.css). The x axis is placed by VALUE, not by
+ * index: three observations a day and six days apart are drawn a day and six
+ * days apart. Straight segments between the reported figures, never a
+ * smoothed curve (a smooth line would draw values nobody reported). A
+ * milestone is a dashed rule at its x and a row in the list below, never a
+ * pin at a value interpolated on the line. The large number is the point the
+ * section is about: the annotated point, else the latest. The gradient area
+ * went (its fixed id collided when two curves shared a page). All of the
+ * kind's CSS lives here (the dataviz-v2.css block was retired in Phase 6),
+ * under its own `.adc__` names; it no longer borrows ApprovalChart's `.ac__`.
+ *
+ * Cue anchors:
+ *   1..n     each reported figure (a dot), numbered from 1 in data order.
+ *   line     the curve.
+ *   m1..mK   each milestone: its rule on the chart and its row below.
+ *   axis     the grid and the tick labels.
+ *   head     the large number.
+ *
+ * THE BUILD (LENS §6.4): the card is the scene. 1 the axis fades in, 2 the
+ * line draws, 3 the dots drop and the milestone rules fade in, 4 the notes
+ * and the milestone list, 5 the large number counts up (src/scripts/build.ts).
+ * No JS or reduced motion: the chart as drawn.
  *
  * props:
  *   points[]     — { year: number, pct: number }  (0–100)
- *   milestones[] — { year: number, label: string }
- *   (xLabel was declared and never rendered — the kit draws no x-axis label
- *    slot. Struck 2026-09-15; nothing authored it.)
- *   yLabel       — caption unit chip (e.g. "% Adoption")
- *   caption
- *   source
+ *   milestones[] — { year: number, label: string, pct? }
+ *   yLabel       — the quantity (e.g. "% of new car sales")
+ *   annotations  — the callout layer (docs/design/blueprints/_ANNOTATIONS.md)
+ *   caption, source
  */
 interface CurvePoint { year: number; pct: number; }
 interface Milestone  { year: number; label: string; pct?: number; }
-/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
-   chart, optional everywhere; absent ⇒ nothing renders. `series` is accepted
-   for contract parity; this chart draws one curve. */
+/* The annotation layer — 0–3 per chart, optional; absent ⇒ nothing renders.
+   `series` is accepted for contract parity; this chart draws one curve. */
 interface Annotation {
   at: string | number;
   text: string;
@@ -43,30 +61,44 @@ const {
   annotations = [],
   yLabel = '% Adoption',
   caption,
-  source,
 } = Astro.props;
 
-const W = 640, H = 300, padL = 36, padR = 16, padT = 16, padB = 30;
+const FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const W = 460, H = 260, padL = 34, padR = 16, padT = 14, padB = 30;
 const iw = W - padL - padR, ih = H - padT - padB;
 const n = points.length;
-const x = (i: number) => padL + (n > 1 ? i / (n - 1) : 0.5) * iw;
+const years = points.map((p) => p.year);
+const x0 = n ? Math.min(...years, ...milestones.map((m) => m.year)) : 0;
+const x1 = n ? Math.max(...years, ...milestones.map((m) => m.year)) : 1;
+const xOf = (yr: number) => padL + (x1 > x0 ? (yr - x0) / (x1 - x0) : 0.5) * iw;
 const y = (v: number) => padT + (1 - Math.max(0, Math.min(100, v)) / 100) * ih;
 
-const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ');
-const area = n > 1 ? `${line} L${x(n - 1).toFixed(1)} ${padT + ih} L${padL} ${padT + ih} Z` : '';
+const line = points.map((p, i) => `${i ? 'L' : 'M'}${xOf(p.year).toFixed(1)} ${y(p.pct).toFixed(1)}`).join(' ');
 const idxForYear = (yr: number) => points.findIndex((p) => p.year === yr);
-const xShow = points.map((_, i) => i).filter((i) => i % 3 === 0 || i === n - 1);
+
+/* X ticks: every reported x when they fit 40 units apart, else a thinned set
+   that always keeps the first and the last. Four-digit years print whole. */
+const tickEvery = (() => {
+  for (let k = 1; k <= n; k++) {
+    const idx = points.map((_, i) => i).filter((i) => i % k === 0 || i === n - 1);
+    const xs = idx.map((i) => xOf(points[i].year));
+    if (xs.every((v, j) => j === 0 || v - xs[j - 1] >= 40)) return idx;
+    // the last may crowd its neighbour: drop the neighbour instead
+    const trimmed = idx.filter((i, j) => j === idx.length - 1 || j === 0 || xOf(points[idx[idx.length - 1]].year) - xOf(points[i].year) >= 40);
+    const tx = trimmed.map((i) => xOf(points[i].year));
+    if (tx.every((v, j) => j === 0 || v - tx[j - 1] >= 40)) return trimmed;
+  }
+  return n ? [0, n - 1] : [];
+})();
 
 // ── Annotations ─────────────────────────────────────────────────────────────
 // `at` is the x value: a point's `year` (number, or the numeric string a YAML
 // author may quote) or a milestone's `label`, resolved to that milestone's
 // year. Anything that matches no point is a silent no-op (spec §2).
-// Placed with the chart's own x() / y(), so the callout tracks the curve.
-const FS   = 12;   // SVG units. ≥12 (the Lens floor), and .adc__svg carries min-width:640
-                   // in the dataviz-v2.css natural-scale block — its viewBox width —
-                   // so one unit is one CSS pixel at every viewport, phones included.
+const FS   = 13;   // SVG units, Newsreader italic
 const LEAD = 18;   // leader length in units (spec: 14–22)
-const estW = (s: string) => 0.52 * FS * s.length;   // spec's width estimate
+const LH   = FS + 3;
+const estW = (s: string) => 0.5 * FS * s.length;
 const annotIdx = (at: string | number): number => {
   if (typeof at === 'number') return idxForYear(at);
   const s = String(at ?? '').trim();
@@ -78,124 +110,286 @@ const annotIdx = (at: string | number): number => {
   const m = milestones.find((ms) => ms.label === s);
   return m ? idxForYear(m.year) : -1;
 };
-// Two lines maximum, split at the first space past the midpoint, once the
-// estimate passes 40% of the viewBox width.
+// Wrap to lines of at most ~46% of the width, at most three.
 const wrapAnnot = (t: string): string[] => {
-  if (estW(t) <= W * 0.4) return [t];
-  const mid = Math.floor(t.length / 2);
-  let cut = t.indexOf(' ', mid);
-  if (cut < 0) cut = t.lastIndexOf(' ', mid);
-  return cut > 0 ? [t.slice(0, cut), t.slice(cut + 1)] : [t];
+  const max = Math.floor((W * 0.46) / (0.5 * FS));
+  const out: string[] = [];
+  let cur = '';
+  for (const w of t.split(' ')) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length > max && cur) { out.push(cur); cur = w; } else cur = next;
+  }
+  if (cur) out.push(cur);
+  return out.slice(0, 3);
 };
+interface Box { l: number; r: number; t: number; b: number; }
+const hit = (a: Box, b: Box, pad = 2) => a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
 interface PlacedAnnot {
-  px: number; py: number; lines: string[]; lh: number;
+  px: number; py: number; lines: string[];
   lead: { x1: number; y1: number; x2: number; y2: number };
   tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
 }
+const dotBoxes: Box[] = points.map((p) => ({ l: xOf(p.year) - 6, r: xOf(p.year) + 6, t: y(p.pct) - 6, b: y(p.pct) + 6 }));
+// The curve itself is an obstacle: small boxes every 8 units along it.
+const lineBoxes: Box[] = [];
+for (let i = 1; i < n; i++) {
+  const ax = xOf(points[i - 1].year), ay = y(points[i - 1].pct), bx = xOf(points[i].year), by = y(points[i].pct);
+  const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 8));
+  for (let k = 0; k <= steps; k++) {
+    const cx = ax + ((bx - ax) * k) / steps, cy = ay + ((by - ay) * k) / steps;
+    lineBoxes.push({ l: cx - 2, r: cx + 2, t: cy - 2, b: cy + 2 });
+  }
+}
+const placedBoxes: Box[] = [];
+const clear = (b: Box) => !dotBoxes.some((d) => hit(b, d)) && !lineBoxes.some((d) => hit(b, d, 1)) && !placedBoxes.some((o) => hit(b, o));
+const FLOOR = padT + ih - 2;
 const annots: PlacedAnnot[] = (annotations ?? [])   // `annotations:` with no items parses as null
   .map((a): PlacedAnnot | null => {
     if (!a || !a.text) return null;
     const i = annotIdx(a.at);
     if (i < 0) return null;
-    const px = x(i), py = y(points[i].pct);
+    const px = xOf(points[i].year), py = y(points[i].pct);
     const lines = wrapAnnot(a.text);
-    const lh = FS + 2;
-    const blockH = lines.length * lh;
+    const blockH = (lines.length - 1) * LH;
     const wMax = Math.max(...lines.map(estW));
-
-    // Side is a hint; each axis is clamped back inside the viewBox. FLOOR is
-    // the lowest baseline a callout may take — below it sits the year axis.
-    const FLOOR = H - 16;
-    let side = a.side ?? 'above';
-    if (side === 'above' && py - LEAD - blockH < 2)           side = 'below';
-    else if (side === 'below' && py + LEAD + blockH > FLOOR)  side = 'above';
-    if (side === 'left'  && px - LEAD - 4 - wMax < 2)         side = 'right';
-    else if (side === 'right' && px + LEAD + 4 + wMax > W - 2) side = 'left';
-
-    // Leader: a straight 18-unit line off the mark, in the chosen direction.
-    const lead = side === 'above' ? { x1: px, y1: py - 5, x2: px, y2: py - LEAD }
-      : side === 'below'          ? { x1: px, y1: py + 5, x2: px, y2: py + LEAD }
-      : side === 'left'           ? { x1: px - 5, y1: py, x2: px - LEAD, y2: py }
-      :                             { x1: px + 5, y1: py, x2: px + LEAD, y2: py };
-
-    // Text. Vertical sides centre on the mark and mirror to text-anchor="end"
-    // (or "start") only when the estimated width would leave the viewBox.
-    let anchor: 'start' | 'middle' | 'end' = 'middle';
-    let tx = px;
-    let ty = py;
-    if (side === 'above' || side === 'below') {
-      ty = side === 'above' ? py - LEAD - 5 - (lines.length - 1) * lh : py + LEAD + FS;
-      ty = Math.min(Math.max(ty, FS), FLOOR - (lines.length - 1) * lh);   // never off the top or into the axis
-      if (px + wMax / 2 > W - 4)      { anchor = 'end';   tx = Math.min(px + wMax / 2, W - 4); }
-      else if (px - wMax / 2 < 4)     { anchor = 'start'; tx = Math.max(px - wMax / 2, 4); }
-    } else {
-      ty = py + FS * 0.34;
-      anchor = side === 'left' ? 'end' : 'start';
-      tx = side === 'left'
-        ? Math.max(px - LEAD - 4, wMax + 2)
-        : Math.min(px + LEAD + 4, W - 2 - wMax);
+    const hint = a.side ?? 'above';
+    const order = [hint, 'below', 'above', 'left', 'right'].filter((s, k, arr) => arr.indexOf(s) === k);
+    let best: (PlacedAnnot & { box: Box }) | null = null;
+    for (const side of order) {
+      for (const extra of [0, 14, 30, 50, 70, 90, 110, 130]) {
+        const L = LEAD + extra;
+        const lead = side === 'above' ? { x1: px, y1: py - 5, x2: px, y2: py - L }
+          : side === 'below'          ? { x1: px, y1: py + 5, x2: px, y2: py + L }
+          : side === 'left'           ? { x1: px - 5, y1: py, x2: px - L, y2: py }
+          :                             { x1: px + 5, y1: py, x2: px + L, y2: py };
+        let anchor: 'start' | 'middle' | 'end' = 'middle';
+        let tx = px, ty = py;
+        if (side === 'above' || side === 'below') {
+          ty = side === 'above' ? py - L - 5 - blockH : py + L + FS;
+          if (px + wMax / 2 > W - 2) { anchor = 'end'; tx = Math.min(px + 4, W - 2); }
+          else if (px - wMax / 2 < padL) { anchor = 'start'; tx = Math.max(px - 4, padL); }
+        } else {
+          anchor = side === 'left' ? 'end' : 'start';
+          tx = side === 'left' ? px - L - 4 : px + L + 4;
+          ty = py + FS * 0.34 - blockH / 2;
+        }
+        const l = anchor === 'start' ? tx : anchor === 'end' ? tx - wMax : tx - wMax / 2;
+        const box = { l, r: l + wMax, t: ty - FS * 0.8, b: ty + blockH + FS * 0.25 };
+        const inside = box.l >= 2 && box.r <= W - 2 && box.t >= 2 && box.b <= FLOOR;
+        if (!inside) continue;
+        const cand = { px, py, lines, lead, tx, ty, anchor, box };
+        if (!best) best = cand;
+        if (clear(box)) { best = cand; break; }
+      }
+      if (best && clear(best.box)) break;
     }
-    return { px, py, lines, lead, tx, ty, anchor, lh };
+    if (!best) return null;
+    placedBoxes.push(best.box);
+    const { box: _b, ...p } = best;
+    return p;
   })
   .filter((a): a is PlacedAnnot => a !== null);
+
+/* The large number: the annotated point, else the latest. */
+const headIdx = (() => {
+  for (const a of annotations ?? []) {
+    if (!a || !a.text) continue;
+    const i = annotIdx(a.at);
+    if (i >= 0) return i;
+  }
+  return n - 1;
+})();
+const head = headIdx >= 0 ? points[headIdx] : undefined;
+const headWhole = head ? Number.isInteger(head.pct) : true;
+const headLabel = head ? (head.year >= 1000 ? `${yLabel} · ${head.year}` : yLabel) : '';
+
+/* Numerals over the dots: the upper-left corner, which a rising curve leaves
+   empty, pulled inside the drawing at the edges. */
+const tagAt = (p: CurvePoint) => {
+  const cx = xOf(p.year), cy = y(p.pct);
+  const tx = Math.max(padL + 11, cx - 14), ty = Math.max(12, cy - 15);
+  return { left: (tx / W) * 100, top: (ty / H) * 100 };
+};
+const msRows = milestones.map((m, k) => ({ ...m, id: `m${k + 1}`, x: xOf(m.year) }));
+const fmtYear = (yr: number) => String(yr);
 ---
 
-<div class="px-viz">
+<div class="px-viz adc" data-build-scene>
   <div class="px-viz__cap"><span>{caption}</span>{yLabel && <b>{yLabel}</b>}</div>
 
-  <svg class="adc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
-    aria-label={caption ? `Adoption curve: ${caption}` : 'Technology adoption curve'}>
-    <g class="ac__grid">
-      {[0, 25, 50, 75, 100].map((v) => (
-        <g>
-          <line x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} stroke="var(--rule)" />
-          <text class="ac__axis" x={padL - 8} y={y(v) + 3} text-anchor="end">{v}</text>
-        </g>
-      ))}
-    </g>
-    <defs>
-      <linearGradient id="adcFill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22" />
-        <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
-      </linearGradient>
-    </defs>
-    {area && <path class="adc__area" d={area} fill="url(#adcFill)" />}
-    <path class="adc__line" d={line} style="--len:1700" />
-    {milestones.map((m, k) => {
-      const i = idxForYear(m.year);
-      if (i < 0) return null;
-      const px = x(i), py = y(points[i].pct);
-      return (
-        <g class="adc__pin" style={`transition-delay:${900 + k * 120}ms`}>
-          <circle cx={px} cy={py} r="3.5" fill="var(--accent)" stroke="var(--paper)" stroke-width="1.5" />
-        </g>
-      );
-    })}
-    {xShow.map((i) => (
-      <text class="ac__axis" x={x(i)} y={H - 8} text-anchor="middle">{String(points[i].year).slice(2)}</text>
-    ))}
-    {annots.map((a) => (
-      <g class="adc__annot">
-        <line x1={a.lead.x1} y1={a.lead.y1} x2={a.lead.x2} y2={a.lead.y2} stroke="var(--rule)" stroke-width="1" />
-        <circle cx={a.px} cy={a.py} r="3" fill="var(--accent)" />
-        <text
-          x={a.tx} y={a.ty} text-anchor={a.anchor} fill="var(--ink)"
-          paint-order="stroke" stroke="var(--paper)" stroke-width="2.5" stroke-linejoin="round"
-          style={`font-family:'Newsreader',Georgia,'Times New Roman',serif;font-size:${FS}px;font-style:italic`}
-        >{a.lines.map((ln, k) => <tspan x={a.tx} dy={k === 0 ? 0 : a.lh}>{ln}</tspan>)}</text>
-      </g>
-    ))}
-  </svg>
-
-  {milestones.length > 0 && (
-    <div class="adc__milestones">
-      {milestones.map((m) => (
-        <div class="adc__ms">
-          <div class="adc__ms-yr">{m.year}</div>
-          <div class="adc__ms-lbl">{m.label}</div>
-        </div>
-      ))}
+  {head && (
+    <div class="adc__head" data-cue="head" style={`--ch:${head.pct.toLocaleString('en-US', { maximumFractionDigits: 1 }).length + 1}`}>
+      <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+      <span class="adc__big"><span data-build="5" data-build-kind="counter" data-to={head.pct} data-format={headWhole ? 'int' : '1dp'}>{head.pct.toLocaleString('en-US', { maximumFractionDigits: 1 })}</span>%</span>
+      <span class="adc__biglab">{headLabel}</span>
     </div>
   )}
 
+  <div class="adc__plot">
+    <svg class="adc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
+      aria-label={caption ? `Adoption curve: ${caption}` : 'Adoption curve'}>
+      <g class="adc__grid" data-cue="axis" data-build="1">
+        {[0, 25, 50, 75, 100].map((v) => (
+          <g>
+            <line x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
+            <text class="adc__axis" x={padL - 8} y={y(v) + 4} text-anchor="end" style={FONT}>{v}</text>
+          </g>
+        ))}
+        {tickEvery.map((i, j) => (
+          <text
+            class="adc__axis" x={xOf(points[i].year)} y={H - 8}
+            text-anchor={j === 0 && xOf(points[i].year) - padL < 16 ? 'start' : W - xOf(points[i].year) < 22 ? 'end' : 'middle'}
+            style={FONT}
+          >{fmtYear(points[i].year)}</text>
+        ))}
+      </g>
+
+      {msRows.map((m) => (
+        <g class="adc__rule" data-cue={m.id} data-build="3">
+          <line x1={m.x} y1={padT} x2={m.x} y2={padT + ih} />
+        </g>
+      ))}
+
+      <path class="adc__line" d={line} data-cue="line" data-build="2" data-build-kind="draw" />
+
+      {points.map((p, i) => (
+        <circle
+          class="adc__dot" data-cue={i + 1} data-hl={i === headIdx ? 'true' : undefined}
+          cx={xOf(p.year)} cy={y(p.pct)} r={i === headIdx ? 5.5 : 4}
+          data-build="3" data-build-kind="drop"
+        />
+      ))}
+
+      {annots.map((a) => (
+        <g class="adc__annot" data-build="4">
+          <line x1={a.lead.x1} y1={a.lead.y1} x2={a.lead.x2} y2={a.lead.y2} />
+          <text
+            x={a.tx} y={a.ty} text-anchor={a.anchor}
+            style={`font-family:'Newsreader',Georgia,'Times New Roman',serif;font-size:${FS}px;font-style:italic`}
+          >{a.lines.map((ln, k) => <tspan x={a.tx} dy={k === 0 ? 0 : LH}>{ln}</tspan>)}</text>
+        </g>
+      ))}
+    </svg>
+
+    {/* The cue numerals, an HTML layer over the drawing. */}
+    <div class="adc__tags" aria-hidden="true">
+      {points.map((p, i) => {
+        const t = tagAt(p);
+        return (
+          <span class="adc__tag" style={`left:${t.left.toFixed(2)}%;top:${t.top.toFixed(2)}%`}>
+            <span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>
+          </span>
+        );
+      })}
+      <span class="adc__tag" style={`left:${((13 / W) * 100).toFixed(2)}%;top:${(((H - 12) / H) * 100).toFixed(2)}%`}>
+        <span class="px-cue-tag" data-cue-tag="axis" hidden></span>
+      </span>
+      {n > 1 && (() => {
+        const mid = Math.floor((n - 1) / 2);
+        const cx = (xOf(points[mid].year) + xOf(points[mid + 1].year)) / 2;
+        const cy = (y(points[mid].pct) + y(points[mid + 1].pct)) / 2;
+        return (
+          <span class="adc__tag" style={`left:${((Math.min(cx + 16, W - 12) / W) * 100).toFixed(2)}%;top:${((Math.min(cy + 16, padT + ih - 12) / H) * 100).toFixed(2)}%`}>
+            <span class="px-cue-tag" data-cue-tag="line" hidden></span>
+          </span>
+        );
+      })()}
+    </div>
+  </div>
+
+  {msRows.length > 0 && (
+    <ol class="adc__milestones" data-build="4">
+      {msRows.map((m) => (
+        <li class="adc__ms" data-cue={m.id}>
+          <span class="adc__ms-yr"><span class="px-cue-tag" data-cue-tag={m.id} hidden></span>{fmtYear(m.year)}</span>
+          <span class="adc__ms-lbl">{m.label}</span>
+        </li>
+      ))}
+    </ol>
+  )}
 </div>
+
+<style>
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .adc__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .adc__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .adc__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .adc__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .adc__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .adc__biglab {
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+
+  .adc__plot { position: relative; }
+  .adc__svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .adc__grid line { stroke: var(--hair); stroke-width: 1; }
+  .adc__axis { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .adc__rule line { stroke: var(--hair-2); stroke-width: 1; stroke-dasharray: 3 4; }
+  .adc__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .adc__dot { fill: var(--accent); stroke: var(--paper-2); stroke-width: 1.5; }
+  .adc__dot[data-hl] { fill: var(--accent-deep); }
+  .adc__annot line { stroke: var(--hair-2); stroke-width: 1; }
+  .adc__annot text {
+    fill: var(--ink);
+    paint-order: stroke;
+    stroke: var(--paper-2);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+
+  .adc__tags { position: absolute; inset: 0; pointer-events: none; }
+  .adc__tag { position: absolute; width: 0; height: 0; }
+  .adc__tag .px-cue-tag { position: absolute; left: 0; top: 0; translate: -50% -50%; margin: 0; }
+
+  .adc__milestones {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .adc__ms {
+    display: grid;
+    grid-template-columns: minmax(44px, max-content) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    padding-top: 8px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .adc__ms-yr { color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .adc__ms-lbl { min-width: 0; color: var(--ink-2); }
+  @media (max-width: 640px) {
+    .adc__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
+  }
+</style>

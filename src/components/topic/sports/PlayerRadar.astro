@@ -1,22 +1,28 @@
 ---
-/*
-  PlayerRadar — v2 hexagonal radar (.pr) inside the elevated .px-viz card.
-  The data polygon over the axes, the stat bars below. Faithful port of the
-  kit's <PlayerRadar>. SVG, build-time, zero runtime JS; static since Lens
-  Phase 5 (its build order arrives in Phase 6).
-
-  Use for: player ratings, team strengths, product feature
-  comparisons, any N-dimensional comparison.
-
-  props:
-    stats[]   — { label: string, value: number, max?: number }
-    player    — player / subject name
-    team      — optional team / context label
-    color     — preserved for compatibility (kit polygon colours via --accent)
-    compare[] — preserved for compatibility (kit radar has no overlay; ignored)
-    caption
-    source
-*/
+/**
+ * PlayerRadar — one player across N attributes on a 0 to max scale (Lens
+ * Phase 6, 2026-09-30; the board is Lib-player-radar). The highest attribute
+ * set at 48 over a key row (the player, the team, and the comparison when
+ * one is given), then the radar: five hair rings, the spokes, the player's
+ * shape in the desk mark with a dot on each vertex, and each spoke's label
+ * with its value under it. `compare` draws a second shape in ink-2, dashed.
+ * `color` overrides the player's mark (a fixed encoding, e.g. a club colour).
+ *
+ * Drawn for the panel AND the phone: a 290-unit viewBox, labels 12 units in
+ * the literal Instrument Sans stack, wrapped at about ten characters a line,
+ * so it prints at 12px or more on a 293px phone body (scale 1) and at up to
+ * 340px wide in the 472px panel. No JS of its own.
+ *
+ * Cue anchors:
+ *   top      the highest value, the large number
+ *   shape    the player's shape
+ *   compare  the comparison shape (only when `compare` is given)
+ *   1..n     each attribute: its spoke's dot, label and value, in authored order
+ *
+ * The build (LENS §6.4): 1 the rings and spokes fade, 2 the shape fills and
+ * its outline draws, 3 the dots drop and the labels rise, 4 the highest value
+ * counts up.
+ */
 interface Stat  { label: string; value: number; max?: number; }
 interface Subject { label: string; stats: Stat[]; color?: string; }
 interface Props {
@@ -28,51 +34,128 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const {
-  stats = [],
-  player,
-  team,
-  color,
-  compare,
-  caption,
-  source,
-} = Astro.props;
+const { stats = [], player, team, color, compare } = Astro.props;
 
-const C = 240, cx = C / 2, cy = C / 2, R = 92;
-const n = stats.length;
+const W = 290, H = 250, cx = 145, cy = 122, R = 74;
+const n = Math.max(stats.length, 3);
 const ang = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
 const pt = (i: number, r: number): [number, number] => [cx + Math.cos(ang(i)) * r, cy + Math.sin(ang(i)) * r];
+const f = (v: number) => v.toFixed(1);
+const share = (s: Stat) => Math.max(0, Math.min(1, s.value / (s.max ?? 100)));
 
-const rings = [0.25, 0.5, 0.75, 1];
-const polyAt = (scale: number) => stats.map((_, i) => pt(i, R * scale).join(',')).join(' ');
-const dataPoly = stats.map((s, i) => pt(i, R * (s.value / (s.max ?? 100))).join(',')).join(' ');
-const axes = stats.map((_, i) => ({ x2: pt(i, R)[0], y2: pt(i, R)[1] }));
+const rings = [0.2, 0.4, 0.6, 0.8, 1].map((k) => stats.map((_, i) => pt(i, R * k).map(f).join(',')).join(' '));
+const spokes = stats.map((_, i) => pt(i, R));
+const shape = stats.map((s, i) => pt(i, R * share(s)).map(f).join(',')).join(' ');
+const cmpStats = compare?.stats ?? [];
+const cmpShape = cmpStats.length === stats.length
+  ? cmpStats.map((s, i) => pt(i, R * share(s)).map(f).join(',')).join(' ')
+  : null;
+
+/* A label wraps at about ten characters a line (a word longer than that
+   keeps its own line), so a side label fits the 66 units beside the ring. */
+const wrap = (s: string, max = 10): string[] => {
+  const out: string[] = [];
+  for (const w of String(s).split(/\s+/).filter(Boolean)) {
+    const last = out[out.length - 1];
+    if (last && (last + ' ' + w).length <= max) out[out.length - 1] = last + ' ' + w;
+    else out.push(w);
+  }
+  return out.length ? out : [''];
+};
+const LH = 14;
 const labels = stats.map((s, i) => {
-  const [lx, ly] = pt(i, R + 16);
-  return { lx, ly, anchor: Math.abs(lx - cx) < 8 ? 'middle' : lx > cx ? 'start' : 'end', label: s.label };
+  const [vx, vy] = pt(i, R + 10);
+  const dx = vx - cx, dy = vy - cy;
+  const anchor = Math.abs(dx) < 6 ? 'middle' : dx > 0 ? 'start' : 'end';
+  const lines = [...wrap(s.label), String(s.value)];
+  // above the ring the block ends 8 units over it; below it starts 20 under
+  // it; beside it the block is centred on the spoke's end
+  const top = Math.abs(dx) < 6
+    ? (dy < 0 ? cy - R - 8 - (lines.length - 1) * LH : cy + R + 20)
+    : vy - ((lines.length - 1) * LH) / 2 + 4;
+  const [dotx, doty] = pt(i, R * share(s));
+  const [tx, ty] = pt(i, Math.max(R * share(s) - 17, 12));
+  return { x: vx, top, anchor, lines, dotx, doty, tx, ty };
 });
+const topIdx = stats.reduce((b, s, i) => (share(s) > share(stats[b]) ? i : b), 0);
+const topStat = stats[topIdx];
+const mark = color ?? 'var(--accent)';
 ---
 
-<div class="px-viz pr">
-  <div class="pr__stage">
-    <svg class="pr__svg" viewBox={`0 0 ${C} ${C}`} role="img"
-      aria-label={player ? `Radar chart: ${player}` : 'Radar chart'}>
-      {rings.map((r) => <polygon class="pr__web" points={polyAt(r)} />)}
-      {axes.map((a) => <line class="pr__axis" x1={cx} y1={cy} x2={a.x2} y2={a.y2} />)}
-      <polygon class="pr__poly" points={dataPoly} />
-      {labels.map((l) => (
-        <text class="pr__lbl" x={l.lx} y={l.ly} text-anchor={l.anchor} dominant-baseline="middle">{l.label}</text>
-      ))}
-    </svg>
-  </div>
-  <div class="pr__stats">
-    {player && <div class="pr__name">{player}</div>}
-    {team && <div class="pr__team">{team}</div>}
-    {stats.map((s, i) => (
-      <>
-        <div class="pr__stat"><span class="pr__stat-l">{s.label}</span><span class="pr__stat-v">{s.value}</span></div>
-        <div class="pr__stat-bar"><span class="pr__stat-fill" style={`--w:${(s.value / (s.max ?? 100)) * 100}%;transition-delay:${300 + i * 70}ms`}></span></div>
-      </>
+<div class="px-rdr" data-viz-root data-build-scene>
+  {topStat && (
+    <div class="px-rdr__head" data-cue="top">
+      <span class="px-rdr__big" data-build="4" data-build-kind={Number.isInteger(topStat.value) ? 'counter' : undefined} data-to={Number.isInteger(topStat.value) ? topStat.value : undefined}>{topStat.value}</span>
+      <span class="px-rdr__big-l"><span class="px-cue-tag" data-cue-tag="top" hidden></span>{topStat.label} · highest</span>
+    </div>
+  )}
+  {(player || team || compare) && (
+    <div class="px-rdr__key">
+      <span class="px-rdr__k"><span class="px-rdr__sw" style={`--c:${mark}`}></span><b>{player}</b>{team && <span class="px-rdr__team">{team}</span>}</span>
+      {compare && cmpShape && <span class="px-rdr__k"><span class="px-rdr__sw px-rdr__sw--cmp"></span><b>{compare.label}</b></span>}
+    </div>
+  )}
+  <svg class="px-rdr__svg" viewBox={`0 0 ${W} ${H}`} role="img"
+    aria-label={player ? `Radar of ${stats.length} attributes for ${player}` : 'Radar chart'}>
+    <g data-build="1">
+      {rings.map((p, k) => <polygon points={p} fill="none" stroke={k === 4 ? 'var(--hair-2)' : 'var(--hair)'} stroke-width="1" />)}
+      {spokes.map(([x, y]) => <line x1={cx} y1={cy} x2={f(x)} y2={f(y)} stroke="var(--hair)" stroke-width="1" />)}
+    </g>
+    {cmpShape && (
+      <g data-cue="compare">
+        <polygon points={cmpShape} fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" data-build="2" />
+        <foreignObject x={cx + 14} y={cy + 4} width="22" height="22"><span class="px-cue-tag" data-cue-tag="compare" hidden></span></foreignObject>
+      </g>
+    )}
+    <g data-cue="shape">
+      <polygon points={shape} fill={mark} fill-opacity="0.22" stroke="none" data-build="2" />
+      <polygon points={shape} fill="none" stroke={mark} stroke-width="2.5" stroke-linejoin="round" data-build="2" data-build-kind="draw" />
+      <foreignObject x={cx - 10} y={cy - 10} width="22" height="22"><span class="px-cue-tag" data-cue-tag="shape" hidden></span></foreignObject>
+    </g>
+    {labels.map((l, i) => (
+      <g data-cue={i + 1}>
+        <circle cx={f(l.dotx)} cy={f(l.doty)} r="4" fill="var(--accent-deep)" stroke="var(--paper-2)" stroke-width="1.5" data-build="3" data-build-kind="drop" />
+        <text x={f(l.x)} y={f(l.top)} text-anchor={l.anchor} data-build="3" data-build-kind="rise"
+          style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:12px;font-weight:600">
+          {l.lines.map((t, k) => (
+            <tspan x={f(l.x)} dy={k === 0 ? 0 : LH} fill={k === l.lines.length - 1 ? 'var(--accent-deep)' : 'var(--ink)'}>{t}</tspan>
+          ))}
+        </text>
+        <foreignObject x={f(l.tx - 10)} y={f(l.ty - 10)} width="22" height="22"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span></foreignObject>
+      </g>
     ))}
-  </div>
+  </svg>
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
+
+<style>
+  .px-rdr { min-width: 0; font-family: var(--font-ui); }
+  .px-rdr__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+  .px-rdr__big {
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-rdr__big-l { display: inline-flex; align-items: center; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+  .px-rdr__key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 8px; }
+  .px-rdr__k { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; font-size: 13px; color: var(--ink); }
+  .px-rdr__k b { font-weight: 600; }
+  .px-rdr__team { font-size: 12px; color: var(--muted); }
+  .px-rdr__sw {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--c) 22%, transparent);
+    box-shadow: inset 0 0 0 2px var(--c);
+  }
+  .px-rdr__sw--cmp { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+  .px-rdr__svg { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; overflow: visible; }
+  .px-rdr__svg foreignObject { overflow: visible; }
+  .px-rdr__svg .px-cue-tag { margin: 1px; }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-rdr__big { font-size: 72px; } }
+</style>

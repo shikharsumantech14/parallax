@@ -1,225 +1,183 @@
 ---
 /**
- * QuakeDepth (earth) — seismic events on a depth × time plot. A build-time SVG:
- * x runs along time (event order, oldest → newest), y is depth (0 km at the
- * surface line up top, deeper downward). Each quake is a circle whose radius ∝
- * magnitude and whose fill ramps muted → accent → deep with magnitude. Circles
- * rest at full scale (static since Lens Phase 5, the build order arrives in
- * Phase 6); hovering a circle lifts it (scale + accent ring) and exposes its
- * place/mag via <title>.
+ * QuakeDepth (earth) — earthquakes on a time × depth field (Lens Phase 6, the
+ * Lib-quake-depth board). x is real time (the dates, ticked every half year),
+ * y is depth below the surface line, each quake a circle sized by magnitude
+ * and labelled with its place and magnitude where the label finds room (it
+ * tries right, left, above, below; a label that fits nowhere is dropped, the
+ * circle stays). The top 10 km is a tinted band; the number of quakes inside
+ * it is the headline.
  *
- * Every circle always paints at full scale. The depth axis + legend carry the
- * reading.
+ * Cue anchors: `1`…`n` (each quake, authored order) · `band` (the top 10 km)
+ * · `head` (the headline number).
+ * Build: axes, band and surface (1) · circles drop in time order (2) · labels
+ * (3) · the headline number (4).
  *
  * data: { quakes[]{ date, depthKm, mag, place? }, caption?, source? }
  */
+import FigHead from './FigHead.astro';
+import CueLayer from './CueLayer.astro';
+import { SANS, textW, hits, fmt, type Box } from './_fig';
+
 interface Quake { date: string; depthKm: number; mag: number; place?: string; }
 interface Props { quakes: Quake[]; caption?: string; source?: string; }
-const { quakes = [], caption, source } = Astro.props;
+const { quakes = [], caption } = Astro.props;
 
-// ── plot frame ───────────────────────────────────────────────────────────────
-const W = 720, H = 380;
-const padL = 52, padR = 18, padT = 26, padB = 34;
-const plotW = W - padL - padR;
-const plotH = H - padT - padB;
+const W = 460, H = 332, PL = 52, PR = 12, PT = 40, PB = 14, FS = 12;
+const plotW = W - PL - PR, plotH = H - PT - PB;
+const SHALLOW = 10;
 
-// keep input order = time order (oldest first)
-const events = quakes.filter((q) => q && Number.isFinite(q.depthKm) && Number.isFinite(q.mag));
-const n = events.length;
+const qs = quakes
+  .map((q, i) => ({ ...q, i, t: Date.parse(String(q.date)) }))
+  .filter((q) => Number.isFinite(q.depthKm) && Number.isFinite(q.mag) && Number.isFinite(q.t));
+const n = qs.length;
 
-const depths = events.map((q) => q.depthKm);
-const mags = events.map((q) => q.mag);
-const maxDepth = n ? Math.max(...depths) : 0;
-const depthMax = Math.max(1, Math.ceil(maxDepth / 10) * 10);   // round up to a tidy axis top
-const minMag = n ? Math.min(...mags) : 0;
-const maxMag = n ? Math.max(...mags) : 0;
-const magRange = maxMag - minMag || 1;
-
-// radius ∝ magnitude (clamped band). When events are dense along the time
-// axis the full 17px max blobs the plot, so cap the band to the available
-// x-spacing (never below a legible 9px, never above the original 17px).
-const xGapRaw = n > 1 ? plotW / (n - 1) : plotW;
-const rMax = Math.max(9, Math.min(17, xGapRaw * 0.9));
-const rMin = Math.min(4, rMax - 2);
-const rFor = (m: number) => rMin + ((m - minMag) / magRange) * (rMax - rMin);
-
-// x: even spacing along time order, inset by the max radius on each side so
-// the first circle clears the depth-axis labels and the last clears the right
-// edge (circles never overrun their bubble + a little hover-scale headroom).
-const xInset = rMax + 2;
-const xStart = padL + xInset;
-const xSpan = Math.max(1, plotW - xInset * 2);
-const xFor = (i: number) => (n > 1 ? xStart + (i / (n - 1)) * xSpan : padL + plotW / 2);
-// y: 0 km at top (padT), depthMax at bottom
-const yFor = (d: number) => padT + (Math.max(0, d) / depthMax) * plotH;
-// magnitude → fill (muted → accent → deep)
-function magColor(m: number): string {
-  const t = (m - minMag) / magRange;          // 0 = weakest, 1 = strongest
-  if (t < 0.5) return `color-mix(in oklab, var(--accent) ${Math.round(t * 2 * 100)}%, var(--muted))`;
-  return `color-mix(in oklab, var(--accent-deep, var(--accent)) ${Math.round((t - 0.5) * 2 * 100)}%, var(--accent))`;
+/* time: from the half year before the first quake to the half year after the last */
+const half = (t: number, up: boolean) => {
+  const d = new Date(t);
+  const y = d.getUTCFullYear(), m = d.getUTCMonth();
+  if (!up) return Date.UTC(y, m < 6 ? 0 : 6, 1);
+  return m < 6 ? Date.UTC(y, 6, 1) : Date.UTC(y + 1, 0, 1);
+};
+const t0 = n ? half(Math.min(...qs.map((q) => q.t)), false) : 0;
+const t1 = n ? half(Math.max(...qs.map((q) => q.t)), true) : 1;
+const xOf = (t: number) => PL + ((t - t0) / (t1 - t0 || 1)) * plotW;
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const tTicks: { x: number; label: string }[] = [];
+const spanYears = (t1 - t0) / (365.25 * 864e5);
+const stepMonths = spanYears > 6 ? 24 : spanYears > 3 ? 12 : 6;
+for (let d = new Date(t0); d.getTime() <= t1 + 1; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + stepMonths, 1))) {
+  tTicks.push({ x: xOf(d.getTime()), label: `${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}` });
 }
 
-const dots = events.map((q, i) => ({
-  ...q,
-  cx: xFor(i),
-  cy: yFor(q.depthKm),
-  r: rFor(q.mag),
-  fill: magColor(q.mag),
-  delay: i * 60,
-}));
+/* depth: 0 at the surface line, a tidy 10 km step to the deepest */
+const depthMax = Math.max(20, Math.ceil(Math.max(0, ...qs.map((q) => q.depthKm)) / 10) * 10);
+const yOf = (d: number) => PT + (Math.max(0, d) / depthMax) * plotH;
+const dStep = depthMax > 80 ? 20 : 10;
+const dTicks: number[] = [];
+for (let d = 0; d <= depthMax; d += dStep) dTicks.push(d);
 
-// depth axis gridlines / labels (0 → depthMax)
-const AXIS_STEPS = 4;
-const axis = Array.from({ length: AXIS_STEPS + 1 }, (_, i) => {
-  const d = (i / AXIS_STEPS) * depthMax;
-  return { d, y: yFor(d) };
+const mags = qs.map((q) => q.mag);
+const mMin = n ? Math.min(...mags) : 0, mMax = n ? Math.max(...mags) : 1;
+const rOf = (m: number) => 5 + ((m - mMin) / (mMax - mMin || 1)) * 10;
+
+const dots = qs.map((q) => ({ ...q, cx: xOf(q.t), cy: yOf(q.depthKm), r: rOf(q.mag) }));
+
+/* labels: the place's first word(s) and the magnitude, placed where they fit */
+const shortPlace = (p?: string) => {
+  const head = String(p ?? '').split(',')[0].trim();
+  return head.length > 12 ? head.split(/[\s-]/)[0] : head;
+};
+const obstacles: Box[] = dots.map((d) => ({ x0: d.cx - d.r, y0: d.cy - d.r, x1: d.cx + d.r, y1: d.cy + d.r }));
+const bandLabel = 'Top 10 km';
+const bandBox: Box = { x0: W - PR - textW(bandLabel, FS, true) - 8, y0: PT + 2, x1: W - PR, y1: PT + 18 };
+const placed: Box[] = [bandBox];
+const labels = [...dots].sort((a, b) => b.mag - a.mag).map((d) => {
+  const text = [shortPlace(d.place), fmt(d.mag)].filter(Boolean).join(' ');
+  const w = textW(text, FS), h = FS + 2;
+  const tries = [
+    { x: d.cx + d.r + 5, y: d.cy + 4, a: 'start' },
+    { x: d.cx - d.r - 5, y: d.cy + 4, a: 'end' },
+    { x: d.cx, y: d.cy - d.r - 5, a: 'middle' },
+    { x: d.cx, y: d.cy + d.r + FS + 3, a: 'middle' },
+  ];
+  for (const t of tries) {
+    const x0 = t.a === 'start' ? t.x : t.a === 'end' ? t.x - w : t.x - w / 2;
+    const box: Box = { x0, y0: t.y - FS + 1, x1: x0 + w, y1: t.y + 3 };
+    if (box.x0 < 2 || box.x1 > W - 2 || box.y0 < PT - 2 || box.y1 > H) continue;
+    if (placed.some((p) => hits(box, p, 2))) continue;
+    if (obstacles.some((o, k) => dots[k] !== d && hits(box, o, 1))) continue;
+    placed.push(box);
+    return { d, text, ...t };
+  }
+  return { d, text: '', x: 0, y: 0, a: 'start' };
 });
+const labelOf = new Map(labels.map((l) => [l.d.i, l]));
 
-// legend: smallest / mid / largest magnitude bubble
-const legendMags = n
-  ? [minMag, +(minMag + magRange / 2).toFixed(1), maxMag].filter((v, i, a) => a.indexOf(v) === i)
-  : [];
+const shallow = qs.filter((q) => q.depthKm <= SHALLOW).length;
+const biggest = qs.reduce((a, b) => (b.mag > (a?.mag ?? -Infinity) ? b : a), undefined as (typeof qs)[number] | undefined);
+const head = shallow > 0 ? { v: String(shallow), l: `of ${n} shallow` } : biggest ? { v: fmt(biggest.mag), l: 'largest' } : undefined;
 
-const firstDate = events[0]?.date ?? '';
-const lastDate = events[n - 1]?.date ?? '';
-const fmtMag = (m: number) => `M${m.toFixed(1)}`;
+/* the legend: three round magnitudes inside the range */
+const keyMags = (() => {
+  const lo = Math.ceil(mMin * 2) / 2, hi = Math.floor(mMax * 2) / 2;
+  const out = [lo, (lo + hi) / 2, hi].map((v) => Math.round(v * 2) / 2);
+  return [...new Set(out)].filter((v) => v >= mMin - 0.01 && v <= mMax + 0.01);
+})();
+const aria = `${n} earthquakes by date and depth: ${qs.map((q) => `${q.place ?? ''} M${q.mag}, ${q.depthKm} km, ${q.date}`).join('; ')}.`;
+const tagAt = (d: (typeof dots)[number]) => ({ id: d.i + 1, x: Math.max(10, d.cx - d.r * 0.75 - 8), y: Math.max(PT - 6, d.cy - d.r * 0.75 - 8) });
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span>{n > 0 && <b>{fmtMag(maxMag)} max</b>}</div>}
+<div class="px-viz px-quake" data-build-scene>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  {head && <FigHead value={head.v} label={head.l} n={4} />}
 
-  <div class="px-quake">
-    <svg
-      class="px-quake__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Earthquake depth-vs-time plot: ${caption}` : 'Earthquake depth-vs-time plot'}
-    >
-      <!-- depth gridlines + labels -->
-      <g class="px-quake__axis">
-        {axis.map((a) => (
+  <div class="px-quake__plot">
+    <svg class="px-quake__fig" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      <g class="px-quake__axis" data-build="1">
+        <rect class="px-quake__band" data-cue="band" x={PL} y={PT} width={plotW} height={(yOf(SHALLOW) - PT).toFixed(1)} />
+        {dTicks.map((d) => (
           <>
-            <line class="px-quake__grid" x1={padL} y1={a.y.toFixed(1)} x2={W - padR} y2={a.y.toFixed(1)} />
-            <text class="px-quake__axis-lbl" x={padL - 10} y={a.y.toFixed(1)} text-anchor="end" dominant-baseline="middle">{Math.round(a.d)}</text>
+            {d > 0 && <line class="px-quake__grid" x1={PL} y1={yOf(d).toFixed(1)} x2={W - PR} y2={yOf(d).toFixed(1)} />}
+            <text class="px-quake__tick" x={PL - 8} y={(yOf(d) + 4).toFixed(1)} text-anchor="end" style={SANS}>{d} km</text>
           </>
         ))}
-        <text class="px-quake__axis-unit" x={padL - 10} y={padT - 12} text-anchor="end">km</text>
-      </g>
-
-      <!-- surface line at the top of the plot -->
-      <line class="px-quake__surface" x1={padL} y1={padT.toFixed(1)} x2={W - padR} y2={padT.toFixed(1)} />
-      <text class="px-quake__surface-lbl" x={W - padR} y={padT - 8} text-anchor="end">surface</text>
-
-      <!-- quakes -->
-      <g class="px-quake__dots">
-        {dots.map((q) => (
-          <circle
-            class="px-quake__dot"
-            cx={q.cx.toFixed(1)} cy={q.cy.toFixed(1)} r={q.r.toFixed(1)}
-            style={`fill:${q.fill}; --d:${q.delay}ms`}
-            tabindex="0"
-          >
-            <title>{[q.place, fmtMag(q.mag), `${q.depthKm} km deep`, q.date].filter(Boolean).join(' · ')}</title>
-          </circle>
+        <line class="px-quake__surface" x1={PL} y1={PT} x2={W - PR} y2={PT} />
+        {tTicks.map((t, k) => (
+          <>
+            <line class="px-quake__ttick" x1={t.x.toFixed(1)} y1={PT - 6} x2={t.x.toFixed(1)} y2={PT} />
+            <text class="px-quake__tick" x={t.x.toFixed(1)} y={PT - 12} text-anchor={k === 0 ? 'start' : k === tTicks.length - 1 ? 'end' : 'middle'} style={SANS}>{t.label}</text>
+          </>
         ))}
+        <text class="px-quake__band-l" x={W - PR - 4} y={PT + 15} text-anchor="end" style={SANS}>{bandLabel}</text>
       </g>
+      {[...dots].sort((a, b) => b.r - a.r).map((d) => {
+        const l = labelOf.get(d.i);
+        return (
+          <g class="px-quake__q" data-cue={d.i + 1}>
+            <circle class="px-quake__dot" cx={d.cx.toFixed(1)} cy={d.cy.toFixed(1)} r={d.r.toFixed(1)} data-build="2" data-build-kind="drop">
+              <title>{[d.place, `M${d.mag}`, `${d.depthKm} km deep`, d.date].filter(Boolean).join(' · ')}</title>
+            </circle>
+            {l && l.text && <text class="px-quake__lbl" x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.a} style={SANS} data-build="3" data-build-kind="rise">{l.text}</text>}
+          </g>
+        );
+      })}
     </svg>
-
-    <div class="px-quake__foot">
-      <div class="px-quake__time">
-        <span>{firstDate}</span>
-        <span class="px-quake__time-axis">time →</span>
-        <span>{lastDate}</span>
-      </div>
-      {legendMags.length > 0 && (
-        <div class="px-quake__legend">
-          {legendMags.map((m) => (
-            <span class="px-quake__key">
-              <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
-                <circle cx="20" cy="20" r={rFor(m).toFixed(1)} style={`fill:${magColor(m)}`} />
-              </svg>
-              {fmtMag(m)}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+    <CueLayer w={W} h={H} tags={[...dots.map(tagAt), { id: 'band', x: PL + 12, y: (PT + yOf(SHALLOW)) / 2 }]} />
   </div>
 
+  {keyMags.length > 0 && (
+    <div class="px-quake__key">
+      {keyMags.map((m) => (
+        <span><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r={rOf(m).toFixed(1)} /></svg>M{m.toFixed(1)}</span>
+      ))}
+    </div>
+  )}
 </div>
 
 <style>
-  .px-quake { width: 100%; }
-  .px-quake__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  .px-quake__grid { stroke: var(--rule); stroke-width: 1; }
-  .px-quake__axis-lbl {
-    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em; fill: var(--muted); font-variant-numeric: tabular-nums;
-  }
-  .px-quake__axis-unit {
-    font-family: var(--font-mono); font-size: 9px;
-    letter-spacing: var(--viz-ls-wide, 0.2em); text-transform: uppercase; fill: var(--muted);
-  }
-
-  .px-quake__surface { stroke: var(--ink-soft); stroke-width: 1.5; }
-  .px-quake__surface-lbl {
-    font-family: var(--font-mono); font-size: 9px;
-    letter-spacing: var(--viz-ls-wide, 0.2em); text-transform: uppercase; fill: var(--muted);
-  }
-
-  .px-quake__dot {
-    fill-opacity: 0.82;
-    stroke: var(--paper);
-    stroke-width: 1;
-    /* base/resting = full scale (no-JS safe) */
-    transform: scale(1);
-    transform-box: fill-box;
-    transform-origin: center;
-    transition: transform 520ms var(--ease-snap) var(--d), fill-opacity var(--t-quick) var(--ease);
-    cursor: pointer;
-    outline: none;
-  }
-  .px-quake__dot:hover,
-  .px-quake__dot:focus-visible {
-    transform: scale(1.28);
-    fill-opacity: 1;
-    stroke: var(--accent-deep, var(--accent));
-    stroke-width: 2;
-    transition-delay: 0ms;
-  }
-
-  .px-quake__foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 18px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-  .px-quake__time {
-    display: flex;
-    gap: 14px;
-    align-items: baseline;
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    color: var(--muted);
+  .px-quake__plot { position: relative; width: 100%; }
+  .px-quake__fig { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-quake__band { fill: var(--accent-tint); }
+  .px-quake__grid { stroke: var(--hair); stroke-width: 1; }
+  .px-quake__surface { stroke: var(--ink); stroke-width: 2; }
+  .px-quake__ttick { stroke: var(--ink); stroke-width: 1; }
+  .px-quake__tick { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-quake__band-l { font-size: 12px; font-weight: 600; fill: var(--accent-deep); }
+  .px-quake__dot { fill: var(--accent); fill-opacity: 0.78; stroke: var(--paper-2); stroke-width: 1.5; }
+  .px-quake__dot:hover { fill-opacity: 1; stroke: var(--accent-deep); }
+  .px-quake__lbl {
+    font-size: 12px; font-weight: 500; fill: var(--ink);
+    paint-order: stroke; stroke: var(--paper-2); stroke-width: 4px; stroke-linejoin: round;
     font-variant-numeric: tabular-nums;
   }
-  .px-quake__time-axis { text-transform: uppercase; letter-spacing: var(--viz-ls-wide, 0.2em); color: var(--muted); }
-
-  .px-quake__legend {
-    display: flex;
-    gap: 18px;
-    align-items: center;
-    font-family: var(--issue-face, var(--font-display));
-    font-size: 14px;
-    letter-spacing: -0.005em;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-quake__key { display: inline-flex; align-items: center; gap: 6px; }
-  .px-quake__key svg { display: block; }
+  .px-quake__key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-top: 12px; font-family: var(--font-ui); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-quake__key span { display: inline-flex; align-items: center; gap: 4px; }
+  .px-quake__key circle { fill: var(--accent); fill-opacity: 0.78; }
+  /* A phone scrolls the figure inside its card at its drawn size (the
+     standing rule of dataviz-v2.css), so every label prints at 12px. */
+  @media (max-width: 900px) { .px-quake__plot { min-width: 460px; } }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>

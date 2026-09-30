@@ -1,23 +1,33 @@
 ---
 /**
- * ConstellationSwarm (space · FLAGSHIP) — a satellite mega-constellation
- * rendered as the wall of hardware it actually is: every craft an instanced
- * point on its true orbital shell around a line-art Earth, thousands of them,
- * the shells at their real altitude ratios. Where `orbit-globe` draws a handful
- * of named rings, this draws the census. Rendered lazily by the WebGL runtime
- * (scene 'constellation-swarm'); drag to orbit, scroll to zoom, hover any craft
- * for its shell's altitude, tilt, and TRUE count.
+ * ConstellationSwarm (space · FLAGSHIP) — a satellite mega-constellation as
+ * the wall of hardware it is: every craft a point on its true orbital shell
+ * around a line-art Earth, the shells at their real altitude ratios. Rendered
+ * lazily by the WebGL runtime (scene 'constellation-swarm'); drag to orbit,
+ * scroll to zoom, hover a craft for its shell.
  *
- * Blueprint (the contract): docs/design/blueprints/space/constellation-swarm.md.
- * Math: src/scripts/viz3d/kepler.ts (circularPeriodSec, R_EARTH) + the three
- * closed-form shell-placement lines — the SAME numbers compute the static
- * fallback below at build time, so the no-JS / reduced-motion / no-WebGL reader
- * gets the identical epoch-seeded swarm as a composed SVG still.
+ * Lens Phase 6 (2026-09-30; board Lib-constellation-swarm): the plate is the
+ * desk's deep ink and the mount re-points the scene's colour roles onto it
+ * (the runtime reads `--ink`, `--paper`, `--muted`, `--accent-alt` from the
+ * mount). The CUE ANCHORS AND THE BUILD live on the HTML key of shells under
+ * the drawing, never on the canvas; the fallback swarm carries no text (the
+ * old census stamp moved into the key), so nothing in it can print under 12px
+ * on a phone.
+ *
+ * Math: src/scripts/viz3d/kepler.ts (daysSinceJ2000) + the three closed-form
+ * shell-placement lines, the same numbers the scene uses.
+ *
+ * Cue anchors: `1`…`n` — each shell in authored order (its key entry);
+ * `total` — the census line.
+ *
+ * THE BUILD (LENS §6.4): 1 the shells' key entries drop, 2 the census fades.
+ * The scene's spin is its own (the one ambient loop).
  *
  * data: { shells: [{name, altKm, inclDeg, count, color?, planes?, raanSpread?}],
  *         epoch?, spin?, caption?, source? }
  */
-import { circularPeriodSec, daysSinceJ2000 } from '../../../scripts/viz3d/kepler';
+import { daysSinceJ2000 } from '../../../scripts/viz3d/kepler';
+import { htmlTag } from './_fig';
 
 interface Shell {
   name: string; altKm: number; inclDeg: number; count: number;
@@ -50,7 +60,7 @@ const liveSampled = total > CAP;
 const liveShown = counts.map((c) => (liveSampled ? Math.max(Math.min(c, 24), Math.round((c * CAP) / total)) : c));
 const liveShownTotal = liveShown.reduce((a, b) => a + b, 0);
 
-const defColor = (i: number) => (i === 0 ? 'var(--accent)' : i === 1 ? 'var(--accent-alt)' : 'var(--ink)');
+const defColor = (i: number) => (i === 0 ? 'var(--accent)' : i === 1 ? 'var(--accent-tint)' : 'var(--on-deep-2)');
 const colorOf = (s: Shell, i: number) => s.color ?? defColor(i);
 
 /* ── build-time fallback: same shell math, projected top-down-tilted (§7) ──
@@ -133,112 +143,77 @@ const projPt = (lat: number, lon: number) => {
   gratPaths.push(d);
 });
 
-const legend = valid.map((s, i) => ({ name: s.name, altKm: Math.round(s.altKm), inclDeg: s.inclDeg ?? 0, count: counts[i], color: colorOf(s, i) }));
-const epochLabel = epoch.length <= 10 ? epoch : epoch.slice(0, 10);
+const legend = valid.map((s, i) => ({ id: String(i + 1), name: s.name, altKm: Math.round(s.altKm), inclDeg: s.inclDeg ?? 0, count: counts[i], color: colorOf(s, i) }));
 const nf = (n: number) => n.toLocaleString('en-US');
 const payload = JSON.stringify({ shells: valid, epoch, spin, caption, source });
 ---
 
-<div class="px-viz px-cswrm">
-  {caption && (
-    <div class="px-viz__cap">
-      <span>{caption}</span>
-      {liveSampled && <b>showing {nf(liveShownTotal)} of {nf(total)} craft</b>}
+<div class="px-viz px-cswrm" data-build-scene>
+  <div class="px-cswrm__plate">
+    <div class="viz3d viz3d--cswrm" data-viz3d="constellation-swarm" role="img"
+      aria-label={caption ? `Satellite constellation swarm: ${caption}` : 'Satellite constellation swarm'}>
+      <div class="viz3d__fallback">
+        <svg viewBox="0 0 720 560" preserveAspectRatio="xMidYMid meet">
+          <circle cx={CX} cy={CY} r={PS} class="px-cswrm__earth" />
+          {gratPaths.map((d) => <path d={d} class="px-cswrm__grat" />)}
+          <circle cx={CX} cy={CY} r={PS} class="px-cswrm__limb" />
+          {guidePaths.map((g) => <path d={g.d} class="px-cswrm__guide" />)}
+          {dots.map((dt) => <circle cx={dt.px.toFixed(1)} cy={dt.py.toFixed(1)} r="1.6" style={`fill:${legend[dt.ci].color}`} />)}
+        </svg>
+      </div>
+      <span class="px-cswrm__k">One dot per craft{fbSampled || liveSampled ? ', sampled' : ''}</span>
+      <span class="viz3d__hint" aria-hidden="true">drag to orbit · scroll to zoom</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
     </div>
-  )}
 
-  <div class="viz3d viz3d--cswrm" data-viz3d="constellation-swarm" role="img"
-    aria-label={caption ? `Satellite constellation swarm: ${caption}` : 'Satellite constellation swarm'}>
-    <div class="viz3d__fallback">
-      <svg viewBox="0 0 720 560" preserveAspectRatio="xMidYMid meet">
-        <!-- Earth disc + graticule -->
-        <circle cx={CX} cy={CY} r={PS} fill="var(--paper)" />
-        {gratPaths.map((d) => <path d={d} fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.1" />)}
-        <circle cx={CX} cy={CY} r={PS} fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.32" />
-        <!-- plane guides -->
-        {guidePaths.map((g) => <path d={g.d} fill="none" stroke="var(--ink)" stroke-width="0.7" opacity="0.16" />)}
-        <!-- the swarm -->
-        {dots.map((dt) => <circle cx={dt.px.toFixed(1)} cy={dt.py.toFixed(1)} r="1.3" fill={legend[dt.ci].color} />)}
-        <!-- epoch / census stamp -->
-        <text class="px-cswrm__stamp" x={720 - 10} y={560 - 12} text-anchor="end"
-          style="font-family:'JetBrains Mono',ui-monospace,monospace"
-          font-size="9.5" fill="var(--muted)" letter-spacing="0.08em">
-          {nf(total)} CRAFT · {epochLabel}{fbSampled ? ` · PLOTTING ${nf(fbShownTotal)}` : ''}
-        </text>
-      </svg>
-    </div>
-    <span class="viz3d__hint" aria-hidden="true">drag to orbit · scroll to zoom{spin ? ' · 1 s = 90 min' : ''}</span>
-    <script type="application/json" class="viz3d__data" set:html={payload}></script>
+    <ul class="px-cswrm__key">
+      {legend.map((s) => (
+        <li data-cue={s.id} data-build="1" data-build-kind="drop">
+          <span class="px-cswrm__dot" style={`background:${s.color}`}></span>
+          <span class="px-cswrm__txt">
+            <span class="px-cswrm__name"><Fragment set:html={htmlTag(s.id)} />{s.name}</span>
+            <span class="px-cswrm__meta">{nf(s.altKm)} km · {s.inclDeg}° · {nf(s.count)} craft</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+    <p class="px-cswrm__total" data-cue="total" data-build="2"><Fragment set:html={htmlTag('total')} />{nf(total)} craft in {valid.length} shell{valid.length === 1 ? '' : 's'}{epoch ? `, as of ${epoch.slice(0, 10)}` : ''}</p>
   </div>
-
-  <ul class="px-cswrm__legend">
-    {legend.slice(0, 5).map((s) => (
-      <li class="px-cswrm__row">
-        <span class="px-cswrm__dot" style={`background:${s.color}`}></span>
-        <span class="px-cswrm__name">{s.name}</span>
-        <span class="px-cswrm__meta">{nf(s.altKm)} km · {s.inclDeg}° · {nf(s.count)} craft</span>
-      </li>
-    ))}
-    {legend.length > 5 && (
-      <li class="px-cswrm__more">
-        <details>
-          <summary>show all {legend.length} shells</summary>
-          <ul class="px-cswrm__legend">
-            {legend.slice(5).map((s) => (
-              <li class="px-cswrm__row">
-                <span class="px-cswrm__dot" style={`background:${s.color}`}></span>
-                <span class="px-cswrm__name">{s.name}</span>
-                <span class="px-cswrm__meta">{nf(s.altKm)} km · {s.inclDeg}° · {nf(s.count)} craft</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      </li>
-    )}
-    <li class="px-cswrm__total">Σ {nf(total)} craft in {valid.length} shell{valid.length === 1 ? '' : 's'}</li>
-  </ul>
-
 </div>
 
 <style>
-  .viz3d--cswrm { aspect-ratio: 18 / 14; }
-
-  /* The fallback plate is 720 units drawn at the column width — 335px on a
-     375px phone, where the 9.5-unit stamp printed at 4.4px (probe TINY,
-     2026-09-24). On phones the stamp is set at 20.5 units, which lands at
-     ~9.5px on a 335px plate; it is the only text in the plate and sits in
-     the empty band under the swarm, so the larger size collides with nothing. */
-  @media (max-width: 640px) {
-    .px-cswrm__stamp { font-size: 20.5px; }
+  .px-cswrm__plate { background: var(--deep); border-radius: var(--r-card, 6px); padding: 16px; }
+  .viz3d--cswrm {
+    aspect-ratio: 18 / 14;
+    background: var(--deep);
+    --ink: var(--on-deep);
+    --paper: var(--deep);
+    --muted: var(--on-deep-2);
+    --accent-alt: var(--accent-tint);
   }
-
-  .px-cswrm__legend { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; }
-  .px-cswrm__row {
-    display: grid; grid-template-columns: 14px auto 1fr; gap: 12px; align-items: baseline;
-    padding: 8px 0; border-bottom: 1px dashed var(--rule);
-    font-variant-numeric: tabular-nums;
+  .viz3d--cswrm :global(.px-cue-tag) { color: var(--on-deep); }
+  .px-cswrm__earth { fill: var(--deep); }
+  .px-cswrm__grat { fill: none; stroke: var(--on-deep-hair); stroke-width: 0.8; }
+  .px-cswrm__limb { fill: none; stroke: var(--on-deep-2); stroke-width: 1; }
+  .px-cswrm__guide { fill: none; stroke: var(--on-deep-hair); stroke-width: 0.7; }
+  .px-cswrm__k {
+    position: absolute; left: 0; top: 0; z-index: 2; max-width: 60%;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.3; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--on-deep-2); pointer-events: none;
   }
-  .px-cswrm__dot { width: 9px; height: 9px; border-radius: 2px; align-self: center; box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent); }
-  .px-cswrm__name { font-family: var(--font-display); font-size: 15px; color: var(--ink); font-weight: 600; }
-  .px-cswrm__meta {
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.06em; color: var(--muted); text-align: right;
+  .px-cswrm .viz3d__hint { color: var(--on-deep-2); }
+  .px-cswrm__key {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px;
+    margin: 14px 0 0; padding: 14px 0 0; list-style: none; border-top: 1px solid var(--on-deep-hair);
   }
-  .px-cswrm__more { padding: 4px 0 0; }
-  .px-cswrm__more summary {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--accent-deep, var(--accent)); cursor: pointer;
-    padding: 8px 0; list-style-position: inside;
-  }
-  .px-cswrm__more .px-cswrm__legend { margin-top: 0; }
-  .px-cswrm__total {
-    margin-top: 12px; font-family: var(--font-mono); font-size: 11px;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-  }
-
+  .px-cswrm__key li { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+  .px-cswrm__dot { flex: none; width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; }
+  .px-cswrm__txt { display: grid; gap: 2px; min-width: 0; }
+  .px-cswrm__name { display: flex; align-items: center; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; font-weight: 600; color: var(--on-deep); overflow-wrap: anywhere; }
+  .px-cswrm__meta { font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--on-deep-2); font-variant-numeric: tabular-nums; }
+  .px-cswrm__total { display: flex; align-items: center; flex-wrap: wrap; margin: 12px 0 0; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--on-deep-2); }
   @media (max-width: 480px) {
-    .px-cswrm__row { grid-template-columns: 12px 1fr; gap: 8px; }
-    .px-cswrm__meta { grid-column: 1 / -1; text-align: left; padding-left: 20px; }
+    .px-cswrm__key { grid-template-columns: minmax(0, 1fr); }
+    .px-cswrm__plate { padding: 12px; }
   }
 </style>

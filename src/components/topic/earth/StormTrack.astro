@@ -14,6 +14,22 @@
  * intensity-coloured track, fix markers sized by wind, landfall rings, the peak
  * halo, the declared ramp legend, and the field-note track table.
  *
+ * LENS (Phase 6, the Lib-storm-track board). The figure sits on the desk's
+ * deep plate: the headline (the first storm's peak wind), the basin, the
+ * category key. The plate re-points `--ink` / `--paper` to the on-deep inks,
+ * so the live scene (which reads them from the mount) and the fallback both
+ * draw light on dark. The Saffir-Simpson ramp stays the scene's fixed
+ * encoding (declared in the key), so the still and the live scene agree.
+ * Every fix is labelled with its day, category and wind in an HTML layer
+ * over the drawing (12px real, a desktop and a phone set). The track table
+ * sits under the plate, on paper.
+ *
+ * Cue anchors (on the fallback and its label layer, never the canvas): `1`…`n`
+ * (each fix, in order across the storms: its dot and its label) · `peak`
+ * (the dashed ring on the strongest fix) · `track` (the line) · `head`.
+ * Build (outside the mount, which the live scene replaces): the key (1) ·
+ * the headline number (2). The scene keeps its one idle loop.
+ *
  * data: { storms:[{ name, fixes:[{ t, lat, lon, wind_kt, landfall? }] }],
  *         windScale?, smooth?, caption?, source? (REQUIRED) }  — category is
  *         DERIVED from wind_kt, never authored.
@@ -24,6 +40,7 @@ import type { Topology, Objects } from 'topojson-specification';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { saffirSimpson, SAFFIR_RAMP, catLabel } from '../../../scripts/viz3d/scenes/stormTrack';
+import FigHead from './FigHead.astro';
 
 interface Fix { t: string; lat: number; lon: number; wind_kt: number; landfall?: boolean; }
 interface Storm { name: string; fixes: Fix[]; }
@@ -56,8 +73,19 @@ const projection = geoOrthographic()
   .scale(RAD)
   .translate([VW / 2, VH / 2])
   .clipAngle(90);
+/* Zoomed to the basin (Lens Phase 6, the board): the track's furthest fix
+   sits at about 62% of the disc, so a basin fills the plate instead of a
+   speck on a hemisphere; the disc clips the rest. At most 4x. */
+{
+  let dMax = 1;
+  for (const f of allFixes) {
+    const q = (projection as any)([f.lon, f.lat]);
+    if (q) dMax = Math.max(dMax, Math.hypot(q[0] - VW / 2, q[1] - VH / 2));
+  }
+  projection.scale(RAD * Math.max(1, Math.min(4, (RAD * 0.62) / dMax)));
+}
 const pathGen = geoPath(projection as any);
-const gratGen = geoGraticule().step([15, 15]);
+const gratGen = geoGraticule().step([5, 5]);
 
 /* near-side test: angular distance from the projection centre < 90° */
 const centreVec = [Math.cos(meanLat * D2R) * Math.cos(meanLon * D2R), Math.cos(meanLat * D2R) * Math.sin(meanLon * D2R), Math.sin(meanLat * D2R)];
@@ -78,7 +106,7 @@ try {
   landPath = pathGen(land as any) || '';
 } catch { landPath = ''; }
 const graticulePath = pathGen(gratGen() as any) || '';
-const spherePath = pathGen({ type: 'Sphere' } as any) || '';
+const clipId = `px-storm-disc-${Math.abs(Math.round(meanLat * 1000 + meanLon * 7))}`;
 
 /* ── per-storm fallback geometry ── */
 const markerR = (w: number) => 2.6 + 4.4 * (w / 160);
@@ -136,225 +164,159 @@ const multi = validStorms.length > 1;
 /* centre label (coordinate margin, motif 2) */
 const centreLabel = `${latH(meanLat)} ${lonH(meanLon)}`;
 
-/* ── plate labels: two type tiers, one collision rule (2026-09-24) ──────────
-   The plate is a 720-unit square drawn at the column width: 718px at 1280,
-   335px on a 375px phone, where 9.5 units prints at 4.4px. So the plate
-   carries its labels twice — a DESKTOP set at the authored sizes and a PHONE
-   set sized to land at or above the 9.5px floor on a 335px plate — and CSS
-   shows one (≤640px: phone). The storm's own marks do not move; only the
-   type grows, so each set is placed separately against the same marks.
-
-   Placement, per set, in priority order (PEAK, LANDFALLs, the storm name):
-   each label tries eight sides of its mark, then the same eight a ring
-   further out with a hairline leader back to the mark, and takes the first
-   spot that clears every mark, every label already placed and the plate
-   edge. Crossing the track costs a little (the paper halo keeps it legible);
-   crossing a mark or a label is never chosen while a clear spot exists.
-   Widths are estimated wide on purpose: too wide costs air, too narrow a
-   collision. At 1280 this is what moved "Hurricane Katrina (2005)" off
-   "LANDFALL" (probe, 2026-09-24). */
+/* ── the fix labels: an HTML layer over the drawing (Lens Phase 6) ─────────
+   Every fix is named in two lines ("28 Aug · Cat 5", "150 kt") at 12px real
+   size, placed in the 720 box and positioned in percent. The layer is laid
+   out twice: a desktop set (12px is about 20 units on the ~430px plate) and
+   a phone set (about 31 units on a ~275px plate), one shown by a media query.
+   Each label tries eight sides of its mark and then a ring further out with a
+   leader, and takes the cheapest spot: never over a mark or another label
+   while a clear one exists, crossing the track costs a little. The peak and
+   the landfalls are placed first. */
 type Box = { x0: number; y0: number; x1: number; y1: number };
-type Anchor = 'start' | 'middle' | 'end';
 const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
 const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
-interface Spec { key: string; text: string; x: number; y: number; r: number; kind: 'mono' | 'name' }
-interface Placed { key: string; text: string; kind: 'mono' | 'name'; lx: number; ly: number; anchor: Anchor; leader: [number, number, number, number] | null }
-const marksHard: Box[] = [];
-const trackSoft: Box[] = [];
-plateStorms.forEach((s) => {
-  s.marks.forEach((m) => {
-    const rr = (m.landfall ? m.r + 3.5 : m.r) + 1.5;
-    marksHard.push({ x0: m.x - rr, y0: m.y - rr, x1: m.x + rr, y1: m.y + rr });
+interface FixMark { i: number; x: number; y: number; r: number; l1: string; l2: string; pri: number; landfall: boolean; peak: boolean; cat: string }
+const fixMarks: FixMark[] = [];
+{
+  let k = 0;
+  validStorms.forEach((storm) => {
+    const pkW = Math.max(...storm.fixes.map((f) => f.wind_kt));
+    storm.fixes.forEach((f) => {
+      k += 1;
+      const p = project(f.lat, f.lon);
+      if (!p) return;
+      const d = new Date(f.t);
+      const day = isNaN(d.getTime()) ? f.t : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+      const cat = saffirSimpson(f.wind_kt).cat;
+      const peak = f.wind_kt === pkW;
+      fixMarks.push({ i: k, x: p[0], y: p[1], r: markerR(f.wind_kt) * 1.6, l1: `${day} · ${catLabel(cat)}`, l2: `${f.wind_kt} ${windScale}`, pri: peak ? 0 : f.landfall ? 1 : 2, landfall: !!f.landfall, peak, cat });
+    });
   });
-  if (s.peak) marksHard.push({ x0: s.peak.x - s.peak.r - 1.5, y0: s.peak.y - s.peak.r - 1.5, x1: s.peak.x + s.peak.r + 1.5, y1: s.peak.y + s.peak.r + 1.5 });
-  for (let i = 0; i < s.marks.length - 1; i++) {
-    const a = s.marks[i], b = s.marks[i + 1];
-    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 5));
-    for (let k = 0; k < n; k++) {
-      const x = a.x + ((b.x - a.x) * (k + 0.5)) / n, y = a.y + ((b.y - a.y) * (k + 0.5)) / n;
-      trackSoft.push({ x0: x - 2, y0: y - 2, x1: x + 2, y1: y + 2 });
-    }
-  }
-});
-const specs: Spec[] = [];
-plateStorms.forEach((s, si) => {
-  if (s.peak) specs.push({ key: `p${si}`, text: s.peak.label, x: s.peak.x, y: s.peak.y, r: s.peak.r, kind: 'mono' });
-  s.landfalls.forEach((lf, li) => {
-    const m = s.marks.find((mm) => mm.landfall && Math.abs(mm.x - lf.x) < 0.01 && Math.abs(mm.y - lf.y) < 0.01);
-    specs.push({ key: `l${si}-${li}`, text: lf.label, x: lf.x, y: lf.y, r: (m ? m.r : 4) + 3.5, kind: 'mono' });
-  });
-  if (s.nameAt) specs.push({ key: `n${si}`, text: s.name, x: s.nameAt[0], y: s.nameAt[1], r: 5, kind: 'name' });
-});
-const TIERS = {
-  // desktop: the authored sizes
-  d: { mono: 9.5, name: 16, edge: 18 },
-  // phone: 9.5px ÷ (335 / 720) ≈ 20.5 units, so a 335px plate prints ≥ 9.5px
-  m: { mono: 20.5, name: 24, edge: 30 },
-};
-const DIRS: [number, number][] = [[1, 0], [1, -1], [1, 1], [-1, 0], [-1, -1], [-1, 1], [0, -1], [0, 1]];
-function placeSet(t: { mono: number; name: number; edge: number }): Placed[] {
+}
+const DIRS: [number, number][] = [[1, 0], [-1, 0], [1, -1], [1, 1], [-1, -1], [-1, 1], [0, -1], [0, 1]];
+function layout(fs: number) {
   const placed: Box[] = [];
-  const centreFs = t.mono;
-  const centreW = centreLabel.length * centreFs * 0.72;
-  placed.push({ x0: VW / 2 - centreW / 2, y0: VH - 6 - centreFs * 0.8, x1: VW / 2 + centreW / 2, y1: VH - 6 + centreFs * 0.25 });
-  const bounds: Box = { x0: 6, y0: 6, x1: VW - 6, y1: VH - t.edge };
-  return specs.map((s) => {
-    const fs = s.kind === 'name' ? t.name : t.mono;
-    const w = s.kind === 'name' ? s.text.length * fs * 0.52 : s.text.length * fs * 0.7;
-    const h = fs * 1.05;
-    let best: Placed | null = null, bestCost = Infinity;
-    for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
-      const d = s.r + 4 + ring * fs * 1.6;
+  const marksHard: Box[] = fixMarks.map((m) => { const e = m.r + (m.landfall || m.peak ? 10 : 3); return { x0: m.x - e, y0: m.y - e, x1: m.x + e, y1: m.y + e }; });
+  const bounds: Box = { x0: 8, y0: 8, x1: VW - 8, y1: VH - 8 };
+  return [...fixMarks].sort((a, b) => a.pri - b.pri || a.i - b.i).map((m) => {
+    const w = Math.max(m.l1.length, m.l2.length) * fs * 0.58 + 6, h = fs * 2.5;
+    let best: { b: Box; right: boolean; lead: number[] | null } | null = null, bestCost = Infinity;
+    for (let ring = 0; ring < 4 && bestCost > 0; ring++) {
+      const d = m.r + (m.landfall || m.peak ? 12 : 6) + ring * fs * 1.4;
       for (const [dx, dy] of DIRS) {
         const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
-        const x0 = dx > 0 ? s.x + d * diag : dx < 0 ? s.x - d * diag - w : s.x - w / 2;
-        const y0 = dy < 0 ? s.y - d * diag - h : dy > 0 ? s.y + d * diag : s.y - h / 2;
+        const x0 = dx > 0 ? m.x + d * diag : dx < 0 ? m.x - d * diag - w : m.x - w / 2;
+        const y0 = dy < 0 ? m.y - d * diag - h : dy > 0 ? m.y + d * diag : m.y - h / 2;
         const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
         if (b.x0 < bounds.x0 || b.x1 > bounds.x1 || b.y0 < bounds.y0 || b.y1 > bounds.y1) continue;
         let cost = ring * 4 + DIRS.findIndex(([a, c]) => a === dx && c === dy) * 0.5;
-        for (const p of placed) if (hit(b, p, 3)) cost += 1000 + cover(b, p);
-        for (const m of marksHard) if (hit(b, m, 1.5)) cost += 1000 + cover(b, m);
-        for (const q of trackSoft) if (hit(b, q)) cost += 2;
+        for (const p of placed) if (hit(b, p, 4)) cost += 1000 + cover(b, p);
+        for (const q of marksHard) if (hit(b, q, 1)) cost += 1000 + cover(b, q);
         if (cost < bestCost) {
           bestCost = cost;
-          const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
-          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
-          const ly = b.y1 - fs * 0.25;
-          // a leader from the mark's edge to the nearest point of the box, for outer rings
-          const nx = Math.max(b.x0, Math.min(s.x, b.x1)), ny = Math.max(b.y0, Math.min(s.y, b.y1));
-          const len = Math.hypot(nx - s.x, ny - s.y) || 1;
-          const leader: Placed['leader'] = ring > 0
-            ? [s.x + ((nx - s.x) / len) * (s.r + 1), s.y + ((ny - s.y) / len) * (s.r + 1), nx, ny]
-            : null;
-          best = { key: s.key, text: s.text, kind: s.kind, lx, ly, anchor, leader };
-          (best as any).box = b;
+          const nx = Math.max(b.x0, Math.min(m.x, b.x1)), ny = Math.max(b.y0, Math.min(m.y, b.y1));
+          const len = Math.hypot(nx - m.x, ny - m.y) || 1;
+          best = { b, right: dx < 0, lead: ring > 0 ? [m.x + ((nx - m.x) / len) * (m.r + 2), m.y + ((ny - m.y) / len) * (m.r + 2), nx, ny] : null };
         }
       }
     }
-    if (!best) best = { key: s.key, text: s.text, kind: s.kind, lx: s.x + s.r + 4, ly: s.y - s.r - 4, anchor: 'start', leader: null };
-    if ((best as any).box) placed.push((best as any).box);
-    return best;
+    if (best && bestCost < 1000) placed.push(best.b);
+    return { m, ...(best ?? { b: { x0: m.x + m.r, y0: m.y, x1: m.x + m.r + w, y1: m.y + h }, right: false, lead: null }), drop: bestCost >= 1000 };
   });
 }
-const labelSets = { d: placeSet(TIERS.d), m: placeSet(TIERS.m) };
+const labelSets = { d: layout(20), m: layout(31) };
+const pct = (v: number, of: number) => ((v / of) * 100).toFixed(2);
+
+/* the headline: the peak wind of the first storm */
+const peakKt = validStorms.length ? Math.max(...validStorms[0].fixes.map((f) => f.wind_kt)) : null;
+const headLabel = windScale === 'kt' ? 'knots at peak' : `${windScale} at peak`;
+
+/* the ramp keys shown: the categories the track reaches */
+const reached = new Set(allFixes.map((f) => saffirSimpson(f.wind_kt).cat));
 
 /* live-scene payload (inline JSON — the track is data, not a fetched asset) */
 const payload = JSON.stringify({ storms: validStorms, windScale, smooth });
-
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
-const SERIF = "font-family:var(--font-display),Georgia,serif";
 ---
 
 {validStorms.length > 0 && (
   <div class="px-viz px-storm">
-    {caption && (
-      <div class="px-viz__cap">
-        <span>{caption}</span>
-      </div>
-    )}
+    {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
 
-    <div
-      class="viz3d viz3d--storm"
-      data-viz3d="storm-track"
-      style={`aspect-ratio: 1 / 1`}
-      role="img"
-      aria-label={caption ? `Tropical-cyclone track: ${caption}` : `Tropical-cyclone best-track map`}
-    >
-      <div class="viz3d__fallback">
-        {/* The print plate — an orthographic basin view centred on the storm
-            (blueprint §7). overflow visible so labels bleed outside the disc. */}
-        <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" style="overflow:visible">
-          {/* ocean disc + horizon */}
-          {spherePath && <path d={spherePath} fill="color-mix(in oklab, var(--accent) 6%, var(--paper))" stroke="var(--ink)" stroke-width="1" opacity="0.9" />}
-          {graticulePath && <path d={graticulePath} fill="none" stroke="var(--ink)" stroke-width="0.5" opacity="0.09" />}
-          {landPath && <path d={landPath} fill="color-mix(in oklab, var(--accent) 12%, var(--paper))" stroke="var(--ink)" stroke-width="0.8" opacity="0.35" />}
-
-          {plateStorms.map((s) => (
-            <>
-              {/* intensity-coloured track segments (starting-fix category) */}
-              {s.segs.map((seg) => (
-                <path d={seg.d} fill="none" stroke={seg.color} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-              ))}
-
-              {/* peak halo — the ONE soft radial marker (§7) */}
-              {s.peak && (
-                <circle cx={s.peak.x} cy={s.peak.y} r={s.peak.r + 16} fill={`url(#px-storm-halo-${s.name.replace(/[^a-z0-9]/gi, '')})`} />
-              )}
-
-              {/* fix markers — category colour, sized by wind */}
-              {s.marks.map((m) => (
-                <>
-                  <circle cx={m.x} cy={m.y} r={m.r} fill={m.color} stroke="var(--paper)" stroke-width="0.75" />
-                  {m.landfall && <circle cx={m.x} cy={m.y} r={m.r + 3.5} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.7" />}
-                </>
-              ))}
-
-              {/* peak dot on top of the halo */}
-              {s.peak && <circle cx={s.peak.x} cy={s.peak.y} r={s.peak.r} fill={s.peak.color} stroke="var(--paper)" stroke-width="1" />}
-            </>
-          ))}
-
-          {/* labels — storm name (Fraunces italic), PEAK + LANDFALL (mono) and the
-              basin-centre coordinate (motif 2), once per type tier (see the note
-              in the frontmatter); CSS shows the desktop set or the phone set */}
-          {(['d', 'm'] as const).map((tier) => (
-            <g class={`px-storm__lbls px-storm__lbls--${tier}`}>
-              {labelSets[tier].map((l) => (
-                <>
-                  {l.leader && (
-                    <line x1={l.leader[0].toFixed(1)} y1={l.leader[1].toFixed(1)} x2={l.leader[2].toFixed(1)} y2={l.leader[3].toFixed(1)}
-                      stroke="var(--ink)" stroke-width={tier === 'm' ? 1.6 : 0.8} opacity="0.55" />
-                  )}
-                  {l.kind === 'name' ? (
-                    <text x={l.lx.toFixed(1)} y={l.ly.toFixed(1)} text-anchor={l.anchor} style={`${SERIF};font-style:italic`}
-                      font-size={TIERS[tier].name} fill="var(--ink)" paint-order="stroke" stroke="var(--paper)"
-                      stroke-width={tier === 'm' ? 6 : 3.5}>{l.text}</text>
-                  ) : (
-                    <text x={l.lx.toFixed(1)} y={l.ly.toFixed(1)} text-anchor={l.anchor} style={MONO} font-size={TIERS[tier].mono}
-                      fill="var(--ink)" letter-spacing="0.08em" paint-order="stroke" stroke="var(--paper)"
-                      stroke-width={tier === 'm' ? 5 : 3}>{l.text}</text>
-                  )}
-                </>
-              ))}
-              <text x={VW / 2} y={VH - 6} text-anchor="middle" style={MONO} font-size={TIERS[tier].mono} fill="var(--muted)" letter-spacing="0.1em">{centreLabel}</text>
+    <div class="px-storm__plate" data-build-scene>
+      {peakKt != null && <FigHead value={String(peakKt)} label={headLabel} n={2} deep />}
+      <div
+        class="viz3d viz3d--storm"
+        data-viz3d="storm-track"
+        style="aspect-ratio: 1 / 1"
+        role="img"
+        aria-label={`${validStorms.map((s) => s.name).join(', ')}: best track centred on ${centreLabel}, peak ${peakKt} ${windScale}.`}
+      >
+        <div class="viz3d__fallback">
+          <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet">
+            <defs><clipPath id={clipId}><circle cx={VW / 2} cy={VH / 2} r={RAD} /></clipPath></defs>
+            <circle cx={VW / 2} cy={VH / 2} r={RAD} fill="var(--paper-2)" />
+            <g clip-path={`url(#${clipId})`}>
+            <path d={graticulePath} fill="none" stroke="var(--ink)" stroke-width="0.6" opacity="0.14" />
+            {landPath && <path d={landPath} fill="var(--px-storm-land)" stroke="var(--ink)" stroke-width="0.8" stroke-opacity="0.3" />}
             </g>
-          ))}
-
-          {/* radial-gradient defs for each storm's peak halo (the ONE peak marker) */}
-          <defs>
-            {plateStorms.map((s) => s.peak && (
-              <radialGradient id={`px-storm-halo-${s.name.replace(/[^a-z0-9]/gi, '')}`}>
-                <stop offset="0%" stop-color={s.peak.color} stop-opacity="0.55" />
-                <stop offset="100%" stop-color={s.peak.color} stop-opacity="0" />
-              </radialGradient>
+            <circle cx={VW / 2} cy={VH / 2} r={RAD} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.35" />
+            <g data-cue="track">
+              {plateStorms.map((s) => s.segs.map((g) => (
+                <path d={g.d} fill="none" stroke={g.color} stroke-width="6" stroke-linecap="round" />
+              )))}
+            </g>
+            {labelSets.d.filter((l) => l.lead).map((l) => (
+              <line class="px-storm__lead px-storm__lead--d" x1={l.lead![0]} y1={l.lead![1]} x2={l.lead![2]} y2={l.lead![3]} />
             ))}
-          </defs>
-        </svg>
+            {labelSets.m.filter((l) => l.lead).map((l) => (
+              <line class="px-storm__lead px-storm__lead--m" x1={l.lead![0]} y1={l.lead![1]} x2={l.lead![2]} y2={l.lead![3]} />
+            ))}
+            {fixMarks.map((m) => (
+              <g data-cue={m.i}>
+                {m.landfall && <circle cx={m.x} cy={m.y} r={m.r + 7} fill="none" stroke="var(--on-deep)" stroke-width="3" />}
+                <circle cx={m.x} cy={m.y} r={m.r} fill={SAFFIR_RAMP.find((b) => b.cat === m.cat)?.color} stroke="var(--deep)" stroke-width="2.5" />
+              </g>
+            ))}
+            {fixMarks.filter((m) => m.peak).map((m) => (
+              <circle data-cue="peak" cx={m.x} cy={m.y} r={m.r + 7} fill="none" stroke="var(--on-deep)" stroke-width="2.5" stroke-dasharray="4 4" />
+            ))}
+          </svg>
+          {(['d', 'm'] as const).map((tier) => (
+            <div class={`px-storm__labels px-storm__labels--${tier}`}>
+              {labelSets[tier].filter((l) => !l.drop).map((l) => (
+                <span
+                  class:list={['px-storm__lbl', l.right && 'is-right', l.m.peak && 'is-peak']}
+                  data-cue={l.m.i}
+                  style={l.right
+                    ? `right:${pct(VW - l.b.x1, VW)}%;top:${pct(l.b.y0, VH)}%`
+                    : `left:${pct(l.b.x0, VW)}%;top:${pct(l.b.y0, VH)}%`}
+                >
+                  <b><span class="px-cue-tag" data-cue-tag={l.m.i} hidden></span>{l.m.l1}</b>
+                  <i>{l.m.l2}</i>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+        <span class="viz3d__hint" aria-hidden="true">drag to follow the track</span>
+        <script type="application/json" class="viz3d__data" set:html={payload}></script>
       </div>
 
-      <span class="viz3d__hint" aria-hidden="true">drag to follow the track</span>
-      <script type="application/json" class="viz3d__data" set:html={payload}></script>
-    </div>
-
-    {/* Saffir-Simpson legend — the DECLARED fixed encoding (mandatory, §7 / CANON §6) */}
-    <div class="px-storm__legend" aria-label="Saffir-Simpson intensity scale">
-      <span class="px-storm__legend-k">Saffir-Simpson · max sustained wind ({windScale})</span>
-      <ul class="px-storm__ramp">
-        {SAFFIR_RAMP.map((b) => (
-          <li class="px-storm__band">
-            <span class="px-storm__sw" style={`background:${b.color}`} aria-hidden="true"></span>
-            <span class="px-storm__band-cat">{b.cat}</span>
-            <span class="px-storm__band-kt">{b.key === '5' ? `≥${b.minKt}` : `${b.minKt}–${b.maxKt}`}</span>
-          </li>
+      {/* the Saffir-Simpson key: the DECLARED fixed encoding (the scene's ramp) */}
+      <ul class="px-storm__key" aria-label="Saffir-Simpson category" data-build="1">
+        {SAFFIR_RAMP.filter((b) => reached.has(b.cat)).map((b) => (
+          <li><i style={`background:${b.color}`}></i>{catLabel(b.cat)}</li>
         ))}
+        {fixMarks.some((m) => m.landfall) && <li><i class="px-storm__ring"></i>Landfall</li>}
       </ul>
     </div>
 
-    {/* field-note track table (AT-readable, motif 3) */}
+    {/* the track table: every fix, on paper under the plate */}
     <div class={`px-storm__track${showAll ? '' : ' px-storm__track--collapsed'}`}>
       <div class="px-storm__track-head">
-        <span>best track · {rows.length} fixes</span>
-        <span>time · position · wind · category</span>
+        <span>Best track · {rows.length} fixes</span>
+        <span>Wind ({windScale})</span>
       </div>
       <ul class="px-storm__rows">
         {rows.map((r, i) => (
@@ -368,18 +330,14 @@ const SERIF = "font-family:var(--font-display),Georgia,serif";
         ))}
       </ul>
       {!showAll && (
-        <button type="button" class="px-storm__more" aria-expanded="false">show all {rows.length} fixes</button>
+        <button type="button" class="px-storm__more" aria-expanded="false">Show all {rows.length} fixes</button>
       )}
     </div>
 
-
-    {/* track show-all bridge (no-JS shows all rows; JS collapses past 5) */}
     <script is:inline>
       (function () {
-        var root = document.currentScript && document.currentScript.previousElementSibling;
-        while (root && !(root.classList && root.classList.contains('px-storm'))) {
-          root = root.previousElementSibling;
-        }
+        var self = document.currentScript;
+        var root = self && self.closest ? self.closest('.px-storm') : null;
         if (!root) return;
         var more = root.querySelector('.px-storm__more');
         var track = root.querySelector('.px-storm__track');
@@ -395,20 +353,17 @@ const SERIF = "font-family:var(--font-display),Georgia,serif";
   </div>
 )}
 
-{/* the storm-name label (Fraunces italic) + PEAK/LANDFALL (mono) are created at
-    runtime by makeLabels, so their styling must be GLOBAL (scoped styles never
-    reach runtime-injected nodes). --storm = the naturalist's-hand name chip. */}
 <style is:global>
   .viz3d--storm .viz3d__label--storm {
-    font-family: var(--font-display), Georgia, serif;
-    font-style: italic;
-    font-weight: 500;
-    font-size: 15px;
+    font-family: var(--font-ui);
+    font-style: normal;
+    font-weight: 600;
+    font-size: 13px;
     line-height: 1;
     text-transform: none;
     letter-spacing: 0;
-    color: var(--ink);
-    background: color-mix(in oklab, var(--paper) 82%, transparent);
+    color: var(--on-deep);
+    background: color-mix(in oklab, var(--deep) 82%, transparent);
     padding: 1px 6px;
     border-radius: 3px;
   }
@@ -416,105 +371,66 @@ const SERIF = "font-family:var(--font-display),Georgia,serif";
 </style>
 
 <style>
-  /* ocean-paper mount tint under the line-art (atlas water) */
-  .viz3d--storm {
-    background:
-      radial-gradient(ellipse 70% 68% at 50% 48%,
-        color-mix(in oklab, var(--accent) 7%, transparent), transparent 72%),
-      color-mix(in oklab, var(--paper) 78%, var(--bg));
+  /* the deep plate: the on-deep inks for everything drawn on it, the live
+     scene included (runtime.ts reads --ink / --paper / --muted off the mount) */
+  .px-storm__plate {
+    --ink: var(--on-deep);
+    --ink-2: var(--on-deep-2);
+    --ink-soft: var(--on-deep-2);
+    --muted: var(--on-deep-2);
+    --paper: var(--deep);
+    --paper-2: color-mix(in oklab, var(--deep) 86%, var(--on-deep));
+    --hair: var(--on-deep-hair);
+    --px-storm-land: color-mix(in oklab, var(--deep) 72%, var(--on-deep));
+    background: var(--deep);
+    border-radius: var(--r-card, 6px);
+    padding: 20px;
   }
-
-  /* plate label tiers: the phone set is sized for a ~335px plate */
-  .px-storm__lbls--m { display: none; }
+  .viz3d--storm { background: transparent; }
+  .px-storm__lead { stroke: var(--on-deep-2); stroke-width: 1.5; }
+  .px-storm__labels { position: absolute; inset: 0; pointer-events: none; }
+  .px-storm__labels--m, .px-storm__lead--m { display: none; }
   @media (max-width: 640px) {
-    .px-storm__lbls--d { display: none; }
-    .px-storm__lbls--m { display: inline; }
+    .px-storm__labels--d, .px-storm__lead--d { display: none; }
+    .px-storm__labels--m, .px-storm__lead--m { display: block; }
+    .px-storm__plate { padding: 14px; }
   }
-
-  /* ── Saffir-Simpson legend (the declared encoding) ── */
-  .px-storm__legend {
-    margin-top: 16px;
-    border-top: 1px solid var(--rule);
-    padding-top: 12px;
-  }
-  .px-storm__legend-k {
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    margin-bottom: 10px;
-  }
-  .px-storm__ramp {
-    list-style: none; margin: 0; padding: 0;
-    display: flex; flex-wrap: wrap; gap: 6px 14px;
-  }
-  .px-storm__band {
-    display: flex; align-items: center; gap: 6px;
+  .px-storm__lbl {
+    position: absolute; display: flex; flex-direction: column; gap: 1px;
+    font-family: var(--font-ui); font-size: 12px; line-height: 1.2; white-space: nowrap;
+    text-shadow: 0 0 3px var(--deep), 0 0 6px var(--deep);
     font-variant-numeric: tabular-nums;
   }
-  .px-storm__sw {
-    width: 14px; height: 14px; border-radius: 3px; flex: 0 0 auto;
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 22%, transparent);
-  }
-  .px-storm__band-cat {
-    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-    letter-spacing: 0.06em; color: var(--ink);
-  }
-  .px-storm__band-kt {
-    font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
-    letter-spacing: 0.04em;
-  }
+  .px-storm__lbl.is-right { align-items: flex-end; text-align: right; }
+  .px-storm__lbl b { display: inline-flex; align-items: center; font-weight: 600; color: var(--on-deep); }
+  .px-storm__lbl i { font-style: normal; color: var(--on-deep-2); }
+  .px-storm__lbl :global(.px-cue-tag) { color: var(--on-deep); margin-right: 6px; }
+  .px-storm__key { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 14px; font-family: var(--font-ui); font-size: 12px; color: var(--on-deep-2); }
+  .px-storm__key li { display: inline-flex; align-items: center; gap: 6px; }
+  .px-storm__key i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; }
+  .px-storm__key i.px-storm__ring { background: none; border: 2px solid var(--on-deep); width: 12px; height: 12px; }
 
-  /* ── field-note track table (motif 3) ── */
-  .px-storm__track {
-    margin-top: 16px;
-    border-top: 1px solid var(--rule);
-    padding-top: 12px;
-  }
+  /* the track table, on paper */
+  .px-storm__track { margin-top: 16px; font-family: var(--font-ui); font-variant-numeric: tabular-nums; }
   .px-storm__track-head {
-    display: flex; justify-content: space-between; gap: 16px;
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--accent-deep, var(--accent));
-    font-variant-numeric: tabular-nums;
-    padding-bottom: 10px;
+    display: flex; justify-content: space-between; gap: 16px; padding-bottom: 8px;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    border-bottom: 1px solid var(--hair);
   }
-  .px-storm__track-head span:last-child { color: var(--muted); text-align: right; }
   .px-storm__rows { list-style: none; margin: 0; padding: 0; }
-  .px-storm__row {
-    display: grid;
-    grid-template-columns: minmax(9ch, auto) minmax(11ch, 1fr) auto auto;
-    gap: 12px; align-items: baseline;
-    padding: 7px 0; border-bottom: 1px dashed var(--rule);
-    font-family: var(--font-mono); font-size: 11px;
-    font-variant-numeric: tabular-nums; color: var(--ink-soft);
-  }
-  .px-storm__r-name {
-    grid-column: 1 / -1;
-    font-family: var(--font-display); font-style: italic; font-size: 13px;
-    color: var(--ink); padding-top: 2px;
-  }
-  .px-storm__r-w { text-align: right; color: var(--ink); }
-  .px-storm__r-cat { text-align: right; color: var(--accent-deep, var(--accent)); letter-spacing: 0.04em; }
-  .px-storm__r-co { color: var(--muted); }
-
-  /* collapse behind "show all" past 5 rows (no-JS shows all; JS hides extras) */
+  .px-storm__row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 4px 14px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 13px; color: var(--ink-2, var(--ink-soft)); }
+  .px-storm__r-name { grid-column: 1 / -1; font-weight: 600; color: var(--ink); }
+  .px-storm__r-t { color: var(--ink); font-weight: 600; }
+  .px-storm__r-w { text-align: right; }
+  .px-storm__r-cat { text-align: right; font-weight: 600; color: var(--accent-deep); }
   html.js .px-storm__track--collapsed .px-storm__row--extra { display: none; }
-  .px-storm__more {
-    margin-top: 12px;
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--accent-deep, var(--accent));
-    background: none; border: none; padding: 4px 0; cursor: pointer;
-    text-decoration: underline; text-underline-offset: 3px;
-  }
+  .px-storm__more { margin-top: 10px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--accent-deep); background: none; border: none; padding: 4px 0; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   html:not(.js) .px-storm__more { display: none; }
-
-  @media (max-width: 640px) {
-    .px-storm__row {
-      grid-template-columns: 1fr auto auto;
-      row-gap: 2px;
-    }
-    .px-storm__r-co { grid-column: 1 / -1; }
+  @media (max-width: 560px) {
+    .px-storm__row { grid-template-columns: 1fr auto auto; }
+    .px-storm__r-co { grid-column: 1 / -1; order: 5; }
   }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>

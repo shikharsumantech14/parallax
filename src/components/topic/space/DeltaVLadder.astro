@@ -1,18 +1,30 @@
 ---
 /**
- * DeltaVLadder (space) — a stacked Δv / energy budget. Segments stack bottom-up
- * (Earth → LEO → GEO → escape), each segment's height proportional to its Δv,
- * labelled with its name + value and coloured by segment.color or a stepwise
- * accent tint. A right-side scale rail marks cumulative Δv with the grand total
- * on top. Segments rest at full height, stacked (static since Lens Phase 5;
- * their build from the bottom arrives in Phase 6). The stack sits on a
- * shallow 3D plane (global core/Tilt.astro `data-tilt` island).
+ * DeltaVLadder (space) — a Δv (velocity-change) budget as stacked columns on
+ * one scale. Segments whose labels chain as "A → B" (the end of one is the
+ * start of the next) are laid out as ROUTES: each route from the first origin
+ * to a destination is one column, so alternatives (on to GEO, or out to
+ * escape) stand side by side instead of adding up to a number no mission
+ * spends. Labels that do not chain stack as one column. Drawn for the pinned
+ * figure panel (Lens Phase 6, 2026-09-30; board Lib-delta-v-ladder), the
+ * largest single step set large above it.
  *
- * Every segment always paints at full height. Each segment's Δv value sits
- * in its label regardless.
+ * Cue anchors: `1`…`n` — each segment in authored order (its band in every
+ * column that climbs it, and its label); `total-1`…`total-k` — each column's
+ * total, left to right; `axis`. The headline carries the anchor of the
+ * segment it reports.
+ *
+ * THE BUILD (LENS §6.4): 1 the axis fades, 2 the bands grow up from their own
+ * floors (bottom band first), 3 the labels rise, 4 the column totals fade,
+ * 5 the headline counts up.
+ *
+ * Colour: a segment's `color` is honoured as a fixed encoding; otherwise the
+ * bands step through the desk inks (mark, text, a tint of the mark).
  *
  * data: { segments[]{ label, dv, color? }, unit?, caption?, source? }
  */
+import { SANS, nf, niceTicks, textW, wrap } from './_fig';
+
 interface Segment { label: string; dv: number; color?: string; }
 interface Props {
   segments: Segment[];
@@ -20,242 +32,138 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { segments = [], unit = 'm/s', caption, source } = Astro.props;
+const { segments = [], unit = 'm/s', caption } = Astro.props;
+/* Drawn twice (Lens Phase 6): at 470 for the panel and at 290 for a phone,
+   one shown by the .px-sfig__dual rule in dataviz-v2.css, so every label
+   prints at 12px or more at both widths and nothing has to scroll. */
+const W: number = (Astro.props as any).w ?? 470;
+const dual = (Astro.props as any).w == null;
 
-const segs = (Array.isArray(segments) ? segments : [])
-  .map((s) => ({ label: s?.label ?? '', dv: Math.max(0, s?.dv ?? 0), color: s?.color }));
+const segs = (Array.isArray(segments) ? segments : []).map((s, i) => {
+  const label = s?.label ?? '';
+  const m = label.split(/\s*(?:→|->)\s*/);
+  return { id: String(i + 1), label, dv: Math.max(0, s?.dv ?? 0), color: s?.color, from: m.length === 2 ? m[0].trim() : null, to: m.length === 2 ? m[1].trim() : null };
+});
 
-const total = segs.reduce((a, s) => a + s.dv, 0);
-const denom = Math.max(1, total);
-
-const fmt = (n: number) => Math.round(n).toLocaleString();
-
-// Stepwise accent tints when a segment has no explicit colour (lighter at the
-// base, full accent near the top — reads as "energy climbing").
-const tintFor = (i: number, n: number) => {
-  const pct = 34 + Math.round((i / Math.max(1, n - 1)) * 56); // 34%..90%
-  return `color-mix(in oklab, var(--accent) ${pct}%, var(--bg))`;
+// ── routes: chain "A → B" labels from the first segment's origin ────────────
+type Seg = (typeof segs)[number];
+let routes: Seg[][] = [];
+const chains = segs.length > 0 && segs.every((s) => s.from && s.to);
+if (chains) {
+  const walk = (at: string, path: Seg[]) => {
+    const next = segs.filter((s) => s.from === at && !path.includes(s));
+    if (!next.length) { if (path.length) routes.push(path); return; }
+    next.forEach((s) => walk(s.to!, [...path, s]));
+  };
+  walk(segs[0].from!, []);
+  // every segment must sit on a route, or the chain reading is wrong
+  if (!segs.every((s) => routes.some((r) => r.includes(s)))) routes = [];
+}
+if (!routes.length) routes = [segs];
+const colName = (r: Seg[]) => {
+  const end = r[r.length - 1];
+  return routes.length > 1 && end?.to ? `To ${end.to.replace(/\s*\(.*?\)\s*/g, '').trim()}` : '';
 };
 
-// Build the stack TOP→BOTTOM in markup (flex-column), but compute cumulative
-// totals BOTTOM→UP so the right-rail ticks read like a launch budget.
-const n = segs.length;
-const reversed = segs.map((s, i) => ({ ...s, idx: i })).reverse(); // top of stack first
-const ticks = segs.map((_, i) => {
-  // cumulative Δv below segment i's lower boundary (bottom-up tick marks)
-  const below = segs.slice(0, i).reduce((a, x) => a + x.dv, 0);
-  return { at: below, frac: below / denom };
+// ── frame ───────────────────────────────────────────────────────────────────
+const H = 330, L = 52, R = W - 4, T = 34, B = H - 40;
+const totals = routes.map((r) => r.reduce((a, s) => a + s.dv, 0));
+const yt = niceTicks(Math.max(1, ...totals), 5);
+const yMax = yt[yt.length - 1];
+const Y = (v: number) => B - (v / yMax) * (B - T);
+const slot = (R - L - 12) / routes.length;
+const barW = Math.min(96, slot * (W < 400 ? 0.4 : 0.46));
+const TONES = ['var(--accent)', 'var(--accent-deep)', 'color-mix(in oklab, var(--accent) 50%, var(--paper-2))', 'color-mix(in oklab, var(--accent-deep) 60%, var(--paper-2))'];
+
+const cols = routes.map((r, k) => {
+  const x = L + 12 + k * slot;
+  let acc = 0;
+  const bands = r.map((s, j) => {
+    const y0 = Y(acc), y1 = Y(acc + s.dv);
+    acc += s.dv;
+    return { ...s, y: y1, h: y0 - y1, mid: (y0 + y1) / 2, fill: s.color ?? TONES[j % TONES.length] };
+  });
+  // outside labels, right of the column, stacked so none touch
+  const lx = x + barW + 8;
+  const maxChars = Math.max(6, Math.floor((slot - barW - 14) / (13 * 0.62)));
+  let floor = B + 8;
+  const labels = [...bands].map((b) => {
+    const lines = wrap(b.label, maxChars);
+    const h = lines.length * 16 + 15;
+    let top = Math.max(T, b.mid - h / 2);
+    if (top + h > floor) top = floor - h;
+    floor = top - 2;
+    return { id: b.id, lines, top, dv: b.dv };
+  });
+  return { x, bands, labels, total: totals[k], name: colName(r) };
 });
-ticks.push({ at: total, frac: 1 });
-
-// A segment whose band is too short to hold one text row gets its label+value
-// rendered OUTSIDE the band (as a right-side callout) instead of clipped
-// inside. Reference height = the stack's min-height (360px); ~22px is the
-// minimum band that comfortably fits the 13px label baseline.
-const STACK_MIN_H = 360;
-const MIN_INSIDE_PX = 22;
-const isShort = (h: number) => (h / 100) * STACK_MIN_H < MIN_INSIDE_PX;
+const big = segs.reduce((m, s) => (s.dv > (m?.dv ?? -1) ? s : m), segs[0]);
+const aria = caption ? `Delta-v budget: ${caption}` : 'Delta-v budget';
 ---
-
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{fmt(total)} {unit} total</b></div>}
-
-  <div class="px-dvl px3d-stage">
-    <div class="px-dvl__plane px3d-tilt" data-tilt="6">
-      <div class="px-dvl__stack" role="img"
-        aria-label={caption ? `Delta-v budget: ${caption}, total ${fmt(total)} ${unit}` : `Delta-v budget, total ${fmt(total)} ${unit}`}>
-        {reversed.map((s) => {
-          const h = (s.dv / denom) * 100;
-          // build index from the bottom of the stack upward (for the Phase 6 build order)
-          const delay = (n - 1 - s.idx);
-          const short = isShort(h);
-          return (
-            <div
-              class:list={['px-dvl__seg', { 'px-dvl__seg--short': short }]}
-              style={`--h:${h.toFixed(2)}%; --i:${delay}; background:${s.color || tintFor(s.idx, n)}`}
-            >
-              <div class="px-dvl__seg-inner">
-                <span class="px-dvl__seg-label">{s.label}</span>
-                <span class="px-dvl__seg-dv">{fmt(s.dv)} <i>{unit}</i></span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div class="px-dvl__scale" aria-hidden="true">
-        {ticks.map((t) => (
-          <span class="px-dvl__tick" style={`bottom:${(t.frac * 100).toFixed(2)}%`}>
-            <i></i><b>{fmt(t.at)}</b>
-          </span>
-        ))}
-      </div>
-    </div>
-
-    <div class="px-dvl__total">
-      <span class="px-dvl__total-n">{fmt(total)}</span>
-      <span class="px-dvl__total-u">{unit}</span>
-      <span class="px-dvl__total-l">cumulative Δv</span>
-    </div>
+{dual ? (
+  <div class="px-sfig__dual">
+    <Astro.self {...Astro.props} w={470} />
+    <Astro.self {...Astro.props} w={290} />
   </div>
+) : (
+<Fragment>
 
+<div class="px-viz px-dvl" data-build-scene>
+  {big && (
+    <div class="px-sfig__head" data-cue={big.id}>
+      <span class="px-sfig__num" data-build="5" data-build-kind="counter" data-to={Math.round(big.dv)}>{nf(big.dv)}</span>
+      <span class="px-sfig__lbl"><span class="px-cue-tag" data-cue-tag={big.id} hidden></span>{unit} · {big.label}</span>
+    </div>
+  )}
+
+  <div class="px-sfig__plot">
+    <svg class="px-sfig__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      <g data-cue="axis" data-build="1">
+        {yt.map((v) => (
+          <>
+            <line class="px-sfig__grid" x1={L} x2={R} y1={Y(v).toFixed(1)} y2={Y(v).toFixed(1)} />
+            <text class="px-sfig__ax" x={L - 8} y={(Y(v) + 4).toFixed(1)} text-anchor="end" style={SANS}>{nf(v)}</text>
+          </>
+        ))}
+        <line class="px-sfig__base" x1={L} x2={R} y1={B} y2={B} />
+        <text class="px-sfig__at" x="0" y="12" style={SANS}>Δv ({unit})</text>
+        {cols.map((c) => c.name && (
+          <text class="px-sfig__ax px-dvl__col" x={(c.x + barW / 2).toFixed(1)} y={B + 20} text-anchor="middle" style={SANS}>{c.name}</text>
+        ))}
+      </g>
+
+      {cols.map((c) => c.bands.map((b) => (
+        <g data-cue={b.id}>
+          <rect class="px-dvl__band" x={c.x.toFixed(1)} y={b.y.toFixed(1)} width={barW.toFixed(1)} height={Math.max(0, b.h - 1).toFixed(1)} style={`fill:${b.fill}`} data-build="2" data-build-kind="grow-y" />
+        </g>
+      )))}
+
+      {cols.map((c) => c.labels.map((l) => (
+        <g data-cue={l.id} data-build="3" data-build-kind="rise">
+          <line class="px-dvl__lead" x1={(c.x + barW + 1).toFixed(1)} x2={(c.x + barW + 5).toFixed(1)} y1={(l.top + 6).toFixed(1)} y2={(l.top + 6).toFixed(1)} />
+          <text class="px-sfig__t px-sfig__b" x={(c.x + barW + 8).toFixed(1)} y={(l.top + 11).toFixed(1)} style={SANS}>
+            {l.lines.map((ln, i) => <tspan x={(c.x + barW + 8).toFixed(1)} dy={i ? 16 : 0}>{ln}</tspan>)}
+          </text>
+          <text class="px-sfig__t px-sfig__m" x={(c.x + barW + 8).toFixed(1)} y={(l.top + 11 + l.lines.length * 16).toFixed(1)} style={SANS}>+{nf(l.dv)}</text>
+          <Fragment set:html={`<foreignObject x="${(c.x + barW / 2 - 10).toFixed(1)}" y="${(c.bands.find((b) => b.id === l.id)!.mid - 10).toFixed(1)}" width="52" height="20" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;height:20px;line-height:1"><span class="px-cue-tag" data-cue-tag="${l.id}" hidden></span></div></foreignObject>`} />
+        </g>
+      )))}
+
+      {cols.map((c, k) => (
+        <g data-cue={`total-${k + 1}`} data-build="4">
+          <line class="px-dvl__cap" x1={(c.x - 4).toFixed(1)} x2={(c.x + barW + 4).toFixed(1)} y1={Y(c.total).toFixed(1)} y2={Y(c.total).toFixed(1)} />
+          <text class="px-sfig__t px-sfig__b" x={(c.x + barW / 2).toFixed(1)} y={(Y(c.total) - 8).toFixed(1)} text-anchor="middle" style={SANS}>{nf(c.total)}{W < 400 ? '' : ` ${unit}`}</text>
+        </g>
+      ))}
+    </svg>
+  </div>
 </div>
+</Fragment>
+)}
 
 <style>
-  .px-dvl {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 26px;
-    align-items: stretch;
-  }
-  .px-dvl__plane {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 64px;
-    gap: 14px;
-    min-height: 360px;
-    transform-origin: 50% 100%;
-  }
-
-  /* the stacked bar */
-  .px-dvl__stack {
-    display: flex;
-    flex-direction: column;     /* top segment first in DOM */
-    justify-content: flex-start;
-    height: 100%;
-    border-radius: var(--r-tile);
-    overflow: hidden;
-    border: 1px solid var(--rule);
-    background: color-mix(in oklab, var(--ink) 4%, var(--bg));
-  }
-  .px-dvl__seg {
-    height: var(--h);
-    min-height: 2px;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 -1px 0 0 color-mix(in oklab, var(--bg) 50%, transparent);
-    /* base/resting = full height (no-JS safe) */
-    transform: scaleY(1);
-    transform-origin: bottom;
-    transition: transform 760ms var(--ease-snap);
-  }
-
-  /* short band: too thin to hold its text without clipping. Let the label/value
-     overflow onto the neighbouring band (still inside the clipped stack, so the
-     stack's rounded edge isn't broken) and lift it above siblings. Released
-     always since Lens Phase 5 (it used to wait for the retired reveal). */
-  .px-dvl__seg--short { z-index: 2; overflow: visible; }
-  .px-dvl__seg--short .px-dvl__seg-inner { gap: 8px; }
-  .px-dvl__seg--short .px-dvl__seg-label { font-size: 12px; }
-  .px-dvl__seg--short .px-dvl__seg-dv { font-size: 11px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-dvl__seg--short { overflow: visible; }
-  }
-
-  .px-dvl__seg-inner {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    /* counter-scale so text does not squash when the Phase 6 build grows the segment (best-effort) */
-  }
-  .px-dvl__seg-label {
-    font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--paper);
-    line-height: 1.15;
-    text-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 45%, transparent);
-  }
-  .px-dvl__seg-dv {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--paper);
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    text-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 45%, transparent);
-  }
-  .px-dvl__seg-dv i {
-    font-family: var(--font-mono);
-    font-style: normal;
-    font-weight: 500;
-    opacity: 0.82;
-    font-size: 9px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  /* right-side cumulative scale rail */
-  .px-dvl__scale {
-    position: relative;
-    border-left: 1px solid var(--rule);
-  }
-  .px-dvl__tick {
-    position: absolute;
-    left: 0;
-    transform: translateY(50%);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  .px-dvl__tick i {
-    width: 7px; height: 1px;
-    background: var(--rule);
-    display: inline-block;
-  }
-  .px-dvl__tick b {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* total readout */
-  .px-dvl__total {
-    align-self: center;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 96px;
-  }
-  .px-dvl__total-n {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700;
-    font-size: 40px;
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-dvl__total-u {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .px-dvl__total-l {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 6px;
-  }
-
-  @media (max-width: 600px) {
-    .px-dvl { grid-template-columns: 1fr; gap: 18px; }
-    .px-dvl__total { flex-direction: row; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  }
+  .px-dvl__band { stroke: var(--paper-2); stroke-width: 1; }
+  .px-dvl__lead { stroke: var(--ink-2); stroke-width: 1; }
+  .px-dvl__cap { stroke: var(--ink); stroke-width: 2; }
+  .px-dvl__col { fill: var(--ink-2); font-weight: 500; }
 </style>

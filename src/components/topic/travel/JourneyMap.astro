@@ -1,16 +1,38 @@
 ---
-/* JourneyMap — vertical itinerary stops with km markers and elevation.
-   Terracotta connector line. CSS-only. Use for: routes, road trips,
-   migration paths, expedition logs, supply chain hops. */
-import { renderInline } from '../../../lib/text';
+/**
+ * JourneyMap (`journey-map`) — a route as named stops down a rail (Lens Phase
+ * 6, the Lib-journey-map board). Each row: when (the arrival and the running
+ * distance), the pin on the rail (filled at the two ends, hollow on the way,
+ * a diamond for a detour), the place and its region, and the stop's height
+ * as a value and a bar. Above it the route's totals: the last stop's distance
+ * and its day, when the strings carry them. HTML, fits the 472 panel and a
+ * 375 phone without a scroll. Zero JS of its own.
+ *
+ * Cue anchors:
+ *   1…n     each stop, in authored order (the row: pin, place, height)
+ *   line    the rail
+ *   total   the totals above the rail
+ *   legend  the key under the rail
+ *
+ * Build (src/scripts/build.ts, LENS §6.4): 1 the rail segments grow down,
+ * 2 the stops drop in order, 3 the height bars grow from the left, 4 the
+ * legend, 5 the totals count up. No JS or reduced motion: the route as drawn.
+ *
+ * A stop's `note` is long prose, so it is not printed on the figure (labels
+ * of at most three words, LENS §5.5): it is the row's screen-reader text and
+ * its hover title. The article carries the story.
+ *
+ * data: { stops: [{place, region?, km?, elev?, arrival?, note?, tag?}] }
+ */
+import { stripEmphasis } from '../../../lib/text';
 
 interface Stop {
   place: string;
   region?: string;
   km?: string;            /* cumulative or leg distance, e.g. "0 km" or "+312 km" */
   elev?: string;          /* elevation, e.g. "23 m" or "−12 m" */
-  arrival?: string;       /* date or time-of-day */
-  note?: string;          /* one-line annotation; supports *italic* and **bold** */
+  arrival?: string;       /* a day or a time, e.g. "Day 3" */
+  note?: string;          /* one line; supports *italic* and **bold** */
   tag?: 'origin' | 'transit' | 'detour' | 'arrival';
 }
 
@@ -19,37 +41,209 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { stops, caption, source } = Astro.props;
+const { stops = [] } = Astro.props;
+
+/* The first number in a string ("+779 km" → 779, "1,300 m" → 1300). */
+const numOf = (s?: string): number | undefined => {
+  if (!s) return undefined;
+  const m = String(s).replace(/[−–]/g, '-').match(/-?\d[\d,]*(\.\d+)?/);
+  return m ? parseFloat(m[0].replace(/,/g, '')) : undefined;
+};
+const unitOf = (s?: string) => (s ? (String(s).match(/\d\s*([A-Za-z]+)\s*$/) ?? [])[1] : undefined);
+
+const last = stops[stops.length - 1];
+const totKm = numOf(last?.km);
+const totKmUnit = unitOf(last?.km) ?? 'km';
+const dayM = last?.arrival ? String(last.arrival).match(/day\s*(\d+)/i) : null;
+const totDays = dayM ? parseInt(dayM[1], 10) : undefined;
+
+const elevs = stops.map((s) => numOf(s.elev));
+const elevMax = Math.max(0, ...elevs.filter((v): v is number => v !== undefined));
+const hasElev = elevMax > 0;
+
+const kindOf = (s: Stop, i: number) =>
+  s.tag ?? (i === 0 ? 'origin' : i === stops.length - 1 ? 'arrival' : 'transit');
+const hasDetour = stops.some((s, i) => kindOf(s, i) === 'detour');
+const fmt = (n: number) => n.toLocaleString('en-US');
 ---
 
-<div class="px-journey" data-viz-root>
-  {caption && <div class="px-journey__caption">{caption}</div>}
+<div class="px-journey" data-viz-root data-build-scene data-elev={hasElev ? 'true' : undefined}>
+  <div class="px-journey__tot" data-cue="total">
+    <span class="px-cue-tag" data-cue-tag="total" hidden></span>
+    {totKm !== undefined ? (
+      <span class="px-journey__fig">
+        <b class="px-journey__n px-journey__n--hi" data-build="5" data-build-kind="counter" data-to={totKm}>{fmt(totKm)}</b>
+        <span class="px-journey__u">{totKmUnit}</span>
+      </span>
+    ) : (
+      <span class="px-journey__fig">
+        <b class="px-journey__n px-journey__n--hi" data-build="5" data-build-kind="counter" data-to={stops.length}>{stops.length}</b>
+        <span class="px-journey__u">stops</span>
+      </span>
+    )}
+    {totDays !== undefined && (
+      <span class="px-journey__fig">
+        <b class="px-journey__n" data-build="5" data-build-kind="counter" data-to={totDays}>{totDays}</b>
+        <span class="px-journey__u">days</span>
+      </span>
+    )}
+  </div>
 
-  <ol class="px-journey__list">
-    {stops.map((s, i) => (
-      <li class="px-journey__stop" data-tag={s.tag ?? 'transit'}>
-        <div class="px-journey__rail">
-          <span class="px-journey__pin" aria-hidden="true"></span>
-          {i < stops.length - 1 && <span class="px-journey__line" aria-hidden="true"></span>}
-        </div>
-        <div class="px-journey__body">
-          <div class="px-journey__head">
-            <span class="px-journey__place">{s.place}</span>
-            {s.region && <span class="px-journey__region">· {s.region}</span>}
+  <ol class="px-journey__list" data-cue="line">
+    {stops.map((s, i) => {
+      const k = kindOf(s, i);
+      const e = elevs[i];
+      const peak = e !== undefined && e === elevMax;
+      return (
+        <li class="px-journey__stop" data-tag={k} data-cue={i + 1} title={s.note ? stripEmphasis(s.note) : undefined}>
+          <div class="px-journey__when">
+            {s.arrival && <b>{s.arrival}</b>}
+            {s.km && <span>{s.km}</span>}
           </div>
-          <div class="px-journey__meta">
-            {s.arrival && <span class="px-journey__arrival">{s.arrival}</span>}
-            {s.km && <span class="px-journey__km">{s.km}</span>}
-            {s.elev && <span class="px-journey__elev">elev {s.elev}</span>}
+          <div class="px-journey__rail" aria-hidden="true">
+            {stops.length > 1 && (
+              <span
+                class="px-journey__seg"
+                data-first={i === 0 ? 'true' : undefined}
+                data-last={i === stops.length - 1 ? 'true' : undefined}
+                data-build="1"
+                data-build-kind="grow-y"
+              ></span>
+            )}
+            <span class="px-journey__pin" data-build="2" data-build-kind="drop"></span>
           </div>
-          {s.note && <div class="px-journey__note" set:html={renderInline(s.note)} />}
-        </div>
-      </li>
-    ))}
+          <div class="px-journey__place" data-build="2" data-build-kind="drop">
+            <span class="px-journey__name"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>{s.place}</span>
+            {s.region && <span class="px-journey__region">{s.region}</span>}
+          </div>
+          {hasElev && (
+            <div class="px-journey__elev">
+              {s.elev && <b data-build="2" data-build-kind="drop">{s.elev}</b>}
+              {e !== undefined && (
+                <span class="px-journey__track">
+                  <i
+                    class="px-journey__bar"
+                    data-peak={peak ? 'true' : undefined}
+                    data-build="3"
+                    data-build-kind="grow-x"
+                    style={`width:${Math.max(3, (e / elevMax) * 100).toFixed(1)}%`}
+                  ></i>
+                </span>
+              )}
+            </div>
+          )}
+          {s.note && <span class="px-journey__sr">{stripEmphasis(s.note)}</span>}
+        </li>
+      );
+    })}
   </ol>
 
-  {/* No source line here. `core/Section.astro` is the ONE source emitter
-     since 2026-09-04; this component's was a `__source` survivor of that
-     sweep, which matched `__src`, so every section with a source printed
-     it twice (measured live 2026-09-22). Same shape as Comparison's. */}
+  <div class="px-journey__legend" data-cue="legend" data-build="4">
+    <span class="px-cue-tag" data-cue-tag="legend" hidden></span>
+    <span class="px-journey__key"><i class="px-journey__kp" data-k="end"></i>Start, end</span>
+    <span class="px-journey__key"><i class="px-journey__kp" data-k="way"></i>On the way</span>
+    {hasDetour && <span class="px-journey__key"><i class="px-journey__kp" data-k="detour"></i>Detour</span>}
+    {hasElev && <span class="px-journey__key"><i class="px-journey__kp" data-k="bar"></i>Height</span>}
+  </div>
+
+  {/* No source line and no caption: core/Section.astro prints both once. */}
 </div>
+
+<style>
+  .px-journey { font-family: var(--font-ui); color: var(--ink); }
+
+  /* the totals: the distance is the ONE headline number, 96 (72 on phones);
+     the days beside it are a secondary figure at 48; each label 8px below
+     its number (LENS §7) */
+  .px-journey__tot {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 28px;
+    margin-bottom: 20px;
+  }
+  .px-journey__fig { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .px-journey__n {
+    font-family: var(--font-ui); font-weight: 600; font-size: 48px; line-height: 0.92;
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .px-journey__n--hi { font-size: 96px; color: var(--accent-deep); }
+  @media (max-width: 640px) { .px-journey__n--hi { font-size: 72px; } }
+  .px-journey__u { font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--ink-2); }
+  .px-journey__tot > .px-cue-tag { align-self: center; }
+
+  .px-journey__list { list-style: none; margin: 0; padding: 0; }
+  .px-journey__stop {
+    position: relative;
+    display: grid;
+    grid-template-columns: 64px 24px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+    padding: 6px 0;
+  }
+  .px-journey[data-elev] .px-journey__stop { grid-template-columns: 64px 24px minmax(0, 1fr) 104px; }
+
+  .px-journey__when { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 2px; }
+  .px-journey__when b { font-size: 13px; line-height: 1.3; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-journey__when span { font-size: 12px; line-height: 1.3; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* the rail: one segment per row, joined across the rows' padding */
+  .px-journey__rail { position: relative; align-self: stretch; }
+  .px-journey__seg {
+    position: absolute; left: 11px; width: 2px;
+    top: -6px; bottom: -6px;
+    background: var(--accent);
+    transform-origin: 50% 0;
+  }
+  .px-journey__seg[data-first] { top: 14px; }
+  .px-journey__seg[data-last] { bottom: auto; height: 20px; }
+  .px-journey__pin {
+    position: absolute; left: 5px; top: 8px;
+    width: 14px; height: 14px; box-sizing: border-box;
+    border-radius: 999px; border: 2px solid var(--accent); background: var(--paper-2);
+  }
+  .px-journey__stop[data-tag='origin'] .px-journey__pin,
+  .px-journey__stop[data-tag='arrival'] .px-journey__pin {
+    background: var(--accent); box-shadow: inset 0 0 0 2px var(--paper-2);
+  }
+  .px-journey__stop[data-tag='detour'] .px-journey__pin {
+    border-radius: 1px; transform: rotate(45deg); width: 12px; height: 12px; left: 6px; top: 9px;
+  }
+
+  .px-journey__place { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .px-journey__name {
+    font-size: 15px; line-height: 1.3; font-weight: 600; color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-journey__name .px-cue-tag { margin-right: 6px; vertical-align: 1px; }
+  .px-journey__region { font-size: 12px; line-height: 1.3; color: var(--muted); }
+
+  .px-journey__elev { display: flex; flex-direction: column; gap: 5px; padding-top: 2px; min-width: 0; }
+  .px-journey__elev b { font-size: 13px; line-height: 1.2; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-journey__track { display: block; height: 6px; border-radius: 999px; background: var(--paper-3); overflow: hidden; }
+  .px-journey__bar { display: block; height: 100%; border-radius: 999px; background: var(--accent); transform-origin: 0 50%; }
+  .px-journey__bar[data-peak] { background: var(--accent-deep); }
+
+  .px-journey__sr {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .px-journey__legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hair);
+    font-size: 13px; line-height: 1.3; color: var(--ink-2);
+  }
+  .px-journey__key { display: inline-flex; align-items: center; gap: 6px; }
+  .px-journey__kp { display: inline-block; flex: none; box-sizing: border-box; }
+  .px-journey__kp[data-k='end'] { width: 12px; height: 12px; border-radius: 999px; background: var(--accent); }
+  .px-journey__kp[data-k='way'] { width: 12px; height: 12px; border-radius: 999px; border: 2px solid var(--accent); }
+  .px-journey__kp[data-k='detour'] { width: 10px; height: 10px; border: 2px solid var(--accent); transform: rotate(45deg); margin: 0 1px; }
+  .px-journey__kp[data-k='bar'] { width: 18px; height: 6px; border-radius: 999px; background: var(--accent); }
+
+  @media (max-width: 520px) {
+    .px-journey__stop { grid-template-columns: 52px 20px minmax(0, 1fr); column-gap: 8px; }
+    .px-journey[data-elev] .px-journey__stop { grid-template-columns: 52px 20px minmax(0, 1fr) 72px; }
+    .px-journey__seg { left: 9px; }
+    .px-journey__pin { left: 3px; }
+    .px-journey__stop[data-tag='detour'] .px-journey__pin { left: 4px; }
+    .px-journey__name { font-size: 14px; }
+  }
+</style>

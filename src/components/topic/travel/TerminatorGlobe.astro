@@ -1,27 +1,42 @@
 ---
 /**
- * TerminatorGlobe (travel · FLAGSHIP + world signature) — "The reason your body
- * is wrong, drawn on the actual planet." A real country-outline Earth lit for
- * one instant: the subsolar-anchored day/night terminator, the antisolar night
- * wash, and the great-circle flight arc crossing it. Rendered lazily by the
- * WebGL runtime (scene 'terminator-globe'); drag to spin, scroll to zoom, hover
- * a city for its local clock, press ARRIVAL to advance the sun to landing.
+ * TerminatorGlobe (`terminator-globe`, travel FLAGSHIP) — "the reason your
+ * body is wrong, drawn on the actual planet" (Lens Phase 6, the
+ * Lib-terminator-globe board). On the desk's deep plate: the hours aloft set
+ * large; a real country-outline Earth lit for the departure instant, night
+ * shaded, the day and night line dashed, the great-circle flight in the desk
+ * mark from one city to the other; a key under it. Rendered lazily by the
+ * WebGL runtime (scene 'terminator-globe': drag to spin, the ARRIVAL chip
+ * moves the sun to landing); the static fallback is the same projection
+ * computed at build time from the same pure functions (kepler.ts,
+ * terminator.ts), so no-JS, reduced-motion and no-WebGL readers get the
+ * identical still.
  *
- * Blueprint (the contract): docs/design/blueprints/travel/terminator-globe.md.
- * Math: kepler.ts (subsolarPoint / greatCircle) + terminator.ts (ring /
- * day-night / clocks) — the SAME pure functions compute the static orthographic
- * fallback below at build time, so the no-JS / reduced-motion / no-WebGL reader
- * gets the identical epoch-correct still (departure instant), plus the
- * ticket-stub ledger that carries every honest number in words.
+ * On the plate (LENS §8): words in --on-deep, rules --on-deep-hair, marks in
+ * the desk mark. The scene reads its colours from the mount's custom
+ * properties, which this component points at the plate's (scenes/
+ * terminatorGlobe.ts lifts the globe off a dark ground and darkens the
+ * night there).
  *
- * data: { epoch, from{city,lat,lon,tzOffsetH}, to{...}, flightHours,
- *         arcBulge?, caption?, source? }
+ * The city labels are HTML over the fallback drawing, placed in percent, so
+ * they print at 13 / 12px at any width (the mount pins an aspect ratio, so a
+ * scroll could not help). The cue anchors live on that fallback and its label
+ * layer, never on the canvas (Phase 6 brief §9). The build runs on the
+ * number and the key only, which sit outside the mount: the fallback is
+ * hidden once the scene is live, so nothing inside it may build.
  *
- * `showEoT` (an equation-of-time toggle) was declared here and forwarded by
- * SectionBody, but neither this component nor scenes/terminatorGlobe.ts ever
- * read it. Struck 2026-09-15 rather than implemented: nothing authored it,
- * and the terminator is drawn from the mean-solar position that
- * scripts/viz3d/terminator.ts already computes.
+ * Cue anchors:
+ *   line    the day and night line (the terminator)
+ *   night   the night side (its wash, and its key)
+ *   arc     the flight's great circle (its path, and its key)
+ *   from    the departure city (its pin and label)
+ *   to      the arrival city (its pin and label)
+ *   hours   the hours aloft, the number above
+ *
+ * Build (src/scripts/build.ts, LENS §6.4): 1 the key, 2 the number. The
+ * scene's own boot reveal and its one idle loop stay (the runtime's).
+ *
+ * data: { epoch, from: {city, lat, lon, tzOffsetH}, to: {…}, flightHours, arcBulge? }
  */
 import { geoOrthographic, geoPath, geoCircle } from 'd3-geo';
 import { mesh as topomesh } from 'topojson-client';
@@ -30,7 +45,7 @@ import { join } from 'path';
 import { subsolarPoint, greatCircle } from '../../../scripts/viz3d/kepler';
 import {
   terminatorRing, antisolarPoint, isDaylight, groundDistanceKm,
-  localClock, offsetLabel, clampBulge, fmtHours, fmtKm,
+  localClock, offsetLabel, clampBulge, fmtKm,
 } from '../../../scripts/viz3d/terminator';
 
 interface City { city: string; lat: number; lon: number; tzOffsetH: number }
@@ -49,346 +64,239 @@ const {
   to = { city: 'To', lat: 0, lon: 0, tzOffsetH: 0 },
   flightHours = 0,
   arcBulge,
-  caption,
-  source,
 } = Astro.props;
 
 const bulge = clampBulge(arcBulge);
 const epochMs = Date.parse(epoch + (epoch.length <= 10 ? 'T00:00:00Z' : ''));
 const arrivalMs = epochMs + flightHours * 3600000;
-
-/* ── the departure-instant sun (the composed still is the departure state) ── */
 const sub = subsolarPoint(epochMs);
 const anti = antisolarPoint(sub);
 
-/* ── orthographic globe centred on the arc midpoint (crossing faces reader) ── */
-const W = 720, H = 460, cx = 360, cy = 220, Rpx = 180;
+/* ── orthographic globe, centred a little south of the arc midpoint so the
+   arc rides the upper half (the board's framing) ── */
+const W = 460, H = 366, cx = 230, cy = 183, Rpx = 172;
 const midPt = greatCircle({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, 2)[1];
-const proj = geoOrthographic()
-  .scale(Rpx)
-  .translate([cx, cy])
-  .clipAngle(90)                      // native near-hemisphere clipping
-  .rotate([-midPt.lon, -midPt.lat]);
+const proj = geoOrthographic().scale(Rpx).translate([cx, cy]).clipAngle(90)
+  .rotate([-midPt.lon, -Math.max(-60, midPt.lat - 18)]);
 const pathGen = geoPath(proj);
 
-/* country outlines — 110m mesh (SAME resolution the live globe loads, so scene
-   and fallback match), one clipped path, coords rounded + lightly decimated to
-   respect the SVG-node budget (blueprint §10). */
-const topo = JSON.parse(
-  readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-110m.json'), 'utf-8'),
-) as any;
+const topo = JSON.parse(readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-110m.json'), 'utf-8')) as any;
 const bordersGeo = topomesh(topo, topo.objects.countries);
-function orthoLinePath(geo: any, round = 1, minStep = 2.2): string {
-  const lines: number[][][] = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
+function lines(geo: any, minStep = 2): string {
+  const ls: number[][][] = geo.type === 'MultiLineString' ? geo.coordinates : [geo.coordinates];
   let d = '';
-  for (const line of lines) {
-    let started = false, lx = 0, ly = 0;
+  for (const line of ls) {
+    let on = false, lx = 0, ly = 0;
     for (const c of line) {
       const p = proj(c as [number, number]);
-      if (!p) { started = false; continue; }         // point on the far hemisphere
-      const x = +p[0].toFixed(round), y = +p[1].toFixed(round);
-      if (!started) { d += `M${x} ${y}`; started = true; lx = x; ly = y; }
+      if (!p) { on = false; continue; }
+      const x = +p[0].toFixed(1), y = +p[1].toFixed(1);
+      if (!on) { d += `M${x} ${y}`; on = true; lx = x; ly = y; }
       else if (Math.hypot(x - lx, y - ly) >= minStep) { d += `L${x} ${y}`; lx = x; ly = y; }
     }
   }
   return d;
 }
-const countryPath = orthoLinePath(bordersGeo);
+const countryPath = lines(bordersGeo);
 
-/* graticule (equator + a few parallels/meridians), clipped by the projection */
-function graticulePath(): string {
-  let d = '';
-  const seg = (pts: [number, number][]) => {
-    let started = false;
-    for (const c of pts) {
-      const p = proj(c);
-      if (!p) { started = false; continue; }
-      d += (started ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
-      started = true;
-    }
-  };
-  for (const lat of [-60, -30, 0, 30, 60]) {
-    const pts: [number, number][] = [];
-    for (let lon = -180; lon <= 180; lon += 6) pts.push([lon, lat]);
-    seg(pts);
-  }
-  for (let lon = -150; lon <= 180; lon += 30) {
-    const pts: [number, number][] = [];
-    for (let lat = -80; lat <= 80; lat += 4) pts.push([lon, lat]);
-    seg(pts);
+function seg(pts: [number, number][]): string {
+  let d = '', on = false;
+  for (const c of pts) {
+    const p = proj(c);
+    if (!p) { on = false; continue; }
+    d += `${on ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+    on = true;
   }
   return d;
 }
-const gratPath = graticulePath();
+let gratPath = '';
+for (const lat of [-60, -30, 0, 30, 60]) gratPath += seg(Array.from({ length: 61 }, (_, k) => [-180 + k * 6, lat] as [number, number]));
+for (let lon = -150; lon <= 180; lon += 30) gratPath += seg(Array.from({ length: 41 }, (_, k) => [lon, -80 + k * 4] as [number, number]));
 
-/* ── terminator ring (128-sampled great circle 90° from the subsolar point) ── */
 const ringPts = terminatorRing(sub, 128);
-function ringPath(pts: { lat: number; lon: number }[]): string {
-  // project each vertex; break the path wherever a vertex is on the far side
-  let d = '';
-  let started = false;
-  for (const p of [...pts, pts[0]]) {
-    const q = proj([p.lon, p.lat]);
-    if (!q) { started = false; continue; }
-    d += (started ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1);
-    started = true;
-  }
-  return d;
-}
-const termPath = ringPath(ringPts);
-
-/* ── night wash: the antisolar hemisphere as a filled clipped region ──
-   d3.geoPath of a geoCircle(90° around the antisolar point) is auto-clipped to
-   the visible hemisphere by the orthographic projection, so it paints exactly
-   the dusk extent on the near face (blueprint §7). */
-const nightCircle = geoCircle().center([anti.lon, anti.lat]).radius(90)();
-const nightPath = pathGen(nightCircle) || '';
-
-/* ── flight arc: 64-seg great circle, bulged, projected (drop far-side pts) ── */
+const termPath = seg([...ringPts, ringPts[0]].map((p) => [p.lon, p.lat] as [number, number]));
+const nightPath = pathGen(geoCircle().center([anti.lon, anti.lat]).radius(90)()) || '';
 const arcPts = greatCircle({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon }, 64);
-function arcPath(): string {
-  let d = '', started = false;
-  arcPts.forEach((p) => {
-    const q = proj([p.lon, p.lat]);
-    if (!q) { started = false; return; }
-    d += (started ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1);
-    started = true;
-  });
-  return d;
-}
-const flightPath = arcPath();
+const flightPath = seg(arcPts.map((p) => [p.lon, p.lat] as [number, number]));
 
-/* endpoints — visible only if on the near hemisphere */
-const projPin = (c: City) => {
+const pin = (c: { lat: number; lon: number }) => {
   const q = proj([c.lon, c.lat]);
   return q ? { x: q[0], y: q[1], vis: true } : { x: 0, y: 0, vis: false };
 };
-const fromPin = projPin(from);
-const toPin = projPin(to);
-const subPin = (() => { const q = proj([sub.lon, sub.lat]); return q ? { x: q[0], y: q[1], vis: true } : { x: 0, y: 0, vis: false }; })();
+const fromPin = pin(from);
+const toPin = pin(to);
+const arcMid = pin(arcPts[32]);
+// the line's numeral where the visible terminator is farthest from both
+// city labels and the arc's numeral (their HTML labels keep their size on a
+// phone, where the globe shrinks). The night side carries no numeral of its
+// own: its wash and its key are the anchor.
+const busy = [fromPin, toPin, arcMid].filter((p) => p.vis);
+const termVis = ringPts.map((p) => pin(p)).filter((p) => p.vis && Math.hypot(p.x - cx, p.y - cy) < Rpx * 0.88);
+const clear = (p: { x: number; y: number }) => Math.min(...busy.map((q) => Math.hypot(q.x - p.x, q.y - p.y)), 1e9);
+const termTag = termVis.length
+  ? termVis.reduce((m, p) => (clear(p) > clear(m) ? p : m), termVis[0])
+  : { x: cx, y: cy, vis: false };
 
-/* Fallback labels are HTML, not SVG text (2026-09-24). The plate is a 720-unit
-   drawing pinned to the mount's 720/460 aspect, so on a 375px phone it renders
-   at 0.46× and 9.5-unit SVG type lands at 4.4px; a min-width cannot help while
-   the mount's aspect is pinned. HTML labels positioned in % of the same box
-   keep their CSS size at every width. Each label sits on the side of its pin
-   that faces the globe's centre, so it never runs out of the clipped mount. */
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 const side = (x: number) => (x > cx ? 'l' : 'r');
 
-/* ── stub-ledger numbers (the AT-readable data source, blueprint §7) ── */
 const distKm = groundDistanceKm({ lat: from.lat, lon: from.lon }, { lat: to.lat, lon: to.lon });
-const depClock = localClock(epochMs, from.tzOffsetH);
-const arrClock = localClock(arrivalMs, to.tzOffsetH);
+const dep = localClock(epochMs, from.tzOffsetH);
+const arr = localClock(arrivalMs, to.tzOffsetH);
 const dayTag = (d: number) => (d < 0 ? ' (prev day)' : d > 0 ? ' (+1)' : '');
+const light = (c: City) => (isDaylight({ lat: c.lat, lon: c.lon }, sub) ? 'in daylight' : 'in darkness');
+const hoursTxt = (() => {
+  const r = Math.round(flightHours * 2) / 2;
+  if (Math.abs(r - flightHours) < 0.01) return Number.isInteger(r) ? String(r) : `${Math.floor(r)}½`;
+  return flightHours.toFixed(1);
+})();
 const phaseH = Math.abs(from.tzOffsetH - to.tzOffsetH);
-const tzShort = (offsetH: number) => offsetLabel(offsetH).replace('UTC', '').replace(':00', '');
-const stubLine = `${from.city} → ${to.city} · ${fmtKm(distKm)} km · dep ${depClock.hhmm}${dayTag(depClock.dayDelta)} ${tzShort(from.tzOffsetH)} · arr ${arrClock.hhmm}${dayTag(arrClock.dayDelta)} ${tzShort(to.tzOffsetH)} · ${fmtHours(phaseH)} out of phase`;
-
-/* ── legend rows (two cities — well under the 5-row collapse threshold, §7) ── */
-const rows = [from, to].map((c) => ({
-  city: c.city,
-  clock: localClock(epochMs, c.tzOffsetH),
-  tz: offsetLabel(c.tzOffsetH),
-  light: isDaylight({ lat: c.lat, lon: c.lon }, sub) ? 'in daylight' : 'in darkness',
-}));
-
-/* arrival-instant local clock for the ARRIVAL chip label */
-const arrLocalTo = localClock(arrivalMs, to.tzOffsetH);
-const arrChipLabel = `ARRIVAL — ${arrLocalTo.hhmm}${dayTag(arrLocalTo.dayDelta)}`;
-
+const arrLabel = `Arrival ${arr.hhmm}${dayTag(arr.dayDelta)}`;
+const aria = `Globe lit for ${epoch}: ${from.city} ${dep.hhmm} ${light(from)} to ${to.city}, arriving ${arr.hhmm}${dayTag(arr.dayDelta)} local, ${fmtKm(distKm)} km, ${hoursTxt} hours aloft, ${phaseH} hours of clock difference`;
 const payload = JSON.stringify({ epoch, from, to, flightHours, arcBulge: bulge });
 ---
 
-<div class="px-viz">
-  {caption && (
-    <div class="px-viz__cap">
-      <span>{caption}</span>
-      <b>{fmtKm(distKm)} km · {fmtHours(phaseH)} out of phase</b>
-    </div>
-  )}
-
-  <div class="px-tglobe__stage">
-    <div
-      class="viz3d viz3d--tglobe"
-      data-viz3d="terminator-globe"
-      data-viz3d-state="departure"
-      role="img"
-      aria-label={caption ? `Day/night globe: ${caption}` : 'Day/night globe with flight arc'}
-    >
-      <div class="viz3d__fallback">
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-          {/* the globe disc — paper face so near-side lines read as line-art */}
-          <circle cx={cx} cy={cy} r={Rpx} fill="var(--paper)" stroke="var(--rule)" stroke-width="1" opacity="0.9" />
-          {/* graticule */}
-          <path d={gratPath} fill="none" stroke="var(--ink)" stroke-width="0.6" opacity="0.10" />
-          {/* night wash — antisolar hemisphere, --ink @ 0.28 (the print day/night line) */}
-          {nightPath && <path d={nightPath} fill="var(--ink)" fill-opacity="0.28" stroke="none" />}
-          {/* country outlines (near hemisphere), --ink @ 0.42 */}
-          <path d={countryPath} fill="none" stroke="var(--ink)" stroke-width="0.9" opacity="0.42"
-            stroke-linejoin="round" stroke-linecap="round" />
-          {/* terminator line — the day/night boundary, --ink @ 0.9 */}
-          {termPath && <path d={termPath} fill="none" stroke="var(--ink)" stroke-width="1.5" opacity="0.9" />}
-          {/* SUBSOLAR tick — where it is noon (its label is HTML, below) */}
-          {subPin.vis && (
-            <circle cx={subPin.x} cy={subPin.y} r="2.4" fill="var(--ink)" opacity="0.55" />
-          )}
-          {/* flight arc — --accent @ 0.85 */}
-          {flightPath && <path d={flightPath} fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.85" />}
-          {/* endpoints — accent dots (their place names are HTML, below) */}
-          {[fromPin, toPin].map((p) => p.vis && (
-            <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />
-          ))}
-        </svg>
-        {subPin.vis && (
-          <span class="px-tglobe__fl px-tglobe__fl--sub" data-side={side(subPin.x)}
-            style={`left:${pct(subPin.x, W)};top:${pct(subPin.y, H)}`}>SUBSOLAR</span>
-        )}
-        {[{ p: fromPin, c: from }, { p: toPin, c: to }].map(({ p, c }) => p.vis && (
-          <span class="px-tglobe__fl px-tglobe__fl--city" data-side={side(p.x)}
-            style={`left:${pct(p.x, W)};top:${pct(p.y, H)}`}>{c.city}</span>
-        ))}
-      </div>
-      <span class="viz3d__hint" aria-hidden="true">drag to spin · scroll to zoom</span>
-      <script type="application/json" class="viz3d__data" set:html={payload}></script>
-    </div>
-
-    {/* state chips — hidden until the WebGL scene is live (the fallback is a
-        single composed departure instant; §7). Real buttons: focusable,
-        aria-pressed, mono pill per CANON §9 (2 states ≤ 3). */}
-    <div class="px-tglobe__chips">
-      <button type="button" class="px-tglobe__chip is-on" data-state="departure" aria-pressed="true">Departure</button>
-      <button type="button" class="px-tglobe__chip" data-state="arrival" aria-pressed="false">{arrChipLabel}</button>
-    </div>
+<div class="px-tglobe" data-viz-root>
+  {/* the scene is the plate without the chips: they appear only once the
+      WebGL scene is live, and a scene must end where the static page ends */}
+  <div class="px-tglobe__scene" data-build-scene>
+  <div class="px-tglobe__head" data-cue="hours">
+    <b class="px-tglobe__n" data-build="2" data-build-kind="rise">{hoursTxt}</b>
+    <span class="px-tglobe__u">hours aloft<span class="px-cue-tag" data-cue-tag="hours" hidden></span></span>
   </div>
 
-  <script is:inline>
-    (function () {
-      var root = document.currentScript && document.currentScript.previousElementSibling;
-      while (root && !(root.classList && root.classList.contains('px-tglobe__stage'))) {
-        root = root.previousElementSibling;
-      }
-      if (!root) return;
-      var mount = root.querySelector('[data-viz3d="terminator-globe"]');
-      var chips = root.querySelectorAll('.px-tglobe__chip');
-      if (!mount || !chips.length) return;
-      function onClick() {
-        var s = this.getAttribute('data-state') || 'departure';
-        mount.setAttribute('data-viz3d-state', s);
-        for (var k = 0; k < chips.length; k++) {
-          var on = chips[k] === this;
-          chips[k].setAttribute('aria-pressed', on ? 'true' : 'false');
-          chips[k].classList.toggle('is-on', on);
-        }
-      }
-      for (var i = 0; i < chips.length; i++) chips[i].addEventListener('click', onClick);
-    })();
-  </script>
-
-  {/* ticket-stub ledger — the honest numbers in words (the AT-readable source) */}
-  <div class="px-tglobe__stub" aria-label="Flight ledger">
-    <span class="px-tglobe__perf" aria-hidden="true"></span>
-    <span class="px-tglobe__stub-line">{stubLine}</span>
+  <div class="viz3d viz3d--tglobe" data-viz3d="terminator-globe" data-viz3d-state="departure" role="img" aria-label={aria}>
+    <div class="viz3d__fallback">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <circle cx={cx} cy={cy} r={Rpx} fill="color-mix(in oklab, var(--deep) 84%, var(--on-deep))" />
+        {nightPath && <path d={nightPath} fill="color-mix(in oklab, var(--deep) 45%, #000)" fill-opacity="0.8" data-cue="night" />}
+        <path d={gratPath} fill="none" stroke="var(--on-deep-hair)" stroke-width="1" />
+        <path d={countryPath} fill="none" stroke="var(--on-deep)" stroke-opacity="0.5" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round" />
+        <circle cx={cx} cy={cy} r={Rpx} fill="none" stroke="var(--on-deep-hair)" stroke-width="1" />
+        {termPath && <path d={termPath} fill="none" stroke="var(--on-deep)" stroke-opacity="0.85" stroke-width="1.75" stroke-dasharray="5 4" data-cue="line" />}
+        {flightPath && <path d={flightPath} fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" data-cue="arc" />}
+        {fromPin.vis && <circle cx={fromPin.x.toFixed(1)} cy={fromPin.y.toFixed(1)} r="6" fill="var(--accent)" stroke="var(--on-deep)" stroke-width="1.5" data-cue="from" />}
+        {toPin.vis && <circle cx={toPin.x.toFixed(1)} cy={toPin.y.toFixed(1)} r="6" fill="var(--accent)" stroke="var(--on-deep)" stroke-width="1.5" data-cue="to" />}
+      </svg>
+      {[{ p: fromPin, c: from, id: 'from', clk: dep }, { p: toPin, c: to, id: 'to', clk: arr }].map(({ p, c, id, clk }) => p.vis && (
+        <span class="px-tglobe__city" data-cue={id} data-side={side(p.x)} data-up={p.y > cy ? undefined : 'true'}
+          style={`left:${pct(p.x, W)};top:${pct(p.y, H)}`}>
+          <span class="px-cue-tag" data-cue-tag={id} hidden></span>
+          <span class="px-tglobe__ct"><b>{`${c.city} ${clk.hhmm}${dayTag(clk.dayDelta)}`}</b><span>{offsetLabel(c.tzOffsetH)}</span></span>
+        </span>
+      ))}
+      <span class="px-tglobe__tag" data-cue="line" style={`left:${pct(termTag.x, W)};top:${pct(termTag.y, H)}`}><span class="px-cue-tag" data-cue-tag="line" hidden></span></span>
+      {arcMid.vis && (
+        <span class="px-tglobe__tag" data-cue="arc" style={`left:${pct(arcMid.x, W)};top:${pct(arcMid.y - 18, H)}`}><span class="px-cue-tag" data-cue-tag="arc" hidden></span></span>
+      )}
+    </div>
+    <span class="viz3d__hint" aria-hidden="true">drag to spin</span>
+    <script type="application/json" class="viz3d__data" set:html={payload}></script>
   </div>
 
-  {/* two-city legend (day/night at the departure instant) */}
-  <ul class="px-tglobe__legend">
-    {rows.map((r) => (
-      <li class="px-tglobe__row">
-        <span class="px-tglobe__dot"></span>
-        <span class="px-tglobe__name">{r.city}</span>
-        <span class="px-tglobe__meta">{r.clock.hhmm}{dayTag(r.clock.dayDelta)} · {r.tz} · {r.light}</span>
-      </li>
-    ))}
-  </ul>
+  <div class="px-tglobe__key" data-build="1">
+    <span class="px-tglobe__k"><i class="px-tglobe__sw" data-k="day"></i>day side</span>
+    <span class="px-tglobe__k" data-cue="night"><i class="px-tglobe__sw" data-k="night"></i>night side</span>
+    <span class="px-tglobe__k" data-cue="arc"><i class="px-tglobe__sw" data-k="arc"></i>the flight</span>
+  </div>
+  </div>
 
+  {/* the scene's two instants: shown only once the WebGL scene is live, in
+      flow under the plate (never floating over it on touch) */}
+  <div class="px-tglobe__chips">
+    <button type="button" class="px-tglobe__chip" data-state="departure" aria-pressed="true">Departure {dep.hhmm}</button>
+    <button type="button" class="px-tglobe__chip" data-state="arrival" aria-pressed="false">{arrLabel}</button>
+  </div>
 </div>
 
+<script is:inline>
+  (function () {
+    var s = document.currentScript;
+    var root = s && s.previousElementSibling;
+    if (!root || !root.classList.contains('px-tglobe')) return;
+    var mount = root.querySelector('[data-viz3d="terminator-globe"]');
+    var chips = root.querySelectorAll('.px-tglobe__chip');
+    if (!mount || !chips.length) return;
+    function onClick() {
+      var st = this.getAttribute('data-state') || 'departure';
+      mount.setAttribute('data-viz3d-state', st);
+      for (var k = 0; k < chips.length; k++) chips[k].setAttribute('aria-pressed', chips[k] === this ? 'true' : 'false');
+    }
+    for (var i = 0; i < chips.length; i++) chips[i].addEventListener('click', onClick);
+  })();
+</script>
+
 <style>
-  .viz3d--tglobe { aspect-ratio: 720 / 460; }
-  .px-tglobe__stage { position: relative; }
+  .px-tglobe {
+    background: var(--deep); color: var(--on-deep);
+    border-radius: var(--r-card); padding: 20px;
+    font-family: var(--font-ui);
+  }
+  /* the ONE headline number at 96 (72 on phones), its label 8px below it
+     (LENS §7) */
+  .px-tglobe__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .px-tglobe__n {
+    font-weight: 600; font-size: 96px; line-height: 0.92; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--on-deep);
+  }
+  .px-tglobe__u {
+    display: inline-flex; align-items: center; gap: 8px; padding-bottom: 0;
+    font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--on-deep-2);
+  }
+  .px-tglobe__u .px-cue-tag { margin: 0; }
+  @media (max-width: 640px) { .px-tglobe__n { font-size: 72px; } }
 
-  /* fallback labels — HTML over the plate, fixed CSS size at every width.
-     Anchored at the pin; `data-side` puts the text on the pin's inward side. */
-  .px-tglobe__fl {
-    position: absolute; z-index: 1;
-    white-space: nowrap; pointer-events: none; line-height: 1;
-    text-shadow:
-      0 0 2px var(--paper), 0 0 2px var(--paper),
-      1px 0 0 var(--paper), -1px 0 0 var(--paper), 0 1px 0 var(--paper), 0 -1px 0 var(--paper);
+  /* the mount on the plate: the scene reads these as its colours */
+  .viz3d--tglobe {
+    aspect-ratio: 460 / 366;
+    background: transparent;
+    --paper: var(--deep);
+    --paper-2: var(--deep);
+    --ink: var(--on-deep);
+    --muted: var(--on-deep-2);
+    --accent-deep: var(--on-deep);
   }
-  .px-tglobe__fl--city {
-    font-family: var(--font-display); font-style: italic; font-size: 13px;
-    color: var(--accent-deep);
-    transform: translate(8px, -50%);
-  }
-  .px-tglobe__fl--city[data-side='l'] { transform: translate(calc(-100% - 8px), -50%); }
-  .px-tglobe__fl--sub {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em;
-    color: var(--muted);
-    transform: translate(6px, calc(-100% - 4px));
-  }
-  .px-tglobe__fl--sub[data-side='l'] { transform: translate(calc(-100% - 6px), calc(-100% - 4px)); }
 
-  /* state chips — shown only when the WebGL scene is live */
-  .px-tglobe__chips {
-    display: none;
-    position: absolute; top: 10px; right: 12px; z-index: 3;
-    gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  .px-tglobe__city {
+    position: absolute; z-index: 1; pointer-events: none;
+    display: inline-flex; align-items: flex-start; gap: 6px;
+    translate: 10px 8px;
+    text-shadow: 0 0 3px var(--deep), 0 0 3px var(--deep), 0 0 6px var(--deep);
   }
-  .viz3d--live + .px-tglobe__chips { display: flex; }
+  .px-tglobe__city[data-up] { translate: 10px calc(-100% - 8px); }
+  .px-tglobe__city[data-side='l'] { flex-direction: row-reverse; translate: calc(-100% - 10px) 8px; }
+  .px-tglobe__city[data-side='l'][data-up] { translate: calc(-100% - 10px) calc(-100% - 8px); }
+  .px-tglobe__city[data-side='l'] .px-tglobe__ct { align-items: flex-end; text-align: right; }
+  .px-tglobe__ct { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+  .px-tglobe__ct b { font-size: 13px; line-height: 1.2; font-weight: 600; color: var(--on-deep); }
+  .px-tglobe__ct span { font-size: 12px; line-height: 1.2; color: var(--on-deep-2); }
+  .px-tglobe__city .px-cue-tag { margin: 0; }
+  .px-tglobe__tag { position: absolute; z-index: 1; translate: -50% -50%; line-height: 0; }
+  .px-tglobe__tag .px-cue-tag { margin: 0; }
+  .px-tglobe .px-cue-tag { box-shadow: 0 0 0 2px var(--deep); }
+  .px-tglobe__tag[data-cue], .px-tglobe__city[data-cue] { outline: none !important; }
+
+  .px-tglobe__chips { display: none; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .px-tglobe:has(.viz3d--live) .px-tglobe__chips { display: flex; }
   .px-tglobe__chip {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
-    text-transform: uppercase; font-variant-numeric: tabular-nums;
-    color: var(--ink-soft);
-    background: color-mix(in oklab, var(--paper) 88%, transparent);
-    border: 1px solid var(--rule); border-radius: 999px;
-    padding: 7px 12px; min-height: 30px; cursor: pointer;
-    transition: transform 80ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+    min-height: 44px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--on-deep-hair); background: transparent; color: var(--on-deep-2);
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums;
+    cursor: pointer; transition: color var(--t-micro, 160ms) var(--ease), border-color var(--t-micro, 160ms) var(--ease);
   }
-  .px-tglobe__chip:active { transform: scale(0.98); }
-  .px-tglobe__chip.is-on { color: var(--accent-deep); border-color: var(--accent-deep); }
-  @media (pointer: coarse) {
-    .px-tglobe__chip { min-height: 44px; padding: 10px 14px; }
-  }
+  .px-tglobe__chip:hover { border-color: var(--on-deep-2); color: var(--on-deep); }
+  .px-tglobe__chip[aria-pressed='true'] { border-color: var(--accent); color: var(--on-deep); }
+  .px-tglobe__chip:focus-visible { outline: 2px solid var(--on-deep); outline-offset: 2px; }
 
-  /* ticket-stub ledger (travel signature furniture — --tape fill, perforation) */
-  .px-tglobe__stub {
-    position: relative;
-    margin-top: 16px;
-    display: flex; align-items: center; gap: 12px;
-    background: var(--tape);
-    border-radius: 6px;
-    padding: 11px 16px 11px 22px;
-    overflow: hidden;
-  }
-  .px-tglobe__perf {
-    position: absolute; left: 0; top: 0; bottom: 0; width: 12px;
-    background-image: radial-gradient(circle at 6px center,
-      color-mix(in oklab, var(--ink) 22%, transparent) 1.6px, transparent 2.2px);
-    background-size: 12px 11px; background-repeat: repeat-y;
-  }
-  .px-tglobe__stub-line {
-    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em;
-    line-height: 1.5; color: var(--ink); font-variant-numeric: tabular-nums;
-  }
-
-  /* two-city legend */
-  .px-tglobe__legend { list-style: none; margin: 14px 0 0; padding: 0; }
-  .px-tglobe__row {
-    display: grid; grid-template-columns: 14px auto 1fr; gap: 12px; align-items: baseline;
-    padding: 8px 0; border-bottom: 1px dashed var(--rule);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-tglobe__dot { width: 9px; height: 9px; border-radius: 50%; align-self: center; background: var(--accent); }
-  .px-tglobe__name { font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--accent-deep); font-weight: 500; }
-  .px-tglobe__meta {
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.04em; color: var(--muted); text-align: right;
-  }
+  .px-tglobe__key { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+  .px-tglobe__k { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1.3; color: var(--on-deep-2); }
+  .px-tglobe__k[data-cue] { outline: none !important; }
+  .px-tglobe__sw { display: inline-block; width: 12px; height: 12px; border-radius: 999px; border: 1px solid var(--on-deep-hair); }
+  .px-tglobe__sw[data-k='day'] { background: color-mix(in oklab, var(--deep) 84%, var(--on-deep)); }
+  .px-tglobe__sw[data-k='night'] { background: color-mix(in oklab, var(--deep) 45%, #000); }
+  .px-tglobe__sw[data-k='arc'] { width: 18px; height: 3px; border: 0; border-radius: 2px; background: var(--accent); }
 
   @media (prefers-reduced-motion: reduce) {
     .px-tglobe__chip { transition: none; }
-    .px-tglobe__chip:active { transform: none; }
   }
 </style>

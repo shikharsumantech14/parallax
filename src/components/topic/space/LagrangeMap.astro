@@ -1,27 +1,36 @@
 ---
 /**
- * LagrangeMap (space) — the CR3BP effective-potential landscape. The rotating-
- * frame gravity-plus-centrifugal terrain of a two-body system, drawn as a
- * log-shaded contour field with the five Lagrange points marked at their true
- * geometry: L1/L2/L3 as unstable saddles (× glyph), L4/L5 as the stable
- * equilateral corners (filled dot). A magnified inset resolves the collinear
- * trio (L1 · secondary · L2) that collapses to ~5 px on the main map for real
- * mass ratios (Sun–Earth). Build-time SVG, one ambient pulse on the occupied
- * point, fallback-complete.
+ * LagrangeMap (space) — the effective potential of a two-body system in the
+ * frame that turns with it (gravity plus the spin), drawn as equal-potential
+ * lines, with the five Lagrange points at their true geometry: L1, L2 and L3
+ * as unstable saddles (⊗), L4 and L5 as the stable corners 60° off the axis
+ * (a filled dot). For real mass ratios (Sun–Earth) L1 and L2 sit a few pixels
+ * from the smaller body, so an inset beside the map magnifies them. The
+ * distance to the first marked point near the smaller body is set large.
+ * Drawn for the pinned figure panel (Lens Phase 6, 2026-09-30; board
+ * Lib-lagrange-map): a 290-unit map and a 160-unit inset side by side in the
+ * 470 panel (the inset wraps under the map on a phone, so neither scrolls),
+ * 12 to 13px labels, the key in HTML.
  *
- * Blueprint (the contract): docs/design/blueprints/space/lagrange-map.md.
- * Physics: docs/design/physics/orbital-mechanics.md §7 — Ω(x,y) and the five
- * equilibria are computed here at build time (the same closed forms live in
- * kepler.ts for unit tests). The complete map always paints as the composed
- * still (static since Lens Phase 5); the pulse is the only motion, and it is
- * ambient (see below).
+ * Physics: docs/design/physics/orbital-mechanics.md §7 — Ω(x, y) and the five
+ * equilibria, computed here at build time.
  *
- * data: { primary:{name,mass}, secondary:{name,mass}, separationKm?,
- *         markers?:[{at:'L1'..'L5', label}], show?:['L1'..'L5'], caption?, source? }
+ * Cue anchors: `L1`…`L5` — each point (in the map, and in the inset for the
+ * two it magnifies) with its marker label; `primary`, `secondary` — the two
+ * masses; `inset` — the magnified window; `field` — the equal-potential lines.
+ * The headline carries the anchor of the point it measures.
+ *
+ * THE BUILD (LENS §6.4): 1 the field and the inset frame fade, 2 the masses
+ * fade, 3 the points drop, 4 the key fades, 5 the headline counts up.
+ *
+ * data: { primary{name, mass}, secondary{name, mass}, separationKm?,
+ *         markers?[{at, label}], show?[...], caption?, source? }
  */
+import { SANS, nf, svgTag, wrap } from './_fig';
+
 interface Body { name: string; mass: number; }
-interface Marker { at: 'L1' | 'L2' | 'L3' | 'L4' | 'L5'; label: string; }
 type PName = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+interface Marker { at: PName; label: string; }
 interface Props {
   primary: Body;
   secondary: Body;
@@ -41,580 +50,236 @@ const {
   source,
 } = Astro.props;
 
-// ── CR3BP math (mirrors orbital-mechanics.md §7 1:1) ────────────────────────
-const muStar = secondary.mass / (primary.mass + secondary.mass);
-function effectivePotential(x: number, y: number): number | null {
-  const r1 = Math.hypot(x + muStar, y);          // → primary at x = −muStar
-  const r2 = Math.hypot(x - 1 + muStar, y);       // → secondary at x = 1 − muStar
-  if (r1 < 0.02 || r2 < 0.02) return null;         // mask the singular wells
-  return 0.5 * (x * x + y * y) + (1 - muStar) / r1 + muStar / r2;
-}
-// collinear roots: Newton on dΩ/dx = 0 (y = 0), Hill-seeded
-function dOmdx(x: number): number {
-  const s1 = Math.sign(x + muStar), s2 = Math.sign(x - 1 + muStar);
-  return x - (1 - muStar) * s1 / ((x + muStar) ** 2) - muStar * s2 / ((x - 1 + muStar) ** 2);
-}
-function collinearRoot(seed: number): number {
+// ── CR3BP (orbital-mechanics.md §7) ──────────────────────────────────────────
+const mu = secondary.mass / (primary.mass + secondary.mass);
+const omega = (x: number, y: number, mask = 0.02): number | null => {
+  const r1 = Math.hypot(x + mu, y), r2 = Math.hypot(x - 1 + mu, y);
+  if (r1 < mask || r2 < mask * 0.02) return null;
+  return 0.5 * (x * x + y * y) + (1 - mu) / r1 + mu / r2;
+};
+const dOm = (x: number) => {
+  const s1 = Math.sign(x + mu), s2 = Math.sign(x - 1 + mu);
+  return x - ((1 - mu) * s1) / (x + mu) ** 2 - (mu * s2) / (x - 1 + mu) ** 2;
+};
+const root = (seed: number) => {
   let x = seed;
   for (let k = 0; k < 60; k++) {
-    const f = dOmdx(x);
-    const h = 1e-7;
-    const fp = (dOmdx(x + h) - dOmdx(x - h)) / (2 * h);
-    const dx = f / fp;
+    const h = 1e-9, dx = dOm(x) / ((dOm(x + h) - dOm(x - h)) / (2 * h));
     x -= dx;
-    if (Math.abs(dx) < 1e-12) break;
+    if (Math.abs(dx) < 1e-13) break;
   }
   return x;
-}
-const rH = Math.cbrt(muStar / 3);                              // Hill distance
-const L1x = collinearRoot(1 - muStar - rH);
-const L2x = collinearRoot(1 - muStar + rH);
-const L3x = collinearRoot(-(1 + 5 * muStar / 12));
-const S3 = Math.sqrt(3) / 2;
+};
+const rH = Math.cbrt(mu / 3);
 const LP: Record<PName, [number, number]> = {
-  L1: [L1x, 0], L2: [L2x, 0], L3: [L3x, 0],
-  L4: [0.5 - muStar, S3], L5: [0.5 - muStar, -S3],
+  L1: [root(1 - mu - rH), 0], L2: [root(1 - mu + rH), 0], L3: [root(-(1 + (5 * mu) / 12)), 0],
+  L4: [0.5 - mu, Math.sqrt(3) / 2], L5: [0.5 - mu, -Math.sqrt(3) / 2],
 };
-const isSaddle = (p: PName) => p === 'L1' || p === 'L2' || p === 'L3';
 const ALL: PName[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
-const shown: PName[] = (show && show.length ? show : ALL).filter((p) => ALL.includes(p));
+const shown = (show && show.length ? show : ALL).filter((p) => ALL.includes(p));
+const saddle = (p: PName) => p === 'L1' || p === 'L2' || p === 'L3';
+const markOf = (p: PName) => markers.filter((m) => m && m.at === p).map((m) => m.label);
 
-// ── screen mapping (viewBox 0 0 720 470, PAD 12) ────────────────────────────
-const VB_W = 720, VB_H = 470;
-const DX0 = -1.35, DX1 = 1.35, DY0 = -0.95, DY1 = 0.95;
-const sx = (x: number) => 12 + (x + 1.35) / 2.7 * 696;
-const sy = (y: number) => 235 - (y / 0.95) * 223;
-
-// ── potential field: clamp band + 11 log-spaced levels ──────────────────────
-const omL1 = effectivePotential(L1x, 0) ?? 1.5;
-const OCAP = omL1 + 0.6;                                        // §4 interesting band
-const NX = 108, NY = 72;                                        // build-time grid
-// node grid (clamped, masked → OCAP) drives the marching-squares contour lines
-const grid: number[][] = [];
-let OMIN = Infinity;
-for (let j = 0; j <= NY; j++) {
-  const row: number[] = [];
-  for (let i = 0; i <= NX; i++) {
-    const x = DX0 + (DX1 - DX0) * i / NX, y = DY0 + (DY1 - DY0) * j / NY;
-    const raw = effectivePotential(x, y);
-    if (raw != null && raw < OMIN) OMIN = raw;
-    row.push(Math.max(1.5, Math.min(OCAP, raw ?? OCAP)));
-  }
-  grid.push(row);
-}
-if (!isFinite(OMIN)) OMIN = 1.5;
-const EPS = 0.004;
-const Lmin = Math.log(EPS), Lmax = Math.log(OCAP - OMIN + EPS);
-const levels: number[] = [];
-for (let k = 1; k <= 11; k++) {
-  levels.push(OMIN + Math.exp(Lmin + (Lmax - Lmin) * k / 12) - EPS);
-}
-const bandOf = (w: number): number => {
-  let b = 0;
-  for (const lv of levels) if (w >= lv) b++;
-  return b; // 0..11
-};
-
-// ── filled iso-bands (run-length rows → one <path> per band; NOT 17k rects) ──
-const cellW = (696 / 2.7) * (DX1 - DX0) / NX;
-const cellH = (223 / 0.95) * (DY1 - DY0) / NY;
-const bandPath: string[] = Array.from({ length: 12 }, () => '');
-for (let j = 0; j < NY; j++) {
-  const y = DY0 + (DY1 - DY0) * (j + 0.5) / NY;
-  const yy = sy(y) - cellH / 2;
-  let i = 0;
-  while (i < NX) {
-    const centre = (ii: number) => {
-      const xx = DX0 + (DX1 - DX0) * (ii + 0.5) / NX;
-      return bandOf(Math.max(1.5, Math.min(OCAP, effectivePotential(xx, y) ?? OCAP)));
-    };
-    const b = centre(i);
-    let i2 = i + 1;
-    while (i2 < NX && centre(i2) === b) i2++;
-    if (b > 0) {
-      const x0 = sx(DX0 + (DX1 - DX0) * (i + 0.5) / NX) - cellW / 2;
-      const x1 = sx(DX0 + (DX1 - DX0) * (i2 - 1 + 0.5) / NX) + cellW / 2;
-      bandPath[b] += `M${x0.toFixed(1)} ${yy.toFixed(1)}H${x1.toFixed(1)}V${(yy + cellH).toFixed(1)}H${x0.toFixed(1)}Z`;
-    }
-    i = i2;
-  }
-}
-// band 1..11 → deep→vivid single-hue ramp (accent-deep low Ω → accent high Ω)
-const bands = [];
-for (let b = 1; b <= 11; b++) {
-  if (!bandPath[b]) continue;
-  const t = (b - 1) / 10;
-  bands.push({
-    d: bandPath[b],
-    fill: b <= 4 ? 'var(--accent-deep, var(--accent))' : 'var(--accent)',
-    opacity: (0.10 + 0.18 * t).toFixed(3),
-  });
-}
-
-// ── contour lines: marching squares isolines, one <path> per level ──────────
-function isoPath(level: number): string {
-  const segs: [[number, number], [number, number]][] = [];
-  const ip = (xa: number, ya: number, va: number, xb: number, yb: number, vb: number): [number, number] => {
-    const t = (level - va) / (vb - va);
-    return [xa + (xb - xa) * t, ya + (yb - ya) * t];
-  };
-  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
-    const tl = grid[j][i], tr = grid[j][i + 1], br = grid[j + 1][i + 1], bl = grid[j + 1][i];
+// ── marching squares: equal-potential lines of f over a box ─────────────────
+function iso(f: (x: number, y: number) => number, x0: number, x1: number, y0: number, y1: number, nx: number, ny: number, level: number, sx: (x: number) => number, sy: (y: number) => number): string {
+  const g: number[][] = [];
+  for (let j = 0; j <= ny; j++) { const row: number[] = []; for (let i = 0; i <= nx; i++) row.push(f(x0 + ((x1 - x0) * i) / nx, y0 + ((y1 - y0) * j) / ny)); g.push(row); }
+  let d = '';
+  const lerp = (a: number, b: number, va: number, vb: number) => a + (b - a) * ((level - va) / (vb - va || 1e-12));
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const tl = g[j][i], tr = g[j][i + 1], br = g[j + 1][i + 1], bl = g[j + 1][i];
     const c = (tl > level ? 8 : 0) | (tr > level ? 4 : 0) | (br > level ? 2 : 0) | (bl > level ? 1 : 0);
     if (c === 0 || c === 15) continue;
-    const x0 = sx(DX0 + (DX1 - DX0) * i / NX), x1 = sx(DX0 + (DX1 - DX0) * (i + 1) / NX);
-    const y0 = sy(DY0 + (DY1 - DY0) * j / NY), y1 = sy(DY0 + (DY1 - DY0) * (j + 1) / NY);
-    const T = () => ip(x0, y0, tl, x1, y0, tr), R = () => ip(x1, y0, tr, x1, y1, br);
-    const B = () => ip(x0, y1, bl, x1, y1, br), Lf = () => ip(x0, y0, tl, x0, y1, bl);
-    const P = (a: [number, number], b: [number, number]) => segs.push([a, b]);
+    const xa = x0 + ((x1 - x0) * i) / nx, xb = x0 + ((x1 - x0) * (i + 1)) / nx;
+    const ya = y0 + ((y1 - y0) * j) / ny, yb = y0 + ((y1 - y0) * (j + 1)) / ny;
+    const T = [lerp(xa, xb, tl, tr), ya], Rr = [xb, lerp(ya, yb, tr, br)], Bm = [lerp(xa, xb, bl, br), yb], Lf = [xa, lerp(ya, yb, tl, bl)];
+    const seg = (p: number[], q: number[]) => { d += `M${sx(p[0]).toFixed(1)} ${sy(p[1]).toFixed(1)}L${sx(q[0]).toFixed(1)} ${sy(q[1]).toFixed(1)}`; };
+    const ct = (tl + tr + br + bl) / 4 > level;
     switch (c) {
-      case 1: P(Lf(), B()); break; case 2: P(B(), R()); break; case 3: P(Lf(), R()); break;
-      case 4: P(T(), R()); break;
-      case 5: { const ct = (tl + tr + br + bl) / 4; if (ct > level) { P(Lf(), T()); P(B(), R()); } else { P(Lf(), B()); P(T(), R()); } break; }
-      case 6: P(T(), B()); break; case 7: P(Lf(), T()); break; case 8: P(Lf(), T()); break;
-      case 9: P(T(), B()); break;
-      case 10: { const ct = (tl + tr + br + bl) / 4; if (ct > level) { P(Lf(), B()); P(T(), R()); } else { P(Lf(), T()); P(B(), R()); } break; }
-      case 11: P(T(), R()); break; case 12: P(Lf(), R()); break; case 13: P(B(), R()); break; case 14: P(Lf(), B()); break;
+      case 1: case 14: seg(Lf, Bm); break;
+      case 2: case 13: seg(Bm, Rr); break;
+      case 3: case 12: seg(Lf, Rr); break;
+      case 4: case 11: seg(T, Rr); break;
+      case 6: case 9: seg(T, Bm); break;
+      case 7: case 8: seg(Lf, T); break;
+      case 5: if (ct) { seg(Lf, T); seg(Bm, Rr); } else { seg(Lf, Bm); seg(T, Rr); } break;
+      case 10: if (ct) { seg(Lf, Bm); seg(T, Rr); } else { seg(Lf, T); seg(Bm, Rr); } break;
     }
-  }
-  // chain segments into polylines (shared-endpoint walk)
-  const key = (p: [number, number]) => `${Math.round(p[0] * 4)},${Math.round(p[1] * 4)}`;
-  const adj = new Map<string, number[]>();
-  const used = new Array(segs.length).fill(false);
-  segs.forEach((s, idx) => {
-    for (const e of [key(s[0]), key(s[1])]) {
-      if (!adj.has(e)) adj.set(e, []);
-      adj.get(e)!.push(idx);
-    }
-  });
-  let d = '';
-  for (let s = 0; s < segs.length; s++) {
-    if (used[s]) continue;
-    used[s] = true;
-    const poly: [number, number][] = [segs[s][0], segs[s][1]];
-    let grow = true;
-    while (grow) {
-      grow = false;
-      const tail = poly[poly.length - 1];
-      for (const ci of adj.get(key(tail)) ?? []) {
-        if (used[ci]) continue;
-        const seg = segs[ci];
-        if (key(seg[0]) === key(tail)) { poly.push(seg[1]); used[ci] = true; grow = true; break; }
-        if (key(seg[1]) === key(tail)) { poly.push(seg[0]); used[ci] = true; grow = true; break; }
-      }
-    }
-    d += 'M' + poly.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L');
   }
   return d;
 }
-const contours = levels.map((lv, idx) => ({ d: isoPath(lv), lv: idx }));
 
-// ── masses ──────────────────────────────────────────────────────────────────
-const priS = { x: sx(-muStar), y: sy(0), r: 9, name: primary.name };
-const secS = { x: sx(1 - muStar), y: sy(0), r: 5, name: secondary.name };
+// ── the map: a square on the left ─────────────────────────────────────────────
+const MAPW = 290, H = 290, MX = 8, MY = 8, MS = 274, SPAN = 1.25;
+const sx = (x: number) => MX + ((x + SPAN) / (2 * SPAN)) * MS;
+const sy = (y: number) => MY + ((SPAN - y) / (2 * SPAN)) * MS;
+const omL1 = omega(LP.L1[0], 0) ?? 1.5;
+const CAP = omL1 + 0.6;
+const fMain = (x: number, y: number) => Math.min(CAP, omega(x, y) ?? CAP);
+let lo = Infinity;
+for (let j = 0; j <= 60; j++) for (let i = 0; i <= 60; i++) { const v = omega(-SPAN + (2 * SPAN * i) / 60, -SPAN + (2 * SPAN * j) / 60); if (v != null && v < lo) lo = v; }
+const mainLevels = Array.from({ length: 7 }, (_, k) => lo + Math.exp(Math.log(0.004) + ((Math.log(CAP - lo + 0.004) - Math.log(0.004)) * (k + 1)) / 8) - 0.004);
+const mainPaths = mainLevels.map((lv) => iso(fMain, -SPAN, SPAN, -SPAN, SPAN, 84, 84, lv, sx, sy));
+const pri = { x: sx(-mu), y: sy(0) };
+const sec = { x: sx(1 - mu), y: sy(0) };
+const collapse = Math.abs(sx(LP.L2[0]) - sx(LP.L1[0])) < 24 && shown.includes('L1') && shown.includes('L2');
 
-// ── collinear-trio magnifier: does L1 · secondary · L2 collapse? ────────────
-const trioSpan = Math.abs(sx(L2x) - sx(L1x));
-const collapse = trioSpan < 24 && shown.includes('L1') && shown.includes('L2');
-// inset frame (bottom-left, clear of L4/L5/L3). Magnification is ADAPTIVE: it
-// targets a magnified L1–L2 span that reads clearly AND is clamped so the r≈5.5
-// rings + labels never overflow the box — for EVERY collapsing mass ratio
-// (Sun–Earth through Sun–Saturn). A fixed 40× only fit the extreme Sun–Earth
-// ratio; wider ratios (Uranus/Neptune/Saturn) drove L1/L2 off the viewBox.
-const insetW = 276, insetH = 132, insetX = 16, insetY = 320;
-const insetCx = insetX + insetW / 2;
-const insetCy = insetY + 70;
-const targetSpan = insetW - 96;                          // 180 — desired magnified L1–L2 span
-const rawMag = Math.max(40, targetSpan / (trioSpan || 1));
-const D = Math.min(rawMag * (trioSpan / 2), insetW / 2 - 22);  // half-span, clamped inside the frame
-const MAG = Math.max(1, Math.round((2 * D) / (trioSpan || 1))); // ACTUAL factor shown on the kick (honesty)
+// ── the inset: L1 · secondary · L2, magnified ─────────────────────────────────
+const IX = 2, IY = 22, IW = 156, IH = 124;
+const half = Math.max(LP.L2[0] - (1 - mu), (1 - mu) - LP.L1[0]) * 1.9;
+const ix0 = 1 - mu - half, ix1 = 1 - mu + half, iyH = (half * IH) / IW;
+const isx = (x: number) => IX + ((x - ix0) / (ix1 - ix0)) * IW;
+const isy = (y: number) => IY + IH / 2 - (y / iyH) * (IH / 2);
+const omL2 = omega(LP.L2[0], 0) ?? omL1;
+const fIn = (x: number, y: number) => Math.min(omL1 * 1.05, omega(x, y, 0) ?? omL1 * 1.05);
+const edge = omega(ix0, iyH) ?? omL1;
+const inLevels = [omL1, omL2, ...[0.25, 0.5, 0.75].map((f) => edge + (omL2 - edge) * f), ...[1.0015, 1.004, 1.01].map((f) => omL1 * f)];
+const inPaths = collapse ? inLevels.map((lv) => iso(fIn, ix0, ix1, -iyH, iyH, 90, 70, lv, isx, isy)) : [];
+const MAG = collapse ? Math.round(IW / (2 * half) / (MS / (2 * SPAN))) : 1;
 
-// ── points drawn on the MAIN map (collinear pair moves to the inset) ────────
-type Drawn = { id: PName; x: number; y: number; saddle: boolean; lx: number; ly: number; anchor: 'start' | 'middle' | 'end' };
-const drawn: Drawn[] = [];
-for (const p of shown) {
-  if (collapse && (p === 'L1' || p === 'L2')) continue; // → inset
+// ── points ───────────────────────────────────────────────────────────────────
+const pts = shown.map((p) => {
+  const inInset = collapse && (p === 'L1' || p === 'L2');
   const [nx, ny] = LP[p];
-  const px = sx(nx), py = sy(ny);
-  // label offset 8px along the radial away from the secondary
-  const dx = px - secS.x, dy = py - secS.y;
-  const m = Math.hypot(dx, dy) || 1;
-  const off = 12;
-  let lx = px + (dx / m) * off, ly = py + (dy / m) * off + 3;
-  const anchor: 'start' | 'middle' | 'end' = dx > 6 ? 'start' : dx < -6 ? 'end' : 'middle';
-  lx = Math.max(20, Math.min(700, lx));
-  ly = Math.max(16, Math.min(458, ly));
-  drawn.push({ id: p, x: px, y: py, saddle: isSaddle(p), lx, ly, anchor });
-}
-
-// ── markers → callouts. primary marker (markers[0]) pulses; ≤3 rendered ─────
-const shownMarkers = markers.filter((mk) => shown.includes(mk.at)).slice(0, 3);
-const primaryMarkerAt: PName | null = shownMarkers.length ? shownMarkers[0].at : null;
-// main-map callouts (points NOT in the inset)
-type Callout = { label: string; x: number; y: number; lx: number; ly: number; anchor: 'start' | 'end' };
-const mainCallouts: Callout[] = [];
-// inset callouts (collinear pair occupants)
-type InsetMark = { at: 'L1' | 'L2'; label: string };
-const insetMarks: InsetMark[] = [];
-for (const mk of shownMarkers) {
-  if (collapse && (mk.at === 'L1' || mk.at === 'L2')) {
-    insetMarks.push({ at: mk.at, label: mk.label });
-    continue;
-  }
-  const [nx, ny] = LP[mk.at];
-  const px = sx(nx), py = sy(ny);
-  const toRight = px < 470;
-  const lx = Math.max(70, Math.min(650, px + (toRight ? 66 : -66)));
-  const ly = Math.max(28, Math.min(444, py + (py < 235 ? -20 : 26)));
-  mainCallouts.push({ label: mk.label, x: px, y: py, lx, ly, anchor: toRight ? 'start' : 'end' });
-}
-
-// ── legend data (per-point type + normalized coords + distance) ─────────────
-const fmtKm = (km: number) =>
-  km >= 1e6 ? `${(km / 1e6).toFixed(1)} M km` : km >= 1e3 ? `${Math.round(km / 1e3)}k km` : `${Math.round(km)} km`;
-const distDesc = (p: PName): string => {
-  if (!separationKm) return '';
-  if (p === 'L1') return `${fmtKm(rH * separationKm)} sunward of ${secondary.name}`;
-  if (p === 'L2') return `${fmtKm(rH * separationKm)} beyond ${secondary.name}`;
-  if (p === 'L3') return `far side of ${primary.name}`;
-  return `60° ${p === 'L4' ? 'ahead of' : 'behind'} ${secondary.name}`;
-};
-const legend = shown.map((p) => {
-  const [nx, ny] = LP[p];
-  return {
-    id: p,
-    type: isSaddle(p) ? 'unstable saddle' : 'stable equilateral',
-    coord: `${nx.toFixed(4)}, ${ny.toFixed(4)}`,
-    dist: distDesc(p),
-  };
+  return { id: p, inInset, x: inInset ? isx(nx) : sx(nx), y: inInset ? isy(ny) : sy(ny), saddle: saddle(p), marks: markOf(p) };
 });
-const muLabel = muStar < 1e-3 ? muStar.toExponential(3) : muStar.toFixed(5);
-const hillReadout = separationKm
-  ? `${rH.toFixed(3)} · ${fmtKm(rH * separationKm)}`
-  : `${rH.toFixed(3)} · separation units`;
-
-const ariaLabel = `Effective-potential map of the ${primary.name}–${secondary.name} system, ${shown.length} Lagrange points marked`;
-const axisEndX = 690;
-const axisStartX = sx(-1.28);
-
-// ── the axis name finds a clear stretch of its own axis ─────────────────────
-// Everything that marks the frame sits ON this axis — both masses, L1/L2/L3,
-// the collapsed "L1·L2" tick — so no fixed spot is safe for every mass ratio:
-// at the right end it printed across Earth and the L1·L2 label (Sun–Earth,
-// 2026-09-24). The label tries the axis ends, above then below the line, then
-// the stretches between the bodies, and takes the first spot whose box clears
-// every mark, label, leader and the inset. If none is clear it takes the
-// least-covered one. Widths are estimated wide (tracked capitals ~0.70em).
-type Box = { x0: number; y0: number; x1: number; y1: number };
-const hit = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
-const cover = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
-const tBox = (x: number, y: number, anchor: 'start' | 'middle' | 'end', w: number, fs: number): Box => {
-  const x0 = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
-  return { x0, y0: y - fs * 0.8, x1: x0 + w, y1: y + fs * 0.25 };
-};
-// a segment as a thin box sampled along its length (leaders, connector)
-const segBoxes = (x1: number, y1: number, x2: number, y2: number): Box[] => {
-  const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 6));
-  return Array.from({ length: n }, (_, k) => {
-    const xa = x1 + ((x2 - x1) * k) / n, ya = y1 + ((y2 - y1) * k) / n;
-    const xb = x1 + ((x2 - x1) * (k + 1)) / n, yb = y1 + ((y2 - y1) * (k + 1)) / n;
-    return { x0: Math.min(xa, xb) - 1, y0: Math.min(ya, yb) - 1, x1: Math.max(xa, xb) + 1, y1: Math.max(ya, yb) + 1 };
-  });
-};
-const marks: Box[] = [];
-const disc = (x: number, y: number, r: number) => marks.push({ x0: x - r, y0: y - r, x1: x + r, y1: y + r });
-disc(priS.x, priS.y, priS.r + 4);
-marks.push(tBox(priS.x, priS.y + priS.r + 14, 'middle', priS.name.length * 10 * 0.62, 10));
-disc(secS.x, secS.y, secS.r + 3.5);
-if (!collapse) marks.push(tBox(secS.x, secS.y + secS.r + 14, 'middle', secS.name.length * 10 * 0.62, 10));
-for (const p of drawn) {
-  disc(p.x, p.y, 5.5);
-  marks.push(tBox(p.lx, p.ly, p.anchor, p.id.length * 10 * 0.72, 10));
-}
-for (const m of mainCallouts) {
-  const w = m.label.length * 13 * 0.5;
-  marks.push(tBox(m.lx + (m.anchor === 'start' ? 4 : -4), m.ly, m.anchor, w, 13));
-  marks.push(...segBoxes(m.x, m.y, m.lx, m.ly - 3));
-}
-if (collapse) {
-  marks.push({ x0: insetX, y0: insetY, x1: insetX + insetW, y1: insetY + insetH });
-  marks.push(...segBoxes(insetCx, insetY, secS.x, secS.y + 8));
-  marks.push({ x0: secS.x - 2, y0: secS.y - 10, x1: secS.x + 2, y1: secS.y - 2 });
-  marks.push(tBox(secS.x + 8, secS.y - 8, 'start', 5 * 10 * 0.72, 10));
-}
-const AX_FS = 9.5;
-const axisText = 'co-rotating frame';
-const axisW = axisText.length * AX_FS * (0.72 + 0.14);
-const axisY = sy(0);
-const midPS = (priS.x + secS.x) / 2;
-const axisCands: { x: number; y: number; anchor: 'start' | 'middle' | 'end' }[] = [
-  { x: axisEndX, y: axisY - 6, anchor: 'end' },
-  { x: axisEndX, y: axisY + 14, anchor: 'end' },
-  { x: axisStartX, y: axisY - 6, anchor: 'start' },
-  { x: axisStartX, y: axisY + 14, anchor: 'start' },
-  { x: midPS, y: axisY - 6, anchor: 'middle' },
-  { x: midPS, y: axisY + 14, anchor: 'middle' },
-];
-let axisLbl = axisCands[0];
-let axisCost = Infinity;
-for (const c of axisCands) {
-  const b = tBox(c.x, c.y, c.anchor, axisW, AX_FS);
-  // never outside the viewBox: the SVG clips
-  if (b.x0 < 4 || b.x1 > VB_W - 4) continue;
-  const cost = marks.reduce((s, m) => s + (hit(b, m, 2) ? 1 + cover(b, m) : 0), 0);
-  if (cost < axisCost) { axisCost = cost; axisLbl = c; }
-  if (cost === 0) break;
-}
+// the headline: the first marker at L1/L2 (else L2), from the smaller body
+const hp = (markers.find((m) => m && (m.at === 'L1' || m.at === 'L2'))?.at ?? 'L2') as PName;
+const hKm = separationKm && shown.includes(hp) ? Math.abs(LP[hp][0] - (1 - mu)) * separationKm : null;
+const hMillion = hKm != null && hKm >= 1e6;
+const hVal = hKm == null ? null : hMillion ? +(hKm / 1e6).toFixed(1) : Math.round(hKm);
+const angle60 = (() => {
+  const a0 = 0, a1 = -60, r = 34;
+  const p0 = { x: pri.x + r * Math.cos(a0 * Math.PI / 180), y: pri.y + r * Math.sin(a0 * Math.PI / 180) };
+  const p1 = { x: pri.x + r * Math.cos(a1 * Math.PI / 180), y: pri.y + r * Math.sin(a1 * Math.PI / 180) };
+  return { d: `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A${r} ${r} 0 0 0 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`, lx: pri.x + 44 * Math.cos(-30 * Math.PI / 180), ly: pri.y + 44 * Math.sin(-30 * Math.PI / 180) + 4 };
+})();
+const aria = `Effective-potential map of the ${primary.name}–${secondary.name} system, ${shown.length} Lagrange points marked${caption ? `: ${caption}` : ''}`;
+const insetNotes = pts.filter((p) => p.inInset).map((p) => ({ id: p.id, text: [p.id, ...p.marks].join(' · ') }));
+const IH2 = IY + IH + 30 + insetNotes.reduce((a, n) => a + wrap(n.text, 20).length * 16 + 20, 0);
 ---
 
-<div class="px-viz px-lagr">
-  <!-- honesty chip renders whenever the shading does (the ramp is log in Ω);
-       the caption text is the only conditional part -->
-  <div class="px-viz__cap">
-    {caption && <span>{caption}</span>}
-    <b>potential log-shaded</b>
-  </div>
+<div class="px-viz px-lagr" data-build-scene>
+  {hVal != null && (
+    <div class="px-sfig__head" data-cue={hp}>
+      <span class="px-sfig__num" data-build="5" data-build-kind="counter" data-to={hVal} data-format={hMillion ? '1dp' : undefined}>{hMillion ? hVal.toFixed(1) : nf(hVal)}</span>
+      <span class="px-sfig__lbl"><span class="px-cue-tag" data-cue-tag={hp} hidden></span>{hMillion ? 'million km' : 'km'} to {hp}</span>
+    </div>
+  )}
 
-  <svg class="px-lagr__svg" viewBox={`0 0 ${VB_W} ${VB_H}`} role="img" aria-label={ariaLabel}
-    preserveAspectRatio="xMidYMid meet">
-
-    <!-- filled iso-bands (potential shading — deep→vivid single-hue ramp) -->
-    <g class="px-lagr__bands">
-      {bands.map((b) => (
-        <path d={b.d} fill={b.fill} fill-opacity={b.opacity} stroke="none" />
-      ))}
-    </g>
-
-    <!-- contour lines (the ruled paper of the terrain) -->
-    <g class="px-lagr__lines">
-      {contours.map((c) => (
-        <path class="px-lagr__line" d={c.d} style={`--lv:${c.lv}`} />
-      ))}
-    </g>
-
-    <!-- co-rotating frame axis -->
-    <line class="px-lagr__axis" x1={axisStartX} y1={sy(0)} x2={axisEndX} y2={sy(0)} />
-    <text class="px-lagr__axislbl" x={axisLbl.x} y={axisLbl.y} text-anchor={axisLbl.anchor}>{axisText}</text>
-
-    <!-- the two masses (paper occluder ring + ink disc) -->
-    <g class="px-lagr__mass">
-      <circle cx={priS.x} cy={priS.y} r={priS.r + 4} fill="var(--paper)" />
-      <circle cx={priS.x} cy={priS.y} r={priS.r} class="px-lagr__disc" />
-      <text class="px-lagr__masslbl" x={priS.x} y={priS.y + priS.r + 14} text-anchor="middle">{priS.name}</text>
-      <circle cx={secS.x} cy={secS.y} r={secS.r + 3.5} fill="var(--paper)" />
-      <circle cx={secS.x} cy={secS.y} r={secS.r} class="px-lagr__disc" />
-      {!collapse && (
-        <text class="px-lagr__masslbl" x={secS.x} y={secS.y + secS.r + 14} text-anchor="middle">{secS.name}</text>
+  <div class="px-lagr__figs">
+    <svg class="px-lagr__map" viewBox={`0 0 ${MAPW} ${H}`} role="img" aria-label={aria}>
+      {source && <desc>{source}</desc>}
+      <g data-cue="field" data-build="1">
+        {mainPaths.map((d, i) => <path class="px-lagr__iso" d={d} style={`opacity:${(0.45 + 0.07 * i).toFixed(2)}`} />)}
+        <line class="px-lagr__ax" x1={MX} x2={MX + MS} y1={pri.y} y2={pri.y} />
+        {shown.includes('L4') && <line class="px-lagr__ax" x1={pri.x} y1={pri.y} x2={sx(LP.L4[0])} y2={sy(LP.L4[1])} />}
+        {shown.includes('L5') && <line class="px-lagr__ax" x1={pri.x} y1={pri.y} x2={sx(LP.L5[0])} y2={sy(LP.L5[1])} />}
+        {shown.includes('L4') && (
+          <>
+            <path class="px-lagr__ang" d={angle60.d} />
+            <text class="px-sfig__ax" x={angle60.lx.toFixed(1)} y={angle60.ly.toFixed(1)} style={SANS}>60°</text>
+          </>
+        )}
+      </g>
+      {collapse && (
+        <g data-cue="inset" data-build="1">
+          <rect class="px-lagr__win" x={(sec.x - 6).toFixed(1)} y={(sec.y - 6).toFixed(1)} width="12" height="12" />
+        </g>
       )}
-    </g>
-
-    <!-- Lagrange points on the main map -->
-    <g class="px-lagr__pts">
-      {drawn.map((p) => {
-        const pulse = p.id === primaryMarkerAt;
+      <g data-cue="primary" data-build="2">
+        <circle class="px-lagr__sun" cx={pri.x.toFixed(1)} cy={pri.y.toFixed(1)} r="10" />
+        <text class="px-sfig__t px-sfig__b" x={pri.x.toFixed(1)} y={(pri.y + 26).toFixed(1)} text-anchor="middle" style={SANS}>{primary.name}</text>
+      </g>
+      <g data-cue="secondary" data-build="2">
+        <circle class="px-lagr__body" cx={sec.x.toFixed(1)} cy={sec.y.toFixed(1)} r="4.5" />
+        <text class="px-sfig__t px-sfig__b" x={(sec.x - 4).toFixed(1)} y={(sec.y + 22).toFixed(1)} text-anchor="end" style={SANS}>{secondary.name}</text>
+      </g>
+      {pts.filter((p) => !p.inInset).map((p) => {
+        const lines = wrap([p.id, ...p.marks].join(' · '), 18);
+        const below = p.y > pri.y + 4;
+        const ly = below ? p.y + 22 : p.y - 12 - (lines.length - 1) * 16;
+        const anchor = p.x < pri.x - 20 ? 'start' : 'middle';
+        const lx = anchor === 'start' ? Math.max(4, p.x - 8) : Math.min(MAPW - 70, p.x);
         return (
-          <g class={`px-lagr__pt${pulse ? ' px-lagr__pt--pulse' : ''}`} style={`--i:${ALL.indexOf(p.id)}`}>
-            <circle class="px-lagr__ring" cx={p.x} cy={p.y} r="4" />
+          <g data-cue={p.id} data-build="3" data-build-kind="drop">
             {p.saddle ? (
-              <>
-                <line class="px-lagr__x" x1={p.x - 2.4} y1={p.y - 2.4} x2={p.x + 2.4} y2={p.y + 2.4} />
-                <line class="px-lagr__x" x1={p.x - 2.4} y1={p.y + 2.4} x2={p.x + 2.4} y2={p.y - 2.4} />
-              </>
+              <g class="px-lagr__sad">
+                <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="6" />
+                <line x1={(p.x - 4).toFixed(1)} y1={(p.y - 4).toFixed(1)} x2={(p.x + 4).toFixed(1)} y2={(p.y + 4).toFixed(1)} />
+                <line x1={(p.x - 4).toFixed(1)} y1={(p.y + 4).toFixed(1)} x2={(p.x + 4).toFixed(1)} y2={(p.y - 4).toFixed(1)} />
+              </g>
             ) : (
-              <circle class="px-lagr__core" cx={p.x} cy={p.y} r="1.6" />
+              <circle class="px-lagr__stable" cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="6" />
             )}
-            <text class="px-lagr__ptlbl" x={p.lx} y={p.ly} text-anchor={p.anchor}>{p.id}</text>
+            <text class="px-sfig__t px-sfig__b" x={lx.toFixed(1)} y={ly.toFixed(1)} text-anchor={anchor} style={SANS}>
+              {lines.map((ln, i) => <tspan x={lx.toFixed(1)} dy={i ? 16 : 0}>{ln}</tspan>)}
+            </text>
+            <Fragment set:html={svgTag(p.id, p.x + 18, p.y)} />
           </g>
         );
       })}
-    </g>
+    </svg>
 
-    <!-- marker callouts on the main map (Fraunces-italic annotations + leaders) -->
-    <g class="px-lagr__callouts">
-      {mainCallouts.map((m) => (
-        <g>
-          <line class="px-lagr__leader" x1={m.x} y1={m.y} x2={m.lx} y2={m.ly - 3} />
-          <text class="px-lagr__annot" x={m.lx + (m.anchor === 'start' ? 4 : -4)} y={m.ly} text-anchor={m.anchor}>{m.label}</text>
+    {collapse && (
+      <svg class="px-lagr__ins" viewBox={`0 0 ${IW + 4} ${IH2}`} role="img" aria-label={`${insetNotes.map((n) => n.text).join(', ')}, magnified ${MAG} times`}>
+        <g data-cue="inset" data-build="1">
+          <rect class="px-lagr__frame" x={IX} y={IY} width={IW} height={IH} />
+          <clipPath id="px-lagr-clip"><rect x={IX} y={IY} width={IW} height={IH} /></clipPath>
+          <g clip-path="url(#px-lagr-clip)">
+            {inPaths.map((d, i) => <path class={i < 2 ? 'px-lagr__iso px-lagr__iso--sep' : 'px-lagr__iso'} d={d} />)}
+            <line class="px-lagr__ax" x1={IX} x2={IX + IW} y1={isy(0)} y2={isy(0)} />
+          </g>
+          <circle class="px-lagr__body" cx={isx(1 - mu).toFixed(1)} cy={isy(0).toFixed(1)} r="5" />
+          <text class="px-sfig__ax px-lagr__mag" x={IX} y={IY + IH + 16} style={SANS}>Inset, {MAG}× closer</text>
         </g>
-      ))}
-    </g>
-
-    <!-- collinear-trio magnifier inset (renders only when L1·secondary·L2 collapse) -->
-    {collapse && (
-      <g class="px-lagr__inset">
-        <line class="px-lagr__connector" x1={insetCx} y1={insetY} x2={secS.x} y2={secS.y + 8} />
-        <rect x={insetX} y={insetY} width={insetW} height={insetH} rx="8"
-          fill="var(--paper)" class="px-lagr__insetframe" />
-        <text class="px-lagr__insetkick" x={insetX + 12} y={insetY + 18} text-anchor="start">×{MAG} · {secondary.name} NEIGHBOURHOOD</text>
-        <!-- secondary disc at inset centre -->
-        <circle cx={insetCx} cy={insetCy} r="4.5" class="px-lagr__disc" />
-        <text class="px-lagr__masslbl" x={insetCx} y={insetCy + 20} text-anchor="middle">{secondary.name}</text>
-        <!-- L1 (sunward) and L2 (anti-sunward) at true relative offsets -->
-        {(['L1', 'L2'] as const).map((pid) => {
-          const ix = pid === 'L1' ? insetCx - D : insetCx + D;
-          const pulse = pid === primaryMarkerAt;
-          const mk = insetMarks.find((m) => m.at === pid);
-          return (
-            <g class={`px-lagr__pt${pulse ? ' px-lagr__pt--pulse' : ''}`}>
-              <circle class="px-lagr__ring" cx={ix} cy={insetCy} r="5.5" />
-              <line class="px-lagr__x" x1={ix - 3} y1={insetCy - 3} x2={ix + 3} y2={insetCy + 3} />
-              <line class="px-lagr__x" x1={ix - 3} y1={insetCy + 3} x2={ix + 3} y2={insetCy - 3} />
-              <text class="px-lagr__ptlbl" x={ix} y={insetCy - 12} text-anchor="middle">{pid}</text>
-              {mk && <text class="px-lagr__annot" x={ix} y={insetCy + 38} text-anchor="middle">{mk.label}</text>}
+        {pts.filter((p) => p.inInset).map((p) => (
+          <g data-cue={p.id} data-build="3" data-build-kind="drop">
+            <g class="px-lagr__sad">
+              <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="6" />
+              <line x1={(p.x - 4).toFixed(1)} y1={(p.y - 4).toFixed(1)} x2={(p.x + 4).toFixed(1)} y2={(p.y + 4).toFixed(1)} />
+              <line x1={(p.x - 4).toFixed(1)} y1={(p.y + 4).toFixed(1)} x2={(p.x + 4).toFixed(1)} y2={(p.y - 4).toFixed(1)} />
             </g>
-          );
-        })}
-      </g>
+            <text class="px-sfig__t px-sfig__b" x={p.x.toFixed(1)} y={(p.y - 12).toFixed(1)} text-anchor="middle" style={SANS}>{p.id}</text>
+            <Fragment set:html={svgTag(p.id, p.x, p.y + 20)} />
+          </g>
+        ))}
+        {insetNotes.map((n, i) => (
+          <g data-cue={n.id} data-build="3" data-build-kind="drop">
+            {wrap(n.text, 20).map((ln, k) => (
+              <text class="px-sfig__t px-sfig__b" x={IX} y={IY + IH + 36 + i * 36 + k * 16} style={SANS}>{ln}</text>
+            ))}
+          </g>
+        ))}
+      </svg>
     )}
+  </div>
 
-    <!-- main-map tick standing in for the collapsed L1·L2 blob -->
-    {collapse && (
-      <g class="px-lagr__collapse">
-        <line class="px-lagr__ring" x1={secS.x} y1={secS.y - 9} x2={secS.x} y2={secS.y - 3} />
-        <text class="px-lagr__ptlbl" x={secS.x + 8} y={secS.y - 8} text-anchor="start">L1·L2</text>
-      </g>
-    )}
-  </svg>
-
-  <!-- marker list (a11y + shown in place of in-SVG callouts at ≤640px) -->
-  {shownMarkers.length > 0 && (
-    <ul class="px-lagr__mlist">
-      {shownMarkers.map((mk) => (
-        <li class="px-lagr__mrow">
-          <span class="px-lagr__mpt">{mk.at}</span>
-          <span class="px-lagr__mlbl">{mk.label}</span>
-        </li>
-      ))}
-    </ul>
-  )}
-
-  <!-- legend: per-point type + coordinates (+ distance) — readable with zero JS -->
-  <details class="px-lagr__legend vz-legend-wrap">
-    <summary class="px-lagr__summary">
-      {primary.name}–{secondary.name} · mass ratio μ* = {muLabel} · Hill dist {hillReadout}
-    </summary>
-    <ul class="px-lagr__rows">
-      {legend.map((r) => (
-        <li class="px-lagr__lrow">
-          <span class="px-lagr__lid">{r.id}</span>
-          <span class="px-lagr__ltype">{r.type}</span>
-          <span class="px-lagr__lmeta">{r.coord}{r.dist ? ` · ${r.dist}` : ''}</span>
-        </li>
-      ))}
-    </ul>
-  </details>
-
+  <ul class="px-sfig__key px-lagr__key" data-build="4">
+    <li><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="M4 4l6 6M4 10l6-6" stroke="currentColor" stroke-width="1.4" /></svg>Unstable saddle</li>
+    <li><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" class="px-lagr__kdot" /></svg>Stable point</li>
+    <li><svg width="18" height="14" viewBox="0 0 18 14" aria-hidden="true"><line x1="1" x2="17" y1="7" y2="7" class="px-lagr__kline" /></svg>Equal potential</li>
+  </ul>
 </div>
 
 <style>
-  .px-lagr__svg { width: 100%; height: auto; display: block; overflow: hidden; border-radius: var(--r-tile, 10px); }
-
-  /* filled iso-bands — resting = visible (the Phase 6 build fades them in) */
-  .px-lagr__bands {
-    opacity: 1;
-    transition: opacity 400ms var(--ease, ease);
-  }
-
-  /* contour lines — resting = visible (the Phase 6 build fades them in) */
-  .px-lagr__line {
-    fill: none;
-    stroke: var(--ink);
-    stroke-width: 0.75;
-    stroke-opacity: 0.22;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    opacity: 1;
-    transition: opacity 300ms var(--ease, ease);
-  }
-
-  .px-lagr__axis { stroke: var(--ink); stroke-opacity: 0.16; stroke-width: 1; stroke-dasharray: 4 5; }
-  .px-lagr__axislbl {
-    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
-  }
-
-  /* structural groups: resting = visible, transitions kept for the Phase 6 build
-     order (§5 stage order) */
-  .px-lagr__mass, .px-lagr__inset, .px-lagr__collapse {
-    opacity: 1; transition: opacity 220ms var(--ease, ease);
-  }
-  .px-lagr__axis, .px-lagr__axislbl {
-    opacity: 1; transition: opacity 300ms var(--ease, ease);
-  }
-
-  .px-lagr__disc { fill: var(--ink); fill-opacity: 0.9; }
-  .px-lagr__masslbl {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
-    fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
-  }
-
-  /* Lagrange points — resting = visible (the Phase 6 build scales them in) */
-  .px-lagr__ring { fill: none; stroke: var(--accent); stroke-width: 1.5; }
-  .px-lagr__core { fill: var(--accent); }
-  .px-lagr__x { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
-  .px-lagr__ptlbl {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; font-weight: 700;
-    fill: var(--accent-deep, var(--accent)); font-variant-numeric: tabular-nums;
-    paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
-  }
-  .px-lagr__pt {
-    opacity: 1; transform: none; transform-box: view-box; transform-origin: center;
-    transition: opacity 220ms var(--ease-snap, ease), transform 220ms var(--ease-snap, ease);
-  }
-
-  /* the ONE ambient motion — the occupied point breathes */
-  .px-lagr__pt--pulse .px-lagr__ring { animation: px-lagr-pulse 2.4s ease-in-out infinite; }
-  @keyframes px-lagr-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.55; } }
-
-  /* marker callouts — Fraunces-italic annotation + faint leader */
-  .px-lagr__leader { stroke: var(--accent); stroke-opacity: 0.6; stroke-width: 1; }
-  .px-lagr__annot {
-    font-family: var(--font-display); font-style: italic; font-size: var(--viz-fs-annot, 13px);
-    fill: var(--accent-deep, var(--accent));
-    paint-order: stroke; stroke: var(--paper); stroke-width: 3.5px; stroke-linejoin: round;
-  }
-  .px-lagr__callouts {
-    opacity: 1; transition: opacity 140ms var(--ease, ease);
-  }
-
-  /* collinear-trio magnifier inset */
-  .px-lagr__insetframe { stroke: var(--rule); stroke-width: 1; fill-opacity: 0.94; }
-  .px-lagr__insetkick {
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    fill: var(--muted);
-  }
-  .px-lagr__connector { stroke: var(--accent); stroke-opacity: 0.55; stroke-width: 1; stroke-dasharray: 3 3; }
-  .px-lagr__collapse .px-lagr__ring { stroke-width: 2; }
-
-  /* marker list — a11y + the ≤640px replacement for the in-SVG callouts */
-  .px-lagr__mlist { list-style: none; margin: 16px 0 0; padding: 0; display: none; flex-direction: column; gap: 2px; }
-  .px-lagr__mrow { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed var(--rule); }
-  .px-lagr__mpt { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent-deep, var(--accent)); }
-  .px-lagr__mlbl { font-family: var(--font-display); font-style: italic; font-size: 13.5px; color: var(--ink-soft); }
-
-  /* legend */
-  .px-lagr__legend { margin-top: 18px; border-top: 1px dashed var(--rule); padding-top: 12px; }
-  .px-lagr__summary {
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums;
-  }
-  .px-lagr__rows { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
-  .px-lagr__lrow {
-    display: grid; grid-template-columns: 34px 130px 1fr; gap: 12px; align-items: baseline;
-    padding: 7px 0; border-bottom: 1px dashed var(--rule); font-variant-numeric: tabular-nums;
-  }
-  .px-lagr__lid { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--accent-deep, var(--accent)); }
-  .px-lagr__ltype { font-family: var(--font-body); font-size: 12.5px; color: var(--ink); }
-  .px-lagr__lmeta { font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px); letter-spacing: 0.04em; color: var(--muted); }
-
-  @media (max-width: 640px) {
-    .px-lagr__callouts { display: none; }
-    .px-lagr__mlist { display: flex; }
-    .px-lagr__lrow { grid-template-columns: 30px 1fr; }
-    .px-lagr__lmeta { grid-column: 1 / -1; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-lagr__pt--pulse .px-lagr__ring { animation: none !important; stroke-opacity: 1 !important; }
-  }
+  .px-lagr__figs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+  .px-lagr__map { display: block; flex: none; width: 290px; max-width: 100%; height: auto; overflow: visible; }
+  .px-lagr__ins { display: block; flex: none; width: 160px; height: auto; overflow: visible; }
+  .px-lagr__iso { fill: none; stroke: var(--accent); stroke-width: 1; }
+  .px-lagr__iso--sep { stroke: var(--accent-deep); stroke-width: 1.6; }
+  .px-lagr__ax { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0.6; }
+  .px-lagr__ang { fill: none; stroke: var(--ink-2); stroke-width: 1; }
+  .px-lagr__win { fill: none; stroke: var(--ink-2); stroke-width: 1; }
+  .px-lagr__lead { stroke: var(--hair-2); stroke-width: 1; }
+  .px-lagr__frame { fill: var(--paper-2); stroke: var(--ink-2); stroke-width: 1; }
+  .px-lagr__sun { fill: var(--accent); }
+  .px-lagr__body { fill: var(--ink); }
+  .px-lagr__sad circle { fill: var(--paper-2); stroke: var(--ink); stroke-width: 1.5; }
+  .px-lagr__sad line { stroke: var(--ink); stroke-width: 1.5; }
+  .px-lagr__stable { fill: var(--accent); stroke: var(--paper-2); stroke-width: 2; }
+  .px-lagr__mag { fill: var(--muted); }
+  .px-lagr__key svg { flex: none; color: var(--ink); }
+  .px-lagr__kdot { fill: var(--accent); }
+  .px-lagr__kline { stroke: var(--accent); stroke-width: 1.5; }
 </style>

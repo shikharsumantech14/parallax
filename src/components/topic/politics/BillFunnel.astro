@@ -4,11 +4,26 @@
  * stage it had to clear. The reader learns where the attrition actually is,
  * which is rarely the vote.
  *
- * Blueprint: docs/design/blueprints/politics/bill-funnel.md
- * Pure HTML/CSS — no SVG, no viewBox. Prefix `px-fnl`.
+ * Lens Phase 6 (2026-09-30), to the Lib-bill-funnel board: what came out the
+ * far end set at 96 ("47 of 214 bills"), a one-line key for the dashed "lost
+ * since above" segment, then one row per stage: its name, one bar on the
+ * shared scale of the first stage (the survivors in the desk mark, the loss
+ * since the row above as a dashed tint with its "−n" inside), and the count at
+ * 28 in the desk text ink. Under the rows, the selected stage's note (the last
+ * stage's at rest); pressing a row shows its note there (the instrument's own
+ * small island, kept). Every note is also in the `<dl>`, visible without JS.
  *
- * WAVE-0 EXEMPLAR for the HTML/CSS path: the first kind built through
- * core/VizCard.astro (RD-01a) and the px-inst primitive. Copy its shape.
+ * Blueprint: docs/design/blueprints/politics/bill-funnel.md. Pure HTML/CSS,
+ * prefix `px-fnl`, inside core/VizCard.astro (whose root is the scene).
+ *
+ * Cue anchors (LENS §5.2):
+ *   1 … n    each stage row, numbered from 1 in DATA order
+ *   top      the headline number
+ *   legend   the key
+ *
+ * THE BUILD (LENS §6.4): 1 the stage names fade in, 2 the survivor bars grow
+ * from the left, 80ms apart, 3 the losses fade in, 4 the counts rise, 5 the
+ * headline counts up. No JS or reduced motion: the funnel as drawn.
  */
 import VizCard from '../../core/VizCard.astro';
 
@@ -25,7 +40,7 @@ interface Props {
   howToRead?: string;
 }
 
-const { stages = [], unit = 'bills', caption, source, howToRead } = Astro.props;
+const { stages = [], unit = 'bills', caption, source } = Astro.props;
 
 /* ── Build-time validation (blueprint §3) ──────────────────────────────────
    A funnel cannot widen. Failing loudly here is the whole point: a silently
@@ -46,30 +61,34 @@ for (let i = 1; i < stages.length; i++) {
 const total = stages[0].count;
 if (!(total > 0)) throw new Error('[bill-funnel] the first stage must have a count above zero.');
 
-/* Loss is DERIVED, never authored — an authored figure can disagree with the
-   counts it claims to summarise. Any `lost` on the payload is ignored. */
+/* Loss is DERIVED, never authored. */
 const rows = stages.map((s, i) => {
   const lost = i === 0 ? 0 : stages[i - 1].count - s.count;
   return {
     ...s,
     i,
     lost,
-    // One shared scale, normalised to stage 1 — this is what makes it a funnel
-    // rather than N independent bars.
     survivedPct: (s.count / total) * 100,
     lostPct: (lost / total) * 100,
     pctOfTotal: Math.round((s.count / total) * 100),
   };
 });
 
-// Composed still = the last stage selected: the session's actual output.
 const defaultIdx = rows.length - 1;
 const d = rows[defaultIdx];
 const readoutFor = (r: (typeof rows)[number]) =>
-  `${r.label} — ${r.count} of ${total} still alive, ${r.pctOfTotal}%.${r.note ? ' ' + r.note : ''}`;
+  `${r.label}: ${r.count} of ${total} still alive, ${r.pctOfTotal}%.${r.note ? ' ' + r.note : ''}`;
+const fmt = (n: number) => n.toLocaleString('en-US');
 ---
 
-<VizCard prefix="px-fnl" howToRead={howToRead} caption={caption} source={source}>
+<VizCard prefix="px-fnl" caption={caption} source={source}>
+  <div class="px-fnl__head" data-cue="top">
+    <span class="px-fnl__big" data-build="5" data-build-kind="counter" data-to={d.count}>{fmt(d.count)}</span>
+    <span class="px-fnl__big-u"><span class="px-cue-tag" data-cue-tag="top" hidden></span>of {fmt(total)} {unit}</span>
+  </div>
+
+  <p class="px-fnl__key" data-cue="legend"><span class="px-cue-tag" data-cue-tag="legend" hidden></span><i></i>Lost since above</p>
+
   <div class="px-fnl__rows">
     {rows.map((r) => (
       <div
@@ -77,35 +96,38 @@ const readoutFor = (r: (typeof rows)[number]) =>
         data-fnl-row={r.i}
         data-fnl-read={readoutFor(r)}
         data-selected={r.i === defaultIdx ? 'true' : 'false'}
+        data-cue={r.i + 1}
       >
-        <span class="px-fnl__label">{r.label}</span>
+        <span class="px-fnl__label" data-build="1"><span>{r.label}</span><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span></span>
         <span class="px-fnl__track">
-          <span class="px-fnl__survived" style={`width:${r.survivedPct.toFixed(3)}%`}></span>
-          <span class="px-fnl__lost" style={`width:${r.lostPct.toFixed(3)}%`}></span>
+          <span class="px-fnl__survived" data-build="2" data-build-kind="grow-x" style={`width:${r.survivedPct.toFixed(3)}%`}></span>
+          {r.lost > 0 && (
+            <span class="px-fnl__lost" data-build="3" style={`width:${r.lostPct.toFixed(3)}%`}>
+              {r.lostPct >= 7 && <span class="px-fnl__loss">−{fmt(r.lost)}</span>}
+            </span>
+          )}
         </span>
-        <span class="px-fnl__val">
-          <b>{r.count}</b>
-          {r.i > 0 && <span class="px-fnl__loss">−{r.lost}</span>}
-        </span>
+        <b class="px-fnl__val" data-build="4" data-build-kind="rise">{fmt(r.count)}</b>
       </div>
     ))}
   </div>
 
-  <p class="px-fnl__readout px-inst__readout" data-fnl-readout aria-live="polite">
-    {readoutFor(d)}
-  </p>
+  <p class="px-fnl__readout" data-fnl-readout aria-live="polite">{readoutFor(d)}</p>
 
-  {/* Every note is present here regardless of JS, so no note is reachable only
-      by pressing. This is the AT-readable source (blueprint §7). */}
+</VizCard>
+
+{/* Every note is present here regardless of JS, so no note is reachable only
+    by pressing. It sits OUTSIDE the card, which is the build scene, because JS
+    takes it out of the flow and the scene must keep its size (LENS §6.4). This is the AT-readable source (blueprint §7). */}
   <dl class="px-fnl__notes">
     {rows.map((r) => (
       <Fragment>
-        <dt>{r.label} · {r.count} {unit} · {r.pctOfTotal}%</dt>
-        <dd>{r.note ?? '—'}</dd>
+        <dt>{r.label} · {fmt(r.count)} {unit} · {r.pctOfTotal}%{r.lost > 0 ? ` · −${fmt(r.lost)}` : ''}</dt>
+        <dd>{r.note ?? 'No note.'}</dd>
       </Fragment>
     ))}
   </dl>
-</VizCard>
+
 
 <script is:inline>
   (function () {
@@ -127,9 +149,8 @@ const readoutFor = (r: (typeof rows)[number]) =>
         out.textContent = rows[i].getAttribute('data-fnl-read') || '';
       }
 
-      // The rows are plain <div>s in the markup and become operable ONLY here,
-      // so a no-JS reader is never offered an affordance that does nothing
-      // (blueprint §7). Everything they would reveal is already in the <dl>.
+      // The rows become operable ONLY here, so a no-JS reader is never
+      // offered an affordance that does nothing (blueprint §7).
       rows.forEach(function (r, n) {
         r.setAttribute('role', 'button');
         r.setAttribute('tabindex', '0');
@@ -150,83 +171,65 @@ const readoutFor = (r: (typeof rows)[number]) =>
 </script>
 
 <style>
-  .px-fnl__rows { margin-top: 4px; }
+  .px-fnl__head { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+  .px-fnl__big { font-family: var(--font-ui); font-size: 96px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep); }
+  .px-fnl__big-u { display: inline-flex; align-items: center; padding-bottom: 6px; font-family: var(--font-ui); font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
 
+  .px-fnl__key { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; font-family: var(--font-ui); font-size: 12px; font-weight: 500; color: var(--ink-2); }
+  .px-fnl__key i { display: block; width: 14px; height: 12px; box-sizing: border-box; border: 1px dashed var(--accent); background: var(--accent-tint); border-radius: 2px; }
+  .px-fnl__key .px-cue-tag { margin-right: 0; }
+
+  .px-fnl__rows { display: flex; flex-direction: column; }
   .px-fnl__row {
     display: grid;
-    grid-template-columns: 186px 1fr 92px;
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) 64px;
+    grid-template-areas: 'label label' 'track val';
+    column-gap: 14px;
+    row-gap: 6px;
     align-items: center;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--rule);
+    padding: 8px 6px;
+    margin: 0 -6px;
+    border-radius: 4px;
   }
   html.js .px-fnl__row.is-operable { cursor: pointer; }
   .px-fnl__row.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
-  .px-fnl__row[data-selected='true'] { background: var(--paper-warm); }
+  .px-fnl__row[data-selected='true'] { background: var(--paper-3); }
 
-  .px-fnl__label {
-    font-family: var(--font-body);
-    font-size: 12.5px;
-    line-height: 1.3;
-    color: color-mix(in oklab, var(--ink) 78%, transparent);
-  }
-  .px-fnl__row[data-selected='true'] .px-fnl__label { color: var(--ink); }
+  .px-fnl__label { grid-area: label; display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--ink); }
+  .px-fnl__label .px-cue-tag { margin-right: 0; }
 
-  .px-fnl__track { display: flex; height: 17px; background: var(--paper-warm); }
-  .px-fnl__survived { background: var(--accent); }
-  /* PALER than survived, not darker — the loss is the quiet part of the row.
-     The copy in §9/EXPLAIN says "faded" for this reason. */
-  .px-fnl__lost { background: color-mix(in oklab, var(--accent) 34%, transparent); }
-  .px-fnl__row[data-selected='true'] .px-fnl__survived { background: var(--ink); }
+  .px-fnl__track { grid-area: track; display: flex; height: 28px; border-bottom: 1px solid var(--hair); }
+  .px-fnl__survived { display: block; background: var(--accent); border-radius: 2px 0 0 2px; transform-origin: left center; }
+  .px-fnl__lost {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    padding-right: 6px;
+    background: var(--accent-tint);
+    border: 1px dashed var(--accent);
+    border-left: 0;
+    border-radius: 0 2px 2px 0;
+  }
+  .px-fnl__loss { font-family: var(--font-ui); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-deep); white-space: nowrap; }
+  .px-fnl__val { grid-area: val; font-family: var(--font-ui); font-size: 28px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-deep); text-align: left; }
 
-  .px-fnl__val {
-    display: flex; align-items: baseline; justify-content: flex-end; gap: 6px;
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-fnl__val b { font-size: 12.5px; font-weight: 700; color: var(--ink); }
-  .px-fnl__loss {
-    font-size: 11px; font-weight: 400;
-    color: color-mix(in oklab, var(--ink) 50%, transparent);
-  }
+  .px-fnl__readout { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--hair); font-family: var(--font-display); font-size: 16px; font-style: italic; line-height: 1.45; color: var(--ink); }
 
-  .px-fnl__readout { border-top: 0; padding-top: 0; margin-top: 14px; }
-
-  .px-fnl__notes {
-    margin: 14px 0 0;
-    padding-top: 12px;
-    border-top: 1px solid var(--rule);
-    font-family: var(--font-body);
-    font-size: 12.5px;
-    line-height: 1.5;
-  }
-  .px-fnl__notes dt {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 10px;
-  }
-  .px-fnl__notes dd { margin: 3px 0 0; color: var(--ink-soft); }
+  .px-fnl__notes { margin: 14px 0 0; font-family: var(--font-ui); padding-top: 12px; border-top: 1px solid var(--hair); font-family: var(--font-ui); font-size: 13px; line-height: 1.5; }
+  .px-fnl__notes dt { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
+  .px-fnl__notes dd { margin: 3px 0 0; color: var(--ink-2); }
   /* With JS the readout carries the selected note, so the full list is a
-     redundant duplicate; keep it for AT but take it out of the visual flow. */
+     duplicate; keep it for assistive tech but take it out of the visual flow. */
   html.js .px-fnl__notes {
     position: absolute; width: 1px; height: 1px;
     padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
 
-  @media (max-width: 640px) {
-    .px-fnl__row {
-      grid-template-columns: 1fr 64px;
-      gap: 4px 10px;
-      padding: 10px 0;
-    }
-    /* The bar drops to its own second line, spanning both columns, so the
-       label never has to truncate (blueprint §4). */
-    .px-fnl__track { grid-column: 1 / -1; grid-row: 2; }
-    .px-fnl__label { grid-column: 1; grid-row: 1; }
-    .px-fnl__val { grid-column: 2; grid-row: 1; }
+  @media (max-width: 560px) {
+    .px-fnl__big { font-size: 72px; }
+    .px-fnl__val { font-size: 22px; }
+    .px-fnl__row { grid-template-columns: minmax(0, 1fr) 48px; }
   }
 </style>

@@ -11,13 +11,23 @@
  * it are `core/Section.astro`'s, for every kind. `number-sense` is not in
  * NEEDS_HOW: an authored `howToRead` renders, the per-kind default does not.
  *
- * THE VALUE IS STATIC, deliberately — blueprint §5 permits either. A build
- * counter (`data-build-kind="counter"`, src/scripts/build.ts) needs no new
- * JS, so the gate is passed; it is declined because a counter's in-between
+ * THE VALUE IS NOT A COUNTER, deliberately: a build counter's in-between
  * frames are grouped en-US, and this figure is often Indian-grouped
- * (15,00,000): the tween would regroup it on the way up. This kind carries one published, verified
- * figure — often an Indian-grouped rupee amount — so it must render exactly as
- * authored (CANON §7). Nothing moves, so the still IS the component.
+ * (15,00,000), so the tween would regroup it on the way up. It RISES instead,
+ * and always shows exactly what was authored (CANON §7).
+ *
+ * LENS PHASE 6 (2026-09-30), the board Lib-number-sense: the figure at up to
+ * 96px (LENS §7, a kind that IS a number) under its label, the note under it,
+ * then each everyday equivalent as a card with its ≈ sign. The figure is
+ * sized against the box (`cqi`), so it never outgrows its column.
+ *
+ * Cue anchors:
+ *   value   the figure and its label
+ *   note    the note under the figure
+ *   1..n    each `equals` row, in data order
+ *
+ * THE BUILD (LENS §6.4, on VizCard's scene): 1 the equivalents drop in, 80ms
+ * apart, 2 the label and the note rise, 3 the figure rises.
  */
 import VizCard from './VizCard.astro';
 import { renderInline } from '../../lib/text';
@@ -58,93 +68,96 @@ for (const e of equals)
 
 <VizCard prefix="px-ns" howToRead={howToRead} caption={caption} source={source}>
   <div class="px-ns__box">
-  <div class="px-ns__grid">
-    <div class="px-ns__num">
-      <p class="px-ns__k vz-eyebrow">{label}</p>
-      <p class="px-ns__v">{value}{unit && <span class="px-ns__u">{unit}</span>}</p>
-      {note && <p class="px-ns__note"><Fragment set:html={renderInline(note)} /></p>}
+    <div class="px-ns__num" data-cue="value">
+      <p class="px-ns__k" data-build="2" data-build-kind="rise"><span class="px-cue-tag" data-cue-tag="value" hidden></span>{label}</p>
+      <p class="px-ns__v"><span class="px-ns__n" data-build="3" data-build-kind="rise">{value}</span>{unit && <span class="px-ns__u">{unit}</span>}</p>
     </div>
+    {note && (
+      <p class="px-ns__note" data-cue="note" data-build="2" data-build-kind="rise"><span class="px-cue-tag" data-cue-tag="note" hidden></span><span set:html={renderInline(note)} /></p>
+    )}
 
     <ul class="px-ns__eq">
-      {equals.map((e) => (
-        <li class="px-ns__row">
-          {/* Decorative: three repetitions of "almost equal to" is noise, and the
-              relation is carried by the label and the how-to-read. */}
+      {equals.map((e, i) => (
+        <li class="px-ns__row" data-cue={i + 1} data-build="1" data-build-kind="drop">
           <span class="px-ns__sign" aria-hidden="true">≈</span>
           <p class="px-ns__t">
-            <Fragment set:html={renderInline(e.text)} />
-            {e.note && <span class="px-ns__n"><Fragment set:html={renderInline(e.note)} /></span>}
+            <span class="px-ns__tt"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><span set:html={renderInline(e.text)} /></span>
+            {e.note && <span class="px-ns__nn"><Fragment set:html={renderInline(e.note)} /></span>}
           </p>
         </li>
       ))}
     </ul>
   </div>
-  </div>
 </VizCard>
 
 <style>
-  /* THE BOX DECIDES, NOT THE SCREEN (Lens Phase 3, 2026-09-30). The kind now
-     sits in a 520px figure panel on a 1280 screen, where a viewport query
-     split it into 2fr / 3fr and a 72px value ran over its own equivalences
-     (the render gate's OVERLAP, on four issues). `.px-ns__box` is a size
-     container: the two columns open only when the component itself is 600px
-     or wider, and the value is sized against the box (`cqi`), so it can never
-     be wider than the column that holds it.
-
-     One column first, the number on top. `gap: 0` — the rule between the
-     halves is a border, so the two columns meet on a single hairline. */
   .px-ns__box { container-type: inline-size; min-width: 0; }
-  .px-ns__grid { display: grid; gap: 0; }
-  .px-ns__num, .px-ns__eq { min-width: 0; }
-  .px-ns__num { padding: 16px; }
-  /* .vz-eyebrow (viz-type.css) carries size/case/tracking/colour — CANON §5 says
-     use the role, don't restate it. Only the rhythm belongs here. */
-  .px-ns__k { margin: 0 0 10px; }
-
-  /* Flex so the unit sits on the value's BASELINE, not its box. */
-  .px-ns__v {
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0;
-    font-family: var(--font-display); font-weight: 700;
-    font-size: clamp(36px, 13cqi, 72px); line-height: 1; letter-spacing: -0.02em;
-    overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums; color: var(--accent-deep);
-  }
-  .px-ns__u {
-    font-family: var(--font-mono); font-weight: 600; font-size: 11px;
-    line-height: 1; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted);
-  }
-  .px-ns__note {
-    margin: 12px 0 0; font-family: var(--font-body);
-    font-size: 13.5px; line-height: 1.5; color: var(--muted);
-  }
-
-  .px-ns__eq { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
-  /* `baseline`, not `start`: the sign's first line must sit on the text's first
-     line, and the two have different line boxes. */
-  .px-ns__row { display: grid; grid-template-columns: 28px 1fr; align-items: baseline; padding: 12px 0; }
-  .px-ns__row + .px-ns__row { border-top: 1px solid var(--rule); }
-  .px-ns__sign {
-    font-family: var(--font-display); font-size: 20px; line-height: 1.5;
+  .px-ns__num { min-width: 0; border-radius: var(--r-ctl); }
+  .px-ns__k {
+    display: flex;
+    align-items: center;
+    margin: 0 0 10px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--accent-deep);
   }
-  .px-ns__t {
-    margin: 0; font-family: var(--font-body);
-    font-size: 17.5px; line-height: 1.5; color: var(--ink);
+  /* The unit sits on the figure's baseline and wraps under it on a narrow box. */
+  .px-ns__v {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin: 0;
   }
   .px-ns__n {
-    display: block; margin-top: 3px;
+    font-family: var(--font-ui); font-weight: 600;
+    font-size: min(96px, 22cqi); line-height: 0.92; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-ns__u {
+    font-family: var(--font-ui); font-weight: 500; font-size: 20px;
+    line-height: 1.2; color: var(--ink-2);
+  }
+  .px-ns__note {
+    display: flex;
+    align-items: flex-start;
+    margin: 12px 0 0;
+    font-family: var(--font-ui);
+    font-size: 14px; line-height: 1.5; color: var(--muted);
+    border-radius: var(--r-ctl);
+  }
+
+  .px-ns__eq { margin: 18px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .px-ns__row {
+    display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: baseline;
+    padding: 14px 16px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--r-card);
+  }
+  .px-ns__sign {
+    font-family: var(--font-display); font-size: 24px; line-height: 1;
+    color: var(--accent-deep);
+  }
+  .px-ns__t { margin: 0; min-width: 0; }
+  .px-ns__tt {
+    display: flex; align-items: baseline;
+    font-family: var(--font-display);
+    font-size: 20px; line-height: 1.35; color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .px-ns__tt :global(.px-cue-tag) { align-self: center; }
+  .px-ns__nn {
+    display: block; margin-top: 4px;
+    font-family: var(--font-ui);
     font-size: 13px; line-height: 1.45; color: var(--muted);
   }
-
-  @container (min-width: 600px) {
-    .px-ns__grid { grid-template-columns: 2fr 3fr; }
-    .px-ns__num { padding: 20px 22px; }
-    .px-ns__eq { border-top: 0; border-left: 1px solid var(--rule); }
-    .px-ns__row { padding: 14px 20px; }
+  /* The headline number (LENS §7): 96, 72 on phones. */
+  @media (max-width: 1023px) { .px-ns__n { font-size: min(72px, 24cqi); } }
+  @container (max-width: 380px) {
+    .px-ns__u { flex-basis: 100%; font-size: 16px; }
+    .px-ns__row { padding: 12px; grid-template-columns: 24px minmax(0, 1fr); }
+    .px-ns__tt { font-size: 18px; }
   }
-
-  /* Under 400px a long value plus its unit crowds the line; the unit takes a
-     line of its own rather than shrinking the figure. */
-  @container (max-width: 400px) { .px-ns__u { flex-basis: 100%; } }
 </style>

@@ -1,21 +1,40 @@
 ---
 /**
- * PowerFlow (politics · flagship of the SVG-flow family) — follow-the-money
- * made structural. Sources, intermediaries and destinations as ink bars;
- * money/authority/votes as one-accent ribbons whose thickness is the amount;
- * a 1.5px dashed centerline per ribbon streams in the direction of flow
- * (`flowDash`), with dash speed ∝ the flow's value — the largest flow runs
- * fastest. 100% build-time geometry; the reference implementation for every
- * future flowDash component.
+ * PowerFlow (politics, the SVG-flow family) — follow the money. Lens Phase 6
+ * (2026-09-30), to the Lib-power-flow board: the largest amount to reach a
+ * destination set at 96 ("1,450 ₹ cr to BJP"), then the flow drawn for the
+ * figure panel (a 440-unit viewBox): sources, intermediaries and destinations
+ * as bars in the desk text ink, the money as ribbons in shades of the desk
+ * mark whose thickness is the amount. Each bar is named with its total (the
+ * name at 13, the amount at 20 in the desk text ink). The links are listed
+ * under the drawing, each with its amount and its `note`.
  *
- * Blueprint (the contract): docs/design/blueprints/politics/power-flow.md.
+ * The SVG holds no text: every name and number is HTML laid over it in
+ * percent. Every label's height is estimated from its words at the drawing's
+ * own scale (a long name wraps to two or three lines), each outer column's
+ * labels are pushed apart by those heights, and the drawing grows taller when
+ * a column's labels need more room than 290 units, so no two labels, and no
+ * name and its neighbour's amount, can print on each other for any data. The
+ * link notes live in the list under the drawing, never on the ribbons, where
+ * they collided with the names on narrow data. On a phone the
+ * drawing keeps its 440 units and scrolls sideways in the panel. The board has
+ * no moving dashes, so the old `flowDash` stipple is gone: the ribbons' width
+ * says the amount and the columns say the direction.
+ *
  * Conservation (physics/mechanics-and-flow.md §4): every intermediary node
- * must balance within 1% or the build FAILS naming the node — unless the data
- * declares `imbalance: 'the-point'`, in which case the residual renders as an
- * accent-alt stub with a mono label.
+ * must balance within 1% or the build FAILS naming the node, unless the data
+ * declares `imbalance: 'the-point'`, when the residual renders as a stub in
+ * the accent-alt ink with its amount. Blueprint:
+ * docs/design/blueprints/politics/power-flow.md.
  *
- * The diagram always paints complete (static since Lens Phase 5) and the
- * dashes stay as static directional stipple.
+ * Cue anchors (LENS §5.2):
+ *   <node id>   each node (bar and label), by the `id` in `nodes`
+ *   1 … n       each link (ribbon and its row in the list), from 1 in DATA order
+ *   top         the headline number
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the bars fade in, 2 the
+ * ribbons fade in, 80ms apart, 3 the labels and the link rows rise, 4 the number
+ * counts up. No JS or reduced motion: the flow as drawn.
  *
  * data: { nodes[]{id, label, group?}, links[]{from, to, value, note?},
  *         unit, imbalance?: 'the-point', caption?, source? }
@@ -30,7 +49,7 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { nodes = [], links = [], unit = '', imbalance, caption, source } = Astro.props;
+const { nodes = [], links = [], unit = '', imbalance } = Astro.props;
 
 const byId = new Map(nodes.map((n) => [n.id, n]));
 for (const l of links) {
@@ -60,13 +79,9 @@ if (maxDepth < 1) throw new Error('power-flow: needs ≥2 layers (see blueprint 
 const colOf = (n: FlowNode) => (n.group === 'sink' ? maxDepth : n.group === 'source' ? 0 : rawDepth(n.id));
 const numCols = maxDepth + 1;
 
-/* ── throughput → heights: h = max(26, throughput · K), K = 150 / max ── */
 const sumIn = (id: string) => links.filter((l) => l.to === id).reduce((s, l) => s + l.value, 0);
 const sumOut = (id: string) => links.filter((l) => l.from === id).reduce((s, l) => s + l.value, 0);
 const thr = new Map(nodes.map((n) => [n.id, Math.max(sumIn(n.id), sumOut(n.id))]));
-const maxThr = Math.max(1e-9, ...Array.from(thr.values()));
-const K = 150 / maxThr;
-const hOf = new Map(nodes.map((n) => [n.id, Math.max(26, thr.get(n.id)! * K)]));
 
 /* ── conservation check (build-time; the-point → residual stub instead) ── */
 interface Residual { id: string; diff: number; }
@@ -88,277 +103,227 @@ for (const n of nodes) {
   }
 }
 
-/* ── layout: W 720, PAD 8, 18px gaps, columns vertically centered.
-      GUTTER reserves in-viewBox room for the outward source/sink labels. ── */
-const W = 720, PAD = 8, GAP = 18, NODE_W = 10, GUTTER = 112;
-const colX = (k: number) => PAD + GUTTER + (k * (W - 2 * PAD - 2 * GUTTER - NODE_W)) / Math.max(1, numCols - 1);
+/* ── layout, for the panel: W 440 units wide, labels in a 120-unit gutter
+      each side. Label heights are ESTIMATED from the words at scale 1 (the
+      drawing's width on a phone, where it scrolls; wider at 1280, never
+      narrower), 13px names at ~7.2 units a character and a 20px amount. ── */
+const W = 440, NODE_W = 10, GUT = 120, GAP = 14, PADY = 20;
+const LBL_W = GUT - 12;
+const CW = 7.2;                   // average width of a 13px character
+const LINE = 16.5;                // one 13px name line
+const AMT = 22;                   // the 20px amount under it, and its gap
+const lineCount = (text: string, width: number) => {
+  const max = Math.max(4, Math.floor(width / CW));
+  let lines = 1, cur = 0;
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    const len = w.length;
+    if (cur === 0) cur = len;
+    else if (cur + 1 + len <= max) cur += 1 + len;
+    else { lines++; cur = len; }
+    while (cur > max) { lines++; cur -= max; }
+  }
+  return lines;
+};
+/* +3 characters for the cue numeral that may print before the name */
+const labelH = (n: FlowNode, width: number) => lineCount(n.label + ' 000', width) * LINE + AMT;
 
+const colX = (k: number) => GUT + (k * (W - 2 * GUT - NODE_W)) / Math.max(1, numCols - 1);
 const cols: FlowNode[][] = Array.from({ length: numCols }, () => []);
 nodes.forEach((n) => cols[colOf(n)].push(n));
-const colH = (c: FlowNode[]) => c.reduce((s, n) => s + hOf.get(n.id)!, 0) + GAP * Math.max(0, c.length - 1);
-const H = Math.round(40 + Math.max(...cols.map(colH))); // self-sizing
+
+/* an inner column is named ABOVE its bar: the drawing starts below the
+   tallest of those labels */
+const C_W = 150;
+const innerH = Math.max(0, ...cols.slice(1, -1).flat().map((n) => labelH(n, C_W)));
+const PADT = numCols > 2 ? Math.max(PADY, innerH + 10) : PADY;
+/* an outer column's labels need their summed heights; the drawing grows to
+   hold them */
+const LGAP = 8;
+const outerNeed = [cols[0], cols[numCols - 1]].map((c) => c.reduce((a, n) => a + labelH(n, LBL_W), 0) + LGAP * Math.max(0, c.length - 1));
+const H = Math.round(Math.max(290, PADT - PADY + Math.max(...outerNeed) + 12));
+
+const colThr = (c: FlowNode[]) => c.reduce((s, n) => s + thr.get(n.id)!, 0);
+const S = Math.min(...cols.map((c) => (H - PADT - PADY - GAP * Math.max(0, c.length - 1)) / Math.max(1e-9, colThr(c))));
+const hOfN = (id: string) => Math.max(6, thr.get(id)! * S);
+const colH = (c: FlowNode[]) => c.reduce((s, n) => s + hOfN(n.id), 0) + GAP * Math.max(0, c.length - 1);
 
 interface PlacedNode { n: FlowNode; x: number; y: number; h: number; col: number; }
 const placed = new Map<string, PlacedNode>();
 cols.forEach((c, k) => {
-  let y = (H - colH(c)) / 2;
+  let y = PADT + (H - PADT - PADY - colH(c)) / 2;
   for (const n of c) {
-    const h = hOf.get(n.id)!;
+    const h = hOfN(n.id);
     placed.set(n.id, { n, x: colX(k), y, h, col: k });
     y += h + GAP;
   }
 });
 
-/* ── ribbons: cubic bands + centerline dash carriers, offsets packed flush
-      (sorted by the far end's y to minimise crossings, centered in the bar) ── */
-const minVal = Math.min(...links.map((l) => l.value));
+/* ribbons, packed flush in each bar, ordered to cross as little as they can */
 const outCursor = new Map<string, number>();
 const inCursor = new Map<string, number>();
 for (const p of placed.values()) {
-  const tOut = sumOut(p.n.id) * K;
-  const tIn = sumIn(p.n.id) * K;
-  outCursor.set(p.n.id, p.y + Math.max(0, (p.h - tOut) / 2));
-  inCursor.set(p.n.id, p.y + Math.max(0, (p.h - tIn) / 2));
+  outCursor.set(p.n.id, p.y + Math.max(0, (p.h - sumOut(p.n.id) * S) / 2));
+  inCursor.set(p.n.id, p.y + Math.max(0, (p.h - sumIn(p.n.id) * S) / 2));
 }
-const orderedLinks = [...links].sort((a, b) =>
-  (placed.get(a.from)!.y - placed.get(b.from)!.y) || (placed.get(a.to)!.y - placed.get(b.to)!.y));
-
 const f1 = (v: number) => v.toFixed(1);
-interface Ribbon {
-  band: string; dash: string; t: number;
-  midX: number; midY: number;
-  value: number; note?: string;
-  durS: string; sweep: number;
-}
-const ribbons: Ribbon[] = [];
-for (const l of orderedLinks) {
+const numbered = links.map((l, i) => ({ ...l, cue: i + 1 }));
+const ordered = [...numbered].sort((a, b) =>
+  (placed.get(a.from)!.y - placed.get(b.from)!.y) || (placed.get(a.to)!.y - placed.get(b.to)!.y));
+const maxLink = Math.max(1e-9, ...links.map((l) => l.value));
+const ribbons = ordered.map((l) => {
   const a = placed.get(l.from)!;
   const b = placed.get(l.to)!;
-  const t = l.value * K;
-  const y0 = outCursor.get(l.from)! + t / 2;
-  const y1 = inCursor.get(l.to)! + t / 2;
-  outCursor.set(l.from, outCursor.get(l.from)! + t);
-  inCursor.set(l.to, inCursor.get(l.to)! + t);
-  const x0 = a.x + NODE_W;
-  const x1 = b.x;
-  const mx = (x0 + x1) / 2;
-  const band =
-    `M ${f1(x0)} ${f1(y0 - t / 2)} C ${f1(mx)} ${f1(y0 - t / 2)} ${f1(mx)} ${f1(y1 - t / 2)} ${f1(x1)} ${f1(y1 - t / 2)} ` +
-    `L ${f1(x1)} ${f1(y1 + t / 2)} C ${f1(mx)} ${f1(y1 + t / 2)} ${f1(mx)} ${f1(y0 + t / 2)} ${f1(x0)} ${f1(y0 + t / 2)} Z`;
-  const dash = `M ${f1(x0)} ${f1(y0)} C ${f1(mx)} ${f1(y0)} ${f1(mx)} ${f1(y1)} ${f1(x1)} ${f1(y1)}`;
-  // flowDash speed ∝ value — largest flow ≈ fastest (blueprint §5); duration
-  // per 8px dash period, clamped 1.2s…8s, scaled from the SMALLEST flow.
-  const durS = Math.min(8, Math.max(1.2, (8 * minVal) / l.value)).toFixed(2);
-  // sweep offset: a multiple of the dash period ≥ the path length, so the
-  // Phase 6 build streams the dashes in from the source and lands seamlessly at 0.
-  const est = Math.hypot(x1 - x0, y1 - y0) + 0.25 * Math.abs(y1 - y0);
-  const sweep = Math.ceil(est / 8) * 8 + 8;
-  ribbons.push({ band, dash, t, midX: mx, midY: (y0 + y1) / 2, value: l.value, note: l.note, durS, sweep });
-}
-
-/* residual stubs (imbalance: 'the-point') — accent-alt, exits the node */
-const stubs = residuals.map((r) => {
-  const p = placed.get(r.id)!;
-  const t = Math.max(2, Math.abs(r.diff) * K);
-  const y = outCursor.get(r.id)!; // below the node's outgoing ribbons
-  return {
-    x: p.x + NODE_W, y, t,
-    labelX: p.x + NODE_W + 36, labelY: y + t / 2,
-    text: `${r.diff > 0 ? '+' : '−'}${fmtVal(Math.abs(r.diff))} ${unit}`.trim(),
-  };
+  const t = Math.max(1, l.value * S);
+  const y0 = outCursor.get(l.from)!;
+  const y1 = inCursor.get(l.to)!;
+  outCursor.set(l.from, y0 + t);
+  inCursor.set(l.to, y1 + t);
+  const x0 = a.x + NODE_W, x1 = b.x, mx = (x0 + x1) / 2;
+  const d = `M${f1(x0)} ${f1(y0)} C${f1(mx)} ${f1(y0)} ${f1(mx)} ${f1(y1)} ${f1(x1)} ${f1(y1)} L${f1(x1)} ${f1(y1 + t)} C${f1(mx)} ${f1(y1 + t)} ${f1(mx)} ${f1(y0 + t)} ${f1(x0)} ${f1(y0 + t)}Z`;
+  /* the heavier the flow, the stronger its shade of the mark */
+  const k = 34 + Math.round((l.value / maxLink) * 36);
+  return { ...l, d, k };
 });
 
 function fmtVal(v: number): string {
   return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 1 });
 }
+
+/* residual stubs (imbalance: 'the-point') leave the node below its ribbons */
+const stubs = residuals.map((r) => {
+  const p = placed.get(r.id)!;
+  const t = Math.max(2, Math.abs(r.diff) * S);
+  const y = outCursor.get(r.id)!;
+  return { x: p.x + NODE_W, y, t, lx: p.x + NODE_W + 32, ly: y + t / 2, text: `${r.diff > 0 ? '+' : '−'}${fmtVal(Math.abs(r.diff))} ${unit}`.trim() };
+});
 const nodeList = Array.from(placed.values());
 
-/* Outward labels live in the 112-unit GUTTER at 13px — about 16 characters.
-   Longer ones ("Everything else the clubs spend or keep") ran 111px past the
-   card, and "Indonesia's cars and power plants" 20px off its left edge
-   (measured live 2026-09-22). They wrap onto up to three tspans here; the
-   first line is lifted so the block stays centred on the node. */
-function wrapLabel(label: string, max = 16): string[] {
-  const words = label.split(/\s+/);
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    if (cur && (cur + ' ' + w).length > max) { lines.push(cur); cur = w; }
-    else cur = cur ? cur + ' ' + w : w;
+/* labels: the outer columns beside their bars, the inner ones above. An
+   outer column's labels are spaced by their own estimated heights, top to
+   bottom, then pulled back inside the drawing if the last one overran. */
+const labelPos = new Map<string, { y: number; side: 'l' | 'r' | 'c' }>();
+cols.forEach((c, k) => {
+  const side: 'l' | 'r' | 'c' = k === 0 ? 'l' : k === numCols - 1 ? 'r' : 'c';
+  const hs = c.map((n) => labelH(n, side === 'c' ? C_W : LBL_W));
+  const ys = c.map((n) => {
+    const p = placed.get(n.id)!;
+    return side === 'c' ? p.y - 6 : p.y + p.h / 2;
+  });
+  if (side !== 'c') {
+    for (let i = 1; i < ys.length; i++) {
+      const min = ys[i - 1] + (hs[i - 1] + hs[i]) / 2 + LGAP;
+      if (ys[i] < min) ys[i] = min;
+    }
+    const last = ys.length - 1;
+    const over = ys.length ? ys[last] + hs[last] / 2 - H : 0;
+    if (over > 0) {
+      ys[last] -= over;
+      for (let i = last - 1; i >= 0; i--) {
+        const max = ys[i + 1] - (hs[i + 1] + hs[i]) / 2 - LGAP;
+        if (ys[i] > max) ys[i] = max;
+      }
+    }
+    if (ys.length && ys[0] - hs[0] / 2 < 0) { const d = hs[0] / 2 - ys[0]; for (let i = 0; i < ys.length; i++) ys[i] += d; }
   }
-  if (cur) lines.push(cur);
-  if (lines.length > 3) return [lines[0], lines[1], lines.slice(2).join(' ')];
-  return lines;
-}
+  c.forEach((n, i) => labelPos.set(n.id, { y: ys[i], side }));
+});
+
+/* the headline: the largest amount to reach a destination */
+const sinks = nodeList.filter((p) => p.col === numCols - 1);
+const top = [...sinks].sort((a, b) => sumIn(b.n.id) - sumIn(a.n.id))[0];
+const topVal = top ? sumIn(top.n.id) : 0;
+const topInt = Number.isInteger(topVal);
+const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>}
+<div class="px-pflow" data-viz-root data-build-scene>
+  {top && (
+    <div class="px-pflow__head" data-cue="top">
+      <span class="px-pflow__big" data-build="4" data-build-kind={topInt ? 'counter' : 'rise'} data-to={topInt ? topVal : undefined}>{fmtVal(topVal)}</span>
+      <span class="px-pflow__big-u"><span class="px-cue-tag" data-cue-tag="top" hidden></span>{unit ? `${unit} ` : ''}to {top.n.label}</span>
+    </div>
+  )}
 
-  <div class="px-pflow">
-    <svg
-      class="px-pflow__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Flow diagram: ${caption}` : 'Flow diagram'}
-    >
-      <!-- ribbon bands — one accent, thickness does the talking (§6) -->
-      <g>
-        {ribbons.map((r) => <path class="px-pflow__band" d={r.band} />)}
-      </g>
-
-      <!-- centerline dash carriers (flowDash: speed ∝ value) -->
-      <g>
-        {ribbons.map((r) => (
-          <path class="px-pflow__dash" d={r.dash} style={`--dur:${r.durS}s; --sweep:${r.sweep}`} />
-        ))}
-      </g>
-
-      <!-- residual stubs (only when imbalance IS the point) -->
-      {stubs.map((s) => (
-        <g class="px-pflow__stub">
-          <rect x={f1(s.x)} y={f1(s.y)} width="30" height={f1(s.t)} rx="1.5" />
-          <text x={f1(s.labelX)} y={f1(s.labelY)} dominant-baseline="middle">{s.text}</text>
-        </g>
+  <div class="px-pflow__canvas">
+    <svg class="px-pflow__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
+      aria-label={`Flow of ${unit || 'amounts'}: ${links.map((l) => `${byId.get(l.from)!.label} to ${byId.get(l.to)!.label} ${fmtVal(l.value)}`).join(', ')}`}>
+      {ribbons.map((r) => (
+        <path class="px-pflow__band" d={r.d} style={`--k:${r.k}%`} data-cue={r.cue} data-build="2" />
       ))}
-
-      <!-- node bars (final height; the Phase 6 build grows them, 50ms column stagger) -->
-      <g>
-        {nodeList.map((p) => (
-          <rect
-            class={`px-pflow__node${p.n.group === 'via' || (p.col > 0 && p.col < numCols - 1) ? ' px-pflow__node--via' : ''}`}
-            x={f1(p.x)} y={f1(p.y)} width={NODE_W} height={f1(p.h)} rx="2"
-            style={`--nd:${p.col * 50}ms`}
-          />
-        ))}
-      </g>
-
-      <!-- node labels: right-aligned into sources / left-aligned out of sinks -->
-      <g>
-        {nodeList.map((p) =>
-          p.col === 0 ? (
-            <text class="px-pflow__lbl" x={f1(p.x - 6)} y={f1(p.y + p.h / 2)}
-              text-anchor="end" dominant-baseline="middle">
-              {wrapLabel(p.n.label).map((ln, k, arr) => (
-                <tspan x={f1(p.x - 6)} dy={k === 0 ? `${(-(arr.length - 1) * 0.6).toFixed(2)}em` : '1.2em'}>{ln}</tspan>
-              ))}
-            </text>
-          ) : p.col === numCols - 1 ? (
-            <text class="px-pflow__lbl" x={f1(p.x + NODE_W + 6)} y={f1(p.y + p.h / 2)}
-              text-anchor="start" dominant-baseline="middle">
-              {wrapLabel(p.n.label).map((ln, k, arr) => (
-                <tspan x={f1(p.x + NODE_W + 6)} dy={k === 0 ? `${(-(arr.length - 1) * 0.6).toFixed(2)}em` : '1.2em'}>{ln}</tspan>
-              ))}
-            </text>
-          ) : (
-            <text class="px-pflow__lbl" x={f1(p.x + NODE_W / 2)} y={f1(Math.max(11, p.y - 7))}
-              text-anchor="middle">{p.n.label}</text>
-          ),
-        )}
-      </g>
-
-      <!-- mid-stream values (mono + unit, paper halo) and notes -->
-      <g>
-        {ribbons.map((r) => (
-          <>
-            <text class="px-pflow__val" x={f1(r.midX)} y={f1(r.midY)}
-              text-anchor="middle" dominant-baseline="middle">{fmtVal(r.value)} {unit}</text>
-            {r.note && (
-              <text class="px-pflow__note" x={f1(r.midX)} y={f1(r.midY + 13)}
-                text-anchor="middle" dominant-baseline="middle">{r.note}</text>
-            )}
-          </>
-        ))}
-      </g>
+      {stubs.map((s) => (
+        <rect class="px-pflow__stub" x={f1(s.x)} y={f1(s.y)} width="26" height={f1(s.t)} rx="1.5" data-build="2" />
+      ))}
+      {nodeList.map((p) => (
+        <rect class="px-pflow__node" x={f1(p.x)} y={f1(p.y)} width={NODE_W} height={f1(p.h)} data-cue={p.n.id} data-build="1" />
+      ))}
     </svg>
+
+    <div class="px-pflow__over">
+      {nodeList.map((p) => {
+        const lp = labelPos.get(p.n.id)!;
+        const val = Math.max(sumIn(p.n.id), sumOut(p.n.id));
+        const style = lp.side === 'l'
+          ? `top:${pct(lp.y, H)};right:${pct(W - p.x + 8, W)};width:${pct(LBL_W, W)}`
+          : lp.side === 'r'
+            ? `top:${pct(lp.y, H)};left:${pct(p.x + NODE_W + 8, W)};width:${pct(LBL_W, W)}`
+            : `top:${pct(lp.y, H)};left:${pct(p.x + NODE_W / 2, W)}`;
+        return (
+          <span class={`px-pflow__lbl px-pflow__lbl--${lp.side}`} data-cue={p.n.id} data-build="3" data-build-kind="rise" style={style}>
+            <span class="px-pflow__nm"><span class="px-cue-tag" data-cue-tag={p.n.id} hidden></span>{p.n.label}</span>
+            <b>{fmtVal(val)}</b>
+          </span>
+        );
+      })}
+      {stubs.map((s) => (
+        <span class="px-pflow__stubl" data-build="3" data-build-kind="rise" style={`top:${pct(s.ly, H)};left:${pct(s.lx, W)}`}>{s.text}</span>
+      ))}
+    </div>
   </div>
 
+  <ol class="px-pflow__links">
+    {numbered.map((l) => (
+      <li data-cue={l.cue} data-build="3" data-build-kind="rise">
+        <span class="px-cue-tag" data-cue-tag={l.cue} hidden></span>
+        <span class="px-pflow__lk">{byId.get(l.from)!.label} to {byId.get(l.to)!.label}</span>
+        <b>{fmtVal(l.value)}</b>
+        {l.note && <span class="px-pflow__note">{l.note}</span>}
+      </li>
+    ))}
+  </ol>
 </div>
 
 <style>
-  .px-pflow { width: 100%; padding: 0 10px; }
-  .px-pflow__svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .px-pflow { display: flex; flex-direction: column; gap: 18px; min-width: 0; font-family: var(--font-ui); }
+  .px-pflow__head { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+  .px-pflow__big { font-size: 96px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep); }
+  .px-pflow__big-u { display: inline-flex; align-items: center; padding-bottom: 6px; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
 
-  /* ── color spec (§6): one red system, thickness does the talking ── */
-  .px-pflow__band {
-    fill: var(--accent);
-    opacity: 0.3;
-    transition: opacity 900ms var(--ease) 250ms;
-  }
-  .px-pflow__dash {
-    fill: none;
-    stroke: var(--accent-deep);
-    stroke-opacity: 0.9;
-    stroke-width: 1.5;
-    stroke-dasharray: 2 6;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* rests at 0, the draw arrives in Phase 6 */
-  }
-  .px-pflow__node {
-    fill: var(--ink);
-    opacity: 0.85;
-    transform: scaleY(1);
-    transform-box: fill-box;
-    transform-origin: center;
-    transition: transform 400ms var(--ease) var(--nd, 0ms); /* rests at full height, the grow arrives in Phase 6 */
-  }
-  .px-pflow__node--via { opacity: 0.6; }
+  .px-pflow__canvas { position: relative; }
+  .px-pflow__svg { display: block; width: 100%; height: auto; }
+  .px-pflow__band { fill: color-mix(in oklab, var(--accent) var(--k, 40%), var(--paper-2)); }
+  .px-pflow__node { fill: var(--accent-deep); }
+  .px-pflow__stub { fill: var(--accent-alt); opacity: 0.8; }
 
-  .px-pflow__lbl {
-    font-family: var(--font-body);
-    font-size: 13px;
-    fill: var(--ink);
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 3px;
-    stroke-linejoin: round;
-  }
-  .px-pflow__val {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-value, 11px);
-    letter-spacing: 0.03em;
-    font-variant-numeric: tabular-nums;
-    fill: var(--accent-deep);
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 3px;
-    stroke-linejoin: round;
-  }
-  .px-pflow__note {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
-    fill: var(--muted);
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
-    stroke-linejoin: round;
-  }
-  .px-pflow__stub rect { fill: var(--accent-alt); opacity: 0.8; }
-  .px-pflow__stub text {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-value, 11px);
-    font-variant-numeric: tabular-nums;
-    fill: var(--accent-alt);
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 3px;
-  }
-  .px-pflow__val, .px-pflow__note, .px-pflow__stub {
-    transition: opacity 450ms var(--ease) 1150ms, transform 450ms var(--ease) 1150ms;
-  }
+  .px-pflow__over { position: absolute; inset: 0; pointer-events: none; }
+  .px-pflow__lbl { position: absolute; display: flex; flex-direction: column; gap: 2px; translate: 0 -50%; }
+  .px-pflow__lbl--l { align-items: flex-end; text-align: right; }
+  .px-pflow__lbl--c { align-items: center; text-align: center; translate: -50% -100%; width: max-content; max-width: 150px; }
+  .px-pflow__nm { display: block; font-size: 13px; font-weight: 600; line-height: 1.25; color: var(--ink); }
+  .px-pflow__nm .px-cue-tag { margin-right: 6px; }
+  .px-pflow__lbl b { font-size: 20px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; color: var(--accent-deep); }
+  .px-pflow__links { margin: 0; padding: 12px 0 0; list-style: none; border-top: 1px solid var(--hair); display: flex; flex-direction: column; gap: 6px; }
+  .px-pflow__links li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+  .px-pflow__links .px-cue-tag { align-self: center; margin-right: 0; }
+  .px-pflow__lk { color: var(--ink); font-weight: 500; }
+  .px-pflow__links b { font-weight: 600; color: var(--accent-deep); font-variant-numeric: tabular-nums; }
+  .px-pflow__note { font-family: var(--font-display); font-style: italic; font-size: 15px; color: var(--ink-2); }
+  .px-pflow__stubl { position: absolute; translate: 0 -50%; font-size: 13px; font-weight: 600; color: var(--accent-alt); font-variant-numeric: tabular-nums; }
 
-  /* Mobile legibility is the min-width rule in dataviz-v2.css (Phase 5): the
-     chart renders at its own 720-unit width and the card scrolls, so labels
-     land at their authored size. The SVG-unit bump that used to live here
-     reached only ~7px of the 9.5px floor it was written for, and at natural
-     scale it would now render 21px text at 21px. */
-
-  /* reduced motion: full diagram, dashes as static directional stipple */
-  @media (prefers-reduced-motion: reduce) {
-    .px-pflow__node, .px-pflow__band, .px-pflow__dash,
-    .px-pflow__val, .px-pflow__note, .px-pflow__stub { transition: none !important; }
+  @media (max-width: 1023px) {
+    .px-pflow { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+    .px-pflow__canvas { min-width: 440px; }
+  }
+  @media (max-width: 560px) {
+    .px-pflow__big { font-size: 72px; }
   }
 </style>

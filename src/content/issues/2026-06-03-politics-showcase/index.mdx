@@ -56,7 +56,11 @@ sections:
   - kind: bill-passage
     eyebrow: "THE LEGISLATIVE TRACK"
     title: "How a bill *moves*."
-    intro: "A horizontal track of legislative stages, each card marked passed, failed, current, or pending."
+    intro: "One package, stage by stage. [[1]] It cleared the Bundestag with 513 votes. [[2]] The Bundesrat followed three days later. [[3]] The budgets under the new ceiling are still to come."
+    cues:
+      - { n: 1, at: "3" }
+      - { n: 2, at: "4" }
+      - { n: 3, at: "6" }
     data:
       caption: "Debt-brake reform package · path through the legislature, March 2025"
       source: "Deutscher Bundestag & Bundesrat plenary records, 18–21 March 2025"
@@ -68,10 +72,36 @@ sections:
         - { label: "Federal assent", status: "current", date: "Apr 2025", note: "Signed and promulgated into the Basic Law." }
         - { label: "Implementing budgets", status: "pending", note: "Annual appropriations follow under the new ceiling." }
 
+  - kind: bill-breakdown
+    eyebrow: "ONE VOTE, THREE CHANGES"
+    title: "Three changes, stapled into one vote"
+    intro: "Three changes travelled together, and one vote covered all of them. [[1]] The payload was a redraw of every constituency by population. [[2]] It came with a bigger house, up to 850 seats."
+    cues:
+      - { n: 1, at: "3" }
+      - { n: 2, at: "2" }
+    source:
+      label: "PRS Legislative Research, 131st Amendment Bill brief"
+    data:
+      cards:
+        - label: "Payload 01"
+          title: "Women's seats, active by 2029."
+          body: "Use the 2011 census so the reservation starts at the next general election."
+        - label: "Payload 02"
+          title: "A bigger Lok Sabha."
+          body: "Lift the ceiling from 550 to 850 seats. Today's house fills 543 of them. The home minister's own projection: 816."
+        - label: "Payload 03"
+          primary: true
+          title: "Every constituency redrawn by population."
+          body: "End the 50-year freeze. A simple majority picks which census to use."
+
   - kind: vote-flow
     eyebrow: "THE DIVISION, AS FLOW"
     title: "Where the votes *went*."
-    intro: "A Sankey diagram where each bloc flows by seat count into For, Against, or Abstain — hover a ribbon to isolate it."
+    intro: "Each bloc's seats flow to how it voted. [[1]] CDU/CSU and SPD carried 328 seats to For. [[2]] AfD and Die Linke put 216 against. [[3]] The Greens abstained."
+    cues:
+      - { n: 1, at: "1 2 for" }
+      - { n: 2, at: "against" }
+      - { n: 3, at: "5" }
     data:
       caption: "Chancellor election · second ballot · 6 May 2025"
       source: "Illustrative reconstruction of the 6 May 2025 Bundestag ballot"
@@ -87,7 +117,10 @@ sections:
   - kind: margin-ladder
     eyebrow: "THE CLOSEST RACES"
     title: "Won by *how* much."
-    intro: "Constituencies ranked by win margin as bars on a tilted, receding plane — widest margin at the top."
+    intro: "Constituencies ranked by win margin, widest first. [[1]] München-Süd was won by 41,280 votes, the widest here. [[2]] Potsdam by 2,310, the closest."
+    cues:
+      - { n: 1, at: "1 top" }
+      - { n: 2, at: "6" }
     data:
       caption: "Selected direct-mandate margins · Erststimme · 2025"
       source: "Illustrative constituency margins, 2025 federal election"
@@ -102,7 +135,11 @@ sections:
   - kind: vote-result
     eyebrow: "THE ARITHMETIC"
     title: "The first *ballot* that failed."
-    intro: "The vote bar: animated for/against segments, a dashed marker for the required majority, and a dot-chamber with one dot per member present."
+    intro: "[[1]] A chancellor needed 316 votes, a majority of all members. [[2]] On the first ballot 310 voted for him and 307 against. [[3]] He fell six short."
+    cues:
+      - { n: 1, at: "line" }
+      - { n: 2, at: "for against" }
+      - { n: 3, at: "short" }
     data:
       for: 310
       against: 307
@@ -115,7 +152,11 @@ sections:
   - kind: approval-chart
     eyebrow: "THE NUMBERS OVER TIME"
     title: "A chancellor's first *year*."
-    intro: "A dual-line time series of approve versus disapprove, stroke-drawn left to right on scroll-in."
+    intro: "Approve against disapprove, month by month. [[1]] Approval slipped behind in the second month. [[2]] It bottomed at 35 in December, nine points below the May start. [[3]] By April it stood at 42 against 46."
+    cues:
+      - { n: 1, at: "cross" }
+      - { n: 2, at: "note1" }
+      - { n: 3, at: "approve disapprove" }
     data:
       annotations:
         - at: "Dec 2025"
@@ -139,7 +180,11 @@ sections:
   - kind: power-matrix
     eyebrow: "THE BALANCE OF POWER"
     title: "Who controls *what*."
-    intro: "An institution-by-bloc control grid: each cell marks whether a bloc holds full, partial, or no control of an institution."
+    intro: "Each cell is one bloc's hold on one institution. [[1]] The coalition holds the Bundestag and the Chancellery outright. [[2]] The Länder are split three ways. [[3]] The court is contested."
+    cues:
+      - { n: 1, at: "1 3" }
+      - { n: 2, at: "4" }
+      - { n: 3, at: "5-1 5-3" }
     data:
       caption: "Federal institutional control · Germany, 2025"
       source: "Bundestag, Bundesrat & Bundesverfassungsgericht public records, 2025"
@@ -171,23 +216,73 @@ sections:
         - { institution: "Federal Constitutional Court", party: "left", control: "contested" }
 
   - kind: seat-chart
-    eyebrow: "THE SHIFT FROM LAST TIME"
-    title: "Who *gained*, who lost."
-    intro: "A diverging seat-change chart: each party's current seat count beside a bar showing seats gained or lost versus the previous election."
+    eyebrow: "IF SEATS FOLLOWED PEOPLE"
+    title: "The north gains, the south *loses*"
+    intro: "This projection keeps today's 543 seats and redraws them by population. [[1]] The four northern states here gain 31 seats between them. [[2]] Uttar Pradesh gains 11 and Bihar 10. [[3]] Tamil Nadu, Kerala and Andhra Pradesh lose 8 each."
+    cues:
+      - { n: 1, at: "north" }
+      - { n: 2, at: "1 2" }
+      - { n: 3, at: "5 6 7" }
+    source:
+      label: "Vaishnav & Hintson, Carnegie Endowment for International Peace, 2019"
     data:
-      subtitle: "Seat change · 2021 → 2025 Bundestag"
-      source: "Bundeswahlleiterin, 2021 and 2025 federal election results"
+      subtitle: "Projected seat change · 543-seat scenario"
       rows:
-        - { name: "CDU/CSU", region: "north", current: 208, change: 11 }
-        - { name: "AfD", region: "north", current: 152, change: 69 }
-        - { name: "SPD", region: "south", current: 120, change: -86 }
-        - { name: "Grüne", region: "south", current: 85, change: -33 }
-        - { name: "Die Linke", region: "north", current: 64, change: 25 }
+        - { name: "Uttar Pradesh", region: "north", current: 80, change: 11 }
+        - { name: "Bihar", region: "north", current: 40, change: 10 }
+        - { name: "Rajasthan", region: "north", current: 25, change: 6 }
+        - { name: "Madhya Pradesh", region: "north", current: 29, change: 4 }
+        - { name: "Tamil Nadu", region: "south", current: 39, change: -8 }
+        - { name: "Kerala", region: "south", current: 20, change: -8 }
+        - { name: "Andhra Pradesh", region: "south", current: 25, change: -8 }
+        - { name: "Karnataka", region: "south", current: 28, change: -2 }
+      quote:
+        text: "The political pattern of losers and gainers maps almost perfectly onto areas of BJP's weakness and strength."
+        attribution: "Yogendra Yadav · X · April 2026"
+
+  - kind: paradox
+    eyebrow: "BOTH SIDES"
+    title: "Both cases are honest. That is the problem."
+    intro: "There is no villain here. [[1]] One side asks for one person, one vote, one value. [[2]] The other asks that a falling birth rate not cost a state its seats. [[3]] Both principles are fair, and they point in opposite directions."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "gap" }
+    source:
+      label: "Vaishnav & Hintson, Carnegie Endowment · NFHS-5"
+    data:
+      sides:
+        - label: "The government's case"
+          statement: "*One person, one vote, one value.*"
+          detail: "When one MP speaks for far more people than another, a vote in the north counts for less. Equal votes is a democratic principle."
+        - label: "The opposition's case"
+          statement: "*Don't punish responsibility.*"
+          detail: "The south brought its birth rate down because the country asked it to, with schools, hospitals and family planning. Now that record costs it seats."
+
+  - kind: analogy
+    eyebrow: "THE JOINT FAMILY"
+    title: "The same fight, at a family dinner"
+    source:
+      label: "Vaishnav & Hintson, Carnegie Endowment for International Peace, 2019"
+    data:
+      headline: "Votes at the family table, decided by how many children you have."
+      pairs:
+        - this: "A state that brought its birth rate down"
+          that: "A brother who kept his household small"
+        - this: "Seats handed out by head-count"
+          that: "Votes at the dinner table by number of children"
+        - this: "The freeze, fifty years long"
+          that: "Everyone sticking to the old count"
+      punchline: "Ending the freeze is the family recounting the children, and the votes, on the same day."
 
   - kind: timeline
     eyebrow: "THE YEAR IN SIX DATES"
     title: "From ballot to *budget*."
-    intro: "A vertical timeline rail with state-coloured nodes — default, key, fail, and now — that fade and rise in a stagger on scroll."
+    intro: "Six dates carry the first year, from the ballot to the budget."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "4" }
+      - { n: 3, at: "5" }
     data:
       annotations:
         - at: "23 Feb 2025"
@@ -221,7 +316,11 @@ sections:
   - kind: chamber
     eyebrow: "THE CHAMBER, STANDING"
     title: "The record, *rendered*."
-    intro: "A 3D hemicycle with every seat an instanced block, coloured by party — drag to look around, press DIVISION to walk the seats to the lobbies."
+    intro: "Every dot is one seat, grouped by party. [[1]] The BJP holds 240 of the 543 seats. [[2]] A majority takes 272. [[3]] In the division, 288 voted aye."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "line" }
+      - { n: 3, at: "aye" }
     plain: "The chamber from above — every block is one seat, grouped by party. The dashed arc is the majority line."
     skimCaption: "A 3D parliament of 543 seats in contiguous party wedges: no single party crosses the dashed 272-seat majority arc, and the attached division walks 288 ayes and 228 noes to the lobbies."
     data:
@@ -242,7 +341,10 @@ sections:
   - kind: power-flow
     eyebrow: "FOLLOW THE MONEY"
     title: "Where the giving *lands*."
-    intro: "The follow-the-money Sankey: institutions as ink bars, money as ribbons whose thickness is the amount, dashes streaming in the direction of flow."
+    intro: "Money moves left to right, and a thicker band carries more. [[1]] Corporate donors routed 2,100 crore through electoral trusts. [[2]] 1,450 crore of it, about 69%, reached one party."
+    cues:
+      - { n: 1, at: "corp trust 1" }
+      - { n: 2, at: "2 top" }
     plain: "Money flows left to right — every band is one route, and thicker bands carry more. The moving dashes show direction."
     skimCaption: "An illustrative ₹2,100 cr of corporate giving routed through electoral trusts: about 69% of what the trusts passed on landed with one party."
     data:
@@ -264,7 +366,11 @@ sections:
   - kind: coalition-calculus
     eyebrow: "COALITION CALCULUS"
     title: "The coalition you can *build*."
-    intro: "Every party is a weight block on one seat-bar against the majority line. Press parties in and out — the readout keeps honest score, CLEARS BY or SHORT BY, and the parties nobody will govern with are locked out, each with a stated reason."
+    intro: "Every party is a block on one seat bar against the majority line. [[1]] CDU/CSU and SPD hold 328 seats together. [[2]] That clears the 316-seat majority by 12. [[3]] The AfD, the second-largest party, is locked out."
+    cues:
+      - { n: 1, at: "1 3" }
+      - { n: 2, at: "line top" }
+      - { n: 3, at: "2" }
     plain: "Every block is one party's seats on a single bar; press parties in or out and the bar shows whether the group reaches the majority line."
     skimCaption: "Germany's 630-seat Bundestag after February 2025: with the second-largest party (AfD, 152) locked out, exactly one two-party majority exists — CDU/CSU + SPD, 328 seats, clearing the 316-seat line by 12."
     data:
@@ -282,7 +388,11 @@ sections:
   - kind: gerrymander-lens
     eyebrow: "SAME BALLOTS, THREE MAPS"
     title: "The lines, *not* the votes."
-    intro: "One 500-voter electorate, re-districted three ways — a fair plan and two gerrymanders — with each map's efficiency gap named against the 7% fairness flag."
+    intro: "One 500-voter electorate, drawn into five districts three ways. [[1]] Compact columns give Union 3 seats and Front 2. [[2]] Row strips give Union all five. [[3]] Packing Union voters gives Front 3."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2 top" }
+      - { n: 3, at: "3" }
     plain: "The same voters, three ways of drawing the districts; each map shows who wins and how skewed it is — the number is the efficiency gap, and the fills never change."
     skimCaption: "Redraw the districts and the same 272–228 vote split swings from a fair 3–2 to a rigged 5–0 — the efficiency gap flags it."
     layout: wide
@@ -312,7 +422,10 @@ sections:
   - kind: bill-funnel
     eyebrow: "ONE SESSION'S OUTPUT"
     title: "Where 214 bills actually *stopped*."
-    intro: "The same bills counted again at each stage they had to clear. The faded segment on each row is what was lost since the row above it."
+    intro: "The same 214 bills, counted again at each stage they had to clear. [[1]] The biggest loss, 83 bills, came at referral, before any vote. [[2]] Only 47 received assent."
+    cues:
+      - { n: 1, at: "2" }
+      - { n: 2, at: "7 top" }
     howToRead: "Every row is the same population of bills, counted again after one more hurdle. All the bars share a single scale set by the first row, so the white space growing to the right is the attrition. Press a stage for what happened there."
     caption: "214 bills went in and 47 came out with assent."
     source:
@@ -346,7 +459,11 @@ sections:
   - kind: age-pyramid
     eyebrow: "COMPOSITION BY AGE AND SEX"
     title: "The split narrows on the way *down*."
-    intro: "One row per age band, oldest at the top, with men running left of the centre line and women right. Switch to share of band and the size of each band drops out, leaving only the balance inside it."
+    intro: "One row per age band, oldest at the top, men left of the centre line and women right. [[1]] 205 members are in their fifties, the largest band. [[2]] Women are 40% of the members under 30, [[3]] and 22% of those over 70."
+    cues:
+      - { n: 1, at: "3 top" }
+      - { n: 2, at: "6" }
+      - { n: 3, at: "1" }
     howToRead: "Counts put every bar on one scale, so the tall middle rows are simply where most members are. Share of band throws the size of each band away and shows only the split inside it — which is the reading that tells you whether an imbalance is passing through or holding."
     caption: "383 of the 630 members are between 40 and 59."
     source:

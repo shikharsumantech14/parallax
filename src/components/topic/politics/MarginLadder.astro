@@ -1,145 +1,89 @@
 ---
 /**
- * MarginLadder (politics) — constituencies/seats ranked by win margin as
- * horizontal bars on a slightly tilted, receding 3D plane. Rows are sorted by
- * margin (widest first); each bar's width is proportional to the largest
- * margin. The global core/Tilt.astro `data-tilt` island adds pointer-tilt to
- * the plane, and a row lifts/brightens on hover.
+ * MarginLadder (politics) — contests ranked by how far they were won (or
+ * went over). Lens Phase 6 (2026-09-30), to the Lib-margin-ladder board: the
+ * widest margin set at 96 with the unit beside it, then the rungs, widest
+ * first, on a left rule: each rung's name on its own line with the `winner`
+ * set right, and under it a flat bar in the desk mark (or the row's `color`)
+ * with its margin at the bar's end in the desk text ink. The 3D tilt and the hover lift of the Phase 5 version are gone: a
+ * hover never moves layout (LENS §6.5).
  *
- * THE BUILD (Lens Phase 5, LENS §6.4): the card is a `data-build-scene`:
- * 1 the row names fade in, 2 the bars grow from the left, 80ms apart,
- * 3 the margins rise (src/scripts/build.ts). No JS or reduced motion: the
- * bars at their FINAL width, the numeric margin beside every bar.
+ * Cue anchors (LENS §5.2): each rung is `data-cue="<n>"`, numbered from 1 in
+ * DATA order (before the sort); `top` is the headline number.
  *
- * data: { rows[]{ label, margin, winner?, color? }, caption?, source? }
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the names fade in, 2 the bars
+ * grow from the left, 80ms apart, 3 the margins rise, 4 the headline counts
+ * up. No JS or reduced motion: the bars at their final length.
+ *
+ * data: { rows[]{ label, margin, winner?, color? }, unit?, caption?, source? }
  */
 interface Row { label: string; margin: number; winner?: string; color?: string; }
 interface Props { rows: Row[]; caption?: string; source?: string; unit?: string; }
-// `unit` is the chip beside the caption: what a rung's length measures. The
-// kind was built for match and seat margins, so "win margins" stays its
-// default; an issue that ranks anything else (an overspend in £m, 2026-09-28)
-// names its own unit. A card's copy is desk-neutral (AGENTS.md §7).
-const { rows = [], caption, source, unit = 'win margins' } = Astro.props;
+// `unit` names what a rung's length measures. The kind was built for match
+// and seat margins, so "win margins" stays its default; an issue that ranks
+// anything else (an overspend in £m, 2026-09-28) names its own unit. A card's
+// copy is desk-neutral (AGENTS.md §7).
+const { rows = [], unit = 'win margins' } = Astro.props;
 
-/* Cue anchors (LENS §5.2) are numbered in DATA order, before the sort: the
-   first authored row is "1". */
 const sorted = rows.map((r, k) => ({ ...r, cue: k + 1 })).sort((a, b) => (b.margin || 0) - (a.margin || 0));
-const maxMargin = Math.max(1, ...sorted.map((r) => Math.abs(r.margin) || 0));
-const fmt = (n: number) => n.toLocaleString();
+const maxMargin = Math.max(1e-9, ...sorted.map((r) => Math.abs(r.margin) || 0));
+const fmt = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toLocaleString('en-US', { maximumFractionDigits: 1 }));
+const top = sorted[0];
+const topInt = top ? Number.isInteger(top.margin) : true;
 ---
 
-<div class="px-viz" data-build-scene>
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}</b></div>}
-
-  <div class="px-mladr px3d-stage">
-    <div class="px-mladr__plane px3d-tilt" data-tilt="6">
-      {sorted.map((r) => {
-        const w = (Math.abs(r.margin) / maxMargin) * 100;
-        return (
-          <div class="px-mladr__row" data-cue={r.cue}>
-            <div class="px-mladr__label" data-build="1">
-              <span class="px-mladr__name"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span>{r.label}</span>
-              {r.winner && <span class="px-mladr__winner">{r.winner}</span>}
-            </div>
-            <div class="px-mladr__track">
-              <span
-                class="px-mladr__fill"
-                data-build="2"
-                data-build-kind="grow-x"
-                style={`--w:${w.toFixed(2)}%; background:${r.color || 'var(--accent)'}`}
-              ></span>
-            </div>
-            <div class="px-mladr__val" data-build="3" data-build-kind="rise">{fmt(r.margin)}</div>
-          </div>
-        );
-      })}
+<div class="px-mladr" data-viz-root data-build-scene>
+  {top && (
+    <div class="px-mladr__head" data-cue="top">
+      <span class="px-mladr__big" data-build="4" data-build-kind={topInt ? 'counter' : 'rise'} data-to={topInt ? top.margin : undefined}>{fmt(top.margin)}</span>
+      <span class="px-mladr__big-u"><span class="px-cue-tag" data-cue-tag="top" hidden></span>{unit}</span>
     </div>
-  </div>
+  )}
 
+  <div class="px-mladr__ladder">
+    {sorted.map((r) => {
+      const w = Math.abs(r.margin) / maxMargin;
+      return (
+        <div class="px-mladr__row" data-cue={r.cue}>
+          <div class="px-mladr__line" data-build="1">
+            <span class="px-mladr__name"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span>{r.label}</span>
+            {r.winner && <span class="px-mladr__winner">{r.winner}</span>}
+          </div>
+          <div class="px-mladr__track" style={`--w:${w.toFixed(4)}`}>
+            <span class="px-mladr__fill" data-build="2" data-build-kind="grow-x" style={r.color ? `background:${r.color}` : undefined}></span>
+            <span class="px-mladr__val" data-build="3" data-build-kind="rise">{fmt(r.margin)}</span>
+          </div>
+        </div>
+      );
+    })}
+  </div>
 </div>
 
 <style>
-  .px-mladr { width: 100%; }
-  .px-mladr__plane {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-    /* small inset so rows clear the card edge once the plane tilts/recedes
-       (right-aligned value sits on the plane's right edge otherwise) */
-    padding-inline: 4px;
-    /* tilt origin near the top so the plane recedes from the reader */
-    transform-origin: 50% 0%;
-  }
+  .px-mladr { display: flex; flex-direction: column; gap: 18px; min-width: 0; font-family: var(--font-ui); }
+  .px-mladr__head { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+  .px-mladr__big { font-size: 96px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep); }
+  .px-mladr__big-u { display: inline-flex; align-items: center; padding-bottom: 6px; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
 
-  .px-mladr__row {
-    display: grid;
-    grid-template-columns: minmax(120px, 1.1fr) 2.4fr auto;
-    gap: 16px;
-    align-items: center;
-    padding: 7px 10px;
-    border-radius: var(--r-tile);
-    /* base/resting = final visible state (no-JS safe) */
-    transition: transform var(--t-soft) var(--ease), background var(--t-soft) var(--ease);
-  }
-  .px-mladr__row:hover {
-    background: color-mix(in oklab, var(--accent) 7%, transparent);
-    transform: translateY(-2px);
-  }
-
-  .px-mladr__label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: right;
-    min-width: 0;
-  }
-  /* row label — in-viz title role: display serif ink */
-  .px-mladr__name {
-    font-family: var(--font-display);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ink);
-    line-height: 1.2;
-  }
-  /* winner — legend role: mono uppercase muted */
-  .px-mladr__winner {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .px-mladr__track {
-    position: relative;
-    height: 20px;
-    background: color-mix(in oklab, var(--ink) 5%, var(--bg));
-    border-radius: var(--r-pill);
-    overflow: hidden;
-  }
+  .px-mladr__ladder { display: flex; flex-direction: column; gap: 14px; padding-left: 10px; border-left: 2px solid var(--hair-2); }
+  .px-mladr__row { display: flex; flex-direction: column; gap: 6px; }
+  .px-mladr__line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .px-mladr__name { display: inline-flex; align-items: center; min-width: 0; font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--ink); }
+  .px-mladr__winner { flex: none; max-width: 45%; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+  .px-mladr__track { position: relative; display: flex; align-items: center; gap: 8px; height: 22px; margin-left: -10px; }
   .px-mladr__fill {
     display: block;
-    height: 100%;
-    width: var(--w);
-    border-radius: var(--r-pill);
-    /* base/resting = final width (no-JS safe) */
-    transition: width 950ms var(--ease), filter var(--t-soft) var(--ease);
+    flex: none;
+    height: 22px;
+    width: calc((100% - 72px) * var(--w));
+    min-width: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform-origin: left center;
   }
-  .px-mladr__row:hover .px-mladr__fill { filter: brightness(1.12); }
-
-  /* margin value — big-value role: display serif ink tabular */
-  .px-mladr__val {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    min-width: 3ch;
-  }
+  .px-mladr__val { flex: none; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent-deep); }
 
   @media (max-width: 560px) {
-    .px-mladr__row { grid-template-columns: minmax(90px, 1fr) 1.6fr auto; gap: 10px; }
-    .px-mladr__name { font-size: 13px; }
+    .px-mladr__big { font-size: 72px; }
   }
 </style>

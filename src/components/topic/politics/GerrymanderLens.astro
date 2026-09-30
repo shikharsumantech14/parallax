@@ -15,9 +15,20 @@
  * <details> once the in-SVG numbers are visible (legend-collapse, CANON §4.5) —
  * no-JS keeps the ledger permanently open.
  *
- * The three maps always paint complete (static since Lens Phase 5): cell fills,
- * district boundaries, winner pips, seat splits, EG numbers, flag chips
- * (pre-stamped). Their build order arrives in Phase 6.
+ * Lens Phase 6 (2026-09-30), to the Lib-gerrymander-lens board: the most
+ * skewed plan's seat split set at 96 ("5−0 from 272 to 228"), a one-line key
+ * (the two parties' cells, the seat-winner dot), then the maps side by side,
+ * each titled, with its seat split, its signed efficiency gap and a pill that
+ * says "Balanced" or "Favours <party>" (tinted when past the flag). The
+ * verdict ledger (with each plan's note) folds under JS; it sits outside the
+ * build scene (`.px-glens__fig`) so folding it never moves a built element.
+ *
+ * Cue anchors (LENS §5.2): each plan's panel is `data-cue="<n>"`, numbered
+ * from 1 in DATA order; `top` the headline, `legend` the key.
+ *
+ * THE BUILD (LENS §6.4): 1 the key and the cell fills fade in, 2 the district
+ * lines draw, 3 the winner dots fade in, 4 the readouts rise, 5 the headline
+ * rises. No JS or reduced motion: every map complete.
  *
  * Build FAILS (naming the offender) if a plan's district A-tallies don't re-sum
  * to the shared statewide total (the "same votes" guarantee), or a plan has
@@ -227,112 +238,86 @@ const shortB = parties.b.short || parties.b.name;
 const pipColor = (w: 'a' | 'b') => (w === 'a' ? colA : colB);
 const cellColor = (p: string) => (p === 'a' ? colA : colB);
 const fmt = (n: number) => n.toLocaleString('en-US');
+/* the headline: the seat split of the most skewed plan */
+const worst = computed.length ? [...computed].sort((x, y) => Math.abs(y.egPct) - Math.abs(x.egPct))[0] : undefined;
+const cap1 = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 ---
 
-<div
-  class="px-viz px-glens"
-  style={`--col-a:${colA}; --col-b:${colB}`}
->
-  {caption && (
-    <div class="px-viz__cap"><span>{caption}</span><b>EG flag ±{flagPct}%</b></div>
-  )}
+<div class="px-glens" data-viz-root style={`--col-a:${colA}; --col-b:${colB}`}>
+  <div class="px-glens__fig" data-build-scene>
+    {worst && (
+      <div class="px-glens__top" data-cue="top">
+        <span class="px-glens__big" data-build="5" data-build-kind="rise">{worst.seatsA}–{worst.seatsB}</span>
+        <span class="px-glens__big-u"><span class="px-cue-tag" data-cue-tag="top" hidden></span>from {fmt(statewideA)} to {fmt(statewideB)}</span>
+      </div>
+    )}
 
-  <!-- the shared electorate — always visible, never behind a disclosure (§7) -->
-  <p class="px-glens__head">
-    <span class="px-glens__hparty" style={`color:${colA}`}>{parties.a.name} {fmt(statewideA)}</span>
-    <span class="px-glens__hdash">{MINUS}</span>
-    <span class="px-glens__hparty" style={`color:${colB}`}>{fmt(statewideB)} {parties.b.name}</span>
-    <span class="px-glens__hsub">{fmt(totalVotes)} voters · one grid, three maps</span>
-  </p>
+    <p class="px-glens__key" data-cue="legend" data-build="1">
+      <span class="px-cue-tag" data-cue-tag="legend" hidden></span>
+      <span><i class="px-glens__sw" style={`background:${colA}`}></i>{shortA} cell</span>
+      <span><i class="px-glens__sw" style={`background:${colB}`}></i>{shortB} cell</span>
+      <span><i class="px-glens__dot" style={`background:${colA}`}></i><i class="px-glens__dot" style={`background:${colB}`}></i>Seat winner</span>
+    </p>
 
-  <div class="px-glens__row">
-    {computed.map((p, pi) => (
-      <figure class="px-glens__panel" style={`--pi:${pi}`} data-flagged={p.flagged ? 'true' : 'false'}>
-        <figcaption class="px-glens__label vz-legend">{p.label}</figcaption>
+    <div class="px-glens__row">
+      {computed.map((p, pi) => (
+        <figure class="px-glens__panel" data-flagged={p.flagged ? 'true' : 'false'} data-cue={pi + 1}>
+          <figcaption class="px-glens__label"><span>{p.label}</span><span class="px-cue-tag" data-cue-tag={pi + 1} hidden></span></figcaption>
 
-        <svg
-          class="px-glens__map"
-          viewBox={`0 0 ${f1(MAP_W)} ${f1(MAP_H)}`}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={`${p.label}: ${parties.a.name} ${p.seatsA} seats, ${parties.b.name} ${p.seatsB} seats, efficiency gap ${p.egSign}${p.egAbs}%`}
-        >
-          <!-- cell choropleth (identical across all three panels) -->
-          <g class="px-glens__cells">
-            {cellFills.map((cell) => (
-              <rect
-                x={f1(cell.x)} y={f1(cell.y)} width={f1(CELL)} height={f1(CELL)}
-                fill={cellColor(cell.party)} opacity={cell.op}
-              />
-            ))}
-          </g>
+          <svg
+            class="px-glens__map"
+            viewBox={`0 0 ${f1(MAP_W)} ${f1(MAP_H)}`}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label={`${p.label}: ${parties.a.name} ${p.seatsA} seats, ${parties.b.name} ${p.seatsB} seats, efficiency gap ${p.egSign}${p.egAbs}%`}
+          >
+            <g class="px-glens__cells" data-build="1">
+              {cellFills.map((cell) => (
+                <rect x={f1(cell.x)} y={f1(cell.y)} width={f1(CELL)} height={f1(CELL)} fill={cellColor(cell.party)} opacity={cell.op} />
+              ))}
+            </g>
+            <path class="px-glens__grid" d={gridPath} />
+            <path class="px-glens__bounds" d={p.boundsPath} pathLength="1" data-build="2" data-build-kind="draw" />
+            <rect class="px-glens__frame" x="0" y="0" width={f1(MAP_W)} height={f1(MAP_H)} />
+            <g class="px-glens__pips" data-build="3">
+              {p.pips.map((d) => (
+                <circle class="px-glens__pip" cx={f1(d.pipX)} cy={f1(d.pipY)} r="6" fill={pipColor(d.winner)} />
+              ))}
+            </g>
+          </svg>
 
-          <!-- hairline cell grid (legibility; same-district seams read faint) -->
-          <path class="px-glens__grid" d={gridPath} />
-
-          <!-- district boundaries — the sweep: the only thing that differs -->
-          <path class="px-glens__bounds" d={p.boundsPath} pathLength="1" />
-
-          <!-- panel frame -->
-          <rect class="px-glens__frame" x="0" y="0" width={f1(MAP_W)} height={f1(MAP_H)} />
-
-          <!-- winner pips: who won each seat, in the winner's colour + paper halo -->
-          <g class="px-glens__pips">
-            {p.pips.map((d) => (
-              <rect
-                class="px-glens__pip"
-                x={f1(d.pipX - 3)} y={f1(d.pipY - 3)} width="6" height="6"
-                fill={pipColor(d.winner)}
-              />
-            ))}
-          </g>
-        </svg>
-
-        <!-- the EG readout bar — the quantified verdict -->
-        <div class="px-glens__readout">
-          <div class="px-glens__seats">
-            <span class:list={['px-glens__seat', { 'is-win': p.seatWinner === 'a' }]}>{shortA} {p.seatsA}</span>
-            <span class="px-glens__seatdot">·</span>
-            <span class:list={['px-glens__seat', { 'is-win': p.seatWinner === 'b' }]}>{p.seatsB} {shortB}</span>
+          <div class="px-glens__readout" data-build="4" data-build-kind="rise">
+            <p class="px-glens__seats">
+              <span class:list={['px-glens__seat', 'is-a', { 'is-win': p.seatWinner === 'a' }]}>{shortA} {p.seatsA}</span>
+              <span class="px-glens__seatdot">·</span>
+              <span class:list={['px-glens__seat', 'is-b', { 'is-win': p.seatWinner === 'b' }]}>{shortB} {p.seatsB}</span>
+            </p>
+            <p class="px-glens__eg">EG {p.egSign}{p.egAbs}%</p>
+            <span class:list={['px-glens__chip', { 'is-flag': p.flagged }]}>{cap1(p.gloss)}</span>
           </div>
-          <div class="px-glens__egline">
-            <span class:list={['vz-value', 'px-glens__eg', { 'is-flag': p.flagged }]}>
-              EG {p.egSign}{p.egAbs}%
-            </span>
-            {p.flagged && <span class="px-glens__chip">FLAGGED</span>}
-          </div>
-          <div class="px-glens__gloss vz-annot">{p.gloss}</div>
-        </div>
-      </figure>
-    ))}
+        </figure>
+      ))}
+    </div>
   </div>
 
   <!-- verdict ledger: open in markup (no-JS keeps it), folds on boot (§7) -->
   <details class="px-glens__ledger" data-glens-ledger open>
-    <summary class="px-glens__summary">Verdict ledger — all three plans</summary>
-    <ul class="pol-ledger px-glens__llist">
+    <summary class="px-glens__summary">Verdict ledger</summary>
+    <ul class="px-glens__llist">
       {computed.map((p) => (
-        <>
-          <li>
-            <span class="pol-ledger__k">{p.label}</span>
-            <span class="pol-ledger__dots" />
-            <span class="pol-ledger__v">
-              {p.seatsA}{MINUS}{p.seatsB} · EG {p.egSign}{p.egAbs}% · {p.flagged ? <b>{p.gloss}</b> : p.gloss}
-            </span>
-          </li>
-          {p.note && (
-            <li class="px-glens__lnote"><span class="pol-annot">{p.note}</span></li>
-          )}
-        </>
+        <li>
+          <span class="px-glens__lk">{p.label}</span>
+          <span class="px-glens__lv">{p.seatsA}–{p.seatsB} · EG {p.egSign}{p.egAbs}% · {p.flagged ? <b>{p.gloss}</b> : p.gloss} · flag at ±{flagPct}%</span>
+          {p.note && <span class="px-glens__lnote">{p.note}</span>}
+        </li>
       ))}
     </ul>
   </details>
-
 </div>
 
 <script is:inline>
-  /* Fold the verdict ledger once JS is present (its figures are already visible
-     in the SVG readout bars). No-JS leaves the <details open> permanently. */
+  /* Fold the verdict ledger once JS is present (its figures are already on the
+     maps). No-JS leaves the <details open> permanently. */
   (function () {
     var d = document.querySelectorAll('details[data-glens-ledger]');
     for (var i = 0; i < d.length; i++) d[i].open = false;
@@ -340,137 +325,52 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 </script>
 
 <style>
-  .px-glens { width: 100%; }
+  .px-glens { display: flex; flex-direction: column; gap: 16px; min-width: 0; font-family: var(--font-ui); }
+  .px-glens__fig { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-  /* ── shared-electorate headline (always visible) ─────────────────────────── */
-  .px-glens__head {
-    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
-    margin: 0 0 16px; padding: 0;
-    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
-  }
-  .px-glens__hparty { font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
-  .px-glens__hdash { color: var(--muted); }
-  .px-glens__hsub {
-    flex-basis: 100%;
-    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted);
-  }
+  .px-glens__top { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 12px; }
+  .px-glens__big { font-size: 96px; line-height: 0.92; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep); }
+  .px-glens__big-u { display: inline-flex; align-items: center; padding-bottom: 6px; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
 
-  /* ── the three-up row → stacks below 640px ───────────────────────────────── */
-  .px-glens__row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    align-items: start;
-  }
-  .px-glens__panel { margin: 0; min-width: 0; }
+  .px-glens__key { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+  .px-glens__key > span { display: inline-flex; align-items: center; gap: 6px; }
+  .px-glens__key .px-cue-tag { margin-right: -8px; }
+  .px-glens__sw { display: block; width: 12px; height: 12px; border-radius: 2px; }
+  .px-glens__dot { display: block; width: 10px; height: 10px; border-radius: 50%; }
+  .px-glens__dot + .px-glens__dot { margin-left: -2px; }
 
-  .px-glens__label {
-    display: block; margin-bottom: 8px;
-    color: color-mix(in oklab, var(--ink) 90%, transparent);
-  }
+  .px-glens__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .px-glens__panel { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .px-glens__label { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 20px; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+  .px-glens__label .px-cue-tag { margin: 0; }
 
-  .px-glens__map {
-    width: 100%; height: auto; display: block; overflow: visible;
-    max-width: 240px;
-  }
+  .px-glens__map { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-glens__grid { fill: none; stroke: var(--paper-2); stroke-opacity: 0.6; stroke-width: 1; }
+  .px-glens__frame { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .px-glens__bounds { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: square; stroke-linejoin: miter; }
+  .px-glens__pip { stroke: var(--paper-2); stroke-width: 2; }
 
-  /* ── map ink (§6) ─────────────────────────────────────────────────────────── */
-  .px-glens__grid { fill: none; stroke: var(--ink); stroke-opacity: 0.12; stroke-width: 1; }
-  .px-glens__frame { fill: none; stroke: var(--ink); stroke-opacity: 0.42; stroke-width: 1.5; }
-  .px-glens__bounds {
-    fill: none; stroke: var(--ink); stroke-opacity: 0.85; stroke-width: 2;
-    stroke-linecap: square; stroke-linejoin: miter;
-  }
-  .px-glens__pip {
-    paint-order: stroke;
-    stroke: var(--paper); stroke-opacity: 0.9; stroke-width: 2.5;
-    transform-box: fill-box; transform-origin: center;
-  }
-
-  /* ── readout bar ─────────────────────────────────────────────────────────── */
-  .px-glens__readout { margin-top: 10px; }
-  .px-glens__seats {
-    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.03em;
-    font-variant-numeric: tabular-nums; color: color-mix(in oklab, var(--ink) 70%, transparent);
-  }
+  .px-glens__readout { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .px-glens__seats { margin: 0; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink-2); }
   .px-glens__seat.is-win { font-weight: 600; }
-  .px-glens__seats .px-glens__seat:first-child.is-win { color: var(--col-a); }
-  .px-glens__seats .px-glens__seat:last-child.is-win { color: var(--col-b); }
-  .px-glens__seatdot { color: var(--muted); margin: 0 4px; }
+  .px-glens__seat.is-a.is-win { color: var(--accent-deep); }
+  .px-glens__seat.is-b.is-win { color: var(--ink); }
+  .px-glens__seatdot { margin: 0 4px; color: var(--muted); }
+  .px-glens__eg { margin: 0; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .px-glens__chip { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: var(--paper-3); font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .px-glens__chip.is-flag { background: var(--accent-tint); color: var(--accent-deep); }
 
-  .px-glens__egline { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-  .px-glens__eg {
-    font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.02em;
-    color: color-mix(in oklab, var(--ink) 70%, transparent);
-  }
-  .px-glens__eg.is-flag { color: var(--accent-deep); }
+  .px-glens__ledger { border-top: 1px solid var(--hair); padding-top: 10px; }
+  .px-glens__summary { cursor: pointer; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px-glens__llist { margin: 8px 0 0; padding: 0; list-style: none; }
+  .px-glens__llist li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--hair); font-size: 13px; line-height: 1.45; }
+  .px-glens__lk { font-weight: 600; color: var(--ink); }
+  .px-glens__lv { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .px-glens__lv b { font-weight: 600; color: var(--accent-deep); }
+  .px-glens__lnote { font-family: var(--font-display); font-style: italic; font-size: 14px; color: var(--ink-2); }
 
-  /* FLAGGED chip — the politics stamp signature (fires LAST) */
-  .px-glens__chip {
-    display: inline-block; padding: 2px 7px 1px;
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em;
-    text-transform: uppercase; font-weight: 600;
-    color: var(--accent-deep); border: 1.5px solid var(--accent-deep);
-    border-radius: 2px; transform: rotate(-2deg);
-    text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
-    background: color-mix(in oklab, var(--accent) 4%, transparent);
-  }
-  .px-glens__gloss { margin-top: 4px; }
-
-  /* ── verdict ledger ──────────────────────────────────────────────────────── */
-  .px-glens__ledger { margin-top: 26px; max-width: var(--col-prose); }
-  .px-glens__summary {
-    cursor: pointer;
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--muted); padding: 6px 0;
-  }
-  .px-glens__llist { margin-top: 6px; }
-  .px-glens__lnote {
-    display: block !important; border-bottom: none !important; padding: 2px 0 10px !important;
-  }
-  .px-glens__lnote .pol-annot { margin: 0; font-size: 13px; }
-
-  /* ══ transitions on the base rules (§5): the plate paints final, and the
-     Phase 6 build order (fills → boundary sweep → pips → numbers → FLAGGED
-     stamp) arrives on these, staggered 60ms left→right by `--pi`. ══ */
-  .px-glens__cells,
-  .px-glens__grid,
-  .px-glens__frame {
-    transition: opacity 500ms var(--ease) calc(var(--pi, 0) * 60ms),
-                transform 500ms var(--ease) calc(var(--pi, 0) * 60ms);
-  }
-  .px-glens__bounds {
-    stroke-dasharray: 1 1;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 900ms var(--ease) calc(200ms + var(--pi, 0) * 60ms);
-  }
-  .px-glens__pip {
-    transition: transform 300ms var(--ease) calc(900ms + var(--pi, 0) * 60ms);
-  }
-  .px-glens__readout {
-    transition: opacity 450ms var(--ease) calc(400ms + var(--pi, 0) * 60ms),
-                transform 450ms var(--ease) calc(400ms + var(--pi, 0) * 60ms);
-  }
-  .px-glens__chip {
-    transition: opacity 220ms var(--ease-snap, var(--ease)) calc(1360ms + var(--pi, 0) * 60ms),
-                transform 220ms var(--ease-snap, var(--ease)) calc(1360ms + var(--pi, 0) * 60ms);
-  }
-
-  /* ── mobile: stack the three maps; comparison reads top-to-bottom (§4) ────── */
-  @media (max-width: 640px) {
-    .px-glens__row { grid-template-columns: 1fr; gap: 30px; }
-    .px-glens__map { max-width: 300px; margin-inline: auto; }
-    .px-glens__panel { text-align: center; }
-    .px-glens__readout { text-align: left; max-width: 300px; margin-inline: auto; }
-    .px-glens__label { text-align: left; max-width: 300px; margin-inline: auto; }
-  }
-
-  /* ── reduced motion / print: composed still, everything final (§5) ────────── */
-  @media (prefers-reduced-motion: reduce) {
-    .px-glens__cells, .px-glens__grid, .px-glens__frame,
-    .px-glens__bounds, .px-glens__pip, .px-glens__readout, .px-glens__chip {
-      transition: none !important;
-    }
+  @media (max-width: 560px) {
+    .px-glens__big { font-size: 72px; }
+    .px-glens__row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
   }
 </style>

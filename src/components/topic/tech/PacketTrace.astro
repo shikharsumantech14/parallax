@@ -2,20 +2,39 @@
 /**
  * PacketTrace (tech · FLAGSHIP) — "You can't beat physics; here is exactly how
  * much slower than physics your request is." A single request told twice at
- * once: a country-outline globe with the route drawn as great-circle arcs and
- * packets running them as flowDash dots, locked above an SVG latency-budget bar
- * that decomposes the round trip hop-by-hop against the speed-of-light floor
- * (2·d / v_fiber). Lime = the physics you can't avoid; pink = the milliseconds
- * humans added. Rendered lazily by the WebGL runtime (scene 'packet-trace');
- * drag to spin the globe, hover a bar segment to light up that leg.
+ * once: a globe with the route drawn as great-circle arcs and packets running
+ * them, above a latency budget that splits the round trip hop by hop against
+ * the speed-of-light floor (2·d / v_fiber). Rendered lazily by the WebGL
+ * runtime (scene 'packet-trace'); drag to spin the globe, hover a hop to light
+ * its arc.
+ *
+ * LENS PHASE 6 (2026-09-30, the board Lib-packet-trace): ON THE DEEP PLATE
+ * (LENS §8.3). The plate re-points the inks the scene reads to the on-deep set
+ * and the desk's plate mark (the lime on tech); the overhead is the on-deep
+ * grey, never a second hue. The round trip is the figure's one large number,
+ * the honesty chip beside it states floor and measured. The budget is HTML:
+ * one track, each hop's floor share in the mark and its overhead in grey, the
+ * light floor a dashed rule, and the hops listed under it (name, time, kind,
+ * note), so no label is ever drawn small. The no-WebGL map is cropped to the
+ * route, and its city names are an HTML layer over it, placed per width tier
+ * in real pixels (the old in-SVG names printed at 7.5px).
+ *
+ * Cue anchors:
+ *   1..n    each hop: its arc on the map, its share of the bar and its row,
+ *           numbered from 1 in data order (the numeral prints in the row).
+ *   floor   the light-floor rule on the bar.
+ *   head    the round trip, the large number.
+ *
+ * THE BUILD (LENS §6.4): the plate is the scene, and only what sits outside
+ * the mount builds (the map hides once the globe is live): 1 the track fades
+ * in, 2 each hop's share grows from the left, 80ms apart, 3 the floor rule
+ * drops and the rows rise, 4 the round trip counts up (src/scripts/build.ts).
+ * The scene keeps its one idle loop, the packets.
  *
  * Blueprint (the contract): docs/design/blueprints/tech/packet-trace.md.
- * Math: src/scripts/viz3d/packet.ts (greatCircleKm / hopFloorMs / budget /
- * layoutBar) + kepler.ts greatCircle() — the SAME pure functions compute the
- * static flat-route fallback + the budget bar at build time, so the no-JS /
- * reduced-motion / no-WebGL reader gets the identical decomposition. The
- * component NEVER trusts an authored total: floor + measured are summed from
- * `hops` here.
+ * Math: src/scripts/viz3d/packet.ts (budget / layoutBar / cities) + kepler.ts
+ * greatCircle(), the SAME pure functions as the live scene. The component
+ * NEVER trusts an authored total: floor and measured are summed from `hops`.
  *
  * data: { hops[]{from,fromLat,fromLon,to,toLat,toLon,rttMs,kind?,note?} (1–8),
  *         originLabel?, refractiveIndex?, loopMs?, caption?, source? }
@@ -45,20 +64,39 @@ const n = typeof refractiveIndex === 'number' && refractiveIndex > 0 ? refractiv
 const vacuum = n === 1.0;
 const b = budget(hops, n);
 const r0 = (x: number) => Math.round(x);
+const r1 = (x: number) => (Math.round(x * 10) / 10).toString();
 const loopS = Math.round((typeof loopMs === 'number' ? Math.max(2000, Math.min(8000, loopMs)) : 4000) / 1000);
 
-/* ── the latency-budget bar (build-time SVG; IS its own no-JS fallback) ── */
-const BW = 720, BH = 132, BX0 = 96, WBAR = 600, BARY = 44, BARH = 34;
-const bar = layoutBar(b, BX0, WBAR);
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+/* ── the budget, in percent of the round trip ── */
+const bar = layoutBar(b, 0, 100);
+const segs = bar.segments.map((s, i) => ({
+  ...s,
+  i,
+  left: s.x0,
+  w: s.w,
+  floorShare: s.w > 0 ? (s.floorW / s.w) * 100 : 0,
+  kindWord: s.compute ? 'compute' : s.kind === 'fiber' ? 'fibre' : s.kind,
+  name: s.compute ? `${s.from}, the server` : `${s.from} to ${s.to}`,
+}));
+const floorPct = bar.floorLineX;
 
-/* ── flat-route fallback map (equirectangular; globe's print edition, §7) ── */
-const MW = 720, MH = 300;
-const px = (lon: number) => ((lon + 180) / 360) * MW;
-const py = (lat: number) => ((90 - lat) / 180) * MH;
+/* ── the no-WebGL map: equirectangular, cropped to the route ── */
+const lons = hops.flatMap((h) => [h.fromLon, h.toLon]);
+const lats = hops.flatMap((h) => [h.fromLat, h.toLat]);
+const MW = 720, MH = 400;                       // the mount's aspect
+const ASPECT = MW / MH;
+let lon0 = Math.min(...lons), lon1 = Math.max(...lons);
+let lat0 = Math.min(...lats), lat1 = Math.max(...lats);
+let dLon = Math.max(40, (lon1 - lon0) * 1.5), dLat = Math.max(24, (lat1 - lat0) * 1.5);
+// equirectangular: a degree is a degree both ways, so fit the box to the aspect
+if (dLon / dLat > ASPECT) dLat = dLon / ASPECT; else dLon = dLat * ASPECT;
+dLon = Math.min(dLon, 360); dLat = Math.min(dLat, 180);
+const cLon = (lon0 + lon1) / 2, cLat = (lat0 + lat1) / 2;
+const vx0 = cLon - dLon / 2, vy0 = -(cLat + dLat / 2);   // map y = −lat
+const U = MW / dLon;                                    // viewBox units per degree
+const px = (lon: number) => (lon - vx0) * U;
+const py = (lat: number) => (-lat - vy0) * U;
 
-/* country outlines — world-atlas 110m mesh (same resolution the live globe
-   loads), one path, dateline-split, coords rounded (SVG-node budget §10). */
 const topo = JSON.parse(
   readFileSync(join(process.cwd(), 'node_modules/world-atlas/countries-110m.json'), 'utf-8'),
 ) as any;
@@ -71,8 +109,7 @@ function equirectLines(geo: any): string {
     for (const c of line) {
       const lon = c[0], lat = c[1];
       if (started && Math.abs(lon - plon) > 180) started = false; // dateline break
-      const x = px(lon).toFixed(1), y = py(lat).toFixed(1);
-      d += (started ? 'L' : 'M') + x + ' ' + y;
+      d += (started ? 'L' : 'M') + px(lon).toFixed(1) + ' ' + py(lat).toFixed(1);
       started = true; plon = lon;
     }
   }
@@ -80,7 +117,6 @@ function equirectLines(geo: any): string {
 }
 const countryPath = equirectLines(bordersGeo);
 
-/* great-circle arc paths (flat), split at the dateline */
 function arcPath(h: Hop): string {
   const pts = greatCircle({ lat: h.fromLat, lon: h.fromLon }, { lat: h.toLat, lon: h.toLon }, 64);
   let d = '', started = false, plon = 0;
@@ -91,29 +127,24 @@ function arcPath(h: Hop): string {
   }
   return d;
 }
-const mapArcs = hops.filter((h) => h.kind !== 'compute').map((h) => arcPath(h));
-const computeHops = hops.filter((h) => h.kind === 'compute');
+const mapArcs = hops.map((h, i) => ({ i, compute: h.kind === 'compute', d: h.kind === 'compute' ? '' : arcPath(h), x: px(h.fromLon), y: py(h.fromLat) }));
 const cs = cities(hops, originLabel);
 
-/* ── map city labels: two type tiers, one collision rule (2026-09-24) ──
-   The map is 720 units drawn at the column width — 335px on a 375px phone,
-   where the 9.5-unit city labels printed at 4.4px (probe TINY). It carries
-   them twice: the authored size, and 20.5 units for phones (≤640px, CSS),
-   ~9.5px on a 335px plate. Cities on one route are often close — Marseille
-   and Frankfurt sit 13 units apart — so each tier is placed on its own,
-   endpoints first: eight sides of the dot, then rings further out with a
-   hairline leader; the first spot clear of every dot, ring and label wins,
-   and crossing an arc costs a little (the paper halo keeps it legible). */
+/* ── city names: an HTML layer over the map, placed per width tier ──
+   The names are 12px HTML, so in viewBox units they are larger on a narrow
+   plate: about 12 × 720 / 430 on the 1280 panel, 12 × 720 / 265 on a phone.
+   Each tier is placed on its own (endpoints first; eight sides of the dot,
+   then rings further out on a hairline leader; the first spot clear of every
+   dot and name wins, crossing an arc costs a little), and CSS shows one. */
 type Box = { x0: number; y0: number; x1: number; y1: number };
 type Anchor = 'start' | 'middle' | 'end';
-const hitB = (a: Box, b: Box, g = 0) => a.x0 < b.x1 + g && b.x0 < a.x1 + g && a.y0 < b.y1 + g && b.y0 < a.y1 + g;
-const coverB = (a: Box, b: Box) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
-const CITY_TIERS = { d: 9.5, m: 20.5 } as const;
+const hitB = (a: Box, c: Box, g = 0) => a.x0 < c.x1 + g && c.x0 < a.x1 + g && a.y0 < c.y1 + g && c.y0 < a.y1 + g;
+const coverB = (a: Box, c: Box) => Math.max(0, Math.min(a.x1, c.x1) - Math.max(a.x0, c.x0)) * Math.max(0, Math.min(a.y1, c.y1) - Math.max(a.y0, c.y0));
+const TIERS = { d: 12 * MW / 430, m: 12 * MW / 265 } as const;
 const cityDots: Box[] = cs.map((c) => {
-  const r = (c.origin || c.dest ? 4 : 3) + 1.5;
+  const r = 7;
   return { x0: px(c.lon) - r, y0: py(c.lat) - r, x1: px(c.lon) + r, y1: py(c.lat) + r };
 });
-computeHops.forEach((h) => cityDots.push({ x0: px(h.fromLon) - 8, y0: py(h.fromLat) - 8, x1: px(h.fromLon) + 8, y1: py(h.fromLat) + 8 }));
 const arcSoft: Box[] = [];
 hops.filter((h) => h.kind !== 'compute').forEach((h) => {
   greatCircle({ lat: h.fromLat, lon: h.fromLon }, { lat: h.toLat, lon: h.toLon }, 48).forEach((q) => {
@@ -121,35 +152,35 @@ hops.filter((h) => h.kind !== 'compute').forEach((h) => {
     arcSoft.push({ x0: x - 2, y0: y - 2, x1: x + 2, y1: y + 2 });
   });
 });
-const CITY_DIRS: [number, number][] = [[1, -1], [1, 1], [-1, -1], [-1, 1], [1, 0], [-1, 0], [0, -1], [0, 1]];
+const DIRS: [number, number][] = [[1, -1], [1, 1], [-1, -1], [-1, 1], [1, 0], [-1, 0], [0, -1], [0, 1]];
 function cityLabels(fs: number) {
   const placed: Box[] = [];
-  const order = cs.map((c, i) => ({ c, i })).sort((a, b) => Number(!!(b.c.origin || b.c.dest)) - Number(!!(a.c.origin || a.c.dest)));
+  const order = cs.map((c, i) => ({ c, i })).sort((a, c2) => Number(!!(c2.c.origin || c2.c.dest)) - Number(!!(a.c.origin || a.c.dest)));
   const out: ({ lx: number; ly: number; anchor: Anchor; leader: number[] | null } | null)[] = new Array(cs.length).fill(null);
   for (const { c, i } of order) {
-    const x = px(c.lon), y = py(c.lat), r = c.origin || c.dest ? 4 : 3;
-    const w = c.label.length * fs * 0.7, h = fs * 1.05;
+    const x = px(c.lon), y = py(c.lat), r = 5;
+    const w = c.label.length * fs * 0.62, h = fs * 1.2;
     let best: (typeof out)[number] = null, bestBox: Box | null = null, bestCost = Infinity;
     for (let ring = 0; ring < 5 && bestCost > 0; ring++) {
-      const d = r + 4 + ring * fs * 1.5;
-      for (const [dx, dy] of CITY_DIRS) {
+      const d = r + 4 + ring * fs * 1.4;
+      for (const [dx, dy] of DIRS) {
         const diag = dx !== 0 && dy !== 0 ? 0.72 : 1;
         const x0 = dx > 0 ? x + d * diag : dx < 0 ? x - d * diag - w : x - w / 2;
         const y0 = dy < 0 ? y - d * diag - h : dy > 0 ? y + d * diag : y - h / 2;
-        const b: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
-        if (b.x0 < 4 || b.x1 > MW - 4 || b.y0 < 4 || b.y1 > MH - 4) continue;
-        let cost = ring * 4 + CITY_DIRS.findIndex(([a, e]) => a === dx && e === dy) * 0.5;
-        for (const q of placed) if (hitB(b, q, 3)) cost += 1000 + coverB(b, q);
-        cityDots.forEach((q, j) => { if (j !== i && hitB(b, q, 1)) cost += 1000 + coverB(b, q); });
-        for (const q of arcSoft) if (hitB(b, q)) cost += 2;
+        const bx: Box = { x0, y0, x1: x0 + w, y1: y0 + h };
+        if (bx.x0 < 4 || bx.x1 > MW - 4 || bx.y0 < 4 || bx.y1 > MH - 4) continue;
+        let cost = ring * 4 + DIRS.findIndex(([a, e]) => a === dx && e === dy) * 0.5;
+        for (const q of placed) if (hitB(bx, q, 3)) cost += 1000 + coverB(bx, q);
+        cityDots.forEach((q, j) => { if (j !== i && hitB(bx, q, 1)) cost += 1000 + coverB(bx, q); });
+        for (const q of arcSoft) if (hitB(bx, q)) cost += 2;
         if (cost < bestCost) {
           bestCost = cost;
           const anchor: Anchor = dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle';
-          const lx = anchor === 'start' ? b.x0 : anchor === 'end' ? b.x1 : (b.x0 + b.x1) / 2;
-          const nx = Math.max(b.x0, Math.min(x, b.x1)), ny = Math.max(b.y0, Math.min(y, b.y1));
+          const lx = anchor === 'start' ? bx.x0 : anchor === 'end' ? bx.x1 : (bx.x0 + bx.x1) / 2;
+          const nx = Math.max(bx.x0, Math.min(x, bx.x1)), ny = Math.max(bx.y0, Math.min(y, bx.y1));
           const len = Math.hypot(nx - x, ny - y) || 1;
-          best = { lx, ly: b.y1 - fs * 0.25, anchor, leader: ring > 0 ? [x + ((nx - x) / len) * (r + 1), y + ((ny - y) / len) * (r + 1), nx, ny] : null };
-          bestBox = b;
+          best = { lx, ly: bx.y0, anchor, leader: ring > 0 ? [x + ((nx - x) / len) * (r + 1), y + ((ny - y) / len) * (r + 1), nx, ny] : null };
+          bestBox = bx;
         }
       }
     }
@@ -157,324 +188,313 @@ function cityLabels(fs: number) {
   }
   return out;
 }
-const citySets = { d: cityLabels(CITY_TIERS.d), m: cityLabels(CITY_TIERS.m) };
+const citySets = { d: cityLabels(TIERS.d), m: cityLabels(TIERS.m) };
+const pct = (v: number, of: number) => ((v / of) * 100).toFixed(2);
 
-/* ── legend rows (AT-readable data source; collapse past 5 hops, §7) ── */
-const legend = bar.segments.map((s) => ({
-  label: s.label,
-  measured: r0(s.measured),
-  floor: r0(s.floor),
-  overhead: r0(s.overhead),
-  kind: s.kind,
-  note: s.note,
-}));
-const showAll = legend.length <= 5;
-
-const payload = JSON.stringify({
-  hops, originLabel, refractiveIndex: n, loopMs,
-});
-const arrow = '→';
+const payload = JSON.stringify({ hops, originLabel, refractiveIndex: n, loopMs });
 ---
 
 <div class="px-viz px-pkt">
-  {/* honesty core (blueprint §3): the floor/measured chip is ALWAYS present —
-     it does not depend on an authored caption; the vacuum chip rides with it. */}
-  <div class="px-viz__cap">
-    {caption && <span>{caption}</span>}
-    <b>floor = {r0(b.floorMs)} ms · measured {r0(b.measMs)} ms</b>
-    {vacuum && <b class="px-pkt__vac">vacuum floor (line-of-sight)</b>}
-  </div>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
 
-  {/* ── the globe (WebGL, lazy) — fallback = flat equirectangular route map ── */}
-  <div
-    class="viz3d viz3d--pkt"
-    data-viz3d="packet-trace"
-    role="img"
-    aria-label={caption ? `Packet-trace globe: ${caption}` : 'Packet-trace globe with route arcs'}
-  >
-    <div class="viz3d__fallback">
-      <svg viewBox={`0 0 ${MW} ${MH}`} preserveAspectRatio="xMidYMid meet">
-        {/* frame */}
-        <rect x="0.5" y="0.5" width={MW - 1} height={MH - 1} fill="none"
-          stroke="var(--ink)" stroke-width="1" opacity="0.14" />
-        {/* country coastlines — ink @ 0.42 */}
-        <path d={countryPath} fill="none" stroke="var(--ink)" stroke-width="0.7" opacity="0.42"
-          stroke-linejoin="round" stroke-linecap="round" />
-        {/* route arcs — accent @ 0.85 */}
-        {mapArcs.map((d) => (
-          <path d={d} fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.85"
-            stroke-linecap="round" stroke-linejoin="round" />
-        ))}
-        {/* compute-hop rings — accent-alt, static */}
-        {computeHops.map((h) => (
-          <circle cx={px(h.fromLon)} cy={py(h.fromLat)} r="6" fill="none"
-            stroke="var(--accent-alt)" stroke-width="1.6" opacity="0.9" />
-        ))}
-        {/* city nodes — endpoints accent-alt, others ink */}
-        {cs.map((c) => (
-          <circle cx={px(c.lon)} cy={py(c.lat)} r={c.origin || c.dest ? 4 : 3}
-            fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink)'}
-            opacity={c.origin || c.dest ? 1 : 0.9} />
-        ))}
-        {/* city labels, once per type tier (see the frontmatter note) */}
+  <div class="px-pkt__plate" data-build-scene>
+    <div class="px-pkt__top">
+      <div class="px-pkt__head" data-cue="head" style={`--ch:${String(r0(b.measMs)).length}`}>
+        <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+        <span class="px-pkt__big"><span data-build="4" data-build-kind="counter" data-to={r0(b.measMs)}>{r0(b.measMs)}</span></span>
+        <span class="px-pkt__biglab">ms, round trip</span>
+      </div>
+      <span class="px-pkt__chip">floor {r1(b.floorMs)} ms · measured {r0(b.measMs)} ms{vacuum ? ' · vacuum floor' : ''}</span>
+    </div>
+
+    {/* ── the globe (WebGL, lazy); the fallback is the cropped route map ── */}
+    <div
+      class="viz3d viz3d--pkt"
+      data-viz3d="packet-trace"
+      role="img"
+      aria-label={caption ? `Packet-trace globe: ${caption}` : 'Packet-trace globe with route arcs'}
+    >
+      <div class="viz3d__fallback">
+        <svg viewBox={`0 0 ${MW} ${MH}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <path d={countryPath} fill="none" stroke="var(--ink)" stroke-width="1" opacity="0.32"
+            stroke-linejoin="round" stroke-linecap="round" />
+          {mapArcs.map((a) => (
+            a.compute
+              ? <circle class="px-pkt__arc" data-cue={a.i + 1} cx={a.x} cy={a.y} r="11" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3 3" />
+              : <path class="px-pkt__arc" data-cue={a.i + 1} d={a.d} fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          ))}
+          {cs.map((c) => (
+            <circle cx={px(c.lon)} cy={py(c.lat)} r={c.origin || c.dest ? 6 : 5}
+              fill="var(--ink)" stroke="var(--paper)" stroke-width="2" />
+          ))}
+          {(['d', 'm'] as const).map((tier) => (
+            <g class={`px-pkt__leads px-pkt__leads--${tier}`}>
+              {citySets[tier].map((L) => L && L.leader && (
+                <line x1={L.leader[0].toFixed(1)} y1={L.leader[1].toFixed(1)} x2={L.leader[2].toFixed(1)} y2={L.leader[3].toFixed(1)}
+                  stroke="var(--ink)" stroke-width="1.2" opacity="0.5" />
+              ))}
+            </g>
+          ))}
+        </svg>
         {(['d', 'm'] as const).map((tier) => (
-          <g class={`px-pkt__cities px-pkt__cities--${tier}`}>
+          <div class={`px-pkt__names px-pkt__names--${tier}`} aria-hidden="true">
             {cs.map((c, i) => {
               const L = citySets[tier][i];
               return L && (
-                <>
-                  {L.leader && (
-                    <line x1={L.leader[0].toFixed(1)} y1={L.leader[1].toFixed(1)} x2={L.leader[2].toFixed(1)} y2={L.leader[3].toFixed(1)}
-                      stroke="var(--ink)" stroke-width={tier === 'm' ? 1.4 : 0.8} opacity="0.5" />
-                  )}
-                  <text x={L.lx.toFixed(1)} y={L.ly.toFixed(1)} text-anchor={L.anchor} style={MONO} font-size={CITY_TIERS[tier]}
-                    fill={c.origin || c.dest ? 'var(--accent-alt)' : 'var(--ink-soft)'}
-                    paint-order="stroke" stroke="var(--paper)" stroke-width={tier === 'm' ? 5 : 3}
-                    letter-spacing="0.04em">{c.label}</text>
-                </>
+                <span
+                  class="px-pkt__name"
+                  data-anchor={L.anchor}
+                  data-end={c.origin || c.dest ? 'true' : undefined}
+                  style={`left:${pct(L.lx, MW)}%;top:${pct(L.ly, MH)}%`}
+                >{c.label}</span>
               );
             })}
-          </g>
+          </div>
         ))}
-      </svg>
+      </div>
+      <span class="viz3d__hint" aria-hidden="true">drag to spin</span>
+      {/* live-only time-compression honesty chip (real packets cross in ms) */}
+      <span class="px-pkt__loop" aria-hidden="true">packets ≈ {loopS}s a trip</span>
+      <script type="application/json" class="viz3d__data" set:html={payload}></script>
     </div>
-    <span class="viz3d__hint" aria-hidden="true">drag to spin the globe</span>
-    {/* live-only time-compression honesty chip (real packets cross in ms) */}
-    <span class="px-pkt__loop" aria-hidden="true">packets ≈ {loopS}s / trip</span>
-    <script type="application/json" class="viz3d__data" set:html={payload}></script>
-  </div>
 
-  {/* ── the latency-budget bar (static build-time SVG; the honesty core) ── */}
-  <div class="px-pkt__barwrap">
-    <svg class="px-pkt__bar" viewBox={`0 0 ${BW} ${BH}`} preserveAspectRatio="xMidYMid meet"
-      role="img" aria-label={`Round-trip latency budget: ${r0(b.measMs)} ms measured, ${r0(b.floorMs)} ms physics floor, ${r0(b.overheadMs)} ms overhead`}>
-      {/* row label */}
-      <text x="8" y={BARY + BARH / 2 + 3} style={MONO} font-size="9.5" fill="var(--muted)"
-        letter-spacing="0.12em">ROUND TRIP</text>
+    {/* ── the latency budget (HTML; the honesty core) ── */}
+    <div
+      class="px-pkt__budget"
+      role="img"
+      aria-label={`Round-trip latency budget: ${r0(b.measMs)} ms measured, ${r1(b.floorMs)} ms light floor, ${r0(b.overheadMs)} ms overhead`}
+    >
+      <div class="px-pkt__track" data-build="1">
+        {segs.map((s) => (
+          <span class="px-pkt__seg" data-cue={s.i + 1} data-hop={s.i} style={`left:${s.left.toFixed(3)}%;width:${s.w.toFixed(3)}%`} data-build="2" data-build-kind="grow-x">
+            <span class="px-pkt__fl" style={`width:${s.floorShare.toFixed(2)}%`}></span>
+          </span>
+        ))}
+        <span class="px-pkt__floor" data-cue="floor" style={`left:${floorPct.toFixed(3)}%`} data-build="3" data-build-kind="drop">
+          <span class="px-pkt__floorlab" data-side={floorPct > 60 ? 'end' : 'start'}><span class="px-cue-tag" data-cue-tag="floor" hidden></span>light floor</span>
+        </span>
+      </div>
+      <div class="px-pkt__nums" aria-hidden="true">
+        {segs.map((s) => (
+          <span class="px-pkt__num" style={`left:${(s.left + s.w / 2).toFixed(3)}%`}>{s.i + 1}</span>
+        ))}
+      </div>
+      <div class="px-pkt__key" aria-hidden="true">
+        <span><i class="px-pkt__sw px-pkt__sw--fl"></i>Light floor</span>
+        <span><i class="px-pkt__sw px-pkt__sw--ov"></i>Overhead</span>
+      </div>
+    </div>
 
-      {/* segments: lime floor portion + pink overhead portion */}
-      {bar.segments.map((s, i) => {
-        const wide = s.w >= 56;
-        const midx = s.x0 + s.w / 2;
-        const labelY = BARY + BARH + 16;
-        const cityLabel = wide ? s.label : '';
-        return (
-          <g class="px-pkt__seg" tabindex="0" role="img" data-hop={i}
-            aria-label={`${s.label}: ${r0(s.measured)} ms measured, floor ${r0(s.floor)} ms, ${r0(s.overhead)} ms overhead${s.note ? ', ' + s.note : ''}`}>
-            <title>{s.label} · {r0(s.measured)} ms · floor {r0(s.floor)} ms · +{r0(s.overhead)} ms{s.note ? ` · ${s.note}` : ''}</title>
-            {/* floor portion (physics you can't avoid) */}
-            {s.floorW > 0.3 && (
-              <rect class="px-pkt__floor" x={s.x0} y={BARY} width={s.floorW} height={BARH}
-                fill="var(--accent)" fill-opacity="0.30" style={`--d:${i * 60}ms`} />
-            )}
-            {/* overhead portion (the human tax) */}
-            {s.overheadW > 0.3 && (
-              <rect class="px-pkt__over" x={s.x0 + s.floorW} y={BARY} width={s.overheadW} height={BARH}
-                fill="var(--accent-alt)" fill-opacity="0.30" style={`--d:${400 + i * 60}ms`} />
-            )}
-            {/* divider between hop segments */}
-            {i < bar.segments.length - 1 && (
-              <line x1={s.x0 + s.w} y1={BARY} x2={s.x0 + s.w} y2={BARY + BARH}
-                stroke="var(--ink)" stroke-width="1" opacity="0.42" />
-            )}
-            {/* transparent hit target (full height, taller for touch) */}
-            <rect class="px-pkt__hit" x={s.x0} y={BARY - 18} width={s.w} height={BARH + 40} fill="transparent" />
-            {/* per-segment value + (wide) city label */}
-            <text class="px-pkt__val" x={midx} y={BARY + BARH / 2 + 3.5} text-anchor="middle"
-              style={MONO} font-size="10" fill="var(--accent-deep)" font-weight="600"
-              paint-order="stroke" stroke="var(--paper)" stroke-width="3">{r0(s.measured)} ms</text>
-            {cityLabel && (
-              <text x={midx} y={labelY} text-anchor="middle" style={MONO} font-size="9.5"
-                fill="var(--ink-soft)" letter-spacing="0.02em">{cityLabel}</text>
-            )}
-          </g>
-        );
-      })}
-
-      {/* the money mark — the physics floor line + label */}
-      <line class="px-pkt__floorline" x1={bar.floorLineX} y1={BARY - 8} x2={bar.floorLineX} y2={BARY + BARH + 6}
-        stroke="var(--ink)" stroke-width="1.4" opacity="0.7" />
-      <text class="px-pkt__floorlbl" x={bar.floorLineX} y={BARY - 12} text-anchor="middle"
-        style={MONO} font-size="9.5" fill="var(--ink)" letter-spacing="0.06em"
-        paint-order="stroke" stroke="var(--paper)" stroke-width="3.5">PHYSICS FLOOR · {r0(b.floorMs)} ms</text>
-
-      {/* scale key: lime vs pink */}
-      <g style={MONO} font-size="9" fill="var(--muted)" letter-spacing="0.08em">
-        <rect x={BX0} y={BH - 12} width="10" height="8" fill="var(--accent)" fill-opacity="0.30" />
-        <text x={BX0 + 15} y={BH - 5}>physics floor</text>
-        <rect x={BX0 + 108} y={BH - 12} width="10" height="8" fill="var(--accent-alt)" fill-opacity="0.30" />
-        <text x={BX0 + 123} y={BH - 5}>overhead humans added</text>
-      </g>
-    </svg>
-  </div>
-
-  {/* legend / hop ledger — the AT-readable data source (collapse past 5, §7) */}
-  <div class={`px-pkt__legend${showAll ? '' : ' px-pkt__legend--collapsed'}`}>
-    <ul class="px-pkt__rows">
-      {legend.map((r, i) => (
-        <li class={`px-pkt__row${!showAll && i >= 5 ? ' px-pkt__row--extra' : ''}`}>
-          <span class="px-pkt__leg-name">{r.label}</span>
-          <span class="px-pkt__leg-meta">
-            {r.measured} ms · floor {r.floor} ms · {r.kind}{r.note ? ` · ${r.note}` : ''}
+    <ol class="px-pkt__hops">
+      {segs.map((s) => (
+        <li class="px-pkt__hop" data-cue={s.i + 1} data-hop={s.i} tabindex="0" data-build="3" data-build-kind="rise">
+          <span class="px-pkt__hn">{s.i + 1}</span>
+          <span class="px-pkt__hb">
+            <span class="px-pkt__hname"><span class="px-cue-tag" data-cue-tag={s.i + 1} hidden></span>{s.name}</span>
+            <span class="px-pkt__hmeta">{r0(s.measured)} ms · {s.kindWord}{!s.compute && ` · floor ${r1(s.floor)} ms`}{s.note && ` · ${s.note}`}</span>
           </span>
         </li>
       ))}
-    </ul>
-    {!showAll && (
-      <button type="button" class="px-pkt__more" aria-expanded="false">show all {legend.length} hops</button>
-    )}
-    <div class="px-pkt__sum">
-      Round trip · {r0(b.measMs)} ms measured · {r0(b.floorMs)} ms floor · {r0(b.overheadMs)} ms overhead
-    </div>
+    </ol>
   </div>
-
 </div>
 
-{/* bar⇄globe sync + legend disclosure. Hover/focus a bar segment → set
-    data-viz3d-state hop-<i> (runtime mirrors it into the scene's setState,
-    brightening that arc); leave/blur → clear. Zero new runtime code.
-    NOTE: this <script> lives AFTER the root </div> as a following sibling
-    (the SaveButton/StoryShare island pattern), so previousElementSibling
-    resolves to the .px-pkt root. Inside the root it would only see the
-    caption/globe/bar/legend children — none carry .px-pkt — and bail. */}
+{/* hop ⇄ globe sync: hovering or focusing a hop (its row or its share of the
+    bar) sets data-viz3d-state hop-<i> on the mount (the runtime mirrors it into
+    the scene's setState, brightening that arc); leaving clears it. Colour
+    only, nothing moves. The script follows the root, so previousElementSibling
+    resolves to .px-pkt. */}
 <script is:inline>
-    (function () {
-      var root = document.currentScript && document.currentScript.previousElementSibling;
-      while (root && !(root.classList && root.classList.contains('px-pkt'))) {
-        root = root.previousElementSibling;
-      }
-      if (!root) { root = document.currentScript && document.currentScript.parentElement && document.currentScript.parentElement.querySelector('.px-pkt'); }
-      if (!root) return;
-      var mount = root.querySelector('[data-viz3d="packet-trace"]');
-      var segs = root.querySelectorAll('.px-pkt__seg');
-      function activate(el) {
-        var i = el.getAttribute('data-hop');
-        for (var k = 0; k < segs.length; k++) segs[k].classList.toggle('is-active', segs[k] === el);
-        for (var j = 0; j < segs.length; j++) segs[j].classList.toggle('is-dim', segs[j] !== el);
-        if (mount) mount.setAttribute('data-viz3d-state', 'hop-' + i);
-      }
-      function clear() {
-        for (var k = 0; k < segs.length; k++) segs[k].classList.remove('is-active', 'is-dim');
-        if (mount) mount.setAttribute('data-viz3d-state', 'clear');
-      }
-      for (var s = 0; s < segs.length; s++) {
-        var el = segs[s];
-        el.addEventListener('pointerenter', function () { activate(this); });
-        el.addEventListener('pointerleave', clear);
-        el.addEventListener('focus', function () { activate(this); });
-        el.addEventListener('blur', clear);
-      }
-      var more = root.querySelector('.px-pkt__more');
-      var legend = root.querySelector('.px-pkt__legend');
-      if (more && legend) {
-        more.addEventListener('click', function () {
-          legend.classList.remove('px-pkt__legend--collapsed');
-          more.setAttribute('aria-expanded', 'true');
-          more.style.display = 'none';
-        });
-      }
-    })();
+  (function () {
+    var root = document.currentScript && document.currentScript.previousElementSibling;
+    while (root && !(root.classList && root.classList.contains('px-pkt'))) root = root.previousElementSibling;
+    if (!root) return;
+    var mount = root.querySelector('[data-viz3d="packet-trace"]');
+    var els = root.querySelectorAll('[data-hop]');
+    function on() {
+      var i = this.getAttribute('data-hop');
+      for (var k = 0; k < els.length; k++) els[k].classList.toggle('is-on', els[k].getAttribute('data-hop') === i);
+      if (mount) mount.setAttribute('data-viz3d-state', 'hop-' + i);
+    }
+    function off() {
+      for (var k = 0; k < els.length; k++) els[k].classList.remove('is-on');
+      if (mount) mount.setAttribute('data-viz3d-state', 'clear');
+    }
+    for (var s = 0; s < els.length; s++) {
+      els[s].addEventListener('pointerenter', on);
+      els[s].addEventListener('pointerleave', off);
+      els[s].addEventListener('focus', on);
+      els[s].addEventListener('blur', off);
+    }
+  })();
 </script>
 
 <style>
-  .viz3d--pkt {
+  /* the deep plate (LENS §8): the scene and the fallback read these inks */
+  .px-pkt__plate {
+    --pk-mark: var(--accent-lime, var(--accent));
+    background: var(--deep, #111111);
+    color: var(--on-deep);
+    border-radius: var(--r-card, 6px);
+    padding: 18px 18px 16px;
+  }
+  .px-pkt__plate .viz3d {
+    --ink: var(--on-deep);
+    --paper: var(--deep, #111111);
+    --muted: var(--on-deep-2);
+    --accent: var(--pk-mark);
+    --accent-alt: var(--on-deep-2);
     aspect-ratio: 720 / 400;
-    /* terminal background — the phosphor route reads as line-art over it */
-    background:
-      radial-gradient(ellipse 74% 66% at 50% 44%,
-        color-mix(in oklab, var(--accent) 6%, transparent), transparent 72%),
-      color-mix(in oklab, var(--paper) 82%, var(--bg));
+    background: color-mix(in oklab, var(--deep, #111111) 88%, var(--on-deep));
+    border-radius: var(--r-ctl, 4px);
   }
+  .px-pkt__plate .viz3d__hint { color: var(--on-deep-2); }
 
-  /* live-only time-compression chip (top-right; the fallback never shows it) */
+  .px-pkt__top { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 12px; }
+  .px-pkt__top > .px-pkt__chip { align-self: flex-start; }
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .px-pkt__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .px-pkt__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .px-pkt__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .px-pkt__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-pkt__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--on-deep);
+  }
+  .px-pkt__biglab { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--on-deep-2); }
+  .px-pkt__chip,
   .px-pkt__loop {
-    position: absolute; top: 10px; right: 12px; z-index: 3; display: none;
-    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em;
-    text-transform: uppercase; font-variant-numeric: tabular-nums;
-    color: var(--accent-deep);
-    background: color-mix(in oklab, var(--paper) 88%, transparent);
-    border: 1px solid var(--rule); border-radius: 999px; padding: 5px 10px;
-  }
-  .viz3d--live .px-pkt__loop { display: inline-block; }
-
-  /* ── the latency-budget bar ── */
-  .px-pkt__barwrap {
-    margin-top: 16px;
-    overflow-x: auto;          /* wide content scrolls inside its box, not the page */
-    -webkit-overflow-scrolling: touch;
-  }
-  .px-pkt__bar { width: 100%; min-width: 420px; height: auto; display: block; overflow: visible; }
-  /* Phones: the bar is drawn at 720 units, so it scrolls inside its own box at
-     full size rather than shrinking — at the 420px floor its 9.5-unit labels
-     printed at 5.5px (probe TINY, 2026-09-24). This is the card-scroll rule
-     dataviz-v2.css already declares for .px-pkt__bar; this scoped 420px floor
-     outranked it (attribute specificity), so it is restated here. */
-  @media (max-width: 900px) {
-    .px-pkt__bar { min-width: 720px; }
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--on-deep-hair);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--on-deep-2);
   }
 
-  /* map city-label tiers — see the frontmatter note */
-  .px-pkt__cities--m { display: none; }
+  /* live-only time-compression chip */
+  .px-pkt__loop { position: absolute; top: 8px; right: 8px; z-index: 3; display: none; background: var(--deep, #111111); }
+  .viz3d--live .px-pkt__loop { display: inline-flex; }
+
+  /* the map's city names: HTML over the drawing, one tier shown */
+  .px-pkt__names { position: absolute; inset: 0; pointer-events: none; }
+  .px-pkt__name {
+    position: absolute;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--on-deep-2);
+  }
+  .px-pkt__name[data-end] { color: var(--on-deep); font-weight: 600; }
+  .px-pkt__name[data-anchor='end'] { translate: -100% 0; }
+  .px-pkt__name[data-anchor='middle'] { translate: -50% 0; }
+  .px-pkt__names--m, .px-pkt__leads--m { display: none; }
   @media (max-width: 640px) {
-    .px-pkt__cities--d { display: none; }
-    .px-pkt__cities--m { display: inline; }
+    .px-pkt__names--d, .px-pkt__leads--d { display: none; }
+    .px-pkt__names--m, .px-pkt__leads--m { display: block; }
   }
 
-  .px-pkt__seg { cursor: pointer; }
-  .px-pkt__hit { cursor: pointer; }
-  .px-pkt__floor, .px-pkt__over {
-    transform-box: fill-box; transform-origin: left center;
-    transition: fill-opacity 140ms var(--ease), transform 400ms var(--ease);
+  /* ── the budget ── */
+  .px-pkt__budget { margin-top: 16px; }
+  .px-pkt__track {
+    position: relative;
+    height: 22px;
+    border-radius: 3px;
+    background: var(--on-deep-hair);
   }
-  /* hover/focus sync — active segment brightens, others dim (matches the globe) */
-  .px-pkt__seg.is-active .px-pkt__floor { fill-opacity: 0.5; }
-  .px-pkt__seg.is-active .px-pkt__over { fill-opacity: 0.5; }
-  .px-pkt__seg.is-active .px-pkt__val { fill: var(--accent); }
-  .px-pkt__seg.is-dim .px-pkt__floor,
-  .px-pkt__seg.is-dim .px-pkt__over { fill-opacity: 0.14; }
-  .px-pkt__seg:focus { outline: none; }
-  .px-pkt__seg:focus-visible .px-pkt__hit {
-    stroke: var(--accent-deep); stroke-width: 1.5; stroke-dasharray: 3 3;
+  .px-pkt__seg {
+    position: absolute;
+    top: 0; bottom: 0;
+    display: block;
+    background: color-mix(in oklab, var(--on-deep) 26%, var(--deep, #111111));
+    border-right: 2px solid var(--deep, #111111);
+    box-sizing: border-box;
+    transform-origin: left center;
+    transition: background-color 160ms var(--ease);
   }
-  .px-pkt__floor { transition-delay: var(--d, 0ms); }
-  .px-pkt__over { transition-delay: var(--d, 0ms); }
-  .px-pkt__floorline, .px-pkt__floorlbl { transition: opacity 300ms var(--ease) 720ms; }
-
-  /* ── hop ledger / legend ── */
-  .px-pkt__legend { margin-top: 16px; border-top: 1px solid var(--rule); padding-top: 12px; }
-  .px-pkt__rows { list-style: none; margin: 0; padding: 0; }
-  .px-pkt__row {
-    display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline;
-    padding: 8px 0; border-bottom: 1px dashed var(--rule);
+  .px-pkt__fl { position: absolute; left: 0; top: 0; bottom: 0; background: var(--pk-mark); }
+  .px-pkt__seg.is-on { background: color-mix(in oklab, var(--on-deep) 42%, var(--deep, #111111)); }
+  .px-pkt__floor {
+    position: absolute;
+    top: -8px; bottom: -6px;
+    width: 0;
+    border-left: 2px dashed var(--on-deep);
+  }
+  .px-pkt__floorlab {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--on-deep);
+  }
+  .px-pkt__floorlab[data-side='start'] { left: 4px; }
+  .px-pkt__floorlab[data-side='end'] { right: 4px; }
+  .px-pkt__budget { padding-top: 22px; }
+  .px-pkt__nums { position: relative; height: 18px; margin-top: 4px; }
+  .px-pkt__num {
+    position: absolute;
+    translate: -50% 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--on-deep-2);
     font-variant-numeric: tabular-nums;
   }
-  .px-pkt__leg-name { font-family: var(--font-mono); font-size: 11px; color: var(--ink); letter-spacing: 0.02em; }
-  .px-pkt__leg-meta {
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.04em; color: var(--muted); text-align: right;
-  }
-  .px-pkt__sum {
-    margin-top: 12px; font-family: var(--font-mono); font-size: 10px;
-    letter-spacing: 0.06em; color: var(--accent-deep); text-transform: uppercase;
-    font-variant-numeric: tabular-nums;
-  }
-  .px-pkt__more {
-    margin-top: 12px; font-family: var(--font-mono); font-size: 9.5px;
-    letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep);
-    background: none; border: none; padding: 4px 0; cursor: pointer;
-    text-decoration: underline; text-underline-offset: 3px;
-  }
-  html:not(.js) .px-pkt__more { display: none; }
-  html.js .px-pkt__legend--collapsed .px-pkt__row--extra { display: none; }
+  .px-pkt__key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; font-family: var(--font-ui); font-size: 12px; color: var(--on-deep-2); }
+  .px-pkt__key span { display: inline-flex; align-items: center; gap: 6px; }
+  .px-pkt__sw { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+  .px-pkt__sw--fl { background: var(--pk-mark); }
+  .px-pkt__sw--ov { background: color-mix(in oklab, var(--on-deep) 26%, var(--deep, #111111)); }
 
-  .px-pkt__vac { color: var(--accent-alt) !important; }
-
-  @media (max-width: 560px) {
-    .px-pkt__row { grid-template-columns: 1fr; gap: 2px; }
-    .px-pkt__leg-meta { text-align: left; }
+  /* ── the hops ── */
+  .px-pkt__hops { list-style: none; margin: 14px 0 0; padding: 0; }
+  .px-pkt__hop {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--on-deep-hair);
+    outline-offset: 2px;
   }
+  .px-pkt__hop:focus-visible { outline: 2px solid var(--pk-mark); }
+  .px-pkt__hn { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--on-deep-2); font-variant-numeric: tabular-nums; }
+  .px-pkt__hb { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .px-pkt__hname { font-family: var(--font-ui); font-size: 13px; font-weight: 600; color: var(--on-deep); }
+  .px-pkt__hmeta { font-family: var(--font-ui); font-size: 12px; color: var(--on-deep-2); font-variant-numeric: tabular-nums; }
+  .px-pkt__hop.is-on .px-pkt__hname { text-decoration: underline; text-decoration-color: var(--pk-mark); text-underline-offset: 3px; }
+  .px-pkt__plate .px-cue-tag { color: var(--deep, #111111); }
 
-  @media (prefers-reduced-motion: reduce) {
-    .px-pkt__floor, .px-pkt__over, .px-pkt__floorline, .px-pkt__floorlbl { transition: none !important; }
+  @media (max-width: 640px) {
+    .px-pkt__plate { padding: 14px 12px 12px; }
+  }
+  @media (max-width: 640px) {
+    .px-pkt__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

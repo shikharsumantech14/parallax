@@ -1,4 +1,30 @@
 ---
+/**
+ * BillBreakdown (politics) — what a package contains, drawn as its payload.
+ * Lens Phase 6 (2026-09-30), to the Lib-bill-breakdown board: the payload card
+ * (the one `primary: true`, else the first) is set large on the desk tint with
+ * its number at 96, a stroke pictogram and its body; the other provisions sit
+ * under it as small paper cards (pictogram, number, title, body).
+ *
+ * The board drew the small cards with their title only, three to a row. Their
+ * `body` and `bullets` still print here, at 13px under the title, because
+ * nothing else on the page carries them (the article column has only the
+ * intro and the caption) and a published issue's provisions must not vanish.
+ * So the small cards sit two to a row in the panel, where a body can breathe.
+ *
+ * The pictogram is chosen from the card's own words (a penalty draws scales,
+ * a board or certificate a clipboard, a narrowing or limit a lock), falling
+ * back to a document: desk-neutral and never a claim of its own.
+ *
+ * Cue anchors: each card is `data-cue="<n>"`, numbered from 1 in DATA order
+ * (the payload keeps its own number even though it is drawn first).
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the payload card fades in,
+ * 2 the other cards drop in, 80ms apart, 3 the payload's number rises.
+ * No JS or reduced motion: every card in place.
+ *
+ * data: { cards: [{label, title, body, bullets?, primary?: true}] }
+ */
 import { renderInline } from '../../../lib/text';
 
 interface BillCard {
@@ -12,24 +38,176 @@ interface BillCard {
 interface Props {
   cards: BillCard[];
   /* Optional — promoted onto the section schema in Phase 2 and merged
-     down in SectionBody. CANON §7: no source, no section. */
+     down in SectionBody. The source line is core/Section.astro's. */
   source?: string;
 }
 
-const { cards, source} = Astro.props;
+const { cards = [] } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+const numbered = cards.map((c, i) => ({ ...c, cue: i + 1, no: pad(i + 1) }));
+const pIdx = Math.max(0, numbered.findIndex((c) => c.primary));
+const payload = numbered[pIdx];
+const rest = numbered.filter((_, i) => i !== pIdx);
+
+/* A pictogram from the card's own words; a document when nothing matches. */
+type Icon = 'doc' | 'lock' | 'board' | 'scale';
+const iconFor = (c: BillCard): Icon => {
+  const t = `${c.label} ${c.title}`.toLowerCase();
+  if (/penalt|punish|prison|jail|fine|offen|crime|sentenc/.test(t)) return 'scale';
+  if (/board|medical|doctor|certif|licen|permit|inspect|audit|panel/.test(t)) return 'board';
+  if (/only|no others|narrow|limit|categor|cap\b|ban|restrict|exclu/.test(t)) return 'lock';
+  return 'doc';
+};
+const stroke = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS: Record<Icon, string> = {
+  doc: `<path d="M10 4h15l7 7v25H10z" ${stroke}/><path d="M25 4v7h7" ${stroke}/><path d="M14 17h13M14 22h13M14 27h8" ${stroke}/>`,
+  lock: `<rect x="9" y="18" width="22" height="17" rx="2" ${stroke}/><path d="M14 18v-5a6 6 0 0 1 12 0v5" ${stroke}/><path d="M20 25v4" ${stroke}/>`,
+  board: `<rect x="8" y="7" width="24" height="29" rx="2" ${stroke}/><path d="M15 7V4h10v3" ${stroke}/><path d="M20 15v10M15 20h10" ${stroke}/>`,
+  scale: `<path d="M20 6v28M12 34h16M8 11h24" ${stroke}/><path d="M8 11l-5 11h10zM32 11l-5 11h10z" ${stroke}/>`,
+};
+/* The payload's document is struck through when the card deletes or repeals. */
+const struck = payload ? /delet|repeal|remov|abolish|scrap|strik/.test(`${payload.title} ${payload.body}`.toLowerCase()) : false;
 ---
 
-<div class="px-bills" data-viz-root>
-  {cards.map((c) => (
-    <article class={`px-bills__card${c.primary ? ' px-bills__card--primary' : ''}`}>
-      <div class="px-bills__label">{c.label}</div>
-      <h3 class="px-bills__title" set:html={renderInline(c.title)} />
-      <p class="px-bills__body" set:html={renderInline(c.body)} />
-      {c.bullets && c.bullets.length > 0 && (
-        <ul class="px-bills__bullets">
-          {c.bullets.map((b) => <li set:html={renderInline(b)} />)}
+{payload && (
+  <div class="px-bills" data-viz-root data-build-scene>
+    <article class="px-bills__pay" data-cue={payload.cue} data-build="1">
+      <div class="px-bills__pay-head">
+        <div class="px-bills__pay-k">
+          <span class="px-bills__big" data-build="3" data-build-kind="rise">{payload.no}</span>
+          <span class="px-bills__tag"><span class="px-cue-tag" data-cue-tag={payload.cue} hidden></span>{payload.primary ? 'The payload' : payload.label}</span>
+        </div>
+        <svg class="px-bills__ico px-bills__ico--lg" viewBox="0 0 40 40" aria-hidden="true">
+          <Fragment set:html={ICONS[iconFor(payload)]} />
+          {struck && <path class="px-bills__strike" d="M6 34L34 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />}
+        </svg>
+      </div>
+      <h3 class="px-bills__pay-t" set:html={renderInline(payload.title)} />
+      <p class="px-bills__pay-b" set:html={renderInline(payload.body)} />
+      {payload.bullets && payload.bullets.length > 0 && (
+        <ul class="px-bills__bul">
+          {payload.bullets.map((b) => <li set:html={renderInline(b)} />)}
         </ul>
       )}
     </article>
-  ))}
-</div>
+
+    {rest.length > 0 && (
+      <div class="px-bills__grid">
+        {rest.map((c) => (
+          <article class="px-bills__card" data-cue={c.cue} data-build="2" data-build-kind="drop">
+            <div class="px-bills__card-top">
+              <svg class="px-bills__ico" viewBox="0 0 40 40" aria-hidden="true"><Fragment set:html={ICONS[iconFor(c)]} /></svg>
+              <span class="px-cue-tag" data-cue-tag={c.cue} hidden></span>
+            </div>
+            <span class="px-bills__no">{c.no}</span>
+            <h3 class="px-bills__t" set:html={renderInline(c.title)} />
+            <p class="px-bills__b" set:html={renderInline(c.body)} />
+            {c.bullets && c.bullets.length > 0 && (
+              <ul class="px-bills__bul px-bills__bul--sm">{c.bullets.map((b) => <li set:html={renderInline(b)} />)}</ul>
+            )}
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+<style>
+  .px-bills { display: flex; flex-direction: column; gap: 16px; }
+
+  .px-bills__pay {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px;
+    border-radius: var(--r-card, 6px);
+    background: var(--accent-tint);
+    border: 1px solid var(--accent);
+  }
+  .px-bills__pay-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .px-bills__pay-k { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 14px; min-width: 0; }
+  .px-bills__big {
+    font-family: var(--font-ui);
+    font-size: 96px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--accent-deep);
+  }
+  .px-bills__tag {
+    display: inline-flex;
+    align-items: center;
+    padding-bottom: 6px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .px-bills__ico { width: 32px; height: 32px; flex: none; color: var(--accent-deep); }
+  .px-bills__ico--lg { width: 64px; height: 64px; }
+  .px-bills__strike { color: var(--accent); }
+  .px-bills__pay-t {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    color: var(--ink);
+  }
+  .px-bills__pay-b {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .px-bills__bul { margin: 0; padding: 0; list-style: none; font-family: var(--font-ui); font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+  .px-bills__bul li { position: relative; padding-left: 18px; }
+  .px-bills__bul li::before { content: '→'; position: absolute; left: 0; color: var(--accent-deep); font-weight: 600; }
+
+  .px-bills__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .px-bills__card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border-radius: var(--r-card, 6px);
+    background: var(--paper);
+    border: 1px solid var(--hair);
+  }
+  .px-bills__card-top { display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
+  .px-bills__card-top .px-cue-tag { margin-right: 0; }
+  .px-bills__no {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-bills__t {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.25;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-bills__b { margin: 0; font-family: var(--font-ui); font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+  .px-bills__bul--sm { font-size: 13px; }
+
+  @media (max-width: 560px) {
+    .px-bills__pay { padding: 16px; gap: 12px; }
+    .px-bills__big { font-size: 72px; }
+    .px-bills__ico--lg { width: 48px; height: 48px; }
+    .px-bills__pay-t { font-size: 22px; }
+    .px-bills__grid { gap: 8px; }
+    .px-bills__card { padding: 12px; gap: 8px; }
+  }
+</style>

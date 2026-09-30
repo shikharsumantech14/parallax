@@ -172,14 +172,12 @@ Pure HTML/CSS.
 
 | Element | Token @ opacity |
 |---|---|
-| healthy segment | `#2f6b3a` — **fixed encoding, see below** |
-| degraded segment | `#c6a132` — fixed |
-| down segment | `#f4623a` — fixed |
+| healthy segment | `#D7E2BF` — **fixed encoding, see below** (Lens Phase 6, 2026-09-30: redrawn for the one paper; was `#2f6b3a`) |
+| degraded segment | `#C97C22` — fixed (was `#c6a132`) |
+| down segment | `#A02D18` — fixed (was `#f4623a`) |
 | track background | `--paper-deep` @ 1.0 |
 | lane label | `--ink` @ 0.80 |
-| uptime, ≥96% | `--accent` @ 1.0 |
-| uptime, 90–96% | the degraded hex |
-| uptime, <90% | the down hex |
+| uptime | `--ink`, 600 (Lens Phase 6: a band colour on 13px text failed 4.5:1) |
 | marker circle, rest | `--ink` @ 0.65, numeral in `--paper-deep` |
 | marker circle, selected | `--accent` @ 1.0, numeral in `--paper-deep` |
 | hour-axis labels | `--ink` @ 0.45 |

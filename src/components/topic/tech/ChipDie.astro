@@ -1,18 +1,31 @@
 ---
 /**
- * ChipDie (tech) — a processor die drawn as an exploded floorplan to scale.
- * Every functional block (cores, cache, GPU, memory ctrl, I/O…) becomes a tile
- * whose PIXEL AREA is its real silicon area in mm², so "the GPU is bigger than
- * all the CPU cores combined" is something the reader SEES. Layout is a
- * build-time squarified treemap (Bruls et al.) over a fixed 560×360 board,
- * integer-positioned + pixel-crisp, tilted on a CSS-3D drafting angle. One
- * block is `primary` (rests lifted); hover/focus lifts any tile and updates the
- * mono readout. Zero WebGL — CSS transforms only.
+ * ChipDie (tech) — a processor die drawn as a floorplan to scale. Every
+ * functional block (cores, cache, GPU, memory, I/O) is a tile whose AREA is
+ * its real silicon area in mm², so "the GPU is bigger than all the CPU cores
+ * combined" is something the reader SEES. Layout is a build-time squarified
+ * treemap (Bruls et al.) over a fixed 560×360 board, placed by percentage.
  *
- * No-JS / reduced-motion: the full tiled board paints at rest (tilt is pure
- * CSS-3D, no JS); only the pointer-tilt (global core/Tilt.astro) and the
- * readout-sync degrade to the static resting state. The legend lists every
- * block (AT-readable) and is the home for labels too small to fit their tile.
+ * LENS PHASE 6 (2026-09-30, the board Lib-chip-die): FLAT. The CSS-3D
+ * drafting tilt, the tile lift on hover and the hover readout island are
+ * retired (LENS §6.5: hover never moves layout; the tilt set every label on
+ * a slant and in perspective). The die is a flat floorplan with an ink edge
+ * and a hard offset shadow, compute in the desk mark, the primary block in
+ * the desk text ink, the other groups in the neutral inks, one key row. The
+ * figure's one large number is the primary block's area. Labels are 12px
+ * Instrument Sans and print only where measured to fit (per width tier);
+ * elsewhere a dot marks the tile, and "All n blocks" lists every one.
+ *
+ * Cue anchors:
+ *   1..n    each block, numbered from 1 in DATA order (the blocks as
+ *           authored, not the area order the treemap draws them in).
+ *   legend  the key row.
+ *   head    the large number.
+ *
+ * THE BUILD (LENS §6.4): the card is the scene. 1 the die fades in, 2 its
+ * tiles fade in, largest first, 80ms apart (compressed by the island), 3 the
+ * key, 4 the large number counts up (src/scripts/build.ts). No JS or reduced
+ * motion: the floorplan as drawn.
  *
  * data: ChipDieData — see docs/design/blueprints/tech/chip-die.md §3.
  */
@@ -135,26 +148,22 @@ function squarify(items: { value: number; meta: Meta }[]): Rect[] {
 }
 const rects = squarify(cells);
 
-// ── Does a tile's label fit it? Measured per width tier, not guessed by area ─
-// A tile is a fixed share of a board that draws at 548px on a desktop column,
-// ~410px on a small tablet and ~310px on a phone, while its label is set in
-// CSS pixels — so the same tile holds its label at one width and not at the
-// next. Area alone (the old LABEL_MIN rule) let a narrow tile keep a label
-// that wrapped mid-word, and put the ×count badge in the corner on top of it
-// ("×4" over "Efficiency cores" at 375, probe 2026-09-24). Now each tile gets
-// `data-fit` = the narrowest tier whose box holds its name (wrapped at
-// spaces only, count inline), then its area line; below that tier the label
-// hides and a dot marks the tile (the legend and readout carry every block).
-// Widths lean wide: Literata 600 runs ~0.55em, estimated at 0.6em.
+// ── Does a tile's label fit it? Measured per width tier, not guessed ──────
+// The board is a fixed share of the figure panel: about 470px wide at 1280
+// and about 300px on a 375 phone, while the label is set in CSS pixels, so
+// the same tile holds its label at one width and not at the next. Each tile
+// gets `data-fit` = the narrowest tier whose box holds its name (wrapped at
+// spaces, the count inline) and its area line; below that tier the label
+// hides and a dot marks the tile (the block list carries every block).
+// Instrument Sans 600 runs ~0.56em a character, estimated at 0.6em.
 const TIERS = [
-  { key: 'm', scale: 0.55, name: 10, area: 9.5 },   // ≤460px: board ≈ 310px at 360
-  { key: 't', scale: 0.73, name: 11, area: 9.5 },   // ≤620px: board ≈ 410px at 461
-  { key: 'd', scale: 0.97, name: 11, area: 9.5 },   // the desktop column, board 548px
+  { key: 'm', scale: 0.53, name: 12, area: 12 },   // ≤ 640px: board ≈ 300px
+  { key: 'd', scale: 0.82, name: 12, area: 12 },   // the 1280 panel, board ≈ 460px
 ] as const;
 const glyphW = (s: string, fs: number) => s.length * fs * 0.6;
 function labelFits(label: string, count: number | undefined, areaTxt: string, w: number, h: number, t: (typeof TIERS)[number]): boolean {
-  const boxW = w * t.scale - 2 /* border */ - 4 /* padding */ - 2;
-  const boxH = h * t.scale - 2 - 4 - 2;
+  const boxW = w * t.scale - 2 - 12;
+  const boxH = h * t.scale - 2 - 10;
   let lines = 1, cur = 0;
   for (const word of `${label}${count ? ` ×${count}` : ''}`.split(/\s+/).filter(Boolean)) {
     const ww = glyphW(word, t.name);
@@ -163,78 +172,60 @@ function labelFits(label: string, count: number | undefined, areaTxt: string, w:
     if (next > boxW) { lines++; cur = ww; } else cur = next;
   }
   if (glyphW(areaTxt, t.area) > boxW) return false;
-  return lines * t.name * 1.1 + 1 + t.area * 1.1 <= boxH;
+  return lines * t.name * 1.2 + t.area * 1.25 <= boxH;
 }
 
-// ── Render objects: area-descending (= tab / build / legend order) ──────────
-const groupFill: Record<Group, string> = {
-  compute: 'color-mix(in srgb, var(--accent) 85%, transparent)',
-  memory: 'color-mix(in srgb, var(--accent) 45%, transparent)',
-  media: 'color-mix(in srgb, var(--accent) 28%, transparent)',
-  io: 'color-mix(in srgb, var(--ink) 30%, transparent)',
-  other: 'color-mix(in srgb, var(--ink) 18%, transparent)',
+// ── Colour by group: the desk mark for compute, the primary block in the
+//    desk text ink, the rest in the neutral inks (ink-2, muted, hair-2,
+//    paper-3). `ink` says which text colour each fill carries. ───────────────
+const groupFill: Record<Group, { fill: string; light: boolean; name: string }> = {
+  compute: { fill: 'var(--accent)', light: false, name: 'Compute' },
+  memory: { fill: 'var(--ink-2)', light: true, name: 'Memory' },
+  io: { fill: 'var(--muted)', light: true, name: 'I/O' },
+  media: { fill: 'var(--hair-2)', light: false, name: 'Media' },
+  other: { fill: 'var(--paper-3)', light: false, name: 'Other' },
 };
 const fmtArea = (a: number) => (Number.isInteger(a) ? `${a}` : a.toFixed(1));
 const pctOf = (a: number) => Math.round((a / dieArea) * 100);
+/* Cue anchors are numbered in DATA order (the blocks as authored). */
+const dataIdx = (label: string) => blocks.findIndex((b) => b.label === label) + 1;
 
 const tiles = rects
   .map((r) => {
     const m = r.meta;
-    const pxArea = r.w * r.h;
     const pct = pctOf(m.area);
     const readParts = [
       `${m.label}${m.count ? ` ×${m.count}` : ''}`,
       `${fmtArea(m.area)} mm² · ${pct}% of die`,
     ];
     if (m.note) readParts.push(m.note);
+    const g = groupFill[m.group];
     return {
       ...m,
-      x: r.x, y: r.y, w: r.w, h: r.h, pxArea, pct,
-      // percentages of the fixed board so the whole floorplan scales uniformly
+      pct,
+      cue: m.unmapped ? 0 : dataIdx(m.label),
       lp: (r.x / BOARD_W) * 100,
       tp: (r.y / BOARD_H) * 100,
       wp: (r.w / BOARD_W) * 100,
       hp: (r.h / BOARD_H) * 100,
-      // the narrowest tier the label fits ('' = it never fits: dot + legend)
       fit: (TIERS.find((t) => labelFits(m.label, m.count, `${fmtArea(m.area)} mm²`, r.w, r.h, t))?.key ?? '') as string,
-      fill: m.primary ? 'var(--accent)' : groupFill[m.group],
-      // Bright fills (primary @100% + compute @85% accent) need DARK on-tile text
-      // to pass AA; every other group is a dark/medium tile that takes light text.
-      // (blueprint §6 colour table amended to match — luminance-picked, not fixed.)
-      bright: m.primary || m.group === 'compute',
+      fill: m.primary ? 'var(--accent-deep)' : g.fill,
+      light: m.primary ? true : g.light,
       read: readParts.join(' · '),
     };
   })
   .sort((a, b) => b.area - a.area);
-// build index in area-descending order (biggest silicon first, for the Phase 6 build)
-tiles.forEach((t, i) => ((t as any).i = i));
-const lastI = tiles.length - 1;
-const primaryIdx = tiles.findIndex((t) => t.primary);
-const stagger = Math.min(40, 800 / Math.max(1, blocks.length - 1)); // tech's tight cadence, capped so the build ≤1.6s
-// primary lands last: its lift follows the final tile
-const primaryDelay = Math.round(lastI * stagger + 260);
 
-// ── Legend (area-desc; ≤5 visible incl. primary pinned; rest behind details) ─
-const legend = tiles.map((t) => ({
-  key: (t as any).i as number,
-  label: t.label, area: t.area, pct: t.pct, count: t.count, note: t.note,
-  primary: t.primary, unmapped: t.unmapped, read: t.read,
-}));
-let head = legend.slice(0, 5);
-if (primaryIdx >= 5) {
-  // pin the primary row into the visible head (replace the last head slot)
-  const pr = legend.find((l) => l.primary)!;
-  head = [...legend.slice(0, 4), pr];
-}
-const headKeys = new Set(head.map((l) => l.key));
-const tail = legend.filter((l) => !headKeys.has(l.key));
-
-// Default readout = the story block (primary) or the chip name.
-const defaultRead = tiles[primaryIdx]?.read ?? `${chip} · ${fmtArea(dieArea)} mm² die`;
-const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
+/* The key: one swatch per group present, the primary block first. */
+const primary = tiles.find((t) => t.primary) ?? tiles[0];
+const groupsPresent = (['compute', 'memory', 'io', 'media', 'other'] as Group[]).filter((g) =>
+  tiles.some((t) => !t.unmapped && t.group === g && !t.primary),
+);
+const headWhole = Number.isInteger(primary.area);
+const headLabel = `mm² · ${primary.label}${primary.count ? ` ×${primary.count}` : ''}${mappedPct < 100 ? ` · ${mappedPct}% of the die mapped` : ''}`;
 ---
 
-<div class="px-viz px-die" style={`--stagger:${stagger}ms; --p-delay:${primaryDelay}ms`}>
+<div class="px-viz px-die" data-build-scene>
   {caption && (
     <div class="px-viz__cap">
       <span set:html={renderInline(caption)} />
@@ -242,344 +233,206 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
     </div>
   )}
 
-  <div class="px-die__stage px3d-stage" data-die={dieId}>
-    <div class="px-die__tilt px3d-tilt" data-tilt="4">
-      <div
-        class="px-die__board"
-        role="group"
-        aria-label={`${chip} — die floorplan, drawn to scale`}
-        style={`aspect-ratio:${BOARD_W}/${BOARD_H}`}
-      >
-        {tiles.map((t) => (
-          <button
-            type="button"
-            class:list={['px-die__tile', { 'is-primary': t.primary, 'is-bright': t.bright, 'is-unmapped': t.unmapped }]}
-            data-fit={t.fit}
-            data-die-i={(t as any).i}
-            data-die-read={t.read}
-            aria-label={t.read}
-            title={t.read}
-            style={`left:${t.lp.toFixed(3)}%; top:${t.tp.toFixed(3)}%; width:${t.wp.toFixed(3)}%; height:${t.hp.toFixed(3)}%; --fill:${t.fill}; --i:${(t as any).i}; ${t.primary ? `--p:1;` : ''}`}
-          >
-            <span class="px-die__face" aria-hidden="true"></span>
-            <span class="px-die__dot" aria-hidden="true"></span>
-            {t.fit && (
-              <span class="px-die__lab">
-                <span class="px-die__name">{t.label}{t.count ? <>{' '}<em class="px-die__tx">×{t.count}</em></> : null}</span>
-                <span class="px-die__area">{fmtArea(t.area)} mm²</span>
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
+  <div class="px-die__head" data-cue="head" style={`--ch:${fmtArea(primary.area).length}`}>
+    <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+    <span class="px-die__big"><span data-build="4" data-build-kind="counter" data-to={primary.area} data-format={headWhole ? 'int' : '1dp'}>{fmtArea(primary.area)}</span></span>
+    <span class="px-die__biglab">{headLabel}</span>
   </div>
 
-  <p class="px-die__readout" data-die-readout aria-live="polite">{defaultRead}</p>
-
-  <div class="px-die__legend" aria-label={`${chip} — block areas`}>
-    {head.map((l) => (
-      <button
-        type="button"
-        class:list={['px-die__row', { 'is-primary': l.primary, 'is-unmapped': l.unmapped }]}
-        data-die-row={l.key}
-        data-die-read={l.read}
-      >
-        <span class="px-die__sw" style={`--fill:${l.primary ? 'var(--accent)' : (l.unmapped ? 'color-mix(in srgb, var(--ink) 12%, transparent)' : groupFill[tiles.find(t => (t as any).i === l.key)!.group])}`}></span>
-        <span class="px-die__rlabel">{l.label}{l.count ? <em class="px-die__x">×{l.count}</em> : null}</span>
-        <span class="px-die__rval">{fmtArea(l.area)} mm² · {l.pct}%</span>
-      </button>
+  <ul class="px-die__key" aria-hidden="true" data-cue="legend" data-build="3">
+    <li><span class="px-die__sw" style={`--fill:${primary.primary ? 'var(--accent-deep)' : groupFill[primary.group].fill}`}></span>{primary.label}</li>
+    {groupsPresent.map((g) => (
+      <li><span class="px-die__sw" style={`--fill:${groupFill[g].fill}`}></span>{groupFill[g].name}</li>
     ))}
-    {tail.length > 0 && (
-      <details class="px-die__more">
-        <summary>show all blocks<span class="px-die__morec"> ({tail.length})</span></summary>
-        <div class="px-die__morelist">
-          {tail.map((l) => (
-            <button
-              type="button"
-              class:list={['px-die__row', { 'is-unmapped': l.unmapped }]}
-              data-die-row={l.key}
-              data-die-read={l.read}
-            >
-              <span class="px-die__sw" style={`--fill:${l.unmapped ? 'color-mix(in srgb, var(--ink) 12%, transparent)' : groupFill[tiles.find(t => (t as any).i === l.key)!.group]}`}></span>
-              <span class="px-die__rlabel">{l.label}{l.count ? <em class="px-die__x">×{l.count}</em> : null}</span>
-              <span class="px-die__rval">{fmtArea(l.area)} mm² · {l.pct}%</span>
-            </button>
-          ))}
-        </div>
-      </details>
-    )}
+  </ul>
+
+  <div class="px-die__board" role="group" aria-label={`${chip}: die floorplan, drawn to scale, ${fmtArea(dieArea)} mm²`} style={`aspect-ratio:${BOARD_W}/${BOARD_H}`} data-build="1">
+    {tiles.map((t) => (
+      <div
+        class:list={['px-die__tile', { 'is-primary': t.primary, 'is-light': t.light, 'is-unmapped': t.unmapped }]}
+        data-fit={t.fit}
+        data-cue={t.cue || undefined}
+        title={t.read}
+        role="img"
+        aria-label={t.read}
+        style={`left:${t.lp.toFixed(3)}%; top:${t.tp.toFixed(3)}%; width:${t.wp.toFixed(3)}%; height:${t.hp.toFixed(3)}%; --fill:${t.fill}`}
+        data-build="2"
+      >
+        {t.fit && (
+          <span class="px-die__lab" aria-hidden="true">
+            <span class="px-die__name">{t.label}{t.count ? <>{' '}<em class="px-die__tx">×{t.count}</em></> : null}</span>
+            <span class="px-die__area">{fmtArea(t.area)} mm²</span>
+          </span>
+        )}
+        <span class="px-die__dot" aria-hidden="true"></span>
+        {t.cue > 0 && <span class="px-die__pin"><span class="px-cue-tag" data-cue-tag={t.cue} hidden></span></span>}
+      </div>
+    ))}
   </div>
 
+  <details class="px-die__more">
+    <summary>All {tiles.length} blocks</summary>
+    <ul class="px-die__list">
+      {tiles.map((t) => (
+        <li class:list={['px-die__row', { 'is-primary': t.primary }]}>
+          <span class="px-die__sw" style={`--fill:${t.fill}`}></span>
+          <span class="px-die__rlabel">{t.label}{t.count ? <em class="px-die__x">×{t.count}</em> : null}{t.note && <span class="px-die__note"> · {t.note}</span>}</span>
+          <span class="px-die__rval">{fmtArea(t.area)} mm² · {t.pct}%</span>
+        </li>
+      ))}
+    </ul>
+  </details>
 </div>
 
-<script is:inline>
-  (function () {
-    if (window.__pxDieInit) return;
-    window.__pxDieInit = true;
-    document.querySelectorAll('[data-die]').forEach(function (root) {
-      var readout = root.parentElement && root.parentElement.querySelector('[data-die-readout]');
-      var def = readout ? readout.textContent : '';
-      var tiles = root.querySelectorAll('[data-die-i]');
-      function activate(i, text) {
-        tiles.forEach(function (t) {
-          t.classList.toggle('is-active', t.getAttribute('data-die-i') === i);
-        });
-        if (readout && text) readout.textContent = text;
-      }
-      function reset() {
-        tiles.forEach(function (t) { t.classList.remove('is-active'); });
-        if (readout) readout.textContent = def;
-      }
-      function wire(el, i, txt) {
-        var on = function () { activate(i, txt); };
-        el.addEventListener('mouseenter', on);
-        el.addEventListener('focus', on);
-        el.addEventListener('mouseleave', reset);
-        el.addEventListener('blur', reset);
-      }
-      tiles.forEach(function (t) { wire(t, t.getAttribute('data-die-i'), t.getAttribute('data-die-read')); });
-      // legend rows live outside the stage; find them via the shared .px-die root
-      var card = root.closest('.px-die');
-      if (card) {
-        card.querySelectorAll('[data-die-row]').forEach(function (r) {
-          wire(r, r.getAttribute('data-die-row'), r.getAttribute('data-die-read'));
-        });
-      }
-    });
-  })();
-</script>
-
 <style>
-  .px-die { --board-max: 560px; }
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .px-die__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .px-die__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .px-die__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .px-die__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-die__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-die__biglab {
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
 
-  .px-die__stage {
-    width: 100%;
-    max-width: var(--board-max);
-    margin: 6px auto 0;
-    /* headroom for the tilted board + tile lift so nothing clips the card edge */
-    padding: 30px 6px 14px;
-    box-sizing: border-box;
-    perspective-origin: 50% 42%;
+  .px-die__key {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--ink-2);
   }
-  .px-die__tilt {
-    transform-style: preserve-3d;
-    transform-origin: 50% 50%;
+  .px-die__key li { display: inline-flex; align-items: center; gap: 6px; }
+  .px-die__sw {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--fill);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent);
   }
+
+  /* The die: a flat floorplan with an ink edge and a hard offset shadow (the
+     package), every tile placed by % of the fixed 560×360 board. */
   .px-die__board {
     position: relative;
     width: 100%;
-    transform: rotateX(52deg);
-    transform-style: preserve-3d;
-    background: var(--paper);
-    border: 1px solid var(--rule);
-    box-shadow: 0 30px 60px -34px color-mix(in oklab, var(--ink) 60%, transparent);
+    background: var(--paper-2);
+    border: 2px solid var(--ink-2);
+    box-shadow: 6px 6px 0 0 var(--hair-2);
+    margin-bottom: 6px;
+    box-sizing: border-box;
   }
-
-  /* ── tiles — integer-positioned (as % of the 560×360 board), pixel-crisp ── */
   .px-die__tile {
     position: absolute;
     box-sizing: border-box;
-    /* 1px --bg border on every tile ⇒ a 2px gutter shows between neighbours;
-       relative areas preserved (every tile loses the same 1px inset). */
-    border: 1px solid var(--bg);
-    padding: 0;
-    margin: 0;
+    border: 1px solid var(--paper-2);
     background: var(--fill);
-    color: var(--ink);
-    font: inherit;
-    cursor: pointer;
-    transform-style: preserve-3d;
-    transform: translateZ(3px);
-    transition: transform 150ms var(--ease), opacity 150ms var(--ease), filter 150ms var(--ease);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    /* NO overflow clip here (2026-09-24). `overflow: hidden` forces a flat
-       transform-style, which dropped the face below out of 3D: it then
-       painted as a z-index:-1 child OVER the tile's own background, so every
-       fill rendered as the dark face colour and the dark-on-bright labels
-       (GPU, the compute tiles) vanished. Labels no longer need the clip —
-       each renders only at the widths where it was measured to fit
-       (`data-fit`, frontmatter). */
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 5px 6px;
+    color: var(--ink);
+    transition: box-shadow 160ms var(--ease);
   }
-  /* the extruded side face (crisp relief, not a glow) */
-  .px-die__face {
-    position: absolute;
-    inset: 0;
-    transform: translateZ(-3px);
-    background: var(--paper-2);
-    z-index: -1;
-  }
-  .px-die__tile.is-primary {
-    --p: 1;
-    border: 1.5px solid var(--accent);
-    transform: translateZ(9px); /* the subject rests lifted */
-  }
+  .px-die__tile.is-light { color: var(--paper-2); }
+  .px-die__tile:hover { box-shadow: inset 0 0 0 2px var(--ink); }
   .px-die__tile.is-unmapped {
     background:
-      repeating-linear-gradient(45deg,
-        color-mix(in srgb, var(--ink) 20%, transparent) 0 1px,
-        transparent 1px 6px),
-      color-mix(in srgb, var(--ink) 12%, transparent);
+      repeating-linear-gradient(45deg, color-mix(in srgb, var(--ink) 20%, transparent) 0 1px, transparent 1px 6px),
+      var(--paper-3);
   }
 
-  .px-die__lab {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    line-height: 1.1;
-    padding: 2px;
-    pointer-events: none;
-  }
+  .px-die__lab { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; pointer-events: none; min-width: 0; }
   .px-die__name {
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-ui);
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--ink);
-    /* wraps at spaces only; a word that cannot fit hides the label instead */
     overflow-wrap: normal;
   }
-  .px-die__tx { font-style: normal; font-weight: 500; opacity: 0.78; white-space: nowrap; }
+  .px-die__tx { font-style: normal; font-weight: 500; white-space: nowrap; }
   .px-die__area {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.03em;
-    /* light on the dark/medium tiles (memory/media/io/other) — the old green
-       --accent-deep failed AA on the green memory fill (green-on-green). */
-    color: var(--ink-soft, var(--ink));
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 400;
     font-variant-numeric: tabular-nums;
-  }
-  /* Bright fills (primary + compute) flip to DARK ink so label + value pass AA
-     (--bg measures ~11:1 on compute, ~15:1 on primary). Luminance-picked. */
-  .px-die__tile.is-bright .px-die__name,
-  .px-die__tile.is-bright .px-die__area {
-    color: var(--bg);
   }
   /* a tile whose label does not fit at this width shows a dot instead */
   .px-die__dot {
     display: none;
-    width: 4px; height: 4px; border-radius: 50%;
-    background: var(--ink); opacity: 0.55; pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px; height: 4px; margin: -2px 0 0 -2px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
   }
-  .px-die__tile.is-bright .px-die__dot { background: var(--bg); }
   .px-die__tile[data-fit=""] .px-die__dot { display: block; }
+  /* the cue numeral sits in the tile's lower-right corner */
+  .px-die__pin { position: absolute; right: 5px; bottom: 5px; line-height: 0; }
+  .px-die__pin .px-cue-tag { margin: 0; }
 
-  /* ── lift on hover / focus / legend-sync; siblings dim (opacity only) ─── */
-  .px-die__tile:hover,
-  .px-die__tile:focus-visible,
-  .px-die__tile.is-active {
-    transform: translateZ(18px);
-    filter: brightness(1.08);
-    z-index: 3;
-    outline: none;
-  }
-  .px-die__board:hover .px-die__tile:not(:hover):not(.is-active) { opacity: 0.55; }
-  .px-die__tile:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
-
-  /* ── readout — the mono status line (tech "prompt") ─────────────────── */
-  .px-die__readout {
-    margin: 14px auto 0;
-    max-width: var(--board-max);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-die__readout::before {
-    content: '$ ';
-    color: var(--accent-deep, var(--accent));
-  }
-
-  /* ── legend ─────────────────────────────────────────────────────────── */
-  .px-die__legend {
-    margin: 10px auto 0;
-    max-width: var(--board-max);
+  .px-die__more { margin-top: 12px; }
+  .px-die__more > summary {
+    cursor: pointer;
+    min-height: 44px;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-deep);
   }
+  .px-die__list { list-style: none; margin: 0; padding: 0; }
   .px-die__row {
     display: grid;
-    grid-template-columns: 12px 1fr auto;
-    align-items: center;
-    gap: 9px;
-    width: 100%;
-    padding: 4px 6px;
-    background: none;
-    border: 0;
-    border-radius: var(--r-tile, 4px);
-    cursor: pointer;
-    text-align: left;
-    transition: background 120ms var(--ease);
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--hair);
+    font-family: var(--font-ui);
+    font-size: 13px;
   }
-  .px-die__row:hover,
-  .px-die__row:focus-visible { background: color-mix(in srgb, var(--ink) 6%, transparent); outline: none; }
-  .px-die__row.is-primary { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-  .px-die__sw {
-    width: 12px; height: 12px; border-radius: 2px;
-    background: var(--fill); border: 1px solid var(--rule);
-  }
-  .px-die__row.is-primary .px-die__sw { border-color: var(--accent); }
-  .px-die__rlabel {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--ink);
-    overflow-wrap: anywhere;
-  }
+  .px-die__row .px-die__sw { align-self: center; }
+  .px-die__rlabel { color: var(--ink); min-width: 0; }
+  .px-die__row.is-primary .px-die__rlabel { font-weight: 600; }
   .px-die__x { font-style: normal; color: var(--muted); margin-left: 5px; }
-  .px-die__rval {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.02em;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-  .px-die__more { margin-top: 2px; }
-  .px-die__more > summary {
-    list-style: none;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    padding: 5px 6px;
-  }
-  .px-die__more > summary::-webkit-details-marker { display: none; }
-  .px-die__more > summary::before { content: '+ '; }
-  .px-die__more[open] > summary::before { content: '– '; }
-  .px-die__morec { color: var(--muted); }
-  .px-die__morelist { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-  /* hover/active always wins with a snappy delay-free transition */
-  .px-die__tile:hover,
-  .px-die__tile:focus-visible,
-  .px-die__tile.is-active { transition: transform 150ms var(--ease), filter 150ms var(--ease); }
+  .px-die__note { color: var(--muted); }
+  .px-die__rval { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  /* ── the label tiers (data-fit, frontmatter TIERS) ─────────────────── */
-  @media (max-width: 620px) {
+  /* the phone tier: a label measured only for the panel's width hides */
+  @media (max-width: 640px) {
     .px-die__tile[data-fit="d"] .px-die__lab { display: none; }
     .px-die__tile[data-fit="d"] .px-die__dot { display: block; }
   }
-  /* ── 375px: shallower tilt, the phone label tier, no overflow ── */
-  @media (max-width: 460px) {
-    .px-die__board { transform: rotateX(38deg); }
-    .px-die__stage { padding: 22px 4px 12px; }
-    .px-die__tile[data-fit="t"] .px-die__lab { display: none; }
-    .px-die__tile[data-fit="t"] .px-die__dot { display: block; }
-    .px-die__name { font-size: 10px; }
-    .px-die__area { font-size: 9.5px; } /* CANON §5 hard floor — this is a primary mm² value */
-  }
-
-  /* ── reduced-motion: no transitions, the composed still (the print plate) ── */
-  @media (prefers-reduced-motion: reduce) {
-    .px-die__tile {
-      transition: none !important;
-    }
+  @media (max-width: 640px) {
+    .px-die__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

@@ -87,10 +87,9 @@ grep -rn 'font-family="var(' src/components/ --include="*.astro" --include="*.ts
 Every component owns a unique `px-<abbrev>` prefix (≤6 chars). Check `meta.css`
 for collisions first. Reserved: `px-strip` (TopicStrip — the climate strip uses
 `px-cstrip`), `px-gate`, `px-acct`, `px-wb`, `px-nnote`,
-`pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`. The folded kinds keep their
-prefixes inside their host until Phase 6 redraws them: `px-cgauge`,
-`px-swdial` and `px-tdial` inside `core/Gauge.astro`, `.rc` inside
-`topic/travel/Itinerary.astro`. `px-intro` / `px-xp` (the removed intro),
+`pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`. Phase 6 (2026-09-30/10-01)
+redrew the folded kinds inside their hosts, so `px-cgauge`, `px-swdial`,
+`px-tdial` and `.rc` are free too. `px-intro` / `px-xp` (the removed intro),
 `px-plate`, `px-beats`, `px-shells`, `px-elev`, `px-co`, `px-bflow`, `px-og`,
 `px-sig`, `px-dg`, `px-rg`, `px-ireel` and `.cc` (the dropped and folded
 kinds) are free; a few of their dead rules still sit in the theme files and

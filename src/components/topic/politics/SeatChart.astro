@@ -1,7 +1,31 @@
 ---
+/**
+ * SeatChart (politics) — a redistribution, read two ways. Lens Phase 6
+ * (2026-09-30), to the Lib-seat-chart board: first the regions as two stacked
+ * bands (seats today in a neutral bar, the gain as a desk-mark extension or
+ * the loss as a dashed empty slot, the net change at 48 beside it), then the
+ * table: every row's name and seats today, and its change as a diverging bar
+ * from a centre axis, gains right in the desk mark, losses left in ink. A
+ * heavier rule separates the regions. The quote (`data.quote`) is rendered by
+ * SectionBody under the figure.
+ *
+ * The regions and their totals are DERIVED from the rows (`region`, summed),
+ * never authored. A chart with one region shows one band.
+ *
+ * Cue anchors (LENS §5.2):
+ *   north, south   the two region bands (id = the row's `region`)
+ *   1 … n          each row, numbered from 1 in DATA order
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the table head and the axis
+ * fade in, 2 the region bars and the row bars grow from their origin (the
+ * centre axis for the rows), 3 the change values rise, 4 the band totals
+ * rise. No JS or reduced motion: the chart as drawn.
+ *
+ * data: { subtitle, source, rows: [{name, region, current, change}], quote }
+ */
 interface SeatRow {
   name: string;
-  region: 'north' | 'south';
+  region: string;
   current: number;
   change: number;
 }
@@ -12,30 +36,165 @@ interface Props {
   rows: SeatRow[];
 }
 
-const { subtitle, source, rows } = Astro.props;
-const maxMagnitude = Math.max(1, ...rows.map((r) => Math.abs(r.change)));
+// `source` is read for the record; core/Section.astro prints the source line.
+const { subtitle, rows = [], source: _source } = Astro.props;
+const fmt = (n: number) => n.toLocaleString('en-US');
+const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(Math.abs(n))}` : '±0');
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* regions, in the order they first appear */
+const order: string[] = [];
+for (const r of rows) if (r.region && !order.includes(r.region)) order.push(r.region);
+const bands = order.map((reg) => {
+  const rs = rows.filter((r) => r.region === reg);
+  const now = rs.reduce((a, r) => a + (r.current || 0), 0);
+  const d = rs.reduce((a, r) => a + (r.change || 0), 0);
+  return { reg, n: rs.length, now, next: now + d, d };
+});
+const bandMax = Math.max(1, ...bands.map((b) => Math.max(b.now, b.next)));
+
+const maxMag = Math.max(1, ...rows.map((r) => Math.abs(r.change || 0)));
+const numbered = rows.map((r, i) => ({ ...r, cue: i + 1, w: Math.abs(r.change || 0) / maxMag }));
 ---
 
-<div class="px-seats" data-viz-root>
-  {subtitle && <div class="px-seats__caption">{subtitle}</div>}
+<div class="px-seats" data-viz-root data-build-scene>
+  {subtitle && <p class="px-seats__sub">{subtitle}</p>}
 
-  {rows.map((r) => {
-    const widthPct = (Math.abs(r.change) / maxMagnitude) * 100;
-    const sign = r.change > 0 ? '+' : r.change < 0 ? '' : '±';
-    return (
-      <div class="px-seats__row" data-region={r.region}>
-        <div class="px-seats__name">
-          {r.name}<span>{r.region.toUpperCase()}</span>
-        </div>
-        <div class="px-seats__current">{r.current}</div>
-        <div class="px-seats__bar">
-          <div class="px-seats__bar-fill" style={`width: ${widthPct}%;`}></div>
-        </div>
-        <div class="px-seats__delta">{sign}{r.change}</div>
+  {bands.length > 0 && (
+    <div class="px-seats__bands">
+      {bands.map((b) => {
+        const base = Math.min(b.now, b.next) / bandMax;
+        const delta = Math.abs(b.d) / bandMax;
+        return (
+          <div class="px-seats__band" data-cue={b.reg}>
+            <div class="px-seats__band-k">
+              <p class="px-seats__band-h">
+                <span class="px-cue-tag" data-cue-tag={b.reg} hidden></span>
+                <b>{cap(b.reg)}</b>
+                <span>{fmt(b.now)} → {fmt(b.next)}</span>
+              </p>
+              <div class="px-seats__band-bar">
+                <span class="px-seats__band-base" data-build="2" data-build-kind="grow-x" style={`width:${(base * 100).toFixed(2)}%`}></span>
+                {b.d !== 0 && (
+                  <span
+                    class:list={['px-seats__band-d', b.d > 0 ? 'is-gain' : 'is-loss']}
+                    data-build="2"
+                    data-build-kind={b.d > 0 ? 'grow-x' : 'fade'}
+                    style={`left:${(base * 100).toFixed(2)}%;width:${(delta * 100).toFixed(2)}%`}
+                  ></span>
+                )}
+              </div>
+            </div>
+            <span class:list={['px-seats__band-n', b.d > 0 ? 'is-gain' : '']} data-build="4" data-build-kind="rise">{signed(b.d)}</span>
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  <div class="px-seats__tbl" role="table" aria-label={subtitle ?? 'Seat change by row'}>
+    <div class="px-seats__head" role="row" data-build="1">
+      <span role="columnheader">Name</span>
+      <span role="columnheader" class="px-seats__num-h">Today</span>
+      <span role="columnheader" class="px-seats__chg-h">Change</span>
+    </div>
+    {numbered.map((r, i) => (
+      <div
+        class="px-seats__row"
+        role="row"
+        data-cue={r.cue}
+        data-region={r.region}
+        data-break={i > 0 && numbered[i - 1].region !== r.region ? 'true' : undefined}
+      >
+        <span class="px-seats__name" role="cell"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span>{r.name}</span>
+        <span class="px-seats__num" role="cell">{fmt(r.current)}</span>
+        <span class="px-seats__chg" role="cell" style={`--w:${r.w.toFixed(4)}`}>
+          {r.change !== 0 && (
+            <span class:list={['px-seats__bar', r.change > 0 ? 'is-gain' : 'is-loss']} data-build="2" data-build-kind="grow-x"></span>
+          )}
+          <span class:list={['px-seats__v', r.change > 0 ? 'is-gain' : r.change < 0 ? 'is-loss' : '']} data-build="3" data-build-kind="rise">{signed(r.change)}</span>
+        </span>
       </div>
-    );
-  })}
-
-  {/* No source line here: core/Section.astro renders it for every kind since
-      Phase 6.1 (the old bespoke `px-seats__source` is gone with it). */}
+    ))}
+  </div>
 </div>
+
+<style>
+  .px-seats { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-family: var(--font-ui); }
+  .px-seats__sub {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* the region bands */
+  .px-seats__bands { display: flex; flex-direction: column; gap: 18px; }
+  .px-seats__band { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 20px; }
+  .px-seats__band-k { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .px-seats__band-h { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; line-height: 20px; color: var(--muted); }
+  .px-seats__band-h b { font-weight: 600; color: var(--ink); }
+  .px-seats__band-h .px-cue-tag { margin-right: -4px; }
+  .px-seats__band-bar { position: relative; height: 26px; }
+  .px-seats__band-base { position: absolute; left: 0; top: 0; bottom: 0; background: var(--hair-2); transform-origin: left center; }
+  .px-seats__band-d { position: absolute; top: 0; bottom: 0; transform-origin: left center; }
+  .px-seats__band-d.is-gain { background: var(--accent); }
+  .px-seats__band-d.is-loss { border: 2px dashed var(--ink-2); box-sizing: border-box; }
+  .px-seats__band-n {
+    font-size: 48px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-align: right;
+  }
+  .px-seats__band-n.is-gain { color: var(--accent-deep); }
+
+  /* the table */
+  .px-seats__tbl { display: flex; flex-direction: column; }
+  .px-seats__head,
+  .px-seats__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1.25fr);
+    align-items: center;
+    column-gap: 12px;
+  }
+  .px-seats__head {
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--ink);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-seats__chg-h { text-align: center; }
+  .px-seats__num-h { text-align: right; }
+  .px-seats__row { min-height: 30px; padding: 4px 0; border-bottom: 1px solid var(--hair); }
+  .px-seats__row[data-break] { border-top: 1.5px solid var(--ink-2); }
+  .px-seats__row:last-child { border-bottom: 0; }
+  .px-seats__name { display: flex; align-items: center; min-width: 0; font-size: 14px; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+  .px-seats__num { text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  /* the diverging change: a centre axis; a bar's length is --w of the half
+     width less a 32px reserve for its value, which sits beyond the bar. */
+  .px-seats__chg { position: relative; align-self: stretch; margin: -4px 0; min-height: 30px; }
+  .px-seats__chg::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1.5px; margin-left: -0.75px; background: var(--ink); }
+  .px-seats__bar { position: absolute; top: 50%; height: 14px; margin-top: -7px; width: calc((50% - 32px) * var(--w)); }
+  .px-seats__bar.is-gain { left: 50%; background: var(--accent); transform-origin: left center; }
+  .px-seats__bar.is-loss { right: 50%; background: var(--ink-2); transform-origin: right center; }
+  .px-seats__v { position: absolute; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .px-seats__v.is-gain { left: calc(50% + (50% - 32px) * var(--w) + 5px); color: var(--accent-deep); }
+  .px-seats__v.is-loss { right: calc(50% + (50% - 32px) * var(--w) + 5px); color: var(--ink); }
+  .px-seats__v:not(.is-gain):not(.is-loss) { left: calc(50% + 5px); color: var(--muted); }
+
+  @media (max-width: 560px) {
+    .px-seats__band-n { font-size: 40px; }
+    .px-seats__head, .px-seats__row { grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1.1fr); column-gap: 8px; }
+    .px-seats__name, .px-seats__num { font-size: 13px; }
+  }
+</style>

@@ -1,11 +1,22 @@
 ---
 /**
- * PowerMatrix — v2 institutional control grid (.pm) inside the elevated .px-viz
- * card. Faithful port of publication-v2 DataViz1.jsx <PowerMatrix>.
- * Build-time, zero JS of its own. THE BUILD (Lens Phase 5, LENS §6.4): the
- * card is a `data-build-scene`: 1 the axes (party heads, institution
- * names) fade in, 2 the cells drop in row by row, 3 the legend
- * (src/scripts/build.ts). No JS or reduced motion: the grid as written.
+ * PowerMatrix (politics) — who holds each lever. Lens Phase 6 (2026-09-30),
+ * to the Lib-power-matrix board: institutions down the left, parties across
+ * the top, and in every cell one 28px square: full control a solid square in
+ * the desk mark, partial a light square, contested a hatched square with an
+ * ink edge, no control a dashed outline. A legend of the four states closes
+ * it. The board draws every column in the desk mark, so the cells do too; a
+ * party's own `color` shows as the small key dot beside its name.
+ *
+ * Cue anchors (LENS §5.2):
+ *   1 … n        each institution row, numbered from 1 in DATA order
+ *   <party id>   each party column head (the `id` from `parties`)
+ *   <r>-<c>      one cell: row r, party column c, both from 1
+ *   legend       the key
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the party heads and the
+ * institution names fade in, 2 … the cells drop in, row by row, 80ms apart,
+ * then the legend. No JS or reduced motion: the grid as written.
  *
  * props:
  *   institutions[] — string[]
@@ -26,45 +37,115 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { institutions = [], parties = [], cells = [], caption, source } = Astro.props;
+const { institutions = [], parties = [], cells = [] } = Astro.props;
 
-const colorOf = (pid: string) => parties.find((p) => p.id === pid)?.color || 'var(--muted)';
-const cellFor = (inst: string, pid: string): Cell =>
-  cells.find((c) => c.institution === inst && c.party === pid) || { institution: inst, party: pid, control: 'none' };
-
-const GLYPH: Record<string, string> = { full: '●', partial: '◐', none: '○', contested: '◆' };
-// The kit styles full / partial / none; 'contested' borrows the partial hatch.
-const attrOf = (control: string) => (control === 'contested' ? 'partial' : control);
+const cellFor = (inst: string, pid: string): Cell['control'] =>
+  cells.find((c) => c.institution === inst && c.party === pid)?.control ?? 'none';
+const WORD: Record<string, string> = { full: 'full control', partial: 'partial', contested: 'contested', none: 'no control' };
+const cols = parties.length;
+const legendStep = 2 + institutions.length;
+const used = new Set(cells.map((c) => c.control));
 ---
 
-<div class="px-viz" data-build-scene>
-  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
-  <div class="pm__grid" style={`--cols:${parties.length}`}>
-    <div class="pm__row">
-      <div class="pm__head" style="padding-left:0"></div>
-      {parties.map((p) => <div class="pm__head" data-build="1">{p.label}</div>)}
+<div class="pm" data-viz-root data-build-scene>
+  <div class="pm__tbl" role="table" aria-label="Who controls each institution" style={`--cols:${cols}`}>
+    <div class="pm__row pm__row--head" role="row">
+      <span role="columnheader"></span>
+      {parties.map((p) => (
+        <span class="pm__head" role="columnheader" data-cue={p.id} data-build="1">
+          <span class="px-cue-tag" data-cue-tag={p.id} hidden></span>
+          {p.color && <i class="pm__dot" style={`background:${p.color}`}></i>}
+          <span>{p.label}</span>
+        </span>
+      ))}
     </div>
-    {/* Cue anchors (LENS §5.2): each institution row is `data-cue="<n>"`,
-        numbered from 1 in data order (the header row is not an anchor). */}
     {institutions.map((inst, ri) => (
-      <div class="pm__row" data-cue={ri + 1}>
-        <div class="pm__inst" data-build="1"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{inst}</div>
-        {parties.map((p) => {
+      <div class="pm__row" role="row" data-cue={ri + 1}>
+        <span class="pm__inst" role="rowheader" data-build="1"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span><span>{inst}</span></span>
+        {parties.map((p, ci) => {
           const c = cellFor(inst, p.id);
-          const bg = c.control === 'none' ? undefined : colorOf(p.id);
+          const id = `${ri + 1}-${ci + 1}`;
           return (
-            <div class="pm__cell" data-control={attrOf(c.control)} data-build={2 + ri} data-build-kind="drop"
-                 style={bg ? `background:${bg}` : undefined}>
-              <span>{GLYPH[c.control] ?? '○'}</span>
-            </div>
+            <span class="pm__cell" role="cell" aria-label={`${p.label}: ${WORD[c] ?? c}`} data-cue={id}>
+              <i class="pm__sq" data-control={c} data-build={2 + ri} data-build-kind="drop"></i>
+              <span class="px-cue-tag" data-cue-tag={id} hidden></span>
+            </span>
           );
         })}
       </div>
     ))}
   </div>
-  <div class="pm__legend" data-build={2 + institutions.length}>
-    <span class="key">● Full control</span>
-    <span class="key">◐ Partial / contested</span>
-    <span class="key">○ None</span>
+  <div class="pm__legend" data-cue="legend" data-build={legendStep}>
+    <span class="px-cue-tag" data-cue-tag="legend" hidden></span>
+    <span class="pm__key"><i class="pm__sq pm__sq--sm" data-control="full"></i>Full control</span>
+    <span class="pm__key"><i class="pm__sq pm__sq--sm" data-control="partial"></i>Partial</span>
+    {used.has('contested') && <span class="pm__key"><i class="pm__sq pm__sq--sm" data-control="contested"></i>Contested</span>}
+    <span class="pm__key"><i class="pm__sq pm__sq--sm" data-control="none"></i>No control</span>
   </div>
 </div>
+
+<style>
+  .pm { display: flex; flex-direction: column; gap: 16px; min-width: 0; font-family: var(--font-ui); }
+  .pm__tbl { display: flex; flex-direction: column; }
+  .pm__row {
+    display: grid;
+    grid-template-columns: minmax(96px, 1.5fr) repeat(var(--cols, 3), minmax(0, 1fr));
+    column-gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+    border-top: 1px solid var(--hair);
+  }
+  .pm__row--head { align-items: end; padding: 0 0 8px; border-top: 0; }
+  .pm__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ink-2);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .pm__head .px-cue-tag { margin: 0; }
+  .pm__dot { display: block; width: 8px; height: 8px; border-radius: 50%; }
+  .pm__inst {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .pm__inst .px-cue-tag { margin-right: 0; }
+  .pm__cell { position: relative; display: flex; justify-content: center; align-items: center; min-height: 34px; }
+  .pm__cell .px-cue-tag { position: absolute; left: calc(50% + 18px); margin: 0; }
+
+  .pm__sq { display: block; width: 28px; height: 28px; flex: none; border-radius: 4px; box-sizing: border-box; }
+  .pm__sq--sm { width: 14px; height: 14px; border-radius: 3px; }
+  .pm__sq[data-control='full'] { background: var(--accent); }
+  .pm__sq[data-control='partial'] { background: color-mix(in oklab, var(--accent) 42%, var(--paper-2)); }
+  .pm__sq[data-control='contested'] {
+    border: 2px solid var(--ink);
+    background:
+      repeating-linear-gradient(-45deg, var(--accent-deep) 0 2px, transparent 2px 7px),
+      var(--accent-tint);
+  }
+  .pm__sq--sm[data-control='contested'] { border-width: 1.5px; background: repeating-linear-gradient(-45deg, var(--accent-deep) 0 1.5px, transparent 1.5px 4px), var(--accent-tint); }
+  .pm__sq[data-control='none'] { border: 1.5px dashed var(--hair-2); }
+
+  .pm__legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  .pm__legend .px-cue-tag { margin-right: -8px; }
+  .pm__key { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+
+  @media (max-width: 560px) {
+    .pm__row { grid-template-columns: minmax(84px, 1.3fr) repeat(var(--cols, 3), minmax(0, 1fr)); column-gap: 4px; }
+    .pm__sq { width: 24px; height: 24px; }
+    .pm__cell .px-cue-tag { left: calc(50% + 14px); }
+  }
+</style>

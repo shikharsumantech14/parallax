@@ -1,44 +1,42 @@
 ---
 /**
- * ClimateSpiral (earth) — the warming spiral, with a TIME SCRUB.
+ * ClimateSpiral (earth) — the warming spiral, with a MONTH SCRUB (Lens
+ * Phase 6, the Lib-climate-spiral board).
  *
- * A build-time polar SVG: angle = month (January at the top, advancing
- * clockwise), radius ∝ the month's value normalised across the whole series
- * (larger value → larger radius). The spiral is drawn as a chain of short
- * connected segments through every month in chronological order, each segment
- * coloured by its value (cool → warm). Faint concentric reference rings +
- * month labels ring the rim.
+ * A build-time polar SVG: angle = month (January at the top, clockwise),
+ * radius grows with the month's value across the whole series. The spiral is
+ * a chain of short segments through every month in time order, each year one
+ * tone of the desk ramp (the first year palest, the last the desk deep).
+ * Dashed reference rings sit at round values of the unit and are labelled;
+ * the months are lettered round the rim. The highest month is ringed, and its
+ * value is the figure's headline number.
  *
- * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). The finished spiral shows
- * the whole record at once, which is the one view in which the shape cannot be
- * read: every winding overlaps every other. Dragging the scrub winds it
- * forward month by month — the future drops to a ghost, the centre reads the
- * year you are standing in, and the readout names that month's value and
- * whether it was a new high.
+ * THE SCRUB (an instrument; its island stays). Dragging winds the record
+ * forward month by month: the future drops to a ghost, the centre reads the
+ * year you stand in, the readout names that month's value and whether it was
+ * the highest yet. The island owns `opacity` on the segments and nothing
+ * else; the build owns `stroke-dashoffset`. The segments are flat siblings so
+ * one `is-cut` class dims every later segment. The control ships `hidden` and
+ * is unhidden only once the payload parses.
  *
- * TWO OWNERS, TWO PROPERTIES — this is the load-bearing detail. The build
- * owns `stroke-dashoffset` (static since Lens Phase 5, every segment rests
- * drawn; in Phase 6 each draws itself in sequence, staggered by `--d`). The
- * scrub owns `opacity` and nothing else, so the two can never fight over a
- * value, and neither has to know the other exists. Opacity is deliberately
- * NOT transitioned: a scrub must track the finger, and a 200ms fade on 500
- * segments does not.
+ * THE BUILD sits on `.px-spiral__scene`, a scene INSIDE the card: the card
+ * also holds the scrub, which JS shows, and a scene must not hold a control
+ * that changes its size (LENS §6.4). VizCard's own scene then has no build
+ * element of its own.
  *
- * The dimming is one class move, not a loop. Segments are flat siblings, so
- * marking the first future segment `is-cut` lets a sibling combinator dim
- * every segment after it in CSS. The island touches two elements per input
- * event regardless of series length — a 170-year record costs the same as this
- * 4-year one.
- *
- * Every segment always paints fully drawn at full opacity. Without JS the
- * scrubber never renders — it ships `hidden` and the island unhides it only
- * after the payload parses — and the centre reads the full span.
- * Reduced-motion keeps the scrub working; it is comprehension.
+ * Cue anchors: `<year>` (each year's winding, "2023") · `jan`…`dec` (the
+ * month letters) · `ring1`, `ring2`… (the reference rings, inside out) ·
+ * `peak` (the highest month) · `head` (the headline number).
+ * Build: rings and months (1) · the spiral draws (2) · the peak ring and the
+ * ring labels (3) · the headline number (4).
  *
  * data: { months[]{ year, month (1–12), value }, unit?, baseline?,
  *         howToRead?, caption?, source? }
  */
 import VizCard from '../../core/VizCard.astro';
+import FigHead from './FigHead.astro';
+import CueLayer from './CueLayer.astro';
+import { SANS, fmt } from './_fig';
 
 interface MonthPt { year: number; month: number; value: number; }
 interface Props {
@@ -51,138 +49,83 @@ interface Props {
 }
 const { months = [], unit = '', baseline, howToRead, caption, source } = Astro.props;
 
-// ── geometry ────────────────────────────────────────────────────────────────
-const SIZE = 460;
+/* ── geometry: drawn for a phone (340 units, 13.5 type prints 12px at 305) ── */
+const SIZE = 300, PAD = 22, VB = SIZE + PAD * 2;
 const cx = SIZE / 2, cy = SIZE / 2;
-const rInner = 40;            // radius for the minimum value
-const rOuter = 196;          // radius for the maximum value
+const rInner = 26, rOuter = 128;
 
-// viewBox headroom: month labels sit at rOuter+20 and the 3/9-o'clock ones
-// are anchored outward, so their text runs ~24px past the rim point. Pad the
-// viewBox on every side (drawing stays centred on cx/cy) so no label clips.
-const PAD = 30;
-const VB = SIZE + PAD * 2;   // padded viewBox extent
-
-// chronological order (year, then month) so the spiral winds forward in time
 const pts = [...months].sort((a, b) => (a.year - b.year) || (a.month - b.month));
 const n = pts.length;
-
 const vals = pts.map((p) => p.value);
 const minVal = vals.length ? Math.min(...vals) : 0;
 const maxVal = vals.length ? Math.max(...vals) : 0;
 const range = maxVal - minVal || 1;
-const norm = (v: number) => (v - minVal) / range;          // 0 = coolest, 1 = warmest
-
-// month (1–12) → angle. Jan at top (−90°), clockwise.
+const norm = (v: number) => (v - minVal) / range;
 const angleFor = (month: number) => (-90 + ((month - 1) / 12) * 360) * (Math.PI / 180);
 const radiusFor = (v: number) => rInner + norm(v) * (rOuter - rInner);
-
 const coord = (month: number, v: number) => {
-  const a = angleFor(month);
-  const r = radiusFor(v);
+  const a = angleFor(month), r = radiusFor(v);
   return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
 };
-
 const xy = pts.map((p) => coord(p.month, p.value));
 
-// diverging cool→warm ramp (semantic blue → red, theme-neutral)
-const RAMP = ['#2166ac', '#67a9cf', '#d1e5f0', '#fddbc7', '#ef8a62', '#c0392b'];
-function hexToRgb(h: string): [number, number, number] {
-  const x = parseInt(h.replace('#', ''), 16);
-  return [(x >> 16) & 255, (x >> 8) & 255, x & 255];
-}
-const lerp = (a: number, b: number, t: number) => Math.round(a + (b - a) * t);
-function rampColor(t: number): string {
-  const s = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
-  const lo = Math.floor(s), hi = Math.min(lo + 1, RAMP.length - 1), f = s - lo;
-  const [r1, g1, b1] = hexToRgb(RAMP[lo]);
-  const [r2, g2, b2] = hexToRgb(RAMP[hi]);
-  return `rgb(${lerp(r1, r2, f)},${lerp(g1, g2, f)},${lerp(b1, b2, f)})`;
-}
-
-// one segment per consecutive pair, coloured by the segment's mean value.
-// length approximated for the per-segment dash-draw (--len, generous pad).
-const segments = xy.slice(1).map((p, i) => {
-  const a = xy[i], b = p;
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const len = Math.ceil(Math.hypot(dx, dy)) + 2;
-  const meanT = (norm(pts[i].value) + norm(pts[i + 1].value)) / 2;
-  return { d: `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`,
-    color: rampColor(meanT), len, i };
+/* each year one tone of the desk ramp */
+const years = [...new Set(pts.map((p) => p.year))];
+const tone = (year: number) => {
+  const t = years.length > 1 ? years.indexOf(year) / (years.length - 1) : 1;
+  return t < 0.5
+    ? `color-mix(in oklab, var(--accent) ${Math.round(45 + t * 110)}%, var(--accent-tint))`
+    : `color-mix(in oklab, var(--deep, var(--ink)) ${Math.round((t - 0.5) * 160)}%, var(--accent))`;
+};
+const segments = xy.slice(1).map((b, i) => {
+  const a = xy[i];
+  return { d: `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`, year: pts[i + 1].year, i };
 });
 
-// per-segment draw delay so the whole spiral traces in ~1.6s regardless of n
-const totalDraw = 1600;
-const stepDelay = n > 1 ? totalDraw / (n - 1) : 0;
+/* reference rings at round values inside the range (at most three) */
+const ringStep = [0.25, 0.5, 1, 2, 5, 10, 25, 50].find((s) => range / s <= 3) ?? 100;
+const rings: number[] = [];
+for (let v = Math.ceil(minVal / ringStep) * ringStep; v <= maxVal + 1e-9; v += ringStep) {
+  if (radiusFor(v) - rInner > 14) rings.push(+v.toFixed(2));
+}
 
-// concentric reference rings (evenly spaced between inner and outer radius)
-const RINGS = 4;
-const rings = Array.from({ length: RINGS }, (_, i) =>
-  rInner + ((i + 1) / RINGS) * (rOuter - rInner)
-);
-
-// month labels around the rim (just outside the outer radius). Anchor +
-// baseline are chosen per quadrant so a label hugs the rim point from its
-// outer side instead of overrunning the spiral (or the SVG edge) — the
-// 3-o'clock / 9-o'clock labels especially need horizontal anchoring.
-const MONTH_LBL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const EPS = 0.5;
+const MONTH_LBL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const monthLabels = MONTH_LBL.map((m, idx) => {
-  const a = angleFor(idx + 1);
-  const r = rOuter + 20;
-  const dx = Math.cos(a), dy = Math.sin(a);
-  // anchor by horizontal direction; baseline by vertical direction
-  const anchor = dx > EPS ? 'start' : dx < -EPS ? 'end' : 'middle';
-  const base = dy > EPS ? 'hanging' : dy < -EPS ? 'auto' : 'middle';
-  return { m, x: cx + dx * r, y: cy + dy * r, anchor, base };
+  const a = angleFor(idx + 1), r = rOuter + 14;
+  return { id: m.toLowerCase(), m: m[0], x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r + 4.5, lx: cx + Math.cos(a) * rOuter, ly: cy + Math.sin(a) * rOuter };
 });
 
+const peakI = vals.indexOf(maxVal);
+const peak = pts[peakI];
 const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
 const firstYear = pts[0]?.year ?? '';
 const lastYear = pts[n - 1]?.year ?? '';
 
-/* ── the scrub payload ────────────────────────────────────────────────────
-   One row per month: [markerX, markerY, year, month(1–12), value, isRecord].
-   `isRecord` is a RUNNING max over the series up to that month — the honest
-   form of "a new high", which can only ever mean "highest so far", never
-   "highest in a record the reader has not been shown yet". */
+/* ── the scrub payload: [markerX, markerY, year, month, value, isRecord] ── */
 let runMax = -Infinity;
 const monthTable = pts.map((p, i) => {
   const isRecord = p.value > runMax;
   if (isRecord) runMax = p.value;
-  return [
-    +xy[i].x.toFixed(1),
-    +xy[i].y.toFixed(1),
-    p.year,
-    p.month,
-    p.value,
-    isRecord && i > 0 ? 1 : 0,
-  ];
+  return [+xy[i].x.toFixed(1), +xy[i].y.toFixed(1), p.year, p.month, p.value, isRecord && i > 0 ? 1 : 0];
 });
-
-const restReadout = n
-  ? `${firstYear}–${lastYear} · ${n} months · peak ${fmtVal(maxVal)}`
-  : 'No data';
-
-/* The longest string this readout can ever show. Rendered as the hidden twin
-   that `px-inst__readout--sized` stacks behind the live line, so the box
-   reserves the true height and cannot reflow under a dragging finger — see the
-   rule in src/styles/dataviz-v2.css for why min-height alone cannot do it. */
+const restReadout = n ? `${firstYear}–${lastYear} · ${n} months · peak ${fmtVal(maxVal)}` : 'No data';
 const readoutFor = (r: (number | string)[]) =>
   `${MONTH_LBL[(r[3] as number) - 1]} ${r[2]} · ${fmtVal(r[4] as number)}${r[5] ? ' · warmest month yet' : ''}`;
-const longestReadout = monthTable
-  .map(readoutFor)
-  .concat(restReadout)
-  .reduce((a, b) => (b.length > a.length ? b : a), '');
+const longestReadout = monthTable.map(readoutFor).concat(restReadout).reduce((a, b) => (b.length > a.length ? b : a), '');
+
+const tags = [
+  ...years.map((y) => {
+    const last = pts.map((p, i) => ({ p, i })).filter((o) => o.p.year === y).pop()!;
+    return { id: y, x: xy[last.i].x, y: xy[last.i].y };
+  }),
+  ...monthLabels.map((l) => ({ id: l.id, x: l.x + (l.x > cx + 2 ? 14 : l.x < cx - 2 ? -14 : 14), y: l.y - 4.5 })),
+  ...rings.map((v, k) => ({ id: `ring${k + 1}`, x: Math.min(SIZE + PAD - 12, cx + radiusFor(v) * 0.707 + 3 + `${fmt(v, 2)}${unit ? ` ${unit}` : ''}`.length * 14.5 * 0.58 + 12), y: cy - radiusFor(v) * 0.707 - 24 })),
+  ...(peak ? [{ id: 'peak', x: xy[peakI].x - 14, y: xy[peakI].y - 12 }] : []),
+];
+const headLabel = peak ? `${unit ? unit + ', ' : ''}${MONTH_LBL[peak.month - 1]} ${peak.year}` : undefined;
 ---
 
-<VizCard
-  prefix="px-spiral"
-  howToRead={howToRead}
-  caption={caption}
-  source={source}
-  chip={n > 0 ? `${fmtVal(maxVal)} peak` : undefined}
->
+<VizCard prefix="px-spiral" howToRead={howToRead} caption={caption} source={source}>
   <div
     class="px-spiral__box"
     data-spr-box
@@ -190,71 +133,59 @@ const longestReadout = monthTable
     data-spr-rest={restReadout}
     data-spr-last={String(lastYear)}
   >
-    <svg
-      class="px-spiral__svg"
-      viewBox={`${-PAD} ${-PAD} ${VB} ${VB}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={caption ? `Climate spiral: ${caption}, ${firstYear}–${lastYear}` : `Climate spiral, ${firstYear}–${lastYear}`}
-    >
-      {/* reference rings */}
-      <g class="px-spiral__rings">
-        {rings.map((r) => (
-          <circle cx={cx} cy={cy} r={r.toFixed(1)} class="px-spiral__ring" />
-        ))}
-      </g>
+    <div class="px-spiral__scene" data-build-scene>
+      {peak && <FigHead value={peak.value.toFixed(2)} label={headLabel} n={4} />}
+      <div class="px-spiral__plot">
+        <svg
+          class="px-spiral__fig"
+          viewBox={`${-PAD} ${-PAD} ${VB} ${VB}`}
+          role="img"
+          aria-label={`Climate spiral, ${firstYear} to ${lastYear}: the highest month ${peak ? `${MONTH_LBL[peak.month - 1]} ${peak.year}, ${fmtVal(maxVal)}` : ''}${baseline ? `, against the ${baseline}` : ''}.`}
+        >
+          <g class="px-spiral__grid" data-build="1">
+            {monthLabels.map((l) => <line x1={cx} y1={cy} x2={l.lx.toFixed(1)} y2={l.ly.toFixed(1)} />)}
+          </g>
+          {rings.map((v, k) => (
+            <g class="px-spiral__ring" data-cue={`ring${k + 1}`}>
+              <circle cx={cx} cy={cy} r={radiusFor(v).toFixed(1)} data-build="1" />
+              <text x={(cx + radiusFor(v) * 0.707 + 3).toFixed(1)} y={(cy - radiusFor(v) * 0.707 - 4).toFixed(1)} style={SANS} data-build="3" data-build-kind="rise">{fmt(v, 2)}{unit ? ` ${unit}` : ''}</text>
+            </g>
+          ))}
+          {monthLabels.map((l) => (
+            <text class="px-spiral__m" data-cue={l.id} x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor="middle" style={SANS} data-build="1">{l.m}</text>
+          ))}
 
-      {/* month labels (anchored per quadrant so they hug the rim, not the spiral) */}
-      <g class="px-spiral__months">
-        {monthLabels.map((l) => (
-          <text x={l.x.toFixed(1)} y={l.y.toFixed(1)} text-anchor={l.anchor} dominant-baseline={l.base}>{l.m}</text>
-        ))}
-      </g>
+          {/* the spiral: flat siblings, so the scrub dims the future with one class */}
+          <g class="px-spiral__path">
+            {segments.map((s) => (
+              <path class="px-spiral__seg" data-spr-seg={s.i} data-cue={s.year} d={s.d} style={`stroke:${tone(s.year)}`} data-build="2" data-build-kind="draw" />
+            ))}
+          </g>
 
-      {/* the spiral, coloured segment by segment. Flat siblings on purpose:
-          the scrub dims the future with one sibling-combinator rule, so the
-          island moves a single class instead of walking the whole series. */}
-      <g class="px-spiral__path">
-        {segments.map((s) => (
-          <path
-            class="px-spiral__seg"
-            data-spr-seg={s.i}
-            d={s.d}
-            style={`stroke:${s.color}; --len:${s.len}; --d:${(s.i * stepDelay).toFixed(0)}ms`}
-          />
-        ))}
-      </g>
+          {peak && (
+            <circle class="px-spiral__peak" data-cue="peak" cx={xy[peakI].x.toFixed(1)} cy={xy[peakI].y.toFixed(1)} r="5" data-build="3" data-build-kind="drop" />
+          )}
+          <circle class="px-spiral__cursor" data-spr-mark cx={cx} cy={cy} r="5" />
+          <text class="px-spiral__yr" data-spr-year x={cx} y={cy + 6} text-anchor="middle" style={SANS}>{lastYear}</text>
+        </svg>
+        <CueLayer w={VB} h={VB} x0={-PAD} y0={-PAD} tags={tags} />
+      </div>
 
-      {/* where the scrub is standing on the spiral */}
-      <circle class="px-spiral__cursor" data-spr-mark cx={cx} cy={cy} r="5" />
-
-      {/* center span readout */}
-      <text class="px-spiral__yr px-spiral__yr--lo" x={cx} y={cy - 8} text-anchor="middle">{firstYear}</text>
-      <text class="px-spiral__yr px-spiral__yr--hi" data-spr-year x={cx} y={cy + 14} text-anchor="middle">{lastYear}</text>
-    </svg>
-
-    <div class="px-spiral__scale">
-      <span>Cooler</span>
-      <span class="px-spiral__grad"></span>
-      <span>Warmer</span>
-      {baseline && <span class="px-spiral__base">Baseline · {baseline}</span>}
+      <div class="px-spiral__key">
+        {years.length <= 6
+          ? years.map((y) => <span><i style={`background:${tone(y)}`}></i>{y}</span>)
+          : <span class="px-spiral__ramp">{firstYear}<i style={`background:linear-gradient(90deg, ${tone(years[0])}, ${tone(years[years.length - 1])})`}></i>{lastYear}</span>}
+        {baseline && <p class="px-spiral__base">Against the {baseline}</p>}
+      </div>
     </div>
 
-    {/* JS-only control. Ships hidden; the island unhides it only once the
-        payload has parsed, so a bad payload degrades to the static spiral. */}
+    {/* JS-only control. Ships hidden; the island unhides it once the payload
+        has parsed, so a bad payload degrades to the static spiral. */}
     {n > 1 && (
       <div class="px-spiral__scrub px-inst__controls" hidden data-spr-scrub>
         <label class="px-spiral__scrub-lab">
-          <span>Month — drag to wind the spiral</span>
-          <input
-            class="px-spiral__range px-inst__drag"
-            type="range"
-            min="0"
-            max={n - 1}
-            step="1"
-            value={n - 1}
-            data-spr-range
-          />
+          <span>Month: drag to wind the spiral</span>
+          <input class="px-spiral__range px-inst__drag" type="range" min="0" max={n - 1} step="1" value={n - 1} data-spr-range />
         </label>
       </div>
     )}
@@ -322,89 +253,39 @@ const longestReadout = monthTable
 
 <style>
   .px-spiral__box { width: 100%; }
-  /* max-width tracks the padded viewBox (SIZE 460 + 2×30 pad) so the spiral
-     keeps its drawn size while the label headroom stays inside the box. */
-  .px-spiral__svg { width: 100%; height: auto; max-width: 520px; margin: 0 auto; display: block; overflow: visible; }
-
-  .px-spiral__ring { fill: none; stroke: var(--rule); stroke-width: 1; opacity: 0.7; }
-
-  .px-spiral__months text {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    fill: var(--muted);
-    /* month labels sit over the reference rings — paper halo keeps them legible */
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
-    stroke-linejoin: round;
+  .px-spiral__plot { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
+  .px-spiral__fig { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-spiral__grid line { stroke: var(--hair); stroke-width: 1; }
+  .px-spiral__ring circle { fill: none; stroke: var(--ink-2, var(--ink-soft)); stroke-width: 1; stroke-dasharray: 3 4; }
+  .px-spiral__ring text {
+    font-size: 14.5px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums;
+    paint-order: stroke; stroke: var(--paper-2); stroke-width: 4px; stroke-linejoin: round;
   }
-
-  .px-spiral__seg {
-    fill: none;
-    stroke-width: 2.4;
-    stroke-linecap: round;
-    /* base/resting = fully drawn (no-JS safe) */
-    stroke-dasharray: var(--len);
-    stroke-dashoffset: 0;
-    /* the build owns stroke-dashoffset and ONLY that. The scrub owns opacity,
-       which is deliberately not transitioned — a scrub must track the finger. */
-    transition: stroke-dashoffset 240ms linear var(--d);
-  }
-
-  /* the un-wound remainder of the record. One marked segment dims every
-     segment after it, so the island never walks the series. */
+  .px-spiral__m { font-size: 14.5px; font-weight: 600; fill: var(--ink-2, var(--ink-soft)); }
+  .px-spiral__seg { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+  /* the un-wound remainder of the record: one marked segment dims every
+     segment after it, so the island never walks the series */
   .px-spiral__seg.is-cut,
   .px-spiral__seg.is-cut ~ .px-spiral__seg { opacity: 0.13; }
-
-  .px-spiral__cursor {
-    display: none;
-    fill: var(--ink);
-    stroke: var(--paper);
-    stroke-width: 2;
-  }
+  .px-spiral__peak { fill: var(--paper-2); stroke: var(--ink); stroke-width: 2; }
+  .px-spiral__cursor { display: none; fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
   .px-spiral__box[data-scrubbing='true'] .px-spiral__cursor { display: block; }
-
-  .px-spiral__yr {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    fill: var(--ink);
-  }
-  .px-spiral__yr--lo { font-size: 14px; fill: var(--muted); }
-  .px-spiral__yr--hi { font-size: 20px; fill: var(--ink); }
-
-  .px-spiral__scale {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-top: 16px;
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .px-spiral__grad {
-    width: 120px; height: 12px; border-radius: 6px;
-    background: linear-gradient(90deg, #2166ac, #67a9cf, #d1e5f0, #fddbc7, #ef8a62, #c0392b);
-  }
-  .px-spiral__base { margin-left: auto; }
-
+  .px-spiral__yr { font-size: 16px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-spiral__key { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 16px; margin-top: 12px; font-family: var(--font-ui); font-size: 13px; color: var(--ink-2, var(--ink-soft)); font-variant-numeric: tabular-nums; }
+  .px-spiral__key span { display: inline-flex; align-items: center; gap: 7px; }
+  .px-spiral__key i { display: inline-block; width: 22px; height: 3px; border-radius: 2px; }
+  .px-spiral__ramp i { width: 80px; height: 8px; }
+  .px-spiral__base { flex-basis: 100%; margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
   .px-spiral__scrub[hidden] { display: none; }
+  .px-spiral__scrub { margin-top: 12px; }
   .px-spiral__scrub-lab {
     display: flex; flex-direction: column; gap: 8px; width: 100%;
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
   }
-  .px-spiral__range {
-    width: 100%;
-    /* the CANON touch floor applies to the whole control, not just the thumb */
-    min-height: 44px;
-    accent-color: var(--accent-deep, var(--accent));
-    cursor: pointer;
-  }
+  .px-spiral__range { width: 100%; min-height: 44px; accent-color: var(--accent-deep, var(--accent)); cursor: pointer; }
   .px-spiral__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
+  .px-spiral__readout { font-family: var(--font-ui); font-size: 13px; color: var(--ink-2, var(--ink-soft)); font-variant-numeric: tabular-nums; }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>

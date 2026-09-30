@@ -1,40 +1,42 @@
 ---
 /**
- * XgRace (sports) — a cumulative expected-goals "race", with a MINUTE SCRUB.
+ * XgRace (sports) — a cumulative expected-goals race, with a MINUTE SCRUB
+ * (Lens Phase 6, 2026-09-30; the board is Lib-xg-race).
  *
- * B1 retrofit (docs/REVAMP-PLAN.md §4 Phase 6.2). Each shot event adds to its
- * team's running xG total; the result is two step-lines climbing across the
- * match minutes (home in the accent, away in muted ink). The finished chart
- * only ever answered "who ended up with the better chances". Dragging the
- * minute scrub replays the match: the lines ahead of the playhead drop back to
- * a ghost, and the readout states who was ahead AT that minute — which is the
- * question a race chart is actually asking.
+ * Each shot adds its xG to its team's running total, so two step-lines climb
+ * across the match (home in the desk mark, away in ink-2), each shot a dot at
+ * the top of its step. The home total is set at 48 over the chart, the away
+ * total beside it at 20. Dragging the minute scrub replays the match: the
+ * lines ahead of the playhead drop back to a ghost and the readout states who
+ * was ahead AT that minute.
  *
- * HOW IT WORKS, AND WHY THIS WAY. A per-minute table of pixel positions AND
- * values is computed in frontmatter and inlined as JSON. No scale math ships
- * to the client: the island reads row `m` and assigns coordinates. Same
- * decision as ScalingPlot's log/linear toggle — the projection stays a
- * build-time concern, and there is exactly one place a value can come from.
+ * The scrub table (pixel positions and values per minute) is computed here and
+ * inlined as JSON; no scale math ships to the client. The ghosts sit under the
+ * real lines and are hidden by them at rest, so the no-JS still IS the
+ * finished chart. The scrub ships `hidden` and its island unhides it once the
+ * payload parses; that island is the kind's control and stays.
  *
- * The "future" of the race is de-emphasised, never removed: both step paths
- * are drawn twice — a dim ghost underneath, and the real line clipped to the
- * scrubbed region on top. At rest the clip covers the whole plot, so the ghost
- * is completely hidden behind the real line and the chart is byte-for-byte the
- * finished one. That is what makes the no-JS state the finished answer rather
- * than an empty shell (the Family D contract in src/components/AGENTS.md §10).
+ * THE BUILD sits on the plot (`.px-xgr__plot`, the numbers and the SVG), not
+ * on the card: the card holds the html.js-gated scrub, which changes the
+ * card's height, and the render gate compares a scene's size with and without
+ * JS (LENS §6.4). So the root is a plain `.px-viz` here, not core/VizCard.
  *
- * No-JS / reduced-motion: both paths paint fully drawn, the scrubber never
- * renders (it ships `hidden` and the island unhides it only after the payload
- * parses, so a broken payload degrades to the static chart rather than a dead
- * control), and the legend states each team's final xG textually.
- * Reduced-motion keeps the scrub working — it is comprehension, not
- * decoration — and only drops the tween.
+ * Drawn for the panel: a 452-unit viewBox with 12-unit labels in the literal
+ * Instrument Sans stack. Below 1024px the SVG keeps that width and the card
+ * scrolls sideways (the standing rule in dataviz-v2.css), so every label
+ * prints at 12px.
  *
- * data: { events[]{ minute, team, xg }, home?, away?, howToRead?, caption?,
- *         source?, annotations? }
+ * Cue anchors:
+ *   home, away   each side's line and its total
+ *   half         the half-time rule
+ *   note1..      the annotations, in authored order
+ *   1..n         each shot, in authored order (the dot on its step)
+ *
+ * The build (LENS §6.4): 1 the grid, the axes and the half-time rule, 2 the
+ * lines draw, 3 the shot dots drop and the notes rise, 4 the totals count.
+ *
+ * data: { events[]{ minute, team, xg }, home?, away?, annotations? }
  */
-import VizCard from '../../core/VizCard.astro';
-
 type Side = 'home' | 'away';
 interface Ev { minute: number; team: Side; xg: number; }
 interface Annotation {
@@ -52,32 +54,21 @@ interface Props {
   source?: string | { label: string; date?: string };
   annotations?: Annotation[];
 }
-const {
-  events = [],
-  home = 'Home',
-  away = 'Away',
-  howToRead,
-  caption,
-  source,
-  annotations = [],
-} = Astro.props;
+const { events = [], home = 'Home', away = 'Away', annotations = [] } = Astro.props;
 
 // ── viewBox + plot box ──────────────────────────────────────────────────────
-const W = 720, H = 320;
-const padL = 44, padR = 64, padT = 20, padB = 38;
-const plotL = padL, plotR = W - padR, plotT = padT, plotB = H - padB;
+const W = 452, H = 272;
+const plotL = 30, plotR = W - 14, plotT = 16, plotB = H - 30;
 const plotW = plotR - plotL, plotH = plotB - plotT;
+const f = (n: number) => n.toFixed(1);
 
-const evs = (events || []).filter((e) => e && Number.isFinite(e.minute) && Number.isFinite(e.xg));
+const evs = (events || [])
+  .map((e, i) => ({ ...e, i }))
+  .filter((e) => e && Number.isFinite(e.minute) && Number.isFinite(e.xg));
 const lastMin = Math.max(90, ...evs.map((e) => e.minute || 0));
-const maxMin = Math.ceil(lastMin / 5) * 5;     // round axis up to a clean 5'
-
-// Event minutes are clamped into the axis once, here, so the step series and
-// the per-minute table can never disagree about when a shot happened.
+const maxMin = Math.ceil(lastMin / 5) * 5;
 const atMin = (e: Ev) => Math.max(0, Math.min(maxMin, e.minute));
 
-// Build a cumulative step series for one side: start at (0,0), and after each
-// event jump to the new running total. Points are [minute, cumXg].
 function series(side: Side): [number, number][] {
   const pts: [number, number][] = [[0, 0]];
   let acc = 0;
@@ -88,7 +79,6 @@ function series(side: Side): [number, number][] {
       acc += Math.max(0, e.xg || 0);
       pts.push([atMin(e), acc]);
     });
-  // extend the final value flat to the end of the match
   if (pts[pts.length - 1][0] < maxMin) pts.push([maxMin, acc]);
   return pts;
 }
@@ -96,303 +86,172 @@ const homeSeries = series('home');
 const awaySeries = series('away');
 const homeFinal = homeSeries[homeSeries.length - 1][1];
 const awayFinal = awaySeries[awaySeries.length - 1][1];
-const maxXg = Math.max(0.5, homeFinal, awayFinal);
+const maxXg = Math.max(1, Math.ceil(Math.max(homeFinal, awayFinal)));
 
 const px = (m: number) => plotL + (m / maxMin) * plotW;
 const py = (xg: number) => plotB - (xg / maxXg) * plotH;
 
-// Step path: horizontal to the next minute, then vertical to the new total.
 function stepPath(pts: [number, number][]): string {
-  if (!pts.length) return '';
-  let d = `M ${px(pts[0][0]).toFixed(1)} ${py(pts[0][1]).toFixed(1)}`;
+  let d = `M ${f(px(pts[0][0]))} ${f(py(pts[0][1]))}`;
   for (let k = 1; k < pts.length; k++) {
     const [m, v] = pts[k];
-    const prevV = pts[k - 1][1];
-    d += ` H ${px(m).toFixed(1)}`;
-    if (v !== prevV) d += ` V ${py(v).toFixed(1)}`;
+    d += ` H ${f(px(m))}`;
+    if (v !== pts[k - 1][1]) d += ` V ${f(py(v))}`;
   }
   return d;
 }
 const homePath = stepPath(homeSeries);
 const awayPath = stepPath(awaySeries);
 
-/* ── the per-minute table (the scrub payload) ─────────────────────────────
-   One row per minute: [playheadX, homeMarkerY, awayMarkerY, homeXg, awayXg].
-   Everything the island needs to paint a scrubbed state, already projected.
-   Values are the cumulative totals up to and including that minute, summed
-   from the same clamped event minutes the step series uses. */
+/* The scrub payload, one row per minute:
+   [playheadX, homeMarkerY, awayMarkerY, homeXg, awayXg]. */
 const cumAt = (side: Side, m: number) =>
-  evs
-    .filter((e) => e.team === side && atMin(e) <= m)
-    .reduce((a, e) => a + Math.max(0, e.xg || 0), 0);
-
+  evs.filter((e) => e.team === side && atMin(e) <= m).reduce((a, e) => a + Math.max(0, e.xg || 0), 0);
 const minuteTable = Array.from({ length: maxMin + 1 }, (_, m) => {
   const h = cumAt('home', m);
   const a = cumAt('away', m);
-  return [
-    +px(m).toFixed(1),
-    +py(h).toFixed(1),
-    +py(a).toFixed(1),
-    +h.toFixed(2),
-    +a.toFixed(2),
-  ];
+  return [+f(px(m)), +f(py(h)), +f(py(a)), +h.toFixed(2), +a.toFixed(2)];
 });
 
-// y-axis ticks (xG) + x-axis ticks (minutes)
-const yTicks = [0, 0.5, 1, 1.5, 2, 2.5, 3].filter((t) => t <= maxXg + 0.001);
+/* Each shot as a dot at the top of its step. */
+const shotDots = evs.map((e) => {
+  const m = atMin(e);
+  return { i: e.i, team: e.team, x: px(m), y: py(cumAt(e.team, m) - (evs.filter((o) => o.team === e.team && atMin(o) === m && o.i > e.i).reduce((a, o) => a + Math.max(0, o.xg || 0), 0))) };
+});
+
+const yTicks = Array.from({ length: maxXg + 1 }, (_, i) => i);
 const xTicks = Array.from({ length: Math.floor(maxMin / 15) + 1 }, (_, i) => i * 15);
 const htX = px(45);
-
 const homeEnd = { x: px(homeSeries[homeSeries.length - 1][0]), y: py(homeFinal) };
 const awayEnd = { x: px(awaySeries[awaySeries.length - 1][0]), y: py(awayFinal) };
 
-// End-value labels share the far-right gutter; when the two lines finish at a
-// similar xG their labels (≈14px tall) would overlap. Split them vertically
-// when too close — push the upper label up, the lower one down — and keep both
-// inside the plot band so neither clips the top/bottom edge. The marker circles
-// stay on their true y; only the text y is nudged.
-const LBL_MIN_GAP = 15;
-let homeLblY = homeEnd.y;
-let awayLblY = awayEnd.y;
-if (Math.abs(homeLblY - awayLblY) < LBL_MIN_GAP) {
-  const c = (homeLblY + awayLblY) / 2;
-  if (homeFinal >= awayFinal) {
-    homeLblY = c - LBL_MIN_GAP / 2;
-    awayLblY = c + LBL_MIN_GAP / 2;
-  } else {
-    awayLblY = c - LBL_MIN_GAP / 2;
-    homeLblY = c + LBL_MIN_GAP / 2;
-  }
-}
-// keep labels off the plot's top/bottom edges (text baseline padding)
-const clampLblY = (y: number) => Math.max(plotT + 6, Math.min(plotB - 4, y));
-homeLblY = clampLblY(homeLblY);
-awayLblY = clampLblY(awayLblY);
-
-// A clipPath needs an id, and two of these can share a page (a showcase issue
-// is a catalog). Derive it from the payload so it is unique per chart and
-// stable across builds — a random suffix would churn the diff every rebuild.
-const uid =
-  'xgr' +
-  Math.abs(
-    [...`${home}|${away}|${evs.length}|${maxMin}`].reduce(
-      (a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0,
-      0,
-    ),
-  ).toString(36);
-
-const restReadout = `Full time · ${home} ${homeFinal.toFixed(2)} xG — ${away} ${awayFinal.toFixed(2)} xG`;
-
-/* The longest string this readout can ever show. Rendered as the hidden twin
-   that `px-inst__readout--sized` stacks behind the live line, so the box
-   reserves the true height and cannot reflow under a dragging finger — see the
-   rule in src/styles/dataviz-v2.css for why min-height alone cannot do it. */
+const uid = 'xgr' + Math.abs([...`${home}|${away}|${evs.length}|${maxMin}`].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)).toString(36);
+const restReadout = `Full time · ${home} ${homeFinal.toFixed(2)} xG, ${away} ${awayFinal.toFixed(2)} xG`;
 const readoutFor = (m: number, hv: number, av: number) => {
-  const lead =
-    hv > av ? `${home} ahead by ${(hv - av).toFixed(2)}`
-      : av > hv ? `${away} ahead by ${(av - hv).toFixed(2)}`
-        : 'level';
-  return `${m}' · ${home} ${hv.toFixed(2)} xG — ${away} ${av.toFixed(2)} xG · ${lead}`;
+  const lead = hv > av ? `${home} ahead by ${(hv - av).toFixed(2)}` : av > hv ? `${away} ahead by ${(av - hv).toFixed(2)}` : 'level';
+  return `${m}' · ${home} ${hv.toFixed(2)} xG, ${away} ${av.toFixed(2)} xG · ${lead}`;
 };
-const longestReadout = minuteTable
-  .map((r, m) => readoutFor(m, r[3], r[4]))
-  .concat(restReadout)
-  .reduce((a, b) => (b.length > a.length ? b : a), '');
+const longestReadout = minuteTable.map((r, m) => readoutFor(m, r[3], r[4])).concat(restReadout).reduce((a, b) => (b.length > a.length ? b : a), '');
 
 /* ── the annotation layer (docs/design/blueprints/_ANNOTATIONS.md) ──────────
-   `at` is the minute; anything outside 0…maxMin is a silent no-op. `series`
-   takes 'home' / 'away' (or either side's name) and DEFAULTS to whichever line
-   is higher at that minute — the one the reader's eye is on.
-
-   It attaches to the FULL-TIME line, off the same per-minute table the scrub
-   reads, and sits outside the clipped group: the note states a fact about the
-   match, so it stays put whatever the playhead is doing. No new JS, no motion
-   of its own, and it paints in the no-JS still like every other mark. */
-const A_FS = 12;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
-const A_LH = 15;     // leading between the two wrapped lines
-const A_LEAD = 16;   // leader length (spec §3: 14–22)
-const A_GAP = 5;     // clearance between the marker dot and the leader
-// bounds = the plot box: the far-right gutter belongs to the end-value labels
-const A_L = plotL, A_R = plotR, A_T = plotT, A_B = plotB;
-const aEst = (s: string) => 0.52 * A_FS * s.length;
-// Two lines once the estimate passes 40% of the viewBox, split at the nearest
-// space past the midpoint.
+   `at` is the minute; `series` 'home' / 'away' (or a side's name), default
+   the higher line. Wrapped to a 170-unit measure, placed above or below its
+   dot (the `side` hint flips when it would leave the plot), and mirrored at
+   the plot's edges. */
+const A_FS = 13, A_LH = 16, A_LEAD = 14, A_GAP = 5, A_MAX = 170;
+const aEst = (s: string) => 0.5 * A_FS * s.length;
 const aWrap = (s: string): string[] => {
-  if (aEst(s) <= W * 0.4) return [s];
-  const past = s.indexOf(' ', Math.floor(s.length / 2));
-  const cut = past >= 0 ? past : s.lastIndexOf(' ');
-  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+  const out: string[] = [];
+  for (const w of s.split(/\s+/)) {
+    const last = out[out.length - 1];
+    if (last && aEst(last + ' ' + w) <= A_MAX) out[out.length - 1] = last + ' ' + w;
+    else out.push(w);
+  }
+  return out;
 };
-
-interface PlacedAnnot {
-  lines: string[]; cx: number; cy: number;
-  x1: number; y1: number; x2: number; y2: number;
-  tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
-}
-const annots: PlacedAnnot[] = [];
-for (const a of annotations) {
-  if (!a || !a.text) continue;
+const annots = (annotations ?? []).flatMap((a, k) => {
+  if (!a || !a.text) return [];
   const m = Math.round(Number(a.at));
-  if (!Number.isFinite(m) || m < 0 || m > maxMin) continue;
+  if (!Number.isFinite(m) || m < 0 || m > maxMin) return [];
   const row = minuteTable[m];
-  if (!row) continue;
   const s = (a.series || '').trim();
-  const team: Side =
-    /^home$/i.test(s) || (!!s && s === home) ? 'home'
-      : /^away$/i.test(s) || (!!s && s === away) ? 'away'
-        : row[3] >= row[4] ? 'home' : 'away';     // default: the higher line
+  const team: Side = /^home$/i.test(s) || (!!s && s === home) ? 'home' : /^away$/i.test(s) || (!!s && s === away) ? 'away' : row[3] >= row[4] ? 'home' : 'away';
   const cx = row[0];
   const cy = team === 'home' ? row[1] : row[2];
   const lines = aWrap(a.text);
   const wEst = Math.max(...lines.map(aEst));
   const blockH = (lines.length - 1) * A_LH;
-
-  // `side` is a hint (spec §1) — flip it when the callout would leave the plot.
-  let side: 'above' | 'below' | 'left' | 'right' = a.side || 'above';
-  if (side === 'above' && cy - A_GAP - A_LEAD - blockH - A_FS < A_T) side = 'below';
-  else if (side === 'below' && cy + A_GAP + A_LEAD + blockH + A_FS > A_B) side = 'above';
-
-  let x1 = cx, y1 = cy, x2 = cx, y2 = cy, tx = cx, ty = cy;
-  let anchor: 'start' | 'middle' | 'end' = 'middle';
-  if (side === 'left' || side === 'right') {
-    // mirror the leader rather than run the text off the edge
-    let dir = side === 'right' ? 1 : -1;
-    if (dir > 0 && cx + A_GAP + A_LEAD + 3 + wEst > A_R) dir = -1;
-    else if (dir < 0 && cx - A_GAP - A_LEAD - 3 - wEst < A_L) dir = 1;
-    x1 = cx + dir * A_GAP;
-    x2 = cx + dir * (A_GAP + A_LEAD);
-    tx = x2 + dir * 3;
-    anchor = dir > 0 ? 'start' : 'end';
-    ty = cy + A_FS * 0.34 - blockH / 2;
-  } else {
-    const dir = side === 'above' ? -1 : 1;
-    y1 = cy + dir * A_GAP;
-    y2 = cy + dir * (A_GAP + A_LEAD);
-    ty = side === 'above' ? y2 - 4 - blockH : y2 + 4 + A_FS;
-    if (cx + wEst / 2 > A_R) { anchor = 'end'; tx = Math.min(cx, A_R); }
-    else if (cx - wEst / 2 < A_L) { anchor = 'start'; tx = Math.max(cx, A_L); }
-  }
-  annots.push({ lines, cx, cy, x1, y1, x2, y2, tx, ty, anchor });
-}
+  // beside the dot, on the side with room, vertically centred on it
+  const dir = cx + A_GAP + A_LEAD + 4 + wEst <= plotR ? 1 : -1;
+  const x2 = cx + dir * (A_GAP + A_LEAD);
+  const ty = Math.max(plotT + A_FS, Math.min(plotB - blockH - 4, cy + 4 - blockH / 2 + (a.side === 'below' ? A_LH : 0)));
+  return [{ id: `note${k + 1}`, lines, cx, cy, x1: cx + dir * A_GAP, x2, tx: x2 + dir * 4, ty, anchor: dir > 0 ? 'start' : 'end' }];
+});
+const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 ---
 
-<VizCard
-  prefix="px-xgr"
-  howToRead={howToRead}
-  caption={caption}
-  source={source}
-  chip="xG race"
->
-  <div
-    class="px-xgr__box"
-    data-xgr-box
-    data-xgr-home={home}
-    data-xgr-away={away}
-    data-xgr-max={maxMin}
-    data-xgr-rest={restReadout}
-  >
-    <svg
-      class="px-xgr__svg"
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={`Cumulative xG race: ${home} ${homeFinal.toFixed(2)} vs ${away} ${awayFinal.toFixed(2)}`}
-    >
-      <defs>
-        {/* width is the scrub: the island narrows it, and at rest it covers the
-            whole plot so the real lines fully hide the ghosts beneath them */}
-        <clipPath id={uid}>
-          <rect
-            class="px-xgr__clip"
-            data-xgr-clip
-            x={plotL} y={plotT - 8}
-            width={plotW} height={plotH + 16}
-          />
-        </clipPath>
-      </defs>
+<div class="px-viz px-xgr">
+  <div class="px-xgr__box" data-xgr-box data-xgr-home={home} data-xgr-away={away} data-xgr-max={maxMin} data-xgr-rest={restReadout}>
+    <div class="px-xgr__plot" data-build-scene>
+      <div class="px-xgr__head">
+        <div class="px-xgr__n" data-cue="home">
+          <span class="px-xgr__big" data-build="4" data-build-kind="counter" data-to={homeFinal.toFixed(2)} data-format="1dp">{homeFinal.toFixed(2)}</span>
+          <span class="px-xgr__nl"><span class="px-cue-tag" data-cue-tag="home" hidden></span>{home} xG</span>
+        </div>
+        <div class="px-xgr__n" data-cue="away">
+          <span class="px-xgr__sm" data-build="4">{awayFinal.toFixed(2)}</span>
+          <span class="px-xgr__nl"><span class="px-cue-tag" data-cue-tag="away" hidden></span>{away} xG</span>
+        </div>
+      </div>
 
-      {/* y gridlines + labels */}
-      {yTicks.map((t) => (
-        <g>
-          <line class="px-xgr__grid" x1={plotL} y1={py(t).toFixed(1)} x2={plotR} y2={py(t).toFixed(1)} />
-          <text class="px-xgr__ax" x={plotL - 8} y={py(t).toFixed(1)} text-anchor="end" dominant-baseline="middle">{t.toFixed(1)}</text>
+      <svg class="px-xgr__svg" viewBox={`0 0 ${W} ${H}`} role="img"
+        aria-label={`Cumulative xG race: ${home} ${homeFinal.toFixed(2)}, ${away} ${awayFinal.toFixed(2)}`}>
+        <defs>
+          <clipPath id={uid}>
+            <rect class="px-xgr__clip" data-xgr-clip x={plotL} y={plotT - 8} width={plotW} height={plotH + 16} />
+          </clipPath>
+        </defs>
+        <g data-build="1">
+          {yTicks.map((t) => (
+            <>
+              <line x1={plotL} y1={f(py(t))} x2={plotR} y2={f(py(t))} stroke="var(--hair)" stroke-width="1" />
+              <text class="px-xgr__ax" x={plotL - 8} y={f(py(t) + 4)} text-anchor="end" style={UI}>{t}</text>
+            </>
+          ))}
+          {xTicks.filter((m) => m !== 45).map((m) => (
+            <text class="px-xgr__ax" x={f(px(m))} y={plotB + 20} text-anchor={m === 0 ? 'start' : m === maxMin ? 'end' : 'middle'} style={UI}>{m}'</text>
+          ))}
         </g>
-      ))}
-
-      {/* x ticks (minutes) */}
-      {xTicks.map((m) => (
-        <text class="px-xgr__ax" x={px(m).toFixed(1)} y={plotB + 18} text-anchor="middle">{m}'</text>
-      ))}
-
-      {/* half-time line */}
-      <line class="px-xgr__ht" x1={htX.toFixed(1)} y1={plotT} x2={htX.toFixed(1)} y2={plotB} />
-      <text class="px-xgr__ht-lbl" x={htX.toFixed(1)} y={plotT - 4} text-anchor="middle">HT</text>
-
-      {/* ghost step lines — the whole match, dimmed. Only ever seen where the
-          clipped real line above them stops. */}
-      <path class="px-xgr__ghost px-xgr__ghost--away" d={awayPath} />
-      <path class="px-xgr__ghost px-xgr__ghost--home" d={homePath} />
-
-      {/* step lines — clipped to the scrubbed region */}
-      <g clip-path={`url(#${uid})`}>
-        <path class="px-xgr__line px-xgr__line--away" d={awayPath} pathLength="1" />
-        <path class="px-xgr__line px-xgr__line--home" d={homePath} pathLength="1" />
-      </g>
-
-      {/* the playhead + the two markers reading off it — shown only while the
-          scrub is off its resting position */}
-      <g class="px-xgr__cursor" data-xgr-cursor>
-        <line
-          class="px-xgr__play" data-xgr-play
-          x1={plotR} y1={plotT} x2={plotR} y2={plotB}
-        />
-        <circle class="px-xgr__mark px-xgr__mark--away" data-xgr-mark-away cx={plotR} cy={awayEnd.y.toFixed(1)} r="4" />
-        <circle class="px-xgr__mark px-xgr__mark--home" data-xgr-mark-home cx={plotR} cy={homeEnd.y.toFixed(1)} r="4" />
-      </g>
-
-      {/* end-value labels */}
-      <g class="px-xgr__end px-xgr__end--away">
-        <circle cx={awayEnd.x.toFixed(1)} cy={awayEnd.y.toFixed(1)} r="3.5" />
-        <text x={(awayEnd.x + 8).toFixed(1)} y={awayLblY.toFixed(1)} dominant-baseline="middle">{awayFinal.toFixed(2)}</text>
-      </g>
-      <g class="px-xgr__end px-xgr__end--home">
-        <circle cx={homeEnd.x.toFixed(1)} cy={homeEnd.y.toFixed(1)} r="3.5" />
-        <text x={(homeEnd.x + 8).toFixed(1)} y={homeLblY.toFixed(1)} dominant-baseline="middle">{homeFinal.toFixed(2)}</text>
-      </g>
-
-      {/* annotations — outside the scrub clip and unaffected by the playhead:
-          the note is a fact about the match, not about where the drag stopped */}
-      {annots.length > 0 && annots.map((a) => (
-        <g class="px-xgr__annot">
-          <circle class="px-xgr__annot-dot" cx={a.cx.toFixed(1)} cy={a.cy.toFixed(1)} r="3" />
-          <line class="px-xgr__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
-          <text
-            class="px-xgr__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-            style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
-          >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+        <g data-cue="half" data-build="1">
+          <line x1={f(htX)} y1={plotT} x2={f(htX)} y2={plotB} stroke="var(--hair-2)" stroke-width="1" stroke-dasharray="3 3" />
+          <text class="px-xgr__ax" x={f(htX)} y={plotB + 20} text-anchor="middle" style={UI}>Half-time</text>
+          <foreignObject x={f(htX - 11)} y={plotT - 4} width="22" height="22"><span class="px-cue-tag" data-cue-tag="half" hidden></span></foreignObject>
         </g>
-      ))}
-    </svg>
 
-    <div class="px-xgr__legend">
-      <span class="px-xgr__key px-xgr__key--home"><i></i>{home} · {homeFinal.toFixed(2)} xG</span>
-      <span class="px-xgr__key px-xgr__key--away"><i></i>{away} · {awayFinal.toFixed(2)} xG</span>
+        <path class="px-xgr__ghost px-xgr__ghost--away" d={awayPath} data-build="2" />
+        <path class="px-xgr__ghost px-xgr__ghost--home" d={homePath} data-build="2" />
+        <g clip-path={`url(#${uid})`}>
+          <path class="px-xgr__line px-xgr__line--away" data-cue="away" d={awayPath} data-build="2" data-build-kind="draw" />
+          <path class="px-xgr__line px-xgr__line--home" data-cue="home" d={homePath} data-build="2" data-build-kind="draw" />
+        </g>
+
+        {shotDots.map((d) => (
+          <g data-cue={d.i + 1}>
+            <circle class={`px-xgr__dot px-xgr__dot--${d.team}`} cx={f(d.x)} cy={f(d.y)} r="3.5" data-build="3" data-build-kind="drop" />
+            <foreignObject x={f(d.x + 5)} y={f(d.y + 3)} width="22" height="22"><span class="px-cue-tag" data-cue-tag={d.i + 1} hidden></span></foreignObject>
+          </g>
+        ))}
+
+        {annots.map((a) => (
+          <g class="px-xgr__annot" data-cue={a.id} data-build="3" data-build-kind="rise">
+            <line x1={f(a.x1)} y1={f(a.cy)} x2={f(a.x2)} y2={f(a.cy)} stroke="var(--hair-2)" stroke-width="1" />
+            <text class="px-xgr__annot-t" x={f(a.tx)} y={f(a.ty)} text-anchor={a.anchor}
+              style="font-family:'Newsreader',Georgia,'Times New Roman',serif">{a.lines.map((ln, li) => <tspan x={f(a.tx)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+            <foreignObject x={f(a.anchor === 'start' ? a.tx - 26 : a.tx + 4)} y={f(a.ty - 15)} width="22" height="22"><span class="px-cue-tag" data-cue-tag={a.id} hidden></span></foreignObject>
+          </g>
+        ))}
+
+        {/* the playhead + the two markers reading off it, shown only while the
+            scrub is off its resting position */}
+        <g class="px-xgr__cursor" data-xgr-cursor>
+          <line class="px-xgr__play" data-xgr-play x1={plotR} y1={plotT} x2={plotR} y2={plotB} />
+          <circle class="px-xgr__mark px-xgr__mark--away" data-xgr-mark-away cx={plotR} cy={f(awayEnd.y)} r="4" />
+          <circle class="px-xgr__mark px-xgr__mark--home" data-xgr-mark-home cx={plotR} cy={f(homeEnd.y)} r="4" />
+        </g>
+      </svg>
+
+      <div class="px-xgr__legend" data-build="3">
+        <span class="px-xgr__key px-xgr__key--home"><i></i>{home}, home</span>
+        <span class="px-xgr__key px-xgr__key--away"><i></i>{away}, away</span>
+      </div>
     </div>
 
     {/* JS-only control. Ships hidden; the island unhides it only once the
         payload has parsed, so a bad payload degrades to the static chart. */}
     <div class="px-xgr__scrub px-inst__controls" hidden data-xgr-scrub>
       <label class="px-xgr__scrub-lab">
-        <span>Minute — drag to replay the race</span>
-        <input
-          class="px-xgr__range px-inst__drag"
-          type="range"
-          min="0"
-          max={maxMin}
-          step="1"
-          value={maxMin}
-          data-xgr-range
-        />
+        <span>Minute</span>
+        <input class="px-xgr__range px-inst__drag" type="range" min="0" max={maxMin} step="1" value={maxMin} data-xgr-range />
       </label>
     </div>
 
@@ -403,7 +262,8 @@ for (const a of annotations) {
 
     <script type="application/json" class="px-xgr__data" data-xgr-data set:html={JSON.stringify(minuteTable)} />
   </div>
-</VizCard>
+  {/* No source line and no caption: core/Section.astro prints both. */}
+</div>
 
 <script is:inline>
   (function () {
@@ -413,11 +273,9 @@ for (const a of annotations) {
       var range = box.querySelector('[data-xgr-range]');
       var scrub = box.querySelector('[data-xgr-scrub]');
       if (!raw || !range || !scrub) return;
-
       var table;
       try { table = JSON.parse(raw.textContent); } catch (e) { return; }
       if (!table || !table.length) return;
-
       var clip = box.querySelector('[data-xgr-clip]');
       var play = box.querySelector('[data-xgr-play]');
       var mh = box.querySelector('[data-xgr-mark-home]');
@@ -429,29 +287,20 @@ for (const a of annotations) {
       var rest = box.getAttribute('data-xgr-rest') || '';
       var clipX = parseFloat(clip.getAttribute('x'));
       var clipW = parseFloat(clip.getAttribute('width'));
-
       function paint(m) {
         var row = table[Math.max(0, Math.min(table.length - 1, m))];
         if (!row) return;
         var x = row[0], hy = row[1], ay = row[2], hv = row[3], av = row[4];
         var atRest = m >= maxMin;
-
         box.setAttribute('data-scrubbing', atRest ? 'false' : 'true');
         clip.setAttribute('width', atRest ? clipW : Math.max(0, x - clipX));
         play.setAttribute('x1', x); play.setAttribute('x2', x);
         mh.setAttribute('cx', x); mh.setAttribute('cy', hy);
         ma.setAttribute('cx', x); ma.setAttribute('cy', ay);
-
         if (atRest) { out.textContent = rest; return; }
-        var lead = hv > av
-          ? home + ' ahead by ' + (hv - av).toFixed(2)
-          : av > hv
-            ? away + ' ahead by ' + (av - hv).toFixed(2)
-            : 'level';
-        out.textContent = m + "' · " + home + ' ' + hv.toFixed(2) + ' xG — '
-          + away + ' ' + av.toFixed(2) + ' xG · ' + lead;
+        var lead = hv > av ? home + ' ahead by ' + (hv - av).toFixed(2) : av > hv ? away + ' ahead by ' + (av - hv).toFixed(2) : 'level';
+        out.textContent = m + "' · " + home + ' ' + hv.toFixed(2) + ' xG, ' + away + ' ' + av.toFixed(2) + ' xG · ' + lead;
       }
-
       range.addEventListener('input', function () { paint(parseInt(range.value, 10)); });
       scrub.removeAttribute('hidden');
     });
@@ -460,118 +309,55 @@ for (const a of annotations) {
 
 <style>
   .px-xgr__box { width: 100%; }
-  .px-xgr__svg { width: 100%; height: auto; display: block; overflow: visible; }
-
-  .px-xgr__grid { stroke: var(--rule); stroke-width: 1; }
-  .px-xgr__ax {
-    font-family: var(--font-mono); font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em; fill: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .px-xgr__ht { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
-  .px-xgr__ht-lbl {
-    font-family: var(--font-mono); font-size: 9px;
-    letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
-  }
-
-  /* step lines — base/resting = fully drawn (no-JS safe) */
-  .px-xgr__line {
-    fill: none;
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1500ms var(--ease);
-  }
-  .px-xgr__line--home { stroke: var(--accent); }
-  .px-xgr__line--away { stroke: var(--ink-soft); }
-
-  /* the un-scrubbed remainder of the match. Sits under the real lines and is
-     completely covered by them at rest, so this changes nothing until a drag. */
-  .px-xgr__ghost {
-    fill: none;
-    stroke-width: 2.5;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    opacity: 0.2;
-  }
+  .px-xgr__head { display: flex; align-items: flex-end; gap: 32px; margin-bottom: 12px; }
+  .px-xgr__n { display: flex; flex-direction: column; gap: 8px; }
+  .px-xgr__big, .px-xgr__sm { font-family: var(--font-ui); font-weight: 600; line-height: 0.92; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .px-xgr__big { font-size: 96px; color: var(--accent-deep); }
+  .px-xgr__sm { font-size: 20px; color: var(--ink-2); }
+  .px-xgr__nl { display: inline-flex; align-items: center; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--muted); }
+  .px-xgr__svg { display: block; width: 100%; height: auto; }
+  .px-xgr__svg foreignObject { overflow: visible; }
+  .px-xgr__svg .px-cue-tag { margin: 1px; }
+  .px-xgr__ax { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-xgr__line, .px-xgr__ghost { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .px-xgr__line--home { stroke: var(--accent); stroke-width: 3.5; }
+  .px-xgr__line--away { stroke: var(--ink-2); stroke-width: 2.5; }
+  .px-xgr__ghost { opacity: 0.2; stroke-width: 2.5; }
   .px-xgr__ghost--home { stroke: var(--accent); }
-  .px-xgr__ghost--away { stroke: var(--ink-soft); }
-
-  /* playhead + the markers reading off it */
-  .px-xgr__cursor { display: none; }
-  .px-xgr__box[data-scrubbing='true'] .px-xgr__cursor { display: block; }
-  .px-xgr__play { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 2 3; }
-  .px-xgr__mark { stroke: var(--paper); stroke-width: 1.5; }
-  .px-xgr__mark--home { fill: var(--accent); }
-  .px-xgr__mark--away { fill: var(--ink-soft); }
-
-  /* the finals are still true, but they are not the answer while scrubbing */
-  .px-xgr__box[data-scrubbing='true'] .px-xgr__end { opacity: 0.28; }
-
-  .px-xgr__end circle { fill: currentColor; }
-  .px-xgr__end text {
-    font-family: var(--issue-face, var(--font-display)); font-weight: 700;
-    font-size: 14px; font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-    /* end labels sit in the far-right gutter over the y-gridlines — give the
-       serif figure a paper halo so it reads cleanly off the rules */
-    paint-order: stroke;
-    stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
-  }
-  .px-xgr__end--home { color: var(--accent-deep, var(--accent)); }
-  .px-xgr__end--away { color: var(--ink-soft); }
-
-  /* ── annotations (docs/design/blueprints/_ANNOTATIONS.md) ────────────────
-     The literal font stack is on the element (RD-01b); everything else is
-     here. No transition and no scrub state — it is part of the still. */
-  .px-xgr__annot-dot { fill: var(--accent); }
-  .px-xgr__annot-lead { stroke: var(--rule); stroke-width: 1; }
+  .px-xgr__ghost--away { stroke: var(--ink-2); }
+  .px-xgr__dot { stroke: var(--paper-2); stroke-width: 1.5; }
+  .px-xgr__dot--home { fill: var(--accent-deep); }
+  .px-xgr__dot--away { fill: var(--ink-2); }
   .px-xgr__annot-t {
-    font-size: 12px;
+    font-size: 13px;
     font-style: italic;
     fill: var(--ink);
-    /* paper halo: the note crosses gridlines and both step lines */
     paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
+    stroke: var(--paper-2);
+    stroke-width: 3px;
     stroke-linejoin: round;
   }
-
-  /* end markers rest shown (the Phase 6 build fades them in after the lines) */
-  .px-xgr__end { opacity: 1; transition: opacity var(--t-soft) var(--ease) 1300ms; }
-
-  .px-xgr__legend {
-    display: flex; gap: 24px; flex-wrap: wrap;
-    margin-top: 16px;
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-xgr__key { display: inline-flex; align-items: center; gap: 8px; }
-  .px-xgr__key i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
-  .px-xgr__key--home i { background: var(--accent); }
-  .px-xgr__key--away i { background: var(--ink-soft); }
-
+  .px-xgr__cursor { display: none; }
+  .px-xgr__box[data-scrubbing='true'] .px-xgr__cursor { display: block; }
+  .px-xgr__play { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 3; }
+  .px-xgr__mark { stroke: var(--paper-2); stroke-width: 1.5; }
+  .px-xgr__mark--home { fill: var(--accent); }
+  .px-xgr__mark--away { fill: var(--ink-2); }
+  .px-xgr__box[data-scrubbing='true'] .px-xgr__dot { opacity: 0.4; }
+  .px-xgr__legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+  .px-xgr__key { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 12px; line-height: 1.3; color: var(--muted); }
+  .px-xgr__key i { flex: none; width: 22px; height: 3px; }
+  .px-xgr__key--home i { height: 4px; background: var(--accent); }
+  .px-xgr__key--away i { background: var(--ink-2); }
+  .px-xgr__scrub { margin-top: 14px; }
   .px-xgr__scrub[hidden] { display: none; }
   .px-xgr__scrub-lab {
-    display: flex; flex-direction: column; gap: 8px; width: 100%;
-    font-family: var(--font-mono); font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    display: flex; flex-direction: column; gap: 6px; width: 100%;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
   }
-  .px-xgr__range {
-    width: 100%;
-    /* the CANON touch floor applies to the whole control, not just the thumb */
-    min-height: 44px;
-    accent-color: var(--accent-deep, var(--accent));
-    cursor: pointer;
-  }
+  .px-xgr__range { width: 100%; min-height: 44px; accent-color: var(--accent-deep); cursor: pointer; }
   .px-xgr__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    /* the scrub still works — it is comprehension. Only the tween goes. */
-    .px-xgr__end { transition: none; }
-  }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-xgr__big { font-size: 72px; } }
 </style>

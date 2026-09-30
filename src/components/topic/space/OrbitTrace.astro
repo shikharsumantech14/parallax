@@ -1,24 +1,32 @@
 ---
 /**
- * OrbitTrace — v2 orbital diagram (.ot) inside the elevated .px-viz card.
- * A compact Earth with log-scaled orbit rings; one satellite per ring rides
- * its ellipse via SVG <animateMotion> (an ambient loop). The scroll reveal of
- * the rings and legend retired in Lens Phase 5. Faithful port of publication-v2 <OrbitTrace>. Build-time, zero runtime JS.
+ * OrbitTrace (space) — named orbits as quarter arcs around a corner of the
+ * Earth, each at its own height, with the labels in a fixed column on the
+ * right joined by dotted leaders, and the first orbit's altitude set large
+ * above. Drawn for the pinned figure panel (Lens Phase 6, 2026-09-30; board
+ * Lib-orbit-trace): a 470-unit SVG, 12px axis type, 13px labels.
  *
- * props (unchanged — see SectionRenderer 'orbit-trace'):
- *   orbits[]      — { name, altKm, inclDeg?, color?, satCount?, note? }
- *   earthRadiusPx — accepted for back-compat (kit uses a fixed Earth radius)
- *   maxAltKm      — scale ceiling in km (defaults to max altKm across orbits)
- *   caption · source
+ * THE SCALE, stated because it bends distance: when the highest orbit is
+ * more than four times the lowest (low orbit beside GPS and GEO), radii are
+ * logarithmic in altitude; otherwise they are linear from a round floor below
+ * the lowest orbit, and the axis shows a break (//) where it skips the rest.
+ * The caption says which.
+ *
+ * Cue anchors: `1`…`n` — each orbit in authored order (arc, point, label,
+ * numeral); `earth`; `axis`. The headline carries the first orbit's anchor.
+ *
+ * THE BUILD (LENS §6.4): 1 the Earth and the axis fade, 2 the arcs draw from
+ * the axis upward, 3 the points and labels drop, outermost first, 4 the
+ * headline counts up.
+ *
+ * Colour: an orbit's `color` is honoured as a fixed encoding; otherwise every
+ * arc is the desk mark. `satCount` and `note` ride as the orbit's <title>.
+ *
+ * data: { orbits?: [{name, altKm, inclDeg?, color?, satCount?, note?}], maxAltKm?, caption?, source? }
  */
-interface Orbit {
-  name: string;
-  altKm: number;
-  inclDeg?: number;
-  color?: string;
-  satCount?: number;
-  note?: string;
-}
+import { SANS, nf, svgTag, niceTicks, textW, wrap } from './_fig';
+
+interface Orbit { name: string; altKm: number; inclDeg?: number; color?: string; satCount?: number; note?: string; }
 interface Props {
   orbits?: Orbit[];
   earthRadiusPx?: number;
@@ -26,57 +34,142 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const { orbits = [], maxAltKm, caption, source } = Astro.props;
+const { orbits = [], maxAltKm, caption } = Astro.props;
+/* Drawn twice (Lens Phase 6): at 470 for the panel and at 290 for a phone,
+   one shown by the .px-sfig__dual rule in dataviz-v2.css, so every label
+   prints at 12px or more at both widths and nothing has to scroll. */
+const W: number = (Astro.props as any).w ?? 470;
+const dual = (Astro.props as any).w == null;
 
-// Default colors for orbits if not specified (kit binds o.color directly).
-const DEFAULT_COLORS = [
-  '#00d4ff', '#ffb347', '#b47dff', '#ff6b6b',
-  '#4dffb0', '#ff9ecd', '#fff47a', '#80d8ff',
-];
+const list = (Array.isArray(orbits) ? orbits : []).filter((o) => o && o.altKm > 0).map((o, i) => ({ ...o, id: String(i + 1) }));
+const lo = Math.min(...list.map((o) => o.altKm));
+const hiData = Math.max(1, ...list.map((o) => o.altKm));
+const hi = Math.max(hiData, maxAltKm ?? 0);
+const log = list.length > 0 && hi / lo > 4;
 
-// Geometry — identical constants/formula to the kit JSX.
-const C = 200, cx = C / 2, cy = C / 2, earthR = 16, maxR = 92;
-const ceiling = maxAltKm ?? Math.max(1, ...orbits.map((o) => o.altKm));
-const rFor = (alt: number) => earthR + (Math.log(alt + 1) / Math.log(ceiling + 1)) * (maxR - earthR);
+// ── geometry: the Earth's corner at bottom-left ──────────────────────────────
+const narrow = W < 400;
+const COL = narrow ? 180 : 300, LINE = 16;
+const nameChars = Math.floor((W - COL - 26) / 7.6);
+const needH = list.reduce((a, o) => a + (wrap(o.name, nameChars).length + 1) * LINE + 6, 0) + 44;
+const H = Math.max(narrow ? 250 : 330, needH), CX = narrow ? 12 : 20, CY = H - 38;
+const R0 = narrow ? 40 : 58, RMAX = narrow ? 152 : 262;
+let floor = 0;
+let ticks: number[] = [];
+if (log) {
+  floor = 10 ** Math.floor(Math.log10(lo * 0.9));
+  for (let v = floor; v <= hi * 1.001; v *= 10) ticks.push(v);
+} else {
+  const step = (niceTicks(hi - lo, 4)[1] ?? 50) || 50;
+  floor = Math.max(0, Math.floor((lo - step * 0.6) / step) * step);
+  for (let v = floor; v <= hi + 1e-9; v += step) ticks.push(v);
+  if (ticks[ticks.length - 1] < hi) ticks.push(ticks[ticks.length - 1] + step);
+}
+const top = log ? hi : ticks[ticks.length - 1];
+const rOf = (alt: number) =>
+  log
+    ? R0 + ((Math.log10(alt) - Math.log10(floor)) / (Math.log10(top) - Math.log10(floor))) * (RMAX - R0)
+    : R0 + ((alt - floor) / Math.max(1e-9, top - floor)) * (RMAX - R0);
+const arcD = (r: number) => `M${(CX + r).toFixed(1)} ${CY} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 0 ${CX} ${(CY - r).toFixed(1)}`;
 
-const items = orbits.map((o, i) => ({
-  ...o,
-  color: o.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length],
-  r: rFor(o.altKm),
-  dur: 6 + i * 2.5,
-}));
+// ── labels: a fixed column, outermost at the top, never touching ─────────────
+const TH = (55 * Math.PI) / 180;
+const rows = [...list]
+  .map((o) => {
+    const r = rOf(o.altKm);
+    const px = CX + r * Math.cos(TH), py = CY - r * Math.sin(TH);
+    const name = wrap(o.name, nameChars);
+    const sub = `${nf(o.altKm)} km${o.inclDeg != null ? ` · ${o.inclDeg}°` : ''}`;
+    return { ...o, r, px, py, name, sub, h: (name.length + 1) * LINE };
+  })
+  .sort((a, b) => a.py - b.py);
+let cursor = 20;
+for (const row of rows) {
+  const y = Math.max(cursor, row.py - row.h / 2 + 10);
+  (row as any).ly = y;
+  cursor = y + row.h + 6;
+}
+// pull the column back up if it ran past the bottom
+const overflow = cursor - 6 - (CY + 8);
+if (overflow > 0) for (const row of rows) (row as any).ly -= overflow;
+const first = list[0];
+const aria = caption ? `Orbital diagram: ${caption}` : 'Orbital diagram';
+const tickLabel = (v: number) => (v === ticks[ticks.length - 1] ? `${nf(v)} km` : nf(v));
+// name a tick only where its label clears the next named one (the last, with its unit, wins)
+const named = new Set<number>();
+{
+  let left = Infinity;
+  for (let i = ticks.length - 1; i >= 0; i--) {
+    const x = CX + rOf(ticks[i]), w = textW(tickLabel(ticks[i]), 12);
+    if (!log && i === 0 && floor > 0) continue;
+    if (x + w / 2 + 6 <= left) { named.add(i); left = x - w / 2; }
+  }
+}
 ---
+{dual ? (
+  <div class="px-sfig__dual">
+    <Astro.self {...Astro.props} w={470} />
+    <Astro.self {...Astro.props} w={290} />
+  </div>
+) : (
+<Fragment>
 
-<div class="px-viz ot" role="img"
-  aria-label={caption ? `Orbital diagram: ${caption}` : 'Orbital diagram'}>
-  <div class="ot__stage">
-    <svg class="ot__svg" viewBox={`0 0 ${C} ${C}`}>
-      {items.map((o, i) => (
-        <circle class="ot__ring" cx={cx} cy={cy} r={o.r}
-          style={`transition-delay:${i * 120}ms;stroke:${o.color}`} />
-      ))}
-      <circle class="ot__earth" cx={cx} cy={cy} r={earthR} />
-      {items.map((o) => (
-        <circle class="ot__sat" r="3.5" fill={o.color}>
-          <animateMotion dur={`${o.dur}s`} repeatCount="indefinite"
-            path={`M ${cx + o.r} ${cy} A ${o.r} ${o.r} 0 1 1 ${cx - o.r} ${cy} A ${o.r} ${o.r} 0 1 1 ${cx + o.r} ${cy} Z`} />
-        </circle>
+<div class="px-viz px-ot" data-build-scene>
+  {first && (
+    <div class="px-sfig__head" data-cue={first.id}>
+      <span class="px-sfig__num" data-build="4" data-build-kind="counter" data-to={first.altKm}>{nf(first.altKm)}</span>
+      <span class="px-sfig__lbl"><span class="px-cue-tag" data-cue-tag={first.id} hidden></span>km, {first.name}</span>
+    </div>
+  )}
+
+  <div class="px-sfig__plot">
+    <svg class="px-sfig__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      <g data-cue="axis" data-build="1">
+        {ticks.map((v) => (
+          <path class="px-ot__grid" d={arcD(rOf(v))} />
+        ))}
+        <line class="px-sfig__base" x1={CX} x2={CX + RMAX + 8} y1={CY} y2={CY} />
+        {ticks.map((v, i) => (
+          <>
+            <line class="px-sfig__base" x1={(CX + rOf(v)).toFixed(1)} x2={(CX + rOf(v)).toFixed(1)} y1={CY} y2={CY + 5} />
+            {named.has(i) && <text class="px-sfig__ax" x={(CX + rOf(v)).toFixed(1)} y={CY + 20} text-anchor="middle" style={SANS}>{tickLabel(v)}</text>}
+          </>
+        ))}
+        {floor > 0 && <text class="px-sfig__ax" x={CX + R0 + 6} y={CY + 4} text-anchor="middle" style={SANS}>//</text>}
+      </g>
+
+      <g data-cue="earth" data-build="1">
+        <path class="px-ot__earth" d={`M${CX} ${CY} L${CX + R0 - 6} ${CY} A${R0 - 6} ${R0 - 6} 0 0 0 ${CX} ${CY - R0 + 6} Z`} />
+        <text class="px-sfig__at px-ot__earth-t" x={CX + 8} y={CY - 10} style={SANS}>EARTH</text>
+      </g>
+
+      {rows.map((o: any) => (
+        <g data-cue={o.id}>
+          <title>{o.name.join(' ')}{o.satCount != null ? `, ${nf(o.satCount)} active` : ''}{o.note ? `. ${o.note}` : ''}</title>
+          <path class="px-ot__arc" d={arcD(o.r)} style={o.color ? `stroke:${o.color}` : undefined} data-build="2" data-build-kind="draw" />
+          <g data-build="3" data-build-kind="drop">
+            <line class="px-ot__lead" x1={o.px.toFixed(1)} y1={o.py.toFixed(1)} x2={COL - 26} y2={o.ly - 4} />
+            <circle class="px-ot__pt" cx={o.px.toFixed(1)} cy={o.py.toFixed(1)} r="4" style={o.color ? `fill:${o.color}` : undefined} />
+            <Fragment set:html={svgTag(o.id, COL - 14, o.ly - 4)} />
+            <text class="px-sfig__t px-sfig__b" x={COL} y={o.ly} style={SANS}>
+              {o.name.map((ln: string, i: number) => <tspan x={COL} dy={i ? LINE : 0}>{ln}</tspan>)}
+            </text>
+            <text class="px-sfig__t px-ot__sub" x={COL} y={o.ly + o.name.length * LINE} style={SANS}>{o.sub}</text>
+          </g>
+        </g>
       ))}
     </svg>
   </div>
-  <div>
-    <div class="px-viz__cap" style="margin-bottom:14px"><span>{caption}</span></div>
-    <div class="ot__legend">
-      {items.map((o) => (
-        <div class="ot__item">
-          <span class="ot__dot" style={`background:${o.color}`}></span>
-          <span class="ot__name">{o.name}</span>
-          <span class="ot__alt">{o.altKm.toLocaleString()} km{o.inclDeg != null ? ` · ${o.inclDeg}°` : ''}</span>
-          {o.satCount != null && (
-            <span class="ot__count">{o.satCount.toLocaleString()} active{o.note ? ' · ' + o.note.split('.')[0] + '.' : ''}</span>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
 </div>
+</Fragment>
+)}
+
+<style>
+  .px-ot__grid { fill: none; stroke: var(--hair); stroke-width: 1; }
+  .px-ot__earth { fill: var(--accent-tint); stroke: var(--accent-deep); stroke-width: 1.5; }
+  .px-ot__earth-t { fill: var(--accent-deep); letter-spacing: 0.06em; }
+  .px-ot__arc { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+  .px-ot__pt { fill: var(--accent-deep); stroke: var(--paper-2); stroke-width: 1.5; }
+  .px-ot__lead { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 3; }
+  .px-ot__sub { fill: var(--accent-deep); }
+</style>

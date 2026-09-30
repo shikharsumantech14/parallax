@@ -1,4 +1,19 @@
 ---
+/**
+ * Quote — one person's words, set as the section's picture (`kind: quote`;
+ * also the optional quote under a `seat-chart`).
+ *
+ * LENS PHASE 6 (2026-09-30), the board Lib-quote: the opening quote mark at
+ * 120px in the desk mark, the words in Newsreader at up to 32px (sized to the
+ * box, 22px on a phone), then a short rule in the mark and the attribution.
+ * A NARRATIVE kind (LENS §5.1): it runs in the article column, carries no cue
+ * anchors and no figure panel. Prefix `px-qt` (the old `px-quote` rules in
+ * base.css and the theme files match nothing this emits any more).
+ *
+ * THE BUILD (LENS §6.4): the root is a `data-build-scene`: 1 the mark fades
+ * in, 2 the words rise, 3 the rule draws and the attribution rises
+ * (src/scripts/build.ts). No JS or reduced motion: the quote as set.
+ */
 interface Props {
   quote: string;
   attribution?: string;
@@ -6,7 +21,52 @@ interface Props {
 const { quote, attribution } = Astro.props;
 ---
 
-<blockquote class="px-quote">
-  <p class="px-quote__q">&ldquo;{quote}&rdquo;</p>
-  {attribution && <cite class="px-quote__attr">— {attribution}</cite>}
-</blockquote>
+<figure class="px-qt" data-build-scene>
+  <svg class="px-qt__mark" viewBox="0 0 64 48" aria-hidden="true" data-build="1">
+    <path d="M26 2C12 8 2 19 2 32c0 8 5 14 12 14 7 0 11-5 11-11 0-6-4-10-10-10-1 0-2 0-3 1 1-8 7-15 16-19L26 2Zm36 0C48 8 38 19 38 32c0 8 5 14 12 14 7 0 11-5 11-11 0-6-4-10-10-10-1 0-2 0-3 1 1-8 7-15 16-19L62 2Z" style="fill:var(--accent)" />
+  </svg>
+  <blockquote class="px-qt__q" data-build="2" data-build-kind="rise"><p>{quote}</p></blockquote>
+  {attribution && (
+    <figcaption class="px-qt__by">
+      <svg class="px-qt__rule" viewBox="0 0 40 2" aria-hidden="true"><line x1="0" y1="1" x2="40" y2="1" data-build="3" data-build-kind="draw" style="stroke:var(--accent);stroke-width:2" /></svg>
+      <span class="px-qt__who" data-build="3" data-build-kind="rise">{attribution}</span>
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .px-qt { container-type: inline-size; margin: 0; min-width: 0; }
+  .px-qt__mark { display: block; width: 80px; height: 60px; margin: 0 0 18px; }
+  .px-qt__q { margin: 0; }
+  .px-qt__q p {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(22px, 5.4cqi, 32px);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .px-qt__by {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
+  }
+  .px-qt__rule { flex: none; width: 40px; height: 2px; overflow: visible; align-self: center; }
+  .px-qt__who {
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--ink-2);
+    overflow-wrap: break-word;
+  }
+  @container (max-width: 420px) {
+    .px-qt__mark { width: 56px; height: 42px; margin-bottom: 12px; }
+  }
+</style>

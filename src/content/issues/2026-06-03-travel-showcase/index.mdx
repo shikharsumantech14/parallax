@@ -41,7 +41,11 @@ sections:
   - kind: elevation-trek
     eyebrow: "COMPONENT · ELEVATION-TREK"
     title: "The Annapurna Circuit, *floor* to high pass"
-    intro: "Cumulative distance (km) against elevation (m) along a real trekking route, the terrain line drawing itself on scroll."
+    intro: "Distance against height along a real trekking route. [[1]] Thorong La, at 5,416 metres, is the top of the route. [[2]] From Manang, at 3,540 metres, the path climbs almost 1,900 metres in 28 km to the pass. [[3]] It ends at Jomsom, 2,720 metres, after 165 km."
+    cues:
+      - { n: 1, at: "peak" }
+      - { n: 2, at: "5 7" }
+      - { n: 3, at: "9" }
     data:
       unit: "m"
       caption: "Annapurna Circuit elevation profile · Besisahar to Jomsom"
@@ -57,10 +61,14 @@ sections:
         - { km: 144, elevM: 3760, label: "Muktinath" }
         - { km: 165, elevM: 2720, label: "Jomsom" }
 
-  - kind: itinerary-reel
-    eyebrow: "COMPONENT · ITINERARY-REEL"
-    title: "*Five* days in Kyoto, as day cards"
-    intro: "Day cards in rows of three that tilt toward the pointer and fan in on scroll. On a phone the row scrolls sideways inside its box."
+  - kind: itinerary
+    eyebrow: "COMPONENT · ITINERARY, DAYS"
+    title: "*Five* days in Kyoto, one stop a day"
+    intro: "The day-by-day form of the itinerary: each day is a stop, with what is done there. [[1]] Day one starts at Kiyomizu-dera at opening, before the crowds. [[2]] Day three climbs Fushimi Inari's torii gates to the summit. [[3]] Five days in all."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "3" }
+      - { n: 3, at: "total" }
     data:
       caption: "A five-day Kyoto walking itinerary"
       source: "Itinerary planning, 2026"
@@ -97,7 +105,11 @@ sections:
   - kind: climate-calendar
     eyebrow: "COMPONENT · CLIMATE-CALENDAR"
     title: "*Kyoto's* year, month by month"
-    intro: "Twelve months rendered as a ribbon: an upper temperature cell tinted cool-to-warm and a lower rainfall bar."
+    intro: "Twelve months as a ribbon: [[1]] the mean temperature, tinted cool to warm, and [[2]] the rainfall hanging below it. [[3]] July is the wettest month, 225 mm, at the peak of the Baiu rainy season."
+    cues:
+      - { n: 1, at: "temp" }
+      - { n: 2, at: "rain" }
+      - { n: 3, at: "7 peak" }
     data:
       tempUnit: "°C"
       caption: "Kyoto climate normals, 1991–2020 · temperature (°C) and rainfall (mm)"
@@ -119,7 +131,11 @@ sections:
   - kind: timezone-arc
     eyebrow: "COMPONENT · TIMEZONE-ARC"
     title: "Six cities across the *day*"
-    intro: "A 24-hour day/night band anchors a 'now' marker at the reference zone, and each city sits at its local hour with a sun or moon glyph."
+    intro: "One day, midnight to midnight, when it is noon in Tokyo. [[1]] Above the line the sun is up, below it the sun is down. [[2]] Tokyo sits at the top of the sun's arc, and [[3]] Lisbon, Marrakesh and Cairo are still in the dark."
+    cues:
+      - { n: 1, at: "band" }
+      - { n: 2, at: "ref" }
+      - { n: 3, at: "1 2 3" }
     data:
       refOffset: 9
       caption: "Standard-time UTC offsets for the six route cities · reference: Tokyo"
@@ -132,10 +148,14 @@ sections:
         - { city: "Bangkok", offset: 7 }
         - { city: "Tokyo", offset: 9 }
 
-  - kind: route-card
-    eyebrow: "COMPONENT · ROUTE-CARD"
+  - kind: itinerary
+    eyebrow: "COMPONENT · ITINERARY"
     title: "*London* to Tokyo, overland and by sea"
-    intro: "Ordered journey legs with from/to cities, transport mode, distance, and duration, threaded on a dashed rail of mode glyphs."
+    intro: "Ordered legs from London to Tokyo, each with its mode, distance and time. [[1]] The longest leg, Moscow to Irkutsk, runs 5,185 km in three and a half days. [[2]] Two legs cross the water by ferry. [[3]] Eight legs, and not one flight."
+    cues:
+      - { n: 1, at: "2" }
+      - { n: 2, at: "5 7" }
+      - { n: 3, at: "total" }
     data:
       title: "London → Tokyo  ·  Trans-Siberian no-fly route"
       caption: "A rail-and-sea crossing of Eurasia"
@@ -152,7 +172,7 @@ sections:
           mode: "train"
           distance: "5,185 km"
           duration: "3.5 days"
-          note: "Trans-Siberian Railway — crosses five time zones to Lake Baikal."
+          note: "Trans-Siberian Railway, across five time zones to Lake Baikal."
         - from: "Irkutsk"
           to: "Ulan-Ude"
           mode: "train"
@@ -209,9 +229,13 @@ sections:
   - kind: journey-map
     eyebrow: "COMPONENT · JOURNEY-MAP"
     title: "The Camino *Francés*, stage by stage"
-    intro: "Vertical stops — place, region, cumulative distance, elevation, arrival, tag — threaded on a terracotta connector."
+    intro: "Seven stops on the French Way, from the Pyrenees to the tomb of St James. [[1]] Roncesvalles, at 950 metres, ends the hardest first day on the route. [[2]] O Cebreiro, at 1,300 metres, is the trek's last big ascent. [[3]] The whole way is 779 km in 33 days."
+    cues:
+      - { n: 1, at: "2" }
+      - { n: 2, at: "6" }
+      - { n: 3, at: "total" }
     data:
-      caption: "The French Way to Santiago — selected stages"
+      caption: "The French Way to Santiago, selected stages"
       source: "Confraternity of Saint James stage data, 2026"
       stops:
         - place: "Saint-Jean-Pied-de-Port"
@@ -267,7 +291,11 @@ sections:
   - kind: terminator-globe
     eyebrow: "THE FLAGSHIP · DAY, NIGHT & THE RED-EYE"
     title: "Where your body clock *breaks*."
-    intro: "A real globe lit for the departure moment — night shaded, the day/night line drawn, and the flight arc crossing it; press ARRIVAL to jump the sun to landing."
+    intro: "A real globe lit for the departure moment: [[1]] night shaded, the day and night line drawn, and the flight arc crossing it."
+    cues:
+      - { n: 1, at: "line night" }
+      - { n: 2, at: "from" }
+      - { n: 3, at: "to hours" }
     plain: "The shaded half is night, the line across it is where day meets dark, and the terracotta arc is the flight crossing from one into the other."
     skimCaption: "A Delhi→San Francisco red-eye on the live day/night terminator — the travel desk's flagship, jet lag made visible."
     data:
@@ -275,13 +303,17 @@ sections:
       from: { city: "Delhi", lat: 28.5562, lon: 77.1000, tzOffsetH: 5.5 }
       to: { city: "San Francisco", lat: 37.6213, lon: -122.3790, tzOffsetH: -8 }
       flightHours: 16.5
-      caption: "Leave Delhi at 08:00, land in San Francisco at 11:00 the same morning — 16½ hours aloft for a clock that barely moved, which is why the body lands ~13.5 hours out of phase."
+      caption: "[[2]] Leave Delhi at 08:00, [[3]] land in San Francisco at 11:00 the same morning: 16½ hours aloft for a clock that barely moved, which is why the body lands about 13.5 hours out of phase."
       source: "Great-circle distance from airport coordinates; UTC offsets IST/PST."
 
   - kind: city-grid
     eyebrow: "COMPONENT · CITY-GRID"
     title: "*Chicago* vs Boston — the shape of a street plan"
-    intro: "Two cities as street-orientation roses: each of 36 petals points along a compass bearing and its length is how much of that city's road length runs that way, normalised per city so shape is compared, not size. The Boeing order phi sums it up."
+    intro: "Two cities as street-orientation roses. [[1]] Each of 36 petals points along a compass bearing, and its length is how much of that city's road runs that way. [[2]] Chicago's surveyor grid collapses to a cross. [[3]] Each rose is normalised to its own city, so shape is compared, not size."
+    cues:
+      - { n: 1, at: "rose" }
+      - { n: 2, at: "1" }
+      - { n: 3, at: "norm" }
     plain: "Each city is a compass wheel of 36 spokes; a longer spoke means more roads run that way. Chicago's surveyor grid collapses to a sharp cross; Boston's older tangle fans out to a near-circle."
     skimCaption: "Grid vs tangle, read from the silhouette alone."
     layout: wide
@@ -299,11 +331,15 @@ sections:
   - kind: altitude-oxygen
     eyebrow: "COMPONENT · ALTITUDE-OXYGEN"
     title: "The *thinning* air to Everest Base Camp"
-    intro: "Effective oxygen against altitude, with the nights the body pauses to acclimatize."
+    intro: "Effective oxygen against altitude. [[1]] The column's width is the oxygen the air still carries at each height, [[2]] and each tent is a night the body spends catching up."
+    cues:
+      - { n: 1, at: "column" }
+      - { n: 2, at: "nights" }
+      - { n: 3, at: "5 peak" }
     plain: "Height runs up the side; the column's width is the oxygen the air still carries there, and each teal tent is a night spent letting the body catch up."
     data:
       model: lapse
-      caption: "By Base Camp the air carries 10.7% effective oxygen — barely half of sea level — which is why the body needs those nights at Namche and Dingboche."
+      caption: "[[3]] By Base Camp the air carries 10.7% effective oxygen, barely half of sea level, which is why the body needs those nights at Namche and Dingboche."
       source: "Barometric model (geodesy §7); elevations from standard trek profiles."
       stops:
         - { name: "Lukla", elevM: 2860, nights: 1, note: "trailhead" }
@@ -315,13 +351,17 @@ sections:
   - kind: season-wheel
     eyebrow: "COMPONENT · SEASON-WHEEL"
     title: "*Santorini's* year, and when to actually go"
-    intro: "A tilted dial of the whole year: twelve month-sectors, three rings — climate comfort, crowd level, price — with a scrubber to read any month."
+    intro: "A dial of the whole year: twelve month sectors and three rings, for climate comfort, crowd level and price."
+    cues:
+      - { n: 1, at: "best" }
+      - { n: 2, at: "8" }
+      - { n: 3, at: "12 1 2" }
     plain: "The year runs clockwise from January; each month's three arcs are the weather, the crowds, and the prices — the best time to go is where the inner arc is full and the outer two are empty."
     data:
       place: "Santorini"
       rings: [climate, crowd, price]
       sweetSpot: [3, 4]
-      caption: "Santorini's sweet spot is April–May — warm, dry days before the July–August crush, with crowds and rates far below peak. August blazes on all three rings; winter empties out."
+      caption: "[[1]] Santorini's sweet spot is April and May: warm, dry days before the July and August crush, with crowds and rates far below peak. [[2]] August blazes on all three rings. [[3]] Winter empties out."
       source: "Climate comfort derived from Hellenic National Meteorological Service normals for Thíra; crowd and price are normalised seasonal-demand indices from published Cyclades tourism-arrival and accommodation-rate patterns."
       months:
         - { climate: 0.45, crowd: 0.10, price: 0.20, label: "low season — many tavernas shut" }
@@ -340,12 +380,16 @@ sections:
   - kind: fare-terrain
     eyebrow: "COMPONENT · FARE-TERRAIN"
     title: "*When* to book, drawn as terrain"
-    intro: "Median fare against days-before-departure as a ridgeline — time runs left to right toward the flight, and the shaded gorge is the booking sweet-spot."
+    intro: "Median fare against days before departure. [[1]] Time runs left to right toward the flight, and the shaded window is the booking sweet spot."
+    cues:
+      - { n: 1, at: "band" }
+      - { n: 2, at: "low" }
+      - { n: 3, at: "last" }
     plain: "Each ridge is one route's fare as departure nears; higher ground means a pricier ticket, and the shaded valley is the window where fares bottom out."
     layout: wide
     data:
       unit: "index"
-      caption: "Fares bottom out about four weeks before departure, then climb steeply — the last-minute seat costs more than double the sweet-spot fare."
+      caption: "[[2]] Fares bottom out about four weeks before departure, then climb steeply. [[3]] The last-minute seat costs more than double the sweet-spot fare."
       source: "Illustrative median-fare index by advance-purchase window (100 = sweet-spot low); curve shape follows the documented advance-purchase pattern (CheapAir 'When to Book' airfare study)."
       routes:
         - label: "DEL → LHR"
@@ -368,9 +412,13 @@ sections:
   - kind: attrition-waffle
     eyebrow: "ONE HUNDRED WHO SET OUT"
     title: "A hundred set out. *Forty-one* finished."
-    intro: "One square per trekker on a single high-pass circuit, grouped by where the walk ended for them."
+    intro: "One square per trekker on a single high-pass circuit, grouped by where the walk ended for them. [[1]] Forty-one completed the full circuit. [[2]] Twenty-seven turned back at the high pass, more than for any other reason."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "2 3 4 5" }
     howToRead: "Every square is one trekker, filled left to right in the order the outcomes are listed, so each block of colour is exactly as many people as it looks like. Nothing here is scaled. Press a group in the ledger to isolate its block and read why those trekkers stopped."
-    caption: "Fifty-nine of a hundred did not finish, and 27 of them stopped at the same place."
+    caption: "[[3]] Fifty-nine of a hundred did not finish, and 27 of them stopped at the same place."
     source:
       label: "Checkpoint register tallies, Manang and Muktinath"
       date: "autumn 2025 season"

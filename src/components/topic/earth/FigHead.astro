@@ -1,0 +1,63 @@
+---
+/**
+ * FigHead — the one number a figure sets large (LENS §7: the pinned figure's
+ * headline, 96 on desktop, 72 on phones), with its label of at most three
+ * words beside it. Shared by the earth desk's kinds (Lens Phase 6).
+ *
+ * Cue anchor: `head` (the number and its label). Build: one step, `n`, a
+ * counter when the text holds one number (src/scripts/build.ts), else a rise.
+ */
+import { headBuild } from './_fig';
+
+interface Props {
+  value: string;
+  label?: string;
+  /** The build step the number takes (the last one of the figure). */
+  n: number;
+  /** On a deep plate (the WebGL kinds): the on-deep inks. */
+  deep?: boolean;
+}
+const { value, label, n, deep = false } = Astro.props;
+const b = headBuild(value);
+---
+
+<div class:list={['px-efh', deep && 'px-efh--deep']} data-cue="head">
+  <span class="px-efh__n" data-build={n} data-build-kind={b.kind} data-to={b.to} data-format={b.format}>{value}</span>
+  {label && <span class="px-efh__l"><span class="px-cue-tag" data-cue-tag="head" hidden></span>{label}</span>}
+</div>
+
+<style>
+  .px-efh {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    column-gap: 12px;
+    row-gap: 4px;
+    margin: 0 0 16px;
+  }
+  .px-efh__n {
+    font-family: var(--font-ui);
+    font-size: var(--fs-num-4, 96px);
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--accent-deep);
+  }
+  .px-efh__l {
+    display: inline-flex;
+    align-items: center;
+    padding-bottom: 6px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 500;
+    color: var(--ink-2, var(--ink-soft));
+    overflow-wrap: anywhere;
+  }
+  .px-efh--deep .px-efh__n { color: var(--on-deep); }
+  .px-efh--deep .px-efh__l { color: var(--on-deep-2); }
+  @media (max-width: 640px) {
+    .px-efh__n { font-size: 72px; }
+  }
+</style>

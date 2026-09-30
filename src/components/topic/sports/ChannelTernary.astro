@@ -1,26 +1,33 @@
 ---
 /**
  * ChannelTernary (`channel-ternary`) — three shares that must total a hundred,
- * drawn in a triangle because only two of them are ever free.
+ * drawn in a triangle because only two of them are ever free (Lens Phase 6,
+ * 2026-09-30; the board is Lib-channel-ternary).
  *
- * Blueprint: docs/design/blueprints/sports/channel-ternary.md
- * SVG geometry + one entity-select island. Prefix `px-trn`.
+ * Blueprint: docs/design/blueprints/sports/channel-ternary.md. Prefix
+ * `px-trn`, inside core/VizCard.astro. The triangle on paper with its 25 / 50
+ * / 75 grid, the three corner words, the even-split mark at the centre, one
+ * dot per entity; the entities with a note, and the most lopsided one, are
+ * drawn in the desk text ink and named beside their dot. The table under it
+ * is the identity layer: every entity and its three shares, the leading
+ * share in the desk ink. The entity-select island of the launch design is
+ * retired: the cues point now.
  *
- * WAVE-0 EXEMPLAR for the SVG path. Two conventions it exists to demonstrate:
- *   - SVG <text> uses a LITERAL font stack in a `style` attribute. A CSS
- *     variable inside an SVG presentation attribute does NOT resolve, and the
- *     failure is silent — the label just renders in the browser default serif.
- *     (RD-01b; the handoff's TYPE-MAPPING.md:25 gets this wrong.)
- *   - The SVG is aria-hidden and the <table> is the real content, so the
- *     figure is readable without sight and without JS.
+ * Drawn for the panel AND the phone: a 292-unit viewBox with 12-unit labels
+ * in the literal Instrument Sans stack, shown at up to 360px, so it prints at
+ * 12px or more on a 293px phone body. No JS of its own.
+ *
+ * Cue anchors:
+ *   corners  the three corner words
+ *   even     the even-split mark
+ *   1..n     each entity: its dot (with its numeral) and its table row, in
+ *            authored order
+ *
+ * The build (LENS §6.4): 1 the triangle, grid and corners fade, 2 the dots
+ * drop, 3 the names rise and the table rows fade.
  */
 import VizCard from '../../core/VizCard.astro';
 
-/* `corners[].id` and `entities[].short` were declared here and never read.
-   Struck 2026-09-15: a corner is identified by its `label`, which is what the
-   axis text and the table headers print; and a `short` code had nowhere to go,
-   because the plot deliberately carries no dot labels (see the table comment
-   below) — so there is no second, narrower slot for a name. */
 interface Corner { label: string }
 interface Entity { name: string; values: [number, number, number]; note?: string }
 interface Props {
@@ -30,7 +37,7 @@ interface Props {
   source?: string | { label: string; date?: string };
   howToRead?: string;
 }
-const { corners = [], entities = [], caption, source, howToRead } = Astro.props;
+const { corners = [], entities = [], caption, source } = Astro.props;
 
 /* ── Build-time validation (blueprint §3) ─────────────────────────────────
    A ternary plot of unconstrained values is meaningless — the geometry IS the
@@ -49,11 +56,12 @@ for (const e of entities) {
   }
 }
 
-// Barycentric mapping, blueprint §4. [⅓,⅓,⅓] lands on the centroid (150, 173.3).
-const pt = (l: number, t: number, r: number) => ({
-  x: 18 + r * 264 + t * 132,
-  y: 250 - t * 230,
-});
+/* Barycentric mapping: left corner bottom-left, the second corner at the
+   apex, the third bottom-right. An equilateral triangle, side 252. */
+const W = 292, H = 272;
+const L = { x: 20, y: 244 }, T = { x: 146, y: 26 }, R = { x: 272, y: 244 };
+const pt = (l: number, t: number, r: number) => ({ x: l * L.x + t * T.x + r * R.x, y: l * L.y + t * T.y + r * R.y });
+const f = (n: number) => n.toFixed(1);
 const CENTROID = pt(1 / 3, 1 / 3, 1 / 3);
 const pct = (n: number) => Math.round(n * 100);
 
@@ -62,194 +70,138 @@ const rows = entities.map((e, i) => {
   const p = pt(l, t, r);
   const shares = [l, t, r];
   const maxIdx = shares.indexOf(Math.max(...shares));
-  return {
-    ...e, i, x: p.x, y: p.y,
-    pctL: pct(l), pctT: pct(t), pctR: pct(r),
-    maxPct: pct(shares[maxIdx]),
-    dominant: corners[maxIdx].label,
-  };
+  return { ...e, i, x: p.x, y: p.y, p: shares.map(pct), maxIdx, maxPct: pct(shares[maxIdx]) };
 });
+const lopsided = rows.reduce((best, r) => (r.maxPct > rows[best].maxPct ? r.i : best), 0);
+const named = rows.map((r) => r.i === lopsided || !!r.note);
 
-// Composed still = the most lopsided entity, so the default state already makes
-// the argument the figure exists to make.
-const defaultIdx = rows.reduce((best, r) => (r.maxPct > rows[best].maxPct ? r.i : best), 0);
-
-const readoutFor = (r: (typeof rows)[number]) =>
-  `${r.name} — ${r.pctL}% ${corners[0].label}, ${r.pctT}% ${corners[1].label}, ${r.pctR}% ${corners[2].label}. ` +
-  `Most lopsided: ${r.maxPct}% down ${r.dominant}.${r.note ? ' ' + r.note : ''}`;
-
-// Gridlines at 25/50/75 on all three axes — nine lines. For fraction f, each
-// axis contributes the segment joining the two points where that axis equals f.
-const grid: { x1: number; y1: number; x2: number; y2: number }[] = [];
-for (const f of [0.25, 0.5, 0.75]) {
-  const rest = 1 - f;
-  // axis = left
-  grid.push({ ...xy(pt(f, rest, 0)), ...xy2(pt(f, 0, rest)) });
-  // axis = top
-  grid.push({ ...xy(pt(rest, f, 0)), ...xy2(pt(0, f, rest)) });
-  // axis = right
-  grid.push({ ...xy(pt(rest, 0, f)), ...xy2(pt(0, rest, f)) });
+/* A name tries the right of its dot, then the left, then above, then below,
+   and takes the first place that stays inside the plot and clears every
+   name already placed and every named dot (Instrument Sans 600 at 12, about
+   .58em a character). Its numeral sits on the far side of the dot. */
+type Place = { x: number; y: number; anchor: 'start' | 'end' | 'middle'; tx: number; ty: number };
+const boxes: { l: number; r: number; t: number; b: number }[] = [];
+const places = new Map<number, Place>();
+for (const r of rows.filter((q) => named[q.i]).sort((a, b) => a.y - b.y)) {
+  const w = r.name.length * 12 * 0.58;
+  const tries: Place[] = [
+    { x: r.x + 11, y: r.y + 4, anchor: 'start', tx: r.x - 33, ty: r.y - 11 },
+    { x: r.x - 11, y: r.y + 4, anchor: 'end', tx: r.x + 11, ty: r.y - 11 },
+    { x: r.x, y: r.y - 12, anchor: 'middle', tx: r.x - 11, ty: r.y + 9 },
+    { x: r.x, y: r.y + 22, anchor: 'middle', tx: r.x - 11, ty: r.y - 31 },
+  ];
+  const box = (p: Place) => {
+    const l = p.anchor === 'start' ? p.x : p.anchor === 'end' ? p.x - w : p.x - w / 2;
+    return { l, r: l + w, t: p.y - 11, b: p.y + 3 };
+  };
+  const dotsHit = (b: { l: number; r: number; t: number; b: number }) =>
+    rows.some((o) => named[o.i] && o.x + 7 > b.l && o.x - 7 < b.r && o.y + 7 > b.t && o.y - 7 < b.b);
+  const pick = tries.find((p) => {
+    const b = box(p);
+    return b.l >= 2 && b.r <= W - 2 && b.t >= 18 && b.b <= H - 2 && !boxes.some((o) => b.l < o.r + 4 && o.l < b.r + 4 && b.t < o.b + 2 && o.t < b.b + 2) && !dotsHit(b);
+  }) ?? tries[3];
+  boxes.push(box(pick));
+  places.set(r.i, pick);
 }
-function xy(p: { x: number; y: number }) { return { x1: p.x, y1: p.y }; }
-function xy2(p: { x: number; y: number }) { return { x2: p.x, y2: p.y }; }
 
-const MONO = "font-family:'JetBrains Mono',ui-monospace,monospace";
+const grid: { x1: number; y1: number; x2: number; y2: number }[] = [];
+for (const g of [0.25, 0.5, 0.75]) {
+  const rest = 1 - g;
+  for (const [a, b] of [
+    [pt(g, rest, 0), pt(g, 0, rest)],
+    [pt(rest, g, 0), pt(0, g, rest)],
+    [pt(rest, 0, g), pt(0, rest, g)],
+  ]) grid.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+}
+const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 ---
 
-<VizCard prefix="px-trn" howToRead={howToRead} caption={caption} source={source}>
-  <div class="px-trn__stage">
-    <svg class="px-trn__svg" viewBox="0 0 300 274" aria-hidden="true" focusable="false">
-      <polygon class="px-trn__tri" points="150,20 282,250 18,250" />
-      {grid.map((g) => (
-        <line class="px-trn__grid" x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2} />
-      ))}
-      <circle class="px-trn__centroid" cx={CENTROID.x} cy={CENTROID.y} r="2.4" />
+<VizCard prefix="px-trn" caption={caption} source={source}>
+  <svg class="px-trn__svg" viewBox={`0 0 ${W} ${H}`} role="img"
+    aria-label={`${rows.length} teams placed by their shares of ${corners.map((c) => c.label.toLowerCase()).join(', ')}`}>
+    <g data-build="1">
+      <polygon points={`${L.x},${L.y} ${T.x},${T.y} ${R.x},${R.y}`} fill="var(--paper)" stroke="var(--ink-2)" stroke-width="1.5" />
+      {grid.map((g) => <line x1={f(g.x1)} y1={f(g.y1)} x2={f(g.x2)} y2={f(g.y2)} stroke="var(--hair)" stroke-width="1" />)}
+    </g>
+    <g data-cue="corners" data-build="1">
+      <text x={T.x} y="14" text-anchor="middle" class="px-trn__corner" style={UI}>{corners[1].label}</text>
+      <text x="14" y="264" text-anchor="start" class="px-trn__corner" style={UI}>{corners[0].label}</text>
+      <text x="278" y="264" text-anchor="end" class="px-trn__corner" style={UI}>{corners[2].label}</text>
+      <foreignObject x={T.x + 44} y="1" width="22" height="22"><span class="px-cue-tag" data-cue-tag="corners" hidden></span></foreignObject>
+    </g>
+    <g data-cue="even" data-build="1">
+      <path d={`M${f(CENTROID.x - 5)} ${f(CENTROID.y)}h10M${f(CENTROID.x)} ${f(CENTROID.y - 5)}v10`} stroke="var(--ink-2)" stroke-width="1.5" />
+      <foreignObject x={f(CENTROID.x - 11)} y={f(CENTROID.y + 8)} width="22" height="22"><span class="px-cue-tag" data-cue-tag="even" hidden></span></foreignObject>
+    </g>
+    {rows.map((r) => (
+      <g data-cue={r.i + 1} data-named={named[r.i] ? 'true' : undefined}>
+        <circle class="px-trn__dot" cx={f(r.x)} cy={f(r.y)} r={named[r.i] ? 7 : 5} data-build="2" data-build-kind="drop" />
+        {places.has(r.i) && (
+          <text x={f(places.get(r.i)!.x)} y={f(places.get(r.i)!.y)} text-anchor={places.get(r.i)!.anchor} class="px-trn__name" style={UI} data-build="3" data-build-kind="rise">{r.name}</text>
+        )}
+        <foreignObject x={f(places.has(r.i) ? places.get(r.i)!.tx : r.x - 11)} y={f(places.has(r.i) ? places.get(r.i)!.ty : r.y - 31)} width="22" height="22"><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span></foreignObject>
+      </g>
+    ))}
+  </svg>
 
-      <text class="px-trn__corner" x="150" y="14" text-anchor="middle" style={MONO}>{corners[1].label}</text>
-      <text class="px-trn__corner" x="12" y="264" text-anchor="start" style={MONO}>{corners[0].label}</text>
-      <text class="px-trn__corner" x="288" y="264" text-anchor="end" style={MONO}>{corners[2].label}</text>
-
-      {rows.map((r) => (
-        <circle
-          class="px-trn__dot"
-          data-trn-dot={r.i}
-          cx={r.x.toFixed(2)}
-          cy={r.y.toFixed(2)}
-          r="5"
-          data-selected={r.i === defaultIdx ? 'true' : 'false'}
-        />
-      ))}
-    </svg>
-
-    <p class="px-trn__readout px-inst__readout" data-trn-readout aria-live="polite">
-      {readoutFor(rows[defaultIdx])}
-    </p>
-  </div>
-
-  {/* The ONLY way to identify a dot — the plot carries no labels, because eight
-      names inside a 300px triangle cannot be placed without collision. So this
-      is not an optional fallback, it is the figure's identity layer. */}
+  {/* The identity layer: the plot names only a few dots, because eight names
+      inside a small triangle cannot be placed without collision. */}
   <table class="px-trn__table">
-    <caption class="px-trn__tcap">Every entity, its three shares, and where it leans</caption>
     <thead>
       <tr>
-        <th scope="col">Team</th>
-        <th scope="col">{corners[0].label}</th>
-        <th scope="col">{corners[1].label}</th>
-        <th scope="col">{corners[2].label}</th>
-        <th scope="col">Leans</th>
+        <th scope="col">Team, %</th>
+        {corners.map((c) => <th scope="col">{c.label}</th>)}
       </tr>
     </thead>
     <tbody>
       {rows.map((r) => (
-        <tr data-trn-row={r.i} data-selected={r.i === defaultIdx ? 'true' : 'false'} data-trn-read={readoutFor(r)}>
+        <tr data-cue={r.i + 1} data-named={named[r.i] ? 'true' : undefined} data-build="3">
           <th scope="row">{r.name}</th>
-          <td data-hi={r.pctL >= 40 ? 'true' : 'false'}>{r.pctL}%</td>
-          <td data-hi={r.pctT >= 40 ? 'true' : 'false'}>{r.pctT}%</td>
-          <td data-hi={r.pctR >= 40 ? 'true' : 'false'}>{r.pctR}%</td>
-          <td>{r.dominant}</td>
+          {r.p.map((v, k) => <td data-hi={k === r.maxIdx && r.maxPct >= 40 ? 'true' : undefined}>{v}</td>)}
         </tr>
       ))}
     </tbody>
   </table>
+  {rows.some((r) => r.note) && (
+    <ul class="px-trn__notes" data-build="3">
+      {rows.filter((r) => r.note).map((r) => <li><b>{r.name}</b> {r.note}</li>)}
+    </ul>
+  )}
 </VizCard>
 
-<script is:inline>
-  (function () {
-    if (!document.documentElement.classList.contains('js')) return;
-    document.querySelectorAll('.px-trn').forEach(function (card) {
-      var dots = Array.prototype.slice.call(card.querySelectorAll('[data-trn-dot]'));
-      var trs = Array.prototype.slice.call(card.querySelectorAll('[data-trn-row]'));
-      var out = card.querySelector('[data-trn-readout]');
-      if (!trs.length || !out) return;
-      var def = trs.findIndex(function (t) { return t.getAttribute('data-selected') === 'true'; });
-      if (def < 0) def = 0;
-      var cur = def;
-
-      function paint(i) {
-        cur = i;
-        trs.forEach(function (t, n) {
-          t.setAttribute('data-selected', n === i ? 'true' : 'false');
-          t.setAttribute('aria-selected', n === i ? 'true' : 'false');
-        });
-        dots.forEach(function (d, n) { d.setAttribute('data-selected', n === i ? 'true' : 'false'); });
-        out.textContent = trs[i].getAttribute('data-trn-read') || '';
-      }
-
-      // The table rows are the control. The dots mirror them for pointer users;
-      // they are inside an aria-hidden <svg>, so they are never the a11y path.
-      trs.forEach(function (t, n) {
-        t.setAttribute('tabindex', '0');
-        t.setAttribute('role', 'button');
-        t.classList.add('is-operable');
-        t.addEventListener('click', function () { paint(n === cur ? def : n); });
-        t.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); paint(n === cur ? def : n); }
-          else if (e.key === 'Escape') { paint(def); }
-          else if (e.key === 'ArrowDown' && n + 1 < trs.length) { e.preventDefault(); trs[n + 1].focus(); }
-          else if (e.key === 'ArrowUp' && n > 0) { e.preventDefault(); trs[n - 1].focus(); }
-        });
-      });
-      dots.forEach(function (d, n) {
-        d.style.cursor = 'pointer';
-        d.addEventListener('click', function () { paint(n === cur ? def : n); });
-      });
-    });
-  })();
-</script>
-
 <style>
-  .px-trn__stage { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-  .px-trn__svg { width: 300px; height: 274px; flex: 0 0 auto; }
-  .px-trn__readout { flex: 1 1 200px; min-width: 200px; border-top: 0; padding-top: 0; margin-top: 0; }
-
-  .px-trn__tri { fill: var(--paper-deep); stroke: var(--rule); stroke-width: 1.4; }
-  .px-trn__grid { stroke: var(--rule); stroke-width: 1; }
-  .px-trn__centroid { fill: color-mix(in oklab, var(--ink) 40%, transparent); }
-  .px-trn__dot {
-    fill: color-mix(in oklab, var(--ink) 60%, transparent);
-    stroke: var(--paper-deep);
-    stroke-width: 1.2;
-    transition: fill 120ms var(--ease, ease), r 120ms var(--ease, ease);
+  .px-trn__svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; overflow: visible; }
+  .px-trn__svg foreignObject { overflow: visible; }
+  .px-trn__svg .px-cue-tag { margin: 1px; }
+  .px-trn__corner { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ink-2); }
+  .px-trn__dot { fill: var(--ink-2); fill-opacity: 0.7; stroke: var(--paper-2); stroke-width: 1.5; }
+  [data-named] > .px-trn__dot { fill: var(--accent-deep); fill-opacity: 1; }
+  .px-trn__name {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--accent-deep);
+    stroke: var(--paper);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+    paint-order: stroke;
   }
-  .px-trn__dot[data-selected='true'] { fill: var(--accent); r: 7; }
-  /* Corners are the chart's vocabulary, so they take the accent; dots are peers
-     and stay ink. */
-  .px-trn__corner { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; fill: var(--accent); }
 
   .px-trn__table {
+    display: table;
     width: 100%;
-    margin-top: 18px;
+    margin-top: 16px;
     border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
-  .px-trn__tcap {
-    text-align: left;
-    font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted);
-    padding-bottom: 8px;
-  }
   .px-trn__table th,
-  .px-trn__table td { padding: 7px 6px; border-bottom: 1px solid var(--rule); text-align: right; }
-  .px-trn__table thead th {
-    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--muted); font-weight: 600;
-  }
-  .px-trn__table th[scope='row'],
-  .px-trn__table thead th:first-child { text-align: left; color: var(--ink); font-weight: 500; }
-  .px-trn__table td[data-hi='true'] { color: var(--accent); font-weight: 700; }
-  .px-trn__table td[data-hi='false'] { color: color-mix(in oklab, var(--ink) 85%, transparent); }
-  .px-trn__table tr[data-selected='true'] { background: var(--paper-warm); }
-  html.js .px-trn__table tr.is-operable { cursor: pointer; }
-  .px-trn__table tr.is-operable:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: -2px; }
-
-  @media (max-width: 640px) {
-    .px-trn__stage { flex-direction: column; }
-    /* Scales to the column but never below 260px, where the gridlines stop
-       resolving and the plot stops being readable at all. */
-    .px-trn__svg { width: 100%; min-width: 260px; height: auto; }
-    .px-trn__readout { min-width: 0; }
-  }
+  .px-trn__table td { padding: 6px 0 6px 8px; border-top: 1px solid var(--hair); text-align: right; font-weight: 400; color: var(--ink); }
+  .px-trn__table thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px-trn__table th:first-child { padding-left: 0; text-align: left; }
+  .px-trn__table tbody th { overflow-wrap: anywhere; }
+  .px-trn__table tr[data-named] th { font-weight: 600; color: var(--accent-deep); }
+  .px-trn__table td[data-hi] { font-weight: 600; color: var(--accent-deep); }
+  .px-trn__notes { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-ui); font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+  .px-trn__notes b { font-weight: 600; color: var(--ink); }
 </style>

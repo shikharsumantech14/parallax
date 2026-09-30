@@ -116,32 +116,32 @@ SectionBody**, not SectionRenderer.
 | Kind | Component | Topic-scope |
 |---|---|---|
 | ~~`hero`~~ | **retired 2026-09-13** (REGISTER-PLAN RG-09) — it had rendered nothing since the launch design deleted `core/Hero.astro`; removed from `SECTION_KINDS`, the catalog, the template and the one draft that carried it | — |
-| `act-break` | `core/ActBreak.astro` — chapter divider; consumes no section number | universal |
-| `prose` | `core/Prose.astro` | universal |
-| `quote` | `core/Quote.astro` | universal |
-| `comparison` | `core/Comparison.astro` (2–3 column side-by-side) | universal |
-| `data-readout` | `core/DataReadout.astro` (telemetry tile grid) | universal |
-| `timeline` | `topic/politics/Timeline.astro` | politics-styled, used across topics |
-| `paradox` | `topic/politics/Paradox.astro` | politics-styled, used across topics |
-| `analogy` | `topic/politics/BrothersAnalogy.astro` | politics |
-| `bill-breakdown` | `topic/politics/BillBreakdown.astro` | politics |
-| `vote-result` | `topic/politics/VoteResult.astro` | politics |
-| `seat-chart` | `topic/politics/SeatChart.astro` | politics |
-| `approval-chart` | `topic/politics/ApprovalChart.astro` | politics |
-| `power-matrix` | `topic/politics/PowerMatrix.astro` | politics |
-| `orbit-trace` | `topic/space/OrbitTrace.astro` | space |
-| `launch-stats` | `topic/space/LaunchStats.astro` | space |
-| `region-map` | `topic/earth/RegionMap.astro` (projection fitted to its zones and markers since 2026-09-22, world framing past 150° of longitude; every label 12px Instrument Sans and the legend sized to its content since 2026-09-30) | earth |
-| `climate-strip` | `topic/earth/ClimateStrip.astro` (v2 kit `.cs`, inside `.px-viz`) | earth |
-| `gauge` | `core/Gauge.astro` (was `carbon-gauge`; `swing-dial` and `throughput-dial` fold in as its lean and capacity variants) | universal |
-| `commit-grid` | `topic/tech/CommitGrid.astro` | tech |
-| `benchmark-chart` | `topic/tech/BenchmarkChart.astro` | tech |
-| `adoption-curve` | `topic/tech/AdoptionCurve.astro` | tech |
-| `journey-map` | `topic/travel/JourneyMap.astro` | travel |
-| `itinerary` | `topic/travel/Itinerary.astro` (was `route-card`; `itinerary-reel` folds in) | travel |
-| `match-stat-line` | `topic/sports/MatchStatLine.astro` | sports |
-| `league-table` | `topic/sports/LeagueTable.astro` | sports |
-| `player-radar` | `topic/sports/PlayerRadar.astro` | sports |
+| `act-break` | `core/ActBreak.astro` — chapter divider on the well: rulers, the numeral at 160, double side rules (Lens Phase 6); consumes no section number, no cues | universal |
+| `prose` | `core/Prose.astro` — paragraphs, a drop cap on the first (Lens Phase 6); narrative, no cues | universal |
+| `quote` | `core/Quote.astro` (`px-qt`) — the mark, the words at up to 32, a rule and the attribution (Lens Phase 6); narrative, no cues | universal |
+| `comparison` | `core/Comparison.astro` (`px-cmp`, Lens Phase 6: side plates, then per row a label and one cell per side; a pair row's winner gets a drawn check). Cues: rows `1..n` (columns in the list form), plates `s1..sN` | universal |
+| `data-readout` | `core/DataReadout.astro` (`.tel`, Lens Phase 6: tiles as cards, the key tile across the row at up to 96, the rest at up to 48, a zero drawn as a dashed ring). Cues: tiles `1..n` | universal |
+| `timeline` | `topic/politics/Timeline.astro` (Lens Phase 6: year ticks on a spine, the stretch from the first `key` event thick in the desk mark) | politics-styled, used across topics |
+| `paradox` | `topic/politics/Paradox.astro` (Lens Phase 6: two tint plates and a drawn tension mark; an optional `figure: {value, label, was?}` that SectionBody does not pass yet) | politics-styled, used across topics |
+| `analogy` | `topic/politics/BrothersAnalogy.astro` (Lens Phase 6: a numbered read-across with drawn double arrows; narrative, no anchors) | universal |
+| `bill-breakdown` | `topic/politics/BillBreakdown.astro` (Lens Phase 6: the payload card at 96 on the tint, a pictogram per card chosen from its words) | politics |
+| `vote-result` | `topic/politics/VoteResult.astro` (Lens Phase 6: the shortfall at 96, a column-filled dot chamber with the required line and the shortfall bracket; words in HTML) | politics |
+| `seat-chart` | `topic/politics/SeatChart.astro` (Lens Phase 6: region bands derived from `region`, then a diverging change table) | politics |
+| `approval-chart` | `topic/politics/ApprovalChart.astro` (Lens Phase 6: a 440-unit viewBox fitted to the data, the gap tinted, the crossing ringed, HTML end labels; scrolls on a phone) | politics |
+| `power-matrix` | `topic/politics/PowerMatrix.astro` (Lens Phase 6: 28px state squares in the desk mark; a party's `color` is its key dot) | politics |
+| `orbit-trace` | `topic/space/OrbitTrace.astro` (Lens Phase 6: quarter arcs round the Earth's corner, labels in a fixed right column, log radii past a 4× altitude span; `px-ot`) | space |
+| `launch-stats` | `topic/space/LaunchStats.astro` (Lens Phase 6: stacked columns per year, counts in the bands, the key in HTML; `px-lst`) | space |
+| `region-map` | `topic/earth/RegionMap.astro` (projection fitted to its zones and markers since 2026-09-22, world framing past 150° of longitude; Lens Phase 6: drawn at 460 units in the desk ramp, tint to mark, on a pale tint sea; 12px names; the legend is HTML under the map; phones scroll it at 460. Anchors `1`…`n` zones, `m1`… markers, `legend`) | earth |
+| `climate-strip` | `topic/earth/ClimateStrip.astro` (`px-cstrip` since Lens Phase 6: stripes in the desk ramp in a stretched SVG with no text, the years and callouts HTML placed by percent; the kit's `.cs` is retired. Anchors `<year>`, `1`…`3` annotations, `legend`, `head`) | earth |
+| `gauge` | `core/Gauge.astro` (`px-gauge`; was `carbon-gauge`, `swing-dial` and `throughput-dial` fold in). Lens Phase 6: ONE half arc for all three variants (budget, lean, capacity), the number at up to 96 in its bowl, every word HTML. Cues: `value`, `fill`, `rest`, `left` / `right` (lean), `target` (budget), zones or markers `1..n` | universal |
+| `commit-grid` | `topic/tech/CommitGrid.astro` (Lens Phase 6: tightened, a year set as two stacked halves, the named days ringed and cued, one key row, `meta` the accessible name; its CSS moved out of `themes/tech.css`) | tech |
+| `benchmark-chart` | `topic/tech/BenchmarkChart.astro` (Lens Phase 6: one `subgrid` for every row, the reference line placed by % of the track, the label on its own line under 640px, the largest value at 96; CSS moved out of `dataviz-v2.css`) | tech |
+| `adoption-curve` | `topic/tech/AdoptionCurve.astro` (Lens Phase 6: 460-unit panel drawing, x placed by value, straight segments, milestones as dashed rules plus a list, its own `.adc__` classes, no longer `.ac__`; CSS moved out of `dataviz-v2.css`) | tech |
+| `journey-map` | `topic/travel/JourneyMap.astro` (Lens Phase 6: the totals at 48, a stop a row on a rail, the height as a value and a bar; `px-journey`, scoped; anchors `1…n`, `line`, `total`, `legend`) | travel |
+| `itinerary` | `topic/travel/Itinerary.astro` (was `route-card`; `itinerary-reel` folds in). Lens Phase 6 redrew it as ONE route: the count at 96, mode glyphs on a dashed rail, a box of the leg's note and items under each stop, a filled end dot, a mode key; `days` render as stops. `px-itin`, scoped; the `.rc` markup and its CSS are gone. Anchors `1…n`, `end`, `total`, `legend` | travel |
+| `match-stat-line` | `topic/sports/MatchStatLine.astro` (Lens Phase 6: badge discs, the score at 48, butterfly bars per row; scoped `px-msl`, the CSS left `themes/sports.css`) | sports |
+| `league-table` | `topic/sports/LeagueTable.astro` (Lens Phase 6: `px-lt`, the leader's points at 48, band chips, form pips, a divider row where positions jump; one fixed-layout table per run of positions; columns drop by container width) | sports |
+| `player-radar` | `topic/sports/PlayerRadar.astro` (Lens Phase 6: `px-rdr`, a 290-unit radar that prints 12px on a phone, the top attribute at 48, `compare` drawn dashed) | sports |
 
 Topic-scoped components are tinted via the topic's theme tokens (`--accent`,
 `--ink`, etc.). They render under any `data-topic` but look most "at home"
@@ -176,56 +176,56 @@ SVG/HTML fallback by default.
 
 | Kind | Component | Topic | Tech |
 |---|---|---|---|
-| `bill-passage` | `topic/politics/BillPassage.astro` | politics | CSS-3D |
-| `vote-flow` | `topic/politics/VoteFlow.astro` | politics | SVG/CSS-3D |
-| `margin-ladder` | `topic/politics/MarginLadder.astro` | politics | SVG/CSS-3D |
+| `bill-passage` | `topic/politics/BillPassage.astro` | politics | HTML stage rows (flat since Lens Phase 6) |
+| `vote-flow` | `topic/politics/VoteFlow.astro` | politics | SVG Sankey + HTML label layer |
+| `margin-ladder` | `topic/politics/MarginLadder.astro` | politics | HTML bars (flat since Lens Phase 6) |
 | `chamber` | `topic/politics/Chamber.astro` | politics | **WebGL** (FLAGSHIP — instanced hemicycle + division walk; shared math `scripts/viz3d/hemicycle.ts`) |
-| `power-flow` | `topic/politics/PowerFlow.astro` | politics | SVG (build-time Sankey + flowDash) |
+| `power-flow` | `topic/politics/PowerFlow.astro` | politics | SVG (build-time Sankey) + HTML label layer |
 | `coalition-calculus` | `topic/politics/CoalitionCalculus.astro` | politics | HTML-interactive (coalition builder vs the majority line) — **spread dispatch, see below** |
 | `gerrymander-lens` | `topic/politics/GerrymanderLens.astro` | politics | SVG (same votes, three maps, efficiency-gap counters) |
-| `solar-system` | `topic/space/SolarSystem.astro` | space | **WebGL** (FLAGSHIP — Keplerian; shared math `scripts/viz3d/kepler.ts`) |
-| `trajectory-arc` | `topic/space/TrajectoryArc.astro` | space | SVG/CSS-3D |
-| `delta-v-ladder` | `topic/space/DeltaVLadder.astro` | space | SVG/CSS-3D |
-| `descent-profile` | `topic/space/DescentProfile.astro` | space | SVG |
-| `constellation-swarm` | `topic/space/ConstellationSwarm.astro` | space | **WebGL** (instanced mega-constellation shells) |
-| `lagrange-map` | `topic/space/LagrangeMap.astro` | space | SVG (three-body effective-potential contour field) |
-| `transfer-window` | `topic/space/TransferWindow.astro` | space | SVG interactive (Hohmann Δv + phase scrubber) |
-| `eclipse-cone` | `topic/space/EclipseCone.astro` | space | SVG/CSS-3D (umbra/penumbra to scale) |
-| `core-sample` | `topic/earth/CoreSample.astro` | earth | CSS-3D |
-| `sea-level-tank` | `topic/earth/SeaLevelTank.astro` | earth | CSS-3D/SVG |
-| `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG/canvas — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); MONTH scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-month tables precomputed at build; the scroll-in reveal owns `stroke-dashoffset`, the scrub owns opacity only) |
-| `quake-depth` | `topic/earth/QuakeDepth.astro` | earth | SVG |
-| `terrain-relief` | `topic/earth/TerrainRelief.astro` | earth | **WebGL** (FLAGSHIP — real DEM ridgeline/contour; shared math `scripts/viz3d/terrain.ts`) |
-| `plate-motion` | `topic/earth/PlateMotion.astro` | earth | **WebGL** (plate velocity field from Euler poles; data `public/geo/plates.json`) |
-| `atmosphere-column` | `topic/earth/AtmosphereColumn.astro` | earth | SVG (barometric column to true altitude) |
-| `carbon-loop` | `topic/earth/CarbonLoop.astro` | earth | SVG (stock-and-flow cycle, conservation-checked at build time) |
-| `storm-track` | `topic/earth/StormTrack.astro` | earth | **WebGL** (cyclone best-track on the globe, Saffir–Simpson) |
-| `arch-stack` | `topic/tech/ArchStack.astro` | tech | CSS-3D |
-| `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | SVG |
-| `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG |
-| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Point labels 12px with a collision-aware placement pass (above, below, right, left, the corners, one line further out; the least important label drops) and a y gutter measured from its tick labels and title lines (2026-09-30) |
-| `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`) |
-| `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + SVG latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`) |
-| `queue-cliff` | `topic/tech/QueueCliff.astro` | tech | SVG interactive (M/M/1 utilization cliff, 1/(1−ρ)) |
-| `chip-die` | `topic/tech/ChipDie.astro` | tech | CSS-3D (exploded die floorplan, area ∝ real mm²) |
-| `moore-ladder` | `topic/tech/MooreLadder.astro` | tech | SVG (base-2 log doubling fit) |
-| `elevation-trek` | `topic/travel/ElevationTrek.astro` | travel | SVG/CSS-3D |
-| `climate-calendar` | `topic/travel/ClimateCalendar.astro` | travel | SVG |
-| `timezone-arc` | `topic/travel/TimezoneArc.astro` | travel | SVG/CSS-3D |
-| `terminator-globe` | `topic/travel/TerminatorGlobe.astro` | travel | **WebGL** (FLAGSHIP — day/night line + flight arc; shared math `scripts/viz3d/terminator.ts`) |
-| `city-grid` | `topic/travel/CityGrid.astro` | travel | SVG (street-orientation polar histograms) — **hard-throws outside 1–3 cities, see below** |
-| `altitude-oxygen` | `topic/travel/AltitudeOxygen.astro` | travel | SVG (altitude vs breathable oxygen + landmarks) |
-| `season-wheel` | `topic/travel/SeasonWheel.astro` | travel | SVG (radial climate year) |
-| `fare-terrain` | `topic/travel/FareTerrain.astro` | travel | SVG (fare/price ridgeline across dates or routes) |
-| `tactics-pitch` | `topic/sports/TacticsPitch.astro` | sports | CSS-3D/SVG |
-| `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG (the miss ✕ is two drawn strokes, not a glyph, since 2026-09-30) |
-| `xg-race` | `topic/sports/XgRace.astro` | sports | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); minute scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-minute tables precomputed at build; clipPath id derived from a payload hash) |
-| `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG |
-| `player-card` | `topic/sports/PlayerCard.astro` | sports | CSS-3D flip |
+| `solar-system` | `topic/space/SolarSystem.astro` | space | **WebGL** (FLAGSHIP — Keplerian; shared math `scripts/viz3d/kepler.ts`). Lens Phase 6: on the deep plate, the mount re-points `--ink` / `--paper` / `--muted` / `--accent-alt` for the scene; anchors and build on the HTML key |
+| `trajectory-arc` | `topic/space/TrajectoryArc.astro` | space | SVG, 470 units (the CSS-3D tilt retired in Lens Phase 6) |
+| `delta-v-ladder` | `topic/space/DeltaVLadder.astro` | space | SVG, 470 units: segments whose labels chain as "A → B" become side-by-side ROUTE columns (Lens Phase 6) |
+| `descent-profile` | `topic/space/DescentProfile.astro` | space | SVG, 470 units; time carries no unit in the data, the caption names it |
+| `constellation-swarm` | `topic/space/ConstellationSwarm.astro` | space | **WebGL** (instanced mega-constellation shells); Lens Phase 6: deep plate, text-free fallback, anchors and build on the HTML key of shells |
+| `lagrange-map` | `topic/space/LagrangeMap.astro` | space | SVG, 470 units (equal-potential lines, the L1 · L2 inset beside the map) |
+| `transfer-window` | `topic/space/TransferWindow.astro` | space | SVG instrument (Hohmann Δv + a lead slider that ships `hidden`, sits outside the build scene and never runs on load) |
+| `eclipse-cone` | `topic/space/EclipseCone.astro` | space | SVG, 470 units (umbra to true length, then the tip at true scale both ways) |
+| `core-sample` | `topic/earth/CoreSample.astro` | earth | SVG since Lens Phase 6 (a drilled column, marks at true depth when every depth parses, else even; anchors `1`…`n`, `head`) |
+| `sea-level-tank` | `topic/earth/SeaLevelTank.astro` | earth | SVG since Lens Phase 6 (the water at the highest firm level; a level labelled low-confidence / upper / high end is dashed above it; anchors `1`…`n`, `lm1`…, `water`, `head`) |
+| `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG — through `core/VizCard.astro`; MONTH scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-month tables precomputed at build; the build owns `stroke-dashoffset`, the scrub owns opacity only). Lens Phase 6: drawn at 344 units so it fits a phone at 12px, each year a tone of the desk ramp, dashed rings at round values; the build is a scene INSIDE the card (`.px-spiral__scene`), because the card holds the JS-shown scrub. Anchors `<year>`, `jan`…`dec`, `ring1`…, `peak`, `head` |
+| `quake-depth` | `topic/earth/QuakeDepth.astro` | earth | SVG (Lens Phase 6: real time on x, the top 10 km banded and counted in the headline, labels placed where they fit; 460 units, phones scroll. Anchors `1`…`n`, `band`, `head`) |
+| `terrain-relief` | `topic/earth/TerrainRelief.astro` | earth | **WebGL** (FLAGSHIP — real DEM; shared math `scripts/viz3d/terrain.ts`). Lens Phase 6: on the desk's deep plate; the still is the board's ridgeline view looking north (true horizontal scale, height × `exaggeration`), peak names an HTML layer; the height chip is in flow under the scene. Anchors `1`…`n` peaks, `ridges`, `head` |
+| `plate-motion` | `topic/earth/PlateMotion.astro` | earth | **WebGL** (plate velocity field from Euler poles; data `public/geo/plates.json`). Lens Phase 6: on the deep plate, names and speeds an HTML layer, the pole table on paper under it. Anchors `1`…`n` plates, `convergent` / `divergent` / `transform`, `head` |
+| `atmosphere-column` | `topic/earth/AtmosphereColumn.astro` | earth | SVG (barometric column to true altitude; Lens Phase 6: 320 units, fits a phone at 12px. Anchors `troposphere`…`thermosphere`, `curve`, `1`…`n` landmarks, `head`) |
+| `carbon-loop` | `topic/earth/CarbonLoop.astro` | earth | SVG (stock-and-flow cycle, conservation-checked at build time; Lens Phase 6: straight arrows, a cancelling pair labelled once, the residual a dark chip and the headline; 460 units, phones scroll. Anchors `<reservoir id>`, `1`…`n` fluxes, `residual`, `head`) |
+| `storm-track` | `topic/earth/StormTrack.astro` | earth | **WebGL** (cyclone best-track on the globe, Saffir–Simpson). Lens Phase 6: on the deep plate, the still zoomed to the basin (the track's furthest fix at 62% of the disc), every fix labelled in an HTML layer. Anchors `1`…`n` fixes, `peak`, `track`, `head` |
+| `arch-stack` | `topic/tech/ArchStack.astro` | tech | HTML slabs (Lens Phase 6: the perspective, the pointer tilt and the hover lift retired; a tinted face and a solid edge) |
+| `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | HTML (Lens Phase 6: the span name on its own wrapping line above its bar, round ticks, the total at 96) |
+| `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG graph at its own pixel size + HTML rows (Lens Phase 6: labels clamp to two lines, a majority tag becomes the 96 number and hollows the rest) |
+| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Point labels 12px with a collision-aware placement pass (above, below, right, left, the corners, one line further out; the least important label drops) and a y gutter measured from its tick labels and title lines (2026-09-30). Lens Phase 6: redrawn for the panel at 460 units (no sideways scroll at 1280; scrolls in its card on a phone), the y title above the plot, round ticks, the annotated point at 96, the build scene on the plot (the Log / Linear control stays outside it) |
+| `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`). Lens Phase 6: on the deep plate (the mount re-points `--ink` / `--paper` / `--muted` / `--accent` to the on-deep set and the lime), the fallback cropped to its content, the weight count and the layer names HTML outside the mount; the scene no longer projects labels or a count-up |
+| `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + HTML latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`). Lens Phase 6: on the deep plate, the no-WebGL map cropped to the route with its city names an HTML layer per width tier, the overhead in the on-deep grey (no second hue) |
+| `queue-cliff` | `topic/tech/QueueCliff.astro` | tech | SVG interactive (M/M/1 utilization cliff, 1/(1−ρ)); Lens Phase 6: 460-unit panel drawing, the build scene on the plot only (the slider is outside it), the start point snapped as the island snaps |
+| `chip-die` | `topic/tech/ChipDie.astro` | tech | HTML treemap (die floorplan, area ∝ real mm²); Lens Phase 6: flat (the tilt, the lift and the hover readout island retired), compute in the mark, the other groups in neutral inks |
+| `moore-ladder` | `topic/tech/MooreLadder.astro` | tech | SVG (base-2 log doubling fit); Lens Phase 6: 460-unit panel drawing, the computed doubling time at 96 |
+| `elevation-trek` | `topic/travel/ElevationTrek.astro` | travel | SVG, 460 units (Lens Phase 6): the peak at 96, a height axis, names placed clear of the line or moved to a right-hand column with a leader. Anchors `1…n`, `line`, `peak`, `axis` |
+| `climate-calendar` | `topic/travel/ClimateCalendar.astro` | travel | HTML ribbon (Lens Phase 6): the wettest month at 96, a tinted temperature row and hanging rain bars, 440px min on a phone. Anchors `1…12`, `temp`, `rain`, `peak`, `legend` |
+| `timezone-arc` | `topic/travel/TimezoneArc.astro` | travel | SVG, 460 units (Lens Phase 6): the reference zone pinned at 12:00, the sun's curve over a paper day and a deep-plate night, labels by a collision pass. Anchors `band`, `arc`, `ref`, `1…n` |
+| `terminator-globe` | `topic/travel/TerminatorGlobe.astro` | travel | **WebGL** (FLAGSHIP — day/night line + flight arc; shared math `scripts/viz3d/terminator.ts`). Lens Phase 6: on the desk's deep plate, the hours aloft at 96, an HTML label layer; anchors `line`, `night`, `arc`, `from`, `to`, `hours` on the fallback, never the canvas |
+| `city-grid` | `topic/travel/CityGrid.astro` | travel | SVG (street-orientation polar histograms), each rose a fixed 200px in a wrapping card (Lens Phase 6). Anchors `1…n`, `rose`, `phi`, `norm` — **hard-throws outside 1–3 cities, see below** |
+| `altitude-oxygen` | `topic/travel/AltitudeOxygen.astro` | travel | SVG, 460 units (Lens Phase 6): the air as a symmetric column narrowing with height, stop rules with leaders to a label column, tents for nights. Anchors `column`, `1…n`, `nights`, `peak`, `axis` |
+| `season-wheel` | `topic/travel/SeasonWheel.astro` | travel | SVG rings with an HTML label layer (Lens Phase 6; the tilt and the month scrubber are gone, the cues light a month). Anchors `1…12`, `best`, `climate`, `crowd`, `price` |
+| `fare-terrain` | `topic/travel/FareTerrain.astro` | travel | SVG, 460 units (Lens Phase 6): the low fare at 96 and the last one at 48, the focal route over a tinted ground, other routes as ink lines, the sweet spot shaded. Anchors `band`, `low`, `last`, `1…n`, `axis` |
+| `tactics-pitch` | `topic/sports/TacticsPitch.astro` | sports | SVG pitch in drawn perspective + an HTML disc layer (Lens Phase 6: the CSS-3D recline and tilt retired; the block shape is the outfield hull) |
+| `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG with no text + an HTML label layer (Lens Phase 6, per its board: a block is the circle with the drawn cross, a miss is dashed; the goals at 48) |
+| `xg-race` | `topic/sports/XgRace.astro` | sports | SVG, 452 units — its own `.px-viz` root since Lens Phase 6 (the build scene sits on `.px-xgr__plot`, not the card, because the html.js-gated scrub changes the card's height); minute scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-minute tables precomputed at build) |
+| `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG, 452 units (Lens Phase 6: event labels in collision-free rows, the home share on top at 48) |
+| `player-card` | `topic/sports/PlayerCard.astro` | sports | HTML profile card (Lens Phase 6, the named redraw: one face, the rating at 96, the attributes as bars; the CSS-3D flip retired) |
 | `flight-of-the-ball` | `topic/sports/FlightOfTheBall.astro` | sports | **WebGL** (FLAGSHIP — drag + Magnus trajectory; shared math `scripts/viz3d/ballistics.ts`) |
-| `elo-river` | `topic/sports/EloRiver.astro` | sports | SVG (rating streamgraph, braided season) |
-| `court-value` | `topic/sports/CourtValue.astro` | sports | SVG (value surface shaded over a pitch/court) |
-| `pace-ridge` | `topic/sports/PaceRidge.astro` | sports | SVG (ridgeline of a stat's distribution per group) |
+| `elo-river` | `topic/sports/EloRiver.astro` | sports | SVG, 552 units: one line per team on a shared rating axis, the subject heavy in the mark, its overtakes ringed (Lens Phase 6, per its board: the streamgraph braid retired) |
+| `court-value` | `topic/sports/CourtValue.astro` | sports | SVG with no text (value surface over a pitch/court) + an HTML label layer and ramp legend (Lens Phase 6) |
+| `pace-ridge` | `topic/sports/PaceRidge.astro` | sports | SVG, 452 units (ridgeline of a stat's distribution per group; labels in a left gutter, the subject-to-field gap bracketed) |
 
 The **ten** WebGL kinds since the Lens verdict (`chamber`, `solar-system`,
 `constellation-swarm`, `terrain-relief`, `plate-motion`, `storm-track`,
@@ -269,11 +269,11 @@ standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
 |---|---|---|---|
 | `bill-funnel` | `topic/politics/BillFunnel.astro` | politics | HTML funnel bars (widening funnel fails the build) — the HTML-path exemplar |
 | `age-pyramid` | `topic/politics/AgePyramid.astro` | politics | HTML mirrored bars, counts ⇄ share-of-band |
-| `margin-bullets` | `topic/space/MarginBullets.astro` | space | HTML bullet rows, each in its own unit |
-| `state-timeline` | `topic/tech/StateTimeline.astro` | tech | HTML health lanes + incident clock (declared green/amber/red fixed encoding) |
-| `attrition-waffle` | `topic/travel/AttritionWaffle.astro` | travel | HTML 100-square waffle, `role="img"` grid + ledger |
-| `finish-interval` | `topic/sports/FinishInterval.astro` | sports | HTML projected position + 90% interval (44px targets on coarse pointer only) |
-| `channel-ternary` | `topic/sports/ChannelTernary.astro` | sports | SVG ternary (sum-to-1 fails the build; the table IS the identity layer) — the SVG-path exemplar |
+| `margin-bullets` | `topic/space/MarginBullets.astro` | space | HTML row cards, each in its own unit (the row picker, readout and table retired in Lens Phase 6) |
+| `state-timeline` | `topic/tech/StateTimeline.astro` | tech | HTML health lanes + incident clock (declared fixed encoding, redrawn for the paper in Lens Phase 6: pale green, amber, red; the lag at 96; event markers are squares) |
+| `attrition-waffle` | `topic/travel/AttritionWaffle.astro` | travel | HTML 10 × 10 waffle, largest group first, beside the ledger (Lens Phase 6: its own root, no VizCard, no select island). Anchors `1…n` (authored order), `grid` |
+| `finish-interval` | `topic/sports/FinishInterval.astro` | sports | HTML projected position + 90% interval; the most ranges covering one position at 48 and a dashed band round them (Lens Phase 6: the row-select island, readout and table retired) |
+| `channel-ternary` | `topic/sports/ChannelTernary.astro` | sports | SVG ternary, 292 units so it prints 12px on a phone (sum-to-1 fails the build; the table IS the identity layer; the select island retired in Lens Phase 6) |
 
 ## 3. Adding a new section kind — checklist
 
@@ -357,10 +357,10 @@ Known reservations (still-live `px-` prefixes):
 | Prefix | Owner | Notes |
 |---|---|---|
 | `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; VizCard's root is a `data-build-scene` (§11); the ⤢ `.px-vexp` button is a hover corner square on desktop and an in-flow "Study this figure ⤢" row under the graphic on touch and phones (2026-09-23, `modal.css`) |
-| `px-ns` | `number-sense` | core · `NumberSense.astro` |
-| `px-3s` | `three-steps` | core · `ThreeSteps.astro` |
-| `px-yt` | `you-think` | core · `YouThink.astro` |
-| `px-jb` | `jargon-buster` | core · `JargonBuster.astro` |
+| `px-ns` | `number-sense` | core · `NumberSense.astro` (cues `value`, `note`, equals `1..n`) |
+| `px-3s` | `three-steps` | core · `ThreeSteps.astro` (a figure kind since Lens Phase 6: the chain of step cards in the panel, cues `1..n`) |
+| `px-yt` | `you-think` | core · `YouThink.astro` (one card cut by a slash, Lens Phase 6; cues `1` belief, `2` record, `3` figure) |
+| `px-jb` | `jargon-buster` | core · `JargonBuster.astro` (a figure kind since Lens Phase 6: term cards in the panel, cues `1..n`) |
 | `px-fin` | `finish-interval` | sports · `FinishInterval.astro` |
 | `px-waf` | `attrition-waffle` | travel · `AttritionWaffle.astro` |
 | `px-stl` | `state-timeline` | tech · `StateTimeline.astro` |
@@ -369,7 +369,9 @@ Known reservations (still-live `px-` prefixes):
 | `px-fnl` | `bill-funnel` | politics · HTML bars · `BillFunnel.astro` |
 | `px-trn` | `channel-ternary` | sports · SVG ternary · `ChannelTernary.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |
-| `px-cgauge` | Gauge, budget variant (was CarbonGauge) | kept on `px-` (free-standing gauge, light-touch port) |
+| `px-gauge` | `gauge` (`core/Gauge.astro`, all three variants since Lens Phase 6) | `px-cgauge`, `px-swdial`, `px-tdial` retired with the old markup |
+| `px-cmp` | `comparison` (`core/Comparison.astro`, Lens Phase 6) | `px-compare` retired: its rules in `base.css` and the theme files are dead |
+| `px-qt` | `quote` (`core/Quote.astro`, Lens Phase 6) | `px-quote` retired the same way |
 | `px-seats` | SeatChart | kept on `px-` |
 | `px-bills` | BillBreakdown | kept on `px-` |
 | `px-analogy` | BrothersAnalogy | kept on `px-` |
@@ -402,15 +404,15 @@ code** — no element emits it — pending a future safe cleanup pass):
 
 | Retired prefix | Was | Now emits |
 |---|---|---|
-| `px-cstrip` | ClimateStrip | `.cs` |
+| `px-cstrip` | ClimateStrip | `.cs` until Lens Phase 6; the component owns `px-cstrip` again (scoped), the `.cs` rules are deleted |
 | `px-ortrace` | OrbitTrace | `.ot` |
 | `px-launch` | LaunchStats | `.ls` |
 | `px-bench` | BenchmarkChart | `.bc` |
 | `px-scurve` | AdoptionCurve | `.adc` |
-| `px-route` | RouteCard (now Itinerary) | `.rc` |
+| `px-route` | RouteCard (now Itinerary) | `.rc`, itself retired in Lens Phase 6: Itinerary emits `px-itin` |
 | `px-ccomp` | CityCompare (deleted 2026-09-30; folded into Comparison) | — |
-| `px-ltab` | LeagueTable | `.lt` |
-| `px-radar` | PlayerRadar | `.pr` |
+| `px-ltab` | LeagueTable | `.lt`, then `px-lt` (scoped) since Lens Phase 6 |
+| `px-radar` | PlayerRadar | `.pr`, then `px-rdr` (scoped) since Lens Phase 6 |
 | `px-appr` | ApprovalChart | `.ac` |
 | `px-pwm` | PowerMatrix | `.pm` |
 | `px-skim` | SkimToggle (component **deleted**) | — (skim toggle now lives in `core/ReadingToolbar.astro`) |
@@ -425,7 +427,7 @@ namespaces in `components-3d.css`.)
 | Prefix | Component | Prefix | Component |
 |---|---|---|---|
 | ~~`px-co`~~ | CoalitionOrbit (dropped 2026-09-30) | ~~`px-dg`~~ | DataGlobe (dropped 2026-09-30) |
-| `px-swdial` | Gauge, lean variant (was SwingDial) | `px-core` | CoreSample |
+| ~~`px-swdial`~~ | retired (Gauge is `px-gauge`) | `px-core` | CoreSample |
 | `px-billp` | BillPassage | `px-sltank` | SeaLevelTank |
 | `px-vflow` | VoteFlow | `px-spiral` | ClimateSpiral |
 | `px-mladr` | MarginLadder | `px-quake` | QuakeDepth |
@@ -433,7 +435,7 @@ namespaces in `components-3d.css`.)
 | `px-traj` | TrajectoryArc | `px-lwf` | LatencyWaterfall |
 | `px-dvl` | DeltaVLadder | `px-vgraph` | VersionGraph |
 | ~~`px-sig`~~ | SignalReadout (dropped 2026-09-30) | `px-scale` | ScalingPlot |
-| `px-desc` | DescentProfile | `px-tdial` | Gauge, capacity variant (was ThroughputDial) |
+| `px-desc` | DescentProfile | ~~`px-tdial`~~ | retired (Gauge is `px-gauge`) |
 | ~~`px-rg`~~ | RouteGlobe (dropped 2026-09-30) | `px-pitch` | TacticsPitch |
 | `px-etrek` | ElevationTrek | `px-shot` | ShotMap |
 | ~~`px-ireel`~~ | ItineraryReel (folded into Itinerary 2026-09-30) | `px-xgr` | XgRace |
@@ -759,10 +761,10 @@ flat `.px-viz` card — radius 0, no shadow, 3px `--viz-edge` top rule since 202
 | OrbitTrace | `.ot` |
 | LaunchStats | `.ls` |
 | DataReadout | `.tel` |
-| ClimateStrip | `.cs` |
+| ClimateStrip | `.cs` (retired Lens Phase 6: `px-cstrip`, scoped) |
 | BenchmarkChart | `.bc` |
 | AdoptionCurve | `.adc` |
-| RouteCard (now Itinerary) | `.rc` |
+| RouteCard (now Itinerary) | `.rc` (retired in Lens Phase 6; `px-itin`, scoped) |
 | CityCompare (deleted 2026-09-30) | `.cc` |
 | LeagueTable | `.lt` |
 | PlayerRadar | `.pr` |
@@ -877,8 +879,7 @@ Perspective + `transform-3d` via the shared mechanics in
   `0`). Reduced-motion resets `.px3d-tilt` / `.px3d-flip` to no transform in
   `components-3d.css`.
 
-Kinds: `gauge` (its lean and capacity variants), `bill-passage`,
-`margin-ladder`, `core-sample`, `arch-stack`, `chip-die`, `player-card`,
+Kinds: `gauge` (its lean and capacity variants), `core-sample`, `arch-stack`, `chip-die`, `player-card`,
 plus the SVG/CSS-3D hybrids (`trajectory-arc`, `delta-v-ladder`,
 `eclipse-cone`, `sea-level-tank`, `elevation-trek`, `timezone-arc`,
 `tactics-pitch`, `shot-map`).
@@ -926,7 +927,9 @@ pin an aspect ratio, and a globe scrolled sideways hides its subject —
 is two label sets: the authored sizes for desktop and a phone set sized to
 print at ≥ 9.5px on a 335px plate, one or the other shown by a media query
 (`StormTrack`, `ConstellationSwarm`, `PlateMotion`, `TerrainRelief`,
-`NeuralFlow`, `PacketTrace`, `TerminatorGlobe`'s HTML labels). Either way
+`TerminatorGlobe`'s HTML labels; since Lens Phase 6 `NeuralFlow` draws no
+text in its SVG at all and `PacketTrace` sets its city names as an HTML
+layer placed per width tier). Either way
 the floor was **9.5px rendered**. Lens raises it to 12px (LENS §3.4):
 `check:render` reports TINY (a warning) below 12px and FLOOR (blocking)
 below 9.5px since Phase 5.
@@ -1007,6 +1010,216 @@ its own island rewrites the verdict number.
 ---
 
 ## Change log
+
+### 2026-09-30 — Lens Phase 6, the politics wave
+
+Seventeen kinds redrawn to their `Lib-<kind>` boards and wired to the cue and
+build contracts: `timeline`, `bill-breakdown`, `vote-result`, `seat-chart`,
+`paradox`, `analogy`, `approval-chart`, `power-matrix`, `bill-passage`,
+`vote-flow`, `margin-ladder`, `chamber`, `power-flow`, `coalition-calculus`,
+`gerrymander-lens`, `bill-funnel`, `age-pyramid`. Each component header
+carries its `Cue anchors:` block (numbers from 1 in DATA order for lists;
+short names for fixed parts: `top` for a headline number, `line` for a
+threshold, `legend`, `for` / `against`, `north` / `south`, a party or node
+`id`) and its build order. Every kind's CSS lives in its own scoped
+`<style>` now: the `.vb`, `.ac`, `.pm`, `.px2` and `.tl` blocks left
+`dataviz-v2.css`, and the dead per-kind rules (`.px-timeline`, `.px-bills`,
+`.px-vote`, `.px-seats`, `.px-paradox`, `.px-analogy`, `.px-beats`,
+`.px-appr`, `.px-pwm`) left `themes/politics.css`. `approval-chart`,
+`vote-flow` and `power-flow` are drawn on a 440-unit viewBox with every word
+in an HTML layer over the SVG, so the numerals print where Section puts them;
+they left the `min-width` lists in `dataviz-v2.css` and scroll inside their
+own root below 1024px. Three patterns worth copying: (1) a headline number
+the component can DERIVE honestly (the stages cleared, the largest band, the
+widest margin), never one it would have to guess; (2) where a kind has a
+control or disclosure that changes its height under JS (`coalition-calculus`
+chips, the `gerrymander-lens` ledger, the `bill-funnel` notes), the build
+scene is the graphic, not the card, so the render gate's BUILD check never
+sees JS move a built element; (3) a WebGL kind (`chamber`) builds only what
+stays visible once the canvas takes over (its legend); its fallback sits on
+the deep plate, the mount re-pointing `--ink` / `--paper` / `--rule` /
+`--muted` to the on-deep set, which the scene reads. Removed:
+`margin-ladder`'s tilt and hover lift, `bill-passage`'s 3D track,
+`power-flow`'s static dash stipple, the `age-pyramid` Counts / Share chips
+(the share is a column now), the `timeline` node's hover scale.
+`power-flow` estimates every label's height from its words, spaces each
+outer column's labels by those heights and grows the drawing when they need
+more than 290 units; its link notes are a list under the drawing, not text
+on the ribbons (the ribbon notes printed over node names on the squad-cost
+and Indonesia issues, 2026-10-01).
+
+### 2026-09-30 — Lens Phase 6, the sports wave
+
+All fourteen sports kinds carry cue anchors (a `Cue anchors:` block heads
+each component), a build order through `build.ts`, and the panel drawing:
+`match-stat-line`, `league-table`, `player-radar`, `tactics-pitch`,
+`shot-map`, `xg-race`, `momentum-wave`, `player-card`, `flight-of-the-ball`,
+`elo-river`, `court-value`, `pace-ridge`, `channel-ternary`,
+`finish-interval`. Three rules came out of it. **An SVG anchor's numeral**
+goes in a 22px `<foreignObject>` holding the usual `.px-cue-tag` slot (the
+only markup `core/Section.astro` fills), inside the anchor's `<g>`.
+**A pitch or a surface that must not scroll** carries no SVG text: its words
+and numerals are an HTML layer placed by percent and sized in pixels
+(`tactics-pitch`, `shot-map`, `court-value`, the flight still), so it scales
+to a 293px phone body at 12px; the wide charts keep their 452-unit viewBox
+(552 for `elo-river`) and scroll inside the card on phones (the sports block
+in `dataviz-v2.css`). **A kind with an html.js-gated control** puts its
+`data-build-scene` on the graphic, not the card (`xg-race`), and a WebGL kind
+puts its build on HTML outside the mount (`flight-of-the-ball`'s launch row),
+because a live scene hides the fallback. Redrawn to their boards:
+`player-card` (the profile card), `elo-river` (lines, not a braid),
+`tactics-pitch` (drawn perspective, no CSS-3D), `flight-of-the-ball` (the
+still from behind the ball on the deep plate; the mount sets the scene's
+colour variables to the plate's). The CSS of `match-stat-line` left
+`themes/sports.css` for its component, and the dead `.px-ltab` / `.px-radar`
+blocks there went with it; `.lt` / `.pr` left `dataviz-v2.css`.
+
+### 2026-09-30 — Lens Phase 6, the space wave
+
+The eleven space kinds are redrawn to their `Lib-<kind>` boards for the
+pinned figure panel, each with cue anchors, a build order and one number set
+large at 96px, 72 on phones, its label 8px below (LENS §7; the anchor ids and steps are in each component's header,
+under `Cue anchors:` and `THE BUILD`). The six chart kinds (`trajectory-arc`,
+`delta-v-ladder`, `descent-profile`, `orbit-trace`, `launch-stats`,
+`eclipse-cone`) draw TWICE, by rendering themselves again with
+`<Astro.self {...Astro.props} w={…} />`: at 470 units (the panel body at
+1280, measured) and at 290 (a 375 phone gives the figure 293px), one shown by
+`.px-sfig__dual` (below 600px, and always in a story card), so a 12-unit label
+is 12px at both widths and no chart scrolls sideways. The hidden drawing's
+scene is 0×0, so the build island never starts it and the render gate skips
+it. The two radial kinds draw once at 290 units and fit both widths:
+`transfer-window` centred in the panel, `lagrange-map` as a 290 map beside a
+160 inset that wraps under it on a phone. Their shared parts (the headline,
+the dual rule, the SVG text roles, a key row) are one block in
+`dataviz-v2.css`, **`px-sfig`**, and one helper module, `topic/space/_fig.ts`, which also
+carries `svgTag()`: a cue numeral inside an SVG sits in a `foreignObject`
+holding the exact `.px-cue-tag` slot `core/Section.astro` fills. In every
+label the numeral slot sits between the mark and the words, so it never
+depends on a text-width estimate. Removed with the redraws: the CSS-3D tilts
+(`trajectory-arc`, `delta-v-ladder`, `eclipse-cone`), the starfield, the
+satellites' `animateMotion` loop, the in-card captions and ledgers, and
+`margin-bullets`' row picker, readout, legend and table (its `note` stays
+for assistive tech). New prefixes `px-ot` (OrbitTrace, replacing `.ot`) and
+`px-lst` (LaunchStats, replacing `.ls`); the `.ot` / `.ls` rules left
+`dataviz-v2.css`, and the four old space classes left its min-width lists.
+`delta-v-ladder` now reads segment labels that chain as "A → B" as ROUTES
+(side-by-side columns), so alternatives no longer add up to a budget no
+mission spends. The two WebGL kinds sit on the deep plate: the mount
+re-points `--ink`, `--paper`, `--muted` and `--accent-alt` (the runtime
+reads the scene's colours from the mount), and their anchors and build live
+on an HTML key under the drawing, never on the canvas or the fallback.
+`transfer-window`'s slider ships `hidden`, sits outside the build scene and
+never runs on load. An authored `color` is honoured as a fixed encoding on
+`orbit-trace`, `launch-stats`, `delta-v-ladder` and `constellation-swarm`;
+the showcase's neon colours were removed so the desk inks show.
+
+### 2026-09-30 — Lens Phase 6, the travel wave
+
+The eleven travel kinds are redrawn to their boards (`Lib-<kind>.dc.html`;
+`itinerary` to `Lib-route-card`, retitled on the canvas), each with a
+`Cue anchors:` header, a build order and scoped CSS. **`itinerary`** is ONE
+route (`px-itin`): legs and the folded `days` both render as stops on a
+dashed rail; the `.rc` markup, its `dataviz-v2.css` block and the reel's
+rows are gone. `journey-map`'s old rules left `themes/travel.css` (they set
+a serif place name and a teal detour). The SVG kinds (`elevation-trek`,
+`timezone-arc`, `altitude-oxygen`, `fare-terrain`) draw on a 460-unit
+viewBox with text at 12 and up, keep 460px on a phone and scroll in their
+card (their scoped `min-width`; the old `__svg` classes left the
+card-scroll lists), and print cue numerals from an HTML layer placed in
+percent, each numeral put clear of labels, lines and other numerals.
+`season-wheel` lost its tilt and its month scrubber and `attrition-waffle`
+its VizCard shell and group-select island: the cues light a month or a
+group now (the waffle's cells and ledger row share the group's anchor).
+`terminator-globe` sits on the desk's deep plate; the mount repoints
+`--paper` / `--ink` / `--muted` / `--accent-deep` at the plate's values
+for the scene, and `scenes/terminatorGlobe.ts` lifts the globe body 14%
+off a dark ground and draws the night in black there. Its build runs on
+the number and the key only, outside the mount, because the fallback
+(where the anchors live) is hidden once the scene is live.
+
+### 2026-09-30 — Lens Phase 6, the core wave
+
+The ten core kinds are redrawn to their boards, with cue anchors (each
+component's header lists them under `Cue anchors:`) and a build order.
+**`gauge`** is ONE half arc for its three variants (`px-gauge`; the
+`px-cgauge` / `px-swdial` / `px-tdial` markup is gone): the track in the desk
+tint, the fill in the mark, the number at 96 in the bowl (72 on phones, the
+headline tier of LENS §7, as for the readout's key tile, number-sense's figure
+and you-think's record figure), every word
+HTML so nothing scales below 12px; capacity zones ride a thin outer ring and
+lean markers tick the arc, both listed in a key. **`comparison`** is side
+plates and read-across rows (`px-cmp`), **`quote`** the mark and the words at
+up to 32 (`px-qt`), **`data-readout`** tiles as cards with a 96 hero,
+**`you-think`** one card cut by a slash with the belief struck,
+**`number-sense`** the figure at up to 96 over equivalence cards,
+**`act-break`** a ruled band with the numeral at 160, **`prose`** a drop cap.
+**`jargon-buster` and `three-steps` are figure kinds now:**
+`core/Section.astro` dropped them from its narrative set and writes each
+term's meaning or step's text into the article as a cue sentence; the panel
+carries the cards (their meanings and texts are hidden inside `.px-fig__body`
+by the components' own CSS, since `SectionBody` hands them no `compact`).
+`YouThink`'s counter regex had lost its backslashes and never matched a
+number; fixed. Dead now: the `.px-compare*` / `.px-quote*` rules in
+`base.css` and the six theme files.
+
+### 2026-09-30 — Lens Phase 6, the earth wave
+
+All eleven earth kinds carry cue anchors (the `Cue anchors:` block at the top
+of each component) and a build (`data-build-scene`, axis → marks → labels →
+number), drawn for the 470px figure panel with every label at 12px or more
+at 1280 and 375. Shared parts, in `topic/earth/`: **`FigHead.astro`**
+(`px-efh`, the one large number, 96 / 72 on phones, a counter when it holds
+one number with at most one decimal, else a rise; anchor `head`; `deep` for
+the plate), **`CueLayer.astro`** (`px-ecl`, the cue numerals over an SVG: one
+slot per anchor in percent of the viewBox, printed at real 12px, each slot
+carrying the anchor's `data-cue` so it lights with the mark) and **`_fig.ts`**
+(the literal font stacks, label width estimates, `stack()` for label columns,
+`headBuild()`). Two rules the wave settled, for any kind that follows:
+**(1) an SVG cannot hold the `.px-cue-tag` span Section fills, so put the
+numerals in an HTML layer over it** (CueLayer); **(2) the three WebGL kinds
+put their anchors on the fallback and its HTML label layer, and their build
+only OUTSIDE the mount** (the headline, the key): headless Chrome runs WebGL,
+the live scene hides the fallback, and a build element inside it ends 0×0 on
+the live page (the BUILD check). The deep plate re-points `--ink` / `--paper`
+/ `--muted` to the on-deep inks, and `runtime.ts` reads those off the mount,
+so the live scene draws light on dark with no scene change. `climate-spiral`
+keeps its VizCard and its scrub; its build is a nested scene that excludes
+the JS-shown control. Phone widths: `core-sample`, `sea-level-tank`,
+`atmosphere-column` and `climate-spiral` are drawn at 320–344 units with
+13.5–14.5 unit type so a 305px panel prints them at 12px; `quake-depth`,
+`carbon-loop` and `region-map` are drawn at 460 and scroll inside their card
+on phones (the rule is in each component; their entries left the
+`dataviz-v2.css` lists). The `.px-map` and `.px-cstrip` blocks left
+`themes/earth.css`, and the `.cs` block left `dataviz-v2.css`.
+
+### 2026-09-30 — Lens Phase 6, the tech wave
+
+All thirteen tech kinds carry cue anchors (a `Cue anchors:` block heads each
+component), a build order through `build.ts` and, where the kind has one, ONE
+headline number at 96 (72 on phones, LENS §7) with its label 8px below; the
+head is a size container and `--ch` (the number's character count) caps the
+size so a long number (1,363,250) fits the panel instead of overflowing it. **Drawn for
+the panel:** `scaling-plot`, `adoption-curve`, `queue-cliff` and `moore-ladder`
+are 460-unit viewBoxes with 12px text, so they fit the ~470px panel at 1280
+and scroll inside their card on a phone at their authored size (their entries
+left the 720 / 640 lists in `dataviz-v2.css` for a 460 one; `.px-pkt__bar` is
+gone). `latency-waterfall`, `benchmark-chart`, `arch-stack`, `version-graph`,
+`chip-die` and `state-timeline` are HTML and fit every width. **The SVG
+numeral idiom used here:** an HTML layer over the drawing (`__tags`, each
+numeral positioned by % of the viewBox), since Section.astro fills only
+`span.px-cue-tag` slots. **Scenes on the graphic, not the card,** wherever the
+card holds an `html.js`-gated control (scaling-plot's toggle, queue-cliff's
+slider, state-timeline's markers) or a WebGL mount whose fallback hides when
+live (neural-flow, packet-trace build only their HTML outside the mount). An
+element that can be `display:none` (an uncued numeral pin, a rule hidden on
+phones) never builds: the BUILD check cannot compare it. **Retired:**
+`arch-stack`'s and `chip-die`'s CSS-3D tilt and hover lifts, `chip-die`'s
+readout island, `neural-flow`'s legend island and the scene's projected labels
+and count-up (`scenes/neuralFlow.ts`), `packet-trace`'s SVG bar and its
+legend disclosure, `commit-grid`'s rules in `themes/tech.css` (and the dead
+`.px-bench` / `.px-scurve` blocks there), the `.bc` and `.adc` blocks in
+`dataviz-v2.css`. `state-timeline`'s fixed encoding is now `#D7E2BF` /
+`#C97C22` / `#A02D18` (blueprint §6 amended).
 
 ### 2026-09-30 — Lens Phase 4a: the stage, the pages, the intro, the cover field
 

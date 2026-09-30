@@ -575,21 +575,17 @@
   .pxs-step__link[aria-current='step'] .pxs-step__label { color: var(--ink); font-weight: 600; }
   .pxs-step__link:hover .pxs-step__label { color: var(--ink); }
 
-  /* The figure in a 312px card: a chart drawn for the 720 measure keeps the
-     width it was drawn at and scrolls inside the card, so no label prints
-     below the size it was drawn at. The widths are the phone block's in
-     dataviz-v2.css ("the 2026-09-07 rule"); keep the two lists in step
-     until Phase 6 redraws these kinds compact. */
+  /* The figure in a 312px card. Since Lens Phase 6 every kind is drawn for
+     the 472px figure panel; the ones below still keep their drawn width and
+     scroll inside the card, so no label prints under 12px. The widths mirror
+     each component's own phone rule (and the phone block in dataviz-v2.css);
+     keep them in step. */
   .pxs-beat__viz :is(.px-viz, [data-viz-root]) { overflow-x: auto; overscroll-behavior-x: contain; }
-  .pxs-beat__viz .px-map__svg { min-width: 800px; }
-  .pxs-beat__viz .px-eriv__svg { min-width: 760px; }
-  .pxs-beat__viz :is(.px-cloop__svg, .px-eclp__svg, .px-etrek__svg, .px-fterr__svg, .px-lagr__svg,
-    .px-mldr__svg, .px-mom__svg, .px-pflow__svg, .px-pkt__bar, .px-prdg__svg, .px-qc__svg,
-    .px-quake__svg, .px-vflow__svg, .px-xgr__svg) { min-width: 720px; }
-  .pxs-beat__viz .px-altox__svg { min-width: 668px; }
-  .pxs-beat__viz :is(.ac__svg, .adc__svg, .px-desc__svg, .px-scale__svg, .px-traj__svg) { min-width: 640px; }
-  .pxs-beat__viz .px-atmc__svg { min-width: 560px; }
-  .pxs-beat__viz .px-cval__svg { min-width: var(--vbw); }
+  .pxs-beat__viz .px-eriv__svg { min-width: 552px; }
+  .pxs-beat__viz :is(.px-mom__svg, .px-prdg__svg, .px-xgr__svg) { min-width: 452px; }
+  .pxs-beat__viz :is(.adc__svg, .px-mldr__svg, .px-qc__svg, .px-scale__svg,
+    .px-map__plot, .px-cloop__plot, .px-quake__plot) { min-width: 460px; }
+  .pxs-beat__viz :is(.ac__canvas, .px-vflow__canvas, .px-pflow__canvas) { min-width: 440px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

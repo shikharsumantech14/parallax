@@ -6,29 +6,42 @@
   accepted as aliases (KIND_ALIASES in src/content/config.ts), so every issue
   that authored them still builds, unedited.
 
+  LENS PHASE 6 (2026-09-30): the three are ONE drawing, the board
+  `Lib-carbon-gauge.dc.html` ("gauge, was carbon-gauge · swing-dial ·
+  throughput-dial"): a half arc from left over the top to right, the track in
+  the desk tint, the filled part in the desk mark, one number set large in the
+  bowl of the arc. The old px-cgauge / px-swdial / px-tdial markup is gone.
+
   Three variants, derived from the fields present unless `variant` is authored:
 
     budget    { remaining (0–1), remainingGt?, usedGt?, totalGt?, target?, year? }
-              was carbon-gauge — a half arc filled by what is already used.
+              the arc filled by what is used; the number is the used share.
     lean      { value (-100..100), leftLabel?, rightLabel?, markers?: [{at, label}] }
-              was swing-dial — a needle between two blocs.
+              the arc split at its top into the two blocs; the fill runs from
+              the middle toward the side the value leans; markers tick the arc.
     capacity  { value, max, unit?, label?, zones?: [{from, to, label?}] }
-              was throughput-dial — a 270° arc filled to value / max.
+              the arc filled to value / max; zones ride a thin ring outside it.
 
   Derivation: `remaining` present → budget; else `max` present → capacity;
-  else → lean. Each variant keeps the markup and CSS of the component it came
-  from (prefixes px-cgauge / px-swdial / px-tdial), so the backlist renders
-  exactly as before. Phase 6 of the Lens plan redraws the three as one arc
-  geometry; until then this file is the fold, not the redesign.
+  else → lean.
 
-  Renders no source line: `core/Section.astro` is the one source emitter.
-  The budget variant carries its caption in `.px-cgauge__caption`; the other
-  two in `.px-viz__cap`, both spellings the shell's :has() rule can see.
+  Cue anchors:
+    value    the headline number (and the boundary tick on the arc)
+    fill     the filled arc (budget: used; capacity: the reading; lean: the swing)
+    rest     the unfilled arc (budget: what is left; capacity: the headroom)
+    left     lean only: the left bloc's half and its end label
+    right    lean only: the right bloc's half and its end label
+    target   budget only: the target and year line
+    1..n     capacity: each zone, in data order; lean: each marker, in data order
 
-  Build-time SVG, painted in its final state (static since Lens Phase 5): the
-  needle rests at its final angle and the capacity arc at its full dash. Only
-  the capacity value counts up, through build.ts; the rest of the build order
-  arrives in Phase 6.
+  The build (LENS §6.4, src/scripts/build.ts): the root is the scene. 1 the
+  unfilled arc fades in (the axis), 2 the fill draws and the zones and marker
+  ticks fade, 3 the end labels and the key rise, 4 the number counts up.
+
+  Drawn for the figure panel: the arc is an SVG 440 units wide with NO text in
+  it; every word and the number are HTML over and under it, so they print at
+  their size at any width (no text scales with the SVG). Renders no source and
+  no caption: `core/Section.astro` prints both. Prefix px-gauge.
 */
 type Variant = 'budget' | 'lean' | 'capacity';
 interface Marker { at: number; label: string; }
@@ -53,530 +66,334 @@ interface Props {
   leftLabel?: string;
   rightLabel?: string;
   markers?: Marker[];
+  /** Accepted and never rendered: the article holds the one caption. */
   caption?: string;
+  /** Accepted and never rendered: core/Section.astro prints the source. */
   source?: string;
 }
 const props = Astro.props;
-const { caption } = props;
 
 const variant: Variant =
   props.variant ??
   (props.remaining !== undefined ? 'budget' : props.max !== undefined ? 'capacity' : 'lean');
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const f1 = (n: number) => n.toFixed(1);
 
-/* ── budget (was carbon-gauge) ──────────────────────────────────────────────
-   Arc runs from LEFT (the start of the budget) over the TOP to RIGHT (the
-   full budget). The FILLED arc is what is already used; the needle sits at
-   the boundary. 2026-09-24 geometry: both arcs sweep over the top, the end
-   labels and target line are HTML under the gauge so they wrap at any length. */
-const B = (() => {
-  const { remainingGt, usedGt, totalGt, target, year } = props;
-  const remaining = props.remaining ?? 0;
-  const W = 400;
-  const SW = 16;
-  const R = 170;
-  const cx = W / 2;
-  const cy = R + SW / 2 + 12;
-  const H = cy + 8;
-  const at = (u: number) => ({ x: cx - R * Math.cos(u * Math.PI), y: cy - R * Math.sin(u * Math.PI) });
-  const x0 = cx - R, x1 = cx + R;
-  const trackPath = `M ${x0},${cy} A ${R},${R} 0 0,1 ${x1},${cy}`;
-  const f = clamp(remaining, 0, 1);
+/* ── the one geometry ─────────────────────────────────────────────────────── */
+const W = 440;
+const R = 176;          // the band's centre line
+const SW = 40;          // the band
+const RING = R + SW / 2 + 9; // the zone ring's centre line (capacity)
+const cx = W / 2;
+const cy = 216;
+const H = cy + 2;
+const at = (u: number, r = R) => ({ x: cx - r * Math.cos(Math.PI * u), y: cy - r * Math.sin(Math.PI * u) });
+const arc = (a: number, b: number, r = R) => {
+  const p0 = at(a, r), p1 = at(b, r);
+  return `M ${f1(p0.x)} ${f1(p0.y)} A ${r} ${r} 0 0 ${b > a ? 1 : 0} ${f1(p1.x)} ${f1(p1.y)}`;
+};
+/* a tick across the band at u */
+const tick = (u: number, out = 6) => {
+  const p0 = at(u, R - SW / 2 - out), p1 = at(u, R + SW / 2 + out);
+  return { x1: f1(p0.x), y1: f1(p0.y), x2: f1(p1.x), y2: f1(p1.y) };
+};
+/* a pin (the numeral's place on the band) at u, as % of the drawing box */
+const pin = (u: number) => {
+  const p = at(u);
+  return `left:${((p.x / W) * 100).toFixed(2)}%;top:${((p.y / H) * 100).toFixed(2)}%`;
+};
+const EPS = 0.002;
+
+type Seg = { id: string; d: string; tone: 'mark' | 'tint' | 'well'; pin?: string };
+type Key = { id: string; swatch: 'mark' | 'tint' | 'well' | 'zone' | 'tick'; zoneOpacity?: number; k?: string; v: string };
+
+let segs: Seg[] = [];          // step 1 (tone tint / well) and step 2 (tone mark)
+let zonePaths: { id: string; d: string; o: number }[] = [];
+let markerTicks: { id: string; t: ReturnType<typeof tick> }[] = [];
+let boundary: ReturnType<typeof tick> | null = null;
+let ends: { l: string; r: string; lId?: string; rId?: string } = { l: '', r: '' };
+let keys: Key[] = [];
+let meta: string | undefined;
+let num = { text: '', to: 0, dp: false };
+let numSub: string | undefined;
+let numUnit: string | undefined;
+let aria = '';
+
+if (variant === 'budget') {
+  const f = clamp(props.remaining ?? 0, 0, 1);
   const used = 1 - f;
-  const n = at(used);
-  const usedPath = used > 0.001
-    ? `M ${x0},${cy} A ${R},${R} 0 0,1 ${n.x.toFixed(2)},${n.y.toFixed(2)}`
-    : '';
-  const gaugeColor = f > 0.5 ? '#2d6a4f' : f > 0.25 ? '#f4a261' : '#e63946';
-  const pct = Math.round(f * 100);
-  const ticks = [0.25, 0.5, 0.75].map((u) => {
-    const p = at(u);
-    const rx = (p.x - cx) / R, ry = (p.y - cy) / R;
-    const h = SW * 0.6;
-    return { x1: p.x - rx * h, y1: p.y - ry * h, x2: p.x + rx * h, y2: p.y + ry * h };
-  });
-  // The remaining line sits inside the arc; wrap it to the chord the arc
-  // leaves free at its height (inner radius R − SW/2), ~0.52em per character.
-  const RG_FS = 14, RG_Y = cy - 104;
-  const chord = 2 * Math.sqrt(Math.max(0, (R - SW / 2) ** 2 - (cy - RG_Y + RG_FS) ** 2)) - 16;
-  const rgMax = Math.max(8, Math.floor(chord / (RG_FS * 0.52)));
-  const rgLines: string[] = [];
-  for (const word of (remainingGt ?? '').split(/\s+/).filter(Boolean)) {
-    const last = rgLines[rgLines.length - 1];
-    if (last && (last + ' ' + word).length <= rgMax) rgLines[rgLines.length - 1] = last + ' ' + word;
-    else rgLines.push(word);
-  }
-  const rgShown = rgLines.length > 2 ? [rgLines[0], rgLines.slice(1).join(' ')] : rgLines;
-  const rgTop = RG_Y - (rgShown.length - 1) * (RG_FS + 3);
-  const meta = [target, year].filter(Boolean).join(' · ');
-  return { W, H, SW, cx, cy, trackPath, usedPath, gaugeColor, pct, ticks, n, RG_FS, rgShown, rgTop, meta, usedGt, totalGt };
-})();
+  if (used > EPS) segs.push({ id: 'fill', d: arc(0, used), tone: 'mark', pin: pin(used / 2) });
+  if (f > EPS) segs.push({ id: 'rest', d: arc(used, 1), tone: 'tint', pin: pin(used + f / 2) });
+  if (used > EPS && f > EPS) boundary = tick(used);
+  const pct = Math.round(used * 100);
+  num = { text: `${pct}%`, to: pct, dp: false };
+  numSub = 'of the budget used';
+  ends = { l: '0', r: props.totalGt ?? '100%' };
+  if (props.usedGt) keys.push({ id: 'fill', swatch: 'mark', k: 'Used', v: props.usedGt });
+  if (props.remainingGt) keys.push({ id: 'rest', swatch: 'tint', k: 'Left', v: props.remainingGt });
+  meta = [props.target, props.year].filter(Boolean).join(' · ') || undefined;
+  aria = `Budget gauge: ${pct}% used, ${Math.round(f * 100)}% left.`;
+}
 
-/* Lens (2026-09-30): the gauge's words and its number are UI, so they set in
-   the Instrument Sans stack, literal (RD-01b: never var() inside an SVG). */
-const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
-
-/* ── lean (was swing-dial) ──────────────────────────────────────────────────
-   A semicircle swing-o-meter: -100..100 mapped onto a ±82° needle throw. */
-const L = (() => {
+if (variant === 'lean') {
   const leftLabel = props.leftLabel ?? 'Left';
   const rightLabel = props.rightLabel ?? 'Right';
-  const markers = props.markers ?? [];
   const v = clamp(props.value ?? 0, -100, 100);
-  const W = 360, H = 210;
-  const cx = W / 2, cy = 184;
-  const rArc = 150;
-  const SWING = 82;
-  const angle = (v / 100) * SWING;
-  const ptOnArc = (deg: number, r = rArc) => {
-    const rad = ((deg - 90) * Math.PI) / 180;
-    return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
-  };
-  const aStart = ptOnArc(-90);
-  const aEnd = ptOnArc(90);
-  const arcPath = `M ${aStart.x.toFixed(1)} ${aStart.y.toFixed(1)} A ${rArc} ${rArc} 0 0 1 ${aEnd.x.toFixed(1)} ${aEnd.y.toFixed(1)}`;
-  const TICKS = 9;
-  const ticks = Array.from({ length: TICKS }, (_, i) => {
-    const deg = -90 + (i / (TICKS - 1)) * 180;
-    const major = i === 0 || i === TICKS - 1 || i === (TICKS - 1) / 2;
-    const inner = ptOnArc(deg, rArc - (major ? 16 : 9));
-    const outer = ptOnArc(deg, rArc + 1);
-    return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, major };
-  });
-  // Marker labels sit just outside the arc; near the ends a middle-anchored
-  // label would spill past the viewBox, so anchor by side and clamp x.
-  const LBL_PAD = 10;
-  const markerGeo = markers.map((m) => {
-    const md = (clamp(m.at, -100, 100) / 100) * SWING;
-    const inner = ptOnArc(md, rArc - 20);
-    const outer = ptOnArc(md, rArc + 2);
-    const lbl = ptOnArc(md, rArc + 16);
-    const anchor = md < -18 ? 'start' : md > 18 ? 'end' : 'middle';
-    const lx = clamp(lbl.x, LBL_PAD, W - LBL_PAD);
-    return { label: m.label, x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, lx, ly: lbl.y, anchor };
-  });
-  const leftAnchor = ptOnArc(-90, rArc - 30);
-  const rightAnchor = ptOnArc(90, rArc - 30);
-  const needleLen = rArc - 24;
-  const lean = v === 0 ? 'even' : v < 0 ? leftLabel : rightLabel;
+  const u = 0.5 + v / 200;
+  const uOf = (x: number) => 0.5 + clamp(x, -100, 100) / 200;
+  segs.push({ id: 'left', d: arc(0, 0.5), tone: v < 0 ? 'tint' : 'well' });
+  segs.push({ id: 'right', d: arc(0.5, 1), tone: v > 0 ? 'tint' : 'well' });
+  if (Math.abs(v) > 0.4) segs.push({ id: 'fill', d: arc(0.5, u), tone: 'mark', pin: pin((0.5 + u) / 2) });
+  boundary = tick(0.5, 10);
+  markerTicks = (props.markers ?? []).map((m, i) => ({ id: String(i + 1), t: tick(uOf(m.at), 2) }));
   const mag = Math.abs(v);
-  return { leftLabel, rightLabel, v, W, H, cx, cy, angle, arcPath, ticks, markerGeo, leftAnchor, rightAnchor, needleLen, lean, mag };
-})();
+  const sign = v > 0 ? '+' : v < 0 ? '−' : '';
+  num = { text: `${sign}${mag}`, to: mag, dp: !Number.isInteger(mag) };
+  numSub = v === 0 ? 'evenly split' : `toward ${v < 0 ? leftLabel : rightLabel}`;
+  ends = { l: leftLabel, r: rightLabel, lId: 'left', rId: 'right' };
+  keys = (props.markers ?? []).map((m, i) => ({
+    id: String(i + 1),
+    swatch: 'tick' as const,
+    v: m.label,
+    k: `${m.at > 0 ? '+' : m.at < 0 ? '−' : ''}${Math.abs(m.at)}`,
+  }));
+  aria = `Lean gauge: ${mag} points toward ${v === 0 ? 'neither side' : v < 0 ? leftLabel : rightLabel}.`;
+}
 
-/* ── capacity (was throughput-dial) ─────────────────────────────────────────
-   A 270° arc, open at the bottom, filled to value / max, with optional zones. */
-const C = (() => {
-  const unit = props.unit ?? 'req/s';
-  const label = props.label;
-  const zones = props.zones ?? [];
-  const safeMax = Math.max(1, props.max || 1);
+if (variant === 'capacity') {
+  const unit = props.unit;
+  const safeMax = Math.max(1e-9, props.max || 1);
   const val = clamp(props.value ?? 0, 0, safeMax);
   const frac = val / safeMax;
-  const W = 280, H = 260;
-  const cx = W / 2, cy = 132;
-  const R = 104;
-  const SWEEP = 270;
-  const START = 135;
-  const pt = (deg: number, r = R) => {
-    const rad = (deg * Math.PI) / 180;
-    return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
-  };
-  const arc = (a: number, b: number, r = R) => {
-    const d0 = START + a * SWEEP;
-    const d1 = START + b * SWEEP;
-    const p0 = pt(d0, r), p1 = pt(d1, r);
-    const large = (b - a) * SWEEP > 180 ? 1 : 0;
-    return `M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
-  };
-  const trackPath = arc(0, 1);
-  const fillPath = arc(0, frac);
-  const arcLen = (SWEEP / 360) * 2 * Math.PI * R;
-  const zoneColors = [
-    'color-mix(in oklab, var(--muted) 55%, var(--paper))',
-    'color-mix(in oklab, var(--accent) 45%, var(--muted))',
-    'var(--accent)',
-  ];
-  const zoneGeo = zones
+  if (frac > EPS) segs.push({ id: 'fill', d: arc(0, frac), tone: 'mark', pin: pin(frac / 2) });
+  if (frac < 1 - EPS) segs.push({ id: 'rest', d: arc(frac, 1), tone: 'tint', pin: pin(frac + (1 - frac) / 2) });
+  if (frac > EPS && frac < 1 - EPS) boundary = tick(frac);
+  const OP = [0.35, 0.6, 0.9];
+  zonePaths = (props.zones ?? [])
     .map((z, i) => {
       const a = clamp(z.from, 0, safeMax) / safeMax;
       const b = clamp(z.to, 0, safeMax) / safeMax;
-      if (b <= a) return null;
-      return { d: arc(a, b, R), color: zoneColors[i % zoneColors.length], label: z.label, i };
+      return b > a ? { id: String(i + 1), d: arc(a, b, RING), o: OP[i % OP.length] } : null;
     })
     .filter((z): z is NonNullable<typeof z> => z !== null);
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
-    const deg = START + f * SWEEP;
-    const inner = pt(deg, R - 14);
-    const outer = pt(deg, R - 2);
-    return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y };
-  });
-  const e0 = pt(START, R + 15);
-  const e1 = pt(START + SWEEP, R + 15);
-  const endLabels = [
-    { x: e0.x, y: e0.y + 4, val: 0 },
-    { x: e1.x, y: e1.y + 4, val: safeMax },
-  ];
-  const valText = Number.isInteger(val) ? val.toLocaleString() : (Math.round(val * 100) / 100).toLocaleString();
-  return { unit, label, safeMax, val, W, H, trackPath, fillPath, arcLen, zoneGeo, ticks, endLabels, valText };
-})();
+  const fmt = (n: number) => (Number.isInteger(n) ? n.toLocaleString('en-US') : (Math.round(n * 10) / 10).toLocaleString('en-US'));
+  const pctUnit = unit === '%';
+  num = { text: `${fmt(val)}${pctUnit ? '%' : ''}`, to: val, dp: !Number.isInteger(val) };
+  numUnit = pctUnit ? undefined : unit;
+  numSub = props.label;
+  ends = { l: '0', r: `${fmt(safeMax)}${pctUnit ? '%' : ''}` };
+  keys = (props.zones ?? []).map((z, i) => ({
+    id: String(i + 1),
+    swatch: 'zone' as const,
+    zoneOpacity: OP[i % OP.length],
+    v: z.label ?? `${fmt(z.from)} to ${fmt(z.to)}${unit ? ' ' + unit : ''}`,
+  }));
+  aria = `${props.label ? props.label + ': ' : ''}${fmt(val)} of ${fmt(safeMax)}${unit ? ' ' + unit : ''}.`;
+}
+
+const tag = (id: string) => `<span class="px-cue-tag" data-cue-tag="${id}" hidden></span>`;
+const TONE: Record<string, string> = { mark: 'var(--accent)', tint: 'var(--accent-tint)', well: 'var(--paper-3)' };
 ---
 
-{variant === 'budget' && (
-  <div class="px-cgauge" data-viz-root data-gauge="budget">
-    {caption && <div class="px-cgauge__caption">{caption}</div>}
-
-    <svg viewBox={`0 0 ${B.W} ${B.H}`} class="px-cgauge__svg" role="img"
-      aria-label={`Budget gauge: ${B.pct}% remaining`}>
-      <path d={B.trackPath}
-        style={`fill:none;stroke:var(--rule);stroke-width:${B.SW};stroke-linecap:butt;opacity:0.8`} />
-      {B.usedPath && (
-        <path d={B.usedPath}
-          style={`fill:none;stroke:${B.gaugeColor};stroke-width:${B.SW};stroke-linecap:butt`} />
-      )}
-      {B.ticks.map((t) => (
-        <line x1={t.x1.toFixed(2)} y1={t.y1.toFixed(2)} x2={t.x2.toFixed(2)} y2={t.y2.toFixed(2)}
-          style="stroke:var(--bg);stroke-width:2;opacity:0.9" />
+<div class="px-gauge" data-viz-root data-gauge={variant} data-build-scene>
+  <div class="px-gauge__dial">
+    <svg class="px-gauge__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      {segs.filter((s) => s.tone !== 'mark').map((s) => (
+        <path d={s.d} data-cue={s.id} data-build="1" style={`fill:none;stroke:${TONE[s.tone]};stroke-width:${SW}`} />
       ))}
-      <circle cx={B.n.x.toFixed(2)} cy={B.n.y.toFixed(2)} r={6}
-        style={`fill:${B.gaugeColor};stroke:var(--bg);stroke-width:2`} />
-      {B.rgShown.length > 0 && (
-        <text x={B.cx} y={B.rgTop} text-anchor="middle"
-          style={`${SANS};font-size:${B.RG_FS}px;fill:var(--ink-soft);letter-spacing:0.01em`}>
-          {B.rgShown.map((ln, i) => <tspan x={B.cx} dy={i === 0 ? 0 : B.RG_FS + 3}>{ln}</tspan>)}
-        </text>
+      {zonePaths.map((z) => (
+        <path d={z.d} data-cue={z.id} data-build="2" style={`fill:none;stroke:var(--accent-deep);stroke-opacity:${z.o};stroke-width:10`} />
+      ))}
+      {segs.filter((s) => s.tone === 'mark').map((s) => (
+        <path d={s.d} data-cue={s.id} data-build="2" data-build-kind="draw" style={`fill:none;stroke:${TONE.mark};stroke-width:${SW}`} />
+      ))}
+      {markerTicks.map((m) => (
+        <line x1={m.t.x1} y1={m.t.y1} x2={m.t.x2} y2={m.t.y2} data-cue={m.id} data-build="2" style="stroke:var(--ink-2);stroke-width:2" />
+      ))}
+      {boundary && (
+        <line x1={boundary.x1} y1={boundary.y1} x2={boundary.x2} y2={boundary.y2} data-cue="value" data-build="2" style="stroke:var(--ink);stroke-width:2" />
       )}
-      <text x={B.cx} y={B.cy - 26} text-anchor="middle"
-        style={`${SANS};font-size:60px;font-weight:600;fill:${B.gaugeColor};letter-spacing:-0.02em`}>
-        {B.pct}%
-      </text>
-      <text x={B.cx} y={B.cy - 4} text-anchor="middle"
-        style={`${SANS};font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:0.14em;text-transform:uppercase`}>
-        remaining
-      </text>
     </svg>
 
-    {(B.usedGt || B.totalGt) && (
-      <div class="px-cgauge__ends">
-        <p class="px-cgauge__end">
-          <span class="px-cgauge__k">Used</span>
-          {B.usedGt && <span class="px-cgauge__v">{B.usedGt}</span>}
-        </p>
-        <p class="px-cgauge__end px-cgauge__end--r">
-          <span class="px-cgauge__k">Full</span>
-          {B.totalGt && <span class="px-cgauge__v">{B.totalGt}</span>}
-        </p>
-      </div>
-    )}
-    {B.meta && <p class="px-cgauge__meta">{B.meta}</p>}
-  </div>
-)}
+    {segs.filter((s) => s.pin).map((s) => (
+      <span class="px-gauge__pin" style={s.pin} data-cue={s.id} data-build="3"><Fragment set:html={tag(s.id)} /></span>
+    ))}
 
-{variant === 'lean' && (
-  <div class="px-viz" data-gauge="lean">
-    {caption && <div class="px-viz__cap"><span>{caption}</span><b>swing meter</b></div>}
-
-    <div class="px-swdial px3d-stage">
-      <div class="px-swdial__tilt px3d-tilt" data-tilt="6">
-        <svg
-          class="px-swdial__svg"
-          viewBox={`0 0 ${L.W} ${L.H}`}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={`Swing meter: ${L.mag}-point lean toward ${L.lean === 'even' ? 'neither side' : L.lean}`}
-        >
-          <path class="px-swdial__arc" d={L.arcPath} />
-          {L.ticks.map((t) => (
-            <line
-              class={`px-swdial__tick${t.major ? ' px-swdial__tick--major' : ''}`}
-              x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)}
-              x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)}
-            />
-          ))}
-          {L.markerGeo.map((m) => (
-            <g class="px-swdial__marker">
-              <line x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} />
-              <text x={m.lx.toFixed(1)} y={m.ly.toFixed(1)} text-anchor={m.anchor}>{m.label}</text>
-            </g>
-          ))}
-          <text class="px-swdial__end px-swdial__end--l" x={L.leftAnchor.x.toFixed(1)} y={L.leftAnchor.y.toFixed(1)} text-anchor="middle">{L.leftLabel}</text>
-          <text class="px-swdial__end px-swdial__end--r" x={L.rightAnchor.x.toFixed(1)} y={L.rightAnchor.y.toFixed(1)} text-anchor="middle">{L.rightLabel}</text>
-          <g
-            class="px-swdial__needle"
-            style={`--swing:${L.angle.toFixed(2)}deg; transform-origin:${L.cx}px ${L.cy}px`}
-          >
-            <polygon
-              class="px-swdial__needle-tri"
-              points={`${L.cx - 5},${L.cy} ${L.cx + 5},${L.cy} ${L.cx},${(L.cy - L.needleLen).toFixed(1)}`}
-            />
-          </g>
-          <circle class="px-swdial__hub" cx={L.cx} cy={L.cy} r="11" />
-          <circle class="px-swdial__hub-dot" cx={L.cx} cy={L.cy} r="4" />
-        </svg>
-      </div>
-
-      <div class="px-swdial__readout" data-lean={L.v === 0 ? 'even' : L.v < 0 ? 'left' : 'right'}>
-        <span class="px-swdial__val">{L.v > 0 ? '+' : ''}{L.v}</span>
-        <span class="px-swdial__lead">
-          {L.lean === 'even'
-            ? 'evenly split'
-            : <>{L.mag}-pt swing → <b>{L.lean}</b></>}
-        </span>
-      </div>
+    <div class="px-gauge__read" data-cue="value">
+      <p class="px-gauge__num">
+        <span class="px-gauge__n" data-build="4" data-build-kind="counter" data-to={num.to} data-format={num.dp ? '1dp' : undefined}>{num.text}</span>
+        {numUnit && <span class="px-gauge__u">{numUnit}</span>}
+      </p>
+      {numSub && <p class="px-gauge__sub" data-build="3" data-build-kind="rise"><Fragment set:html={tag('value')} />{numSub}</p>}
+      {!numSub && <Fragment set:html={tag('value')} />}
     </div>
   </div>
-)}
 
-{variant === 'capacity' && (
-  <div class="px-viz" data-gauge="capacity" data-build-scene>
-    {caption && <div class="px-viz__cap"><span>{caption}</span><b>{C.unit}</b></div>}
+  <div class="px-gauge__ends" data-build="3" data-build-kind="rise">
+    <span class="px-gauge__end" data-cue={ends.lId}>{ends.lId && <Fragment set:html={tag(ends.lId)} />}{ends.l}</span>
+    <span class="px-gauge__end px-gauge__end--r" data-cue={ends.rId}>{ends.rId && <Fragment set:html={tag(ends.rId)} />}{ends.r}</span>
+  </div>
 
-    <div class="px-tdial px3d-stage">
-      <div class="px-tdial__tilt px3d-tilt" data-tilt="6">
-        <svg
-          class="px-tdial__svg"
-          viewBox={`0 0 ${C.W} ${C.H}`}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={`${C.label ? C.label + ': ' : ''}${C.valText} of ${C.safeMax.toLocaleString()} ${C.unit}`}
-        >
-          {C.zoneGeo.map((z) => (
-            <path class="px-tdial__zone" d={z.d} style={`stroke:${z.color}`} />
-          ))}
-          <path class="px-tdial__track" d={C.trackPath} />
-          {C.ticks.map((t) => (
-            <line class="px-tdial__tick" x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)} x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)} />
-          ))}
-          {C.endLabels.map((e) => (
-            <text class="px-tdial__scale" x={e.x.toFixed(1)} y={e.y.toFixed(1)} text-anchor="middle">{e.val.toLocaleString()}</text>
-          ))}
-          <path
-            class="px-tdial__fill"
-            d={C.fillPath}
-            style={`--len:${C.arcLen.toFixed(1)}`}
-          />
-        </svg>
-
-        <div class="px-tdial__readout">
-          <span class="px-tdial__val" data-build="1" data-build-kind="counter" data-to={C.val} data-format={Number.isInteger(C.val) ? undefined : '1dp'}>{C.valText}</span>
-          <span class="px-tdial__unit">{C.unit}</span>
-          {C.label && <span class="px-tdial__label">{C.label}</span>}
-        </div>
-      </div>
-
-      {C.zoneGeo.some((z) => z.label) && (
-        <div class="px-tdial__legend">
-          {C.zoneGeo.filter((z) => z.label).map((z) => (
-            <span class="px-tdial__key"><i style={`background:${z.color}`}></i>{z.label}</span>
-          ))}
-        </div>
+  {(keys.length > 0 || meta) && (
+    <ul class="px-gauge__key">
+      {keys.map((k) => (
+        <li class="px-gauge__row" data-cue={k.id} data-build="3" data-build-kind="rise">
+          <span class:list={['px-gauge__sw', `px-gauge__sw--${k.swatch}`]} style={k.zoneOpacity != null ? `opacity:${k.zoneOpacity}` : undefined} aria-hidden="true"></span>
+          <span class="px-gauge__kt">
+            {variant !== 'budget' && k.swatch !== 'mark' && k.swatch !== 'tint' && <Fragment set:html={tag(k.id)} />}
+            {k.k && <b class="px-gauge__kk">{k.k}</b>}
+            {k.v}
+          </span>
+        </li>
+      ))}
+      {meta && (
+        <li class="px-gauge__row px-gauge__row--meta" data-cue="target" data-build="3" data-build-kind="rise">
+          <span class="px-gauge__kt"><Fragment set:html={tag('target')} />{meta}</span>
+        </li>
       )}
-    </div>
-  </div>
-)}
+    </ul>
+  )}
+</div>
 
 <style>
-  /* ── budget ── The end labels and the target line sit under the gauge, on
-     the same 480px measure as the SVG (earth.css), so each end block lines up
-     under its arc end. HTML, so they wrap at any authored length. */
-  .px-cgauge__ends {
-    max-width: 480px;
-    margin: 6px auto 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+  .px-gauge {
+    container-type: inline-size;
+    max-width: 472px;
+    margin: 0 auto;
   }
-  .px-cgauge__end { margin: 0; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  .px-cgauge__end--r { text-align: right; align-items: flex-end; }
-  .px-cgauge__k {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .px-cgauge__v {
-    font-family: var(--font-body);
-    font-size: 13px;
-    line-height: 1.4;
-    color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: break-word;
-  }
-  .px-cgauge__meta {
-    max-width: 480px;
-    margin: 14px auto 0;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+  .px-gauge__dial { position: relative; }
+  .px-gauge__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  /* SVG anchors light by opacity only: an outline would ring the path's box. */
+  .px-gauge__svg [data-cue] { outline: none !important; }
 
-  /* ── lean ── */
-  .px-swdial { max-width: 420px; margin: 0 auto; }
-  .px-swdial__tilt { border-radius: var(--r-card); transform-origin: 50% 90%; }
-  .px-swdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .px-swdial__arc {
-    fill: none;
-    stroke: var(--rule);
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
-  .px-swdial__tick { stroke: var(--rule); stroke-width: 1.5; }
-  .px-swdial__tick--major { stroke: var(--ink-soft); stroke-width: 2; }
-  .px-swdial__marker line { stroke: var(--accent); stroke-width: 2; }
-  .px-swdial__marker text {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    fill: var(--muted);
-    font-variant-numeric: tabular-nums;
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
-    stroke-linejoin: round;
-  }
-  .px-swdial__end {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    fill: var(--ink-soft);
-    font-weight: 700;
-  }
-  /* Needle — base/resting state is the FINAL angle (no-JS safe). */
-  .px-swdial__needle {
-    transform: rotate(var(--swing));
-    transform-box: view-box;
-    transition: transform var(--t-page) var(--ease-snap);
-  }
-  .px-swdial__needle-tri { fill: var(--accent-deep, var(--accent)); }
-  .px-swdial__hub { fill: var(--ink); }
-  .px-swdial__hub-dot { fill: var(--paper); }
-  .px-swdial__readout {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 6px;
-    text-align: center;
-  }
-  .px-swdial__val {
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 700;
-    font-size: 38px;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .px-swdial__readout[data-lean="left"] .px-swdial__val,
-  .px-swdial__readout[data-lean="right"] .px-swdial__val { color: var(--accent-deep, var(--accent)); }
-  .px-swdial__lead {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .px-swdial__lead b { color: var(--ink); font-weight: 700; }
-
-  /* ── capacity ── */
-  .px-tdial { max-width: 320px; margin: 0 auto; }
-  .px-tdial__tilt {
-    position: relative;
-    border-radius: var(--r-tile);
-    transform-origin: 50% 55%;
-  }
-  .px-tdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .px-tdial__zone {
-    fill: none;
-    stroke-width: 14;
-    stroke-linecap: butt;
-    opacity: 0.5;
-  }
-  .px-tdial__track {
-    fill: none;
-    stroke: color-mix(in oklab, var(--ink) 8%, var(--bg));
-    stroke-width: 14;
-    stroke-linecap: round;
-  }
-  .px-tdial__tick { stroke: var(--ink-soft); stroke-width: 2; opacity: 0.5; }
-  .px-tdial__scale {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    fill: var(--muted);
-    font-variant-numeric: tabular-nums;
-    paint-order: stroke;
-    stroke: var(--paper);
-    stroke-width: 2.5px;
-    stroke-linejoin: round;
-  }
-  .px-tdial__fill {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 14;
-    stroke-linecap: round;
-    stroke-dasharray: var(--len);
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 1200ms var(--ease-snap);
-  }
-  .px-tdial__readout {
+  /* The numeral's place on the band: a 20px disc centred on the arc. */
+  .px-gauge__pin {
     position: absolute;
-    left: 0; right: 0;
-    top: 50%;
-    transform: translateY(-58%);
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border-radius: 999px;
+    display: flex;
+  }
+  .px-gauge__pin :global(.px-cue-tag) { margin: 0; background: var(--accent-deep); box-shadow: 0 0 0 2px var(--paper-2); }
+
+  /* The number sits in the bowl of the arc. */
+  .px-gauge__read {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    pointer-events: none;
+    text-align: center;
+    border-radius: var(--r-ctl);
   }
-  .px-tdial__val {
-    font-family: var(--issue-face, var(--font-mono));
-    font-weight: 700;
-    font-size: 46px;
-    line-height: 1;
+  .px-gauge__num {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    /* The headline number (LENS §7): 96, 72 on phones, never wider than
+       the bowl of the arc. */
+    font-size: min(96px, 21cqi);
+    line-height: 0.92;
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  @media (max-width: 1023px) {
+    .px-gauge__num { font-size: min(72px, 24cqi); }
+  }
+  .px-gauge__u {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .px-gauge__sub {
+    margin: 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--ink-2);
+  }
+
+  /* The scale's two ends, under the arc's two feet. */
+  .px-gauge__ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  .px-gauge__end { display: flex; align-items: center; min-width: 0; overflow-wrap: anywhere; border-radius: var(--r-ctl); }
+  .px-gauge__end--r { text-align: right; justify-content: flex-end; }
+
+  /* The key: what each part of the arc is, as words that wrap. */
+  .px-gauge__key {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--hair);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .px-gauge__row {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--r-ctl);
+  }
+  .px-gauge__row--meta { grid-template-columns: minmax(0, 1fr); }
+  .px-gauge__sw { width: 16px; height: 12px; border-radius: 2px; }
+  .px-gauge__sw--mark { background: var(--accent); }
+  .px-gauge__sw--tint { background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--hair-2); }
+  .px-gauge__sw--well { background: var(--paper-3); }
+  .px-gauge__sw--zone { height: 6px; background: var(--accent-deep); }
+  .px-gauge__sw--tick { width: 2px; height: 16px; margin: 0 7px; background: var(--ink-2); }
+  .px-gauge__kt {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    min-width: 0;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.4;
     color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-gauge__kt :global(.px-cue-tag) { margin-right: 0; }
+  .px-gauge__kk {
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
     font-variant-numeric: tabular-nums;
   }
-  .px-tdial__unit {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-eyebrow, 10px);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-    /* air under the numeral (probe TOUCH, 2026-09-24) */
-    margin-top: 5px;
-  }
-  .px-tdial__label {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 4px;
-    text-align: center;
-  }
-  .px-tdial__legend {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 10px;
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-legend, 10px);
-    letter-spacing: 0.14em;
+  .px-gauge__row--meta .px-gauge__kt {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
   }
-  .px-tdial__key { display: inline-flex; align-items: center; gap: 7px; }
-  .px-tdial__key i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
 </style>

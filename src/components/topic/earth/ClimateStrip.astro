@@ -1,46 +1,36 @@
 ---
-/*
-  ClimateStrip — v2 warming-stripes treatment (.cs), wrapped in the elevated
-  .px-viz card. One bar per time unit, coloured along a diverging palette from
-  the value range, with an anomaly line over the top. Faithful port of the
-  publication-v2 kit <ClimateStrip>. Build-time computed, zero runtime JS;
-  static since Lens Phase 5 (its build order, LENS §6.4, arrives in Phase 6).
+/**
+ * ClimateStrip (earth) — warming stripes (Lens Phase 6, the Lib-climate-strip
+ * board): one stripe a year, shaded along the desk's ink ramp from its tint
+ * (the lowest value) through its mark to its deep (the highest), a year axis
+ * under the strip, a marker above each annotated year with its callout, and a
+ * scale of the ramp with its two ends. The warmest year is the headline.
+ *
+ * `palette` picks the direction of the ramp: `warming` and `rainfall` run
+ * light to dark as the value rises, `cooling` and `drought` dark to light,
+ * `custom` runs from `customMin` to `customMax` (authored colours, a fixed
+ * encoding). `showYears` / `showLegend` switch the axis and the scale;
+ * `baseline` and `unit` print on the scale.
+ *
+ * Cue anchors: `<year>` (each stripe, by its year: "2016") · `1`…`3` (each
+ * annotation marker, authored order) · `legend` (the scale) · `head` (the
+ * headline number).
+ * Build: the year axis (1) · stripes rise left to right (2) · annotation
+ * markers and callouts (3) · the headline number (4).
+ *
+ * data: { values[]{ year, value }, palette?, baseline?, unit?, showYears?,
+ *         showLegend?, customMin?, customMax?, annotations?[]{ at, text } }
+ */
+import FigHead from './FigHead.astro';
+import CueLayer from './CueLayer.astro';
+import { fmt } from './_fig';
 
-  PRESERVES the existing prop interface (`values`, not the kit's `series`):
-    values[]     — array of { year: number, value: number }
-    palette      — 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom'
-    baseline     — string describing the reference period (shown in scale row)
-    unit         — string appended to legend values (e.g. '°C', 'mm', 'ppm')
-    showYears    — show the year axis row (default true)
-    showLegend   — show the Cooler→Warmer scale row (default true)
-    customMin/customMax — hex stops for the custom palette
-    caption / source
-
-  The kit operates on `series`; here `values` already carries {year, value},
-  so it is used directly as the series. The kit hardcodes a blue→red
-  `warmColor()` and a "1850–1900" baseline; we keep the richer existing
-  palette system (a superset of the kit's warming ramp) and the real
-  `baseline` / `unit` props instead of hardcoding.
-*/
-
-interface DataPoint {
-  year: number;
-  value: number;
-}
-
+interface DataPoint { year: number; value: number; }
 type Palette = 'warming' | 'cooling' | 'rainfall' | 'drought' | 'custom';
-
-/* The annotation layer — docs/design/blueprints/_ANNOTATIONS.md. 0–3 per
-   chart, optional everywhere; absent ⇒ nothing renders. `side` / `series`
-   are accepted for contract parity: the strip has one series, and its
-   callouts always sit above the strip with a leader down to the stripe. */
-interface Annotation {
-  at: string | number;
-  text: string;
-  side?: 'above' | 'below' | 'left' | 'right';
-  series?: string;
-}
-
+/* The annotation layer (docs/design/blueprints/_ANNOTATIONS.md): `at` is the
+   year; `side` / `series` are accepted for contract parity (one series, the
+   callout always sits above the strip). */
+interface Annotation { at: string | number; text: string; side?: 'above' | 'below' | 'left' | 'right'; series?: string; }
 interface Props {
   values: DataPoint[];
   annotations?: Annotation[];
@@ -49,181 +39,153 @@ interface Props {
   unit?: string;
   showYears?: boolean;
   showLegend?: boolean;
-  customMin?: string;   // hex for custom palette cold end
-  customMax?: string;   // hex for custom palette warm end
+  customMin?: string;
+  customMax?: string;
   caption?: string;
   source?: string;
 }
-
 const {
-  values = [],
-  annotations = [],
-  palette = 'warming',
-  baseline,
-  unit = '',
-  showYears = true,
-  showLegend = true,
-  customMin,
-  customMax,
-  caption,
-  source,
+  values = [], annotations = [], palette = 'warming', baseline, unit = '',
+  showYears = true, showLegend = true, customMin, customMax, caption,
 } = Astro.props;
 
-// ── Palette definitions ─────────────────────────────────────────────────────
-// Each palette is an array of hex stops from cold/low → warm/high.
-const PALETTES: Record<Palette, string[]> = {
-  warming: [
-    '#08306b', '#2171b5', '#4292c6', '#9ecae1',
-    '#deebf7',   // near-neutral
-    '#fee0d2', '#fc9272', '#de2d26', '#a50f15',
-  ],
-  cooling: [
-    '#a50f15', '#de2d26', '#fc9272', '#fee0d2',
-    '#deebf7',   // near-neutral
-    '#9ecae1', '#4292c6', '#2171b5', '#08306b',
-  ],
-  rainfall: [
-    '#7f3b08', '#b35806', '#e08214', '#fdb863',
-    '#f7f7f7',   // near-neutral
-    '#b2abd2', '#8073ac', '#542788', '#2d004b',
-  ],
-  drought: [
-    '#003c30', '#01665e', '#35978f', '#80cdc1',
-    '#f5f5f5',   // near-neutral
-    '#dfc27d', '#bf812d', '#8c510a', '#543005',
-  ],
-  custom: [
-    customMin ?? '#08306b',
-    '#4292c6',
-    '#9ecae1',
-    '#deebf7',
-    '#fee0d2',
-    '#fc9272',
-    '#de2d26',
-    customMax ?? '#a50f15',
-  ],
+const vals = values.filter((d) => d && Number.isFinite(d.value));
+const n = vals.length;
+const vMin = n ? Math.min(...vals.map((d) => d.value)) : 0;
+const vMax = n ? Math.max(...vals.map((d) => d.value)) : 1;
+const norm = (v: number) => (v - vMin) / (vMax - vMin || 1);
+const reverse = palette === 'cooling' || palette === 'drought';
+
+/* the ramp: tint → mark → deep, or the two authored custom colours */
+const colorAt = (t0: number) => {
+  const t = reverse ? 1 - t0 : t0;
+  if (palette === 'custom') {
+    return `color-mix(in oklab, ${customMin ?? 'var(--accent-tint)'} ${Math.round((1 - t) * 100)}%, ${customMax ?? 'var(--deep, var(--ink))'})`;
+  }
+  return t < 0.5
+    ? `color-mix(in oklab, var(--accent-tint) ${Math.round(100 - t * 200)}%, var(--accent))`
+    : `color-mix(in oklab, var(--accent) ${Math.round(200 - t * 200)}%, var(--deep, var(--ink)))`;
 };
+const gradient = palette === 'custom'
+  ? `linear-gradient(90deg, ${customMin ?? 'var(--accent-tint)'}, ${customMax ?? 'var(--deep)'})`
+  : reverse
+    ? 'linear-gradient(90deg, var(--deep), var(--accent), var(--accent-tint))'
+    : 'linear-gradient(90deg, var(--accent-tint), var(--accent), var(--deep))';
 
-const stops = PALETTES[palette];
-
-// ── Compute value range ──────────────────────────────────────────────────────
-const rawValues = values.map((d) => d.value);
-const minVal = rawValues.length ? Math.min(...rawValues) : 0;
-const maxVal = rawValues.length ? Math.max(...rawValues) : 0;
-const range  = maxVal - minVal || 1;
-
-// ── Map value → hex colour via palette stops ─────────────────────────────────
-function hexToRgb(h: string): [number, number, number] {
-  const n = parseInt(h.replace('#', ''), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-function lerp(a: number, b: number, t: number) { return Math.round(a + (b - a) * t); }
-
-function valueToColor(val: number): string {
-  const t = (val - minVal) / range;           // 0 = coldest, 1 = warmest
-  const scaled = t * (stops.length - 1);
-  const lo = Math.floor(scaled);
-  const hi = Math.min(lo + 1, stops.length - 1);
-  const frac = scaled - lo;
-  const [r1, g1, b1] = hexToRgb(stops[lo]);
-  const [r2, g2, b2] = hexToRgb(stops[hi]);
-  return `rgb(${lerp(r1, r2, frac)},${lerp(g1, g2, frac)},${lerp(b1, b2, frac)})`;
-}
-
-// ── Anomaly line overlay geometry (kit constants/formulas) ───────────────────
-const W = 640, H = 150, n = values.length;
-const norm = (v: number) => (v - minVal) / range;
-const x  = (i: number) => (n > 1 ? (i / (n - 1)) * W : W / 2);
-const yv = (v: number) => H - 12 - norm(v) * (H - 28);
-const line = values.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${yv(s.value).toFixed(1)}`).join(' ');
-const len = 1600;
-
-// ── Value formatting (sign + unit), reused for caption peak + nothing else ───
-const fmtVal = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(2)}${unit ? ' ' + unit : ''}`;
-
-const firstYear = values[0]?.year ?? '';
-const midYear   = n ? values[Math.floor(n / 2)]?.year ?? '' : '';
-const lastYear  = values[n - 1]?.year ?? '';
-
-// ── Annotations ─────────────────────────────────────────────────────────────
-// `at` is the YEAR (number, or the numeric string a YAML author may quote).
-// A year not in the series is a silent no-op (spec §2).
-//
-// The x of a stripe is NOT the anomaly line's x(i) — that runs edge to edge.
-// The stripes are `.cs__bar { flex: 1 }`, so stripe i spans [i/n, (i+1)/n] of
-// the strip and its centre is (i + 0.5)/n. Percent, not SVG units, because the
-// callout is HTML: the one SVG here (.cs__overlay) is stretched by
-// preserveAspectRatio="none", which would distort any <text> inside it, and it
-// is deliberately absent from the dataviz-v2.css natural-scale block, so SVG
-// text would also shrink below the 9.5px floor on a phone. HTML text holds 13px
-// at every width, and the percent mapping is exact under either.
-const annots = (annotations ?? [])   // `annotations:` with no items parses as null
-  .map((a) => {
+/* geometry: the stripes are an SVG stretched to the plot (no text in it,
+   so nothing distorts); the years and the callouts are HTML placed by
+   percent, so they print at their CSS size at any width. */
+const W = 1000, SH = 100;
+const annots = (annotations ?? [])
+  .map((a, k) => {
     if (!a || !a.text) return null;
-    const i = values.findIndex((s) => String(s.year) === String(a.at));
-    if (i < 0) return null;
-    return { text: a.text, pct: ((i + 0.5) / n) * 100 };
+    const i = vals.findIndex((d) => String(d.year) === String(a.at));
+    return i < 0 ? null : { k, i, text: String(a.text) };
   })
-  .filter((a): a is { text: string; pct: number } => a !== null);
-// Past the midpoint the callout mirrors — text right-aligned so it ends ON the
-// mark instead of running off the right edge (the HTML twin of text-anchor="end").
-const annotPad = (pct: number) =>
-  pct > 50
-    ? `padding-right:${(100 - pct).toFixed(2)}%;text-align:right`
-    : `padding-left:${pct.toFixed(2)}%`;
+  .filter((a): a is { k: number; i: number; text: string } => a !== null);
+const sw = n ? W / n : W;
+const xOf = (i: number) => i * sw;
+const pct = (x: number) => ((x / W) * 100).toFixed(2);
+
+/* decade ticks and the two ends, never on top of each other (in percent of
+   the plot; a label is about 5% wide on a phone) */
+const ticks: { x: number; label: string; a: string; odd?: boolean }[] = [];
+if (showYears && n) {
+  vals.forEach((d, i) => {
+    if (d.year % 10 !== 0) return;
+    const x = xOf(i) + sw / 2;
+    if (x < 120 || x > W - 150) return;
+    ticks.push({ x, label: String(d.year), a: 'middle', odd: (d.year / 10) % 2 === 1 });
+  });
+  ticks.unshift({ x: 0, label: String(vals[0].year), a: 'start' });
+  ticks.push({ x: W, label: String(vals[n - 1].year), a: 'end' });
+}
+
+const peak = n ? vals.reduce((a, b) => (b.value > a.value ? b : a)) : undefined;
+const signed = (v: number) => `${v > 0 ? '+' : ''}${fmt(v, 2)}`;
+const headLabel = peak ? `${unit ? unit + ' in ' : 'in '}${peak.year}` : undefined;
+const aria = n ? `${n} stripes, ${vals[0].year} to ${vals[n - 1].year}, from ${signed(vMin)} to ${signed(vMax)}${unit ? ' ' + unit : ''}; the highest is ${peak?.year}.` : 'No data';
+const tags = vals.map((d, i) => ({ id: d.year, x: Math.min(W - 22, Math.max(22, xOf(i) + sw / 2)), y: 14 }));
 ---
 
-<div class="px-viz">
-  <div class="px-viz__cap">
-    <span>{caption}</span>
-    {n > 0 && <b>{fmtVal(maxVal)} peak</b>}
-  </div>
+<div class="px-viz px-cstrip" data-build-scene>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  {peak && <FigHead value={signed(peak.value)} label={headLabel} n={4} />}
 
   {annots.length > 0 && (
-    <div class="cs__annots" style="position:relative;padding-bottom:20px">
+    <div class="px-cstrip__anns">
+      {annots.map((a) => {
+        const x = +pct(xOf(a.i) + sw / 2);
+        return (
+          <p class="px-cstrip__ann" data-cue={a.k + 1} style={x > 50 ? `padding-right:${(100 - x).toFixed(2)}%;text-align:right` : `padding-left:${x.toFixed(2)}%`} data-build="3" data-build-kind="rise">
+            <span class="px-cue-tag" data-cue-tag={a.k + 1} hidden></span>{a.text}
+          </p>
+        );
+      })}
+    </div>
+  )}
+
+  <div class="px-cstrip__plot">
+    <svg class="px-cstrip__fig" viewBox={`0 0 ${W} ${SH}`} preserveAspectRatio="none" role="img" aria-label={aria}>
+      {vals.map((d, i) => (
+        <rect class="px-cstrip__bar" data-cue={d.year} x={xOf(i).toFixed(2)} y="0" width={(sw + 0.6).toFixed(2)} height={SH} style={`fill:${colorAt(norm(d.value))}`} data-build="2" data-build-kind="grow-y">
+          <title>{`${d.year}: ${signed(d.value)}${unit ? ' ' + unit : ''}`}</title>
+        </rect>
+      ))}
       {annots.map((a) => (
-        <div class="cs__annot" style={annotPad(a.pct)}>
-          <span class="cs__annot-t vz-annot" style="display:block">{a.text}</span>
-          {/* Leader + dot hang off the CONTAINER, not the row, so every dot
-              lands on the strip's top edge at its own stripe even when two
-              or three callouts stack. */}
-          <span class="cs__annot-l" style={`position:absolute;left:${a.pct.toFixed(2)}%;bottom:6px;width:1px;height:14px;margin-left:-0.5px;background:var(--rule)`}></span>
-          <span class="cs__annot-d" style={`position:absolute;left:${a.pct.toFixed(2)}%;bottom:0;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)`}></span>
-        </div>
+        <line class="px-cstrip__ann-l" data-cue={a.k + 1} x1={(xOf(a.i) + sw / 2).toFixed(1)} y1="0" x2={(xOf(a.i) + sw / 2).toFixed(1)} y2={SH} data-build="3" />
+      ))}
+    </svg>
+    <CueLayer w={W} h={SH} tags={tags} />
+  </div>
+
+  {showYears && n > 0 && (
+    <div class="px-cstrip__axis" aria-hidden="true" data-build="1">
+      {ticks.map((t) => (
+        <span class:list={['px-cstrip__yr', `is-${t.a}`, t.odd && 'is-odd']} style={`left:${pct(t.x)}%`}>{t.label}</span>
       ))}
     </div>
   )}
 
-  <div class="cs__strip">
-    {values.map((s, i) => (
-      <div
-        class="cs__bar"
-        style={`background:${valueToColor(s.value)};transition-delay:${i * 14}ms`}
-        title={`${s.year}: ${fmtVal(s.value)}`}
-        aria-label={`${s.year}: ${fmtVal(s.value)}`}
-      />
-    ))}
-    <svg class="cs__overlay" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img"
-      aria-label={`Anomaly trend, ${firstYear}–${lastYear}`}>
-      <path class="cs__path" d={line} style={`--len:${len}`} vector-effect="non-scaling-stroke" />
-    </svg>
-  </div>
-
-  {showYears && n > 0 && (
-    <div class="cs__axis">
-      <span>{firstYear}</span>
-      <span>{midYear}</span>
-      <span>{lastYear}</span>
+  {showLegend && n > 0 && (
+    <div class="px-cstrip__scale" data-cue="legend">
+      <span class="px-cstrip__end"><span class="px-cue-tag" data-cue-tag="legend" hidden></span>{signed(vMin)}{unit ? ` ${unit}` : ''}</span>
+      <span class="px-cstrip__grad" style={`background:${gradient}`}></span>
+      <span class="px-cstrip__end">{signed(vMax)}{unit ? ` ${unit}` : ''}</span>
+      {baseline && <span class="px-cstrip__base">Against {baseline}</span>}
     </div>
   )}
-
-  {showLegend && (
-    <div class="cs__scale">
-      <span>Cooler</span>
-      <span class="cs__grad"></span>
-      <span>Warmer</span>
-      {baseline && <span style="margin-left:auto">Baseline · {baseline}</span>}
-    </div>
-  )}
-
 </div>
+
+<style>
+  .px-cstrip__plot { position: relative; width: 100%; }
+  .px-cstrip__fig { display: block; width: 100%; height: 150px; }
+  .px-cstrip__bar { stroke: none; transform-origin: 50% 100%; }
+  .px-cstrip__ann-l { stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .px-cstrip__anns { display: grid; gap: 6px; margin-bottom: 8px; }
+  .px-cstrip__ann {
+    margin: 0; font-family: var(--font-ui); font-size: 13px; line-height: 1.35; font-weight: 500; color: var(--ink);
+    position: relative; padding-bottom: 8px; border-bottom: 0;
+  }
+  .px-cstrip__ann .px-cue-tag { margin: 0 6px 0 0; }
+  .px-cstrip__axis { position: relative; height: 26px; border-top: 1px solid var(--hair-2); }
+  .px-cstrip__yr {
+    position: absolute; top: 6px; font-family: var(--font-ui); font-size: 13px; line-height: 1;
+    color: var(--ink-2, var(--ink-soft)); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .px-cstrip__yr.is-middle { translate: -50% 0; }
+  .px-cstrip__yr.is-end { translate: -100% 0; }
+  .px-cstrip__scale {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px;
+    font-family: var(--font-ui); font-size: 13px; line-height: 1.4; color: var(--ink-2, var(--ink-soft));
+    font-variant-numeric: tabular-nums;
+  }
+  .px-cstrip__end { display: inline-flex; align-items: center; }
+  .px-cstrip__grad { flex: 1 1 80px; min-width: 60px; height: 10px; border-radius: 2px; }
+  .px-cstrip__base { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+  /* on a phone every other decade, so no two years touch */
+  @media (max-width: 640px) { .px-cstrip__fig { height: 120px; } .px-cstrip__yr.is-odd { display: none; } }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
+</style>

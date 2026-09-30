@@ -1,35 +1,32 @@
 ---
-/*
-  LeagueTable — v2 sports standings table (.lt) inside the elevated .px-viz
-  card. Qualify/relegation bands paint as a left inset rule; form pills colour
-  by result. Faithful port of the kit's <LeagueTable>. Build-time, zero
-  runtime JS; static since Lens Phase 5 (the row stagger retired).
-
-  Use for: football/cricket league standings, tournament
-  points tables, series results.
-
-  props:
-    rows[]       — { pos: number, posChange?: number,
-                     team: string, badge?: string,
-                     played: number, won: number,
-                     drawn?: number, lost: number,
-                     gf?: number, ga?: number,
-                     gd?: number, points: number,
-                     form?: string[],     // 'W' | 'D' | 'L'
-                     highlight?: 'top' | 'promotion' | 'relegation' | 'qualified' }
-    showDrawn    — show Drawn column (default true; set false for cricket)
-    showGoals    — show GF/GA/GD columns (default true). All three carry
-                   `class="hide"`, so they drop below 640px with Form — the
-                   table keeps P/W/D/L/Pts on a phone. Until 2026-09-15 only
-                   GD was emitted, so authored gf/ga went nowhere.
-    caption
-    source
-*/
+/**
+ * LeagueTable — standings with a form guide (Lens Phase 6, 2026-09-30; the
+ * board is Lib-league-table). The leader's points set at 48 over the table;
+ * each row carries its position on a band chip (top / qualified / promotion /
+ * relegation), the move since the last round, the club with its colour dot,
+ * the record, the goals, the points and the last five results as pips. A
+ * jump in positions (8th to 17th) prints as a divider row, so a cut table
+ * never reads as a whole one. One legend row names the bands and the pips.
+ *
+ * A real <table>, sized by its own box (a size container): under 500px of
+ * its own width GF and GA drop, under 400px P drops, under 360px W / D / L,
+ * the move and the club dot drop; a long club name wraps to a second line
+ * rather than running into the record beside it. No JS of its own.
+ *
+ * Cue anchors:
+ *   top     the leader's points, the large number
+ *   1..n    the rows, in authored order
+ *   form    the form column (its head and every row's pips)
+ *   gap     the divider where positions are skipped (only when one exists)
+ *
+ * The build (LENS §6.4): 1 the header row, 2 the rows drop in order, 3 the
+ * divider and the legend, 4 the leader's points count up.
+ */
 interface TableRow {
   pos: number;
   posChange?: number;   // +ve = moved up, -ve = moved down, 0 = same
   team: string;
-  badge?: string;       // emoji or short text badge
+  badge?: string;       // emoji or short text badge: a club colour
   played: number;
   won: number;
   drawn?: number;
@@ -48,70 +45,243 @@ interface Props {
   caption?: string;
   source?: string;
 }
-const {
-  rows = [],
-  showDrawn = true,
-  showGoals = true,
-  caption,
-  source,
-} = Astro.props;
+const { rows = [], showDrawn = true, showGoals = true } = Astro.props;
 
-// Map an emoji/short badge to a swatch colour. Falls back to the muted token
-// for any badge the kit doesn't recognise (or when no badge is supplied).
-const badgeColor = (b?: string): string => {
+/* A club colour from an emoji badge (a fixed encoding, exempt from theming).
+   No badge, or one the map does not know: no dot. */
+const badgeColor = (b?: string): string | null => {
   const map: Record<string, string> = {
     '🟣': '#7b2d8e', '🟠': '#e8730c', '🩷': '#ec4899', '🔴': '#c0392b',
     '🔵': '#2563eb', '🟡': '#eab308', '🔷': '#0ea5e9', '💙': '#1e3a8a',
-    '🩵': '#7dd3fc',
+    '🩵': '#7dd3fc', '⚪': '#ffffff', '⚫': '#16140f', '🟢': '#2e7d32',
   };
-  return (b && map[b]) || 'var(--muted)';
+  return (b && map[b]) || null;
 };
+const RESULT: Record<string, string> = { W: 'Win', D: 'Draw', L: 'Loss' };
+
+/* Rows in authored order, cut into runs wherever the positions jump: each
+   run is its own table (the same fixed columns, so they align), and the jump
+   prints between them as a divider. A divider row INSIDE the table needed a
+   colspan, and a colspan counts the columns the container queries hide, which
+   squeezed the club column into its neighbours. */
+type Run = { gap?: { from: number; to: number }; rows: { r: TableRow; cue: number }[] };
+const runs: Run[] = [];
+rows.forEach((r, i) => {
+  const prev = rows[i - 1];
+  if (!prev || r.pos - prev.pos > 1) runs.push({ gap: prev ? { from: prev.pos + 1, to: r.pos - 1 } : undefined, rows: [] });
+  runs[runs.length - 1].rows.push({ r, cue: i + 1 });
+});
+const leader = rows[0];
+const bands = new Set(rows.map((r) => r.highlight).filter(Boolean));
+const results = new Set(rows.flatMap((r) => r.form ?? []));
+const gd = (v?: number) => (v == null ? '—' : v > 0 ? `+${v}` : String(v));
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
-  <table class="lt">
-    <thead>
-      <tr>
-        <th class="l">#</th>
-        <th class="l">Team</th>
-        <th>P</th>
-        <th>W</th>
-        {showDrawn && <th>D</th>}
-        <th>L</th>
-        {showGoals && <th class="hide">GF</th>}
-        {showGoals && <th class="hide">GA</th>}
-        {showGoals && <th class="hide">GD</th>}
-        <th>Pts</th>
-        <th class="hide">Form</th>
-      </tr>
-    </thead>
-    <tbody>
-      {rows.map((r, i) => (
-        <tr data-band={r.highlight || ''} style={`transition-delay:${i * 45}ms`}>
-          <td>
-            <span class="lt__pos">
-              {r.pos}
-              {(r.posChange ?? 0) > 0 && <span class="lt__chg lt__chg--up">▲{r.posChange}</span>}
-              {(r.posChange ?? 0) < 0 && <span class="lt__chg lt__chg--dn">▼{Math.abs(r.posChange as number)}</span>}
-            </span>
-          </td>
-          <td class="team"><span class="lt__badge" style={`background:${badgeColor(r.badge)}`}></span>{r.team}</td>
-          <td>{r.played}</td>
-          <td>{r.won}</td>
-          {showDrawn && <td>{r.drawn ?? '—'}</td>}
-          <td>{r.lost}</td>
-          {showGoals && <td class="hide">{r.gf ?? '—'}</td>}
-          {showGoals && <td class="hide">{r.ga ?? '—'}</td>}
-          {showGoals && <td class="hide">{r.gd != null ? (r.gd > 0 ? '+' : '') + r.gd : '—'}</td>}
-          <td class="pts">{r.points}</td>
-          <td class="hide"><span class="lt__form">{(r.form ?? []).slice(-5).map((f) => <span class={'lt__fp lt__fp--' + f}>{f}</span>)}</span></td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-  <div class="lt__legend">
-    <span class="key"><span class="sw" style="background:var(--accent)"></span>Playoff places</span>
-    <span class="key"><span class="sw" style="background:#c0392b"></span>Bottom three</span>
+<div class="px-viz px-lt" data-build-scene>
+  {leader && (
+    <div class="px-lt__head" data-cue="top">
+      <span class="px-lt__big" data-build="4" data-build-kind="counter" data-to={leader.points}>{leader.points}</span>
+      <span class="px-lt__big-l"><span class="px-cue-tag" data-cue-tag="top" hidden></span>points · {leader.team}</span>
+    </div>
+  )}
+  {runs.map((run, k) => (
+    <>
+      {run.gap && (
+        <p class="px-lt__gap" data-cue="gap" data-build="3"><span class="px-cue-tag" data-cue-tag="gap" hidden></span>{run.gap.from === run.gap.to ? `Place ${run.gap.from}` : `Places ${run.gap.from} to ${run.gap.to}`}</p>
+      )}
+      <table class="px-lt__t">
+          {k === 0 && (
+        <thead>
+          <tr data-build="1">
+            <th class="px-lt__c-pos" scope="col"><span class="px-lt__sr">Position</span>#</th>
+            <th class="px-lt__c-chg" scope="col"><span class="px-lt__sr">Move</span></th>
+            <th class="px-lt__c-team" scope="col">Club</th>
+            <th class="px-lt__c-n px-lt__p" scope="col">P</th>
+            <th class="px-lt__c-n px-lt__wdl" scope="col">W</th>
+            {showDrawn && <th class="px-lt__c-n px-lt__wdl" scope="col">D</th>}
+            <th class="px-lt__c-n px-lt__wdl" scope="col">L</th>
+            {showGoals && <th class="px-lt__c-n px-lt__g" scope="col">GF</th>}
+            {showGoals && <th class="px-lt__c-n px-lt__g" scope="col">GA</th>}
+            {showGoals && <th class="px-lt__c-gd" scope="col">GD</th>}
+            <th class="px-lt__c-pts" scope="col">Pts</th>
+            <th class="px-lt__c-form" scope="col"><span class="px-lt__fh" data-cue="form"><span class="px-cue-tag" data-cue-tag="form" hidden></span>Form</span></th>
+          </tr>
+          </thead>
+        )}
+        <tbody>
+          {run.rows.map((it) => (
+              <tr class="px-lt__row" data-cue={it.cue} data-band={it.r.highlight ?? undefined} data-build="2" data-build-kind="drop">
+                  <td class="px-lt__c-pos"><span class="px-lt__pos">{it.r.pos}</span></td>
+                  <td class="px-lt__c-chg">
+                    {(it.r.posChange ?? 0) > 0 ? (
+                      <span class="px-lt__chg px-lt__chg--up" aria-label={`up ${it.r.posChange}`}><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.5L9 8H1z" fill="currentColor" /></svg>{it.r.posChange}</span>
+                    ) : (it.r.posChange ?? 0) < 0 ? (
+                      <span class="px-lt__chg" aria-label={`down ${Math.abs(it.r.posChange as number)}`}><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 8.5L1 2h8z" fill="currentColor" /></svg>{Math.abs(it.r.posChange as number)}</span>
+                    ) : (
+                      <span class="px-lt__chg" aria-label="no change"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 5h6" stroke="currentColor" stroke-width="1.5" /></svg></span>
+                    )}
+                  </td>
+                  <td class="px-lt__c-team">
+                    <span class="px-lt__team">
+                      {badgeColor(it.r.badge) && <span class="px-lt__dot" style={`background:${badgeColor(it.r.badge)}`} aria-hidden="true"></span>}
+                      <span class="px-cue-tag" data-cue-tag={it.cue} hidden></span>
+                      <span class="px-lt__name">{it.r.team}</span>
+                    </span>
+                  </td>
+                  <td class="px-lt__c-n px-lt__p">{it.r.played}</td>
+                  <td class="px-lt__c-n px-lt__wdl">{it.r.won}</td>
+                  {showDrawn && <td class="px-lt__c-n px-lt__wdl">{it.r.drawn ?? '—'}</td>}
+                  <td class="px-lt__c-n px-lt__wdl">{it.r.lost}</td>
+                  {showGoals && <td class="px-lt__c-n px-lt__g">{it.r.gf ?? '—'}</td>}
+                  {showGoals && <td class="px-lt__c-n px-lt__g">{it.r.ga ?? '—'}</td>}
+                  {showGoals && <td class="px-lt__c-gd">{gd(it.r.gd)}</td>}
+                  <td class="px-lt__c-pts">{it.r.points}</td>
+                  <td class="px-lt__c-form">
+                    <span class="px-lt__form" data-cue="form" role="img" aria-label={`Form ${(it.r.form ?? []).slice(-5).join(' ') || 'not given'}`}>
+                      {(it.r.form ?? []).slice(-5).map((f) => <span class="px-lt__pip" data-r={f}></span>)}
+                    </span>
+                  </td>
+                </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  ))}
+  <div class="px-lt__legend" data-build="3">
+    {bands.has('top') && <span class="px-lt__key"><span class="px-lt__sw" data-band="top"></span>Top</span>}
+    {bands.has('qualified') && <span class="px-lt__key"><span class="px-lt__sw" data-band="qualified"></span>Qualified</span>}
+    {bands.has('promotion') && <span class="px-lt__key"><span class="px-lt__sw" data-band="promotion"></span>Promotion</span>}
+    {bands.has('relegation') && <span class="px-lt__key"><span class="px-lt__sw" data-band="relegation"></span>Relegation</span>}
+    {['W', 'D', 'L'].filter((f) => results.has(f)).map((f) => (
+      <span class="px-lt__key"><span class="px-lt__pip" data-r={f}></span>{RESULT[f]}</span>
+    ))}
   </div>
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
+
+<style>
+  .px-lt { container-type: inline-size; min-width: 0; font-family: var(--font-ui); }
+  .px-lt__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+  .px-lt__big {
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-lt__big-l { display: inline-flex; align-items: center; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+
+  /* display: table and no scroller, against the phone rule in dataviz-v2.css
+     that turns any table in a .px-viz into a sideways scroller: this one fits
+     its box instead (the container queries below drop columns). */
+  .px-lt__t { display: table; overflow: visible; width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .px-lt__t th {
+    padding: 0 0 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    vertical-align: bottom;
+  }
+  .px-lt__t th.px-lt__c-team, .px-lt__t th.px-lt__c-pos { text-align: left; }
+  .px-lt__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .px-lt__t td {
+    height: 34px;
+    padding: 2px 0;
+    border-top: 1px solid var(--hair);
+    font-size: 13px;
+    color: var(--ink-2);
+    text-align: right;
+    vertical-align: middle;
+  }
+  .px-lt__c-pos { width: 28px; }
+  .px-lt__c-chg { width: 30px; }
+  .px-lt__c-n { width: 26px; }
+  .px-lt__c-gd { width: 34px; }
+  .px-lt__c-pts { width: 32px; }
+  .px-lt__c-form { width: 94px; }
+  .px-lt__t td.px-lt__c-pos, .px-lt__t td.px-lt__c-chg, .px-lt__t td.px-lt__c-team { text-align: left; }
+  .px-lt__t td.px-lt__c-pts { font-weight: 600; color: var(--ink); }
+  .px-lt__pos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .px-lt__row[data-band='top'] .px-lt__pos { background: var(--accent-deep); color: var(--paper-2); }
+  .px-lt__row:is([data-band='qualified'], [data-band='promotion']) .px-lt__pos { background: var(--accent-tint); color: var(--accent-deep); }
+  .px-lt__row[data-band='relegation'] .px-lt__pos { background: var(--pol-tint, #f6e4df); color: var(--pol-text, #a02d18); }
+  .px-lt__chg { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .px-lt__chg--up { color: var(--accent-deep); }
+  .px-lt__team { display: flex; align-items: center; gap: 6px; min-width: 0; padding-right: 8px; }
+  .px-lt__team .px-cue-tag { margin-right: 0; }
+  .px-lt__dot { flex: none; width: 8px; height: 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(22, 20, 15, 0.15); }
+  /* The name wraps inside its column rather than truncating: a row grows to
+     two lines before a name ever runs into the record beside it. */
+  .px-lt__name {
+    min-width: 0;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .px-lt__fh { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .px-lt__fh .px-cue-tag { margin-right: 0; }
+  .px-lt__form { display: inline-flex; gap: 4px; justify-content: flex-end; vertical-align: middle; }
+  .px-lt__pip { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 2px; }
+  .px-lt__pip[data-r='W'] { background: var(--accent-deep); }
+  .px-lt__pip[data-r='D'] { background: color-mix(in oklab, var(--accent) 55%, var(--paper-2)); }
+  .px-lt__pip[data-r='L'] { background: var(--paper-3); box-shadow: inset 0 0 0 1px var(--hair-2); }
+  .px-lt__gap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-top: 1px dashed var(--hair-2);
+  }
+  .px-lt__gap .px-cue-tag { margin-right: 8px; }
+  .px-lt__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--hair);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .px-lt__key { display: inline-flex; align-items: center; gap: 6px; }
+  .px-lt__sw { flex: none; width: 12px; height: 12px; border-radius: 2px; }
+  .px-lt__sw[data-band='top'] { background: var(--accent-deep); }
+  .px-lt__sw:is([data-band='qualified'], [data-band='promotion']) { background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+  .px-lt__sw[data-band='relegation'] { background: var(--pol-tint, #f6e4df); box-shadow: inset 0 0 0 1px var(--pol-mark, #c8412a); }
+  .px-lt__legend .px-lt__pip { width: 12px; height: 12px; }
+
+  @container (max-width: 500px) { .px-lt__g { display: none; } }
+  @container (max-width: 400px) { .px-lt__p { display: none; } }
+  @container (max-width: 360px) {
+    .px-lt__wdl, .px-lt__c-chg, .px-lt__dot { display: none; }
+    .px-lt__c-form { width: 76px; }
+    .px-lt__form { gap: 3px; }
+    .px-lt__form .px-lt__pip { width: 12px; height: 12px; }
+  }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-lt__big { font-size: 72px; } }
+</style>

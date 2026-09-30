@@ -1,15 +1,31 @@
 ---
 /**
- * VoteResult — v2 vote bar (.vb): animated for/against segments, a dashed
- * threshold marker, a rotated "slam" stamp, and the 44-column MP-dot chamber.
- * Port of publication-v2 Components.jsx <VoteBar>, with the stamp moved off
- * the bar into its own row (2026-09-23). Props/semantics
- * unchanged from the previous version, so existing MDX usages keep working.
+ * VoteResult (politics) — one decisive vote against its threshold. Lens Phase
+ * 6 (2026-09-30), to the Lib-vote-result board: the shortfall set at 96 with
+ * the verdict stamp beside it, then the dot chamber, one dot per member
+ * present, filled DOWN the columns (for, then against, then the rest), the
+ * required line drawn through it as a solid rule with its count above, and a
+ * bracket from the last yes vote to the line with the shortfall under it.
+ * The legend is one row of counts.
  *
- * THE BUILD (Lens Phase 5, LENS §6.4): the .vb root is a `data-build-scene`
- * and the For / Against numbers count up to the values in the HTML
- * (src/scripts/build.ts). The rest paints as drawn; Phase 6 gives the bar,
- * the threshold, the stamp and the dots their own steps.
+ * The dots and rules are an SVG with no text in it; every word and number is
+ * HTML over or under it, so nothing prints below 12px when the figure scales
+ * to a phone.
+ *
+ * Cue anchors (LENS §5.2):
+ *   for      the yes dots and the "for" count
+ *   against  the no dots and the "against" count
+ *   line     the required line and its "n needed" label
+ *   short    the shortfall bracket, its label and the headline number
+ *   stamp    the verdict stamp
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the dots fade in (for,
+ * against, the rest), 2 the required line draws, 3 the bracket draws and the
+ * labels and legend rise, 4 the headline number counts up and the stamp
+ * fades in. No JS or reduced motion: the vote as drawn.
+ *
+ * data: { for, against, required, present, shortfall, label, stamp, followup }
+ * (`followup` is rendered by SectionBody under the figure.)
  */
 interface Props {
   for: number;
@@ -20,55 +36,210 @@ interface Props {
   label?: string;
   stamp?: string;
   /* Optional — promoted onto the section schema in Phase 2 and merged
-     down in SectionBody. CANON §7: no source, no section. */
+     down in SectionBody. The source line is core/Section.astro's. */
   source?: string;
 }
-const { for: forVotes, against, required, present, shortfall, label, stamp = 'Defeated', source} = Astro.props;
+const { for: forVotes = 0, against = 0, required = 0, present = 0, shortfall = 0, label, stamp = 'Defeated' } = Astro.props;
 
 const cast = forVotes + against;
-const forPct = cast === 0 ? 0 : (forVotes / cast) * 100;
-const againstPct = cast === 0 ? 0 : (against / cast) * 100;
-const thresholdPct = present === 0 ? 0 : (required / present) * 100;
+const seats = Math.max(present, cast, 1);
+const rest = Math.max(0, seats - cast);
 
-// MP-dot chamber: one dot per member present — the first `for` voted for, the
-// next `against` voted against, the remainder abstained / were absent.
-const seats = present > 0 ? present : cast;
-const dots = Array.from({ length: seats }, (_, i) =>
-  i < forVotes ? 'for' : i < forVotes + against ? 'against' : 'abs'
-);
+/* The chamber: 16 rows, filled down each column. */
+const ROWS = 16;
+const STEP = 13;
+const R = 5;
+const cols = Math.ceil(seats / ROWS);
+const W = cols * STEP;
+const H = ROWS * STEP;
+const TOP = 6;
+const dot = (i: number) => ({
+  cx: Math.floor(i / ROWS) * STEP + STEP / 2,
+  cy: TOP + (i % ROWS) * STEP + STEP / 2,
+});
+const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a) }, (_, k) => dot(a + k));
+const forDots = range(0, forVotes);
+const againstDots = range(forVotes, cast);
+const restDots = range(cast, seats);
+
+/* The required line sits where the required-th vote would fall; the bracket
+   runs from the last yes vote to it. Both on the column scale. */
+const colX = (n: number) => Math.min(W, (n / ROWS) * STEP);
+const lineX = colX(required);
+const forX = colX(forVotes);
+const failed = shortfall > 0;
+const bx0 = Math.min(forX, lineX);
+const bx1 = Math.max(forX, lineX);
+const BY = TOP + H + 8;
+const VBH = BY + 10;
+const pct = (x: number) => `${((x / W) * 100).toFixed(2)}%`;
+/* A label beside the line flips to its left side past 70% of the width. */
+const flip = lineX / W > 0.7;
+const mid = (bx0 + bx1) / 2 / W;
+
+const big = failed ? shortfall : Math.max(0, forVotes - required);
+const bigUnit = failed ? 'votes short' : 'votes to spare';
+const fmt = (n: number) => n.toLocaleString('en-US');
 ---
 
-<div class="vb" data-build-scene role="img" aria-label={`Vote: ${forVotes} for, ${against} against — ${required} required`}>
-  {label && <div class="vb__cap">{label}</div>}
+<div class="vb" data-viz-root data-build-scene>
+  {label && <p class="vb__label">{label}</p>}
 
-  <div class="vb__rail">
-    <div class="vb__th" style={`left: ${thresholdPct}%;`}>
-      <span class="vb__th-label">{required} required</span>
+  <div class="vb__head">
+    <div class="vb__head-k" data-cue="short">
+      <span class="vb__big" data-build="4" data-build-kind="counter" data-to={big}>{fmt(big)}</span>
+      <span class="vb__big-u">{bigUnit}</span>
     </div>
-    <div class="vb__bar">
-      <div class="vb__seg vb__seg--for" style={`width: ${forPct}%;`}>For&nbsp;<span data-build="1" data-build-kind="counter" data-to={forVotes}>{forVotes}</span></div>
-      <div class="vb__seg vb__seg--against" style={`width: ${againstPct}%;`}>Against&nbsp;<span data-build="1" data-build-kind="counter" data-to={against}>{against}</span></div>
-    </div>
+    {stamp && (
+      <span class="vb__stamp" data-cue="stamp" data-build="4"><span class="px-cue-tag" data-cue-tag="stamp" hidden></span>{stamp}</span>
+    )}
   </div>
 
-  {/* The stamp has its own row under the bar. Laid over the bar it printed
-      on the "Against" figure (74% of that label, measured at 1280 and 375,
-      2026-09-23), and at 375 over "For" and the threshold label as well:
-      the bar carries the numbers, so nothing may sit on it. */}
-  {stamp && <div class="vb__verdict"><div class="vb__stamp">{stamp}</div></div>}
+  <div class="vb__plot">
+    <p class="vb__need" data-cue="line" data-build="3" data-build-kind="rise" style={flip ? `right:calc(100% - ${pct(lineX)} + 8px)` : `left:calc(${pct(lineX)} + 8px)`}>
+      <span class="px-cue-tag" data-cue-tag="line" hidden></span><b>{fmt(required)}</b> needed
+    </p>
+    <svg
+      class="vb__svg"
+      viewBox={`0 0 ${W} ${VBH}`}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label={`${fmt(seats)} dots, one per member present: ${fmt(forVotes)} for, ${fmt(against)} against${rest ? `, ${fmt(rest)} neither` : ''}. ${fmt(required)} were needed.`}
+    >
+      <g class="vb__dots vb__dots--for" data-cue="for" data-build="1">
+        {forDots.map((d) => <circle cx={d.cx} cy={d.cy} r={R} />)}
+      </g>
+      <g class="vb__dots vb__dots--against" data-cue="against" data-build="1">
+        {againstDots.map((d) => <circle cx={d.cx} cy={d.cy} r={R} />)}
+      </g>
+      {restDots.length > 0 && (
+        <g class="vb__dots vb__dots--rest" data-build="1">
+          {restDots.map((d) => <circle cx={d.cx} cy={d.cy} r={R} />)}
+        </g>
+      )}
+      <line class="vb__line" data-cue="line" data-build="2" data-build-kind="draw" x1={lineX} y1={0} x2={lineX} y2={TOP + H + 2} />
+      {failed && bx1 - bx0 > 1 && (
+        <path class="vb__brk" data-cue="short" data-build="3" data-build-kind="draw" d={`M${bx0} ${BY - 8} V${BY} H${bx1} V${BY - 8}`} />
+      )}
+    </svg>
+  </div>
 
-  {seats > 0 && (
-    <div class="vb__chamber" aria-hidden="true">
-      {dots.map((kind) => (
-        <span class={`vb__mp${kind === 'for' ? ' vb__mp--for' : kind === 'against' ? ' vb__mp--against' : ''}`}></span>
-      ))}
-    </div>
+  {failed && (
+    <p class="vb__short" data-cue="short" data-build="3" data-build-kind="rise" style={`--at:${(mid * 100).toFixed(2)}%`}>
+      <span class="px-cue-tag" data-cue-tag="short" hidden></span>{fmt(shortfall)} short
+    </p>
   )}
 
-  <div class="vb__legend">
-    <div><span class="vb__n vb__n--for" data-build="1" data-build-kind="counter" data-to={forVotes}>{forVotes}</span>For</div>
-    <div><span class="vb__n vb__n--neg" data-build="1" data-build-kind="counter" data-to={against}>{against}</span>Against</div>
-    <div><span class="vb__n">{required}</span>Required</div>
-    <div><span class="vb__n vb__n--neg">−{shortfall}</span>Short</div>
-  </div>
+  <ul class="vb__legend">
+    <li data-cue="for" data-build="3" data-build-kind="rise"><span class="px-cue-tag" data-cue-tag="for" hidden></span><i class="vb__key vb__key--for"></i><b>{fmt(forVotes)}</b> for</li>
+    <li data-cue="against" data-build="3" data-build-kind="rise"><span class="px-cue-tag" data-cue-tag="against" hidden></span><i class="vb__key vb__key--against"></i><b>{fmt(against)}</b> against</li>
+    {rest > 0 && <li data-build="3" data-build-kind="rise"><i class="vb__key vb__key--rest"></i><b>{fmt(rest)}</b> neither</li>}
+    <li class="vb__present" data-build="3" data-build-kind="rise">{fmt(seats)} present</li>
+  </ul>
 </div>
+
+<style>
+  .vb { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .vb__label {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .vb__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .vb__head-k { display: flex; align-items: flex-end; gap: 12px; min-width: 0; }
+  .vb__big {
+    font-family: var(--font-ui);
+    font-size: 96px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--accent-deep);
+  }
+  .vb__big-u {
+    padding-bottom: 6px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .vb__stamp {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 2px solid var(--accent-deep);
+    border-radius: var(--r-ctl, 4px);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .vb__stamp .px-cue-tag { margin-left: -4px; }
+
+  .vb__plot { position: relative; padding-top: 28px; }
+  .vb__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .vb__dots--for { fill: var(--accent); }
+  .vb__dots--against { fill: var(--ink-2); }
+  .vb__dots--rest { fill: var(--hair-2); }
+  .vb__line { stroke: var(--ink); stroke-width: 2.5; }
+  .vb__brk { fill: none; stroke: var(--accent-deep); stroke-width: 2; }
+  .vb__need {
+    position: absolute;
+    top: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--ink);
+  }
+  .vb__need b { font-weight: 600; margin-right: 4px; }
+  .vb__short {
+    align-self: flex-start;
+    margin: -6px 0 0;
+    margin-left: clamp(0px, calc(var(--at) - 44px), calc(100% - 110px));
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--accent-deep);
+  }
+  .vb__legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--ink);
+  }
+  .vb__legend li { display: inline-flex; align-items: center; }
+  .vb__legend b { font-weight: 600; margin-right: 4px; font-variant-numeric: tabular-nums; }
+  .vb__key { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; }
+  .vb__key--for { background: var(--accent); }
+  .vb__key--against { background: var(--ink-2); }
+  .vb__key--rest { background: var(--hair-2); }
+  .vb__present { margin-left: auto; color: var(--muted); }
+
+  @media (max-width: 560px) {
+    .vb__big { font-size: 72px; }
+    .vb__present { margin-left: 0; }
+  }
+</style>

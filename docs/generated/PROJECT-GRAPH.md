@@ -152,28 +152,28 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-11** | 5 files | 3 |
 | **CD-12** | 12 files | 6 |
 | **RD-01** | 9 files | 3 |
-| **RD-01a** | 7 files | 5 |
-| **RD-01b** | 46 files | 11 |
+| **RD-01a** | 5 files | 3 |
+| **RD-01b** | 44 files | 9 |
 | **RD-02** | 4 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 3 files | 0 — _dangling_ |
-| **RD-05** | 22 files | 12 |
+| **RD-05** | 16 files | 6 |
 | **RD-06** | 5 files | 1 |
 | **RD-07** | 3 files | 1 |
-| **RD-08** | 7 files | 3 |
+| **RD-08** | 6 files | 2 |
 | **RD-09** | 6 files | 1 |
 | **RD-10** | 14 files | 9 |
 | **RD-11** | 5 files | 2 |
-| **RD-12** | 5 files | 2 |
+| **RD-12** | 4 files | 1 |
 | **RD-13** | 5 files | 1 |
 | **RD-14** | 5 files | 0 — _dangling_ |
 | **RD-15** | 5 files | 0 — _dangling_ |
 | **TD-01** | 43 files | 9 |
 | **TD-02** | 36 files | 7 |
 | **TD-03** | 31 files | 2 |
-| **TD-04** | 9 files | 8 |
+| **TD-04** | 8 files | 7 |
 | **TD-05** | 5 files | 3 |
-| **TD-06** | 18 files | 5 |
+| **TD-06** | 15 files | 2 |
 | **TD-07** | 2 files | 0 — _dangling_ |
 | **TD-08** | 2 files | 0 — _dangling_ |
 | **TD-09** | 13 files | 10 |
@@ -194,7 +194,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-05-03-travel-components` | travel | draft | 2 | 2 | 1 |
 | `2026-05-15-seven-appeals-rupee-pressure` | politics | draft | 8 | 6 | 11 |
 | `2026-06-03-earth-showcase` | earth | draft | 15 | 15 | 15 |
-| `2026-06-03-politics-showcase` | politics | draft | 17 | 17 | 4 |
+| `2026-06-03-politics-showcase` | politics | draft | 20 | 20 | 4 |
 | `2026-06-03-space-showcase` | space | draft | 13 | 13 | 4 |
 | `2026-06-03-sports-showcase` | sports | draft | 16 | 16 | 3 |
 | `2026-06-03-tech-showcase` | tech | draft | 15 | 15 | 4 |

@@ -7,6 +7,9 @@
  * each plain number up to the value already in the HTML
  * (src/scripts/build.ts). No JS or reduced motion: the tiles as written.
  *
+ * Cue anchors: 1..n, one per tile in data order (the whole tile; its numeral
+ * prints beside the tile's label).
+ *
  * This is a CORE (topic-agnostic) component, so the "Live · nominal" status
  * pip is opt-in via the `status` prop and omitted by default.
  *
@@ -75,24 +78,41 @@ const tileEm = (t: Tile): number => {
   const u = t.unit ? (8 + 8 * [...t.unit.trim()].length) / 28 : 0;
   return v + u;
 };
-const need = Math.max(1, ...tiles.map(tileEm));
+/* THE LENS LAYOUT (Phase 6, 2026-09-30; the board Lib-data-readout): the
+   tile the section is about (`emphasis: "key"`, the first such) is the HERO,
+   across the full width with its number at up to 96px (LENS §7, a readout
+   IS a number); the others sit under it as cards in a row, their numbers at
+   up to 48px. Each group is fitted on its own widest value: `--tel-em` for
+   the row, `--tel-hero-em` for the hero. A zero is drawn as well as written,
+   a dashed hollow ring beside it (the board's "zero drawn as a hollow ring"). */
+const heroIdx = tiles.findIndex((t) => t.emphasis === 'key');
+const rest = tiles.filter((_, i) => i !== heroIdx);
+const need = Math.max(1, ...rest.map(tileEm));
 const telEm = Math.ceil(need * 10) / 10;
-const cols = need > 5.0 ? '2' : undefined;
-const phone = need > 4.2 ? 'stack' : undefined;
+const heroEm = heroIdx >= 0 ? Math.ceil(Math.max(1, tileEm(tiles[heroIdx])) * 10) / 10 : 1;
+const nRest = rest.length;
+const telCols = nRest >= 3 ? (nRest === 4 ? 2 : 3) : Math.max(1, nRest);
+const cols = need > 4.4 && telCols > 2 ? '2' : undefined;
+const phone = need > 3.4 ? 'stack' : undefined;
+const isZero = (v: string) => typeof v === 'string' && v.trim() === '0';
 ---
 
-<div class="tel" data-build-scene data-cols={cols} data-phone={phone} style={`--tel-em:${telEm}`}>
+<div class="tel" data-build-scene data-cols={cols} data-phone={phone} style={`--tel-em:${telEm};--tel-hero-em:${heroEm};--tel-cols:${cols ?? telCols}`}>
   {caption && (
     <div class="tel__cap">
       <span>{caption}</span>
       {status && <span class="tel__cap-status">{status}</span>}
     </div>
   )}
+  {/* Cue anchors: each tile is `data-cue="<n>"`, numbered from 1 in data
+      order (the hero keeps its own number); the empty tag beside the label is
+      its numeral's slot, filled by core/Section.astro. */}
   <div class="tel__grid">
     {tiles.map((t, i) => {
       const n = countUpValue(t.value);
       return (
-        <div class="tel__tile" data-emphasis={t.emphasis ?? 'default'} data-cue={i + 1} data-build="1" data-build-kind="drop">
+        <div class="tel__tile" data-emphasis={t.emphasis ?? 'default'} data-hero={i === heroIdx ? 'true' : undefined} data-cue={i + 1} data-build="1" data-build-kind="drop">
+          <div class="tel__l"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><span set:html={renderInline(t.label)} /></div>
           <div class="tel__val">
             {n != null ? (
               <span class="tel__n" data-build="2" data-build-kind="counter" data-to={n.n} data-format={n.dp ? '1dp' : undefined} style={t.color ? `color:${t.color}` : undefined}>{t.value}</span>
@@ -100,10 +120,8 @@ const phone = need > 4.2 ? 'stack' : undefined;
               <span class="tel__n" style={t.color ? `color:${t.color}` : undefined}>{t.value}</span>
             )}
             {t.unit && <span class="tel__u">{t.unit}</span>}
+            {isZero(t.value) && <span class="tel__zero" aria-hidden="true"></span>}
           </div>
-          {/* Cue anchor (LENS §5.2): the tile is `data-cue="<n>"` in data order;
-              the empty tag is its numeral's slot, filled by core/Section.astro. */}
-          <div class="tel__l"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><Fragment set:html={renderInline(t.label)} /></div>
           {!compact && t.note && <div class="tel__note" set:html={renderInline(t.note)} />}
         </div>
       );

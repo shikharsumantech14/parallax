@@ -39,7 +39,15 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
   scene.add(group);
 
   const disposables: any[] = [];
-  buildCountryGlobe(THREE, group, colors, R, disposables);
+  /* On a deep plate (Lens, LENS §8.3: the WebGL kinds draw on their desk's
+     plate) the component points --paper at the plate and --ink at the
+     on-deep text, so the "paper" occluder would vanish into the plate and an
+     ink-coloured night would be LIGHTER than day. There the globe body is
+     lifted 14% toward the line colour, and the night is drawn in black. On
+     paper nothing changes. */
+  const onDark = new THREE.Color(colors.paper).getHSL({ h: 0, s: 0, l: 0 }).l < 0.35;
+  const body = onDark ? '#' + new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), 0.14).getHexString() : colors.paper;
+  buildCountryGlobe(THREE, group, { ...colors, paper: body }, R, disposables);
 
   /* ── data ── */
   const epochISO: string = typeof data.epoch === 'string' ? data.epoch : '2026-01-01T00:00:00Z';
@@ -92,7 +100,7 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
   /* ── night wash: antisolar half-sphere cap, --ink @ 0.28, FrontSide ── */
   const nightGeo = new THREE.SphereGeometry(R * 1.006, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
   const nightMat = new THREE.MeshBasicMaterial({
-    color: ink, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide,
+    color: onDark ? new THREE.Color(0x000000) : ink, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide,
   });
   const night = new THREE.Mesh(nightGeo, nightMat);
   group.add(night);
@@ -214,7 +222,7 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
       const ringDrawn = Math.min(1, since / 900);
       ringMatInner.opacity = 0.9 * ringDrawn;
       ringMatShadow.opacity = 0.3 * ringDrawn;
-      nightMat.opacity = 0.28 * Math.min(1, since / 600);
+      nightMat.opacity = (onDark ? 0.5 : 0.28) * Math.min(1, since / 600);
       const arcT = Math.min(1, since / 1400);
       arcGeo.setDrawRange(0, Math.max(0, Math.floor(arcT * (arcPts.length - 1))) + 1);
       // endpoint settle: from-pin as the sweep starts, to-pin as it lands

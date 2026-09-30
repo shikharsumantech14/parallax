@@ -9,30 +9,35 @@
  *
  *   list    { columns: [{label, items: [string | {text, strong?: true}]}] }
  *           parallel lists that do NOT pair up row by row (a done / not-done
- *           ledger, say). `docs/design/catalog.md` documented ONLY this shape
- *           from the start and nothing ever read it, so a section authored
- *           against the catalog rendered an empty card. Rather than re-pair
- *           eight sourced statements into rows they do not actually form, the
- *           shape is now implemented. `columns` wins when present.
+ *           ledger, say). `columns` wins when present.
  *
  *   pair    { cityA: {name, subtitle?}, cityB: {name, subtitle?},
  *             rows: [{label, a, b, winner?: 'a'|'b'|'tie', note?}] }
  *           the folded `city-compare` shape (the Lens verdict, 2026-09-30:
  *           `city-compare` is an alias of `comparison`, KIND_ALIASES in
  *           src/content/config.ts). It normalises onto the matrix form: the
- *           two places become the sides, each row's winning cell is marked
- *           (`data-win`), and a row's note runs full width under it.
+ *           two places become the sides, each row's winning cell is marked,
+ *           and a row's note runs full width under it.
  *
- * THE BUILD (Lens Phase 5, LENS §6.4): the root is a `data-build-scene`.
- * Matrix and pair forms: 1 the column heads fade in, 2 the rows drop in, 80ms
- * apart. List form: the columns drop in. src/scripts/build.ts runs it; no JS
- * or reduced motion shows the table as written.
+ * LENS PHASE 6 (2026-09-30), the board Lib-comparison: a drawn read-across.
+ * The sides are plates at the head, the last on the desk tint with a mark
+ * rule (the side the reader is walked toward), the others on the well with an
+ * ink rule. Each row is its label, then one cell per side under its plate; a
+ * pair row's winning cell carries a drawn check (only where the data names a
+ * winner: the matrix form has none, so none is drawn). Prefix `px-cmp`: the
+ * old `px-compare` rules in base.css and the theme files match nothing this
+ * component emits any more.
  *
- * Renders NO source line: `core/Section.astro` emits it for every kind
- * (`.px-plain__src`). The old `.px-compare__source` emitter survived the
- * 2026-09-04 sweep because its class ends in `__source`, not `__src` — so it
- * printed the source a second time under the card, and story.css's
- * `[class$='__src']` beat rule could not hide it either.
+ * Cue anchors:
+ *   1..n    matrix and pair forms: each row, in data order
+ *           list form: each column, in data order
+ *   s1..sN  matrix and pair forms: each side's plate at the head
+ *
+ * THE BUILD (LENS §6.4): the root is a `data-build-scene`: 1 the plates (or
+ * the list columns) drop in, 2 the rows drop in, 80ms apart
+ * (src/scripts/build.ts). No JS or reduced motion: the table as written.
+ *
+ * Renders NO source line and no caption: `core/Section.astro` prints both.
  */
 import { renderInline } from '../../lib/text';
 
@@ -94,25 +99,20 @@ const cols = isList ? columns.length : sides.length;
 // whole line, which is the list form's equivalent of `highlight` elsewhere.
 const itemText = (it: ColumnItem) => (typeof it === 'string' ? it : it.text);
 const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === true;
+const tag = (id: string | number) => `<span class="px-cue-tag" data-cue-tag="${id}" hidden></span>`;
 ---
 
-<div class="px-compare" data-build-scene data-cols={cols} data-form={isList ? 'list' : isPair ? 'pair' : 'matrix'}>
+<div class="px-cmp" data-build-scene data-cols={cols} data-form={isList ? 'list' : isPair ? 'pair' : 'matrix'} style={`--cmp-cols:${Math.max(1, cols)}`}>
   {isList ? (
-    /* Each column is ONE block — its head and its own items together — so a
-       phone can stack the blocks and every item stays under its own heading.
-       The matrix form below cannot do this: its head and its rows share a
-       column count, so they must stay two grids that line up. */
-    <div class="px-compare__lists">
+    <div class="px-cmp__lists">
       {columns.map((c, ci) => (
-        <section class="px-compare__col" data-cue={ci + 1} data-build="1" data-build-kind="drop">
-          <div class="px-compare__col-head">
-            <div class="px-compare__col-title"><span class="px-cue-tag" data-cue-tag={ci + 1} hidden></span><Fragment set:html={renderInline(c.label)} /></div>
+        <section class="px-cmp__col" data-last={ci === columns.length - 1 ? 'true' : undefined} data-cue={ci + 1} data-build="1" data-build-kind="drop">
+          <div class="px-cmp__plate" data-last={ci === columns.length - 1 ? 'true' : undefined}>
+            <div class="px-cmp__title"><Fragment set:html={tag(ci + 1)} /><span set:html={renderInline(c.label)} /></div>
           </div>
-          <ul class="px-compare__list">
+          <ul class="px-cmp__list">
             {c.items.map((it) => (
-              <li class="px-compare__item" data-strong={itemStrong(it) ? 'true' : 'false'}>
-                <span set:html={renderInline(itemText(it))} />
-              </li>
+              <li class="px-cmp__item" data-strong={itemStrong(it) ? 'true' : undefined} set:html={renderInline(itemText(it))} />
             ))}
           </ul>
         </section>
@@ -120,27 +120,31 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
     </div>
   ) : (
     <>
-      <div class="px-compare__head" data-build="1">
-        {sides.map((s) => (
-          <div class="px-compare__col-head">
-            {s.label && <div class="px-compare__col-label">{s.label}</div>}
-            <div class="px-compare__col-title" set:html={renderInline(s.title)} />
-            {s.kicker && <div class="px-compare__col-kicker">{s.kicker}</div>}
-            {s.tag && <div class="px-compare__col-tag">{s.tag}</div>}
+      <div class="px-cmp__head">
+        {sides.map((s, si) => (
+          <div class="px-cmp__plate" data-last={si === sides.length - 1 ? 'true' : undefined} data-cue={`s${si + 1}`} data-build="1" data-build-kind="drop">
+            {s.label && <div class="px-cmp__label"><Fragment set:html={tag(`s${si + 1}`)} />{s.label}</div>}
+            <div class="px-cmp__title">{!s.label && <Fragment set:html={tag(`s${si + 1}`)} />}<span set:html={renderInline(s.title)} /></div>
+            {s.kicker && <div class="px-cmp__kicker">{s.kicker}</div>}
+            {s.tag && <div class="px-cmp__tag">{s.tag}</div>}
           </div>
         ))}
       </div>
-      <div class="px-compare__body">
-        {/* Cue anchors (LENS §5.2): each row (matrix and pair forms) or each
-            column (list form) is `data-cue="<n>"`, numbered from 1 in data
-            order; the empty tag is the numeral's slot. */}
+      <div class="px-cmp__body">
         {rows.map((row, ri) => (
-          <div class="px-compare__row" data-cue={ri + 1} data-build="2" data-build-kind="drop">
-            <div class="px-compare__row-label"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{row.label}</div>
-            {row.values.map((v, i) => (
-              <div class="px-compare__cell" data-win={row.win === i ? 'true' : undefined} set:html={renderInline(v)} />
-            ))}
-            {row.note && <div class="px-compare__note" set:html={renderInline(row.note)} />}
+          <div class="px-cmp__row" data-cue={ri + 1} data-build="2" data-build-kind="drop">
+            <div class="px-cmp__rl"><Fragment set:html={tag(ri + 1)} />{row.label}</div>
+            <div class="px-cmp__cells">
+              {row.values.map((v, i) => (
+                <div class="px-cmp__cell" data-last={i === row.values.length - 1 ? 'true' : undefined} data-win={row.win === i ? 'true' : undefined}>
+                  {row.win === i && (
+                    <svg class="px-cmp__check" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" style="fill:var(--accent)" /><path d="M5.5 10.2l3 3 6-6.4" style="fill:none;stroke:var(--paper);stroke-width:2;stroke-linecap:round;stroke-linejoin:round" /></svg>
+                  )}
+                  <span set:html={renderInline(v)} />
+                </div>
+              ))}
+            </div>
+            {row.note && <div class="px-cmp__note" set:html={renderInline(row.note)} />}
           </div>
         ))}
       </div>
@@ -149,24 +153,125 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
 </div>
 
 <style>
-  /* The pair form (the folded city-compare): the winning cell reads in the
-     accent and bold, and a row's note runs full width under its cells. The
-     rest of the matrix styling is `.px-compare*` in src/styles/base.css. */
-  .px-compare[data-form='pair'] .px-compare__cell[data-win='true'] {
-    color: var(--accent-deep, var(--accent));
-    font-weight: 700;
+  .px-cmp { container-type: inline-size; min-width: 0; }
+
+  /* ── the plates ── */
+  .px-cmp__head,
+  .px-cmp__cells,
+  .px-cmp__lists {
+    display: grid;
+    grid-template-columns: repeat(var(--cmp-cols, 2), minmax(0, 1fr));
+    gap: 8px;
   }
-  .px-compare[data-form='pair'] .px-compare__row:has(> .px-compare__note) .px-compare__cell:nth-last-child(2) {
-    border-right: none;
+  .px-cmp__plate {
+    min-width: 0;
+    padding: 14px 16px 16px;
+    background: var(--paper-3);
+    border-top: 3px solid var(--ink-2);
+    border-radius: var(--r-ctl);
   }
-  .px-compare__note {
-    grid-column: 1 / -1;
-    padding: 0 26px 14px;
+  .px-cmp__plate[data-last] { background: var(--accent-tint); border-top-color: var(--accent); }
+  .px-cmp__label,
+  .px-cmp__kicker,
+  .px-cmp__rl {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .px-cmp__plate[data-last] .px-cmp__label { color: var(--accent-deep); }
+  .px-cmp__title {
+    display: flex;
+    align-items: baseline;
+    margin-top: 6px;
     font-family: var(--font-display);
     font-style: italic;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.2;
+    color: var(--ink);
     overflow-wrap: break-word;
+    min-width: 0;
+  }
+  .px-cmp__title > span { min-width: 0; }
+  .px-cmp__title :global(em) { font-style: italic; }
+  .px-cmp__title :global(.px-cue-tag) { align-self: center; }
+  .px-cmp__kicker { margin-top: 6px; color: var(--muted); }
+  .px-cmp__tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    margin-top: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--paper-2);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-deep);
+  }
+
+  /* ── the rows ── */
+  .px-cmp__body { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+  .px-cmp__row { min-width: 0; border-radius: var(--r-ctl); }
+  .px-cmp__rl { margin: 0 0 6px; }
+  .px-cmp__cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px 12px;
+    background: var(--paper-3);
+    border-radius: var(--r-ctl);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .px-cmp__cell > span { min-width: 0; }
+  .px-cmp__cell[data-last] { background: var(--accent-tint); }
+  .px-cmp__cell[data-win] { font-weight: 600; }
+  .px-cmp__cell :global(em) { font-style: italic; color: var(--accent-deep); }
+  .px-cmp__cell :global(strong) { font-weight: 600; }
+  .px-cmp__check { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+  .px-cmp__note {
+    margin-top: 6px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    overflow-wrap: break-word;
+  }
+
+  /* ── the list form ── */
+  .px-cmp__col { min-width: 0; border-radius: var(--r-ctl); }
+  .px-cmp__col .px-cmp__title { margin-top: 0; }
+  .px-cmp__list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .px-cmp__item {
+    padding: 10px 12px;
+    background: var(--paper-3);
+    border-radius: var(--r-ctl);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .px-cmp__col[data-last] .px-cmp__item { background: var(--accent-tint); }
+  .px-cmp__item[data-strong] { font-weight: 600; }
+
+  /* A narrow box: three sides take the full width each; titles step down. */
+  @container (max-width: 420px) {
+    .px-cmp[data-cols='3'] :is(.px-cmp__head, .px-cmp__cells, .px-cmp__lists) { grid-template-columns: minmax(0, 1fr); }
+    .px-cmp__title { font-size: 19px; }
+    .px-cmp__plate { padding: 12px 12px 14px; }
   }
 </style>

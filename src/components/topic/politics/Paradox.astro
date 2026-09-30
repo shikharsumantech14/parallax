@@ -1,10 +1,26 @@
 ---
 /**
- * Paradox — v2 two-panel comparison (.px2) with a center "vs" pivot, inside the
- * elevated .px-viz card (fades/rises in on scroll). Faithful port of
- * publication-v2 DataViz2.jsx <Paradox>. Shared by every `paradox` section
- * (politics + earth). Takes the existing `sides[]` shape; renders the first two
- * as the left/right panels.
+ * Paradox — two true things pulling apart. Lens Phase 6 (2026-09-30), to the
+ * Lib-paradox board: two plates facing each other on the desk tint, each with
+ * its label and its statement in Newsreader italic at 28, and between them a
+ * drawn tension mark (a dashed spine and two arrows pulling away from it).
+ * Each plate's `detail` prints under its statement at 14px: the board dropped
+ * it, but nothing else on the page carries it.
+ *
+ * Optional `figure: { value, label, was? }` (Lens Phase 6) sets the one number
+ * that divides the two sides at 96 under an ink rule, and when `was` is given,
+ * a before / now pair of bars on one scale. Shared by every `paradox` section
+ * (politics, earth, travel, space). Takes the `sides[]` shape; the first two
+ * are drawn.
+ *
+ * Cue anchors (LENS §5.2):
+ *   1, 2     the two plates, in DATA order
+ *   gap      the tension mark between them
+ *   figure   the number and its bars
+ *
+ * THE BUILD (LENS §6.4): the root is a scene. 1 the plates fade in, 2 the
+ * spine draws, 3 the arrows fade in, 4 the bars grow, 5 the number counts up.
+ * No JS or reduced motion: both plates as drawn.
  */
 import { renderInline } from '../../../lib/text';
 
@@ -13,33 +29,154 @@ interface ParadoxSide {
   statement: string;
   detail: string;
 }
+interface Figure {
+  value: number;
+  label: string;
+  was?: number;
+}
 interface Props {
   sides: ParadoxSide[];
+  figure?: Figure;
   caption?: string;
   source?: string;
 }
-const { sides = [], caption, source } = Astro.props;
+const { sides = [], figure } = Astro.props;
 const left = sides[0];
 const right = sides[1];
+const fmt = (n: number) => n.toLocaleString('en-US');
+const fig = figure && Number.isFinite(Number(figure.value)) ? { ...figure, value: Number(figure.value) } : undefined;
+const figMax = fig ? Math.max(1, fig.value, Number(fig.was ?? 0)) : 1;
+const hasWas = fig && fig.was != null && Number.isFinite(Number(fig.was));
+const intLike = fig ? Number.isInteger(fig.value) : true;
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
-  <div class="px2">
+<div class="px2" data-viz-root data-build-scene>
+  <div class:list={['px2__pair', !right && 'px2__pair--one']}>
     {left && (
-      <div class="px2__panel">
-        <div class="px2__label">{left.label}</div>
-        <div class="px2__claim" set:html={renderInline(left.statement)} />
-        <div class="px2__detail" set:html={renderInline(left.detail)} />
+      <div class="px2__plate" data-cue="1" data-build="1">
+        <p class="px2__label"><span class="px-cue-tag" data-cue-tag="1" hidden></span>{left.label}</p>
+        <p class="px2__claim" set:html={renderInline(left.statement)} />
+        <p class="px2__detail" set:html={renderInline(left.detail)} />
       </div>
     )}
-    {left && right && <div class="px2__pivot"></div>}
+    {left && right && (
+      <div class="px2__gap" data-cue="gap" aria-hidden="true">
+        <span class="px-cue-tag" data-cue-tag="gap" hidden></span>
+        <svg class="px2__pull" viewBox="0 0 40 120" preserveAspectRatio="xMidYMid meet">
+          <line class="px2__spine" x1="20" y1="4" x2="20" y2="116" data-build="2" data-build-kind="draw" />
+          <g class="px2__arrow" data-build="3">
+            <path d="M16 44 H3 M9 38 L3 44 L9 50" />
+          </g>
+          <g class="px2__arrow" data-build="3">
+            <path d="M24 76 H37 M31 70 L37 76 L31 82" />
+          </g>
+        </svg>
+      </div>
+    )}
     {right && (
-      <div class="px2__panel">
-        <div class="px2__label">{right.label}</div>
-        <div class="px2__claim" set:html={renderInline(right.statement)} />
-        <div class="px2__detail" set:html={renderInline(right.detail)} />
+      <div class="px2__plate px2__plate--b" data-cue="2" data-build="1">
+        <p class="px2__label"><span class="px-cue-tag" data-cue-tag="2" hidden></span>{right.label}</p>
+        <p class="px2__claim" set:html={renderInline(right.statement)} />
+        <p class="px2__detail" set:html={renderInline(right.detail)} />
       </div>
     )}
   </div>
+
+  {fig && (
+    <div class="px2__fig" data-cue="figure">
+      <div class="px2__fig-k">
+        <span class="px2__big" data-build="5" data-build-kind={intLike ? 'counter' : 'rise'} data-to={intLike ? fig.value : undefined}>{fmt(fig.value)}</span>
+        <p class="px2__fig-l">
+          <span class="px-cue-tag" data-cue-tag="figure" hidden></span><b>{fig.label}</b>
+          {hasWas && <span>was <s>{fmt(Number(fig.was))}</s></span>}
+        </p>
+      </div>
+      {hasWas && (
+        <div class="px2__bars">
+          <span class="px2__bk">Before</span>
+          <span class="px2__track"><span class="px2__bar px2__bar--was" data-build="4" data-build-kind="grow-x" style={`width:${((Number(fig.was) / figMax) * 100).toFixed(2)}%`}></span></span>
+          <span class="px2__bv">{fmt(Number(fig.was))}</span>
+          <span class="px2__bk">Now</span>
+          <span class="px2__track"><span class="px2__bar" data-build="4" data-build-kind="grow-x" style={`width:${((fig.value / figMax) * 100).toFixed(2)}%`}></span></span>
+          <span class="px2__bv px2__bv--now">{fmt(fig.value)}</span>
+        </div>
+      )}
+    </div>
+  )}
 </div>
+
+<style>
+  .px2 { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+  .px2__pair { display: grid; grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); align-items: stretch; gap: 8px; }
+  .px2__pair--one { grid-template-columns: minmax(0, 1fr); }
+  .px2__plate {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 20px 20px 22px;
+    border-radius: var(--r-card, 6px);
+    background: var(--accent-tint);
+    border: 1px solid transparent;
+  }
+  .px2__plate--b { border-color: var(--accent); }
+  .px2__label {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .px2__claim {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.12;
+    color: var(--ink);
+  }
+  .px2__claim :global(em) { font-style: italic; }
+  .px2__detail { margin: 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+  .px2__detail :global(strong) { color: var(--ink); }
+
+  .px2__gap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .px2__gap .px-cue-tag { margin: 0; }
+  .px2__pull { width: 40px; height: 120px; overflow: visible; }
+  .px2__spine { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 4; }
+  .px2__arrow path { fill: none; stroke: var(--accent-deep); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .px2__fig { display: flex; flex-direction: column; gap: 18px; padding-top: 22px; border-top: 1.5px solid var(--ink); }
+  .px2__fig-k { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 20px; }
+  .px2__big {
+    font-family: var(--font-ui);
+    font-size: 96px;
+    line-height: 0.92;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--accent-deep);
+  }
+  .px2__fig-l { margin: 0 0 6px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-ui); font-size: 13px; line-height: 1.35; color: var(--muted); }
+  .px2__fig-l b { display: flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--ink); }
+  .px2__bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 14px; }
+  .px2__bk { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px2__track { position: relative; height: 12px; }
+  .px2__bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); transform-origin: left center; }
+  .px2__bar--was { background: var(--hair-2); }
+  .px2__bv { font-family: var(--font-ui); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .px2__bv--now { color: var(--accent-deep); }
+
+  @media (max-width: 560px) {
+    .px2__pair { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .px2__gap { flex-direction: row; gap: 40px; height: 40px; }
+    .px2__pull { flex: none; transform: rotate(90deg); }
+    .px2__claim { font-size: 24px; }
+    .px2__big { font-size: 72px; }
+  }
+</style>

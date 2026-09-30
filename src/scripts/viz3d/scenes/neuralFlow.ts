@@ -18,7 +18,6 @@ import {
   type LayerSpec, type Resolved,
 } from '../neural';
 import { makeOrbitControls, makePicker, makeTooltip, makeInstanced } from '../helpers';
-import { makeLabels } from './globe';
 
 const NODE_BOX = 0.024;       // grid-slab node box edge (blueprint §4)
 const COLUMN_SCALE = 1.8;     // column layers (shown <= 16) scale up ×1.8
@@ -106,25 +105,10 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
     disposables.push(g, m);
   }
 
-  /* ── layer labels: one per layer, 0.18 below each slab's bottom edge ── */
-  const labels = makeLabels(THREE, mount);
-  R.layers.forEach((ly, l) => {
-    const rows = ly.layout.rows;
-    const bottomY = -((rows - 1) / 2) * ly.layout.s; // lowest node's local y
-    labels.add(ly.label || `layer ${l}`, new THREE.Vector3(ly.x, bottomY - 0.18, 0), 'data', 1);
-  });
-
-  /* ── param readout chip (HTML, pinned top-left) ── */
-  const readout = document.createElement('div');
-  readout.className = 'px-nflow__readout';
-  readout.setAttribute('aria-hidden', 'true');
-  const paramsStr = formatCount(R.params);
-  const noteStr = typeof data.paramsNote === 'string' ? data.paramsNote : '';
-  readout.innerHTML =
-    `<span class="px-nflow__params vz-value"><b class="px-nflow__count">0</b> params</span>` +
-    (noteStr ? `<span class="px-nflow__note vz-legend">${escapeHtml(noteStr)}</span>` : '');
-  mount.appendChild(readout);
-  const countEl = readout.querySelector('.px-nflow__count') as HTMLElement;
+  /* Lens Phase 6 (2026-09-30): the layer names and the parameter count are
+     HTML in the component, beside the mount (one copy, the cue anchors and
+     the build live there), so the scene no longer projects its own labels
+     or mounts a count-up readout. */
 
   /* ── wave-honesty chip (live only — a real pass is microseconds) ── */
   const waveChip = document.createElement('div');
@@ -162,7 +146,6 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
   /* ── frame loop ── */
   let bootMs = -1;
   let lastT = 0;
-  let counted = false;
   const midL = middleLayer(L);
   const dummy = new THREE.Object3D();
   const lift = new Float32Array(total);
@@ -192,13 +175,6 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
       // edges fade in 200 ms, after the last layer settles (entrance order §5)
       const edgeFade = smoothstep((since - bootDone) / 200);
 
-      // param count-up (900 ms), starts with the last layer's settle
-      const countStart = (L - 1) * LAYER_DELAY;
-      if (!counted) {
-        const ct = smoothstep((since - countStart) / 900);
-        countEl.textContent = formatCount(R.params * ct);
-        if (ct >= 1) { countEl.textContent = paramsStr; counted = true; }
-      }
 
       // wave phase within the current cycle (starts once boot completes)
       const wavePhase = since > bootDone ? (since - bootDone) % cyclMs : -1;
@@ -246,14 +222,11 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
 
       picker.tick();
       renderer.render(scene, camera);
-      labels.update(group, camera, mount.clientWidth, mount.clientHeight);
     },
     dispose() {
       controls.dispose();
       picker.dispose();
       tooltip.dispose();
-      labels.dispose();
-      readout.remove();
       waveChip.remove();
       disposables.forEach((d) => d.dispose && d.dispose());
       inst.dispose();

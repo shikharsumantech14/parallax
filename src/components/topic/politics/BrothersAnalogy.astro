@@ -1,4 +1,30 @@
 ---
+/**
+ * BrothersAnalogy — the `analogy` kind: an unfamiliar mechanism mapped row by
+ * row onto something the reader already handles. Lens Phase 6 (2026-09-30),
+ * to the Lib-analogy board: a two-column read-across under a head rule ("The
+ * real thing" · "Like this"), each row the real thing in Instrument Sans on the
+ * left, a drawn double arrow in the desk mark, the everyday thing in Newsreader
+ * italic on the right, and its `note` under the pair. The headline leads in
+ * Newsreader italic and the punchline closes under an ink rule.
+ *
+ * The board drew a stroke pictogram for every thing it names (a parliament, a
+ * family table). Those are specific to one issue's words, so the component
+ * does not guess them: the row number stands where the pictogram stood, set in
+ * the desk text ink. Desk-neutral copy (AGENTS.md §7).
+ *
+ * A NARRATIVE kind (LENS §5.1): it runs in the article column with no figure
+ * panel, so it exposes no cue anchors. THE BUILD (LENS §6.4): the root is a
+ * scene; 2 the rows drop in, 80ms apart (the head rule stays, since a phone
+ * hides it), 3 the
+ * punchline rises. No JS or reduced motion: every row in place.
+ *
+ * The legacy politics form `brothers: [{code, role, desc, kids}]` still wins
+ * when present (none of the published issues carries it since the register
+ * rewrite; it is kept so an old draft still builds), drawn as two cards.
+ *
+ * data: { headline?, pairs: [{this, that, note?}], punchline? } | { headline?, brothers, punchline? }
+ */
 import { renderInline } from '../../../lib/text';
 
 interface Brother {
@@ -7,180 +33,158 @@ interface Brother {
   desc: string;
   kids: string;
 }
-
-/**
- * The generalised shape (REGISTER-PLAN RG-09): one row of the universal
- * this ↔ that mapping. `this` is the real thing, `that` the everyday thing it
- * stands in for — ≤ 12 words each, so the row is read at a glance rather than
- * studied. `note` (≤ 16 words) carries the one number or caveat that keeps the
- * mapping honest.
- */
 interface AnalogyPair {
   this: string;
   that: string;
   note?: string;
 }
-
 interface Props {
   headline?: string;
-  /** Legacy — the politics joint-family device. Renders unchanged when present. */
+  /** Legacy: the politics joint-family device. Wins when present. */
   brothers?: Brother[];
-  /** The universal mapping — 2–5 rows. Renders when `brothers` is absent. */
+  /** The universal mapping, 2–5 rows. */
   pairs?: AnalogyPair[];
   punchline?: string;
 }
 
 const { headline, brothers = [], pairs, punchline } = Astro.props;
-
-// The joint-family device wins whenever it carries data, so the delimitation
-// issue renders exactly as it always has. The rows render only in its absence.
 const legacy = brothers.length > 0;
 const rows = legacy ? [] : (pairs ?? []);
-const rootClass = legacy ? 'px-analogy' : 'px-analogy px-analogy--pairs';
+const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
-<div class={rootClass}>
-  {headline && (
-    <p class="px-analogy__headline" set:html={renderInline(headline)} />
-  )}
+<div class="px-analogy" data-build-scene>
+  {headline && <p class="px-analogy__headline" set:html={renderInline(headline)} />}
 
-  {legacy && <div class="px-analogy__grid">
-    {brothers.map((b) => (
-      <div class="px-analogy__card" data-role={b.role}>
-        <div class="px-analogy__tag">{b.code}</div>
-        <p class="px-analogy__desc" set:html={renderInline(b.desc)} />
-        <div class="px-analogy__kids">{b.kids}</div>
-      </div>
-    ))}
-  </div>}
-
-  {rows.length > 0 && (
-    <div class="px-analogy__pairs">
-      {rows.map((p) => (
-        <div class="px-analogy__pair">
-          <p class="px-analogy__this" set:html={renderInline(p.this)} />
-          <span class="px-analogy__pivot" role="img" aria-label="maps to">↔</span>
-          <p class="px-analogy__that" set:html={renderInline(p.that)} />
-          {p.note && (
-            <p class="px-analogy__pnote" set:html={renderInline(p.note)} />
-          )}
+  {legacy && (
+    <div class="px-analogy__grid">
+      {brothers.map((b) => (
+        <div class="px-analogy__card" data-role={b.role} data-build="2" data-build-kind="drop">
+          <p class="px-analogy__tag">{b.code}</p>
+          <p class="px-analogy__desc" set:html={renderInline(b.desc)} />
+          <p class="px-analogy__kids">{b.kids}</p>
         </div>
       ))}
     </div>
   )}
 
-  {punchline && (
-    <p class="px-analogy__punchline" set:html={renderInline(punchline)} />
+  {rows.length > 0 && (
+    <div class="px-analogy__tbl">
+      <div class="px-analogy__head" aria-hidden="true">
+        <span>The real thing</span>
+        <span>Like this</span>
+      </div>
+      {rows.map((p, i) => (
+        <div class="px-analogy__pair" data-build="2" data-build-kind="drop">
+          <span class="px-analogy__no" aria-hidden="true">{pad(i + 1)}</span>
+          <p class="px-analogy__this" set:html={renderInline(p.this)} />
+          <svg class="px-analogy__pivot" viewBox="0 0 48 16" role="img" aria-label="is like">
+            <path d="M3 8 H45 M9 3 L3 8 L9 13 M39 3 L45 8 L39 13" />
+          </svg>
+          <p class="px-analogy__that" set:html={renderInline(p.that)} />
+          {p.note && <p class="px-analogy__pnote" set:html={renderInline(p.note)} />}
+        </div>
+      ))}
+    </div>
   )}
+
+  {punchline && <p class="px-analogy__punchline" data-build="3" data-build-kind="rise" set:html={renderInline(punchline)} />}
 </div>
 
-<style is:global>
-  /* ══ The universal this ↔ that mapping (REGISTER-PLAN RG-09) ══════════════
-     Here rather than in themes/politics.css because the generalised kind is
-     desk-agnostic and that file is not.
-
-     `is:global`, not the usual scoped block, and that is deliberate: a scoped
-     <style> makes the compiler stamp its scope token onto EVERY element in
-     this template, including the joint-family branch — verified against
-     @astrojs/compiler, `class="px-analogy__grid astro-<hash>"`. The legacy
-     markup has to stay byte-identical for the delimitation issue, so the
-     rules go out global and every override below carries TWO classes, which
-     beats the single-class rules in themes/politics.css on specificity alone,
-     whatever order the sheets land in. Every selector is guarded by
-     `.px-analogy--pairs`, a class the legacy branch never emits.
-
-     It also has to UNDO the joint-family plate. `.px-analogy` in
-     themes/politics.css is `background: var(--ink); color: #f4f1ea` and is NOT
-     scoped to [data-topic="politics"] — all six theme files load on every page
-     — so an `analogy` on the earth desk inherits the ink plate, and the rows'
-     token colours (--ink on the desk's own ground) would land ink-on-ink. The
-     rows are a hairline list on whatever paper the desk is running; that is
-     what makes the kind portable. The legacy branch never gets these rules.
-
-     Flat throughout: no radius, no shadow, no hover lift (RD-05, CANON §14),
-     and no literal colours (CANON §13.4). */
-
-  .px-analogy.px-analogy--pairs {
-    background: transparent;
-    color: var(--ink);
-    padding: 0;
-    overflow: visible;
-  }
-  .px-analogy.px-analogy--pairs::before { content: none; }
-
-  /* The headline and the punchline keep their cut — display italic, the same
-     sizes and measures. Only the plate's off-white literals become tokens, and
-     the punchline drops its own rule because the list already closes with one. */
-  .px-analogy--pairs .px-analogy__headline { color: var(--ink); }
-  .px-analogy--pairs .px-analogy__punchline {
-    color: var(--ink);
-    border-top: 0;
-  }
-
-  .px-analogy--pairs .px-analogy__pairs {
+<style>
+  .px-analogy { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .px-analogy__headline {
     margin: 0;
-    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.35;
+    color: var(--ink);
   }
 
-  /* Phones stack: real thing, pivot, everyday thing, note. */
-  .px-analogy--pairs .px-analogy__pair {
+  .px-analogy__tbl { display: flex; flex-direction: column; }
+  .px-analogy__head {
     display: grid;
-    grid-template-columns: 1fr;
-    row-gap: 4px;
-    padding: 14px 0;
-    border-top: 1px solid var(--rule);
+    grid-template-columns: 40px minmax(0, 1fr) 56px minmax(0, 1fr);
+    column-gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--ink);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
+  .px-analogy__head span:first-child { grid-column: 2; color: var(--accent-deep); }
+  .px-analogy__head span:last-child { grid-column: 4; color: var(--muted); }
 
-  .px-analogy--pairs .px-analogy__this {
+  .px-analogy__pair {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 56px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .px-analogy__no {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 0.92;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-analogy__this {
     margin: 0;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 16.5px;
-    line-height: 1.3;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
     color: var(--ink);
   }
-
-  /* The pivot turns with the layout: ↕ stacked, ↔ once the row is a row.
-     --accent-deep, not --accent: this is type on the desk's own ground, and
-     the vivid accent fails AA there on travel (CANON §6, TD-06). */
-  .px-analogy--pairs .px-analogy__pivot {
-    display: block;
-    margin: 2px 0;
+  .px-analogy__pivot { width: 48px; height: 16px; justify-self: center; }
+  .px-analogy__pivot path { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .px-analogy__that {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 1.3;
-    color: var(--accent-deep);
-    text-align: center;
-    transform: rotate(90deg);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.4;
+    color: var(--ink);
   }
-
-  .px-analogy--pairs .px-analogy__that {
+  .px-analogy__pnote {
+    grid-column: 2 / -1;
     margin: 0;
-    font-family: var(--font-body);
-    font-size: 16.5px;
-    line-height: 1.45;
-    color: var(--ink-soft);
-  }
-
-  .px-analogy--pairs .px-analogy__pnote {
-    grid-column: 1 / -1;
-    margin: 0;
-    font-family: var(--font-body);
-    font-size: 13.5px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     line-height: 1.5;
     color: var(--muted);
   }
 
-  @media (min-width: 640px) {
-    .px-analogy--pairs .px-analogy__pair {
-      grid-template-columns: 1fr 40px 1fr;
-      align-items: baseline;
-      row-gap: 6px;
-      padding: 15px 0;
-    }
-    .px-analogy--pairs .px-analogy__pivot {
-      margin: 0;
-      transform: none;
-    }
+  .px-analogy__punchline {
+    margin: 0;
+    padding-top: 16px;
+    border-top: 1.5px solid var(--ink);
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+
+  /* the legacy joint-family cards */
+  .px-analogy__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .px-analogy__card { display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: var(--r-card, 6px); border: 1px solid var(--hair); background: var(--paper-2); }
+  .px-analogy__card[data-role='disciplined'] { background: var(--accent-tint); border-color: var(--accent); }
+  .px-analogy__tag { margin: 0; font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-deep); }
+  .px-analogy__desc { margin: 0; font-family: var(--font-display); font-size: 17px; line-height: 1.45; color: var(--ink); }
+  .px-analogy__kids { margin: 0; font-family: var(--font-ui); font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 560px) {
+    .px-analogy__head { display: none; }
+    .px-analogy__pair { grid-template-columns: 32px minmax(0, 1fr); padding: 14px 0; }
+    .px-analogy__no { grid-row: 1 / span 3; align-self: start; }
+    .px-analogy__this, .px-analogy__pivot, .px-analogy__that, .px-analogy__pnote { grid-column: 2; }
+    .px-analogy__pivot { justify-self: start; }
   }
 </style>

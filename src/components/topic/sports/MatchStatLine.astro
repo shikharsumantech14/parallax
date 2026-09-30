@@ -1,87 +1,242 @@
 ---
-/* MatchStatLine — bold scoreline + horizontal stat-bar comparisons.
-   Lime accents on pitch-green. CSS-only. Use for: match reports, head-to-head
-   comparisons, performance metrics, win-rate breakdowns. */
+/**
+ * MatchStatLine — one match told through its stat rows (Lens Phase 6,
+ * 2026-09-30; the board is Lib-match-stat-line). The scoreline on top: each
+ * side's badge disc and name, the score between them at 48 (the figure's one
+ * large number). Under it, one row per stat: the label centred, the two values
+ * at the ends and a butterfly of two bars meeting in the middle, the larger
+ * side filling its half and the smaller drawn to scale against it. The home
+ * side is drawn in the desk mark, the away side in ink-2.
+ *
+ * HTML, no JS of its own. Sized by its own box (a size container), so it
+ * reads the same in the 472px figure panel and on a 307px phone.
+ *
+ * Cue anchors:
+ *   score   the scoreline (both sides and the score)
+ *   1..n    the stat rows, in authored order
+ *
+ * The build (LENS §6.4, src/scripts/build.ts): 1 the row labels fade, 2 the
+ * bars grow out from the centre line, 3 the values rise, 4 the sides fade in
+ * and the score counts up.
+ */
 import { renderInline } from '../../../lib/text';
 
 interface Side {
   name: string;
   score?: string;        /* "2", "0", or "(4)" for penalties */
-  badge?: string;        /* short tag, e.g. "FIN" */
+  badge?: string;        /* short tag, e.g. "PSG" */
   outcome?: 'win' | 'draw' | 'loss';
 }
 
 interface StatRow {
   label: string;
-  home: number;          /* numeric value for the home side bar */
-  away: number;          /* numeric value for the away side bar */
+  home: number;
+  away: number;
   unit?: string;         /* "%", "" — appended to the displayed number */
-  note?: string;         /* small italic note under the row */
+  note?: string;         /* one line under the row */
 }
 
 interface Props {
   home: Side;
   away: Side;
-  competition?: string;  /* eyebrow, e.g. "Premier League · Matchday 31" */
+  competition?: string;  /* "Premier League · Matchday 31" */
   venue?: string;        /* "Anfield · 54,074" */
   date?: string;         /* "Apr 24, 2026" */
   rows: StatRow[];
   source?: string;
 }
-const { home, away, competition, venue, date, rows, source } = Astro.props;
+const { home, away, competition, venue, date, rows = [] } = Astro.props;
 
-/* normalise each row to percentages of the row total for the bar fill */
-const normalised = rows.map((r) => {
-  const total = (Number(r.home) || 0) + (Number(r.away) || 0);
-  const homePct = total === 0 ? 50 : (Number(r.home) / total) * 100;
-  return { ...r, homePct, awayPct: 100 - homePct };
+/* Each side's bar against the row's larger value, so the leader fills its
+   half and the other is drawn to scale beside it. */
+const drawn = rows.map((r, i) => {
+  const h = Math.max(0, Number(r.home) || 0);
+  const a = Math.max(0, Number(r.away) || 0);
+  const top = Math.max(h, a) || 1;
+  return { ...r, cue: i + 1, hw: (h / top) * 100, aw: (a / top) * 100 };
 });
+
+/* A score that is a plain integer counts up; anything else ("(4)") is text. */
+const counter = (s?: string) => (s != null && /^\d+$/.test(String(s).trim()) ? String(s).trim() : null);
+const hs = home.score ?? '0';
+const as = away.score ?? '0';
+const meta = [venue, date].filter(Boolean).join(' · ');
+const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpperCase();
 ---
 
-<div class="px-msl" data-viz-root>
-  {competition && <div class="px-msl__comp">{competition}</div>}
+<div class="px-msl" data-viz-root data-build-scene>
+  {competition && <p class="px-msl__comp" data-build="4">{competition}</p>}
 
-  <div class="px-msl__scoreline">
-    <div class="px-msl__side px-msl__side--home" data-outcome={home.outcome ?? 'draw'}>
-      {home.badge && <span class="px-msl__badge">{home.badge}</span>}
+  <div class="px-msl__scoreline" data-cue="score">
+    <div class="px-msl__side" data-outcome={home.outcome ?? 'draw'} data-build="4">
+      <span class="px-msl__disc px-msl__disc--home" aria-hidden="true">{initials(home)}</span>
       <span class="px-msl__name">{home.name}</span>
     </div>
     <div class="px-msl__score">
-      <span class="px-msl__score-num">{home.score ?? '0'}</span>
-      <span class="px-msl__score-sep">—</span>
-      <span class="px-msl__score-num">{away.score ?? '0'}</span>
+      <span class="px-cue-tag" data-cue-tag="score" hidden></span>
+      <span class="px-msl__num">
+        <span data-build="4" data-build-kind={counter(hs) ? 'counter' : undefined} data-to={counter(hs) ?? undefined}>{hs}</span>
+        <span class="px-msl__sep" aria-label="to">:</span>
+        <span data-build="4" data-build-kind={counter(as) ? 'counter' : undefined} data-to={counter(as) ?? undefined}>{as}</span>
+      </span>
     </div>
-    <div class="px-msl__side px-msl__side--away" data-outcome={away.outcome ?? 'draw'}>
+    <div class="px-msl__side px-msl__side--away" data-outcome={away.outcome ?? 'draw'} data-build="4">
       <span class="px-msl__name">{away.name}</span>
-      {away.badge && <span class="px-msl__badge">{away.badge}</span>}
+      <span class="px-msl__disc px-msl__disc--away" aria-hidden="true">{initials(away)}</span>
     </div>
   </div>
+  {meta && <p class="px-msl__meta" data-build="4">{meta}</p>}
 
-  {(venue || date) && (
-    <div class="px-msl__meta">
-      {venue && <span>{venue}</span>}
-      {venue && date && <span class="px-msl__sep">·</span>}
-      {date && <span>{date}</span>}
-    </div>
-  )}
-
-  <div class="px-msl__stats">
-    {normalised.map((r) => (
-      <div class="px-msl__row">
-        <span class="px-msl__row-home">{r.home}{r.unit ?? ''}</span>
-        <span class="px-msl__row-label">{r.label}</span>
-        <span class="px-msl__row-away">{r.away}{r.unit ?? ''}</span>
-        <div class="px-msl__row-bars">
-          <span class="px-msl__bar px-msl__bar--home" style={`width:${r.homePct}%`}></span>
-          <span class="px-msl__bar px-msl__bar--away" style={`width:${r.awayPct}%`}></span>
+  <div class="px-msl__rows">
+    {drawn.map((r) => (
+      <div class="px-msl__row" data-cue={r.cue}>
+        <p class="px-msl__label" data-build="1"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span><span>{r.label}</span></p>
+        <div class="px-msl__line">
+          <span class="px-msl__v" data-build="3" data-build-kind="rise">{r.home}{r.unit ?? ''}</span>
+          <span class="px-msl__half px-msl__half--home"><span class="px-msl__bar px-msl__bar--home" data-build="2" data-build-kind="grow-x" style={`width:${r.hw.toFixed(1)}%`}></span></span>
+          <span class="px-msl__half"><span class="px-msl__bar px-msl__bar--away" data-build="2" data-build-kind="grow-x" style={`width:${r.aw.toFixed(1)}%`}></span></span>
+          <span class="px-msl__v px-msl__v--away" data-build="3" data-build-kind="rise">{r.away}{r.unit ?? ''}</span>
         </div>
-        {r.note && <span class="px-msl__row-note" set:html={renderInline(r.note)} />}
+        {r.note && <p class="px-msl__note" data-build="3" set:html={renderInline(r.note)} />}
       </div>
     ))}
   </div>
-
-  {/* No source line here. `core/Section.astro` is the ONE source emitter
-     since 2026-09-04; this component's was a `__source` survivor of that
-     sweep, which matched `__src`, so every section with a source printed
-     it twice (measured live 2026-09-22). Same shape as Comparison's. */}
+  {/* No source line and no caption: core/Section.astro prints both. */}
 </div>
+
+<style>
+  .px-msl {
+    container-type: inline-size;
+    min-width: 0;
+    color: var(--ink);
+    font-family: var(--font-ui);
+  }
+  .px-msl__comp {
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    text-align: center;
+  }
+  .px-msl__scoreline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+  }
+  .px-msl__side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink);
+  }
+  .px-msl__side--away { justify-content: flex-end; text-align: right; }
+  .px-msl__side[data-outcome='win'] { color: var(--accent-deep); }
+  .px-msl__side[data-outcome='loss'] { color: var(--ink-2); }
+  .px-msl__name { min-width: 0; overflow-wrap: anywhere; }
+  .px-msl__disc {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--paper);
+  }
+  .px-msl__disc--home { background: var(--accent-deep); }
+  .px-msl__disc--away { background: var(--ink-2); }
+  .px-msl__score { display: flex; align-items: center; justify-content: center; }
+  .px-msl__score .px-cue-tag { margin-right: 10px; }
+  .px-msl__num {
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .px-msl__sep { padding: 0 6px; color: var(--muted); font-weight: 500; }
+  .px-msl__meta {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--muted);
+    text-align: center;
+  }
+  .px-msl__rows { display: flex; flex-direction: column; margin-top: 18px; }
+  .px-msl__row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--hair);
+  }
+  .px-msl__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+  .px-msl__line {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1fr) 56px;
+    column-gap: 8px;
+    align-items: center;
+  }
+  .px-msl__v {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  .px-msl__v--away { text-align: right; color: var(--ink-2); }
+  .px-msl__half { display: flex; height: 16px; }
+  .px-msl__half--home { justify-content: flex-end; }
+  .px-msl__bar { display: block; height: 100%; }
+  .px-msl__bar--home { background: var(--accent); border-radius: 3px 0 0 3px; transform-origin: 100% 50%; }
+  .px-msl__bar--away { background: var(--ink-2); border-radius: 0 3px 3px 0; transform-origin: 0 50%; }
+  .px-msl__note {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--ink-2);
+    text-align: center;
+  }
+  /* The score at 96 takes its own row above the two sides once the box is
+     too narrow to hold all three on one line. */
+  @container (max-width: 560px) {
+    .px-msl__scoreline { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 12px; }
+    .px-msl__score { grid-column: 1 / -1; order: -1; }
+  }
+  @container (max-width: 380px) {
+    .px-msl__side { flex-direction: column; align-items: flex-start; gap: 6px; font-size: 13px; }
+    .px-msl__side--away { flex-direction: column-reverse; align-items: flex-end; }
+    .px-msl__line { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 44px; }
+    .px-msl__v { font-size: 17px; }
+  }
+  /* LENS §7: the pinned figure headline is 96, 72 on phones. */
+  @media (max-width: 767px) { .px-msl__num { font-size: 72px; } }
+</style>

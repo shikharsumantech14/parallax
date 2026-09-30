@@ -1,42 +1,50 @@
 ---
 /**
- * LatencyWaterfall (tech) — a request waterfall. One row per span; a bar
- * positioned by its `start` (x-offset %) with width proportional to `dur`, all
- * on a shared time axis (0 → max(start + dur)). Bar tint comes from a small
- * kind → color map derived from the theme accent/muted. Row label sits left,
- * the duration value right (mono), over a faint vertical gridline scale with
- * axis ticks. Flat (no 3D). Build-time geometry; zero JS of its own.
+ * LatencyWaterfall (tech) — a request waterfall, or any set of stages on one
+ * clock. One row per span: the span's name and its duration on a line, and
+ * under it a bar placed by its `start` and as long as its `dur`, all on a
+ * shared axis (0 → the latest end). The whole trace's length is the figure's
+ * one large number. Bar tint comes from a small kind → colour map; a span
+ * with no kind takes the desk mark. Build-time geometry; zero JS of its own.
  *
- * THE BUILD (Lens Phase 5, LENS §6.4): the card is a `data-build-scene`:
- * 1 the axis (gridlines, ticks, span names) fades in, 2 each bar grows from
- * its left edge, 80ms apart down the rows, 3 the durations rise
- * (src/scripts/build.ts). No JS or reduced motion: the bars at their final
- * width, every number in place.
+ * LENS PHASE 6 (2026-09-30, the board Lib-latency-waterfall): an HTML layout
+ * drawn for the figure panel. The name sits on its own line above its bar and
+ * WRAPS, so a long name ("Forest: referral to decision") is never cut with an
+ * ellipsis in the 472 panel or the 295 phone panel; the duration sits at the
+ * right end of that line. The axis ticks are round numbers.
+ *
+ * Cue anchors:
+ *   1..n   each span (its name, value and bar), numbered from 1 in data order.
+ *   axis   the gridlines and tick labels.
+ *   total  the trace's length, the large number.
+ *
+ * THE BUILD (LENS §6.4): the root is the scene. 1 the axis fades in, 2 each
+ * bar grows from its left edge, 80ms apart down the rows, 3 the names and
+ * durations rise, 4 the total counts up (src/scripts/build.ts). No JS or
+ * reduced motion: the bars at their final width, every number in place.
  *
  * data: { spans[]{ label, start, dur, kind? }, unit?, caption?, source? }
- *
- * Cue anchors (LENS §5.2): each row is `data-cue="<n>"`, the spans numbered
- * from 1 in data order.
  */
 interface Span { label: string; start: number; dur: number; kind?: string; }
 interface Props { spans: Span[]; unit?: string; caption?: string; source?: string; }
-const { spans = [], unit = 'ms', caption, source } = Astro.props;
+const { spans = [], unit = 'ms', caption } = Astro.props;
 
 // Shared time axis: 0 → the latest span end. Guard empty / degenerate data.
 const ends = spans.map((s) => (s.start || 0) + (s.dur || 0));
 const total = Math.max(1, ...ends);
+const totalShown = Math.max(0, ...ends);
 
-// kind → tint. Unknown / missing kinds fall back to the accent.
+// kind → tint, all on the desk mark. Unknown / missing kinds take the mark.
 const tint: Record<string, string> = {
-  dns: 'color-mix(in oklab, var(--muted) 70%, var(--paper))',
-  connect: 'color-mix(in oklab, var(--accent) 55%, var(--muted))',
-  tls: 'color-mix(in oklab, var(--accent) 35%, var(--muted))',
-  ttfb: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
-  wait: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
-  server: 'color-mix(in oklab, var(--accent) 70%, var(--ink))',
+  dns: 'color-mix(in oklab, var(--muted) 55%, var(--paper-2))',
+  connect: 'color-mix(in oklab, var(--accent) 45%, var(--paper-2))',
+  tls: 'color-mix(in oklab, var(--accent) 65%, var(--paper-2))',
+  ttfb: 'color-mix(in oklab, var(--accent) 60%, var(--ink))',
+  wait: 'color-mix(in oklab, var(--accent) 60%, var(--ink))',
+  server: 'color-mix(in oklab, var(--accent) 60%, var(--ink))',
   download: 'var(--accent)',
   transfer: 'var(--accent)',
-  client: 'color-mix(in oklab, var(--accent) 40%, var(--paper))',
+  client: 'color-mix(in oklab, var(--ink-2) 70%, var(--paper-2))',
 };
 const colorFor = (k?: string) => (k && tint[k.toLowerCase()]) || 'var(--accent)';
 
@@ -52,74 +60,109 @@ const rows = spans.map((s, i) => {
   };
 });
 
-// Axis ticks — 5 evenly spaced gridlines across the time axis.
-const TICKS = 5;
-const ticks = Array.from({ length: TICKS }, (_, i) => {
-  const frac = i / (TICKS - 1);
-  return { frac: frac * 100, val: Math.round(total * frac) };
-});
-const fmt = (n: number) => n.toLocaleString();
+// Round ticks: a step of 1, 2, 2.5 or 5 × 10^k giving three to five ticks.
+const raw = total / 4;
+const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((v) => v >= raw) ?? raw;
+const ticks: { frac: number; val: number }[] = [];
+for (let v = 0; v <= total + 1e-9; v += step) ticks.push({ frac: (v / total) * 100, val: v });
+const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+const whole = Number.isInteger(totalShown);
 ---
 
-<div class="px-viz" data-build-scene>
+<div class="px-viz px-lwf" data-build-scene>
   <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
+  <div class="px-lwf__head" data-cue="total" style={`--ch:${fmt(totalShown).length}`}>
+    <span class="px-cue-tag" data-cue-tag="total" hidden></span>
+    <span class="px-lwf__big"><span data-build="4" data-build-kind="counter" data-to={totalShown} data-format={whole ? 'int' : '1dp'}>{fmt(totalShown)}</span></span>
+    <span class="px-lwf__biglab">{unit ? `${unit} in all` : 'in all'}</span>
+  </div>
+
   <div
-    class="px-lwf"
+    class="px-lwf__plot"
     role="img"
-    aria-label={caption ? `Request waterfall: ${caption}` : 'Request latency waterfall'}
+    aria-label={caption ? `Waterfall: ${caption}` : 'Waterfall of stages on one clock'}
   >
-    <!-- gridline scale behind the rows -->
-    <div class="px-lwf__grid" aria-hidden="true" data-build="1">
+    <div class="px-lwf__grid" aria-hidden="true" data-cue="axis" data-build="1">
       {ticks.map((t) => (
-        <span class="px-lwf__gridline" style={`left:${t.frac}%`}></span>
+        <span class="px-lwf__gridline" style={`left:${t.frac.toFixed(2)}%`}></span>
       ))}
     </div>
 
     <div class="px-lwf__rows">
       {rows.map((r) => (
-        <div class="px-lwf__row" style={`--i:${r.i}`} data-cue={r.i + 1}>
-          <span class="px-lwf__label" title={r.label} data-build="1"><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span>{r.label}</span>
+        <div class="px-lwf__row" data-cue={r.i + 1}>
+          <div class="px-lwf__line" data-build="3" data-build-kind="rise">
+            <span class="px-lwf__label"><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span>{r.label}</span>
+            <span class="px-lwf__val">{fmt(r.dur)}</span>
+          </div>
           <span class="px-lwf__track">
             <span
               class="px-lwf__bar"
               data-build="2"
               data-build-kind="grow-x"
-              style={`left:${r.left.toFixed(2)}%; width:${Math.max(r.width, 0.5).toFixed(2)}%; background:${r.color}`}
+              style={`left:${r.left.toFixed(2)}%; width:${Math.max(r.width, 0.8).toFixed(2)}%; background:${r.color}`}
             ></span>
           </span>
-          <span class="px-lwf__val" data-build="3" data-build-kind="rise">{fmt(r.dur)}</span>
         </div>
       ))}
     </div>
 
-    <!-- axis tick labels -->
     <div class="px-lwf__axis" aria-hidden="true" data-build="1">
-      {ticks.map((t) => (
-        <span class="px-lwf__tick" style={`left:${t.frac}%`}>{fmt(t.val)}</span>
+      {ticks.map((t, i) => (
+        <span
+          class="px-lwf__tick"
+          data-edge={i === 0 ? 'start' : t.frac > 92 ? 'end' : undefined}
+          style={`left:${t.frac.toFixed(2)}%`}
+        >{fmt(t.val)}</span>
       ))}
     </div>
   </div>
-
 </div>
 
 <style>
-  .px-lwf {
-    position: relative;
-    width: 100%;
-    /* shared column geometry — label rail | bar track | value rail */
-    --rail-l: 150px;
-    --rail-r: 56px;
-    --gap: 14px;
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .px-lwf__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .px-lwf__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .px-lwf__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .px-lwf__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-lwf__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-lwf__biglab {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 
-  /* gridlines span only the bar-track region */
+  .px-lwf__plot { position: relative; width: 100%; }
+
+  /* gridlines behind the tracks, the full plot height less the axis row */
   .px-lwf__grid {
     position: absolute;
     top: 0;
-    bottom: 26px;            /* leave room for the axis row */
-    left: calc(var(--rail-l) + var(--gap));
-    right: calc(var(--rail-r) + var(--gap));
+    bottom: 26px;
+    left: 0;
+    right: 0;
     pointer-events: none;
   }
   .px-lwf__gridline {
@@ -127,83 +170,64 @@ const fmt = (n: number) => n.toLocaleString();
     top: 0;
     bottom: 0;
     width: 1px;
-    background: var(--rule);
-    opacity: 0.6;
-    transform: translateX(-0.5px);
+    margin-left: -0.5px;
+    background: var(--hair);
   }
 
-  .px-lwf__rows { position: relative; display: flex; flex-direction: column; gap: 7px; }
+  .px-lwf__rows { position: relative; display: flex; flex-direction: column; gap: 12px; }
+  .px-lwf__row { display: flex; flex-direction: column; gap: 5px; }
 
-  .px-lwf__row {
-    display: grid;
-    grid-template-columns: var(--rail-l) 1fr var(--rail-r);
-    gap: var(--gap);
-    align-items: center;
+  .px-lwf__line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.35;
   }
-
-  .px-lwf__label {
-    /* span name rail — mono, ink-soft, axis-register letter-spacing */
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    color: var(--ink-soft);
+  /* the name wraps: it is authored, and the panel is narrow */
+  .px-lwf__label { min-width: 0; color: var(--ink-2); font-weight: 500; }
+  .px-lwf__val {
+    flex: none;
+    color: var(--ink);
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .px-lwf__track {
     position: relative;
-    height: 16px;
-    border-radius: var(--r-pill);
-    background: color-mix(in oklab, var(--ink) 4%, var(--bg));
+    display: block;
+    height: 14px;
   }
   .px-lwf__bar {
     position: absolute;
     top: 0;
     bottom: 0;
-    border-radius: var(--r-pill);
+    border-radius: 3px;
     /* the build grows it from its left edge (`scale`, src/scripts/build.ts) */
     transform-origin: left center;
-  }
-
-  .px-lwf__val {
-    /* big duration value — signature face (mono for tech), ink, tabular figures */
-    font-family: var(--issue-face, var(--font-mono));
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    white-space: nowrap;     /* keep multi-digit durations on one line */
   }
 
   .px-lwf__axis {
     position: relative;
     height: 26px;
-    margin-left: calc(var(--rail-l) + var(--gap));
-    margin-right: calc(var(--rail-r) + var(--gap));
-    margin-top: 4px;
+    margin-top: 8px;
+    border-top: 1px solid var(--hair-2);
   }
   .px-lwf__tick {
-    /* axis ticks — mono muted, system axis scale + letter-spacing, tabular */
     position: absolute;
-    top: 6px;
-    transform: translateX(-50%);
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
+    top: 7px;
+    translate: -50% 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-
-  @media (max-width: 560px) {
-    .px-lwf { --rail-l: 92px; --rail-r: 48px; --gap: 10px; }
-    .px-lwf__label { font-size: 10px; }
-    .px-lwf__val { font-size: 10.5px; }
+  .px-lwf__tick[data-edge='start'] { translate: 0 0; }
+  .px-lwf__tick[data-edge='end'] { translate: -100% 0; }
+  @media (max-width: 640px) {
+    .px-lwf__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

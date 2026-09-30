@@ -4,21 +4,28 @@
  * explained the way a friend would (REGISTER-PLAN RG-09; blueprint
  * docs/design/blueprints/core/jargon-buster.md).
  *
- * A NARRATIVE kind: no VizCard, no caption row, no how-to-read, no plain line
- * and NO source line — `core/Section.astro` owns every piece of explainability
- * chrome, and this kind carries no data claim to explain. `source` is accepted
- * so a section may declare one, and deliberately ignored here; Section renders
- * it once. Never emit a `__cap` / `__src` element (story.css hides those).
+ * LENS PHASE 6 (2026-09-30), the board Lib-jargon-buster: each term is a
+ * CARD in a two-by-two grid, the term set in Newsreader at the foot of the
+ * card and, where its meaning carries a figure (a sum, a count, a share), that
+ * figure set large above it (48px, LENS §7), lifted verbatim from the meaning,
+ * never computed. The kind now sits in the figure panel (core/Section.astro
+ * took it out of its narrative set): the article carries each meaning as a
+ * sentence with its cue, so inside the panel the cards show the term and its
+ * figure only. Story mode, with no panel, shows the meaning on the card.
  *
- * Geometry: a hairline grid in the `.px-cells` manner — one column, two from
- * 640px, an odd tail spanning both. Static HTML, zero JS of its own. THE
- * BUILD (Lens Phase 5, LENS §6.4): the root is a `data-build-scene` and the
- * terms rise in, 80ms apart (src/scripts/build.ts); visible as written
- * without JS and under reduced motion.
+ * Cue anchors: 1..n, one per term in data order (the whole card; its numeral
+ * prints at the card's top corner).
+ *
+ * THE BUILD (LENS §6.4): the root is a `data-build-scene`: 1 the cards drop
+ * in, 80ms apart, 2 each card's figure rises (src/scripts/build.ts). Visible
+ * as written without JS and under reduced motion.
+ *
+ * No caption, no source (core/Section.astro prints both); `source` is
+ * accepted and ignored. Never a `__cap` / `__src` element.
  *
  * data: { terms: [{ term, meaning, hindi? }] }  · 2–4 entries · prefix px-jb
  */
-import { renderInline } from '../../lib/text';
+import { renderInline, stripEmphasis } from '../../lib/text';
 
 interface Props {
   terms: Array<{ term: string; meaning: string; hindi?: string }>;
@@ -30,75 +37,110 @@ const { terms = [] } = Astro.props;
 const items = terms.filter((t) => t && t.term);
 const n = items.length;
 
-/* From 640px the grid is two columns and an odd tail spans both, so the last
-   row is that spanning cell alone (odd n) or the final pair (even n). Every
-   earlier cell carries the bottom hairline; every left-column cell the right
-   one. Computed here rather than in nth-child rules so any count behaves. */
-const lastRowFrom = n % 2 === 1 ? n - 1 : n - 2;
-const cells = items.map((t, i) => {
-  const span = n % 2 === 1 && i === n - 1;
-  return {
-    ...t,
-    span: span || undefined,
-    right: (!span && i % 2 === 0) || undefined,
-    bottom: (i < lastRowFrom) || undefined,
-  };
-});
+/* The figure a meaning carries, as written: a currency amount, or a number
+   with its unit (crore, lakh, per cent, million). The first one wins. */
+const FIG = /(?:[£$€₹¥]\s?\d[\d,]*(?:\.\d+)?\s?(?:crore|lakh|bn|m|k|million|billion|trillion)?|\d[\d,]*(?:\.\d+)?\s?(?:%|per cent|crore|lakh|million|billion|trillion))/i;
+const figureOf = (meaning?: string) => {
+  const m = FIG.exec(stripEmphasis(String(meaning ?? '').replace(/\[\[\d+\]\]/g, '')));
+  return m ? m[0].trim() : undefined;
+};
 ---
 
 {n > 0 && (
-  <div class="px-jb" data-build-scene>
+  <div class="px-jb" data-build-scene data-n={n}>
     <dl class="px-jb__grid">
-      {/* Cue anchors (LENS §5.2): each term is `data-cue="<n>"` in data order.
-          A narrative kind has no figure panel, so no cue names these today. */}
-      {cells.map((c, i) => (
-        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom} data-cue={i + 1} data-build="1" data-build-kind="rise">
-          <dt class="px-jb__term"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>{c.term}</dt>
-          <dd class="px-jb__m" set:html={renderInline(c.meaning)} />
-          {c.hindi && <dd class="px-jb__h">{c.hindi}</dd>}
-        </div>
-      ))}
+      {items.map((c, i) => {
+        const fig = figureOf(c.meaning);
+        return (
+          <div class="px-jb__cell" data-cue={i + 1} data-fig={fig ? 'true' : undefined} data-build="1" data-build-kind="drop">
+            <span class="px-jb__pin"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span></span>
+            {fig && <p class="px-jb__fig" data-build="2" data-build-kind="rise">{fig}</p>}
+            <dt class="px-jb__term">{c.term}</dt>
+            <dd class="px-jb__m" set:html={renderInline(c.meaning)} />
+            {c.hindi && <dd class="px-jb__h">{c.hindi}</dd>}
+          </div>
+        );
+      })}
     </dl>
   </div>
 )}
 
 <style>
-  /* Flat: a hairline top rule and hairline cells. No radius, no shadow. */
-  .px-jb { border-top: 1px solid var(--rule); }
-  .px-jb__grid { display: grid; grid-template-columns: 1fr; margin: 0; }
-  .px-jb__cell { padding: 14px 0; min-width: 0; }
-  .px-jb__cell:not(:last-child) { border-bottom: 1px solid var(--rule); }
-
-  .px-jb__term {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 17px;
-    line-height: 1.25;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
-  .px-jb__m {
+  .px-jb { container-type: inline-size; min-width: 0; }
+  .px-jb__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     margin: 0;
+  }
+  /* An odd last card spans the row, so no hole is left. */
+  .px-jb[data-n='3'] .px-jb__cell:last-child { grid-column: 1 / -1; }
+  .px-jb__cell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+    min-height: 132px;
+    padding: 16px 18px 18px;
+    background: var(--paper);
+    border: 1px solid var(--hair);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--r-card);
+  }
+  .px-jb__pin { position: absolute; top: 12px; right: 12px; display: flex; }
+  .px-jb__pin :global(.px-cue-tag) { margin: 0; }
+
+  .px-jb__fig {
+    margin: 0 0 4px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: clamp(24px, 9cqi, 48px);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+    overflow-wrap: break-word;
+  }
+  .px-jb__term {
+    margin: 0;
+    padding-right: 24px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 21px;
+    line-height: 1.2;
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+  .px-jb__term::first-letter { text-transform: uppercase; }
+  .px-jb__m {
+    margin: 4px 0 0;
     font-family: var(--font-body);
-    font-size: 15.5px;
+    font-size: 15px;
     line-height: 1.5;
-    color: var(--ink-soft);
+    color: var(--ink-2);
   }
   /* Hindi is set roman, never italic. */
   .px-jb__h {
-    margin: 6px 0 0;
-    font-size: 13.5px;
+    margin: 2px 0 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
     line-height: 1.5;
     color: var(--muted);
     font-style: normal;
   }
+  /* In the figure panel the meanings are the article's sentences. */
+  :global(.px-fig__body) .px-jb__m,
+  :global(.px-fig__body) .px-jb__h { display: none; }
 
-  @media (min-width: 640px) {
-    .px-jb__grid { grid-template-columns: 1fr 1fr; }
-    .px-jb__cell { padding: 16px 18px; }
-    .px-jb__cell:not(:last-child) { border-bottom: 0; }
-    .px-jb__cell[data-b] { border-bottom: 1px solid var(--rule); }
-    .px-jb__cell[data-r] { border-right: 1px solid var(--rule); }
-    .px-jb__cell[data-span] { grid-column: 1 / -1; }
+  @container (max-width: 440px) {
+    .px-jb__cell { padding: 14px 14px 16px; min-height: 112px; }
+    .px-jb__term { font-size: 18px; }
+  }
+  @container (max-width: 340px) {
+    .px-jb__grid { grid-template-columns: minmax(0, 1fr); }
+    .px-jb[data-n='3'] .px-jb__cell:last-child { grid-column: auto; }
+    .px-jb__cell { min-height: 0; }
   }
 </style>

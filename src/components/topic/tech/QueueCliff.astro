@@ -1,21 +1,43 @@
 ---
 /**
  * QueueCliff (tech) — the interactive utilization cliff. ONE slider drives the
- * offered load ρ = λ/μ; the reader watches the exact M/M/1 latency multiplier
- * `wMult(ρ) = 1/(1−ρ)` stay flat, flat, flat — and then go vertical past ρ ≈ 0.9.
- * Not a hand-drawn swoop: the plotted curve is the real formula, sampled at 200
- * steps and baked into one SVG path at build time (so no-JS shows the full law).
- * A live marker rides the curve at the current ρ with drop-lines to both axes and
- * an "operating here" area fill; a mono readout reports wait ×, absolute latency,
- * and mean queue length. The y-axis is a clipped-linear multiplier capped at
- * yCap = wMult(maxRho) — the clip is chipped, and the mandated honesty footnote
- * (M/M/1 is the optimistic case) is baked into the card, not left to the caption.
+ * offered load ρ = λ/μ; the reader watches the exact M/M/1 wait multiplier
+ * `wMult(ρ) = 1/(1−ρ)` stay flat, then go vertical near full. The curve is the
+ * real formula, sampled at 200 steps and baked into one SVG path at build time
+ * (so no-JS shows the full law). A marker rides the curve at the current ρ
+ * with drop-lines to both axes; the readout reports wait ×, latency and queue
+ * length. The y axis is linear in the multiplier and capped at
+ * yCap = wMult(maxRho); the cap is stated in a chip, and the honesty note (M/M/1
+ * is the optimistic case) is on the card.
  *
- * Fallback contract: the full static curve + axes + all annotations + the marker
- * at startRho + a companion readout table paint under no-JS / reduced-motion — the
- * whole argument reads without the slider working. A tiny is:inline island (below,
- * gated by html.js) takes over the slider under JS: marker/drop-lines/area/readout
- * update 1:1 with input, no animation, only transform/attr/text writes.
+ * LENS PHASE 6 (2026-09-30, the board Lib-queue-cliff): REDRAWN FOR THE FIGURE
+ * PANEL, a 460-unit viewBox with 12px text (no sideways scroll at 1280; on a
+ * phone it keeps 460 and scrolls in its card, the standing min-width rule in
+ * dataviz-v2.css). The load axis reads in percent, the y axis in round
+ * multiples, the y title sits above the plot, the annotation labels carry
+ * their multiplier ("Black Friday · 20×"). The figure's one large number is
+ * the wait at the busiest named point (else at the cap). The start point
+ * snaps to a named point exactly as the island does, so the static page and
+ * the live one agree to the pixel.
+ *
+ * Cue anchors:
+ *   1..K    each named point (annotation), numbered from 1 in data order.
+ *   curve   the M/M/1 curve.
+ *   marker  the operating point the slider sets (and its drop-lines).
+ *   axis    the grid and the tick labels.
+ *   head    the large number.
+ *
+ * THE BUILD (LENS §6.4): the scene is the number and the plot, NOT the card:
+ * the slider below it is live only with JS and moves the marker, which a
+ * scene must not hold (the render gate's BUILD check). 1 the axis fades in,
+ * 2 the curve draws, 3 the named points and the marker drop, 4 their labels
+ * fade in, 5 the large number counts up (src/scripts/build.ts). No JS or
+ * reduced motion: the chart as drawn, the marker at startRho.
+ *
+ * Fallback contract: the full static curve, axes, annotations, the marker at
+ * startRho and a companion table paint under no JS; a tiny is:inline island
+ * (gated by html.js) takes over the slider and updates marker, drop-lines,
+ * area and readout 1:1 with input, no animation.
  *
  * Math mirrors physics/mechanics-and-flow.md §2 (M/M/1). Blueprint:
  * docs/design/blueprints/tech/queue-cliff.md. CSS prefix: px-qc.
@@ -38,45 +60,44 @@ const {
   serviceMs,
   annotations = [],
   caption,
-  source,
+  source, // accepted, never printed: core/Section.astro prints the source line
 } = Astro.props;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
 // Service rate μ (req/s). serviceMs wins if both are given (per schema).
 const hasSvcMs = typeof serviceMs === 'number' && serviceMs > 0;
 const hasMu = typeof muPerSec === 'number' && muPerSec > 0;
-const mu = hasSvcMs
-  ? 1000 / serviceMs!
-  : (hasMu ? muPerSec! : 1000);
+const mu = hasSvcMs ? 1000 / serviceMs! : (hasMu ? muPerSec! : 1000);
 const svcMs = 1000 / mu;                        // 1/μ in ms — the ρ→0 latency floor
-
-// Schema §3: serviceMs wins if both, with a build warning; μ is required (>0).
 if (hasSvcMs && hasMu) {
-  console.warn(
-    `[QueueCliff] both serviceMs (${serviceMs}ms) and muPerSec (${muPerSec}) provided — serviceMs wins (μ = ${Math.round(mu)} req/s).`,
-  );
+  console.warn(`[QueueCliff] both serviceMs (${serviceMs}ms) and muPerSec (${muPerSec}) provided — serviceMs wins (μ = ${Math.round(mu)} req/s).`);
 }
 if (!hasSvcMs && !hasMu) {
-  console.warn(
-    '[QueueCliff] neither serviceMs nor muPerSec provided — defaulting to μ = 1000 req/s. Provide ONE of muPerSec | serviceMs.',
-  );
+  console.warn('[QueueCliff] neither serviceMs nor muPerSec provided — defaulting to μ = 1000 req/s. Provide ONE of muPerSec | serviceMs.');
 }
 
 const maxRho = clamp(Astro.props.maxRho ?? 0.98, 0.90, 0.995);
-const startRho = clamp(Astro.props.startRho ?? 0.5, 0, Math.min(0.99, maxRho));
 
 // ── M/M/1 math (physics/mechanics-and-flow.md §2) ───────────────────────────
-const wMult = (rho: number) => 1 / (1 - rho);   // latency multiplier vs the ρ→0 floor
-const meanL = (rho: number) => rho / (1 - rho); // mean number in system
+const wMult = (rho: number) => 1 / (1 - rho);
+const meanL = (rho: number) => rho / (1 - rho);
 const waitMs = (rho: number) => svcMs / (1 - rho);
-const yCap = wMult(maxRho);                      // y-axis clip = multiplier at maxRho
+const yCap = wMult(maxRho);
 
-// ── SVG plot frame (viewBox 0 0 720 420) ────────────────────────────────────
-const X0 = 72, XW = 624;          // plot x: 72 → 696
-const YT = 40, YB = 360, YH = 320; // plot y: 40 (top) → 360 (baseline)
+// ── The panel's coordinate system (viewBox 0 0 460 H) ──────────────────────
+const W = 460;
+const X0 = 40, XW = 404;                  // plot x: 40 → 444
+const YT = 30, YB = 250, YH = YB - YT;    // plot y (the y title sits above YT)
+const H = 296;
 const xOf = (rho: number) => X0 + (rho / maxRho) * XW;
 const yOf = (m: number) => clamp(YB - ((m - 1) / (yCap - 1)) * YH, YT, YB);
+
+const annos0 = annotations.slice(0, 3).map((a, i) => ({ ...a, rho: clamp(a.rho, 0, maxRho), i }));
+/* The start point snaps to a named point within 0.015, as the island does. */
+const rawStart = clamp(Astro.props.startRho ?? 0.5, 0, Math.min(0.99, maxRho));
+const startRho = annos0.find((a) => Math.abs(rawStart - a.rho) < 0.015)?.rho ?? rawStart;
 
 // ── The curve: 1/(1−ρ) sampled at 200 steps → one build-time path ───────────
 const STEPS = 200;
@@ -85,14 +106,7 @@ for (let i = 0; i <= STEPS; i++) {
   const rho = (i / STEPS) * maxRho;
   pts.push([xOf(rho), yOf(wMult(rho))]);
 }
-const curveD = pts
-  .map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`)
-  .join(' ');
-// polyline length (for the stroke-dash draw, at rest fully drawn)
-let curveLen = 0;
-for (let i = 1; i < pts.length; i++) {
-  curveLen += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-}
+const curveD = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
 
 // ── Area under the curve, left of the marker, baked at startRho ─────────────
 const areaOf = (rho: number) => {
@@ -108,74 +122,60 @@ const areaOf = (rho: number) => {
 const startArea = areaOf(startRho);
 const mx0 = xOf(startRho), my0 = yOf(wMult(startRho));
 
-// ── Axis ticks ──────────────────────────────────────────────────────────────
+// ── Axis ticks: load in percent, the multiplier in round steps ─────────────
 const fmtMult = (m: number) => {
   const s = (Math.round(m * 10) / 10).toFixed(1);
   return s.endsWith('.0') ? s.slice(0, -2) : s;
 };
-const xTickRhos = [0, 0.25, 0.5, 0.7, 0.9, maxRho];
-const xTicks = xTickRhos.map((r, i) => ({
-  x: xOf(r),
-  label: r === 0 ? '0' : (r === maxRho ? r.toFixed(2) : String(r)),
-  minor: r === 0.25 || r === 0.7,          // thinned at 375px
-  key: i,
-}));
-const yTickMults = [1, 2, wMult(0.7), 10, yCap];
-// The y-axis is linear in the multiplier and runs to yCap (50× at the default
-// maxRho), so the low ticks bunch at the baseline: 1× and 2× sat 6.5 units
-// apart, their labels touching (probe TOUCH, 2026-09-24). A tick survives only
-// if its label clears every tick already kept by one line of type; the floor
-// (1×) and the cap keep priority, then 10×, then the knee, then 2×.
-const TICK_ROOM = 13;                      // 9.5px label + air, in viewBox units
-const tickPriority = [0, 4, 3, 2, 1];
-const keptY: number[] = [];
-const keepTick = new Set<number>();
-for (const i of tickPriority) {
-  const y = yOf(yTickMults[i]);
-  if (keptY.every((k) => Math.abs(k - y) >= TICK_ROOM)) { keptY.push(y); keepTick.add(i); }
-}
-const yTicks = yTickMults
-  .map((m, i) => ({
-    y: yOf(m),
-    label: `${fmtMult(m)}×`,
-    minor: i === 1 || i === 2,               // 2× / 3.3× thinned at 375px
-    key: i,
-  }))
-  .filter((t) => keepTick.has(t.key));
+const xTicks = [0, 0.25, 0.5, 0.75]
+  .filter((r) => r < maxRho - 0.1)
+  .concat([maxRho])
+  .map((r) => ({ x: xOf(r), label: `${Math.round(r * 100)}%` }));
+const yStep = [5, 10, 20, 25, 50, 100, 200].find((s) => yCap / s <= 5) ?? 100;
+const yTicks = [1];
+for (let v = yStep; v <= yCap + 1e-9; v += yStep) yTicks.push(v);
+const yTickObjs = yTicks.map((m) => ({ y: yOf(m), label: `${m}×` }));
 
-// ── Annotations pinned to the curve ─────────────────────────────────────────
-const annos = annotations.slice(0, 3).map((a, i) => {
-  const rho = clamp(a.rho, 0, maxRho);
-  const ax = xOf(rho), ay = yOf(wMult(rho));
-  const tone: 'ok' | 'hot' = a.tone ?? (rho >= 0.85 ? 'hot' : 'ok');
-  // label above-right by default; flip below-left near the right/top edge so it
-  // never leaves the viewBox (collision policy, blueprint §4)
-  const nearRight = ax > 696 - 60;
-  const nearTop = ay < YT + 60;
-  const flip = nearRight || nearTop;
-  const lx = flip ? ax - 9 : ax + 9;
-  const ly = flip ? ay + 15 : ay - 9;
-  const anchor = flip ? 'end' : 'start';
-  return {
-    rho, ax, ay, tone, label: a.label, lx, ly, anchor,
-    wMult: wMult(rho), waitMs: waitMs(rho), meanL: meanL(rho), key: i,
+// ── Annotations pinned to the curve, labels placed off each other ──────────
+interface Box { l: number; r: number; t: number; b: number; }
+const hit = (a: Box, b: Box) => a.l < b.r + 3 && a.r > b.l - 3 && a.t < b.b + 3 && a.b > b.t - 3;
+const est = (s: string) => s.length * 12 * 0.56;
+const placed: Box[] = [];
+const annos = annos0.map((a) => {
+  const ax = xOf(a.rho), ay = yOf(wMult(a.rho));
+  const tone: 'ok' | 'hot' = a.tone ?? (a.rho >= 0.85 ? 'hot' : 'ok');
+  const text = `${a.label} · ${fmtMult(wMult(a.rho))}×`;
+  const w = est(text);
+  // candidates: left of the ring (the curve rises to the right, so the space
+  // above-left is empty), above-left, below-right, above
+  const cands: Array<{ lx: number; ly: number; anchor: 'start' | 'end' | 'middle' }> = [
+    { lx: ax - 10, ly: ay + 4, anchor: 'end' },
+    { lx: ax - 8, ly: ay - 10, anchor: 'end' },
+    { lx: ax - 10, ly: ay - 24, anchor: 'end' },
+    { lx: ax + 10, ly: ay + 16, anchor: 'start' },
+    { lx: ax, ly: ay - 12, anchor: 'middle' },
+  ];
+  const boxOf = (c: typeof cands[number]): Box => {
+    const l = c.anchor === 'start' ? c.lx : c.anchor === 'end' ? c.lx - w : c.lx - w / 2;
+    return { l, r: l + w, t: c.ly - 10, b: c.ly + 3 };
   };
+  const ok = cands.find((c) => {
+    const b = boxOf(c);
+    return b.l >= X0 + 2 && b.r <= W - 2 && b.t >= YT - 4 && b.b <= YB - 2 && !placed.some((p) => hit(b, p));
+  }) ?? cands[0];
+  placed.push(boxOf(ok));
+  return { ...a, ax, ay, tone, text, ...ok, key: a.i, mult: wMult(a.rho) };
 });
 
-// ── Companion readout table (fallback data source, ≤5 rows) ─────────────────
-const fmtMs = (w: number) => {
-  const s = (Math.round(w * 10) / 10).toFixed(1);
-  return s.endsWith('.0') ? s.slice(0, -2) : s;
-};
-const tableRows = annos.map((a) => ({
-  label: a.label,
-  rho: a.rho.toFixed(2),
-  mult: fmtMult(a.wMult),
-  ms: fmtMs(a.waitMs),
-  tone: a.tone,
-}));
+// ── The large number: the wait at the busiest named point, else at the cap ─
+const busiest = annos.length ? annos.reduce((a, b) => (b.rho > a.rho ? b : a)) : undefined;
+const headRho = busiest ? busiest.rho : maxRho;
+const headMult = Math.round(wMult(headRho));
+const headLabel = `the wait at ${Math.round(headRho * 100)}% load`;
 
-// live readout at startRho (also the static/no-JS value)
+// ── Companion table (fallback data source) + the live readout at startRho ──
+const fmtMs = (w: number) => fmtMult(w);
+const tableRows = annos.map((a) => ({ label: a.label, rho: a.rho.toFixed(2), mult: fmtMult(a.mult), ms: fmtMs(waitMs(a.rho)), tone: a.tone }));
 const start = {
   rho: startRho.toFixed(2),
   mult: fmtMult(wMult(startRho)),
@@ -184,80 +184,88 @@ const start = {
 };
 const yCapLabel = fmtMult(yCap);
 
-// config for the island (snap + readout labels)
+// config for the island (geometry, snap, readout)
 const cfg = JSON.stringify({
-  mu, maxRho, yCap,
+  mu, maxRho, yCap, X0, XW, YT, YB,
   annos: annos.map((a) => ({ rho: a.rho, label: a.label })),
 });
+const pct = (v: number, of: number) => ((v / of) * 100).toFixed(2);
+/* The curve's numeral: left of the wall, where the curve climbs through 70%
+   of the cap (the space there is empty: the named points sit lower). */
+const curveTag = (() => {
+  const m = 1 + (yCap - 1) * 0.7;
+  const rho = 1 - 1 / m;
+  return { x: xOf(rho) - 16, y: yOf(m) };
+})();
 ---
 
 <div class="px-viz px-qc">
-  {caption && (
-    <div class="px-viz__cap"><span>{caption}</span><b>M/M/1</b></div>
-  )}
+  {caption && <div class="px-viz__cap"><span>{caption}</span><b>M/M/1</b></div>}
 
-  <div class="px-qc__ycap" aria-hidden="true">y capped at {yCapLabel}× · M/M/1</div>
+  <div class="px-qc__scene" data-build-scene>
+    <div class="px-qc__head" data-cue="head" style={`--ch:${String(headMult).length + 1}`}>
+      <span class="px-cue-tag" data-cue-tag="head" hidden></span>
+      <span class="px-qc__big"><span data-build="5" data-build-kind="counter" data-to={headMult}>{headMult}</span>×</span>
+      <span class="px-qc__biglab">{headLabel}</span>
+      <span class="px-qc__ycap">Capped at {yCapLabel}×</span>
+    </div>
 
-  <div class="px-qc__plot">
-    <svg
-      class="px-qc__svg"
-      viewBox="0 0 720 420"
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden="true"
-    >
-      <!-- operating-region fill (under the curve, left of the marker) -->
-      <path class="px-qc__area" d={startArea} />
-
-      <!-- gridlines + axis frame -->
-      <g class="px-qc__grid">
-        {yTicks.map((t) => (
-          <line x1={X0} y1={t.y.toFixed(1)} x2={X0 + XW} y2={t.y.toFixed(1)} class="px-qc__grid-line" />
-        ))}
-        <line x1={X0} y1={YT} x2={X0} y2={YB} class="px-qc__axis-line" />
-        <line x1={X0} y1={YB} x2={X0 + XW} y2={YB} class="px-qc__axis-line" />
-      </g>
-
-      <!-- the curve: 1/(1−ρ), baked at build time -->
-      <path class="px-qc__curve" d={curveD} style={`--len:${curveLen.toFixed(0)}`} />
-
-      <!-- live marker + drop-lines (baked at startRho) -->
-      <g class="px-qc__live-g">
-        <line class="px-qc__drop px-qc__drop-v" x1={mx0.toFixed(1)} y1={my0.toFixed(1)} x2={mx0.toFixed(1)} y2={YB} />
-        <line class="px-qc__drop px-qc__drop-h" x1={X0} y1={my0.toFixed(1)} x2={mx0.toFixed(1)} y2={my0.toFixed(1)} />
-        <g class="px-qc__marker" style={`transform:translate(${mx0.toFixed(1)}px,${my0.toFixed(1)}px)`}>
-          <circle r="5" />
+    <div class="px-qc__plot">
+      <svg class="px-qc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <g class="px-qc__grid" data-cue="axis" data-build="1">
+          {yTickObjs.map((t) => (
+            <g>
+              <line x1={X0} y1={t.y.toFixed(1)} x2={X0 + XW} y2={t.y.toFixed(1)} class="px-qc__grid-line" />
+              <text class="px-qc__tick" x={X0 - 8} y={(t.y + 4).toFixed(1)} text-anchor="end" style={FONT}>{t.label}</text>
+            </g>
+          ))}
+          <line x1={X0} y1={YB} x2={X0 + XW} y2={YB} class="px-qc__axis-line" />
+          {xTicks.map((t, i) => (
+            <text class="px-qc__tick" x={t.x.toFixed(1)} y={YB + 18} text-anchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'} style={FONT}>{t.label}</text>
+          ))}
+          <text class="px-qc__axis-title" x={X0 + XW / 2} y={H - 4} text-anchor="middle" style={FONT}>Offered load</text>
+          <text class="px-qc__axis-title" x="0" y="14" text-anchor="start" style={FONT}>Wait × ideal</text>
+          <line x1={X0 + XW} y1={YT} x2={X0 + XW} y2={YB} class="px-qc__wall" />
         </g>
-      </g>
 
-      <!-- annotations -->
-      <g class="px-qc__annos">
+        <path class="px-qc__area" d={startArea} data-cue="marker" data-build="3" />
+
+        <path class="px-qc__curve" d={curveD} data-cue="curve" data-build="2" data-build-kind="draw" />
+
+        <g class="px-qc__live-g" data-cue="marker" data-build="3" data-build-kind="drop">
+          <line class="px-qc__drop px-qc__drop-v" x1={mx0.toFixed(1)} y1={my0.toFixed(1)} x2={mx0.toFixed(1)} y2={YB} />
+          <line class="px-qc__drop px-qc__drop-h" x1={X0} y1={my0.toFixed(1)} x2={mx0.toFixed(1)} y2={my0.toFixed(1)} />
+          <g class="px-qc__marker" style={`transform:translate(${mx0.toFixed(1)}px,${my0.toFixed(1)}px)`}>
+            <circle r="6" />
+          </g>
+        </g>
+
         {annos.map((a) => (
-          <g class={`px-qc__anno px-qc__anno--${a.tone}`} style={`transition-delay:${a.key * 90}ms`}>
-            <line class="px-qc__anno-lead" x1={a.ax.toFixed(1)} y1={a.ay.toFixed(1)} x2={a.lx.toFixed(1)} y2={a.ly.toFixed(1)} />
-            <circle class="px-qc__anno-ring" cx={a.ax.toFixed(1)} cy={a.ay.toFixed(1)} r="3.5" />
-            <text class="px-qc__anno-label" x={a.lx.toFixed(1)} y={a.ly.toFixed(1)} text-anchor={a.anchor}>{a.label}</text>
+          <g class={`px-qc__anno px-qc__anno--${a.tone}`} data-cue={a.key + 1}>
+            <circle class="px-qc__anno-ring" cx={a.ax.toFixed(1)} cy={a.ay.toFixed(1)} r="5" data-build="3" data-build-kind="drop" />
+            <text class="px-qc__anno-label" x={a.lx.toFixed(1)} y={a.ly.toFixed(1)} text-anchor={a.anchor} style={FONT} data-build="4">{a.text}</text>
           </g>
         ))}
-      </g>
+      </svg>
 
-      <!-- axis tick labels -->
-      <g>
-        {xTicks.map((t) => (
-          <text
-            class={`px-qc__tick${t.minor ? ' px-qc__tick--minor' : ''}`}
-            x={t.x.toFixed(1)} y={YB + 18} text-anchor="middle"
-          >{t.label}</text>
+      {/* The cue numerals, an HTML layer over the drawing. */}
+      <div class="px-qc__tags" aria-hidden="true">
+        {annos.map((a) => (
+          <span class="px-qc__tag" style={`left:${pct(Math.min(a.ax + 14, W - 12), W)}%;top:${pct(Math.min(a.ay + 14, YB - 10), H)}%`}>
+            <span class="px-cue-tag" data-cue-tag={a.key + 1} hidden></span>
+          </span>
         ))}
-        {yTicks.map((t) => (
-          <text
-            class={`px-qc__tick${t.minor ? ' px-qc__tick--minor' : ''}`}
-            x={X0 - 10} y={(t.y + 3.2).toFixed(1)} text-anchor="end"
-          >{t.label}</text>
-        ))}
-        <text class="px-qc__axis-title" x={X0 + XW / 2} y={410} text-anchor="middle">UTILIZATION ρ</text>
-        <text class="px-qc__axis-title" x={16} y={YT + YH / 2} text-anchor="middle" transform={`rotate(-90 16 ${YT + YH / 2})`}>LATENCY vs IDEAL</text>
-      </g>
-    </svg>
+        <span class="px-qc__tag" style={`left:${pct(curveTag.x, W)}%;top:${pct(curveTag.y, H)}%`}>
+          <span class="px-cue-tag" data-cue-tag="curve" hidden></span>
+        </span>
+        <span class="px-qc__tag" style={`left:${pct(Math.max(mx0 - 16, X0 + 12), W)}%;top:${pct(Math.min(my0 + 16, YB - 10), H)}%`}>
+          <span class="px-cue-tag" data-cue-tag="marker" hidden></span>
+        </span>
+        <span class="px-qc__tag" style={`left:${pct(X0 - 22, W)}%;top:${pct(YB + 14, H)}%`}>
+          <span class="px-cue-tag" data-cue-tag="axis" hidden></span>
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- control + live readout -->
@@ -273,25 +281,24 @@ const cfg = JSON.stringify({
       <span class="px-qc__ro-snap"></span>
     </div>
     <label class="px-qc__control">
-      <span class="px-qc__control-lbl">calm</span>
+      <span class="px-qc__control-lbl">Calm</span>
       <input
         class="px-qc__range"
         type="range"
         min="0" max={maxRho} step="0.01" value={startRho}
         aria-label="Offered load — utilization ρ"
       />
-      <span class="px-qc__control-lbl">busy</span>
+      <span class="px-qc__control-lbl">Busy</span>
     </label>
-    <p class="px-qc__hint" hidden>Drag to raise the load — watch the wait go vertical near full.</p>
   </div>
 
   <!-- honesty footnote (mandated, always rendered — never accented) -->
-  <p class="px-qc__note">M/M/1 is the optimistic case — real systems, with variable service times and bursty arrivals, are worse.</p>
+  <p class="px-qc__note">M/M/1 is the optimistic case. Real systems, with variable service times and bursty arrivals, are worse.</p>
 
   <!-- companion readout table (the AT-readable data source) -->
   <table class="px-qc__table">
     <thead>
-      <tr><th>operating point</th><th>ρ</th><th>wait</th><th>latency</th></tr>
+      <tr><th>Point</th><th>Load</th><th>Wait</th><th>Latency</th></tr>
     </thead>
     <tbody>
       <tr class="px-qc__table-cur">
@@ -310,14 +317,11 @@ const cfg = JSON.stringify({
       ))}
     </tbody>
   </table>
-
 </div>
 
 <script is:inline>
   (function () {
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var X0 = 72, XW = 624, YT = 40, YB = 360, YH = 320;
-
+    if (!document.documentElement.classList.contains('js')) return;
     document.querySelectorAll('.px-qc').forEach(function (root) {
       var panel = root.querySelector('.px-qc__panel');
       var input = root.querySelector('.px-qc__range');
@@ -325,6 +329,7 @@ const cfg = JSON.stringify({
       var cfg;
       try { cfg = JSON.parse(panel.getAttribute('data-qc') || '{}'); } catch (e) { return; }
       var maxRho = cfg.maxRho, yCap = cfg.yCap, annos = cfg.annos || [];
+      var X0 = cfg.X0, XW = cfg.XW, YT = cfg.YT, YB = cfg.YB, YH = YB - YT;
 
       var area = root.querySelector('.px-qc__area');
       var dropV = root.querySelector('.px-qc__drop-v');
@@ -338,15 +343,10 @@ const cfg = JSON.stringify({
       var curMult = root.querySelector('.px-qc__cur-mult');
       var curMs = root.querySelector('.px-qc__cur-ms');
       var curRho = root.querySelector('.px-qc__cur-rho');
-      var hint = root.querySelector('.px-qc__hint');
-      if (hint) hint.hidden = false;
 
       var xOf = function (r) { return X0 + (r / maxRho) * XW; };
       var wMult = function (r) { return 1 / (1 - r); };
-      var yOf = function (m) {
-        var y = YB - ((m - 1) / (yCap - 1)) * YH;
-        return Math.max(YT, Math.min(YB, y));
-      };
+      var yOf = function (m) { return Math.max(YT, Math.min(YB, YB - ((m - 1) / (yCap - 1)) * YH)); };
       var trim = function (s) { return s.slice(-2) === '.0' ? s.slice(0, -2) : s; };
       var fmtMult = function (m) { return trim((Math.round(m * 10) / 10).toFixed(1)); };
       var svcMs = 1000 / cfg.mu;
@@ -357,21 +357,15 @@ const cfg = JSON.stringify({
           var t = (rho * i) / N;
           d += ' L ' + xOf(t).toFixed(1) + ' ' + yOf(wMult(t)).toFixed(1);
         }
-        d += ' L ' + xOf(rho).toFixed(1) + ' ' + YB + ' Z';
-        return d;
+        return d + ' L ' + xOf(rho).toFixed(1) + ' ' + YB + ' Z';
       };
 
       var update = function () {
         var rho = parseFloat(input.value);
         if (isNaN(rho)) rho = 0;
-        // gentle snap to a nearby annotation
         var snapLabel = '';
         for (var i = 0; i < annos.length; i++) {
-          if (Math.abs(rho - annos[i].rho) < 0.015) {
-            rho = annos[i].rho;
-            snapLabel = '← ' + annos[i].label;
-            break;
-          }
+          if (Math.abs(rho - annos[i].rho) < 0.015) { rho = annos[i].rho; snapLabel = annos[i].label; break; }
         }
         var m = wMult(rho), w = svcMs / (1 - rho), l = rho / (1 - rho);
         var x = xOf(rho), y = yOf(m);
@@ -386,7 +380,7 @@ const cfg = JSON.stringify({
         if (roMult) roMult.textContent = sMult;
         if (roMs) roMs.textContent = sMs;
         if (roL) roL.textContent = sL;
-        if (roSnap) roSnap.textContent = snapLabel ? '  ' + snapLabel : '';
+        if (roSnap) roSnap.textContent = snapLabel;
         if (curMult) curMult.textContent = sMult;
         if (curMs) curMs.textContent = sMs;
         if (curRho) curRho.textContent = sRho;
@@ -394,150 +388,137 @@ const cfg = JSON.stringify({
 
       input.addEventListener('input', update);
       root.classList.add('px-qc--live');
-      update();
-
-      if (!reduce) {
-        input.addEventListener('pointerdown', function () { root.classList.add('px-qc--drag'); });
-        window.addEventListener('pointerup', function () { root.classList.remove('px-qc--drag'); });
-      }
     });
   })();
 </script>
 
 <style>
-  .px-qc__plot { width: 100%; }
+  /* LENS §7: the pinned figure's headline number at 96 (72 on phones),
+     its label 8px below it. The size also fits the number to the panel:
+     --ch is its character count, the head a size container. */
+  .px-qc__head {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .px-qc__head > .px-cue-tag { grid-column: 1; grid-row: 1; margin: 0 8px 0 0; }
+  .px-qc__big { grid-column: 2; grid-row: 1; justify-self: start; white-space: nowrap; }
+  .px-qc__biglab { grid-column: 2; grid-row: 2; justify-self: start; }
+  .px-qc__big {
+    font-family: var(--font-ui);
+    font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-deep);
+  }
+  .px-qc__biglab {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+  /* the honesty chip for the clipped axis */
+  .px-qc__ycap {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: var(--paper-3);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .px-qc__plot { position: relative; width: 100%; }
   .px-qc__svg { width: 100%; height: auto; display: block; overflow: visible; }
 
-  /* ── chips + honesty ──────────────────────────────────────────────────── */
-  .px-qc__ycap {
-    display: inline-block;
-    margin: 0 0 12px;
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    border: 1px solid var(--rule);
-    border-radius: var(--r-pill);
-    padding: 3px 9px;
-  }
-  .px-qc__note {
-    max-width: var(--col-prose);
-    margin: 14px 0 0;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    line-height: 1.6;
-    letter-spacing: 0.01em;
-    color: var(--muted);
-  }
-
-  /* ── axes + grid ──────────────────────────────────────────────────────── */
-  .px-qc__grid-line { stroke: var(--ink); stroke-opacity: 0.1; stroke-width: 1; }
-  .px-qc__axis-line { stroke: var(--ink); stroke-opacity: 0.42; stroke-width: 1.25; }
-  .px-qc__tick {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    fill: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
+  .px-qc__grid-line { stroke: var(--hair); stroke-width: 1; }
+  .px-qc__axis-line { stroke: var(--hair-2); stroke-width: 1.25; }
+  .px-qc__wall { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+  .px-qc__tick { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
   .px-qc__axis-title {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-eyebrow, 10px);
-    letter-spacing: 0.16em;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    fill: var(--ink-soft);
-    font-weight: 700;
+    fill: var(--ink-2);
   }
 
-  /* ── the curve + fill ─────────────────────────────────────────────────── */
   .px-qc__curve {
     fill: none;
     stroke: var(--accent);
-    stroke-opacity: 0.9;
-    stroke-width: 2;
+    stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
-    paint-order: stroke;
-    stroke-dasharray: var(--len);
-    stroke-dashoffset: 0;                 /* resting = fully drawn (no-JS safe) */
-    transition: stroke-dashoffset 1200ms var(--ease);
   }
-  .px-qc__area {
-    fill: var(--accent);
-    fill-opacity: 0.1;
-    stroke: none;
-  }
+  .px-qc__area { fill: var(--accent-tint, var(--paper-3)); stroke: none; }
 
-  /* ── live marker + drop-lines ─────────────────────────────────────────── */
-  .px-qc__drop {
-    stroke: var(--ink);
-    stroke-opacity: 0.42;
-    stroke-width: 1;
-    stroke-dasharray: 3 4;
-  }
-  .px-qc__marker {
-    transform-box: view-box;
-  }
-  .px-qc__marker circle {
-    fill: var(--accent);
-    stroke: var(--paper);
-    stroke-width: 1.5;
-  }
-  .px-qc--drag .px-qc__marker circle { r: 6; }
+  .px-qc__drop { stroke: var(--ink); stroke-opacity: 0.4; stroke-width: 1; stroke-dasharray: 3 4; }
+  .px-qc__marker { transform-box: view-box; }
+  .px-qc__marker circle { fill: var(--accent-deep); stroke: var(--paper-2); stroke-width: 2; }
 
-  /* ── annotations ──────────────────────────────────────────────────────── */
-  .px-qc__anno-lead { stroke: var(--ink); stroke-opacity: 0.3; stroke-width: 1; }
-  .px-qc__anno-ring { fill: none; stroke-width: 2; }
+  .px-qc__anno-ring { fill: var(--paper-2); stroke-width: 2; }
   .px-qc__anno-label {
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     paint-order: stroke;
-    stroke: var(--paper);
+    stroke: var(--paper-2);
     stroke-width: 3px;
     stroke-linejoin: round;
   }
-  .px-qc__anno--ok .px-qc__anno-ring { stroke: var(--accent-deep, var(--accent)); }
-  .px-qc__anno--ok .px-qc__anno-label { fill: var(--accent-deep, var(--accent)); }
-  .px-qc__anno--hot .px-qc__anno-ring { stroke: var(--accent-alt); }
-  .px-qc__anno--hot .px-qc__anno-label { fill: var(--accent-alt); }
+  .px-qc__anno--ok .px-qc__anno-ring { stroke: var(--accent-deep); }
+  .px-qc__anno--ok .px-qc__anno-label { fill: var(--accent-deep); }
+  .px-qc__anno--hot .px-qc__anno-ring { stroke: var(--ink); }
+  .px-qc__anno--hot .px-qc__anno-label { fill: var(--ink); }
+
+  .px-qc__tags { position: absolute; inset: 0; pointer-events: none; }
+  .px-qc__tag { position: absolute; width: 0; height: 0; }
+  .px-qc__tag .px-cue-tag { position: absolute; left: 0; top: 0; translate: -50% -50%; margin: 0; }
 
   /* ── control panel + readout ──────────────────────────────────────────── */
-  .px-qc__panel { margin-top: 20px; }
+  .px-qc__panel { margin-top: 16px; }
   .px-qc__readout {
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    letter-spacing: 0.02em;
-    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--ink-2);
     font-variant-numeric: tabular-nums;
     line-height: 1.5;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 6px 8px;
+    gap: 4px 8px;
   }
-  .px-qc__readout b { font-weight: 700; color: var(--accent-deep, var(--accent)); }
-  .px-qc__ro-rho { color: var(--ink-soft); font-weight: 700; }
-  .px-qc__sep { color: var(--rule); }
-  .px-qc__ro-snap { color: var(--accent-alt); font-style: italic; }
+  .px-qc__readout b { font-weight: 600; color: var(--accent-deep); }
+  .px-qc__ro-rho { color: var(--ink); font-weight: 600; }
+  .px-qc__sep { color: var(--hair-2); }
+  .px-qc__ro-snap { color: var(--ink); font-style: italic; }
 
-  .px-qc__control {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 14px;
-  }
+  .px-qc__control { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
   .px-qc__control-lbl {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.14em;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
     flex: 0 0 auto;
   }
+  /* the slider is live only with JS; without it the readout and table carry it */
+  html:not(.js) .px-qc__control { display: none; }
   .px-qc__range {
     flex: 1 1 auto;
     min-width: 0;
@@ -548,95 +529,60 @@ const cfg = JSON.stringify({
     cursor: pointer;
     touch-action: pan-y;                   /* vertical scroll stays sacred */
   }
-  .px-qc__range::-webkit-slider-runnable-track {
-    height: 3px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--accent-deep) 0%, var(--accent-alt) 100%);
-    opacity: 0.5;
-  }
-  .px-qc__range::-moz-range-track {
-    height: 3px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--accent-deep) 0%, var(--accent-alt) 100%);
-    opacity: 0.5;
-  }
+  .px-qc__range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--hair-2); }
+  .px-qc__range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--hair-2); }
   .px-qc__range::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px; height: 18px;
-    margin-top: -7.5px;
+    width: 20px; height: 20px;
+    margin-top: -8px;
     border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--paper);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 60%, transparent);
-    transition: transform var(--t-instant, 80ms) var(--ease);
+    background: var(--paper-2);
+    border: 2px solid var(--ink);
   }
   .px-qc__range::-moz-range-thumb {
-    width: 18px; height: 18px;
+    width: 20px; height: 20px;
     border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--paper);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 60%, transparent);
+    background: var(--paper-2);
+    border: 2px solid var(--ink);
   }
-  .px-qc__range:active::-webkit-slider-thumb { transform: scale(0.92); }
   .px-qc__range:focus-visible { outline: none; }
-  .px-qc__range:focus-visible::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
-  }
-  .px-qc__hint {
+  .px-qc__range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent); }
+
+  .px-qc__note {
     margin: 10px 0 0;
-    font-family: var(--font-body);
-    font-size: 12px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.45;
     color: var(--muted);
   }
 
   /* ── companion table (fallback data source) ───────────────────────────── */
   .px-qc__table {
     width: 100%;
-    margin-top: 18px;
+    margin-top: 14px;
     border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
   }
   .px-qc__table th {
     text-align: left;
-    font-weight: 700;
-    font-size: var(--viz-fs-axis, 9.5px);      /* CANON §4.5 hard floor: ≥9.5px rendered */
-    letter-spacing: 0.12em;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
     padding: 4px 8px 6px 0;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--hair);
   }
   .px-qc__table th:not(:first-child),
   .px-qc__table td:not(:first-child) { text-align: right; }
-  .px-qc__table td {
-    padding: 5px 8px 5px 0;
-    color: var(--ink-soft);
-    border-bottom: 1px dashed var(--rule);
-  }
-  .px-qc__table-cur td { color: var(--ink); font-weight: 700; }
+  .px-qc__table td { padding: 5px 8px 5px 0; color: var(--ink-2); border-bottom: 1px solid var(--hair); }
+  .px-qc__table-cur td { color: var(--ink); font-weight: 600; }
   .px-qc__table-cur td:first-child { color: var(--muted); font-weight: 400; }
-  .px-qc__table-anno--ok td:first-child { color: var(--accent-deep, var(--accent)); }
-  .px-qc__table-anno--hot td:first-child { color: var(--accent-alt); }
-
-  /* ── final state: annotations, area and marker rest shown (static since Lens Phase 5) ── */
-  .px-qc__curve { }
-  .px-qc__anno, .px-qc__area, .px-qc__live-g {
-    opacity: 1;
-    transition: opacity var(--t-soft, 220ms) var(--ease);
-  }
-
-  /* ── 375px: stack, thin ticks, collapse annotation labels ─────────────── */
-  @media (max-width: 520px) {
-    .px-qc__tick--minor { display: none; }
-    .px-qc__anno-label { display: none; }     /* collapse to ring; full label in the table */
-    .px-qc__readout { font-size: 11.5px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-qc__curve, .px-qc__anno, .px-qc__area, .px-qc__live-g,
-    .px-qc__range::-webkit-slider-thumb { transition: none !important; }
+  .px-qc__table-anno--ok td:first-child { color: var(--accent-deep); }
+  @media (max-width: 640px) {
+    .px-qc__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
 </style>

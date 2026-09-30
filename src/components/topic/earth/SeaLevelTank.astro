@@ -1,266 +1,150 @@
 ---
 /**
- * SeaLevelTank (earth) — a cross-section "tank" where a translucent water fill
- * stands at the highest scenario level (its rise from the floor arrives with
- * the Phase 6 build). Every `levels` entry draws a horizontal marker line +
- * label at its height; optional `landmarks` sit on the outer side as reference
- * height ticks. A faint perspective on the tank rim (core/Tilt.astro
- * `data-tilt`) gives it body.
+ * SeaLevelTank (earth) — a tank in cross-section (Lens Phase 6, the
+ * Lib-sea-level-tank board). Each `levels` entry is a line at its rise, with
+ * the rise and its label to the right; the water stands at the highest level
+ * that is not a low-confidence case (a level whose label says "low
+ * confidence", "upper" or "high end" is drawn dashed and left above the
+ * water). Each `landmarks` entry is a dotted line across the tank with its
+ * name and height to the left. The water's level is the headline number.
  *
- * The water always paints at its FINAL height (static since Lens Phase 5).
- * Marker lines + labels + the landmark ticks read without animation.
+ * Cue anchors: `1`…`n` (each level, authored order) · `lm1`…`lmk` (each
+ * landmark) · `water` (the water body) · `head` (the headline number).
+ * Build: tank and scale (1) · water rises (2) · level and landmark lines (3)
+ * · labels (4) · the headline number (5).
  *
  * data: { levels[]{ label, riseM, year? }, landmarks?[]{ name, heightM },
  *         maxM?, caption?, source? }
  */
+import FigHead from './FigHead.astro';
+import CueLayer from './CueLayer.astro';
+import { SANS, wrapWords, stack, fmt } from './_fig';
+
 interface Level { label: string; riseM: number; year?: number; }
 interface Landmark { name: string; heightM: number; }
-interface Props {
-  levels: Level[];
-  landmarks?: Landmark[];
-  maxM?: number;
-  caption?: string;
-  source?: string;
-}
-const { levels = [], landmarks = [], maxM, caption, source } = Astro.props;
+interface Props { levels: Level[]; landmarks?: Landmark[]; maxM?: number; caption?: string; source?: string; }
+const { levels = [], landmarks = [], maxM, caption } = Astro.props;
 
-const allRises = levels.map((l) => l.riseM || 0);
-const allLandmarks = landmarks.map((l) => l.heightM || 0);
+const W = 320, FS = 13.5, LH = 16;
+const TX0 = 92, TX1 = 160, LINE_END = 168, TAG_R = 178, VX = 190, RW = W - VX;
+const LX = 82, LW = LX - 2;
+const TOP = 14, FLOOR = 300;
 
-// Top of the scale: the explicit maxM, else the tallest of any level/landmark
-// with a little headroom so the highest marker doesn't sit flush on the rim.
-const peak = Math.max(0.01, ...allRises, ...allLandmarks);
-const scaleMax = maxM ?? peak * 1.15;
-const safeMax = scaleMax > 0 ? scaleMax : 1;
+const peak = Math.max(0.01, ...levels.map((l) => l.riseM || 0), ...landmarks.map((l) => l.heightM || 0));
+const top = maxM && maxM > 0 ? maxM : peak * 1.1;
+const yOf = (m: number) => FLOOR - (Math.max(0, Math.min(top, m)) / top) * (FLOOR - TOP);
 
-// height as a % of the tank interior (0 = floor, 100 = rim)
-const pct = (m: number) => Math.max(0, Math.min(100, (m / safeMax) * 100));
+const LOW = /low[\s-]*confidence|upper|high[\s-]*end|worst/i;
+const lv = levels.map((l, i) => ({ ...l, i, low: LOW.test(l.label ?? ''), y: yOf(l.riseM || 0) }));
+const firm = lv.filter((l) => !l.low);
+const pool = firm.length ? firm : lv;
+const water = pool.length ? pool.reduce((a, b) => ((b.riseM || 0) > (a.riseM || 0) ? b : a)) : undefined;
+const years = [...new Set(levels.map((l) => l.year).filter(Boolean))];
+const headLabel = years.length === 1 ? `metres by ${years[0]}` : 'metres';
 
-// tank interior height (px) — must match .px-sltank__tank height in <style>.
-const TANK_H = 320;
+/* scale ticks inside the tank: a step that gives at most five */
+const stepM = [0.1, 0.25, 0.5, 1, 2, 5, 10].find((s) => top / s <= 5) ?? 10;
+const ticks: number[] = [];
+for (let m = stepM; m <= top + 1e-9; m += stepM) ticks.push(+m.toFixed(2));
 
-// Label de-collision: given items pre-sorted high→low by `y` (%), keep each
-// label pill at least MIN_GAP px below the one above it. The dashed line stays
-// at the true `y` (alignment intact); only the label pill is nudged via --dy
-// (px, positive = pushed DOWN, away from the rim). Walking top→down means the
-// uppermost label holds its spot and crowded lower ones spread downward.
-function declutter<T extends { y: number }>(items: T[], minGapPx: number) {
-  let prevTop = -Infinity;                 // px-from-top of the previous label
-  const maxTop = TANK_H - minGapPx * 0.5;  // don't shove a pill off the floor
-  return items.map((it) => {
-    const truePx = (1 - it.y / 100) * TANK_H;   // convert bottom% → top-px
-    const placedPx = Math.min(maxTop, Math.max(truePx, prevTop + minGapPx));
-    prevTop = placedPx;
-    return { ...it, dy: +(placedPx - truePx).toFixed(1) };  // downward nudge
-  });
-}
-
-// The water rises to the highest scenario rise.
-const waterM = allRises.length ? Math.max(...allRises) : 0;
-const waterPct = pct(waterM);
-
-// Markers: sort high→low so stacked labels read top-down; flag the highest
-// (the one the water reaches) for emphasis. Then declutter the label pills.
-const markers = declutter(
-  levels
-    .map((l) => ({ ...l, y: pct(l.riseM || 0), isPeak: (l.riseM || 0) === waterM }))
-    .sort((a, b) => b.y - a.y),
-  22,
+/* right-hand labels: the rise, then the label, stacked high to low */
+const right = stack(
+  [...lv].sort((a, b) => a.y - b.y).map((l) => {
+    const lines = wrapWords(String(l.label ?? ''), RW, FS, false, 3);
+    return { l, lines, size: (1 + lines.length) * LH, want: l.y - 11 };
+  }),
+  TOP - 10, 10_000, 6,
 );
-
-const ticks = declutter(
-  landmarks
-    .map((l) => ({ ...l, y: pct(l.heightM || 0) }))
-    .sort((a, b) => b.y - a.y),
-  34,   // taller pills (two stacked lines) need more clearance
+/* left-hand landmark labels */
+const left = stack(
+  landmarks.map((m, i) => ({ m, i, y: yOf(m.heightM || 0) })).sort((a, b) => a.y - b.y).map((o) => {
+    const lines = wrapWords(String(o.m.name ?? ''), LW, FS, false, 3);
+    return { ...o, lines, size: (lines.length + 1) * LH, want: o.y - 11 };
+  }),
+  TOP - 10, 10_000, 6,
 );
-
-const fmtM = (m: number) => `${m >= 0 ? '+' : ''}${m.toFixed(2)}m`;
+const H = Math.ceil(Math.max(FLOOR + 26, ...right.map((r) => r.at + r.size + 4), ...left.map((r) => r.at + r.size + 4)));
+const m2 = (v: number) => `${fmt(v, 2)} m`;
+const aria = `A tank: ${levels.map((l) => `${l.label} ${m2(l.riseM)}`).join('; ')}${landmarks.length ? `. Landmarks: ${landmarks.map((m) => `${m.name} ${m2(m.heightM)}`).join('; ')}` : ''}.`;
+const tags = [
+  ...right.map((r) => ({ id: r.l.i + 1, x: TAG_R, y: r.at + 7 })),
+  ...left.map((o) => ({ id: `lm${o.i + 1}`, x: TX0 - 1, y: o.y })),
+  ...(water ? [{ id: 'water', x: (TX0 + TX1) / 2, y: (water.y + FLOOR) / 2 }] : []),
+];
 ---
 
-<div class="px-viz">
-  {caption && <div class="px-viz__cap"><span>{caption}</span><b>{fmtM(waterM)} crest</b></div>}
+<div class="px-viz px-sltank" data-build-scene>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+  {water && <FigHead value={fmt(water.riseM, 2)} label={headLabel} n={5} />}
 
-  <div class="px-sltank px3d-stage">
-    <div class="px-sltank__rim px3d-tilt" data-tilt="4">
-      <div class="px-sltank__tank"
-        role="img"
-        aria-label={caption ? `Sea-level tank: ${caption}, water at ${fmtM(waterM)}` : `Sea-level tank, water at ${fmtM(waterM)}`}>
-
-        <!-- rising water -->
-        <div class="px-sltank__water" style={`--h:${waterPct.toFixed(2)}%`}>
-          <span class="px-sltank__surface" aria-hidden="true"></span>
-        </div>
-
-        <!-- scenario marker lines + labels (line at true level; pill nudged
-             down by --dy only when it would collide with the one above) -->
-        {markers.map((m, i) => (
-          <div
-            class={`px-sltank__mark${m.isPeak ? ' px-sltank__mark--peak' : ''}`}
-            style={`bottom:${m.y.toFixed(2)}%; --i:${i}; --dy:${m.dy}px`}
-          >
-            <span class="px-sltank__mark-line"></span>
-            <span class="px-sltank__mark-lbl">
-              {m.year != null && <b>{m.year}</b>}{m.year != null ? ' ' : ''}{m.label} · {fmtM(m.riseM)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <!-- landmark reference ticks on the outer side -->
-      {ticks.length > 0 && (
-        <div class="px-sltank__marks" aria-hidden="false">
-          {ticks.map((t) => (
-            <div class="px-sltank__tick" style={`bottom:${t.y.toFixed(2)}%; --dy:${t.dy}px`}>
-              <span class="px-sltank__tick-line"></span>
-              <span class="px-sltank__tick-lbl">{t.name}<i>{t.heightM.toFixed(2)}m</i></span>
-            </div>
-          ))}
-        </div>
+  <div class="px-sltank__plot">
+    <svg class="px-sltank__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      {water && (
+        <rect class="px-sltank__water" data-cue="water" x={TX0} y={water.y.toFixed(1)} width={TX1 - TX0} height={(FLOOR - water.y).toFixed(1)} data-build="2" data-build-kind="grow-y" />
       )}
-    </div>
+      {left.map((o) => (
+        <g class="px-sltank__lm" data-cue={`lm${o.i + 1}`}>
+          <line class="px-sltank__lm-line" x1={TX0 - 4} y1={o.y.toFixed(1)} x2={TX1} y2={o.y.toFixed(1)} data-build="3" />
+          {<polyline class="px-sltank__lead px-sltank__lead--lm" points={`${TX0 - 4},${o.y.toFixed(1)} ${LX + 6},${(o.at + 7).toFixed(1)} ${LX + 3},${(o.at + 7).toFixed(1)}`} data-build="3" />}
+          <text class="px-sltank__lm-t" x={LX} y={(o.at + 12).toFixed(1)} text-anchor="end" style={SANS} data-build="4" data-build-kind="rise">
+            <tspan class="px-sltank__v" x={LX}>{m2(o.m.heightM)}</tspan>
+            {o.lines.map((ln) => <tspan x={LX} dy={LH}>{ln}</tspan>)}
+          </text>
+        </g>
+      ))}
+      {right.map((r) => (
+        <g class:list={['px-sltank__lv', r.l.low && 'is-low', r.l === water && 'is-water']} data-cue={r.l.i + 1}>
+          <line class="px-sltank__lv-line" x1={TX0} y1={r.l.y.toFixed(1)} x2={LINE_END} y2={r.l.y.toFixed(1)} data-build="3" />
+          {Math.abs(r.at + 11 - r.l.y) > 2 && <polyline class="px-sltank__lead" points={`${LINE_END},${r.l.y.toFixed(1)} ${TAG_R - 6},${(r.at + 7).toFixed(1)} ${VX - 3},${(r.at + 7).toFixed(1)}`} data-build="3" />}
+          <text class="px-sltank__lv-t" x={VX} y={(r.at + 12).toFixed(1)} style={SANS} data-build="4" data-build-kind="rise">
+            <tspan class="px-sltank__v" x={VX}>{m2(r.l.riseM)}</tspan>
+            {r.lines.map((ln) => <tspan x={VX} dy={LH}>{ln}</tspan>)}
+          </text>
+        </g>
+      ))}
+      <g class="px-sltank__scale" data-build="1">
+        {ticks.map((m) => (
+          <>
+            <line x1={TX0} y1={yOf(m).toFixed(1)} x2={TX0 + 7} y2={yOf(m).toFixed(1)} />
+            <text x={TX0 + 11} y={(yOf(m) + 4.5).toFixed(1)} style={SANS}>{m2(m)}</text>
+          </>
+        ))}
+      </g>
+      <path class="px-sltank__wall" d={`M${TX0},${TOP - 6} V${FLOOR} H${TX1} V${TOP - 6}`} data-build="1" data-build-kind="draw" />
+      <text class="px-sltank__floor" x={(TX0 + TX1) / 2} y={FLOOR + 18} text-anchor="middle" style={SANS}>Baseline</text>
+    </svg>
+    <CueLayer w={W} h={H} tags={tags} />
   </div>
 
+  <div class="px-sltank__key">
+    <span><i class="px-sltank__k"></i>{years.length === 1 ? `Rise by ${years[0]}` : 'Projected rise'}</span>
+    {lv.some((l) => l.low) && <span><i class="px-sltank__k px-sltank__k--low"></i>Low confidence</span>}
+    {landmarks.length > 0 && <span><i class="px-sltank__k px-sltank__k--lm"></i>Landmark</span>}
+  </div>
 </div>
 
 <style>
-  .px-sltank { width: 100%; }
-  .px-sltank__rim {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 22px;
-    align-items: stretch;
-    transform-origin: 50% 100%;
-  }
-
-  /* ── the tank vessel ─────────────────────────────────────────────────── */
-  .px-sltank__tank {
-    position: relative;
-    height: 320px;
-    border: 1px solid var(--rule);
-    border-top: none;
-    border-radius: 0 0 var(--r-tile) var(--r-tile);
-    background:
-      linear-gradient(to top, color-mix(in oklab, var(--ink) 4%, var(--paper)), var(--paper));
-    overflow: hidden;
-    box-shadow:
-      inset 0 1px 0 0 color-mix(in oklab, var(--ink) 6%, transparent),
-      0 18px 40px -30px color-mix(in oklab, var(--ink) 50%, transparent);
-  }
-  /* faint floor line */
-  .px-sltank__tank::after {
-    content: '';
-    position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-    background: var(--rule);
-  }
-
-  /* ── rising water ────────────────────────────────────────────────────── */
-  .px-sltank__water {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: var(--h);
-    background: linear-gradient(
-      to top,
-      color-mix(in oklab, var(--accent) 52%, transparent),
-      color-mix(in oklab, var(--accent) 26%, transparent)
-    );
-    /* base/resting = final height (no-JS safe) */
-    transition: height 1100ms var(--ease);
-  }
-  .px-sltank__surface {
-    position: absolute; left: 0; right: 0; top: 0; height: 2px;
-    background: color-mix(in oklab, var(--accent-deep, var(--accent)) 75%, var(--ink));
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
-  }
-
-  /* ── scenario marker lines + labels ──────────────────────────────────── */
-  .px-sltank__mark {
-    position: absolute;
-    left: 0; right: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    /* base/resting = final visible state (no-JS safe) */
-    opacity: 1;
-    transition: opacity var(--t-soft) var(--ease);
-  }
-  .px-sltank__mark-line {
-    flex: 1;
-    height: 0;
-    border-top: 1px dashed color-mix(in oklab, var(--ink) 38%, transparent);
-  }
-  .px-sltank__mark--peak .px-sltank__mark-line {
-    border-top-style: solid;
-    border-top-color: var(--accent-deep, var(--accent));
-    border-top-width: 1.5px;
-  }
-  .px-sltank__mark-lbl {
-    flex: none;
-    padding: 3px 9px;
-    margin-right: 8px;
-    background: color-mix(in oklab, var(--paper) 88%, transparent);
-    border-radius: var(--r-pill);
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 500;
-    font-size: 13px;
-    letter-spacing: -0.005em;
-    color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    /* declutter nudge (px, set per-marker); line stays at the true level */
-    transform: translateY(var(--dy, 0px));
-  }
-  .px-sltank__mark-lbl b { color: var(--ink); font-weight: 700; }
-  .px-sltank__mark--peak .px-sltank__mark-lbl {
-    color: var(--paper);
-    background: var(--accent-deep, var(--accent));
-  }
-  .px-sltank__mark--peak .px-sltank__mark-lbl b { color: var(--paper); }
-
-  /* ── landmark reference ticks (outer side) ───────────────────────────── */
-  .px-sltank__marks {
-    position: relative;
-    width: 132px;
-    min-height: 320px;
-  }
-  .px-sltank__tick {
-    position: absolute;
-    left: 0; right: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    /* center on the level (50%) plus the declutter nudge (px) */
-    transform: translateY(calc(50% + var(--dy, 0px)));
-  }
-  .px-sltank__tick-line {
-    width: 14px; height: 0;
-    border-top: 1px solid var(--rule);
-    flex: none;
-  }
-  .px-sltank__tick-lbl {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    font-family: var(--issue-face, var(--font-display));
-    font-weight: 600;
-    font-size: 13px;
-    line-height: 1.15;
-    letter-spacing: -0.005em;
-    color: var(--ink-soft);
-  }
-  .px-sltank__tick-lbl i {
-    font-style: normal;
-    font-family: var(--font-mono);
-    font-size: var(--viz-fs-axis, 9.5px);
-    letter-spacing: 0.04em;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  @media (max-width: 560px) {
-    .px-sltank__rim { grid-template-columns: 1fr; gap: 14px; }
-    .px-sltank__marks { width: auto; min-height: 0; display: flex; flex-wrap: wrap; gap: 14px; }
-    .px-sltank__tick { position: static; transform: none; }
-    .px-sltank__tick-line { display: none; }
-  }
+  .px-sltank__plot { position: relative; width: 100%; max-width: 390px; margin: 0 auto; }
+  .px-sltank__svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-sltank__water { fill: var(--accent); fill-opacity: 0.2; transform-origin: 50% 100%; }
+  .px-sltank__wall { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .px-sltank__scale line { stroke: var(--ink-2, var(--ink-soft)); stroke-width: 1; }
+  .px-sltank__scale text { paint-order: stroke; stroke: var(--paper-2); stroke-width: 4px; stroke-linejoin: round; }
+  .px-sltank__scale text, .px-sltank__floor { font-size: 13.5px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-sltank__lm-line { stroke: var(--ink-2, var(--ink-soft)); stroke-width: 1.2; stroke-dasharray: 3 4; }
+  .px-sltank__lm-t, .px-sltank__lv-t { font-size: 13.5px; fill: var(--ink-2, var(--ink-soft)); }
+  .px-sltank__v { font-size: 13.5px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .px-sltank__lv-line { stroke: var(--accent); stroke-width: 1.5; }
+  .is-water .px-sltank__lv-line { stroke: var(--accent-deep); stroke-width: 2.5; }
+  .is-low .px-sltank__lv-line { stroke-dasharray: 6 4; }
+  .px-sltank__lead { fill: none; stroke: var(--hair-2); stroke-width: 1; }
+  .px-sltank__lead--lm { stroke: var(--ink-2, var(--ink-soft)); stroke-dasharray: 3 4; }
+  .px-sltank__key { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; font-family: var(--font-ui); font-size: 12px; color: var(--muted); }
+  .px-sltank__key span { display: inline-flex; align-items: center; gap: 6px; }
+  .px-sltank__k { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--accent); }
+  .px-sltank__k--low { border-top-style: dashed; }
+  .px-sltank__k--lm { border-top: 1.5px dotted var(--ink-2, var(--ink-soft)); }
+  /* An SVG anchor lights by opacity alone: an outline on an SVG shape draws
+     its bounding box, not a ring (the CueLayer numeral takes the ring). */
+  svg [data-cue] { outline: none !important; }
 </style>
