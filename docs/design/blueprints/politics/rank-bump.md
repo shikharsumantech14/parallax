@@ -68,7 +68,7 @@
 Where each party finished across a run of elections, and nothing else. The reader learns which positions are genuinely contested and which have never moved.
 
 - **USE WHEN:** 4–8 entities' finishing POSITIONS across 4–8 ordered contests, where overtakes and the stability of the top places are the argument.
-- **DON'T USE:** vote shares or seat counts over time (→ `approval-chart` for a series, `seat-chart` for a table); ranked-choice round transfers (→ `ballot-flow`); ratings that carry a magnitude (→ `elo-river`, sports).
+- **DON'T USE:** vote shares or seat counts over time (→ `approval-chart` for a series, `seat-chart` for a table); ranked-choice round transfers (no kind: the Lens verdict of 2026-09-30 dropped `ballot-flow`); ratings that carry a magnitude (→ `elo-river`, sports).
 - **Pairs with:** `default` or `wide`. Not hero-capable — it is a supporting chart, and its argument needs the prose around it.
 
 ## 3. Data schema

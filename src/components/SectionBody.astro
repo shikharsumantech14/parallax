@@ -9,11 +9,9 @@ import { howToReadFor } from '../lib/explainers';
  * docs/design/STORY-MODE-SPEC.md). Add new kinds HERE (and register them in
  * SECTION_KINDS + docs/design/catalog.md; see src/components/AGENTS.md §3).
  */
-import type { Section } from '../content/config';
+import { canonicalKind, type Section } from '../content/config';
 import Quote from './core/Quote.astro';
-import BeatSheet from './core/BeatSheet.astro';
 import Prose from './core/Prose.astro';
-import Plate from './core/Plate.astro';
 import Comparison from './core/Comparison.astro';
 import DataReadout from './core/DataReadout.astro';
 
@@ -26,7 +24,6 @@ import BrothersAnalogy from './topic/politics/BrothersAnalogy.astro';
 import ApprovalChart from './topic/politics/ApprovalChart.astro';
 import PowerMatrix from './topic/politics/PowerMatrix.astro';
 
-import OrbitalShells from './topic/space/OrbitalShells.astro';
 import OrbitTrace from './topic/space/OrbitTrace.astro';
 import LaunchStats from './topic/space/LaunchStats.astro';
 
@@ -35,23 +32,19 @@ import BenchmarkChart from './topic/tech/BenchmarkChart.astro';
 import AdoptionCurve from './topic/tech/AdoptionCurve.astro';
 
 import JourneyMap from './topic/travel/JourneyMap.astro';
-import RouteCard from './topic/travel/RouteCard.astro';
-import CityCompare from './topic/travel/CityCompare.astro';
+import Itinerary from './topic/travel/Itinerary.astro';
 
 import MatchStatLine from './topic/sports/MatchStatLine.astro';
 import LeagueTable from './topic/sports/LeagueTable.astro';
 import PlayerRadar from './topic/sports/PlayerRadar.astro';
 
 // v2 3D / interactive component library
-import OrbitGlobe from './topic/space/OrbitGlobe.astro';
 import SolarSystem from './topic/space/SolarSystem.astro';
 import ConstellationSwarm from './topic/space/ConstellationSwarm.astro';
 import LagrangeMap from './topic/space/LagrangeMap.astro';
 import TransferWindow from './topic/space/TransferWindow.astro';
 import EclipseCone from './topic/space/EclipseCone.astro';
 import PlayerCard from './topic/sports/PlayerCard.astro';
-import CoalitionOrbit from './topic/politics/CoalitionOrbit.astro';
-import SwingDial from './topic/politics/SwingDial.astro';
 import BillPassage from './topic/politics/BillPassage.astro';
 import VoteFlow from './topic/politics/VoteFlow.astro';
 import MarginLadder from './topic/politics/MarginLadder.astro';
@@ -59,7 +52,6 @@ import Chamber from './topic/politics/Chamber.astro';
 import PowerFlow from './topic/politics/PowerFlow.astro';
 import CoalitionCalculus from './topic/politics/CoalitionCalculus.astro';
 import GerrymanderLens from './topic/politics/GerrymanderLens.astro';
-import BallotFlow from './topic/politics/BallotFlow.astro';
 import BillFunnel from './topic/politics/BillFunnel.astro';
 import TerrainRelief from './topic/earth/TerrainRelief.astro';
 import PlateMotion from './topic/earth/PlateMotion.astro';
@@ -83,9 +75,7 @@ import PaceRidge from './topic/sports/PaceRidge.astro';
 import ChannelTernary from './topic/sports/ChannelTernary.astro';
 import TrajectoryArc from './topic/space/TrajectoryArc.astro';
 import DeltaVLadder from './topic/space/DeltaVLadder.astro';
-import SignalReadout from './topic/space/SignalReadout.astro';
 import DescentProfile from './topic/space/DescentProfile.astro';
-import DataGlobe from './topic/earth/DataGlobe.astro';
 import CoreSample from './topic/earth/CoreSample.astro';
 import SeaLevelTank from './topic/earth/SeaLevelTank.astro';
 import ClimateSpiral from './topic/earth/ClimateSpiral.astro';
@@ -94,10 +84,7 @@ import ArchStack from './topic/tech/ArchStack.astro';
 import LatencyWaterfall from './topic/tech/LatencyWaterfall.astro';
 import VersionGraph from './topic/tech/VersionGraph.astro';
 import ScalingPlot from './topic/tech/ScalingPlot.astro';
-import ThroughputDial from './topic/tech/ThroughputDial.astro';
-import RouteGlobe from './topic/travel/RouteGlobe.astro';
 import ElevationTrek from './topic/travel/ElevationTrek.astro';
-import ItineraryReel from './topic/travel/ItineraryReel.astro';
 import ClimateCalendar from './topic/travel/ClimateCalendar.astro';
 import TimezoneArc from './topic/travel/TimezoneArc.astro';
 import TacticsPitch from './topic/sports/TacticsPitch.astro';
@@ -105,10 +92,9 @@ import ShotMap from './topic/sports/ShotMap.astro';
 import XgRace from './topic/sports/XgRace.astro';
 import MomentumWave from './topic/sports/MomentumWave.astro';
 
-import ElevationProfile from './topic/earth/ElevationProfile.astro';
 import RegionMap from './topic/earth/RegionMap.astro';
 import ClimateStrip from './topic/earth/ClimateStrip.astro';
-import CarbonGauge from './topic/earth/CarbonGauge.astro';
+import Gauge from './core/Gauge.astro';
 import AgePyramid from './topic/politics/AgePyramid.astro';
 import MarginBullets from './topic/space/MarginBullets.astro';
 import StateTimeline from './topic/tech/StateTimeline.astro';
@@ -123,7 +109,11 @@ interface Props {
   section: Section;
 }
 
-const { section } = Astro.props;
+/* The schema already resolves a retired kind name to its host (KIND_ALIASES in
+   src/content/config.ts). Resolving again here keeps a caller that hands in a
+   section built outside the collection (a test page, a story beat) honest. */
+const { section: authored } = Astro.props;
+const section = { ...authored, kind: canonicalKind(authored.kind) };
 
 /* `caption` and `source` were promoted onto the section schema in Phase 2, but
    the ~90 dispatch arms below were written before that and read `data.caption`
@@ -197,8 +187,6 @@ const data: any = {
       </>
     )}
 
-    {section.kind === 'beat-sheet' && <BeatSheet beats={data.beats ?? []} />}
-
     {section.kind === 'prose' && (
       <Prose lead={data.lead} paragraphs={data.paragraphs ?? []} />
     )}
@@ -209,12 +197,8 @@ const data: any = {
       <ThreeSteps steps={data.steps ?? []} />
     )}
 
-    {section.kind === 'plate' && (
-      <Plate src={data.src} alt={data.alt} caption={section.caption ?? data.caption} credit={data.credit} number={data.number} fit={data.fit} height={data.height} />
-    )}
-
     {section.kind === 'comparison' && (
-      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} columns={data.columns ?? []} />
+      <Comparison sides={data.sides ?? []} rows={data.rows ?? []} columns={data.columns ?? []} cityA={data.cityA} cityB={data.cityB} />
     )}
 
     {section.kind === 'data-readout' && (
@@ -222,10 +206,6 @@ const data: any = {
     )}
     {section.kind === 'number-sense' && (
       <NumberSense value={data.value} unit={data.unit} label={data.label} equals={data.equals ?? []} note={data.note} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
-    )}
-
-    {section.kind === 'orbital-shells' && (
-      <OrbitalShells shells={data.shells ?? []} caption={data.caption} source={data.source} />
     )}
 
     {section.kind === 'commit-grid' && (
@@ -251,16 +231,6 @@ const data: any = {
         venue={data.venue}
         date={data.date}
         rows={data.rows ?? []}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'elevation-profile' && (
-      <ElevationProfile
-        bands={data.bands ?? []}
-        maxValue={data.maxValue}
-        axisLabel={data.axisLabel}
-        caption={data.caption}
         source={data.source}
       />
     )}
@@ -293,14 +263,26 @@ const data: any = {
       />
     )}
 
-    {section.kind === 'carbon-gauge' && (
-      <CarbonGauge
-        remaining={data.remaining ?? 0.31}
+    {/* gauge (Lens verdict, 2026-09-30): carbon-gauge renamed; swing-dial and
+       throughput-dial folded in. The component derives its variant from the
+       fields present, so all three authored shapes render unchanged. */}
+    {section.kind === 'gauge' && (
+      <Gauge
+        variant={data.variant}
+        remaining={data.remaining}
         remainingGt={data.remainingGt}
         usedGt={data.usedGt}
         totalGt={data.totalGt}
         target={data.target}
         year={data.year}
+        value={data.value}
+        max={data.max}
+        unit={data.unit}
+        label={data.label}
+        zones={data.zones}
+        leftLabel={data.leftLabel}
+        rightLabel={data.rightLabel}
+        markers={data.markers}
         caption={data.caption}
         source={data.source}
       />
@@ -369,20 +351,13 @@ const data: any = {
       />
     )}
 
-    {section.kind === 'route-card' && (
-      <RouteCard
+    {/* itinerary (Lens verdict, 2026-09-30): route-card renamed; itinerary-reel
+       folded in, its days rendered as legs. */}
+    {section.kind === 'itinerary' && (
+      <Itinerary
         legs={data.legs ?? []}
+        days={data.days}
         title={data.title}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
-
-    {section.kind === 'city-compare' && (
-      <CityCompare
-        cityA={data.cityA ?? { name: 'City A' }}
-        cityB={data.cityB ?? { name: 'City B' }}
-        rows={data.rows ?? []}
         caption={data.caption}
         source={data.source}
       />
@@ -411,14 +386,6 @@ const data: any = {
     )}
 
     {/* ── v2 3D / interactive component library ── */}
-    {section.kind === 'orbit-globe' && (
-      <OrbitGlobe
-        orbits={data.orbits ?? []}
-        maxAltKm={data.maxAltKm}
-        caption={data.caption}
-        source={data.source}
-      />
-    )}
 
     {section.kind === 'player-card' && (
       <PlayerCard
@@ -432,12 +399,6 @@ const data: any = {
       />
     )}
 
-    {section.kind === 'coalition-orbit' && (
-      <CoalitionOrbit parties={data.parties ?? []} totalSeats={data.totalSeats} caption={data.caption} source={data.source} />
-    )}
-    {section.kind === 'swing-dial' && (
-      <SwingDial leftLabel={data.leftLabel} rightLabel={data.rightLabel} value={data.value ?? 0} markers={data.markers} caption={data.caption} source={data.source} />
-    )}
     {section.kind === 'bill-passage' && (
       <BillPassage stages={data.stages ?? []} caption={data.caption} source={data.source} />
     )}
@@ -471,9 +432,7 @@ const data: any = {
     {section.kind === 'gerrymander-lens' && (
       <GerrymanderLens grid={data.grid} parties={data.parties} plans={data.plans ?? []} flagPct={data.flagPct} caption={data.caption} source={data.source} />
     )}
-    {section.kind === 'ballot-flow' && (
-      <BallotFlow candidates={data.candidates ?? []} rounds={data.rounds ?? []} winnerId={data.winnerId} majorityBasis={data.majorityBasis} caption={data.caption} source={data.source} />
-    )}
+
     {section.kind === 'bill-funnel' && (
       <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
@@ -488,9 +447,7 @@ const data: any = {
     {section.kind === 'delta-v-ladder' && (
       <DeltaVLadder segments={data.segments ?? []} unit={data.unit} caption={data.caption} source={data.source} />
     )}
-    {section.kind === 'signal-readout' && (
-      <SignalReadout bands={data.bands ?? []} caption={data.caption} source={data.source} />
-    )}
+
     {section.kind === 'descent-profile' && (
       <DescentProfile points={data.points ?? []} events={data.events} craftLabel={data.craftLabel} caption={data.caption} source={data.source} />
     )}
@@ -583,9 +540,7 @@ const data: any = {
     )}
 
     {/* earth */}
-    {section.kind === 'data-globe' && (
-      <DataGlobe markers={data.markers ?? []} unit={data.unit} caption={data.caption} source={data.source} />
-    )}
+
     {section.kind === 'core-sample' && (
       <CoreSample layers={data.layers ?? []} unit={data.unit} caption={data.caption} source={data.source} />
     )}
@@ -612,20 +567,13 @@ const data: any = {
     {section.kind === 'scaling-plot' && (
       <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} annotations={data.annotations} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
-    {section.kind === 'throughput-dial' && (
-      <ThroughputDial value={data.value ?? 0} max={data.max ?? 100} unit={data.unit} label={data.label} zones={data.zones} caption={data.caption} source={data.source} />
-    )}
 
     {/* travel */}
-    {section.kind === 'route-globe' && (
-      <RouteGlobe stops={data.stops ?? []} caption={data.caption} source={data.source} />
-    )}
+
     {section.kind === 'elevation-trek' && (
       <ElevationTrek points={data.points ?? []} unit={data.unit} caption={data.caption} source={data.source} />
     )}
-    {section.kind === 'itinerary-reel' && (
-      <ItineraryReel days={data.days ?? []} caption={data.caption} source={data.source} />
-    )}
+
     {section.kind === 'climate-calendar' && (
       <ClimateCalendar months={data.months ?? []} tempUnit={data.tempUnit} caption={data.caption} source={data.source} />
     )}

@@ -3,12 +3,12 @@ id: "2026-06-03-politics-showcase"
 topic: politics
 title: "The Politics *Styleguide*"
 hook: "Every politics data-viz component, demonstrated on one coalition's confidence vote."
-dek: "A single reference page for the politics signature library — orbit, dial, ladder, Sankey, and the rest."
+dek: "A single reference page for the politics signature library — dial, ladder, Sankey, and the rest."
 publishedAt: 2026-06-03
 status: draft
 tags: [styleguide]
 readTimeMinutes: 4
-primer: "This is a styleguide, not an issue. It walks through every politics signature component — coalition orbit, swing dial, bill passage, vote-flow Sankey, margin ladder, vote result, approval chart, power matrix, seat chart, and timeline — using one running scenario: the 2025 German Bundestag and the confidence vote that defined its first year."
+primer: "This is a styleguide, not an issue. It walks through every politics signature component — gauge, bill passage, vote-flow Sankey, margin ladder, vote result, approval chart, power matrix, seat chart, and timeline — using one running scenario: the 2025 German Bundestag and the confidence vote that defined its first year."
 
 sections:
   - kind: prose
@@ -37,22 +37,6 @@ sections:
         unit: "seats"
         text: "The same bill would have redrawn every constituency by population and raised the house to 850 seats. That is what was voted down."
       note: "Same bill text, two readings. Only one was on the poster."
-
-  - kind: coalition-orbit
-    eyebrow: "THE GOVERNMENT CORE"
-    title: "Who *orbits* the chancellery."
-    intro: "Each party is a body orbiting the government core, sized by seat count and coloured by bloc — drag to spin."
-    data:
-      caption: "21st Bundestag · seats by party · Feb 2025 election"
-      totalSeats: 630
-      source: "Bundeswahlleiterin, official 2025 federal election result"
-      parties:
-        - { name: "CDU/CSU", seats: 208, color: "#111111", bloc: "Government" }
-        - { name: "AfD", seats: 152, color: "#009ee0", bloc: "Opposition" }
-        - { name: "SPD", seats: 120, color: "#e3000f", bloc: "Government" }
-        - { name: "Grüne", seats: 85, color: "#46962b", bloc: "Opposition" }
-        - { name: "Die Linke", seats: 64, color: "#be3075", bloc: "Opposition" }
-        - { name: "SSW", seats: 1, color: "#003c8f", bloc: "Cross-bench" }
 
   - kind: swing-dial
     eyebrow: "THE BALANCE OF THE HOUSE"
@@ -325,44 +309,6 @@ sections:
           note: "Union voters packed into two landslide seats."
           districts: [0, 0, 1, 1, 1,  0, 0, 1, 3, 3,  0, 2, 1, 3, 3,  2, 2, 2, 4, 3,  2, 4, 4, 4, 4]
 
-  - kind: ballot-flow
-    eyebrow: "WATCH THE COUNT RESOLVE"
-    title: "The first-round leader who *almost* lost."
-    intro: "Ranked-choice made visible as motion: columns are counting rounds, each eliminated candidate's ballots flow as ribbons to whoever they went to next, and the dashed line is the majority — descending as spent ballots leave the count."
-    plain: "Each column is one counting round; when a candidate is knocked out, the moving ribbons show where their votes went next, and the dashed line is the majority needed to win."
-    skimCaption: "An illustrative 100,000-ballot mayoral RCV: Reed led round one with 34% but only cleared a majority on the third count, when Chen's transfers — not Blake's — put Reed over the top."
-    layout: wide
-    data:
-      caption: "The first-round leader with 34% only won on the third count — Chen's transfers, not Blake's, put Reed over the top."
-      source: "Illustrative RCV tabulation; method: instant-runoff, majority of continuing ballots"
-      majorityBasis: continuing
-      winnerId: reed
-      candidates:
-        - { id: reed,  name: "Dana Reed",  short: "REED",  color: "#b8341f" }
-        - { id: ortiz, name: "Sam Ortiz",  short: "ORTIZ", color: "#1e5a3f" }
-        - { id: chen,  name: "Mei Chen",   short: "CHEN",  color: "#3a5f8f" }
-        - { id: blake, name: "Ada Blake",  short: "BLAKE", color: "#8a6d3b" }
-      rounds:
-        - tallies: { reed: 34000, ortiz: 31000, chen: 22000, blake: 13000 }
-          exhausted: 0
-          eliminate:
-            id: blake
-            transfers:
-              - { to: reed,  value: 4000 }
-              - { to: ortiz, value: 3000 }
-              - { to: chen,  value: 5000 }
-              - { to: exhausted, value: 1000 }
-        - tallies: { reed: 38000, ortiz: 34000, chen: 27000 }
-          exhausted: 1000
-          eliminate:
-            id: chen
-            transfers:
-              - { to: reed,  value: 11000 }
-              - { to: ortiz, value: 13000 }
-              - { to: exhausted, value: 3000 }
-        - tallies: { reed: 49000, ortiz: 47000 }
-          exhausted: 4000
-
   - kind: bill-funnel
     eyebrow: "ONE SESSION'S OUTPUT"
     title: "Where 214 bills actually *stopped*."
@@ -420,17 +366,6 @@ sections:
         - { label: "40–49", left: 118, right: 60 }
         - { label: "30–39", left: 62, right: 38 }
         - { label: "18–29", left: 24, right: 16 }
-  - kind: plate
-    title: The chamber, *empty*.
-    intro: The plate — one photograph per issue, after the opening prose, before the first figure. This one borrows the issue's own share card as a stand-in until a photograph exists.
-    data:
-      src: /og/story/2026-04-24-delimitation.png
-      alt: The share card for the delimitation issue, standing in for a photograph of the Lok Sabha chamber
-      caption: the chamber, empty
-      credit: Parallax
-      number: 1
-      fit: cover
-
 sources:
   - id: "src-01"
     title: "2025 German federal election — official result"

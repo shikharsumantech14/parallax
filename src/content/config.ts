@@ -15,36 +15,29 @@ export const SECTION_KINDS = [
   'you-think',             // core — what most people think vs what the data shows, with the settling figure (REGISTER-PLAN RG-09)
   'analogy',
   'quote',
-  'beat-sheet',
   'jargon-buster',         // core — 2–4 terms of art with a one-line meaning each (REGISTER-PLAN RG-09); narrative
   'three-steps',           // core — a mechanism in three numbered cards, one idea each (REGISTER-PLAN RG-09); narrative
   'prose',
-  'plate',                // core — a framed photograph; renders only when an image is supplied
   'data-readout',
   'number-sense',          // core — one big number and the everyday things it equals (REGISTER-PLAN RG-09)
-  'orbital-shells',
   'commit-grid',           // tech signature
   'journey-map',           // travel signature
   'match-stat-line',       // sports signature
-  'elevation-profile',     // earth signature
   'region-map',            // earth signature — choropleth world map
   'climate-strip',         // earth signature — warming stripes time-series
-  'carbon-gauge',          // earth signature — remaining carbon budget arc
+  'gauge',                 // universal — one value on an arc: a budget used, a lean between two blocs, or load against capacity (was carbon-gauge; swing-dial and throughput-dial fold in, Lens 2026-09-30)
   'approval-chart',        // politics signature — approval/disapproval time series
   'power-matrix',          // politics signature — institution × party control grid
   'orbit-trace',           // space signature — named satellite orbits diagram
   'launch-stats',          // space signature — annual launch count bar chart
   'benchmark-chart',       // tech signature — horizontal performance comparison bars
   'adoption-curve',        // tech signature — S-curve technology diffusion
-  'route-card',            // travel signature — multi-leg journey itinerary
-  'city-compare',          // travel signature — two-city comparison table
+  'itinerary',             // travel signature — a journey as legs, each stop carrying up to three items (was route-card; itinerary-reel folds in, Lens 2026-09-30)
   'league-table',          // sports signature — standings with form guide
   'player-radar',          // sports signature — spider chart for player stats
 
   // ── v2 3D / interactive component library (5 per world) ──────────────────
   // politics
-  'coalition-orbit',       // WebGL — party bodies orbiting a government core
-  'swing-dial',            // CSS-3D — perspective needle between two blocs
   'bill-passage',          // CSS-3D — bill stage cards advancing
   'vote-flow',             // SVG — Sankey of blocs → for/against/abstain
   'margin-ladder',         // CSS-3D — seats by win-margin on a tilted plane
@@ -52,14 +45,11 @@ export const SECTION_KINDS = [
   'power-flow',            // SVG — directional money/authority Sankey with animated flow dashes
   'coalition-calculus',    // HTML-interactive — coalition builder vs the majority line
   'gerrymander-lens',      // SVG — same votes, three maps, efficiency-gap counters
-  'ballot-flow',           // SVG — ranked-choice round transfers (flowDash)
   'bill-funnel',           // HTML — many bills surviving each procedural stage
   'age-pyramid',           // HTML — composition by age band and sex, counts or shares
   // space
-  'orbit-globe',           // WebGL — dot-matrix Earth + inclined orbit rings
   'trajectory-arc',        // CSS-3D/SVG — launch→orbit parabola in a starfield
   'delta-v-ladder',        // CSS-3D — stacked Δv/energy budget bars
-  'signal-readout',        // SVG — telemetry / EM-band sweep readout
   'descent-profile',       // SVG — altitude-vs-time descent with craft glyph
   'solar-system',          // WebGL FLAGSHIP — navigable Keplerian solar system
   'constellation-swarm',   // WebGL — instanced satellite mega-constellation shells
@@ -68,7 +58,6 @@ export const SECTION_KINDS = [
   'eclipse-cone',          // SVG/CSS-3D — umbra/penumbra shadow-cone geometry to scale
   'margin-bullets',        // HTML — subsystem margins vs requirement, each in its own unit
   // earth
-  'data-globe',            // WebGL — 3D choropleth globe (graticule style)
   'core-sample',           // CSS-3D — ice/sediment core column, scrub strata
   'sea-level-tank',        // CSS-3D/SVG — cross-section water-rise
   'climate-spiral',        // SVG — warming spiral (radial months)
@@ -83,7 +72,6 @@ export const SECTION_KINDS = [
   'latency-waterfall',     // SVG — request/span waterfall timeline
   'version-graph',         // SVG — git-style branch/merge graph
   'scaling-plot',          // SVG — log-log scaling scatter + fit
-  'throughput-dial',       // CSS-3D — perspective req/s gauge
   'neural-flow',           // WebGL FLAGSHIP — instanced forward-pass activation wave
   'packet-trace',          // WebGL globe + SVG latency budget — light floor vs measured RTT
   'queue-cliff',           // SVG interactive — M/M/1 utilization cliff 1/(1−ρ)
@@ -91,9 +79,7 @@ export const SECTION_KINDS = [
   'moore-ladder',          // SVG — base-2 log doubling fit (Moore's law)
   'state-timeline',        // HTML — per-service health lanes + incident clock
   // travel
-  'route-globe',           // WebGL — 3D globe + great-circle arc
   'elevation-trek',        // CSS-3D/SVG — route elevation profile, moving marker
-  'itinerary-reel',        // CSS-3D — flip-through day cards
   'climate-calendar',      // SVG — month×metric weather heat ribbon
   'timezone-arc',          // SVG — sun/day arc across time zones
   'terminator-globe',      // WebGL FLAGSHIP — day/night line + flight arc (jet lag)
@@ -118,6 +104,38 @@ export const SECTION_KINDS = [
 export const sectionKindEnum = z.enum(SECTION_KINDS);
 export type SectionKind = z.infer<typeof sectionKindEnum>;
 
+/* Retired kind names that still build (the Lens verdict, 2026-09-30,
+   docs/design/LENS.md §9). Two kinds were renamed and four folded into a host
+   kind; the backlist and the showcase drafts still carry the old names, so the
+   schema accepts them and hands the CANONICAL name on. Every consumer of
+   `section.kind` (SectionBody, Section, story mode, the explainers) therefore
+   sees `gauge`, never `swing-dial`. The host components tell the old data
+   shapes apart by their fields, so no issue has to be edited to keep building.
+   Scripts that read the MDX directly (check-prose, project-graph) parse this
+   map out of this file; keep it a flat literal of quoted pairs. The ten kinds
+   the verdict DROPPED have no alias: a section naming one fails the build. */
+export const KIND_ALIASES = {
+  'carbon-gauge': 'gauge',
+  'swing-dial': 'gauge',
+  'throughput-dial': 'gauge',
+  'route-card': 'itinerary',
+  'itinerary-reel': 'itinerary',
+  'city-compare': 'comparison',
+} as const satisfies Record<string, SectionKind>;
+export type KindAlias = keyof typeof KIND_ALIASES;
+const KIND_ALIAS_NAMES = Object.keys(KIND_ALIASES) as [KindAlias, ...KindAlias[]];
+
+/** The canonical kind for any accepted name, alias or not. */
+export function canonicalKind(kind: string): SectionKind {
+  return ((KIND_ALIASES as Record<string, SectionKind>)[kind] ?? kind) as SectionKind;
+}
+
+/* What an issue may write in `kind:` — a registered kind or an alias — with
+   the alias resolved on parse. */
+export const sectionKindInput = z
+  .union([sectionKindEnum, z.enum(KIND_ALIAS_NAMES)])
+  .transform((k): SectionKind => canonicalKind(k));
+
 const sourceSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -133,12 +151,18 @@ export const sectionLayoutEnum = z.enum(SECTION_LAYOUTS);
 export type SectionLayout = z.infer<typeof sectionLayoutEnum>;
 
 const sectionSchema = z.object({
-  kind: sectionKindEnum,
+  kind: sectionKindInput,
   number: z.string().optional(),
   title: z.string().optional(),
   eyebrow: z.string().optional(),
   intro: z.string().optional(),
   skimCaption: z.string().optional(),
+  // DEPRECATED by the Lens reading system (2026-09-30, docs/design/LENS.md §5):
+  // `plain` and `howToRead` give way to `cues` (Phase 3). Both are still
+  // accepted and still rendered until Phase 8 retires them with the old shell,
+  // so the backlist builds unchanged. The pipeline authors them until Phase 7
+  // teaches it cues.
+  //
   // One sentence explaining the FORM of the viz ("each block is one seat…") —
   // rendered as the in-flow "In plain terms" line. Falls back to the per-kind
   // default in src/lib/explainers.ts. Captions explain the DATA instead.

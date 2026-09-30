@@ -7,7 +7,7 @@
    fallback SVG. Takes THREE as a parameter; never imports three (lazy-chunk).
 
    Extends the shared country globe (globe.ts: buildCountryGlobe + latLon +
-   makeLabels + loadGeo) exactly as routeGlobe does, then adds three honest
+   makeLabels + loadGeo) as the retired routeGlobe did, then adds three honest
    layers — the subsolar-anchored terminator ring, the antisolar night wash
    (paper-occluder half-sphere cap, NO shader, CANON §4), and the great-circle
    flight arc — plus one setState (departure ↔ arrival) that advances the sun.
@@ -23,7 +23,7 @@ import {
 
 interface City { city: string; lat: number; lon: number; tzOffsetH: number }
 
-const R = 1.4;                 // scene sphere radius (matches routeGlobe)
+const R = 1.4;                 // scene sphere radius (the shared globe radius)
 const smoothstep = (t: number) => { const s = Math.max(0, Math.min(1, t)); return s * s * (3 - 2 * s); };
 
 export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) => {

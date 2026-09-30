@@ -147,7 +147,7 @@ export function arrowLen(vMag: number, maxVel: number, mobile = false): number {
 }
 
 /* ── the scene ─────────────────────────────────────────────────────────────── */
-const R = 1.4; // scene sphere radius (matches dataGlobe)
+const R = 1.4; // scene sphere radius (the shared globe radius)
 
 export const build: SceneBuilder = (THREE, canvas, data: PlateMotionData, colors: SceneColors) => {
   const mount = canvas.parentElement as HTMLElement;

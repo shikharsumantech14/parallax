@@ -1,30 +1,64 @@
 /* ============================================================================
-   PARALLAX — UNIFIED TYPE SYSTEM (ONE family, product-wide)
+   PARALLAX — THE TYPE SYSTEM (Lens, 2026-09-30)
    ----------------------------------------------------------------------------
-   Literata everywhere — the launch design (2026-09-08, operator ruling after
-   the canvas review). The three ROLE tokens survive so 97 section kinds keep
-   compiling; they now resolve to one face. Differentiation between roles is
-   size / weight / case / tracking, exactly as the handoff sets it:
+   Two families: a serif to read, a sans to count (the Foundations board).
 
-     display  headlines, nameplates, the one italic accent word   700, tight
-     body     prose, UI, structural text                           400
-     mono     eyebrows, labels, numerals — small caps, tracked     600, .14–.20em
+     Newsreader        display and prose. Headlines 500 tight (-0.01em),
+                       prose 400 at 19/1.6 (18 on phones), the one authored
+                       italic word in the desk text colour.
+     Instrument Sans   UI and data. Body UI 15/1.5, labels 12–13 / 500 /
+                       .06em capitals, numbers 600 tabular in five tiers.
 
-   Numerals are tabular everywhere (base.css sets it on <body>), which is what
-   the old mono role was buying: readouts do not jitter when values change.
+   The role tokens survive so every kind keeps compiling:
+     --font-display, --font-body   → Newsreader
+     --font-ui, --font-mono        → Instrument Sans (the mono role was the
+                                     label-and-number role; it is the sans now)
 
-   Imported LAST (after the six theme files) so this wins the
-   :root[data-topic] specificity contest without !important.
+   Loaded by every layout's Google Fonts link (Newsreader ital,opsz,wght
+   400–600 + Instrument Sans 400–600). Imported LAST (after the six theme
+   files) so this wins the :root[data-topic] specificity contest without
+   !important. Literata, and the trio before it, are retired: do not
+   reintroduce a per-desk face.
    ============================================================================ */
 
 :root {
-  --face-meta:     'Literata', Georgia, serif;
-  --face-politics: 'Literata', Georgia, serif;
-  --face-space:    'Literata', Georgia, serif;
-  --face-earth:    'Literata', Georgia, serif;
-  --face-tech:     'Literata', Georgia, serif;
-  --face-travel:   'Literata', Georgia, serif;
-  --face-sports:   'Literata', Georgia, serif;
+  --face-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --face-sans:  'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Legacy per-desk face names: one serif for every desk. */
+  --face-meta:     var(--face-serif);
+  --face-politics: var(--face-serif);
+  --face-space:    var(--face-serif);
+  --face-earth:    var(--face-serif);
+  --face-tech:     var(--face-serif);
+  --face-travel:   var(--face-serif);
+  --face-sports:   var(--face-serif);
+
+  /* ── The scale (BRIEF.md "Type", the Foundations board) ─────────────── */
+  --fs-h1: 64px;       --lh-h1: 1.02;   /* phone 40 / 1.06 */
+  --fs-h1-sm: 40px;    --lh-h1-sm: 1.06;
+  --fs-h2: 40px;       --lh-h2: 1.08;
+  --fs-h3: 28px;       --lh-h3: 1.15;
+  --fs-section: 30px;  --lh-section: 1.12;
+  --fs-prose: 19px;    --lh-prose: 1.6;  /* phone 18 / 1.6 */
+  --fs-prose-sm: 18px;
+  --fs-caption: 17px;                    /* the finding: Newsreader italic */
+  --fs-ui: 15px;       --lh-ui: 1.5;
+  --fs-small: 13px;                      /* source lines, notes */
+  --fs-label: 12px;    --ls-label: 0.06em;
+  --fs-label-lg: 13px;
+  --ls-display: -0.01em;
+  --measure: 68ch;
+
+  /* Number tiers (BRIEF-4 §2): Instrument Sans 600, tabular, line-height .92,
+     the label 13–14px sitting 8px below. */
+  --fs-num-1: 20px;
+  --fs-num-2: 32px;
+  --fs-num-3: 48px;    /* secondary figures, stat tiles, Shelf rings */
+  --fs-num-4: 96px;    /* the pinned figure's headline number */
+  --fs-num-5: 160px;   /* the stage counter (phone 88) */
+  --fs-num-card: 40px; /* cover and desk cards */
+  --lh-num: 0.92;
 }
 
 :root,
@@ -34,9 +68,10 @@
 :root[data-topic="tech"],
 :root[data-topic="travel"],
 :root[data-topic="sports"] {
-  --font-display: 'Literata', Georgia, serif;
-  --font-body: 'Literata', Georgia, serif;
-  --font-mono: 'Literata', Georgia, serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
 }
 
 :root { --issue-face: var(--face-meta); }
@@ -46,3 +81,25 @@
 :root[data-topic="tech"]     { --issue-face: var(--face-tech); }
 :root[data-topic="travel"]   { --issue-face: var(--face-travel); }
 :root[data-topic="sports"]   { --issue-face: var(--face-sports); }
+
+/* Newsreader is an optical-size family: let the browser pick the cut for the
+   size (the headline cut at 64, the text cut at 19). */
+body { font-optical-sizing: auto; }
+
+/* The number role: every figure that uses it is tabular sans, never the
+   serif, so a readout never jitters and a column of figures aligns. */
+.px-num {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-num);
+  letter-spacing: 0;
+}
+.px-num--1 { font-size: var(--fs-num-1); }
+.px-num--2 { font-size: var(--fs-num-2); }
+.px-num--3 { font-size: var(--fs-num-3); }
+.px-num--4 { font-size: var(--fs-num-4); }
+.px-num--5 { font-size: var(--fs-num-5); }
+@media (max-width: 768px) {
+  .px-num--5 { font-size: 88px; }
+}

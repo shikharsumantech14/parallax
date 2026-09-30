@@ -25,6 +25,6 @@ Digest of the memory as of 2026-09-28. Read-only during a run. Updates happen in
 - A dossier's spine can miss its key beat and miscount floors. Rebuild it.
 - The 1,100 also counts every eyebrow, title and source label (about 15 words a row), plus authored plain, how-to-read and data labels.
 - Words before the first graphic include row 1's eyebrow and title: head at most 69, no intro on row 1.
-- Budget about 25 words of authored copy for a graphic off its home desk or axis. Defaults for throughput-dial, benchmark-chart, scaling-plot and power-flow often mislead.
+- Budget about 25 words of authored copy for a graphic off its home desk or axis. Defaults for gauge (was throughput-dial), benchmark-chart, scaling-plot and power-flow often mislead.
 - Names in chart labels and sublabels escape the name count, but readers still meet them.
 - Name one slack row, usually the quote.

@@ -1,5 +1,23 @@
 # Parallax visual canon
 
+> **SUPERSEDED on 2026-09-30 by `docs/design/LENS.md` for every visual rule.**
+> The operator's design revamp ("Lens", approved on the Design canvas of
+> 2026-09-29/30) replaces this document's look: the Literata trio, flat
+> surfaces with zero radius, the `--viz-edge` rule, the four-layer
+> comprehension stack (how-to-read panel, plain line), the ⤢ study view, the
+> per-world treatments. The body below is archived as it stood, unedited. Read
+> it for WHY a rule existed, never for what to build.
+>
+> **Its correctness rulings carry into LENS.md, and live there now:**
+> photography rejected (§1 here → LENS §1.1 and §9, where the `plate` kind was
+> dropped) · the accessibility floor (§5 minimums, §9 touch, §13 checks 1–3 →
+> LENS §3.4, §4.2, §5.6, §6.4; the text floor rises from 9.5px to 12px) ·
+> RD-01b, a literal font stack for in-SVG text (§5 → LENS §3.3) · the motion
+> budget (with `motion.md`'s hard rules → LENS §6.5) · the reading gate's
+> free graphic and `.px-section` counting (§12 → LENS §5.7) · honesty defaults
+> (§7 → LENS §5.5) · fallback first (§8 → LENS §5.6, §6.4) · the line-art
+> doctrine for WebGL (§4 → LENS §8.3). The full map is LENS §1.2.
+
 > **What this is.** The master design document for the Parallax product elevation
 > (2026-07). Every visual decision that would otherwise live in a designer's (or a
 > model's) head is written here as a **checkable rule**. If you are implementing a

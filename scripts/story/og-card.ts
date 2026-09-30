@@ -4,9 +4,16 @@
  * public/og/story/<slug>.png, the og:image every issue and story page points
  * at, so a shared link previews as a Parallax card on WhatsApp, X, Slack.
  *
- * Raw SVG → PNG via resvg, the brand mark from src/lib/mark.ts, Literata from
- * assets/fonts. Themed per world (the six palettes below — mirrored by
- * `npm run design:check`, so an accent change here must match the tokens).
+ * Raw SVG → PNG via resvg, the brand mark from src/lib/mark.ts, Newsreader
+ * and Instrument Sans from assets/fonts (static TTFs, fetched by
+ * scripts/fetch-fonts.mjs). Themed per desk (the palettes below — mirrored by
+ * `npm run design:check`, so an ink change here must match the tokens).
+ *
+ * Lens (2026-09-30): a share card is a COVER, so it is the one place a desk's
+ * deep plate fills the frame (BRIEF.md principle 1; the Brand-ShareCards
+ * board). Text on it is the on-deep paper; the desk's mark (the lime on tech
+ * and sports) carries the eyebrow and the medallion. Phase 4 adds the cover
+ * graphic and the emphasised word; this pass moves the palette and the faces.
  *
  * History: this was the `ogCard` archetype of the 2026-06 social card system
  * (scripts/social/cards.ts). The social pipelines that used the other six
@@ -18,25 +25,36 @@ import { join } from 'path';
 import { Resvg } from '@resvg/resvg-js';
 import { markBody } from '../../src/lib/mark';
 
-/* The six worlds. Mirrors TOPICS in src/content/config.ts, which cannot be
+/* The six desks. Mirrors TOPICS in src/content/config.ts, which cannot be
    imported here: that module imports `astro:content`, a virtual module that
    exists only inside an Astro build. */
 export const TOPICS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 export type Topic = (typeof TOPICS)[number];
 
 // ── theme ──────────────────────────────────────────────────────────────────
+/** `accent` is the desk MARK (gated against shared/design/worlds.css);
+ *  `plate` its deep ground; `hi` the mark that reads on that plate (the lime
+ *  on tech and sports, which exists only for this); `ink` the on-deep paper. */
 export interface Theme {
-  bg1: string; bg2: string; accent: string; ink: string; inkSoft: string;
-  ring: string; dark: boolean; stars: boolean;
+  plate: string; accent: string; hi: string; ink: string; ring: string;
 }
+const ON_DEEP = '#f5f2eb';
+const INK = '#16140f';
 export const THEMES: Record<Topic, Theme> = {
-  politics: { bg1: '#f6f2ea', bg2: '#e9e0cf', accent: '#b8341f', ink: '#1a1612', inkSoft: '#6b6055', ring: '#1a1612', dark: false, stars: false },
-  space:    { bg1: '#0e2038', bg2: '#060f1d', accent: '#00d4ff', ink: '#eaf2f8', inkSoft: '#92a7b8', ring: '#e9e2d4', dark: true,  stars: true  },
-  earth:    { bg1: '#f1ead8', bg2: '#e2d8bf', accent: '#2d6a4f', ink: '#1a1a17', inkSoft: '#5c5747', ring: '#1a1a17', dark: false, stars: false },
-  tech:     { bg1: '#141414', bg2: '#070707', accent: '#c6f432', ink: '#ededed', inkSoft: '#8a8a8a', ring: '#ededed', dark: true,  stars: false },
-  travel:   { bg1: '#fffdf6', bg2: '#f2e9d6', accent: '#c85a3c', ink: '#1a1a17', inkSoft: '#5c5747', ring: '#1a1a17', dark: false, stars: false },
-  sports:   { bg1: '#103126', bg2: '#081a14', accent: '#e8f048', ink: '#eaf5ee', inkSoft: '#9bb3a5', ring: '#eaf5ee', dark: true,  stars: false },
+  politics: { plate: '#2a1410', accent: '#c8412a', hi: '#c8412a', ink: ON_DEEP, ring: INK },
+  space:    { plate: '#0b1b33', accent: '#1b9ac4', hi: '#1b9ac4', ink: ON_DEEP, ring: INK },
+  earth:    { plate: '#0f2a25', accent: '#22897a', hi: '#22897a', ink: ON_DEEP, ring: INK },
+  tech:     { plate: '#111111', accent: '#86a81b', hi: '#c6f432', ink: ON_DEEP, ring: INK },
+  travel:   { plate: '#2c1d10', accent: '#c97c22', hi: '#c97c22', ink: ON_DEEP, ring: INK },
+  sports:   { plate: '#0f2820', accent: '#5a9e2f', hi: '#e8f048', ink: ON_DEEP, ring: INK },
 };
+
+/** `a` over `b` at opacity `t`, as a literal: resvg is given no rgba(). */
+function over(a: string, b: string, t: number): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v * t + y[i] * (1 - t)).toString(16).padStart(2, '0')).join('');
+}
 
 // ── fonts ──────────────────────────────────────────────────────────────────
 // This module is on the PREBUILD critical path: a missing or renamed TTF fails
@@ -55,12 +73,18 @@ function findFont(label: string, match: (f: string) => boolean): string {
   return hit;
 }
 
-/* One family on the card as on the site (launch design, 2026-09-08): Literata
-   Bold carries the display role, Literata Medium the tracked small-capital
-   labels. Both are STATIC instances from the googlefonts/literata repo —
-   resvg matches them by family + weight. */
-const displayFile = findFont('Literata Bold', (f) => /literata-bold/i.test(f) && /\.ttf$/i.test(f));
-const labelFile = findFont('Literata Medium', (f) => /literata-medium/i.test(f) && /\.ttf$/i.test(f));
+/* The site's two families (Lens): Newsreader 500 for the display role (the
+   opsz-72 static instance, whose family name is "Newsreader 72pt"), its
+   italic for the emphasised word, and Instrument Sans 500 / 600 for labels
+   and numbers. resvg matches them by family + weight + style. */
+const FONT_FILES = [
+  findFont('Newsreader Medium', (f) => /^newsreader-medium\.ttf$/i.test(f)),
+  findFont('Newsreader Medium Italic', (f) => /^newsreader-mediumitalic\.ttf$/i.test(f)),
+  findFont('Instrument Sans Medium', (f) => /^instrumentsans-medium\.ttf$/i.test(f)),
+  findFont('Instrument Sans SemiBold', (f) => /^instrumentsans-semibold\.ttf$/i.test(f)),
+];
+const SERIF = "'Newsreader 72pt', Newsreader";
+const SANS = "'Instrument Sans'";
 
 // ── geometry ───────────────────────────────────────────────────────────────
 const W = 1200;
@@ -68,10 +92,10 @@ const H = 630; // the link-preview size every platform accepts
 
 // ── text helpers ─────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const mono = (t: string, x: number, y: number, size: number, color: string, ls = 3, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="Literata" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
+const label = (t: string, x: number, y: number, size: number, color: string, ls = 1.4, anchor = 'start') =>
+  `<text x="${x}" y="${y}" font-family="${SANS}" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 const serif = (t: string, x: number, y: number, size: number, color: string, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="Literata" font-weight="700" font-size="${size}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
+  `<text x="${x}" y="${y}" font-family="${SERIF}" font-weight="500" font-size="${size}" letter-spacing="${(-0.01 * size).toFixed(2)}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 
 // crude word-wrap (raw SVG has no auto-wrap): break into lines of ~maxChars
 function wrapWords(text: string, maxChars: number): string[] {
@@ -85,70 +109,65 @@ function wrapWords(text: string, maxChars: number): string[] {
   return lines;
 }
 
-let seed = 7;
-const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
-function starfield(w: number, h: number): string {
-  let s = '';
-  for (let i = 0; i < 40; i++) s += `<circle cx="${(rnd() * w).toFixed(0)}" cy="${(rnd() * h * 0.7).toFixed(0)}" r="${(rnd() * 1.4 + 0.3).toFixed(1)}" fill="#cfe6f2" opacity="${(rnd() * 0.4 + 0.1).toFixed(2)}"/>`;
-  return s;
-}
-
-/* The medallion (RD-10 step 3). A card renderer resolves neither CSS variables
-   nor fonts, so the P must be an outlined path. Geometry comes from
-   src/lib/mark.ts, the same source the in-page component uses, with literal
-   colours supplied here. The mark is drawn on a 300-unit box, so it is scaled
-   and translated into the card's coordinate space rather than redrawn. */
-function mark(t: Theme, cx: number, cy: number, r = 30): string {
+/* The medallion (RD-10 step 3), in the SEAL cut the Brand-ShareCards board
+   uses on a deep plate, at the desk's own station. A card renderer resolves
+   neither CSS variables nor fonts, so the P is an outlined path. Geometry
+   comes from src/lib/mark.ts, the same source the in-page component uses. */
+function mark(t: Theme, topic: Topic, cx: number, cy: number, r = 30): string {
   const scale = (r * 2) / 300;
   const body = markBody({
-    desk: 'politics',
+    desk: topic,
     size: r * 2,
-    cut: 'mark',
-    colors: { accent: t.accent, ground: t.bg1, ink: t.ring, paper: t.bg1 },
+    cut: 'seal',
+    colors: { accent: t.accent, ground: t.plate, ink: t.ring, paper: t.ink },
   });
   return `<g transform="translate(${cx - r} ${cy - r}) scale(${scale.toFixed(4)})">${body}</g>`;
 }
 
-// ── shared frame (bg + footer) ───────────────────────────────────────────────
-function frame(t: Theme, inner: string, source: string): string {
-  seed = 7;
-  const defs =
-    `<radialGradient id="bg" cx="50%" cy="20%" r="100%"><stop offset="0%" stop-color="${t.bg1}"/><stop offset="100%" stop-color="${t.bg2}"/></radialGradient>`;
+// ── shared frame (the plate + footer) ────────────────────────────────────────
+function frame(t: Theme, topic: Topic, inner: string, source: string): string {
+  const soft = over(t.ink, t.plate, 0.72);   // --on-deep-2
+  const hair = over(t.ink, t.plate, 0.18);   // --on-deep-hair
   const fy = H - 56;
   const footer =
-    `<line x1="80" y1="${fy - 36}" x2="${W - 80}" y2="${fy - 36}" stroke="${t.ink}" stroke-width="1" opacity="0.14"/>` +
-    mark(t, 108, fy) +
-    serif('Parallax', 150, fy + 14, 38, t.ink) +
-    mono(source, W - 80, fy + 6, 18, t.inkSoft, 3, 'end');
+    `<line x1="80" y1="${fy - 36}" x2="${W - 80}" y2="${fy - 36}" stroke="${hair}" stroke-width="1"/>` +
+    mark(t, topic, 108, fy) +
+    serif('Parallax', 150, fy + 12, 36, t.ink) +
+    label(source, W - 80, fy + 6, 20, soft, 0, 'end');
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs>${defs}</defs>` +
-    `<rect width="${W}" height="${H}" fill="url(#bg)"/>` +
-    (t.stars ? starfield(W, H) : '') +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+    `<rect width="${W}" height="${H}" fill="${t.plate}"/>` +
     inner + footer + `</svg>`
   );
 }
 
-// ── the card: eyebrow + title + dek on the brand frame ───────────────────────
+// ── the card: eyebrow + title + dek on the desk's plate ──────────────────────
 export interface OgData { eyebrow: string; title: string; dek: string; source: string; }
 export function ogCard(d: OgData, topic: Topic): string {
   const t = THEMES[topic];
-  const titleLines = wrapWords(d.title, 24);
-  const tY = 208, tLineH = 82, tSize = 66;
+  const soft = over(t.ink, t.plate, 0.72);
+  const hair = over(t.ink, t.plate, 0.18);
+  const titleLines = wrapWords(d.title, 26);
+  const tY = 212, tLineH = 72, tSize = 66;
   const title = titleLines.map((ln, i) => serif(ln, 80, tY + i * tLineH, tSize, t.ink)).join('');
-  const dekY = tY + (titleLines.length - 1) * tLineH + 74;
-  const dek = wrapWords(d.dek, 62).slice(0, 2)
-    .map((ln, i) => serif(ln, 80, dekY + i * 44, 30, t.inkSoft)).join('');
+  const dekY = tY + (titleLines.length - 1) * tLineH + 70;
+  const dek = wrapWords(d.dek, 64).slice(0, 2)
+    .map((ln, i) => label(ln, 80, dekY + i * 40, 28, soft, 0)).join('');
   const inner =
-    mono(d.eyebrow.toUpperCase(), 80, 108, 24, t.accent, 5) +
-    `<line x1="80" y1="140" x2="${W - 80}" y2="140" stroke="${t.ink}" stroke-width="1" opacity="0.14"/>` +
+    label(d.eyebrow.toUpperCase(), 80, 108, 22, t.hi, 1.3) +
+    `<line x1="80" y1="140" x2="${W - 80}" y2="140" stroke="${hair}" stroke-width="1"/>` +
     title + dek;
-  return frame(t, inner, d.source);
+  return frame(t, topic, inner, d.source);
 }
 
 // ── render ─────────────────────────────────────────────────────────────────
 export function toPng(svg: string): Buffer {
   return Buffer.from(new Resvg(svg, {
     fitTo: { mode: 'width', value: W },
-    font: { fontFiles: [join(fontDir, displayFile), join(fontDir, labelFile)], loadSystemFonts: false, defaultFontFamily: 'Literata' },
+    font: {
+      fontFiles: FONT_FILES.map((f) => join(fontDir, f)),
+      loadSystemFonts: false,
+      defaultFontFamily: 'Instrument Sans',
+    },
   }).render().asPng());
 }

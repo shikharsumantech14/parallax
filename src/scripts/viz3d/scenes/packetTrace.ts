@@ -7,7 +7,7 @@
    never imports three (lazy-chunk contract).
 
    Extends the shared country globe (globe.ts: buildCountryGlobe + latLon +
-   makeLabels + loadGeo) exactly as routeGlobe / terminatorGlobe do, then adds
+   makeLabels + loadGeo) exactly as terminatorGlobe does (and the retired routeGlobe did), then adds
    the honest route layers: one great-circle arc per hop (swept in origin→dest),
    a relay of flowDash packet dots running the arcs, city nodes (endpoints
    accented), and a pulsing ring where a `compute` hop does its work. Drag to

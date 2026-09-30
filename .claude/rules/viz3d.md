@@ -6,7 +6,11 @@ paths:
 
 # The WebGL subsystem
 
-**14 section kinds** use WebGL. `three` is self-hosted and lazy-loaded: the
+**10 section kinds** use WebGL (14 until the Lens verdict of 2026-09-30
+dropped `orbit-globe`, `coalition-orbit`, `data-globe` and `route-globe`,
+with their scenes). Under Lens every scene draws on its desk's deep plate,
+and its cue anchors live on the static fallback SVG, never in the scene
+(`docs/design/LENS.md` §8.3). `three` is self-hosted and lazy-loaded: the
 runtime dynamic-imports it only when a `[data-viz3d]` mount scrolls in, and each
 scene is its **own code-split chunk**. It never loads on home, topic indexes, or
 any page without a 3D kind. Keep it that way — this is the single largest
@@ -40,7 +44,7 @@ reduced motion. The handoff's one-loop-per-page budget was rejected.
   `drag.s.yaw = -((cLon + 90) * Math.PI) / 180`.** A `+180` there opens on the
   limb — the globe renders, looks plausible, and shows the wrong hemisphere.
 - `public/geo/plates.json` backs the plate-motion scene; `countries-110m.json`
-  backs the choropleth globes.
+  backs every globe that draws country outlines (`scenes/globe.ts`).
 - `src/scripts/viz3d/packet.ts` is shared by **both** `PacketTrace.astro` and
   its scene — change one, check the other.
 

@@ -1,36 +1,40 @@
 /* ============================================================================
    PARALLAX · SPACE THEME
-   Vibe: NASA/JPL mission-control telemetry. Dark navy paper, cyan signal,
-   amber alert. Monospace-forward labels. Grid-heavy.
+   Lens (2026-09-30): the desk on the one paper. This file keeps the desk's
+   inks (mark, text, tint, deep) and its component rules, all through tokens.
+   No desk sets a page ground and no desk sets a face (type-v2.css is the lever).
    ============================================================================ */
 
 :root[data-topic="space"] {
-  --bg: #0a1628;
-  --paper: #111f36;
-  --paper-2: #0d1a2e;
-  --paper-warm: #12233c;   /* TD-01 — measured; the how-to-read panel. Not derived. */
-
-  /* RD-05 shell: the viz card's 3px top rule. Dark desk — ACCENT, because
-     an ink rule on a dark ground disappears into the paper. */
-  --viz-edge: var(--accent);
-  --paper-deep: #12233c;   /* TD-02 — alias of --paper-warm; there is no 2nd surface. */
-  --on-accent: #0a1628;    /* TD-04 — foreground on an accent fill (= this world's ground). */
-  --rule: #1e3352;
-  --rule-soft: #17283f;
-  --ink: #e8eef7;
-  --ink-soft: #b8c4d6;
-  --muted: #8f98a4; /* DERIVED: ink at 60% over --bg. Not authored — see shared/design/worlds.css. */
-  --accent: #00d4ff;
-  --accent-deep: #5ce1ff; /* IN-WORLD: type-safe on the space ground (11.8:1); #0085a1 scored 4.2:1 there. The light-paper sibling is --world-space-deep #00708a. */
-  --accent-alt: #ffb347;
-  --tape: #2a4165;
-  --font-display: 'Fraunces', Georgia, serif;
-  /* --font-body / --font-mono unified across topics in type-v2.css */
-  /* Accent values mirrored in shared/design/worlds.css — change both together */
+  /* Lens (2026-09-30): one paper under every desk. The desk's colour lives in
+     its marks, chips, rules, tints and the deep plate on a stage, never in a
+     page ground. Values mirror shared/design/worlds.css (design:check). */
+  --bg: #f5f2eb;
+  --paper: #f5f2eb;
+  --paper-2: #fbfaf6;
+  --paper-3: #ede9df;
+  --paper-warm: #ede9df;   /* TD-09: the well (was the per-desk panel surface, TD-01). */
+  --paper-deep: #ede9df;   /* TD-02: alias of --paper-warm. */
+  --on-accent: #f5f2eb;    /* TD-04: foreground on an accent fill, the paper. */
+  --viz-edge: var(--hair); /* TD-09: figures lose the coloured top rule, a hair remains. */
+  --rule: #dcd7cb;
+  --rule-soft: #ede9df;
+  --hair: #dcd7cb;
+  --hair-2: #c9c3b4;
+  --ink: #16140f;
+  --ink-2: #4a463d;
+  --ink-soft: #4a463d;
+  --muted: #6b665b;
+  --accent: #1b9ac4;       /* the desk MARK: fills, lines, data. Never small text. */
+  --accent-deep: #0c6a8c;  /* the desk TEXT: 4.5:1 or better on the paper. */
+  --accent-tint: #dceef5;  /* bands and chips */
+  --accent-alt: #9c5a14;    /* amber, the travel text ink. #ffb347 was drawn for the navy ground and scored 1.8:1 on paper */
+  --deep: #0b1b33;         /* the plate: stages and covers only, never a page */
+  --tape: #c9c3b4;
 }
 
-/* --- Global dark-mode tweaks ---------------------------------------------- */
-[data-topic="space"] .px-section__title em { color: var(--accent); }
+/* --- Desk tweaks, on the one paper ---------------------------------------------- */
+[data-topic="space"] .px-section__title em { color: var(--accent-deep); }
 
 [data-topic="space"] .px-quote {
   border-left-color: var(--accent);
@@ -48,9 +52,9 @@
   border-bottom-color: var(--rule);
   color: var(--ink-soft);
 }
-[data-topic="space"] .px-sources li::before { color: var(--accent); }
+[data-topic="space"] .px-sources li::before { color: var(--accent-deep); }
 [data-topic="space"] .px-sources li strong { color: var(--ink); }
-[data-topic="space"] .px-sources li a { color: var(--accent); }
+[data-topic="space"] .px-sources li a { color: var(--accent-deep); }
 [data-topic="space"] .px-sources li a:hover { border-bottom-color: var(--accent); }
 
 [data-topic="space"] .px-foot { border-top-color: var(--accent); color: var(--muted); }
@@ -65,9 +69,9 @@
 [data-topic="space"] .px-timeline__row { display: contents; }
 [data-topic="space"] .px-timeline__date {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
-  color: var(--accent);
+  color: var(--accent-deep);
   padding: 16px 16px 16px 0;
   text-transform: uppercase;
   text-align: right;
@@ -96,7 +100,7 @@
 }
 [data-topic="space"] .px-timeline__row[data-state="key"] .px-timeline__dot {
   background: var(--accent); border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 18%, transparent);
 }
 [data-topic="space"] .px-timeline__row[data-state="fail"] .px-timeline__dot {
   background: var(--bg); border-color: var(--accent-alt);
@@ -114,7 +118,7 @@
 }
 [data-topic="space"] .px-timeline__row[data-state="now"] .px-timeline__dot {
   background: var(--accent-alt); border-color: var(--accent-alt);
-  box-shadow: 0 0 0 4px rgba(255, 179, 71, 0.25);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent-alt) 25%, transparent);
 }
 [data-topic="space"] .px-timeline__body {
   padding: 16px 0 16px 24px;
@@ -149,10 +153,10 @@
 }
 [data-topic="space"] .px-paradox__label {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-deep);
   margin-bottom: 14px;
 }
 [data-topic="space"] .px-paradox__statement {
@@ -175,7 +179,7 @@
   max-width: 720px;
 }
 [data-topic="space"] .px-prose strong { color: var(--ink); font-weight: 600; }
-[data-topic="space"] .px-prose em { color: var(--accent); font-style: italic; }
+[data-topic="space"] .px-prose em { color: var(--accent-deep); font-style: italic; }
 
 /* --- COMPARISON ---------------------------------------------------------- */
 [data-topic="space"] .px-compare {
@@ -198,10 +202,10 @@
 [data-topic="space"] .px-compare__col-head:last-child { border-right: none; }
 [data-topic="space"] .px-compare__col-label {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-deep);
   margin-bottom: 10px;
 }
 [data-topic="space"] .px-compare__col-title {
@@ -214,8 +218,8 @@
 }
 [data-topic="space"] .px-compare__col-kicker {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   margin-top: 8px;
   text-transform: uppercase;
@@ -224,7 +228,7 @@
   position: absolute;
   top: 22px; right: 22px;
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   padding: 3px 6px;
   background: transparent;
@@ -243,7 +247,7 @@
 [data-topic="space"] .px-compare__row:last-child { border-bottom: none; }
 [data-topic="space"] .px-compare__row-label {
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--muted);
@@ -265,11 +269,11 @@
 }
 [data-topic="space"] .px-compare__cell:last-child { border-right: none; }
 [data-topic="space"] .px-compare__cell strong { font-weight: 700; color: var(--ink); }
-[data-topic="space"] .px-compare__cell em { font-style: italic; color: var(--accent); }
+[data-topic="space"] .px-compare__cell em { font-style: italic; color: var(--accent-deep); }
 [data-topic="space"] .px-compare__source {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   padding: 12px 26px;
   border-top: 1px solid var(--rule);
@@ -284,10 +288,10 @@
 }
 [data-topic="space"] .px-readout__caption {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-deep);
   padding: 14px 20px;
   border-bottom: 1px solid var(--rule);
   background: var(--paper-2);
@@ -297,7 +301,7 @@
 [data-topic="space"] .px-readout__caption::after {
   content: '● LIVE';
   color: var(--accent-alt);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.06em;
   font-weight: 500;
 }
 [data-topic="space"] .px-readout__grid {
@@ -339,18 +343,18 @@
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
-[data-topic="space"] .px-readout__tile[data-emphasis="key"] .px-readout__num { color: var(--accent); }
+[data-topic="space"] .px-readout__tile[data-emphasis="key"] .px-readout__num { color: var(--accent-deep); }
 [data-topic="space"] .px-readout__tile[data-emphasis="warn"] .px-readout__num { color: var(--accent-alt); }
 [data-topic="space"] .px-readout__unit {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   text-transform: uppercase;
 }
 [data-topic="space"] .px-readout__label {
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -367,8 +371,8 @@
   padding: 12px 20px;
   border-top: 1px solid var(--rule);
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-style: italic;
   text-transform: uppercase;
@@ -384,10 +388,10 @@
 }
 [data-topic="space"] .px-shells__caption {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-deep);
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--rule);
@@ -396,14 +400,14 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   text-transform: uppercase;
   margin-bottom: 8px;
   padding: 0 4px;
 }
-[data-topic="space"] .px-shells__axis-mid { color: var(--accent); }
+[data-topic="space"] .px-shells__axis-mid { color: var(--accent-deep); }
 
 [data-topic="space"] .px-shells__stack {
   display: flex;
@@ -452,9 +456,9 @@
 }
 [data-topic="space"] .px-shells__alt-band {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   margin-top: 2px;
   text-transform: uppercase;
 }
@@ -490,15 +494,15 @@
 [data-topic="space"] .px-shells__operators strong { font-weight: 700; color: var(--ink); }
 [data-topic="space"] .px-shells__persist {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 }
 [data-topic="space"] .px-shells__persist-label { color: var(--muted); }
-[data-topic="space"] .px-shells__persist-val { color: var(--accent); }
+[data-topic="space"] .px-shells__persist-val { color: var(--accent-deep); }
 [data-topic="space"] .px-shells__row[data-flag="debris"] .px-shells__persist-val { color: var(--accent-alt); }
 [data-topic="space"] .px-shells__row[data-flag="legacy"] .px-shells__persist-val { color: var(--ink-soft); }
 
@@ -521,16 +525,16 @@
 }
 [data-topic="space"] .px-shells__ground-label {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--accent-deep);
   text-transform: uppercase;
 }
 
 [data-topic="space"] .px-shells__source {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-style: italic;
   margin-top: 16px;
@@ -542,7 +546,7 @@
 /* --- RESPONSIVE ---------------------------------------------------------- */
 @media (max-width: 760px) {
   [data-topic="space"] .px-timeline { grid-template-columns: 80px 28px 1fr; }
-  [data-topic="space"] .px-timeline__date { font-size: 10px; padding-right: 8px; }
+  [data-topic="space"] .px-timeline__date { font-size: 12px; padding-right: 8px; }
   [data-topic="space"] .px-timeline__body { padding-left: 14px; }
   [data-topic="space"] .px-paradox { grid-template-columns: 1fr; }
   [data-topic="space"] .px-paradox__side + .px-paradox__side { border-left: 0; border-top: 1px solid var(--rule); }
@@ -595,11 +599,11 @@
   font-family: var(--font-body); font-size: 13.5px; color: var(--ink-soft); line-height: 1.55;
 }
 .px-ortrace__note-label {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.10em;
-  text-transform: uppercase; color: var(--accent); margin-right: 7px;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent-deep); margin-right: 7px;
 }
 .px-ortrace__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
@@ -618,7 +622,7 @@
 }
 .px-launch__leg-item {
   display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 10px;
+  font-family: var(--font-mono); font-size: 12px;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
 }
 .px-launch__leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
@@ -627,7 +631,7 @@
   background: var(--paper); border: 1px solid var(--rule);
 }
 .px-launch__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--rule);
 }

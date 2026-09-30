@@ -1,5 +1,19 @@
 # Parallax motion vocabulary
 
+> **SUPERSEDED on 2026-09-30 by `docs/design/LENS.md` §6 (the motion
+> grammar).** Lens replaces this vocabulary with two easings (`--ease`,
+> `--ease-move`), five durations (160 / 420 / 900 / 1400 / ≤ 4500ms), an 80ms
+> stagger, one build island and one lighting rule. The named motions below
+> (`reveal`, `sweep`, `settle`, `stamp`, `lensSettle`, `pageEnter`, …) and the
+> tokens they cite (`--t-page`, `--ease-snap`) are retired. The body is
+> archived as it stood, unedited.
+>
+> **What carries into LENS.md:** the hard rules (no overshoot, one entrance
+> per element, the continuous-motion budget, hover never moves layout) → LENS
+> §6.5 · the reduced-motion and no-JS contracts → LENS §6.4 · count-ups tween
+> to the value already in the HTML → LENS §6.2 · honest time compression in a
+> caption → LENS §5.5.
+
 > The complete, closed set of motions used across the publication, the app, and
 > story mode. Blueprints and specs reference these **by name** — "markers use
 > `settle`, orbits use `orbitIdle`" — instead of restating curves. If a design

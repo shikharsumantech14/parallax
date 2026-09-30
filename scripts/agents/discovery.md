@@ -94,8 +94,8 @@ A good Parallax candidate has these traits:
 - **Drawable** — the argument can be carried by at least three DRAWN
   graphics whose data a listed source actually publishes: a series over
   time, a share of a whole, a place, a distribution, a flow, peers compared
-  (the shapes in `docs/design/catalog-shapes.md`; e.g. `orbital-shells` for
-  space, `elevation-profile` for earth, `vote-flow` for politics). A story
+  (the shapes in `docs/design/catalog-shapes.md`; e.g. `orbit-trace` for
+  space, `core-sample` for earth, `vote-flow` for politics). A story
   that is only text with a number in it is not a Parallax issue — the
   publication is data-viz-led, and the cards (`you-think`, `number-sense`,
   `jargon-buster`, `three-steps`, `data-readout`) do not count as drawing.
@@ -156,11 +156,11 @@ For each candidate, fill:
   ledger of kinds never yet published** — `docs/generated/PROJECT-GRAPH.md`,
   the section "Never in a published issue" (76 of 101 on 2026-09-16). Reach
   for the world's signature kinds first:
-  - politics → approval-chart, power-matrix, coalition-orbit, swing-dial, bill-passage, vote-flow, margin-ladder, chamber, bill-funnel, age-pyramid
-  - space → orbit-trace, launch-stats, orbit-globe, trajectory-arc, delta-v-ladder, signal-readout, descent-profile, transfer-window, lagrange-map
-  - earth → climate-strip, region-map, carbon-gauge, data-globe, core-sample, sea-level-tank, climate-spiral, quake-depth, storm-track, plate-motion
-  - tech → benchmark-chart, adoption-curve, commit-grid, arch-stack, latency-waterfall, version-graph, scaling-plot, throughput-dial, moore-ladder, queue-cliff
-  - travel → route-card, city-compare, journey-map, route-globe, elevation-trek, itinerary-reel, climate-calendar, timezone-arc, fare-terrain, season-wheel
+  - politics → approval-chart, power-matrix, gauge, bill-passage, vote-flow, margin-ladder, chamber, bill-funnel, age-pyramid
+  - space → orbit-trace, launch-stats, constellation-swarm, trajectory-arc, delta-v-ladder, descent-profile, transfer-window, lagrange-map
+  - earth → climate-strip, region-map, gauge, core-sample, sea-level-tank, climate-spiral, quake-depth, storm-track, plate-motion
+  - tech → benchmark-chart, adoption-curve, commit-grid, arch-stack, latency-waterfall, version-graph, scaling-plot, gauge, moore-ladder, queue-cliff
+  - travel → itinerary, journey-map, elevation-trek, climate-calendar, timezone-arc, fare-terrain, season-wheel
   - sports → league-table, player-radar, match-stat-line, tactics-pitch, shot-map, xg-race, momentum-wave, player-card, elo-river, finish-interval
 
   and cross-world kinds second (kinds are topic-styled, not topic-locked).

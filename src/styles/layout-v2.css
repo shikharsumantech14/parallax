@@ -108,6 +108,9 @@
   align-items: start;
   column-gap: 0;
   border-bottom: 1px solid var(--rule);
+  /* Lens: the frame gained a 64px gutter (base.css .px-wrap); base.css steps
+     the floor plan back out to the frame edge so this geometry holds until
+     Phase 3 replaces it. */
 }
 .px-floor > #px-article {
   min-width: 0;
@@ -121,9 +124,10 @@
   flex-direction: column;
   gap: 18px;
   padding-block: 26px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -131,17 +135,18 @@
 .px-floor__aside { padding-inline: 18px 40px; }
 
 .px-floor__no {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-num-1, 20px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
 }
 .px-floor__fact { display: flex; flex-direction: column; gap: 4px; }
 .px-floor__fact b {
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-family: var(--font-ui);
+  font-size: 15px;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -150,7 +155,7 @@
 /* The Voice cell is the one that carries the world (standing ruling). */
 .px-floor__fact--voice b { color: var(--accent-deep, var(--accent)); }
 
-.px-floor__aside-l { margin: 0 0 8px; letter-spacing: 0.17em; }
+.px-floor__aside-l { margin: 0 0 8px; letter-spacing: 0.06em; }
 .px-floor__dek-t {
   margin: 0;
   font-family: var(--font-display);
@@ -167,8 +172,8 @@
 .px-floor__toc { display: flex; flex-direction: column; gap: 7px; }
 .px-floor__toc a {
   display: grid; grid-template-columns: 30px 1fr; gap: 6px;
-  font-family: var(--font-body);
-  font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1.4;
+  font-family: var(--font-ui);
+  font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1.4;
   color: var(--ink-soft);
   text-decoration: none;
 }

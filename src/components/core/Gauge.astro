@@ -1,0 +1,585 @@
+---
+/*
+  Gauge — one value on an arc. The Lens verdict (2026-09-30, docs/design/LENS.md
+  §9) merged three kinds into this one: `carbon-gauge` was renamed `gauge`, and
+  `swing-dial` and `throughput-dial` folded into it. The old names stay
+  accepted as aliases (KIND_ALIASES in src/content/config.ts), so every issue
+  that authored them still builds, unedited.
+
+  Three variants, derived from the fields present unless `variant` is authored:
+
+    budget    { remaining (0–1), remainingGt?, usedGt?, totalGt?, target?, year? }
+              was carbon-gauge — a half arc filled by what is already used.
+    lean      { value (-100..100), leftLabel?, rightLabel?, markers?: [{at, label}] }
+              was swing-dial — a needle between two blocs.
+    capacity  { value, max, unit?, label?, zones?: [{from, to, label?}] }
+              was throughput-dial — a 270° arc filled to value / max.
+
+  Derivation: `remaining` present → budget; else `max` present → capacity;
+  else → lean. Each variant keeps the markup and CSS of the component it came
+  from (prefixes px-cgauge / px-swdial / px-tdial), so the backlist renders
+  exactly as before. Phase 6 of the Lens plan redraws the three as one arc
+  geometry; until then this file is the fold, not the redesign.
+
+  Renders no source line: `core/Section.astro` is the one source emitter.
+  The budget variant carries its caption in `.px-cgauge__caption`; the other
+  two in `.px-viz__cap`, both spellings the shell's :has() rule can see.
+
+  Build-time SVG; the only motion is CSS (the needle's rotate, the capacity
+  arc's dash draw), reveal-gated behind html.js and reset under reduced motion.
+*/
+type Variant = 'budget' | 'lean' | 'capacity';
+interface Marker { at: number; label: string; }
+interface Zone { from: number; to: number; label?: string; }
+interface Props {
+  variant?: Variant;
+  // budget
+  remaining?: number;
+  remainingGt?: string;
+  usedGt?: string;
+  totalGt?: string;
+  target?: string;
+  year?: string;
+  // lean + capacity
+  value?: number;
+  // capacity
+  max?: number;
+  unit?: string;
+  label?: string;
+  zones?: Zone[];
+  // lean
+  leftLabel?: string;
+  rightLabel?: string;
+  markers?: Marker[];
+  caption?: string;
+  source?: string;
+}
+const props = Astro.props;
+const { caption } = props;
+
+const variant: Variant =
+  props.variant ??
+  (props.remaining !== undefined ? 'budget' : props.max !== undefined ? 'capacity' : 'lean');
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/* ── budget (was carbon-gauge) ──────────────────────────────────────────────
+   Arc runs from LEFT (the start of the budget) over the TOP to RIGHT (the
+   full budget). The FILLED arc is what is already used; the needle sits at
+   the boundary. 2026-09-24 geometry: both arcs sweep over the top, the end
+   labels and target line are HTML under the gauge so they wrap at any length. */
+const B = (() => {
+  const { remainingGt, usedGt, totalGt, target, year } = props;
+  const remaining = props.remaining ?? 0;
+  const W = 400;
+  const SW = 16;
+  const R = 170;
+  const cx = W / 2;
+  const cy = R + SW / 2 + 12;
+  const H = cy + 8;
+  const at = (u: number) => ({ x: cx - R * Math.cos(u * Math.PI), y: cy - R * Math.sin(u * Math.PI) });
+  const x0 = cx - R, x1 = cx + R;
+  const trackPath = `M ${x0},${cy} A ${R},${R} 0 0,1 ${x1},${cy}`;
+  const f = clamp(remaining, 0, 1);
+  const used = 1 - f;
+  const n = at(used);
+  const usedPath = used > 0.001
+    ? `M ${x0},${cy} A ${R},${R} 0 0,1 ${n.x.toFixed(2)},${n.y.toFixed(2)}`
+    : '';
+  const gaugeColor = f > 0.5 ? '#2d6a4f' : f > 0.25 ? '#f4a261' : '#e63946';
+  const pct = Math.round(f * 100);
+  const ticks = [0.25, 0.5, 0.75].map((u) => {
+    const p = at(u);
+    const rx = (p.x - cx) / R, ry = (p.y - cy) / R;
+    const h = SW * 0.6;
+    return { x1: p.x - rx * h, y1: p.y - ry * h, x2: p.x + rx * h, y2: p.y + ry * h };
+  });
+  // The remaining line sits inside the arc; wrap it to the chord the arc
+  // leaves free at its height (inner radius R − SW/2), ~0.52em per character.
+  const RG_FS = 14, RG_Y = cy - 104;
+  const chord = 2 * Math.sqrt(Math.max(0, (R - SW / 2) ** 2 - (cy - RG_Y + RG_FS) ** 2)) - 16;
+  const rgMax = Math.max(8, Math.floor(chord / (RG_FS * 0.52)));
+  const rgLines: string[] = [];
+  for (const word of (remainingGt ?? '').split(/\s+/).filter(Boolean)) {
+    const last = rgLines[rgLines.length - 1];
+    if (last && (last + ' ' + word).length <= rgMax) rgLines[rgLines.length - 1] = last + ' ' + word;
+    else rgLines.push(word);
+  }
+  const rgShown = rgLines.length > 2 ? [rgLines[0], rgLines.slice(1).join(' ')] : rgLines;
+  const rgTop = RG_Y - (rgShown.length - 1) * (RG_FS + 3);
+  const meta = [target, year].filter(Boolean).join(' · ');
+  return { W, H, SW, cx, cy, trackPath, usedPath, gaugeColor, pct, ticks, n, RG_FS, rgShown, rgTop, meta, usedGt, totalGt };
+})();
+
+const SERIF = "font-family:Literata,Georgia,'Times New Roman',serif";
+
+/* ── lean (was swing-dial) ──────────────────────────────────────────────────
+   A semicircle swing-o-meter: -100..100 mapped onto a ±82° needle throw. */
+const L = (() => {
+  const leftLabel = props.leftLabel ?? 'Left';
+  const rightLabel = props.rightLabel ?? 'Right';
+  const markers = props.markers ?? [];
+  const v = clamp(props.value ?? 0, -100, 100);
+  const W = 360, H = 210;
+  const cx = W / 2, cy = 184;
+  const rArc = 150;
+  const SWING = 82;
+  const angle = (v / 100) * SWING;
+  const ptOnArc = (deg: number, r = rArc) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
+  };
+  const aStart = ptOnArc(-90);
+  const aEnd = ptOnArc(90);
+  const arcPath = `M ${aStart.x.toFixed(1)} ${aStart.y.toFixed(1)} A ${rArc} ${rArc} 0 0 1 ${aEnd.x.toFixed(1)} ${aEnd.y.toFixed(1)}`;
+  const TICKS = 9;
+  const ticks = Array.from({ length: TICKS }, (_, i) => {
+    const deg = -90 + (i / (TICKS - 1)) * 180;
+    const major = i === 0 || i === TICKS - 1 || i === (TICKS - 1) / 2;
+    const inner = ptOnArc(deg, rArc - (major ? 16 : 9));
+    const outer = ptOnArc(deg, rArc + 1);
+    return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, major };
+  });
+  // Marker labels sit just outside the arc; near the ends a middle-anchored
+  // label would spill past the viewBox, so anchor by side and clamp x.
+  const LBL_PAD = 10;
+  const markerGeo = markers.map((m) => {
+    const md = (clamp(m.at, -100, 100) / 100) * SWING;
+    const inner = ptOnArc(md, rArc - 20);
+    const outer = ptOnArc(md, rArc + 2);
+    const lbl = ptOnArc(md, rArc + 16);
+    const anchor = md < -18 ? 'start' : md > 18 ? 'end' : 'middle';
+    const lx = clamp(lbl.x, LBL_PAD, W - LBL_PAD);
+    return { label: m.label, x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y, lx, ly: lbl.y, anchor };
+  });
+  const leftAnchor = ptOnArc(-90, rArc - 30);
+  const rightAnchor = ptOnArc(90, rArc - 30);
+  const needleLen = rArc - 24;
+  const lean = v === 0 ? 'even' : v < 0 ? leftLabel : rightLabel;
+  const mag = Math.abs(v);
+  return { leftLabel, rightLabel, v, W, H, cx, cy, angle, arcPath, ticks, markerGeo, leftAnchor, rightAnchor, needleLen, lean, mag };
+})();
+
+/* ── capacity (was throughput-dial) ─────────────────────────────────────────
+   A 270° arc, open at the bottom, filled to value / max, with optional zones. */
+const C = (() => {
+  const unit = props.unit ?? 'req/s';
+  const label = props.label;
+  const zones = props.zones ?? [];
+  const safeMax = Math.max(1, props.max || 1);
+  const val = clamp(props.value ?? 0, 0, safeMax);
+  const frac = val / safeMax;
+  const W = 280, H = 260;
+  const cx = W / 2, cy = 132;
+  const R = 104;
+  const SWEEP = 270;
+  const START = 135;
+  const pt = (deg: number, r = R) => {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
+  };
+  const arc = (a: number, b: number, r = R) => {
+    const d0 = START + a * SWEEP;
+    const d1 = START + b * SWEEP;
+    const p0 = pt(d0, r), p1 = pt(d1, r);
+    const large = (b - a) * SWEEP > 180 ? 1 : 0;
+    return `M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  };
+  const trackPath = arc(0, 1);
+  const fillPath = arc(0, frac);
+  const arcLen = (SWEEP / 360) * 2 * Math.PI * R;
+  const zoneColors = [
+    'color-mix(in oklab, var(--muted) 55%, var(--paper))',
+    'color-mix(in oklab, var(--accent) 45%, var(--muted))',
+    'var(--accent)',
+  ];
+  const zoneGeo = zones
+    .map((z, i) => {
+      const a = clamp(z.from, 0, safeMax) / safeMax;
+      const b = clamp(z.to, 0, safeMax) / safeMax;
+      if (b <= a) return null;
+      return { d: arc(a, b, R), color: zoneColors[i % zoneColors.length], label: z.label, i };
+    })
+    .filter((z): z is NonNullable<typeof z> => z !== null);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const deg = START + f * SWEEP;
+    const inner = pt(deg, R - 14);
+    const outer = pt(deg, R - 2);
+    return { x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y };
+  });
+  const e0 = pt(START, R + 15);
+  const e1 = pt(START + SWEEP, R + 15);
+  const endLabels = [
+    { x: e0.x, y: e0.y + 4, val: 0 },
+    { x: e1.x, y: e1.y + 4, val: safeMax },
+  ];
+  const valText = Number.isInteger(val) ? val.toLocaleString() : (Math.round(val * 100) / 100).toLocaleString();
+  return { unit, label, safeMax, val, W, H, trackPath, fillPath, arcLen, zoneGeo, ticks, endLabels, valText };
+})();
+---
+
+{variant === 'budget' && (
+  <div class="px-cgauge" data-viz-root data-reveal data-gauge="budget">
+    {caption && <div class="px-cgauge__caption">{caption}</div>}
+
+    <svg viewBox={`0 0 ${B.W} ${B.H}`} class="px-cgauge__svg" role="img"
+      aria-label={`Budget gauge: ${B.pct}% remaining`}>
+      <path d={B.trackPath}
+        style={`fill:none;stroke:var(--rule);stroke-width:${B.SW};stroke-linecap:butt;opacity:0.8`} />
+      {B.usedPath && (
+        <path d={B.usedPath}
+          style={`fill:none;stroke:${B.gaugeColor};stroke-width:${B.SW};stroke-linecap:butt`} />
+      )}
+      {B.ticks.map((t) => (
+        <line x1={t.x1.toFixed(2)} y1={t.y1.toFixed(2)} x2={t.x2.toFixed(2)} y2={t.y2.toFixed(2)}
+          style="stroke:var(--bg);stroke-width:2;opacity:0.9" />
+      ))}
+      <circle cx={B.n.x.toFixed(2)} cy={B.n.y.toFixed(2)} r={6}
+        style={`fill:${B.gaugeColor};stroke:var(--bg);stroke-width:2`} />
+      {B.rgShown.length > 0 && (
+        <text x={B.cx} y={B.rgTop} text-anchor="middle"
+          style={`${SERIF};font-size:${B.RG_FS}px;fill:var(--ink-soft);letter-spacing:0.01em`}>
+          {B.rgShown.map((ln, i) => <tspan x={B.cx} dy={i === 0 ? 0 : B.RG_FS + 3}>{ln}</tspan>)}
+        </text>
+      )}
+      <text x={B.cx} y={B.cy - 26} text-anchor="middle"
+        style={`${SERIF};font-size:60px;font-weight:600;fill:${B.gaugeColor};letter-spacing:-0.02em`}>
+        {B.pct}%
+      </text>
+      <text x={B.cx} y={B.cy - 4} text-anchor="middle"
+        style={`${SERIF};font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:0.14em;text-transform:uppercase`}>
+        remaining
+      </text>
+    </svg>
+
+    {(B.usedGt || B.totalGt) && (
+      <div class="px-cgauge__ends">
+        <p class="px-cgauge__end">
+          <span class="px-cgauge__k">Used</span>
+          {B.usedGt && <span class="px-cgauge__v">{B.usedGt}</span>}
+        </p>
+        <p class="px-cgauge__end px-cgauge__end--r">
+          <span class="px-cgauge__k">Full</span>
+          {B.totalGt && <span class="px-cgauge__v">{B.totalGt}</span>}
+        </p>
+      </div>
+    )}
+    {B.meta && <p class="px-cgauge__meta">{B.meta}</p>}
+  </div>
+)}
+
+{variant === 'lean' && (
+  <div class="px-viz" data-reveal data-gauge="lean">
+    {caption && <div class="px-viz__cap"><span>{caption}</span><b>swing meter</b></div>}
+
+    <div class="px-swdial px3d-stage">
+      <div class="px-swdial__tilt px3d-tilt" data-tilt="6">
+        <svg
+          class="px-swdial__svg"
+          viewBox={`0 0 ${L.W} ${L.H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`Swing meter: ${L.mag}-point lean toward ${L.lean === 'even' ? 'neither side' : L.lean}`}
+        >
+          <path class="px-swdial__arc" d={L.arcPath} />
+          {L.ticks.map((t) => (
+            <line
+              class={`px-swdial__tick${t.major ? ' px-swdial__tick--major' : ''}`}
+              x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)}
+              x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)}
+            />
+          ))}
+          {L.markerGeo.map((m) => (
+            <g class="px-swdial__marker">
+              <line x1={m.x1.toFixed(1)} y1={m.y1.toFixed(1)} x2={m.x2.toFixed(1)} y2={m.y2.toFixed(1)} />
+              <text x={m.lx.toFixed(1)} y={m.ly.toFixed(1)} text-anchor={m.anchor}>{m.label}</text>
+            </g>
+          ))}
+          <text class="px-swdial__end px-swdial__end--l" x={L.leftAnchor.x.toFixed(1)} y={L.leftAnchor.y.toFixed(1)} text-anchor="middle">{L.leftLabel}</text>
+          <text class="px-swdial__end px-swdial__end--r" x={L.rightAnchor.x.toFixed(1)} y={L.rightAnchor.y.toFixed(1)} text-anchor="middle">{L.rightLabel}</text>
+          <g
+            class="px-swdial__needle"
+            style={`--swing:${L.angle.toFixed(2)}deg; transform-origin:${L.cx}px ${L.cy}px`}
+          >
+            <polygon
+              class="px-swdial__needle-tri"
+              points={`${L.cx - 5},${L.cy} ${L.cx + 5},${L.cy} ${L.cx},${(L.cy - L.needleLen).toFixed(1)}`}
+            />
+          </g>
+          <circle class="px-swdial__hub" cx={L.cx} cy={L.cy} r="11" />
+          <circle class="px-swdial__hub-dot" cx={L.cx} cy={L.cy} r="4" />
+        </svg>
+      </div>
+
+      <div class="px-swdial__readout" data-lean={L.v === 0 ? 'even' : L.v < 0 ? 'left' : 'right'}>
+        <span class="px-swdial__val">{L.v > 0 ? '+' : ''}{L.v}</span>
+        <span class="px-swdial__lead">
+          {L.lean === 'even'
+            ? 'evenly split'
+            : <>{L.mag}-pt swing → <b>{L.lean}</b></>}
+        </span>
+      </div>
+    </div>
+  </div>
+)}
+
+{variant === 'capacity' && (
+  <div class="px-viz" data-reveal data-gauge="capacity">
+    {caption && <div class="px-viz__cap"><span>{caption}</span><b>{C.unit}</b></div>}
+
+    <div class="px-tdial px3d-stage">
+      <div class="px-tdial__tilt px3d-tilt" data-tilt="6">
+        <svg
+          class="px-tdial__svg"
+          viewBox={`0 0 ${C.W} ${C.H}`}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`${C.label ? C.label + ': ' : ''}${C.valText} of ${C.safeMax.toLocaleString()} ${C.unit}`}
+        >
+          {C.zoneGeo.map((z) => (
+            <path class="px-tdial__zone" d={z.d} style={`stroke:${z.color}`} />
+          ))}
+          <path class="px-tdial__track" d={C.trackPath} />
+          {C.ticks.map((t) => (
+            <line class="px-tdial__tick" x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)} x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)} />
+          ))}
+          {C.endLabels.map((e) => (
+            <text class="px-tdial__scale" x={e.x.toFixed(1)} y={e.y.toFixed(1)} text-anchor="middle">{e.val.toLocaleString()}</text>
+          ))}
+          <path
+            class="px-tdial__fill"
+            d={C.fillPath}
+            style={`--len:${C.arcLen.toFixed(1)}`}
+          />
+        </svg>
+
+        <div class="px-tdial__readout">
+          <span class="px-tdial__val" data-countup={C.val}>{C.valText}</span>
+          <span class="px-tdial__unit">{C.unit}</span>
+          {C.label && <span class="px-tdial__label">{C.label}</span>}
+        </div>
+      </div>
+
+      {C.zoneGeo.some((z) => z.label) && (
+        <div class="px-tdial__legend">
+          {C.zoneGeo.filter((z) => z.label).map((z) => (
+            <span class="px-tdial__key"><i style={`background:${z.color}`}></i>{z.label}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+<style>
+  /* ── budget ── The end labels and the target line sit under the gauge, on
+     the same 480px measure as the SVG (earth.css), so each end block lines up
+     under its arc end. HTML, so they wrap at any authored length. */
+  .px-cgauge__ends {
+    max-width: 480px;
+    margin: 6px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .px-cgauge__end { margin: 0; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .px-cgauge__end--r { text-align: right; align-items: flex-end; }
+  .px-cgauge__k {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-cgauge__v {
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: break-word;
+  }
+  .px-cgauge__meta {
+    max-width: 480px;
+    margin: 14px auto 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── lean ── */
+  .px-swdial { max-width: 420px; margin: 0 auto; }
+  .px-swdial__tilt { border-radius: var(--r-card); transform-origin: 50% 90%; }
+  .px-swdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .px-swdial__arc {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .px-swdial__tick { stroke: var(--rule); stroke-width: 1.5; }
+  .px-swdial__tick--major { stroke: var(--ink-soft); stroke-width: 2; }
+  .px-swdial__marker line { stroke: var(--accent); stroke-width: 2; }
+  .px-swdial__marker text {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  .px-swdial__end {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    fill: var(--ink-soft);
+    font-weight: 700;
+  }
+  /* Needle — base/resting state is the FINAL angle (no-JS safe). */
+  .px-swdial__needle {
+    transform: rotate(var(--swing));
+    transform-box: view-box;
+    transition: transform var(--t-page) var(--ease-snap);
+  }
+  .px-swdial__needle-tri { fill: var(--accent-deep, var(--accent)); }
+  .px-swdial__hub { fill: var(--ink); }
+  .px-swdial__hub-dot { fill: var(--paper); }
+  html.js .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(0deg); }
+  .px-swdial__readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 6px;
+    text-align: center;
+  }
+  .px-swdial__val {
+    font-family: var(--issue-face, var(--font-display));
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-swdial__readout[data-lean="left"] .px-swdial__val,
+  .px-swdial__readout[data-lean="right"] .px-swdial__val { color: var(--accent-deep, var(--accent)); }
+  .px-swdial__lead {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-swdial__lead b { color: var(--ink); font-weight: 700; }
+
+  /* ── capacity ── */
+  .px-tdial { max-width: 320px; margin: 0 auto; }
+  .px-tdial__tilt {
+    position: relative;
+    border-radius: var(--r-tile);
+    transform-origin: 50% 55%;
+  }
+  .px-tdial__svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .px-tdial__zone {
+    fill: none;
+    stroke-width: 14;
+    stroke-linecap: butt;
+    opacity: 0.5;
+  }
+  .px-tdial__track {
+    fill: none;
+    stroke: color-mix(in oklab, var(--ink) 8%, var(--bg));
+    stroke-width: 14;
+    stroke-linecap: round;
+  }
+  .px-tdial__tick { stroke: var(--ink-soft); stroke-width: 2; opacity: 0.5; }
+  .px-tdial__scale {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-axis, 9.5px);
+    letter-spacing: 0.04em;
+    fill: var(--muted);
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 2.5px;
+    stroke-linejoin: round;
+  }
+  .px-tdial__fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1200ms var(--ease-snap);
+  }
+  .px-tdial__readout {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-58%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    pointer-events: none;
+  }
+  .px-tdial__val {
+    font-family: var(--issue-face, var(--font-mono));
+    font-weight: 700;
+    font-size: 46px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-tdial__unit {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-eyebrow, 10px);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    /* air under the numeral (probe TOUCH, 2026-09-24) */
+    margin-top: 5px;
+  }
+  .px-tdial__label {
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: center;
+  }
+  .px-tdial__legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: var(--viz-fs-legend, 10px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .px-tdial__key { display: inline-flex; align-items: center; gap: 7px; }
+  .px-tdial__key i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  html.js .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: var(--len); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(var(--swing)) !important; }
+    .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: 0 !important; }
+  }
+</style>

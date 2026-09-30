@@ -15,6 +15,14 @@
  *           eight sourced statements into rows they do not actually form, the
  *           shape is now implemented. `columns` wins when present.
  *
+ *   pair    { cityA: {name, subtitle?}, cityB: {name, subtitle?},
+ *             rows: [{label, a, b, winner?: 'a'|'b'|'tie', note?}] }
+ *           the folded `city-compare` shape (the Lens verdict, 2026-09-30:
+ *           `city-compare` is an alias of `comparison`, KIND_ALIASES in
+ *           src/content/config.ts). It normalises onto the matrix form: the
+ *           two places become the sides, each row's winning cell is marked
+ *           (`data-win`), and a row's note runs full width under it.
+ *
  * Renders NO source line: `core/Section.astro` emits it for every kind
  * (`.px-plain__src`). The old `.px-compare__source` emitter survived the
  * 2026-09-04 sweep because its class ends in `__source`, not `__src` — so it
@@ -26,10 +34,13 @@ import { renderInline } from '../../lib/text';
 interface ComparisonRow {
   label: string;
   values: string[];
+  /** Pair form only: the winning cell (0-based) and a full-width note. */
+  win?: number;
+  note?: string;
 }
 
 interface ComparisonSide {
-  label: string;
+  label?: string;
   title: string;
   tag?: string;
   kicker?: string;
@@ -42,12 +53,34 @@ interface ComparisonColumn {
   items: ColumnItem[];
 }
 
+interface PairPlace { name: string; subtitle?: string; }
+interface PairRow { label: string; a: string; b: string; winner?: 'a' | 'b' | 'tie'; note?: string; }
+
 interface Props {
   sides?: ComparisonSide[];
-  rows?: ComparisonRow[];
+  rows?: (ComparisonRow | PairRow)[];
   columns?: ComparisonColumn[];
+  cityA?: PairPlace;
+  cityB?: PairPlace;
 }
-const { sides = [], rows = [], columns = [] } = Astro.props;
+const { columns = [], cityA, cityB } = Astro.props;
+
+// The pair form (the folded city-compare) normalises onto the matrix form.
+const isPair = !!(cityA && cityB);
+const sides: ComparisonSide[] = isPair && cityA && cityB
+  ? [
+      { title: cityA.name, kicker: cityA.subtitle },
+      { title: cityB.name, kicker: cityB.subtitle },
+    ]
+  : (Astro.props.sides ?? []);
+const rows: ComparisonRow[] = isPair
+  ? ((Astro.props.rows ?? []) as PairRow[]).map((r) => ({
+      label: r.label,
+      values: [r.a, r.b],
+      win: r.winner === 'a' ? 0 : r.winner === 'b' ? 1 : undefined,
+      note: r.note,
+    }))
+  : ((Astro.props.rows ?? []) as ComparisonRow[]);
 
 const isList = columns.length > 0;
 const cols = isList ? columns.length : sides.length;
@@ -58,7 +91,7 @@ const itemText = (it: ColumnItem) => (typeof it === 'string' ? it : it.text);
 const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === true;
 ---
 
-<div class="px-compare" data-cols={cols} data-form={isList ? 'list' : 'matrix'}>
+<div class="px-compare" data-cols={cols} data-form={isList ? 'list' : isPair ? 'pair' : 'matrix'}>
   {isList ? (
     /* Each column is ONE block — its head and its own items together — so a
        phone can stack the blocks and every item stays under its own heading.
@@ -85,7 +118,7 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
       <div class="px-compare__head">
         {sides.map((s) => (
           <div class="px-compare__col-head">
-            <div class="px-compare__col-label">{s.label}</div>
+            {s.label && <div class="px-compare__col-label">{s.label}</div>}
             <div class="px-compare__col-title" set:html={renderInline(s.title)} />
             {s.kicker && <div class="px-compare__col-kicker">{s.kicker}</div>}
             {s.tag && <div class="px-compare__col-tag">{s.tag}</div>}
@@ -96,12 +129,36 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
         {rows.map((row) => (
           <div class="px-compare__row">
             <div class="px-compare__row-label">{row.label}</div>
-            {row.values.map((v) => (
-              <div class="px-compare__cell" set:html={renderInline(v)} />
+            {row.values.map((v, i) => (
+              <div class="px-compare__cell" data-win={row.win === i ? 'true' : undefined} set:html={renderInline(v)} />
             ))}
+            {row.note && <div class="px-compare__note" set:html={renderInline(row.note)} />}
           </div>
         ))}
       </div>
     </>
   )}
 </div>
+
+<style>
+  /* The pair form (the folded city-compare): the winning cell reads in the
+     accent and bold, and a row's note runs full width under its cells. The
+     rest of the matrix styling is `.px-compare*` in src/styles/base.css. */
+  .px-compare[data-form='pair'] .px-compare__cell[data-win='true'] {
+    color: var(--accent-deep, var(--accent));
+    font-weight: 700;
+  }
+  .px-compare[data-form='pair'] .px-compare__row:has(> .px-compare__note) .px-compare__cell:nth-last-child(2) {
+    border-right: none;
+  }
+  .px-compare__note {
+    grid-column: 1 / -1;
+    padding: 0 26px 14px;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    overflow-wrap: break-word;
+  }
+</style>

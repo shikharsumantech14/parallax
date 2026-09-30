@@ -11,7 +11,7 @@ Components split into:
 
 - **`core/`** — topic-agnostic. Renders identically under any `data-topic`,
   picking up colour/font tokens automatically. Includes the Masthead, Banner,
-  Hero, Primer, Section, Quote, Prose, Comparison, DataReadout, BeatSheet,
+  Hero, Primer, Section, Quote, Prose, Comparison, DataReadout, Gauge,
   Sources, Colophon, and the ReadingToolbar (the floating reading-progress +
   Full/Skim + Save pill that replaced the old SkimToggle). The scroll-reveal
   and count-up/cursor-warmth behaviours ship as two tiny vanilla
@@ -49,6 +49,13 @@ Components split into:
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
+**Lens (2026-09-30) retires the paragraph below:** two faces, Newsreader for
+display and prose and Instrument Sans for UI and every number, swapped in by
+Phase 1 (`docs/design/LENS.md` §3). A component still names only the role
+tokens, never a family, so the swap reaches it without an edit; in-SVG text
+keeps a literal stack (LENS §3.3), which is where a component DOES name the
+face, and those stacks move to Instrument Sans in its Phase 6 wave.
+
 **One typeface — Literata — since the launch design (2026-09-08).** The role
 tokens (`--font-display` / `--font-body` / `--font-mono`) all resolve to it; a
 component differentiates roles by size, weight, case and tracking, never by
@@ -69,6 +76,21 @@ this overrides the old §5 "Display labels: Cormorant Garamond" guidance).
 ---
 
 ## 2. Section-kind → component map
+
+> **Lens (2026-09-30).** The design law is `docs/design/LENS.md`; the
+> library is **87 kinds** after the verdict (LENS §9). Ten were DROPPED,
+> component and all: `beat-sheet`, `plate`, `orbital-shells`,
+> `elevation-profile`, `coalition-orbit`, `ballot-flow`, `orbit-globe`,
+> `signal-readout`, `data-globe`, `route-globe`. `carbon-gauge` became
+> **`gauge`** (`core/Gauge.astro`, three variants derived from the fields:
+> budget, lean, capacity) with `swing-dial` and `throughput-dial` folded in;
+> `route-card` became **`itinerary`** (`topic/travel/Itinerary.astro`) with
+> `itinerary-reel` folded in (days become stops); `city-compare` folded into
+> **`comparison`** (its pair form). The six old names are ALIASES
+> (`KIND_ALIASES` in `src/content/config.ts`): the schema resolves them on
+> parse, and `SectionBody` resolves again with `canonicalKind()`, so every
+> arm sees the host. The tables below are corrected to match; the counts in
+> their headings are the history they were written in.
 
 **Source of truth:** `SECTION_KINDS` in `src/content/config.ts` (**97 kinds**
 as of 2026-08-28 — 30 narrative/classic-viz kinds below + `act-break` + the
@@ -99,7 +121,6 @@ SectionBody**, not SectionRenderer.
 | `quote` | `core/Quote.astro` | universal |
 | `comparison` | `core/Comparison.astro` (2–3 column side-by-side) | universal |
 | `data-readout` | `core/DataReadout.astro` (telemetry tile grid) | universal |
-| `beat-sheet` | `core/BeatSheet.astro` | universal |
 | `timeline` | `topic/politics/Timeline.astro` | politics-styled, used across topics |
 | `paradox` | `topic/politics/Paradox.astro` | politics-styled, used across topics |
 | `analogy` | `topic/politics/BrothersAnalogy.astro` | politics |
@@ -108,19 +129,16 @@ SectionBody**, not SectionRenderer.
 | `seat-chart` | `topic/politics/SeatChart.astro` | politics |
 | `approval-chart` | `topic/politics/ApprovalChart.astro` | politics |
 | `power-matrix` | `topic/politics/PowerMatrix.astro` | politics |
-| `orbital-shells` | `topic/space/OrbitalShells.astro` | space |
 | `orbit-trace` | `topic/space/OrbitTrace.astro` | space |
 | `launch-stats` | `topic/space/LaunchStats.astro` | space |
-| `elevation-profile` | `topic/earth/ElevationProfile.astro` | earth |
 | `region-map` | `topic/earth/RegionMap.astro` | earth |
 | `climate-strip` | `topic/earth/ClimateStrip.astro` (v2 kit `.cs`, inside `.px-viz`) | earth |
-| `carbon-gauge` | `topic/earth/CarbonGauge.astro` | earth |
+| `gauge` | `core/Gauge.astro` (was `carbon-gauge`; `swing-dial` and `throughput-dial` fold in as its lean and capacity variants) | universal |
 | `commit-grid` | `topic/tech/CommitGrid.astro` | tech |
 | `benchmark-chart` | `topic/tech/BenchmarkChart.astro` | tech |
 | `adoption-curve` | `topic/tech/AdoptionCurve.astro` | tech |
 | `journey-map` | `topic/travel/JourneyMap.astro` | travel |
-| `route-card` | `topic/travel/RouteCard.astro` | travel |
-| `city-compare` | `topic/travel/CityCompare.astro` | travel |
+| `itinerary` | `topic/travel/Itinerary.astro` (was `route-card`; `itinerary-reel` folds in) | travel |
 | `match-stat-line` | `topic/sports/MatchStatLine.astro` | sports |
 | `league-table` | `topic/sports/LeagueTable.astro` | sports |
 | `player-radar` | `topic/sports/PlayerRadar.astro` | sports |
@@ -158,8 +176,6 @@ SVG/HTML fallback by default.
 
 | Kind | Component | Topic | Tech |
 |---|---|---|---|
-| `coalition-orbit` | `topic/politics/CoalitionOrbit.astro` | politics | **WebGL** |
-| `swing-dial` | `topic/politics/SwingDial.astro` | politics | CSS-3D |
 | `bill-passage` | `topic/politics/BillPassage.astro` | politics | CSS-3D |
 | `vote-flow` | `topic/politics/VoteFlow.astro` | politics | SVG/CSS-3D |
 | `margin-ladder` | `topic/politics/MarginLadder.astro` | politics | SVG/CSS-3D |
@@ -167,18 +183,14 @@ SVG/HTML fallback by default.
 | `power-flow` | `topic/politics/PowerFlow.astro` | politics | SVG (build-time Sankey + flowDash) |
 | `coalition-calculus` | `topic/politics/CoalitionCalculus.astro` | politics | HTML-interactive (coalition builder vs the majority line) — **spread dispatch, see below** |
 | `gerrymander-lens` | `topic/politics/GerrymanderLens.astro` | politics | SVG (same votes, three maps, efficiency-gap counters) |
-| `ballot-flow` | `topic/politics/BallotFlow.astro` | politics | SVG (ranked-choice round transfers, flowDash) |
-| `orbit-globe` | `topic/space/OrbitGlobe.astro` | space | **WebGL** |
 | `solar-system` | `topic/space/SolarSystem.astro` | space | **WebGL** (FLAGSHIP — Keplerian; shared math `scripts/viz3d/kepler.ts`) |
 | `trajectory-arc` | `topic/space/TrajectoryArc.astro` | space | SVG/CSS-3D |
 | `delta-v-ladder` | `topic/space/DeltaVLadder.astro` | space | SVG/CSS-3D |
-| `signal-readout` | `topic/space/SignalReadout.astro` | space | SVG/canvas |
 | `descent-profile` | `topic/space/DescentProfile.astro` | space | SVG |
 | `constellation-swarm` | `topic/space/ConstellationSwarm.astro` | space | **WebGL** (instanced mega-constellation shells) |
 | `lagrange-map` | `topic/space/LagrangeMap.astro` | space | SVG (three-body effective-potential contour field) |
 | `transfer-window` | `topic/space/TransferWindow.astro` | space | SVG interactive (Hohmann Δv + phase scrubber) |
 | `eclipse-cone` | `topic/space/EclipseCone.astro` | space | SVG/CSS-3D (umbra/penumbra to scale) |
-| `data-globe` | `topic/earth/DataGlobe.astro` | earth | **WebGL** |
 | `core-sample` | `topic/earth/CoreSample.astro` | earth | CSS-3D |
 | `sea-level-tank` | `topic/earth/SeaLevelTank.astro` | earth | CSS-3D/SVG |
 | `climate-spiral` | `topic/earth/ClimateSpiral.astro` | earth | SVG/canvas — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); MONTH scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-month tables precomputed at build; the scroll-in reveal owns `stroke-dashoffset`, the scrub owns opacity only) |
@@ -192,15 +204,12 @@ SVG/HTML fallback by default.
 | `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | SVG |
 | `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG |
 | `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Carries the measurements for the still-owed Phase-5 mobile font bump and why a plain bump fails |
-| `throughput-dial` | `topic/tech/ThroughputDial.astro` | tech | SVG/CSS-3D |
 | `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`) |
 | `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + SVG latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`) |
 | `queue-cliff` | `topic/tech/QueueCliff.astro` | tech | SVG interactive (M/M/1 utilization cliff, 1/(1−ρ)) |
 | `chip-die` | `topic/tech/ChipDie.astro` | tech | CSS-3D (exploded die floorplan, area ∝ real mm²) |
 | `moore-ladder` | `topic/tech/MooreLadder.astro` | tech | SVG (base-2 log doubling fit) |
-| `route-globe` | `topic/travel/RouteGlobe.astro` | travel | **WebGL** |
 | `elevation-trek` | `topic/travel/ElevationTrek.astro` | travel | SVG/CSS-3D |
-| `itinerary-reel` | `topic/travel/ItineraryReel.astro` | travel | CSS-3D |
 | `climate-calendar` | `topic/travel/ClimateCalendar.astro` | travel | SVG |
 | `timezone-arc` | `topic/travel/TimezoneArc.astro` | travel | SVG/CSS-3D |
 | `terminator-globe` | `topic/travel/TerminatorGlobe.astro` | travel | **WebGL** (FLAGSHIP — day/night line + flight arc; shared math `scripts/viz3d/terminator.ts`) |
@@ -218,10 +227,10 @@ SVG/HTML fallback by default.
 | `court-value` | `topic/sports/CourtValue.astro` | sports | SVG (value surface shaded over a pitch/court) |
 | `pace-ridge` | `topic/sports/PaceRidge.astro` | sports | SVG (ridgeline of a stat's distribution per group) |
 
-The **fourteen** WebGL kinds (`coalition-orbit`, `chamber`, `orbit-globe`,
-`solar-system`, `constellation-swarm`, `data-globe`, `terrain-relief`,
-`plate-motion`, `storm-track`, `neural-flow`, `packet-trace`, `route-globe`,
-`terminator-globe`, `flight-of-the-ball`) are the only section kinds that load
+The **ten** WebGL kinds since the Lens verdict (`chamber`, `solar-system`,
+`constellation-swarm`, `terrain-relief`, `plate-motion`, `storm-track`,
+`neural-flow`, `packet-trace`, `terminator-globe`, `flight-of-the-ball`;
+the four generic globes were dropped on 2026-09-30) are the only section kinds that load
 Three.js, and only when scrolled into view — see §10. They are exactly the keys
 of the registry in `src/scripts/viz3d/scenes/index.ts`; that file is the
 check. Per-kind `data` shapes are documented for issue authors in
@@ -240,8 +249,8 @@ every breadth kind in their world.
   requires **1–3 cities** and **exactly 36 bins** per city; `season-wheel`
   requires **exactly 12 months**; `altitude-oxygen` requires **2–8 stops**;
   `fare-terrain` requires **1–5 routes** with **≥6 points each**;
-  `carbon-loop`, `chip-die`, `moore-ladder`, `gerrymander-lens`, `ballot-flow`
-  and `packet-trace` also validate and throw. `power-flow`'s conservation check
+  `carbon-loop`, `chip-die`, `moore-ladder`, `gerrymander-lens` and
+  `packet-trace` also validate and throw. `power-flow`'s conservation check
   is the same pattern (§ change log 2026-07-05).
 - **`section.plain` is capped at 220 chars by Zod.** Overshooting breaks the
   build. It explains the *form* of the viz, never the data.
@@ -289,7 +298,7 @@ study button is appended by `core/ExpandModal.astro` and becomes an in-flow
 row under the graphic below 768px, so a component never reserves a corner for
 it; no source line and no caption under a spelling the shell cannot see
 (`__cap` / `__caption`; `core/Section.astro` prints the source); copy is
-desk-neutral (101 kinds run under six worlds); values size to their cell. The
+desk-neutral (87 kinds run under six worlds); values size to their cell. The
 figure is drawn for the 720 measure (M); on phones it may scroll inside its
 card (the `min-width` block in `dataviz-v2.css`), never overflow the page.
 Step 10 below is how you prove all of it.
@@ -360,7 +369,7 @@ Known reservations (still-live `px-` prefixes):
 | `px-fnl` | `bill-funnel` | politics · HTML bars · `BillFunnel.astro` |
 | `px-trn` | `channel-ternary` | sports · SVG ternary · `ChannelTernary.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |
-| `px-cgauge` | CarbonGauge | kept on `px-` (free-standing gauge, light-touch port) |
+| `px-cgauge` | Gauge, budget variant (was CarbonGauge) | kept on `px-` (free-standing gauge, light-touch port) |
 | `px-seats` | SeatChart | kept on `px-` |
 | `px-bills` | BillBreakdown | kept on `px-` |
 | `px-analogy` | BrothersAnalogy | kept on `px-` |
@@ -391,8 +400,8 @@ code** — no element emits it — pending a future safe cleanup pass):
 | `px-launch` | LaunchStats | `.ls` |
 | `px-bench` | BenchmarkChart | `.bc` |
 | `px-scurve` | AdoptionCurve | `.adc` |
-| `px-route` | RouteCard | `.rc` |
-| `px-ccomp` | CityCompare | `.cc` |
+| `px-route` | RouteCard (now Itinerary) | `.rc` |
+| `px-ccomp` | CityCompare (deleted 2026-09-30; folded into Comparison) | — |
 | `px-ltab` | LeagueTable | `.lt` |
 | `px-radar` | PlayerRadar | `.pr` |
 | `px-appr` | ApprovalChart | `.ac` |
@@ -408,19 +417,19 @@ namespaces in `components-3d.css`.)
 
 | Prefix | Component | Prefix | Component |
 |---|---|---|---|
-| `px-co` | CoalitionOrbit | `px-dg` | DataGlobe |
-| `px-swdial` | SwingDial | `px-core` | CoreSample |
+| ~~`px-co`~~ | CoalitionOrbit (dropped 2026-09-30) | ~~`px-dg`~~ | DataGlobe (dropped 2026-09-30) |
+| `px-swdial` | Gauge, lean variant (was SwingDial) | `px-core` | CoreSample |
 | `px-billp` | BillPassage | `px-sltank` | SeaLevelTank |
 | `px-vflow` | VoteFlow | `px-spiral` | ClimateSpiral |
 | `px-mladr` | MarginLadder | `px-quake` | QuakeDepth |
-| `px-og` | OrbitGlobe | `px-arch` | ArchStack |
+| ~~`px-og`~~ | OrbitGlobe (dropped 2026-09-30) | `px-arch` | ArchStack |
 | `px-traj` | TrajectoryArc | `px-lwf` | LatencyWaterfall |
 | `px-dvl` | DeltaVLadder | `px-vgraph` | VersionGraph |
-| `px-sig` | SignalReadout | `px-scale` | ScalingPlot |
-| `px-desc` | DescentProfile | `px-tdial` | ThroughputDial |
-| `px-rg` | RouteGlobe | `px-pitch` | TacticsPitch |
+| ~~`px-sig`~~ | SignalReadout (dropped 2026-09-30) | `px-scale` | ScalingPlot |
+| `px-desc` | DescentProfile | `px-tdial` | Gauge, capacity variant (was ThroughputDial) |
+| ~~`px-rg`~~ | RouteGlobe (dropped 2026-09-30) | `px-pitch` | TacticsPitch |
 | `px-etrek` | ElevationTrek | `px-shot` | ShotMap |
-| `px-ireel` | ItineraryReel | `px-xgr` | XgRace |
+| ~~`px-ireel`~~ | ItineraryReel (folded into Itinerary 2026-09-30) | `px-xgr` | XgRace |
 | `px-ccal` | ClimateCalendar | `px-mom` | MomentumWave |
 | `px-tzarc` | TimezoneArc | `px-pcard` | PlayerCard |
 | `px-solsys` | SolarSystem | `px-chmbr` | Chamber |
@@ -439,7 +448,7 @@ namespaces in `components-3d.css`.)
 |---|---|---|---|
 | `px-coalc` | CoalitionCalculus (politics) | `px-pkt` | PacketTrace (tech) |
 | `px-glens` | GerrymanderLens (politics) | `px-qc` | QueueCliff (tech) |
-| `px-bflow` | BallotFlow (politics) | `px-die` | ChipDie (tech) |
+| ~~`px-bflow`~~ | BallotFlow (dropped 2026-09-30) | `px-die` | ChipDie (tech) |
 | `px-cswrm` | ConstellationSwarm (space) | `px-mldr` | MooreLadder (tech) |
 | `px-lagr` | LagrangeMap (space) | `px-cgrid` | CityGrid (travel) |
 | `px-xwin` | TransferWindow (space) | `px-altox` | AltitudeOxygen (travel) |
@@ -566,7 +575,6 @@ These render directly in templates, not via the dispatcher:
 | Component | Rendered by |
 |---|---|
 | `core/IssueHead.astro` | inline in `src/pages/issues/[slug].astro` — the meta strip (← desk register · № · date), eyebrow, `.px-h1`, the hook as `.px-lede`, the primer on a 4px accent rule. Replaced `core/Hero.astro`, `core/Banner.astro` and `core/Primer.astro` (all deleted 2026-09-08). `px-ihead`. |
-| `core/Plate.astro` | via `SectionBody` (`kind: plate`) — a framed photograph with caption + credit; renders NOTHING without `src`. Narrative for every gate. `px-plate`. |
 | `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` — since 2026-09-08 a PINNED flat strip on the paper with a 2px ink rule on top: progress hairline, `NN% · N min left`, the square Full ⇄ Skim toggle, Save; slides up after the first scroll; sits above the phone home bar (`env(safe-area-inset-bottom)`). JS-only (`html.js`). |
 | `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`** — not mounted on the issue page directly. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
@@ -745,8 +753,8 @@ flat `.px-viz` card — radius 0, no shadow, 3px `--viz-edge` top rule since 202
 | ClimateStrip | `.cs` |
 | BenchmarkChart | `.bc` |
 | AdoptionCurve | `.adc` |
-| RouteCard | `.rc` |
-| CityCompare | `.cc` |
+| RouteCard (now Itinerary) | `.rc` |
+| CityCompare (deleted 2026-09-30) | `.cc` |
 | LeagueTable | `.lt` |
 | PlayerRadar | `.pr` |
 
@@ -756,8 +764,8 @@ roots.
 
 **Components kept on their `px-` classes** (light-touch port — only gained a
 card-level `data-reveal` scroll-in): SeatChart (`.px-seats`), BillBreakdown
-(`.px-bills`), BrothersAnalogy (`.px-analogy`), OrbitalShells, CarbonGauge
-(`.px-cgauge`), ElevationProfile, RegionMap (free-standing cartographic SVG),
+(`.px-bills`), BrothersAnalogy (`.px-analogy`), CarbonGauge (now Gauge's
+budget variant, `.px-cgauge`), RegionMap (free-standing cartographic SVG),
 CommitGrid, JourneyMap, MatchStatLine (`.px-msl`).
 
 **The reveal + motion contract (no-JS / print safe)**
@@ -793,12 +801,13 @@ layered on top only when JS runs and motion is allowed.** This is the same
 contract as `core/Reveal.astro` / `core/VizMotion.astro` and the v2 data-viz
 (§9).
 
-### Family A — lazy WebGL scenes (Three.js): 14 kinds
+### Family A — lazy WebGL scenes (Three.js): 10 kinds
 
-`coalition-orbit`, `chamber`, `orbit-globe`, `solar-system`,
-`constellation-swarm`, `data-globe`, `terrain-relief`, `plate-motion`,
-`storm-track`, `neural-flow`, `packet-trace`, `route-globe`,
-`terminator-globe`, `flight-of-the-ball`. These are the **only** parts of the
+`chamber`, `solar-system`, `constellation-swarm`, `terrain-relief`,
+`plate-motion`, `storm-track`, `neural-flow`, `packet-trace`,
+`terminator-globe`, `flight-of-the-ball`. (The Lens verdict of 2026-09-30
+dropped `coalition-orbit`, `orbit-globe`, `data-globe` and `route-globe`,
+scenes and all; `scenes/globe.ts` stays as the shared globe helpers.) These are the **only** parts of the
 whole site that touch Three.js, and they are exactly the keys of the registry
 in `src/scripts/viz3d/scenes/index.ts`.
 
@@ -866,8 +875,8 @@ Perspective + `transform-3d` via the shared mechanics in
   `0`). Reduced-motion resets `.px3d-tilt` / `.px3d-flip` to no transform in
   `components-3d.css`.
 
-Kinds: `swing-dial`, `bill-passage`, `margin-ladder`, `core-sample`,
-`arch-stack`, `chip-die`, `throughput-dial`, `itinerary-reel`, `player-card`,
+Kinds: `gauge` (its lean and capacity variants), `bill-passage`,
+`margin-ladder`, `core-sample`, `arch-stack`, `chip-die`, `player-card`,
 plus the SVG/CSS-3D hybrids (`trajectory-arc`, `delta-v-ladder`,
 `eclipse-cone`, `sea-level-tank`, `elevation-trek`, `timezone-arc`,
 `tactics-pitch`, `shot-map`).
@@ -878,7 +887,7 @@ Reveal-on-scroll line draws, bars, dials, contour fields and area fills — the
 default for the breadth pass, which was SVG-first (`lagrange-map`,
 `atmosphere-column`, `carbon-loop`, `moore-ladder`, `city-grid`,
 `altitude-oxygen`, `season-wheel`, `fare-terrain`, `elo-river`, `court-value`,
-`pace-ridge`, `gerrymander-lens`, `ballot-flow`, alongside the older
+`pace-ridge`, `gerrymander-lens`, alongside the older
 `latency-waterfall`, `climate-spiral`, `momentum-wave`, `xg-race`). These
 follow the §9 reveal contract: hidden states are **`html.js`-gated** (no JS ⇒
 final painted state) and reduced-motion resets to the final frame.
@@ -944,6 +953,31 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-09-30 — Lens Phase 0: the verdict applied to the library
+
+The design law is now `docs/design/LENS.md` (root `AGENTS.md` §7, §10). For
+this subtree: **87 kinds**. Deleted: `core/BeatSheet`, `core/Plate`,
+`topic/space/{OrbitalShells,OrbitGlobe,SignalReadout}`,
+`topic/earth/{ElevationProfile,DataGlobe}`,
+`topic/politics/{CoalitionOrbit,BallotFlow,SwingDial}`,
+`topic/tech/ThroughputDial`, `topic/travel/{RouteGlobe,CityCompare,ItineraryReel}`,
+and the scenes `orbitGlobe`, `coalitionOrbit`, `dataGlobe`, `routeGlobe`.
+`topic/earth/CarbonGauge.astro` moved to **`core/Gauge.astro`**: one
+component, three variants derived from the fields present (`remaining` means
+budget, `max` means capacity, neither means lean), each keeping its old markup
+and prefix (`px-cgauge`, `px-swdial`, `px-tdial`) until Phase 6 redraws them
+as one arc. `topic/travel/RouteCard.astro` became **`Itinerary.astro`**: legs
+gain an optional `day` kicker and an `items` list, and a stop glyph when
+`mode` is absent; an `itinerary-reel` payload's `days` render as stops.
+`core/Comparison.astro` gained the **pair form** (`cityA` / `cityB` / rows of
+`a`, `b`, `winner`, `note`), normalised onto the matrix with a `data-win`
+cell and a full-width `.px-compare__note`. `SectionBody` dispatches `gauge`
+and `itinerary`, passes `cityA` / `cityB` to Comparison, and resolves any
+alias with `canonicalKind()`. The narrative set is seven kinds now
+(`beat-sheet` and `plate` left it) in `check-catalog.mjs`,
+`project-graph.mjs`, `ReadingGate.astro`, `ui-probe.mjs` and the
+`explainers.ts` header.
 
 ### 2026-09-15 — Thirteen documented fields nothing rendered; check:catalog check 5
 

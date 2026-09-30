@@ -205,7 +205,7 @@ export const build: SceneBuilder = (THREE, canvas, data, colors: SceneColors) =>
     );
   });
 
-  /* ── camera framing (copies orbitGlobe.fitCamera; frames ρ_max fully) ── */
+  /* ── camera framing (from the retired orbitGlobe.fitCamera; frames ρ_max fully) ── */
   const halfTan = Math.tan((camera.fov * Math.PI) / 360);
   let camY = rhoMax * 0.28, camZ = 4.6;
   const fitCamera = () => {

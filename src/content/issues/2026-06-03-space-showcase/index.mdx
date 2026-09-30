@@ -8,34 +8,18 @@ publishedAt: 2026-06-03
 status: draft
 tags: [styleguide]
 readTimeMinutes: 6
-primer: "This is a styleguide issue: it exists to exercise every space-world data-viz component with real mission data. You will see active satellite constellations, a Falcon 9 ascent profile, the Δv budget from launch pad to deep space, Deep Space Network radio bands, and a Mars landing's altitude-versus-time curve — each captioned with what it actually represents."
+primer: "This is a styleguide issue: it exists to exercise every space-world data-viz component with real mission data. You will see active satellite constellations, a Falcon 9 ascent profile, the Δv budget from launch pad to deep space, and a Mars landing's altitude-versus-time curve — each captioned with what it actually represents."
 
 sections:
   - kind: prose
     eyebrow: "WHY THIS PAGE EXISTS"
     title: "A *styleguide* you can also read as a flight."
-    skimCaption: "This issue is a component catalogue, not a news story. It runs every space-world visualization in sequence — orbit globe, trajectory arc, delta-v ladder, signal readout, descent profile, orbit trace, launch bars, figure tiles — each loaded with real mission data so the demo doubles as a tour of how a payload reaches orbit and how a lander comes home."
+    skimCaption: "This issue is a component catalogue, not a news story. It runs every space-world visualization in sequence — trajectory arc, delta-v ladder, descent profile, orbit trace, launch bars, figure tiles — each loaded with real mission data so the demo doubles as a tour of how a payload reaches orbit and how a lander comes home."
     data:
       lead: "Most Parallax issues hide their machinery. This one is the machinery. It exists so an editor or an agent can see every space-world data component rendered with realistic numbers, in one scroll, before wiring any of them into a real story."
       paragraphs:
-        - "Each section below names a single component and feeds it data drawn from the public record — active constellations from satellite catalogues, a **Falcon 9** ascent broken into its real flight phases, the energy budget that separates low orbit from deep space, the radio bands NASA's **Deep Space Network** listens on, and the seven minutes of a Mars **entry, descent, and landing**. The captions explain what each chart is showing and how it behaves when you touch it."
-        - "Read top to bottom and the order is not arbitrary: it climbs from orbit to ascent to the energy it costs, listens to what comes back down the link, then follows a spacecraft all the way to the surface. The styleguide is the story. **The instruments are the point.**"
-
-  - kind: orbit-globe
-    eyebrow: "THE 3D ORBIT GLOBE"
-    title: "Active constellations on a *spinning* Earth."
-    intro: "Named satellite constellations plotted by altitude and inclination on a dot-matrix globe — drag to orbit the view."
-    data:
-      caption: "Active satellite constellations by altitude + inclination"
-      source: "Union of Concerned Scientists Satellite Database · CelesTrak, 2024"
-      maxAltKm: 42000
-      orbits:
-        - { name: "Starlink", altKm: 550, inclDeg: 53, color: "#00d4ff", satCount: 5500 }
-        - { name: "OneWeb", altKm: 1200, inclDeg: 87, color: "#4dffb0", satCount: 648 }
-        - { name: "ISS", altKm: 420, inclDeg: 51.6, color: "#ffd166", satCount: 1 }
-        - { name: "GPS Block III", altKm: 20200, inclDeg: 55, color: "#ffb347", satCount: 31 }
-        - { name: "Galileo", altKm: 23222, inclDeg: 56, color: "#b47dff", satCount: 28 }
-        - { name: "INSAT-3D", altKm: 35786, inclDeg: 0, color: "#ff6b6b", satCount: 1 }
+        - "Each section below names a single component and feeds it data drawn from the public record — active constellations from satellite catalogues, a **Falcon 9** ascent broken into its real flight phases, the energy budget that separates low orbit from deep space, and the seven minutes of a Mars **entry, descent, and landing**. The captions explain what each chart is showing and how it behaves when you touch it."
+        - "Read top to bottom and the order is not arbitrary: it climbs from orbit to ascent to the energy it costs, then follows a spacecraft all the way to the surface. The styleguide is the story. **The instruments are the point.**"
 
   - kind: trajectory-arc
     eyebrow: "THE ASCENT PROFILE"
@@ -66,19 +50,6 @@ sections:
         - { label: "LEO → GTO", dv: 2440, color: "#4dffb0" }
         - { label: "GTO → GEO", dv: 1470, color: "#ffb347" }
         - { label: "LEO → escape (C3=0)", dv: 3220, color: "#ff6b6b" }
-
-  - kind: signal-readout
-    eyebrow: "THE TELEMETRY LINK"
-    title: "Listening on the *Deep Space* bands."
-    intro: "A telemetry readout: each row is a level meter for one Deep Space Network frequency band, showing received signal against its scale."
-    data:
-      caption: "NASA Deep Space Network · downlink bands, relative signal"
-      source: "NASA JPL · DSN telecommunications link design, 2024"
-      bands:
-        - { label: "S-band uplink", freq: "2.1 GHz", value: 62, max: 100, color: "#4dffb0" }
-        - { label: "X-band downlink", freq: "8.4 GHz", value: 88, max: 100, color: "#00d4ff" }
-        - { label: "Ka-band downlink", freq: "32 GHz", value: 71, max: 100, color: "#ffb347" }
-        - { label: "Carrier lock margin", freq: "C/N0", value: 44, max: 100, color: "#b47dff" }
 
   - kind: descent-profile
     eyebrow: "THE LANDING CURVE"

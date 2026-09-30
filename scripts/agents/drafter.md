@@ -98,8 +98,8 @@ The storyboard already satisfies these; check them again when the draft is
 written, because the draft is where words creep in.
 
 Floors (`docs/REGISTER-PLAN.md` §5.1):
-- ≥ 6 in 10 sections visual (not prose, quote, analogy, beat-sheet,
-  act-break, plate, and not paradox); never two text-only sections adjacent.
+- ≥ 6 in 10 sections visual (not prose, quote, analogy, act-break, and not
+  paradox); never two text-only sections adjacent.
 - The first section is a graphic or a `data-readout`. ≤ 80 words before it
   (title + dek + hook + primer + its intro).
 - ≤ 3 `prose` sections, each ≤ 200 words; paragraphs ≤ 90 words.

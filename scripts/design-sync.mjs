@@ -57,107 +57,151 @@ for (const name of FILES) {
 }
 
 /* ── palette mirrors ────────────────────────────────────────────────────────
-   Byte-comparing the two generated copies proves nothing about the SIX OTHER
-   places that hand-copy the world accents. That is how `tech` accent-deep
-   forked four ways: worlds.css #9cc528, CategoryCard #a3cc1f, meta.css
-   #5a6e16, plus the theme header — with every gate green.
+   Byte-comparing the generated copy proves nothing about the OTHER places that
+   hand-copy the desk inks. That is how `tech` accent-deep once forked four
+   ways with every gate green. So: assert every site that CLAIMS to mirror the
+   canonical inks actually does.
 
-   So: assert every site that CLAIMS to mirror the canonical accents actually
-   does. Backgrounds and inks are NOT checked — the card renderers legitimately
-   carry their own gradient pairs, and widening the check to those would be
-   noise, which is how gates get switched off.  */
+   LENS (2026-09-30, TOKEN-RECORD TD-09). One paper under every desk, so the
+   two accent-deep roles of TD-05 are ONE role again: a desk's --accent-deep
+   is its TEXT ink (>= 4.5:1 on the paper) everywhere, and --accent is its
+   MARK. The in-world/light-paper split, and the CategoryCard mirror that
+   carried the in-world side, are retired (the card was deleted on 2026-09-08). */
 
 const WORLDS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'];
+const ABBR = { politics: 'pol', space: 'spa', earth: 'ear', tech: 'tec', travel: 'tra', sports: 'spo' };
+const HEX = '(#[0-9a-fA-F]{6})';
 
-function canonicalAccents() {
+function canonicalInks() {
   const src = readFileSync(join(root, 'shared/design/worlds.css'), 'utf-8');
   const out = {};
   for (const w of WORLDS) {
-    const accent = src.match(new RegExp(`--world-${w}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
-    const deep = src.match(new RegExp(`--world-${w}-deep:\\s*(#[0-9a-fA-F]{6})`))?.[1];
-    if (!accent || !deep) {
-      console.error(`design-sync: shared/design/worlds.css is missing --world-${w} / -deep`);
-      process.exit(1);
+    const a = ABBR[w];
+    const get = (name) => src.match(new RegExp(`--${name}:\\s*${HEX}`))?.[1]?.toLowerCase();
+    const ink = {
+      accent: get(`world-${w}`), deep: get(`world-${w}-deep`),
+      mark: get(`${a}-mark`), text: get(`${a}-text`), tint: get(`${a}-tint`), plate: get(`${a}-deep`),
+    };
+    for (const [k, v] of Object.entries(ink)) {
+      if (!v) {
+        console.error(`design-sync: shared/design/worlds.css is missing the ${w} ${k} ink`);
+        process.exit(1);
+      }
     }
-    out[w] = { accent: accent.toLowerCase(), deep: deep.toLowerCase() };
+    out[w] = ink;
   }
   return out;
 }
 
-/* THE ACCENT IS UNIVERSAL; THE DEEP IS NOT.
-   Every world's --accent means the same thing everywhere, so every mirror is
-   gated against it. --accent-deep carries TWO roles that are provably
-   irreconcilable on dark worlds (see the proof in shared/design/worlds.css):
-
-     light-paper role  worlds.css --world-*-deep / --w-accent-deep,
-                       meta.css --topic-*-deep. Printed on #faf7f0 or #fff.
-     in-world role     the theme files' --accent-deep, and CategoryCard's,
-                       both printed on that world's OWN ground.
-
-   So the deep values are gated WITHIN each role, never across them. A gate that
-   demanded they match is what would push a dark world's cyan back onto light
-   paper at 1.4:1.
-
-   `deep: null` means the mirror carries no deep variant to check. */
 const MIRRORS = [
+  /* The theme header is the publication's law for a desk page: its mark and
+     its text ink must be the canonical ones. */
   ...WORLDS.map((w) => ({
     label: `src/styles/themes/${w}.css`,
     file: `src/styles/themes/${w}.css`,
     world: w,
-    accent: /--accent:\s*(#[0-9a-fA-F]{6})/,
-    deep: null, // in-world role — gated against CategoryCard below, not canonical
+    accent: new RegExp(`--accent:\\s*${HEX}`),
+    deep: new RegExp(`--accent-deep:\\s*${HEX}`),
   })),
-  /* meta.css prints world identity on meta paper, so its -deep is the
-     light-paper role and must equal the canonical one. These agreed only by
-     accident until 2026-08-27; tech and sports had been hand-darkened here
-     while worlds.css kept the in-world values. */
+  /* meta.css prints every desk's identity on the house pages. */
   ...WORLDS.map((w) => ({
-    label: `src/styles/meta.css --topic-${w}-deep`,
+    label: `src/styles/meta.css --topic-${w}`,
     file: 'src/styles/meta.css',
     world: w,
-    accent: new RegExp(`--topic-${w}:\\s*(#[0-9a-fA-F]{6})`),
-    deep: new RegExp(`--topic-${w}-deep:\\s*(#[0-9a-fA-F]{6})`),
+    accent: new RegExp(`--topic-${w}:\\s*${HEX}`),
+    deep: new RegExp(`--topic-${w}-deep:\\s*${HEX}`),
   })),
-  /* worlds.css must agree with itself: the :root scalar and the [data-world]
-     subtree token are the same role and are consumed interchangeably. */
+  /* worlds.css must agree with itself: the :root pair and the [data-world]
+     subtree tokens are the same role and are consumed interchangeably. */
   ...WORLDS.map((w) => ({
     label: `shared/design/worlds.css [data-world="${w}"]`,
     file: 'shared/design/worlds.css',
     world: w,
-    accent: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent:\\s*(#[0-9a-fA-F]{6})`),
-    deep: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent-deep:\\s*(#[0-9a-fA-F]{6})`),
+    accent: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent:\\s*${HEX}`),
+    deep: new RegExp(`\\[data-world="${w}"\\][^}]*--w-accent-deep:\\s*${HEX}`),
   })),
+  /* The share-card renderer cannot read CSS, so it carries literals. */
   ...WORLDS.map((w) => ({
     label: `scripts/story/og-card.ts THEMES.${w}`,
     file: 'scripts/story/og-card.ts',
     world: w,
-    accent: new RegExp(`\\b${w}:\\s*\\{[^}]*accent:\\s*'(#[0-9a-fA-F]{6})'`),
+    accent: new RegExp(`\\b${w}:\\s*\\{[^}]*accent:\\s*'${HEX}'`),
     deep: null,
-  })),
-  /* The home covers re-declare a full per-topic palette locally, because the
-     home page renders in META colours — a card cannot inherit [data-topic]
-     from <html>. That is legitimate, but it is where `tech` accent-deep drifted
-     to #a3cc1f. Gate the two values that must agree; the rest of the block is
-     card-specific (gradients, motifs) and stays local until worlds.css grows
-     rule/ink-soft/muted in the Phase 2 token record. */
-  ...WORLDS.map((w) => ({
-    label: `home/CategoryCard.astro [data-topic="${w}"]`,
-    file: 'src/components/home/CategoryCard.astro',
-    world: w,
-    accent: new RegExp(`\\.px-cat\\[data-topic="${w}"\\][^}]*--accent:\\s*(#[0-9a-fA-F]{6})`),
-    deep: null, // in-world role — gated against its theme file below
   })),
 ];
 
-/* TD-01 / TD-04 (docs/design/TOKEN-RECORD.md). These are new tokens, so they get
-   a gate in the same commit that introduces them — an ungated token drifts
-   within two sessions, which is exactly what produced the four-way tech
-   accent-deep split. --paper-deep is TD-02's alias and must equal --paper-warm;
-   --on-accent is TD-04 and must equal that world's ground. */
+/* The Lens names in worlds.css must equal the legacy pair they alias, and the
+   theme header's tint and plate must equal the canonical ones. */
+const LENS_INKS = WORLDS.length * 4;
+function checkLensInks(canon) {
+  let bad = 0;
+  for (const w of WORLDS) {
+    const c = canon[w];
+    if (c.mark !== c.accent) { console.error(`design-sync --check: worlds.css --${ABBR[w]}-mark ${c.mark} ≠ --world-${w} ${c.accent}`); bad++; }
+    if (c.text !== c.deep) { console.error(`design-sync --check: worlds.css --${ABBR[w]}-text ${c.text} ≠ --world-${w}-deep ${c.deep}`); bad++; }
+    const p = join(root, `src/styles/themes/${w}.css`);
+    if (!existsSync(p)) continue;
+    const src = readFileSync(p, 'utf-8');
+    const tint = src.match(new RegExp(`--accent-tint:\\s*${HEX}`))?.[1]?.toLowerCase();
+    const plate = src.match(new RegExp(`--deep:\\s*${HEX}`))?.[1]?.toLowerCase();
+    if (tint !== c.tint) { console.error(`design-sync --check: themes/${w}.css --accent-tint ${tint ?? 'missing'} ≠ --${ABBR[w]}-tint ${c.tint}`); bad++; }
+    if (plate !== c.plate) { console.error(`design-sync --check: themes/${w}.css --deep ${plate ?? 'missing'} ≠ --${ABBR[w]}-deep ${c.plate}`); bad++; }
+  }
+  return bad;
+}
+
+/* ONE PAPER (TD-09). No desk sets its own page ground or ink: every theme
+   header, meta.css and the worlds.css subtree carry the canonical neutrals of
+   shared/design/tokens.css. This is the gate that keeps a dark desk ground
+   from coming back. */
+const NEUTRALS = ['paper', 'paper-2', 'paper-3', 'ink', 'ink-2', 'muted', 'hair', 'hair-2'];
+function canonicalNeutrals() {
+  const src = readFileSync(join(root, 'shared/design/tokens.css'), 'utf-8');
+  const out = {};
+  for (const k of NEUTRALS) {
+    const v = src.match(new RegExp(`--${k}:\\s*${HEX}`))?.[1]?.toLowerCase();
+    if (!v) { console.error(`design-sync: shared/design/tokens.css is missing --${k}`); process.exit(1); }
+    out[k] = v;
+  }
+  return out;
+}
+/* Each declaring file: the token it declares → the canonical neutral it must equal. */
+const GROUND_MAP = { bg: 'paper', paper: 'paper', 'paper-2': 'paper-2', 'paper-3': 'paper-3', ink: 'ink', 'ink-soft': 'ink-2', muted: 'muted', rule: 'hair' };
+const GROUND_FILES = [...WORLDS.map((w) => `src/styles/themes/${w}.css`), 'src/styles/meta.css'];
+function checkOnePaper(n) {
+  let bad = 0;
+  let count = 0;
+  for (const rel of GROUND_FILES) {
+    const p = join(root, rel);
+    if (!existsSync(p)) continue;
+    const src = readFileSync(p, 'utf-8');
+    for (const [tok, neutral] of Object.entries(GROUND_MAP)) {
+      const got = src.match(new RegExp(`(?:^|[\\s;{])--${tok}:\\s*${HEX}`, 'm'))?.[1]?.toLowerCase();
+      count++;
+      if (!got) { console.error(`design-sync --check: ${rel} does not declare --${tok} (TD-09 one paper)`); bad++; }
+      else if (got !== n[neutral]) { console.error(`design-sync --check: ONE-PAPER DRIFT in ${rel} — --${tok} is ${got}, the paper system says ${n[neutral]} (--${neutral})`); bad++; }
+    }
+  }
+  const wsrc = readFileSync(join(root, 'shared/design/worlds.css'), 'utf-8');
+  for (const w of WORLDS) {
+    for (const [tok, neutral] of [['w-bg', 'paper'], ['w-paper', 'paper-2'], ['w-ink', 'ink']]) {
+      const got = wsrc.match(new RegExp(`\\[data-world="${w}"\\][^}]*--${tok}:\\s*${HEX}`))?.[1]?.toLowerCase();
+      count++;
+      if (got !== n[neutral]) { console.error(`design-sync --check: worlds.css [data-world="${w}"] --${tok} ${got ?? 'missing'} ≠ --${neutral} ${n[neutral]}`); bad++; }
+    }
+  }
+  checkOnePaper.count = count;
+  return bad;
+}
+
+/* TD-01 / TD-02 / TD-04, as re-pointed by TD-09 (docs/design/TOKEN-RECORD.md).
+   --paper-warm is the well (paper-3) on every desk, --paper-deep its alias,
+   --on-accent the paper. Still gated per theme: an ungated token drifts
+   within two sessions. */
 const NEW_TOKENS = [
-  { key: 'paper-warm', politics: '#f2eee4', space: '#12233c', earth: '#ece2c4', tech: '#171717', travel: '#f6efe2', sports: '#12332a' },
-  { key: 'paper-deep', politics: '#f2eee4', space: '#12233c', earth: '#ece2c4', tech: '#171717', travel: '#f6efe2', sports: '#12332a' },
-  { key: 'on-accent',  politics: '#f4f1ea', space: '#0a1628', earth: '#f0e9d8', tech: '#0d0d0d', travel: '#faf6ef', sports: '#0f2820' },
+  { key: 'paper-warm', politics: '#ede9df', space: '#ede9df', earth: '#ede9df', tech: '#ede9df', travel: '#ede9df', sports: '#ede9df' },
+  { key: 'paper-deep', politics: '#ede9df', space: '#ede9df', earth: '#ede9df', tech: '#ede9df', travel: '#ede9df', sports: '#ede9df' },
+  { key: 'on-accent',  politics: '#f5f2eb', space: '#f5f2eb', earth: '#f5f2eb', tech: '#f5f2eb', travel: '#f5f2eb', sports: '#f5f2eb' },
 ];
 
 function checkNewTokens() {
@@ -166,7 +210,7 @@ function checkNewTokens() {
     for (const w of WORLDS) {
       const p = join(root, `src/styles/themes/${w}.css`);
       if (!existsSync(p)) continue;
-      const got = readFileSync(p, 'utf-8').match(new RegExp(`--${t.key}:\\s*(#[0-9a-fA-F]{6})`))?.[1]?.toLowerCase();
+      const got = readFileSync(p, 'utf-8').match(new RegExp(`--${t.key}:\\s*${HEX}`))?.[1]?.toLowerCase();
       if (!got) {
         console.error(`design-sync --check: themes/${w}.css is missing --${t.key} (TOKEN-RECORD)`);
         bad++;
@@ -180,7 +224,7 @@ function checkNewTokens() {
   const wsrc = readFileSync(join(root, 'shared/design/worlds.css'), 'utf-8');
   for (const [key, rec] of [['paper-warm', NEW_TOKENS[0]], ['on-accent', NEW_TOKENS[2]]]) {
     for (const w of WORLDS) {
-      const got = wsrc.match(new RegExp(`\\[data-world="${w}"\\][^}]*--w-${key}:\\s*(#[0-9a-fA-F]{6})`))?.[1]?.toLowerCase();
+      const got = wsrc.match(new RegExp(`\\[data-world="${w}"\\][^}]*--w-${key}:\\s*${HEX}`))?.[1]?.toLowerCase();
       if (got && got !== rec[w]) {
         console.error(`design-sync --check: --w-${key} DRIFT for ${w} — has ${got}, record says ${rec[w]}`);
         bad++;
@@ -190,20 +234,7 @@ function checkNewTokens() {
   return bad;
 }
 
-/* The in-world deep role has no canonical scalar, so it is gated as an equality
-   between the two places that render it on a world's own ground. */
-const IN_WORLD_DEEP = WORLDS.map((w) => ({
-  world: w,
-  a: { label: `src/styles/themes/${w}.css`, file: `src/styles/themes/${w}.css`, re: /--accent-deep:\s*(#[0-9a-fA-F]{6})/ },
-  b: {
-    label: `home/CategoryCard.astro [data-topic="${w}"]`,
-    file: 'src/components/home/CategoryCard.astro',
-    re: new RegExp(`\\.px-cat\\[data-topic="${w}"\\][^}]*--accent-deep:\\s*(#[0-9a-fA-F]{6})`),
-  },
-}));
-
-function checkMirrors() {
-  const canon = canonicalAccents();
+function checkMirrors(canon) {
   let bad = 0;
   for (const m of MIRRORS) {
     const path = join(root, m.file);
@@ -216,44 +247,36 @@ function checkMirrors() {
       console.error(`design-sync --check: ${m.label} — could not find an accent to check`);
       bad++;
     } else if (got !== want.accent) {
-      console.error(`design-sync --check: ACCENT DRIFT in ${m.label} — has ${got}, canonical is ${want.accent}`);
+      console.error(`design-sync --check: ACCENT DRIFT in ${m.label} — has ${got}, canonical mark is ${want.accent}`);
       bad++;
     }
 
     if (m.deep) {
       const gotDeep = src.match(m.deep)?.[1]?.toLowerCase();
-      if (gotDeep && gotDeep !== want.deep) {
-        console.error(`design-sync --check: ACCENT-DEEP DRIFT in ${m.label} — has ${gotDeep}, canonical is ${want.deep}`);
+      if (!gotDeep) {
+        console.error(`design-sync --check: ${m.label} — could not find an accent-deep to check`);
+        bad++;
+      } else if (gotDeep !== want.deep) {
+        console.error(`design-sync --check: ACCENT-DEEP DRIFT in ${m.label} — has ${gotDeep}, canonical text ink is ${want.deep}`);
         bad++;
       }
-    }
-  }
-
-  for (const p of IN_WORLD_DEEP) {
-    const read = (side) => {
-      const path = join(root, side.file);
-      if (!existsSync(path)) return null;
-      return readFileSync(path, 'utf-8').match(side.re)?.[1]?.toLowerCase() ?? null;
-    };
-    const a = read(p.a);
-    const b = read(p.b);
-    if (a && b && a !== b) {
-      console.error(
-        `design-sync --check: IN-WORLD ACCENT-DEEP MISMATCH for ${p.world} — ` +
-          `${p.a.label} has ${a}, ${p.b.label} has ${b}`,
-      );
-      bad++;
     }
   }
   return bad;
 }
 
 if (check) {
-  drift += checkMirrors();
+  const canon = canonicalInks();
+  drift += checkMirrors(canon);
+  drift += checkLensInks(canon);
+  drift += checkOnePaper(canonicalNeutrals());
   drift += checkNewTokens();
   if (drift) {
     console.error(`\ndesign-sync --check: ${drift} problem${drift === 1 ? '' : 's'}.`);
     process.exit(1);
   }
-  console.log(`design-sync --check: all copies in sync · ${MIRRORS.length} mirrors + ${IN_WORLD_DEEP.length} in-world deeps + ${NEW_TOKENS.length * WORLDS.length} record tokens`);
+  console.log(
+    `design-sync --check: all copies in sync · ${MIRRORS.length} ink mirrors + ${LENS_INKS} Lens inks + ` +
+      `${checkOnePaper.count} one-paper neutrals + ${NEW_TOKENS.length * WORLDS.length} record tokens`,
+  );
 }

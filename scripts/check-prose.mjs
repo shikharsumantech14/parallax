@@ -34,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import matter from 'gray-matter';
 import { automatedReadability } from 'automated-readability';
+import { canonicalKind } from './lib/kind-aliases.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -82,7 +83,7 @@ const T = {
 
 // Kinds that carry no graphic. `paradox` is two blocks of prose (REGISTER-PLAN §1.3).
 // The narrative set plus `paradox`; `jargon-buster` and `three-steps` (RG-09) render cells and cards, not a graphic.
-const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'beat-sheet', 'plate', 'comparison', 'paradox', 'jargon-buster', 'three-steps']);
+const TEXT_ONLY = new Set(['act-break', 'prose', 'quote', 'analogy', 'comparison', 'paradox', 'jargon-buster', 'three-steps']);
 const WORKHORSES = new Set(['prose', 'data-readout', 'timeline', 'paradox', 'quote', 'comparison']);
 // Typographic cards: visual for the 60% floor, but not DRAWN graphics (2026-09-16).
 // `jargon-buster` and `three-steps` are already in TEXT_ONLY.
@@ -315,7 +316,7 @@ for (const s of readdirSync(issuesDir, { withFileTypes: true }).filter((e) => e.
   const f = join(issuesDir, s, 'index.mdx');
   if (!existsSync(f)) continue;
   const d = matter(readFileSync(f, 'utf-8')).data;
-  if (d.status === 'published') publishedKinds.set(s, new Set((Array.isArray(d.sections) ? d.sections : []).map((x) => x.kind)));
+  if (d.status === 'published') publishedKinds.set(s, new Set((Array.isArray(d.sections) ? d.sections : []).map((x) => canonicalKind(x.kind))));
 }
 
 for (const slug of slugs) {
@@ -329,7 +330,8 @@ for (const slug of slugs) {
   const flags = []; // {sev:'❌'|'⚠️'|'ℹ', code, where, note}
   const flag = (sev, code, where, note) => flags.push({ sev, code, where, note });
 
-  const sectionsArr = Array.isArray(fm.sections) ? fm.sections : [];
+  // Retired kind names resolve to their host, as the schema does (Lens, 2026-09-30).
+  const sectionsArr = (Array.isArray(fm.sections) ? fm.sections : []).map((x) => (x && x.kind ? { ...x, kind: canonicalKind(x.kind) } : x));
   const head = { title: fm.title ?? '', dek: fm.dek ?? '', hook: fm.hook ?? '', primer: fm.primer ?? '' };
 
   // — Collect every reader-facing string with its field and section index —

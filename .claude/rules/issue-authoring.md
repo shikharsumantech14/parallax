@@ -52,7 +52,30 @@ build**:
   Components emit no source line of their own any more (`.px-viz__src` is gone),
   so do not duplicate the source into the graphic's data or caption. `plain`
   renders in the same paragraph, as `IN PLAIN TERMS — …`.
+- `kind` — one of the **87** in `SECTION_KINDS`, or one of the six retired
+  names in `KIND_ALIASES` (`src/content/config.ts`), which the schema resolves
+  to the host on parse: `carbon-gauge`, `swing-dial`, `throughput-dial` →
+  `gauge`; `route-card`, `itinerary-reel` → `itinerary`; `city-compare` →
+  `comparison`. **Author the host name.** The ten kinds the Lens verdict
+  dropped (`beat-sheet`, `plate`, `orbital-shells`, `elevation-profile`,
+  `coalition-orbit`, `ballot-flow`, `orbit-globe`, `signal-readout`,
+  `data-globe`, `route-globe`) fail the build.
 
+## Lens: what changes for an author (2026-09-30, `docs/design/LENS.md` §5)
+
+- **Cues arrive in Phase 3; the schema has neither yet.** A graphic section
+  will carry `cues: [{ n, at, text }]` (two to four; `at` names an anchor the
+  component exposes; `text` is the cue's sentence, a traced data claim) and
+  its prose will carry inline `[[n]]` markers that render as cue buttons.
+  Until Phase 3 lands, a `cues` list is silently stripped by the schema (Zod
+  drops unknown keys) and a `[[n]]` prints as literal brackets. Do not author
+  them yet.
+- **`plain` and `howToRead` are deprecated.** Still accepted by the schema and
+  still rendered, until Phase 8 retires them with the old shell; the pipeline
+  keeps authoring them until Phase 7 teaches it cues. The bounds above still
+  fail the build.
+- **Photography is rejected** (LENS §1): there is no `plate` kind any more; a
+  cover is a section drawn in stage mode (`cover:` arrives in Phase 4).
 
 ## Status
 

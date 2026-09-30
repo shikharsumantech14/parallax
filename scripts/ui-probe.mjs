@@ -133,7 +133,7 @@ const WARNING = ['ALIGN', 'TOUCH', 'EMPTY', 'TINY'];
 const TYPES = [...BLOCKING, ...WARNING];
 
 /* Same set ReadingGate + check-catalog treat as narrative (no graphic). */
-const NARRATIVE = ['act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison', 'plate', 'jargon-buster', 'three-steps'];
+const NARRATIVE = ['act-break', 'prose', 'quote', 'analogy', 'comparison', 'jargon-buster', 'three-steps'];
 
 const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36';
@@ -619,7 +619,7 @@ function measure(cfg) {
   out.meta.innerHeight = window.innerHeight;
   out.meta.dpr = window.devicePixelRatio;
   out.meta.docHeight = document.documentElement.scrollHeight;
-  out.meta.literata = Array.from(document.fonts).filter((f) => /Literata/i.test(f.family) && f.status === 'loaded').length;
+  out.meta.faces = ['Newsreader', 'Instrument Sans'].filter((fam) => Array.from(document.fonts).some((f) => f.family.replace(/["']/g, '') === fam && f.status === 'loaded')).length;
   out.meta.gate = { present: !!document.querySelector('.px-gate'), hidden: document.querySelectorAll('.px-gate-hidden').length };
 
   const outermost = (set, stopAt) => {
@@ -1186,7 +1186,7 @@ async function probe(browser, job, opts) {
     if (m.meta.innerWidth !== job.width) {
       res.findings.push({ type: 'HARNESS', nn: '--', kind: 'page', layout: '', desc: `layout viewport is ${m.meta.innerWidth}px, expected ${job.width}px (meta viewport?)`, px: null });
     }
-    if (!m.meta.literata) res.meta.fontWarning = 'Literata not loaded — measured on the fallback face';
+    if (m.meta.faces < 2) res.meta.fontWarning = 'Newsreader or Instrument Sans not loaded — measured on a fallback face';
 
     if (opts.shots) await shoot(page, job, res, opts);
     res.ok = true;

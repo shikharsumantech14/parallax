@@ -3,7 +3,7 @@
 > The lookup the **composer** (the storyboard agent) reads before picking a
 > kind, and the drafter's replacement for the eleven inline data shapes its
 > prompt used to carry (REGISTER-PLAN RG-08, 2026-09-13 — those eleven were,
-> near enough, the only kinds ever published). Every one of the 98 registered
+> near enough, the only kinds ever published). Every one of the 87 registered
 > kinds appears exactly once below, grouped by the SHAPE of the data it needs.
 > Pick by shape first, then open the kind's `## <kind>` block in `catalog.md`
 > for USE WHEN / DON'T USE / DATA / PLAIN. This file is a separate document
@@ -13,6 +13,12 @@
 > **[3D]** = WebGL scene (lazy `three`, never adjacent to another 3D kind).
 > **[i]** = has a control, so it authors a `howToRead` and shows the panel by
 > default (`NEEDS_HOW`). Descriptions are trimmed from the catalog's USE WHEN.
+>
+> **The Lens verdict (2026-09-30, `docs/design/LENS.md` §9)** took the library
+> from 101 kinds to 87: ten dropped, four folded into a host, two renamed. The
+> retired names (`carbon-gauge`, `swing-dial`, `throughput-dial` → `gauge`;
+> `route-card`, `itinerary-reel` → `itinerary`; `city-compare` →
+> `comparison`) still build as aliases but are not listed here: pick the host.
 
 ## How to use this table
 
@@ -26,7 +32,7 @@
    at least one kind from outside the six workhorses (`prose`, `data-readout`,
    `timeline`, `paradox`, `quote`, `comparison`) per issue.
 
-## G1 · Narrative — no data shape (8)
+## G1 · Narrative — no data shape (6)
 
 | Kind | One line |
 |---|---|
@@ -34,35 +40,30 @@
 | `prose` | the connective argument; ≤ 200 words a section, ≤ 3 sections an issue |
 | `quote` | one verified verbatim quote with an exact attribution |
 | `analogy` | a this ↔ that mapping in hairline rows (generalised 2026-09-13; the legacy joint-family shape still renders) |
-| `beat-sheet` | a mechanism compressed into ordered beats with time markers |
-| `plate` | a framed photograph; renders nothing without an image |
 | `jargon-buster` | 2–4 terms of art with a one-line meaning each, in the register |
 | `three-steps` | a mechanism in three numbered cards, one idea each |
 
 (`hero` was retired on 2026-09-13; it had rendered nothing since the launch design.)
 
-## G2 · Two or three peers, attribute by attribute (7)
+## G2 · Two or three peers, attribute by attribute (6)
 
 | Kind | One line |
 |---|---|
 | `you-think` | what most people think / what the data shows, with the one figure that settles it |
-| `comparison` | two or three entities compared row by row; the read-across matters |
+| `comparison` | two or three entities compared row by row; the read-across matters (two places with a winner per row: the pair form) |
 | `paradox` | two facts both true, pulling opposite ways — two blocks of prose, no mark; ≤ 1 per issue |
-| `city-compare` | exactly two places, with a winner per row |
 | `match-stat-line` | one match, home vs away stat rows |
 | `player-radar` | one player across 5–8 axes as a shape; optional comparison shape |
 | `player-card` [i] | one player as a flip rating card |
 
-## G3 · One number against a threshold, or a few headline numbers (7)
+## G3 · One number against a threshold, or a few headline numbers (5)
 
 | Kind | One line |
 |---|---|
 | `number-sense` | one big number and the everyday things it equals, so the size is felt |
 | `data-readout` | 3–6 headline numbers as instrument tiles, one accented |
 | `vote-result` | one decisive vote against the threshold it needed |
-| `carbon-gauge` | a budget as a gauge: used against remaining |
-| `swing-dial` | a single value on a two-bloc scale |
-| `throughput-dial` | one throughput or utilisation gauge with zones |
+| `gauge` | one value on an arc: a budget used, a lean between two blocs, or a load against capacity |
 | `margin-bullets` [i] | 4–8 measurements each against its own requirement, in mixed units |
 
 ## G4 · Time series and dated sequence (16)
@@ -94,28 +95,24 @@
 | `league-table` | standings: position, points, form, movement |
 | `margin-ladder` | ranked win or loss margins: safe seats against knife-edge ones |
 
-## G6 · Composition, parts of a whole, layers (16)
+## G6 · Composition, parts of a whole, layers (12)
 
 | Kind | One line |
 |---|---|
 | `seat-chart` | seat counts per party or state with a change column |
 | `bill-breakdown` | a bill's provisions as cards, one of them the key payload |
 | `chamber` [3D] | the seat-by-party composition of a whole chamber, plus a division walk |
-| `coalition-orbit` [3D] | seat shares as party bodies orbiting a core |
 | `coalition-calculus` [i] | build a coalition against the majority line |
 | `age-pyramid` [i] | composition by age band with a binary split; counts or shares |
 | `attrition-waffle` [i] | a rate out of exactly 100 as countable squares |
 | `channel-ternary` [i] | entities split across three shares that sum to 100 |
 | `chip-die` [i] | a die floorplan where each block's area equals its real share |
-| `orbital-shells` | occupancy of altitude bands (low, medium, geostationary) |
 | `delta-v-ladder` | an energy budget broken into named segments |
-| `signal-readout` | per-band frequency and strength readings |
-| `elevation-profile` | vertical structure by labelled bands with values |
 | `core-sample` | a vertical core by depth; layers with labels and values |
 | `arch-stack` | a layered system: what sits on what |
 | `power-matrix` | institutions crossed with parties, each cell a control state |
 
-## G7 · Process, flow, stage attrition (9)
+## G7 · Process, flow, stage attrition (7)
 
 | Kind | One line |
 |---|---|
@@ -123,19 +120,15 @@
 | `bill-funnel` [i] | a population of bills surviving each procedural stage |
 | `vote-flow` | blocs flowing into for / against / abstain; the split within each |
 | `power-flow` | money or authority flowing source → via → sink, with totals |
-| `ballot-flow` [i] | ranked-choice round transfers, exhausted ballots included |
 | `carbon-loop` | a stock-and-flow cycle: reservoirs and fluxes, conservation-checked |
 | `journey-map` | a route as named stops with distance, elevation, notes |
-| `route-card` | a journey as legs: from, to, mode, distance, duration |
-| `itinerary-reel` | a day-by-day itinerary as flip-through cards |
+| `itinerary` | a journey as legs (from, to, mode, distance, duration), each stop carrying up to three items; a day-by-day plan renders as stops |
 
-## G8 · Geographic (11)
+## G8 · Geographic (9)
 
 | Kind | One line |
 |---|---|
 | `region-map` | a value shaded per country or zone on a flat world map |
-| `data-globe` [3D] | geo-located point values at real latitude and longitude |
-| `route-globe` [3D] | a multi-stop journey arced across a globe |
 | `terrain-relief` [3D] | real elevation-model topography of one bounded region |
 | `plate-motion` [3D] | a plate velocity field from real Euler poles |
 | `storm-track` [3D] | a cyclone's best-track fixes, strength-coloured |
@@ -145,12 +138,11 @@
 | `city-grid` | street-orientation polar histograms: grid against tangle |
 | `timezone-arc` | city offsets against a reference, with overlap and sun position |
 
-## G9 · Physics, orbital mechanics, physical scale (13)
+## G9 · Physics, orbital mechanics, physical scale (12)
 
 | Kind | One line |
 |---|---|
 | `solar-system` [3D][i] | navigable Keplerian orbits from real elements |
-| `orbit-globe` [3D] | orbital shells and satellite populations around Earth |
 | `constellation-swarm` [3D] | a true satellite census on its real shells |
 | `flight-of-the-ball` [3D] | a drag-plus-Magnus trajectory from launch parameters |
 | `orbit-trace` | a handful of named orbits by altitude and inclination, on a squeezed scale |

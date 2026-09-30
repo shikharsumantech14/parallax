@@ -8,7 +8,7 @@ Digest of the memory as of 2026-09-28. Read-only during a run. Updates happen in
 - `bill-passage` status means that stage was cleared or not, so say so in `plain`. A stage never held is `failed` plus a note.
 - `power-matrix`: author only non-`none` cells, a `color` on every party, column heads that can hold control.
 - `number-sense` prints `note` above `equals`, so it must stand alone.
-- Default copy fits only the home use, so author `plain` on `benchmark-chart` (inverted metric), `throughput-dial`, `power-flow`, `margin-bullets`, `arch-stack`, `core-sample`, schematic `shot-map`, and `howToRead` on `core-sample` and count-free `orbit-trace`.
+- Default copy fits only the home use, so author `plain` on `benchmark-chart` (inverted metric), `gauge` (was `throughput-dial`), `power-flow`, `margin-bullets`, `arch-stack`, `core-sample`, schematic `shot-map`, and `howToRead` on `core-sample` and count-free `orbit-trace`.
 
 ## How check:prose counts
 - The 1,100 bills eyebrows, titles, source labels, data strings of 2+ words. Free: `value`, `unit`, `date`, `at`, `status`, `role`, `id`, one-word strings, a `{label, date}` source's date.

@@ -53,14 +53,14 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts — **ONE family, Literata** (launch design, 2026-09-08). The three ROLE tokens `--font-display` / `--font-body` / `--font-mono` survive so 101 kinds keep compiling, but all resolve to Literata; roles differ by size / weight / case / tracking (display 700 tight, body 400, labels 600 small capitals tracked .14–.20em). Tabular figures on `<body>`. The trio (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces before it are retired; the share cards render on static Literata Bold / Medium from `assets/fonts/`. |
+| Fonts        | Google Fonts — **two families under Lens (2026-09-30, `docs/design/LENS.md` §3): Newsreader** (display, prose, captions; 400/500/600 and italic) **and Instrument Sans** (UI, labels and every number, 600 tabular). The role tokens map `--font-display` / `--font-body` → Newsreader and `--font-mono` → Instrument Sans; nothing below 12px rendered. The share cards need static files of both (`scripts/fetch-fonts.mjs`). **Phase 1 swaps them in** (`src/styles/type-v2.css`); until it lands the product renders the launch design's ONE family, Literata, through the same three role tokens. Literata (2026-09-08), the trio before it (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces are retired as faces; the medallion's P stays an outline traced from Literata. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.3.x (for pipeline CLI; upgraded from 0.2.126 on 2026-09-28, COST-PLAN CP-02) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
-| 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **14** WebGL section kinds, one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **101 kinds** in `SECTION_KINDS` (`src/content/config.ts`), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. `npm run check:catalog` asserts that pairing **plus** EXPLAIN + KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15), and runs in `prebuild` — so a half-wired kind fails the build. |
+| 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **10** WebGL section kinds (14 until the Lens verdict of 2026-09-30 dropped the four generic globes), one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
+| Section library | **87 kinds** in `SECTION_KINDS` (`src/content/config.ts`; 101 until the Lens verdict of 2026-09-30, LENS §9), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. Six retired names build as **aliases** of their host (`KIND_ALIASES`: `carbon-gauge` / `swing-dial` / `throughput-dial` → `gauge`, `route-card` / `itinerary-reel` → `itinerary`, `city-compare` → `comparison`); author the host. `npm run check:catalog` asserts the pairing **plus** EXPLAIN + KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15) **plus** the alias map (check 6, 2026-09-30), and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -130,27 +130,29 @@ is absolute**: every component paints its final composed state under no-JS,
 
 ## 3. The six topics
 
-Each topic has full tokens, masthead variant, topic-index page template,
-and signature section kinds.
+Each topic (a desk) has its ink set, its register line, the one desk template
+(`desk/DeskIndex.astro`) and signature section kinds.
 
-Worlds: **politics · space · earth · tech · travel · sports**. They differ by
-**colour** — ground, ink, rule, accent — and by their register line ("Politics
-desk", "Mission control"). Since the launch design (2026-09-08) they share ONE
-typeface (Literata) AND one type language: the per-world eyebrow / numeral /
-prose treatments that the themes used to carry were removed. Older docs carry
-a per-world "Display font" column and "treatment" notes; both are historical.
-The HOUSE (home, about, archive, subscribe) is the politics record — same
-ground, ink and oxide-red accent — set in `src/styles/meta.css`.
+Worlds: **politics · space · earth · tech · travel · sports**. Under Lens
+(2026-09-30) they differ by **ink on one paper**: every desk page sits on the
+same warm paper, and each desk has four inks — **text** for words, **mark**
+for fills and lines, **tint** for bands and chips, **deep** for the one
+bounded plate (a hero, a cover, a WebGL scene) — plus its register line
+("Politics desk", "Mission control"). They share the two faces and one type
+language. The per-desk page grounds (dark space, tech and sports pages) are
+retired, and so is every per-world face or treatment; older docs that
+describe one are historical. The HOUSE (home, about, archive, subscribe, the
+account pages) is ink on paper with the politics inks as its accent, because
+the house cut of the mark is the politics station.
 
-→ Palette values, the `-deep` variants, colour law and the type trio:
+→ Palette values and colour law: **`docs/design/LENS.md` §2** and
   **`.claude/rules/design-tokens.md`** (loads on `src/styles|shared/design|components/topic/**`).
 
-Each topic also has a `-deep` accent variant in `meta.css` for large text on
-light paper where the vivid accent would fail WCAG contrast. See
-`src/styles/meta.css` for the full token list.
-
-Flipping `<html data-topic>` swaps the entire look. Per-topic theme files:
-`src/styles/themes/{politics,space,earth,tech,travel,sports}.css`.
+`<html data-topic>` picks the desk. The per-topic theme files
+`src/styles/themes/{politics,space,earth,tech,travel,sports}.css` map that
+desk's inks onto the role tokens the components read; Lens Phase 1 reduces
+them to those accent variables, and until it lands they still carry the
+launch design's grounds.
 
 ---
 
@@ -192,16 +194,16 @@ src/
 │   │                            for the fourteen VizCard kinds so the panel renders
 │   │                            inside the card (Section's copy hides via :has()).
 │   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
-│   │                            IssueHead [meta strip · head · primer], Plate
-│   │                            [a framed photograph — renders only with an
-│   │                            image], Section [owns ALL explainability chrome for
+│   │                            IssueHead [meta strip · head · primer],
+│   │                            Gauge [the `gauge` kind, three variants],
+│   │                            Section [owns ALL explainability chrome for
 │   │                            every kind: how-to-read panel ABOVE the graphic,
 │   │                            plain line + `Source · …` second line BELOW —
 │   │                            components render none of it], VizCard [the
 │   │                            shell for twelve kinds: caption row + chip +
 │   │                            in-card how-to-read + graphic slot; renders NO
 │   │                            source], Quote, Prose, Comparison,
-│   │                            DataReadout, BeatSheet, Sources, Colophon,
+│   │                            DataReadout, Sources, Colophon,
 │   │                            ReadingToolbar [replaced SkimToggle; mounts
 │   │                            SaveButton], the Reveal + VizMotion motion
 │   │                            islands, the Viz3DRuntime + Tilt islands for
@@ -250,7 +252,7 @@ src/
 │   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
-└── scripts/viz3d/             ← lazy WebGL for the 14 3D section kinds:
+└── scripts/viz3d/             ← lazy WebGL for the 10 3D section kinds:
                                   runtime.ts (dynamic-imports three on
                                   scroll-in) + scenes/index.ts (the registry —
                                   ONE line per scene, each its own lazy chunk)
@@ -275,10 +277,12 @@ docs/
 ├── STATE-OF-PLAY.md           ← dated snapshot of what is actually built /
 │                                uncommitted / open — READ THIS FIRST
 ├── PROJECT.md                 ← long-form project state + change log
-└── design/                    ← the design canon (CANON.md, motion.md,
-                                  catalog.md, the *-SPEC.md set, physics/,
-                                  worlds/, blueprints/) — read before any
-                                  visual work
+└── design/                    ← LENS.md, the design law since 2026-09-30
+                                  (CANON.md and motion.md are archived under
+                                  a pointer to it), catalog.md, the
+                                  *-SPEC.md set, physics/, worlds/,
+                                  blueprints/ — read LENS before any visual
+                                  work
 shared/design/                 ← tokens.css + worlds.css — the CANONICAL token
                                   source. Edit here, then `npm run design:sync`;
                                   `design:check` gates the build. The RD-05
@@ -540,6 +544,13 @@ with the canon in `_voice-core.md` §6.
 ### Schema rules — Zod fails the BUILD, it does not warn
 
 - `primer` 80–420 chars · `plain` ≤220 · `howToRead` 40–360
+- **Lens (2026-09-30):** `plain` and `howToRead` are **deprecated** — still
+  accepted and rendered until Phase 8, still authored by the pipeline until
+  Phase 7 teaches it cues. The `cues: [{n, at, text}]` field and the `[[n]]`
+  prose markers arrive in Phase 3 (LENS §5.2); the schema has neither yet.
+- `kind` is one of the 87 in `SECTION_KINDS` or one of the six aliases in
+  `KIND_ALIASES` (resolved to the host on parse). A dropped kind fails the
+  build.
 - `plain` = the **form** of the graphic; `caption` = the **data** claim (the
   only one the verifier traces); `howToRead` = how to use it. Confusing these
   trips PLAIN-CLAIM / CAPTION-FORM / REDUNDANT-HOWTO.
@@ -558,103 +569,113 @@ with the canon in `_voice-core.md` §6.
 
 ### Visual rules
 
-- **One typeface product-wide — Literata** (launch design, 2026-09-08). The
-  three role tokens all resolve to it; roles differ by size / weight / case /
-  tracking. Worlds differ by colour, **never typeface, never treatment**.
-  Single lever: `src/styles/type-v2.css`, imported last. Do not reintroduce
-  per-world faces or per-world eyebrow / numeral / prose cuts in the themes.
-- **The frame is 1280 with no side padding** (`.px-wrap`); every page is a
-  stack of full-width bands (`.px-band`, 46/40px → 24/20px on phones) split by
-  hairlines, built from the launch primitives at the end of `base.css`
-  (`.px-h1`, `.px-lede`, `.px-eyebrow`, `.px-meta`, `.px-btn`, `.px-cells`,
-  `.px-chip`, `.px-input`). Page styles are SCOPED to their page; `meta.css`
-  is tokens only. The issue floor plan is 170 / 1fr / 250 on that frame, which
-  is what makes the prose column exactly 720 — the old 980 cap left it 436.
-- **The section geometry (ruled 2026-09-23, air added 2026-09-24).** On the
-  floor plan a section has two widths: the MEASURE (720, the article's content
-  box, 69px inside each rule) and the breakout. `default` sets everything at
-  the measure. `wide` keeps the TEXT at the measure and lets the FIGURE out by
-  45px each side (810 wide, 24px clear of each rule) — never rule to rule,
-  which the operator read as "fitted to the exact size". `bleed`, `split` and
-  `split-flip` are aliases of `wide` until a design pass re-derives them on
-  the floor plan; **never author them**. `breath` is `default` with air and a
-  display intro, left-aligned. **Nothing crosses the rails, ever**: they carry
-  the facts and the contents list, and the hero is often section 1.
-  `src/styles/layout-v2.css` is the one place this lives; `core/Section.astro`
-  is one markup for every layout.
-- **A component's contract, enforced by `check:render` (2026-09-22/23):** a
-  text cell wraps or truncates, never `nowrap` in a fixed width; an outward SVG
-  label wraps or is budgeted in characters against its gutter, and never leaves
-  its own SVG; a control never floats over content on touch (the ⤢ study button
-  is an in-flow row under the graphic below 768px and on coarse pointers); a
+**The law is `docs/design/LENS.md` (Lens, 2026-09-30).** `docs/design/CANON.md`
+and `docs/design/motion.md` are archived under a header that points there;
+their correctness rulings carried over (LENS §1.2). The approved canvas is
+the reference for every value. What renders today is still the launch design
+until each phase lands (LENS §11): build toward LENS, never patch the old
+shell toward it piecemeal outside the plan, and never "restore" a retired rule
+because the page still shows it.
+
+- **Two faces: Newsreader and Instrument Sans.** Newsreader (500 display,
+  400 prose, italic for the one emphasis word) for headlines, section titles,
+  the article and captions; Instrument Sans for UI, labels and every number
+  (600, tabular). Worlds differ by ink, **never by face**. Labels 12–13px
+  capitals at .06em; **nothing below 12px rendered**. The scale is LENS §3;
+  the lever is `src/styles/type-v2.css` (Phase 1). *Replaces* "one typeface,
+  Literata" (2026-09-08). The P in the medallion stays a Literata outline.
+- **One paper, six inks.** Every desk sits on `--paper` (`#F5F2EB`). A desk's
+  colour lives only in its marks, chips, rules, tints and ONE bounded deep
+  plate (a hero, a cover, a WebGL scene; LENS §8). Each desk has four inks:
+  **text** for words (≥ 4.5:1 on paper), **mark** for fills and lines,
+  **tint** for bands and chips, **deep** for the plate. The two limes are
+  marks on their own desk's plate only. On a plate, text is `--on-deep`.
+  *Replaces* the six page grounds and the two-role `--accent-deep`.
+- **The frame is a 1152 content column in 64px margins** (20px on phones), 12
+  columns on 24px gutters, sections 96px apart (64 on phones). *Replaces* the
+  1280 frame with no side padding. **The issue section becomes 620 article +
+  24 + 520 pinned figure panel** (LENS §5.1) in Phase 3. Until then the
+  launch floor plan still renders from `src/styles/layout-v2.css` (170 / 1fr /
+  250, a 720 measure, `wide` 45px out each side, nothing across the rails),
+  and `bleed` / `split` / `split-flip` stay aliases of `wide`: never author
+  them.
+- **Corners are 6 / 4 / pill; clickable cards lift.** A card is `--paper-2`,
+  1px `--hair`, `--r-card` 6px, `--shadow-1`; hover takes an ink border and
+  `--shadow-2`, never a translate or a scale. Buttons 44px, `--r-ctl` 4px;
+  chips 28px pills on the desk tint. *Replaces* zero radius and the RD-05 flat
+  surfaces.
+- **The graphic explains itself: cues** (LENS §5). The article's own prose
+  carries numbered cue buttons (`[[n]]`) that light the part of the pinned
+  figure they name (`cues: [{n, at, text}]`, anchors `data-cue` on the
+  component's elements); one caption, the source line in the panel. Two to
+  four cues per graphic section, none on the narrative kinds. The schema and
+  the `cues.ts` island land in Phase 3. *Replaces* the how-to-read panel, the
+  plain line, the ⤢ expand modal and the canvas's beat rail. **Until Phase
+  8** the old chrome still renders once, from `core/Section.astro` (the panel
+  above via `howToReadFor()`, the plain line with `Source · …` below;
+  `plain` and `howToRead` are deprecated but accepted): add no second
+  emitter, and never reintroduce `.px-viz__src`.
+- **A component's contract, enforced by `check:render` (2026-09-22/23), plus
+  Lens:** a text cell wraps or truncates, never `nowrap` in a fixed width; an
+  outward SVG label wraps or is budgeted in characters against its gutter and
+  never leaves its own SVG; a control never floats over content on touch; a
   component renders no source and no caption under a spelling the shell cannot
-  see (`__cap` / `__caption`; the source is Section's alone); its copy is
-  desk-neutral; its values size to their cell. **It is not done until
-  `npm run check:render` is clean at 1280 AND 375 on every page that uses it,
-  and the screenshots have been read.**
-- **Zero rounded corners.** `--r-card`, `--r-tile` AND `--r-pill` are all 0
-  in `base.css :root` (the pill joined on 2026-09-08 by operator ruling on the
-  canvas). Only colour dots and the medallion are round.
-- **In-SVG `<text>` uses a literal font stack, never `var()`** (RD-01b).
-- **Small text on a light ground uses `--accent-deep`**; TD-06: any fill that
-  carries text uses `--accent-deep` (the vivid accent fails travel at 3.91:1).
+  see (`__cap` / `__caption`); its copy is desk-neutral; its values size to
+  their cell. Lens adds: **labels of at most three words, ONE number set
+  large, the figure at ≥ 55% of the section, cue anchors on the elements a cue
+  can name, and no motion of its own** (the `build.ts` island builds it,
+  Phase 5). **It is not done until `npm run check:render` is clean at 1280
+  AND 375 on every page that uses it, and the screenshots have been read.**
+- **Motion is one grammar** (LENS §6): `--ease` for entrances and builds,
+  `--ease-move` for things that travel, linear for physical loops; 160 / 420
+  / 900 / 1400ms and a scene ≤ 4.5s; 80ms stagger; the next beat starts ~70%
+  through the last; counters on requestAnimationFrame, lines by dashoffset,
+  bars by `scale`, never by animating `width` / `height` / `r`. Reduced motion
+  and no JS paint the final state. No overshoot; hover never moves layout.
+- **The number scale** (LENS §7): stage counter 160 (88 on phones), pinned
+  figure headline 96, secondary figures and stat tiles 48, card numbers 40;
+  line-height 0.92, the label 8px below.
+- **The mark is the phase medallion (RD-10), unchanged.** Lens re-sizes only
+  its lockup: the tight mark at a 34px disc with ring 9, a 12px gap, "Parallax"
+  in Newsreader 500 24px on the disc's centre line, the desk register after it
+  in 13px capitals; 28px in the footer. Every desk mark ≥ 24px shows the P;
+  below 24px the reversed cut. Use `core/Mark.astro` / `src/lib/mark.ts`,
+  never pasted SVG. The misuse list is LENS §4.3.
+- **In-SVG `<text>` uses a literal font stack, never `var()`** (RD-01b,
+  carried: LENS §3.3).
 - **CSS prefix isolation** — each component owns a unique `px-<abbrev>` (≤6
   chars). Check `meta.css` for collisions first.
 - **Story cards hide a section's chrome, never its data** — `story.css` hides
   `[class$='__cap']` / `[class$='__src']` inside a beat, at depth 1 and 2
-  (some kinds emit chrome as a sibling of the graphic root). The source line
-  is Section's `.px-plain__src`; `.px-viz__src` no longer exists — do not
-  reintroduce it. Graphic containers
-  must never end in `__cap`/`__src`; keep that invariant when naming.
-- **Explainability chrome renders once, from `core/Section.astro`.** The
-  how-to-read panel sits ABOVE the graphic, resolved by ONE function,
-  `howToReadFor(kind, authored)`: an authored `howToRead` always renders; the
-  per-kind default renders only for the `NEEDS_HOW` kinds — instruments, WebGL
-  scenes, counter-intuitive forms (REGISTER-PLAN RG-19, 2026-09-13; the
-  every-kind fallback of 2026-09-04 measured a paragraph on 69 published
-  sections). The plain line sits BELOW with `Source · …` running inline after
-  it (`.px-plain__src`, from `section.source ?? data.source`) — for every kind.
-  Components render none of source / plain / how themselves. The one
-  exception: the fourteen VizCard kinds render their how-to-read INSIDE the card,
-  and `dataviz-v2.css` hides Section's copy with `:has()` so a section shows at
-  most one panel. Do not add a `.px-viz__src` emitter back — the seventy that
-  existed were stripped on 2026-09-04.
-- **Surfaces are flat (RD-05).** `.px-viz` and every reading / home surface:
-  `border-radius: 0`, no `box-shadow`, hover changes border-colour only; every
-  figure wears a 3px `border-top: var(--viz-edge)` (ink on light desks, accent
-  on dark). The radius flip (`--r-card: 0; --r-tile: 0`) lives in
-  `src/styles/base.css` `:root`, NOT in `shared/design/tokens.css`. That split
-  existed because app/ read those tokens; the merge removed the reason, so the
-  override is vestigial — moving it is an RD-05 call, not a cleanup.
-  `--r-pill` was flipped to 0 with the launch design (2026-09-08) — chips,
-  CTAs and the reading strip are square. Shadows survive only on focus rings, inset
-  hairlines, data-mark halos, slider thumbs, CSS-3D scene depth (RD-06), viz3d
-  overlay chrome, modal / popover / toast chrome and the onboarding surface.
-  The reading toolbar is flat (paper + 2px ink rule); glass is modal-only.
-
-- **Mobile in-SVG legibility is FIXED for the scaling charts (2026-09-07).**
-  It was never a font-size problem, which is why it survived a year of being
-  described as one. Those SVGs are `width: 100%` over a fixed viewBox, so text
-  renders at `authored x (cardWidth / viewBoxWidth)` — at 375px a 720-unit
-  chart scales by 0.379 and an authored 9.5px lands at 3.6px. The fix is one
-  block in `dataviz-v2.css`: each chart gets a `min-width` equal to its own
-  coordinate width and the CARD scrolls, so the scale factor is 1 and every
-  label lands at the size it was drawn at. 23 charts, 3.1px → 9–12.5px,
-  measured across all six showcase issues.
-
-  **Read that block before touching any of it** — it records the exclusions and
-  why each one is not a bug: narrow-viewBox forms (dials, radars, ternary,
-  shot-map) already fit; the WebGL fallback SVGs carry no class to target;
-  `climate-spiral` is a square radial that wants a redraw, not a scroll;
-  `flight-of-the-ball` cannot be fixed this way at all because
-  `.viz3d--fball` pins an aspect-ratio on the mount; and `region-map` is short
-  of the floor because its labels are AUTHORED at 7.5px, which is a type-scale
-  call, not geometry.
+  (some kinds emit chrome as a sibling of the graphic root). Graphic
+  containers must never end in `__cap`/`__src`; keep that invariant when
+  naming.
+- **Mobile in-SVG legibility for the scaling charts (2026-09-07).** Those SVGs
+  are `width: 100%` over a fixed viewBox, so text renders at `authored x
+  (cardWidth / viewBoxWidth)`. The fix is one block in `dataviz-v2.css`: each
+  chart gets a `min-width` equal to its own coordinate width and the CARD
+  scrolls, so every label lands at the size it was drawn at. **Read that block
+  before touching any of it** — it records the exclusions (narrow-viewBox
+  forms, the WebGL fallbacks, `climate-spiral`, `flight-of-the-ball`,
+  `region-map`) and why each is not a bug. The render gate still reports TINY
+  below 9.5px; LENS raises the floor to 12px and the gate follows in Phase 5.
 - **No sitemap integration.** `@astrojs/sitemap` was tried and removed — it
   errored on the collection shape. Verify before re-adding.
 
+**Retired 2026-09-30 by the Lens revamp** (the canvas and LENS §10 are the
+reason; do not restore any of them): **Literata as the one face** (and the
+trio before it) · **zero radius** (`--r-card`, `--r-tile`, `--r-pill` at 0)
+and the flat, shadowless surfaces of RD-05 · **the 1280 frame with no side
+padding** · **six page grounds** (the dark space, tech and sports pages) ·
+**`--viz-edge`**, the 3px top rule on every figure · **the how-to-read panel**
+(`howToRead`, `NEEDS_HOW`) · **the plain line** ("In plain terms",
+`EXPLAIN.what`) · **the ⤢ expand modal** and its study view · **the beat
+rail** of the early canvas rounds. The retired pieces that still render do so
+only until Phase 8 removes them in one deploy.
+
 → Palette, colour law, prefixes: **`.claude/rules/design-tokens.md`**.
   JS budget, islands, the gate: **`.claude/rules/js-budget.md`**.
+  The whole system: **`docs/design/LENS.md`**.
 
 ### Git / deploy rules
 
@@ -768,7 +789,8 @@ rule ever fails to fire, open the file directly.
 
 | Looking for | Loads on | File |
 |---|---|---|
-| Palette, colour law, type trio, prefixes | `src/styles/**`, `shared/design/**`, `src/components/topic/**` | `.claude/rules/design-tokens.md` |
+| The design law (tokens, type, layout, the mark, cues, motion) | on request | `docs/design/LENS.md` |
+| Palette, colour law, the two faces, prefixes | `src/styles/**`, `shared/design/**`, `src/components/topic/**` | `.claude/rules/design-tokens.md` |
 | JS budget, islands, fallback contract, the gate | `src/components|layouts|pages|scripts/**` | `.claude/rules/js-budget.md` |
 | Issue schema + build-breaking bounds | `src/content/issues/**/*.mdx` | `.claude/rules/issue-authoring.md` |
 | Voice modes, AI-tell catalog | `research/**`, `**/*.mdx` | `.claude/rules/editorial-voice.md` |
@@ -789,13 +811,18 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 - **Current state (read first):** `docs/STATE-OF-PLAY.md` — what is built,
   what is uncommitted, what is compile-verified only, what is still open.
-- **Design canon:** `docs/design/` — `CANON.md` (master rules; the 2026-09-04
+- **Design law:** `docs/design/LENS.md` (Lens, 2026-09-30) — tokens, type,
+  layout, the mark and lockup, the reading system and cues, motion, the number
+  scale, the stage, what is retired, the rollout by phase. The approved canvas:
+  <https://claude.ai/artifact/AhFSGExFKxhc9HNHw5CnRH> (private).
+- **Design canon (archived 2026-09-30, superseded by LENS for every visual
+  rule):** `docs/design/` — `CANON.md` (master rules; the 2026-09-04
   shell-adoption amendments were **signed 2026-09-05**, `0104915` — §13's two
   universal acceptance checks are a live floor a reviewer can reject on).
   `motion.md` was signed 2026-09-07 (`b06caec`) together with the `--t-page`
   ruling it was waiting on: navigation split off to `--t-slow` (420ms) because
   it answers a click, while in-page settling keeps 600ms. `catalog.md`
-  (the 101-kind component palette), `motion.md`, the `*-SPEC.md` set,
+  (the 87-kind component palette since the Lens verdict), `motion.md`, the `*-SPEC.md` set,
   `physics/`, `worlds/`, `blueprints/`. Read before any visual work.
 - **Long-form project state + change log:** `docs/PROJECT.md` (~1400 lines,
   the canonical historical reference).
@@ -807,6 +834,61 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-09-30 — Lens, Phase 0: the design law, and the verdict on the library
+
+The operator approved the Lens design revamp on the Design canvas
+(<https://claude.ai/artifact/AhFSGExFKxhc9HNHw5CnRH>, private, 2026-09-29/30)
+and its nine-phase implementation plan (0 to 8). Phase 0 writes the rules
+before any code:
+
+- **`docs/design/LENS.md` is the design law from today.** The tokens (one
+  paper, six desk inks as text / mark / tint / deep, the on-deep set),
+  Newsreader + Instrument Sans, the 1152 column in 64px margins, cards /
+  buttons / chips, the mark and its lockup (the medallion unchanged, only the
+  lockup re-sized), the reading system and the cue contract (a 620 article
+  column beside a 520 pinned figure; `cues: [{n, at, text}]`, `[[n]]` prose
+  markers, `data-cue` anchors, the lighting), the motion grammar, the number
+  scale, the stage, what is retired, and which phase builds what.
+- **`CANON.md` and `motion.md` are archived**, bodies unedited, under a
+  header that says so and maps each carried correctness ruling (photography
+  rejected, the accessibility floor, RD-01b, the motion budget, the reading
+  gate, honesty defaults, fallback first, the WebGL line-art doctrine) to its
+  LENS section.
+- **§7 Visual rules rewritten to Lens**, each replaced rule named, closed by a
+  "Retired 2026-09-30" list. §2's Fonts, 3D and library rows, §3, the §4 map,
+  §8b and §9 follow. `.claude/rules/design-tokens.md`, `js-budget.md` (the two
+  new islands, `cues.ts` and `build.ts`), `issue-authoring.md` (`cues` and
+  `[[n]]` arrive in Phase 3; `plain` and `howToRead` deprecated, accepted
+  until Phase 8) and `viz3d.md` (ten scenes) updated, and so are
+  `src/components/AGENTS.md`, `src/content/issues/_AGENTS.md`, `catalog.md`
+  and `catalog-shapes.md`.
+- **The verdict on the library, applied: 101 → 87 kinds.** Dropped:
+  `beat-sheet`, `plate`, `orbital-shells`, `elevation-profile`,
+  `coalition-orbit`, `ballot-flow`, `orbit-globe`, `signal-readout`,
+  `data-globe`, `route-globe` (their components, four WebGL scenes, the
+  `ballot-flow` blueprint, the catalog blocks, and every EXPLAIN / NEEDS_HOW /
+  KIND_PRIORITY / TRIM / narrative-set entry). Renamed: `carbon-gauge` →
+  `gauge` (`core/Gauge.astro`), `route-card` → `itinerary`
+  (`topic/travel/Itinerary.astro`). Folded: `swing-dial` and
+  `throughput-dial` → `gauge` (its lean and capacity variants),
+  `itinerary-reel` → `itinerary` (days become stops), `city-compare` →
+  `comparison` (its pair form). Each fold keeps the old markup and prefix
+  inside the host until Phase 6 redraws it. **The six old names build as
+  aliases:** `KIND_ALIASES` in `src/content/config.ts`, resolved by the
+  schema on parse, so every consumer of `section.kind` sees the host;
+  `check:catalog` check 6 guards the map; `scripts/lib/kind-aliases.mjs`
+  resolves them for `check-prose` and `project-graph`, which read MDX
+  directly. No published issue used a dropped kind (grep, and the published
+  Amazon issue's `throughput-dial` now renders as `gauge` unedited). Five
+  drafts lost the sections that did (`2026-05-03-space-components` and the
+  earth, politics, space and travel showcases), and their prose was trimmed
+  to match.
+
+**Standing rules from today:** author the host kind, never an alias; a
+section naming a dropped kind fails the build; build toward LENS, and do not
+restore a retired rule because the old shell still renders it (Phase 8
+removes the old shell, themes, panel and modal in one deploy).
 
 ### 2026-09-30 — The onboarding intro is removed
 

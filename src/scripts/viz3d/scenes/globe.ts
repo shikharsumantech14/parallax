@@ -9,8 +9,10 @@
    type-led, no-photo v2 look.
 
    The globe + its country borders + near-side labels are SHARED across the
-   three globe scenes (orbit-globe, data-globe, route-globe) via
-   buildCountryGlobe() + makeLabels(). Country geometry is lazy-fetched once
+   globe scenes via buildCountryGlobe() + makeLabels(). (The three generic
+   globes it was written for, orbit-globe, data-globe and route-globe, were
+   dropped by the Lens verdict on 2026-09-30; the kept globe scenes import
+   these helpers.) Country geometry is lazy-fetched once
    from /geo/countries-110m.json (world-atlas) and decoded with topojson-client
    (a tiny separate chunk), so it loads only when a globe is on screen.
    ============================================================================ */

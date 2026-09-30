@@ -15,8 +15,14 @@
  *
  * New kinds MUST add an entry here (blueprint §9 supplies the wording; see
  * docs/design/blueprints/_TEMPLATE.md). Narrative kinds (act-break,
- * prose, quote, beat-sheet, analogy, comparison, plate, jargon-buster,
- * three-steps) deliberately have none — they explain themselves.
+ * prose, quote, analogy, comparison, jargon-buster, three-steps)
+ * deliberately have none — they explain themselves.
+ *
+ * Lens (2026-09-30, docs/design/LENS.md §5): the plain line and the
+ * how-to-read panel are DEPRECATED. The cue system replaces both in Phase 3,
+ * and this file retires with them in Phase 8. Until then it keeps serving
+ * the backlist. The verdict removed the dropped and folded kinds' entries;
+ * `gauge` and `itinerary` carry merged wording.
  */
 export interface Explainer {
   what: string;
@@ -24,9 +30,6 @@ export interface Explainer {
 }
 
 export const EXPLAIN: Record<string, Explainer> = {
-  'orbit-globe': { what: 'A 3-D Earth showing the paths satellites travel. Each ring is one orbit at its real altitude and tilt; the coloured dots are satellites, and busier constellations carry more of them.', how: 'Drag to spin the globe — it keeps turning on its own. Country names fade in on the side facing you.' },
-  'coalition-orbit': { what: 'Each political party circles the government at the centre as its own body. The bigger the sphere, the more seats that party holds.', how: 'Drag to rotate. Compare sphere sizes to see who holds the balance of power.' },
-  'swing-dial': { what: 'A single needle that leans toward whichever of two sides is ahead — the further it tilts, the bigger the lead.', how: 'Read which side the needle points to, and how far over it has swung.' },
   'bill-passage': { what: 'The journey of a bill through every stage of becoming law, each step marked passed, failed, or still pending.', how: 'Follow the cards left to right to see how far it got and where it stalled.' },
   'vote-flow': { what: 'How each voting bloc’s seats flowed into “for”, “against”, or “abstain” — and whether the motion passed.', how: 'Follow a ribbon from a party to its vote; the thicker the ribbon, the more seats it carries.' },
   'margin-ladder': { what: 'Seats ranked by how comfortably they were won. The longer the bar, the bigger the winning margin.', how: 'Long bars are safe seats; the short bars at the bottom were the close contests.' },
@@ -34,7 +37,6 @@ export const EXPLAIN: Record<string, Explainer> = {
   'power-flow': { what: 'Money flows left to right — every band is one route, and thicker bands carry more. The moving dashes show direction.', how: 'Follow any band from its source to where it lands; the values are marked mid-stream.' },
   'coalition-calculus': { what: "Every block is one party's seats on a single bar; press parties in or out and the bar shows whether the group reaches the majority line.", how: 'Tap a party chip to add it to the coalition — the readout keeps honest score. Padlocked parties state why they can’t join.' },
   'gerrymander-lens': { what: 'The same voters, three ways of drawing the districts; each map shows who wins and how skewed it is — the number is the efficiency gap, and the fills never change.', how: 'Compare the three maps: the coloured cells are the same electorate in all three, only the black district lines move. The lower a plan’s efficiency-gap number sits from zero, the more the map favours one side.' },
-  'ballot-flow': { what: 'Each column is one counting round; when a candidate is knocked out, the moving ribbons show where their votes went next, and the dashed line is the majority needed to win.', how: 'Read left to right, round by round. Follow a ribbon from an eliminated candidate to see who picked up their votes; ballots with no next choice flow to the muted exhausted lane.' },
   'solar-system': { what: 'A top-down map of the solar system — each ring is one real orbit, each dot a body at its actual position for the story’s date. The amber object is the one this story follows.', how: 'Drag to tilt and spin, scroll to zoom. Hover any body for its distance and year-length.' },
   'constellation-swarm': { what: 'Each dot is one satellite on its real orbital shell around Earth; the whole cloud is the constellation at true scale. Colour groups the shells.', how: 'Drag to orbit the swarm, scroll to zoom. Hover any satellite for its shell’s altitude, tilt, and true count.' },
   'lagrange-map': { what: 'The shaded landscape is the combined gravity-and-spin terrain of the two bodies; the five rings mark the points where the pulls balance — three are knife-edge, two are stable.', how: 'Read the contours like a topographic map: the two bodies sit in the deep wells, and L4/L5 are the shallow stable basins 60° ahead of and behind the smaller body.' },
@@ -42,7 +44,6 @@ export const EXPLAIN: Record<string, Explainer> = {
   'eclipse-cone': { what: 'The dark cone is the full shadow the body casts; it tapers to a point at a real distance, and totality only happens where the target sits inside that point before it closes.', how: 'Compare the two discs top-right — the Sun and the Moon look almost exactly the same size from Earth, which is the only reason a total eclipse can happen.' },
   'trajectory-arc': { what: 'A rocket’s flight from launch to orbit — height climbs as it travels downrange, with each phase of the ascent pinned.', how: 'Trace the arc from liftoff (left) up to orbital insertion (right).' },
   'delta-v-ladder': { what: 'The “fuel budget” (delta-v) it takes to climb from one orbit to the next, stacked into a ladder. Taller blocks need more energy.', how: 'Each block is one leg of the climb; the whole stack is the full trip to escape.' },
-  'signal-readout': { what: 'Signal strength across different radio bands, like a mission-control telemetry panel.', how: 'Each bar’s fill shows how strong that band’s signal is right now.' },
   'descent-profile': { what: 'A spacecraft’s altitude over time as it lands — the curve falls as it drops, with the critical moments pinned.', how: 'Read left (high and fast) to right (touchdown).' },
   'terrain-relief': { what: 'The real shape of the ground, drawn as contour rings and ridgelines — each ring joins points at the same height, and the brown lines trace the crests. The vertical scale is stretched to make the relief legible; the caption says by how much.', how: 'Drag to tilt the massif, scroll to zoom. Press the ×-scale button to swap between the true and the exaggerated height. Hover a peak for its elevation.' },
   'plate-motion': { what: 'Each arrow shows which way a tectonic plate is moving at that spot and how fast — longer means faster, and the arrows shrink to nothing at the point the plate pivots around. The heavy lines are the plate boundaries.', how: 'Drag to spin the globe. Hover any arrow for the exact speed and direction of the plate there.' },
@@ -63,7 +64,6 @@ export const EXPLAIN: Record<string, Explainer> = {
   'elo-river': { what: "Each coloured ribbon is one team, and how thick it is shows its rating; the ribbons stack and weave, so a team climbing past another crosses over it in the braid.", how: "Follow any ribbon left to right across the season; the volt one is the team this story is about." },
   'court-value': { what: "The pitch shaded by how much a shot from each spot is worth — the brighter the volt, the better the chance from there.", how: "Read it like a height map: the bright core is where chances are most valuable, and each contour line steps down to a lower value." },
   'pace-ridge': { what: "Each stacked shape is one group's whole range of the measured stat: wider where more of them cluster, with a line marking the middle. The volt shape is the athlete this story follows.", how: "Read each ridge as a range, not a single number — the hump is where most values fall, and the marked line is the middle." },
-  'data-globe': { what: 'A 3-D Earth with a bubble on each place. The bigger the bubble, the bigger that place’s value for whatever is being measured.', how: 'Drag to spin; compare bubble sizes across regions.' },
   'core-sample': { what: 'A core drilled into ice or rock, read top (most recent) to bottom (most ancient). Each band is a layer of time.', how: 'Scan down the column to travel further into the past.' },
   'sea-level-tank': { what: 'A cross-section of rising water, with a marked line for each future sea-level scenario.', how: 'The higher the water line, the worse the scenario it represents.' },
   'climate-spiral': { what: 'Temperature for every month, spiralling outward as the years pass. The wider and redder the spiral grows, the more it has warmed.', how: 'Follow the line outward from the centre through time.' },
@@ -72,10 +72,7 @@ export const EXPLAIN: Record<string, Explainer> = {
   'latency-waterfall': { what: 'How long each step of a request takes, laid end-to-end on a timeline. Longer bars are the slower steps.', how: 'Left to right is time elapsed; the longest bar is the bottleneck.' },
   'version-graph': { what: 'A project’s history as a branching tree of commits and releases.', how: 'Follow the line down through time; branches split off and merge back in.' },
   'scaling-plot': { what: 'How performance changes as something grows — for example, model size against accuracy — plotted on a scaling curve.', how: 'Up-and-to-the-right means it keeps improving as it scales.' },
-  'throughput-dial': { what: 'A speedometer for how many requests a system handles each second, against its maximum capacity.', how: 'The fuller the arc, the closer the system is to its limit.' },
-  'route-globe': { what: 'A 3-D Earth with the flight paths between the cities on a journey, drawn as great-circle arcs.', how: 'Drag to spin; the arcs connect each stop in travel order.' },
   'elevation-trek': { what: 'The ups and downs of elevation along a route — a side-view of the terrain you’d cross.', how: 'Peaks are climbs and dips are descents; left to right is distance travelled.' },
-  'itinerary-reel': { what: 'A trip broken into day-by-day cards, each listing what happens that day.', how: 'Move through the days left to right.' },
   'climate-calendar': { what: 'A month-by-month picture of a place’s weather — the typical temperature and rainfall for each month of the year.', how: 'Warmer colours mark hotter months; taller bars mark wetter ones.' },
   'timezone-arc': { what: 'Where it is day or night across several cities at this moment, laid along a 24-hour band.', how: 'Light means daytime, dark means night — read each city’s local time.' },
   'tactics-pitch': { what: 'A team’s shape on the pitch, with every player placed in their position and seen at an angle.', how: 'Each disc is a player in their starting spot; the pitch can be turned to read the shape from either end.' },
@@ -91,8 +88,7 @@ export const EXPLAIN: Record<string, Explainer> = {
   'climate-strip': { what: 'Each stripe is one year’s temperature — cooler years blue, warmer years red — with a line tracing the trend.', how: 'Left (past) to right (now); the redder it gets, the hotter the year.' },
   'benchmark-chart': { what: 'Scores compared as horizontal bars, with a reference line for context. Longer is better.', how: 'Compare each bar’s length against the dashed reference mark.' },
   'adoption-curve': { what: 'How fast something caught on over time, following the classic S-shaped adoption curve, with milestones marked.', how: 'The steep middle section is the fast-growth phase.' },
-  'route-card': { what: 'A multi-leg journey laid out stop by stop, with the travel mode, distance and time for each leg.', how: 'Read top to bottom in travel order.' },
-  'city-compare': { what: 'Two cities compared head-to-head across several measures, with the winner of each row highlighted.', how: 'Each row is one measure; the highlighted side wins it.' },
+  'itinerary': { what: 'A journey laid out stop by stop in travel order, with the mode, distance and time of each leg and what happens at each stop.', how: 'Read top to bottom in travel order.' },
   'league-table': { what: 'A sports standings table — position, games, points and recent form for each team, with the qualification and relegation bands shaded.', how: 'Top rows make the cut; the shaded bottom rows drop out.' },
   'player-radar': { what: 'A player’s strengths across several skills, drawn as a shape. The bigger the shape, the more complete the player.', how: 'A wider, fuller shape means a stronger all-round player.' },
   'data-readout': { what: 'The headline numbers from the story, each with its unit and a one-line note.', how: 'Each tile is one key figure worth remembering.' },
@@ -110,15 +106,13 @@ export const EXPLAIN: Record<string, Explainer> = {
   'finish-interval': { what: 'The dot is the most likely finishing position and the bar is the range the model gives nine times out of ten; where two bars overlap, nothing on the pitch has decided the order between those teams yet.', how: 'Press a team to read its range and how many other teams overlap it. The shaded strips are the positions that carry a consequence.' },
   'you-think': { what: 'Two panels: on the left what most people assume, on the right what the numbers show, with the one figure that settles it.', how: 'Read the left panel first, then the right. The number on the right is the fact the rest of the section rests on.' },
   'number-sense': { what: 'One number, large, and beside it the everyday things it equals, so the size can be felt rather than read.', how: 'Read the big number first, then each line beside it. Every line is the same amount said in something you already know.' },
-  'orbital-shells': { what: 'The layers of space around Earth, from low orbit outward, with what lives at each altitude.', how: 'Read outward from Earth: each shell is a different orbital neighbourhood.' },
   'orbit-trace': { what: 'A flat diagram of Earth ringed by named orbits, each drawn at its own altitude. The rings are spaced on a squeezed scale so the low and the distant fit together, and one satellite rides each ring.', how: 'Compare rings by how far they sit from Earth; the legend names each orbit and how many satellites share it.' },
   'launch-stats': { what: 'One column per year, split into a bar for each operator, so the height of a column is the total and the slices inside it show who flew.', how: 'Read left to right for the trend, and compare the coloured slices within a year to see who carried it.' },
   'commit-grid': { what: 'Activity over time as a grid of squares — each square is one day, darker means busier.', how: 'Read left to right through the weeks; dark streaks are the intense stretches.' },
   'journey-map': { what: 'The stops of a journey in order, with the story of each leg.', how: 'Follow the line from the first stop to the last.' },
   'match-stat-line': { what: 'The head-to-head numbers from one match, side by side.', how: 'Each row is one stat; the longer side won that battle.' },
-  'elevation-profile': { what: 'Heights compared as vertical bands — how high each thing stands against the others.', how: 'Taller band = higher; the axis gives the scale.' },
   'region-map': { what: 'A map with the story’s regions shaded by category and key places pinned.', how: 'The legend decodes the shading; markers pin the named places.' },
-  'carbon-gauge': { what: 'How much of the carbon budget is already spent, drawn as a gauge arc.', how: 'The filled arc is what’s used; the remainder is what’s left before the target.' },
+  'gauge': { what: 'One value on an arc: how much of a budget is already used, which way a balance leans between two sides, or how close a system runs to its limit.', how: 'The filled arc or the needle is the reading, and the two ends of the arc are the scale. Read the big number first, then where it sits between the ends.' },
 };
 
 /**
@@ -147,12 +141,11 @@ export const NEEDS_HOW: ReadonlySet<string> = new Set([
   'attrition-waffle', 'finish-interval', 'channel-ternary', 'scaling-plot',
   'xg-race', 'climate-spiral', 'coalition-calculus', 'transfer-window',
   'queue-cliff', 'season-wheel', 'tactics-pitch', 'player-card', 'chip-die',
-  'gerrymander-lens', 'ballot-flow',
+  'gerrymander-lens',
   // WebGL scenes
-  'orbit-globe', 'coalition-orbit', 'chamber', 'solar-system',
+  'chamber', 'solar-system',
   'constellation-swarm', 'terrain-relief', 'plate-motion', 'storm-track',
   'neural-flow', 'packet-trace', 'terminator-globe', 'flight-of-the-ball',
-  'data-globe', 'route-globe',
   // counter-intuitive forms
   'lagrange-map', 'eclipse-cone', 'atmosphere-column', 'carbon-loop',
   'moore-ladder', 'orbit-trace', 'city-grid', 'fare-terrain', 'court-value',

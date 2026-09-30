@@ -3,7 +3,9 @@
 > **Status: TD-01…TD-06 ratified 2026-08-27, Phase 2 of `docs/REVAMP-PLAN.md`.
 > TD-07 and TD-08 added 2026-09-04 at shell adoption (Phase 6.1) as DRAFTS —
 > awaiting the operator's ratification, alongside the CANON/motion edits at
-> `dc6a28c`.**
+> `dc6a28c`. TD-09 (2026-09-30, the Lens revamp) supersedes TD-05, TD-07 and
+> TD-08 and re-points TD-01, TD-02 and TD-04: read it first. The entries
+> above it are kept as history.**
 > Numbered decisions (TD-nn). Cite the ID in any file that implements one.
 >
 > This record exists because the design handoff's 28 blueprints reference three
@@ -138,6 +140,8 @@ which is why it passes everywhere.
 
 ## TD-05 — the two accent-deep roles stay separate (ratifying Phase 1)
 
+> **Superseded 2026-09-30 by TD-09:** one paper under every desk makes the two roles one.
+
 Recorded here because it is the precedent the above rely on. `--accent-deep`
 carries two roles that are **provably irreconcilable** on dark worlds:
 
@@ -152,6 +156,8 @@ it on white. The ranges do not overlap. One token cannot serve both, and
 ---
 
 ## TD-07 — `--viz-edge` is a per-world alias: ink on the light desks, accent on the dark
+
+> **Superseded 2026-09-30 by TD-09:** `--viz-edge` is a hair on every desk.
 
 > **Draft 2026-09-04 — awaiting the operator's ratification.** Landed in code at
 > `b74815d` (shell adoption 1/n) ahead of this entry; recorded here so the token
@@ -206,6 +212,8 @@ ratified — see Enforcement.
 
 ## TD-08 — `--r-card` and `--r-tile` go to `0` in the publication, not at the shared source
 
+> **Superseded 2026-09-30 by TD-09:** the override is removed; the corners are 6 / 4 / pill at the source.
+
 > **Draft 2026-09-04 — awaiting the operator's ratification.** Landed at
 > `b74815d`; the reasoning also lives as a comment above the override in
 > `src/styles/base.css`.
@@ -236,6 +244,92 @@ this override; a one-line assertion that `base.css` still carries `--r-card: 0;
 
 ---
 
+## TD-09 — Lens: one paper, six inks, three corners (2026-09-30)
+
+> **Dated 2026-09-30, Phase 1 of the Lens implementation plan.** The operator
+> ruled the launch design unsellable on 2026-09-29 and authorised the Lens
+> rebuild from the approved canvas (the Foundations board, `BRIEF.md` tokens,
+> `BRIEF-4.md` motion and number scale). This entry records how the token
+> layer moved. It **supersedes TD-05, TD-07 and TD-08** and re-points TD-01,
+> TD-02 and TD-04; those entries stay above as history, not as law.
+
+**The palette.** `shared/design/tokens.css` now carries the neutrals, and
+`shared/design/worlds.css` the desk inks:
+
+| Token | Value | Role |
+|---|---|---|
+| `--paper` | `#f5f2eb` | every page, every desk |
+| `--paper-2` | `#fbfaf6` | cards, inputs |
+| `--paper-3` | `#ede9df` | wells, the neutral chip |
+| `--ink` / `--ink-2` | `#16140f` / `#4a463d` | text / secondary text |
+| `--muted` | `#6b665b` | captions and labels (5.2:1 on the paper) |
+| `--hair` / `--hair-2` | `#dcd7cb` / `#c9c3b4` | rules / axes and input borders |
+| `--<desk>-text` | pol `#a02d18` · spa `#0c6a8c` · ear `#176357` · tec `#566e0f` · tra `#9c5a14` · spo `#33691e` | words in the desk colour, ≥ 4.5:1 |
+| `--<desk>-mark` | pol `#c8412a` · spa `#1b9ac4` · ear `#22897a` · tec `#86a81b` · tra `#c97c22` · spo `#5a9e2f` | fills, lines, data; never small text |
+| `--<desk>-tint` | pol `#f6e4df` · spa `#dceef5` · ear `#dcefea` · tec `#ecf1d3` · tra `#f8ead5` · spo `#e3f0da` | bands, chips |
+| `--<desk>-deep` | pol `#2a1410` · spa `#0b1b33` · ear `#0f2a25` · tec `#111111` · tra `#2c1d10` · spo `#0f2820` | the plate: stages and covers only |
+| `--tec-lime` / `--spo-lime` | `#c6f432` / `#e8f048` | marks on their own deep plate only |
+| `--on-deep` / `-2` / `-hair` | `#f5f2eb` / 72% / 18% | type and rules on a plate |
+
+**The legacy names are re-pointed, not renamed**, so the 101 kinds keep
+compiling. In every theme header and in `meta.css`:
+
+- `--bg`, `--paper` → the one paper. **No desk sets a page ground.** The three
+  dark desks (space navy, tech black, sports pine) lose their dark pages; their
+  dark survives only as `--deep`, the plate.
+- `--accent` → the desk **mark**. `--accent-deep` → the desk **text** ink.
+  `--accent-tint` (new) → the tint. `--accent-lime` (new, tech and sports) →
+  the plate mark.
+- `--ink`, `--ink-soft` → `--ink`, `--ink-2`. `--muted` → `#6b665b` (the
+  derived 60 / 72% muted of Phase 1 has no job left: there is one ground).
+  `--rule` → `--hair`. `--rule-soft`, `--tape` → neutrals.
+- `--paper-warm` and its alias `--paper-deep` (TD-01, TD-02) → `--paper-3`,
+  the well, on every desk. `--on-accent` (TD-04) → the paper.
+- `--viz-edge` (TD-07) → `var(--hair)` on every desk, and `.px-viz` draws it at
+  1px, not 3px: figures lose the coloured top rule. Phase 3 replaces the shell
+  with the pinned figure panel (paper-2, hair, radius 6, shadow-1).
+- `--world-<desk>` / `--world-<desk>-deep` and `--topic-<desk>` /
+  `--topic-<desk>-deep` → the mark / the text ink.
+- `--accent-alt` stays per desk, but the three values drawn for the dark
+  grounds failed as text on the paper and were moved onto palette inks:
+  space `#ffb347` → `#9c5a14`, tech `#ff5c8a` → `#a02d18`, sports `#ff6b35` →
+  `#a02d18`.
+
+**TD-05 is retired.** The two accent-deep roles were irreconcilable only
+because the dark desks printed on dark grounds. On one paper a desk's text ink
+is its type-safe accent everywhere, and `design:check` now gates the theme
+headers' `--accent-deep` against the canonical text ink.
+
+**TD-08 is retired.** The `base.css` `:root` override (`--r-card: 0;
+--r-tile: 0; --r-pill: 0`) is gone. The corners are set once, in the shared
+file: `--r-card: 6px`, `--r-ctl: 4px`, `--r-chip: 999px`, with `--r-tile`
+aliasing the card and `--r-pill` the chip until the components move to the
+three Lens names. Elevation: `--shadow-1` at rest, `--shadow-2` on hover.
+
+**Motion** (BRIEF-4 §1): `--ease` (entrances, unchanged value), `--ease-move`
+(things that move across space), `--t-micro 160ms`, `--t-el 420ms`,
+`--t-build 900ms`, `--t-draw 1400ms`, `--t-scene 4500ms`, `--stagger 80ms`.
+The old names stay as aliases until Phase 5: `--t-instant`, `--t-quick`,
+`--t-soft` → micro; `--t-slow`, `--t-page` → element; `--ease-snap` → `--ease`.
+(This also settles the open `--t-page` retime listed below: 420ms.)
+
+**Type** lives in `src/styles/type-v2.css`, not here: Newsreader for display
+and prose, Instrument Sans for UI and data (`--font-ui` added; `--font-mono`
+now means the sans). The scale and the five number tiers (20 / 32 / 48 / 96 /
+160) are tokens there.
+
+**Gated.** `design-sync --check` asserts: the 24 ink mirrors (theme headers,
+`meta.css`, the `[data-world]` subtrees, the share-card literals), with the
+text ink gated alongside the mark wherever a file declares one; the 24 Lens
+inks (the Lens names equal the legacy pair, and each theme's `--accent-tint`
+and `--deep` equal the canonical tint and plate); the **one-paper check**, 74
+assertions that every theme header, `meta.css` and every `[data-world]`
+subtree declares the canonical paper, ink, muted and hair (so a dark desk
+ground cannot come back quietly); and the 18 record tokens above at their
+TD-09 values.
+
+---
+
 ## What is NOT being added
 
 - **No new ramp, no grey scale, no second accent.** `CANON §6` stands.
@@ -246,7 +340,7 @@ this override; a one-line assertion that `base.css` still carries `--r-card: 0;
 - **`--ink-soft` is not switched to the spec's derived formula.** Measured, it is
   worse on all six worlds; see `shared/design/worlds.css`.
 
-- **`--t-page` is not retimed.** It stays 600ms in `shared/design/tokens.css`.
+- **`--t-page` is not retimed.** *(Settled 2026-09-30 by TD-09: it aliases `--t-el`, 420ms.)* It stays 600ms in `shared/design/tokens.css`.
   The handoff's ~300ms `pageEnter` / 340ms `worldFade` were **named** onto the
   existing CSS view transition on 2026-09-04 (`motion.md`) but not adopted:
   `--t-page` is shared by five other transitions, so retuning it is a token
@@ -254,6 +348,10 @@ this override; a one-line assertion that `base.css` still carries `--r-card: 0;
 
 
 ## Enforcement
+
+**Since TD-09 (2026-09-30)** the check gates the Lens inks, the one-paper
+neutrals and the record tokens as listed there; TD-07 and TD-08's open gate
+items fell away with those entries. The paragraph below is the pre-Lens state.
 
 `scripts/design-sync.mjs --check` gates every value in TD-01 and TD-04 across all
 declaring files, and runs in `prebuild`. It does **not** yet gate TD-07's

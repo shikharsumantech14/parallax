@@ -34,13 +34,13 @@ export interface StoryModel {
    the featured issue's art section from the same ranking (HOME-SPEC §5). */
 export const KIND_PRIORITY: Record<string, number> = {
   // WebGL / flagship interactive
-  'solar-system': 100, 'chamber': 100, 'orbit-globe': 96, 'data-globe': 96,
-  'route-globe': 96, 'coalition-orbit': 94,
+  'solar-system': 100, 'chamber': 100,
   // The four remaining WebGL flagships — one per world, unscored until now, so
   // they fell to the default 30 (see `?? 30` below) and were effectively
   // unrankable as beats despite being the most arresting things in the library.
-  // Scored just under the globes: flagship, but never displacing solar-system,
-  // chamber or a globe when an issue carries one.
+  // Scored just under solar-system and chamber, never displacing them. (The
+  // four generic globes they once ranked below were dropped by the Lens
+  // verdict, 2026-09-30.)
   'terrain-relief': 94, 'flight-of-the-ball': 92, 'terminator-globe': 92,
   'neural-flow': 90,
   // strong interactive / signature
@@ -48,37 +48,39 @@ export const KIND_PRIORITY: Record<string, number> = {
   'xg-race': 86, 'momentum-wave': 86, 'tactics-pitch': 86, 'trajectory-arc': 84,
   'descent-profile': 84, 'sea-level-tank': 84, 'core-sample': 82,
   'latency-waterfall': 82, 'scaling-plot': 82, 'arch-stack': 80,
-  'swing-dial': 80, 'vote-flow': 80, 'bill-passage': 78, 'margin-ladder': 78,
-  'delta-v-ladder': 78, 'signal-readout': 76, 'quake-depth': 76,
-  'version-graph': 76, 'throughput-dial': 76, 'elevation-trek': 76,
-  'itinerary-reel': 74, 'climate-calendar': 74, 'timezone-arc': 74,
-  'player-card': 74, 'player-radar': 72, 'orbital-shells': 72,
+  'vote-flow': 80, 'bill-passage': 78, 'margin-ladder': 78,
+  'delta-v-ladder': 78, 'quake-depth': 76,
+  'version-graph': 76, 'elevation-trek': 76,
+  'climate-calendar': 74, 'timezone-arc': 74,
+  'player-card': 74, 'player-radar': 72,
+  // the Lens merges (2026-09-30): gauge takes the throughput-dial's score (it
+  // sat between swing-dial's 80 and carbon-gauge's 64); itinerary sits between
+  // itinerary-reel's 74 and route-card's 56
+  'gauge': 76, 'itinerary': 66,
   // P6 breadth library (2026-07) — ranked alongside their world-signature siblings
   'constellation-swarm': 90, 'court-value': 86, 'coalition-calculus': 86,
   'plate-motion': 84, 'storm-track': 84, 'packet-trace': 84,
   'lagrange-map': 82, 'queue-cliff': 82, 'transfer-window': 80,
-  'gerrymander-lens': 80, 'ballot-flow': 80, 'bill-funnel': 66, 'age-pyramid': 66, 'chip-die': 78,
+  'gerrymander-lens': 80, 'bill-funnel': 66, 'age-pyramid': 66, 'chip-die': 78,
   'eclipse-cone': 76, 'margin-bullets': 64, 'elo-river': 76, 'city-grid': 74, 'season-wheel': 74,
   'pace-ridge': 72, 'channel-ternary': 64, 'finish-interval': 68, 'carbon-loop': 66, 'moore-ladder': 64, 'state-timeline': 76,
   'atmosphere-column': 64, 'altitude-oxygen': 62, 'fare-terrain': 62, 'attrition-waffle': 68,
   // classic data
-  'data-readout': 70, 'timeline': 66, 'climate-strip': 64, 'carbon-gauge': 64,
+  'data-readout': 70, 'timeline': 66, 'climate-strip': 64,
   'approval-chart': 62, 'benchmark-chart': 62, 'adoption-curve': 62,
   'launch-stats': 62, 'league-table': 62, 'orbit-trace': 60, 'region-map': 60,
-  'elevation-profile': 58, 'commit-grid': 58, 'match-stat-line': 58,
-  'route-card': 56, 'city-compare': 56, 'journey-map': 56, 'power-matrix': 56,
+  'commit-grid': 58, 'match-stat-line': 58,
+  'journey-map': 56, 'power-matrix': 56,
   'seat-chart': 54, 'bill-breakdown': 52,
   // the plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13): a big number
   // and a reframe make strong beats; the two narrative cells rarely do
   'number-sense': 68, 'you-think': 60, 'three-steps': 44, 'jargon-buster': 30,
   // narrative-adjacent
-  'paradox': 50, 'comparison': 48, 'quote': 40, 'beat-sheet': 36, 'analogy': 34,
+  'paradox': 50, 'comparison': 48, 'quote': 40, 'analogy': 34,
   // prose only qualifies with a skimCaption (handled in selection), low prio
   'prose': 10,
   // never a card
   'act-break': -1,
-  // a photograph is not a beat without its picture; the story builder skips it
-  'plate': -1,
 };
 
 /* ── per-kind data trimming (spec §4) — clone, cap, never mutate input ── */
@@ -99,14 +101,13 @@ const TRIM: Record<string, Trim> = {
   },
   'data-readout': (d) => ({ ...d, tiles: cap(d.tiles, 4) }),
   'comparison': (d) => ({ ...d, rows: cap(d.rows, 4) }),
-  'beat-sheet': (d) => ({ ...d, beats: cap(d.beats, 4) }),
   'league-table': (d) => ({ ...d, rows: cap(d.rows, 5) }),
   'launch-stats': (d) => ({ ...d, years: cap(d.years, 8) }),
   'benchmark-chart': (d) => ({ ...d, items: cap(d.items, 5) }),
   'margin-ladder': (d) => ({ ...d, rows: cap(d.rows, 6) }),
   'bill-breakdown': (d) => ({ ...d, cards: cap(d.cards, 2) }),
   'seat-chart': (d) => ({ ...d, rows: cap(d.rows, 4), quote: undefined }),
-  'itinerary-reel': (d) => ({ ...d, days: cap(d.days, 4) }),
+  'itinerary': (d) => ({ ...d, legs: cap(d.legs, 4), days: cap(d.days, 4) }),
   'city-grid': (d) => ({ ...d, cities: cap(d.cities, 2) }), // CityGrid hard-caps at 3; 2 roses fit a 375 card
   // The plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13) — their blueprints' story caps.
   'jargon-buster': (d) => ({ ...d, terms: cap(d.terms, 4) }),

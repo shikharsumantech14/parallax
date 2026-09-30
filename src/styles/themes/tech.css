@@ -1,37 +1,42 @@
 /* ============================================================================
    PARALLAX · TECH THEME
-   Vibe: Stripe docs / Vercel blog / Linear changelog. Near-black canvas,
-   electric lime signal, mono-first typography. Grid-heavy, version-numbered.
+   Lens (2026-09-30): the desk on the one paper. This file keeps the desk's
+   inks (mark, text, tint, deep) and its component rules, all through tokens.
+   No desk sets a page ground and no desk sets a face (type-v2.css is the lever).
    ============================================================================ */
 
 :root[data-topic="tech"] {
-  --bg: #0d0d0d;
-  --paper: #161616;
-  --paper-2: #1a1a1a;
-  --paper-warm: #171717;   /* TD-01 — measured; the how-to-read panel. Not derived. */
-
-  /* RD-05 shell: the viz card's 3px top rule. Dark desk — ACCENT, because
-     an ink rule on a dark ground disappears into the paper. */
-  --viz-edge: var(--accent);
-  --paper-deep: #171717;   /* TD-02 — alias of --paper-warm; there is no 2nd surface. */
-  --on-accent: #0d0d0d;    /* TD-04 — foreground on an accent fill (= this world's ground). */
-  --rule: #2b2b2b;
-  --rule-soft: #1f1f1f;
-  --ink: #fafafa;
-  --ink-soft: #c8c8c8;
-  --muted: #9b9b9b; /* DERIVED: ink at 60% over --bg. Not authored — see shared/design/worlds.css. */
-  --accent: #c6f432;
-  --accent-deep: #9cc528;
-  --accent-alt: #ff5c8a;
-  --tape: #333333;
-  --font-display: 'Fraunces', Georgia, serif;
-  /* --font-body / --font-mono unified across topics in type-v2.css */
-  /* Accent values mirrored in shared/design/worlds.css — change both together */
+  /* Lens (2026-09-30): one paper under every desk. The desk's colour lives in
+     its marks, chips, rules, tints and the deep plate on a stage, never in a
+     page ground. Values mirror shared/design/worlds.css (design:check). */
+  --bg: #f5f2eb;
+  --paper: #f5f2eb;
+  --paper-2: #fbfaf6;
+  --paper-3: #ede9df;
+  --paper-warm: #ede9df;   /* TD-09: the well (was the per-desk panel surface, TD-01). */
+  --paper-deep: #ede9df;   /* TD-02: alias of --paper-warm. */
+  --on-accent: #f5f2eb;    /* TD-04: foreground on an accent fill, the paper. */
+  --viz-edge: var(--hair); /* TD-09: figures lose the coloured top rule, a hair remains. */
+  --rule: #dcd7cb;
+  --rule-soft: #ede9df;
+  --hair: #dcd7cb;
+  --hair-2: #c9c3b4;
+  --ink: #16140f;
+  --ink-2: #4a463d;
+  --ink-soft: #4a463d;
+  --muted: #6b665b;
+  --accent: #86a81b;       /* the desk MARK: fills, lines, data. Never small text. */
+  --accent-deep: #566e0f;  /* the desk TEXT: 4.5:1 or better on the paper. */
+  --accent-tint: #ecf1d3;  /* bands and chips */
+  --accent-alt: #a02d18;    /* the warm contrast ink. #ff5c8a was drawn for the black ground and failed as text on paper */
+  --deep: #111111;         /* the plate: stages and covers only, never a page */
+  --accent-lime: #c6f432;  /* a mark on the deep plate only, never text, never on paper */
+  --tape: #c9c3b4;
 }
 
-/* --- Global dark-mode tweaks -------------------------------------------- */
+/* --- Desk tweaks, on the one paper -------------------------------------------- */
 [data-topic="tech"] body { background: var(--bg); }
-[data-topic="tech"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+[data-topic="tech"] .px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: 400; }
 
 [data-topic="tech"] .px-quote {
   border-left-color: var(--accent);
@@ -44,9 +49,9 @@
 
 [data-topic="tech"] .px-sources { border-top-color: var(--accent); }
 [data-topic="tech"] .px-sources li { border-bottom-color: var(--rule); color: var(--ink-soft); }
-[data-topic="tech"] .px-sources li::before { color: var(--accent); }
+[data-topic="tech"] .px-sources li::before { color: var(--accent-deep); }
 [data-topic="tech"] .px-sources li strong { color: var(--ink); }
-[data-topic="tech"] .px-sources li a { color: var(--accent); }
+[data-topic="tech"] .px-sources li a { color: var(--accent-deep); }
 [data-topic="tech"] .px-sources li a:hover { border-bottom-color: var(--accent); }
 
 [data-topic="tech"] .px-foot { border-top-color: var(--accent); color: var(--muted); }
@@ -69,16 +74,16 @@
   position: absolute;
   inset: 0 0 48px 0;
   background-image:
-    linear-gradient(to right, rgba(198,244,50,0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(198,244,50,0.06) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in oklab, var(--accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--accent) 8%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
 }
 [data-topic="tech"] .px-topic-hero > * { position: relative; z-index: 1; }
-[data-topic="tech"] .px-topic-hero__eyebrow { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="tech"] .px-topic-hero__eyebrow { color: var(--accent-deep); font-family: var(--font-mono); }
 [data-topic="tech"] .px-topic-hero__title { font-family: var(--font-display); color: var(--ink); }
-[data-topic="tech"] .px-topic-hero__title em { color: var(--accent); }
+[data-topic="tech"] .px-topic-hero__title em { color: var(--accent-deep); }
 [data-topic="tech"] .px-topic-hero__manifesto { color: var(--ink-soft); font-family: var(--font-body); }
 
 /* --- Topic empty state in dark mode ------------------------------------ */
@@ -86,7 +91,7 @@
   background: var(--paper);
   border-color: var(--rule);
 }
-[data-topic="tech"] .px-topic-empty__no { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="tech"] .px-topic-empty__no { color: var(--accent-deep); font-family: var(--font-mono); }
 [data-topic="tech"] .px-topic-empty__label { color: var(--muted); }
 [data-topic="tech"] .px-topic-empty__tag { color: var(--ink); }
 
@@ -94,7 +99,7 @@
 [data-topic="tech"] .px-topic-list__item { border-bottom-color: var(--rule); }
 [data-topic="tech"] .px-topic-list__item:hover { background: var(--paper); }
 [data-topic="tech"] .px-topic-list__title { color: var(--ink); font-family: var(--font-display); }
-[data-topic="tech"] .px-topic-list__title em { color: var(--accent); }
+[data-topic="tech"] .px-topic-list__title em { color: var(--accent-deep); }
 [data-topic="tech"] .px-topic-list__hook { color: var(--ink-soft); }
 
 
@@ -109,9 +114,9 @@
 [data-topic="tech"] .px-timeline__row { display: contents; }
 [data-topic="tech"] .px-timeline__date {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
-  color: var(--accent);
+  color: var(--accent-deep);
   padding: 16px 16px 16px 0;
   text-transform: lowercase;
   text-align: right;
@@ -149,7 +154,7 @@
 
 [data-topic="tech"] .px-compare__head { border-bottom-color: var(--rule); }
 [data-topic="tech"] .px-compare__side { color: var(--ink); }
-[data-topic="tech"] .px-compare__side-label { color: var(--accent); font-family: var(--font-mono); }
+[data-topic="tech"] .px-compare__side-label { color: var(--accent-deep); font-family: var(--font-mono); }
 [data-topic="tech"] .px-compare__row { border-bottom-color: var(--rule); }
 [data-topic="tech"] .px-compare__row-label { color: var(--muted); font-family: var(--font-mono); }
 [data-topic="tech"] .px-compare__row-val { color: var(--ink); }
@@ -157,7 +162,7 @@
 [data-topic="tech"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
 [data-topic="tech"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
 [data-topic="tech"] .px-readout__num { color: var(--ink); font-family: var(--font-mono); }
-[data-topic="tech"] .px-readout__unit { color: var(--accent); }
+[data-topic="tech"] .px-readout__unit { color: var(--accent-deep); }
 [data-topic="tech"] .px-readout__label { color: var(--ink-soft); }
 [data-topic="tech"] .px-readout__note { color: var(--muted); }
 
@@ -193,10 +198,10 @@
   letter-spacing: 0.02em;
 }
 .px-commit__caption strong { color: var(--ink); }
-.px-commit__caption em { color: var(--accent); font-style: italic; }
+.px-commit__caption em { color: var(--accent-deep); font-style: italic; }
 .px-commit__meta {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -213,7 +218,7 @@
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 0;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -227,7 +232,7 @@
   display: grid;
   grid-template-rows: repeat(7, 13px);
   gap: 3px;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
@@ -252,10 +257,10 @@
   background: var(--rule);
   display: inline-block;
 }
-.px-commit__cell[data-level="0"] { background: #1f1f1f; }
-.px-commit__cell[data-level="1"] { background: rgba(198,244,50,0.22); }
-.px-commit__cell[data-level="2"] { background: rgba(198,244,50,0.45); }
-.px-commit__cell[data-level="3"] { background: rgba(198,244,50,0.72); }
+.px-commit__cell[data-level="0"] { background: var(--paper-3); }
+.px-commit__cell[data-level="1"] { background: color-mix(in oklab, var(--accent) 30%, transparent); }
+.px-commit__cell[data-level="2"] { background: color-mix(in oklab, var(--accent) 55%, transparent); }
+.px-commit__cell[data-level="3"] { background: color-mix(in oklab, var(--accent) 80%, transparent); }
 .px-commit__cell[data-level="4"] { background: var(--accent); }
 
 .px-commit__legend {
@@ -264,7 +269,7 @@
   gap: 4px;
   margin-top: 14px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -273,7 +278,7 @@
 .px-commit__source {
   margin-top: 12px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.04em;
 }
@@ -283,11 +288,11 @@
    ============================================================================ */
 @media (max-width: 760px) {
   [data-topic="tech"] .px-timeline { grid-template-columns: 80px 28px 1fr; }
-  [data-topic="tech"] .px-timeline__date { font-size: 10px; }
+  [data-topic="tech"] .px-timeline__date { font-size: 12px; }
   .px-commit__head { flex-direction: column; gap: 6px; align-items: flex-start; }
   .px-commit__cell { width: 10px; height: 10px; }
   .px-commit__week { grid-template-rows: repeat(7, 10px); }
-  .px-commit__weekdays { grid-template-rows: repeat(7, 10px); font-size: 8px; }
+  .px-commit__weekdays { grid-template-rows: repeat(7, 10px); font-size: 12px; }
   .px-commit__grid { grid-template-columns: repeat(var(--cols), 10px); }
 }
 
@@ -305,7 +310,7 @@
   background: var(--paper); border: 1px solid var(--rule);
 }
 .px-bench__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--rule);
 }
@@ -324,7 +329,7 @@
   background: var(--paper); border: 1px solid var(--rule);
 }
 .px-scurve__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--rule);
 }

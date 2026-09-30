@@ -1,33 +1,36 @@
 /* ============================================================================
    PARALLAX · TRAVEL THEME
-   Vibe: Condé Nast Traveler / Atlas Obscura / field journal. Warm cream
-   paper, terracotta accents, hand-set serif display, postage perforation
-   motifs. Italic-leaning, marginalia-friendly.
+   Lens (2026-09-30): the desk on the one paper. This file keeps the desk's
+   inks (mark, text, tint, deep) and its component rules, all through tokens.
+   No desk sets a page ground and no desk sets a face (type-v2.css is the lever).
    ============================================================================ */
 
 :root[data-topic="travel"] {
-  --bg: #faf6ef;
-  --paper: #fffdf7;
-  --paper-2: #f4ecdb;
-  --paper-warm: #f6efe2;   /* TD-01 — measured; the how-to-read panel. Not derived. */
-
-  /* RD-05 shell: the viz card's 3px top rule. Light desk — INK, because
-     the vivid accent at 3px is louder than the figure it frames. */
-  --viz-edge: var(--ink);
-  --paper-deep: #f6efe2;   /* TD-02 — alias of --paper-warm; there is no 2nd surface. */
-  --on-accent: #faf6ef;    /* TD-04 — foreground on an accent fill (= this world's ground). */
-  --rule: #e5d9c4;
-  --rule-soft: #ede2cc;
-  --ink: #2a1f15;
-  --ink-soft: #5a4a3a;
-  --muted: #645b52; /* DERIVED: ink at 72% over --bg. Not authored — see shared/design/worlds.css. */
-  --accent: #c85a3c;
-  --accent-deep: #9a4028;
-  --accent-alt: #2d6a7a;        /* deep teal — used for sea/river accents */
-  --tape: #e8d5a8;
-  --font-display: 'Fraunces', Georgia, serif;
-  /* --font-body / --font-mono unified across topics in type-v2.css */
-  /* Accent values mirrored in shared/design/worlds.css — change both together */
+  /* Lens (2026-09-30): one paper under every desk. The desk's colour lives in
+     its marks, chips, rules, tints and the deep plate on a stage, never in a
+     page ground. Values mirror shared/design/worlds.css (design:check). */
+  --bg: #f5f2eb;
+  --paper: #f5f2eb;
+  --paper-2: #fbfaf6;
+  --paper-3: #ede9df;
+  --paper-warm: #ede9df;   /* TD-09: the well (was the per-desk panel surface, TD-01). */
+  --paper-deep: #ede9df;   /* TD-02: alias of --paper-warm. */
+  --on-accent: #f5f2eb;    /* TD-04: foreground on an accent fill, the paper. */
+  --viz-edge: var(--hair); /* TD-09: figures lose the coloured top rule, a hair remains. */
+  --rule: #dcd7cb;
+  --rule-soft: #ede9df;
+  --hair: #dcd7cb;
+  --hair-2: #c9c3b4;
+  --ink: #16140f;
+  --ink-2: #4a463d;
+  --ink-soft: #4a463d;
+  --muted: #6b665b;
+  --accent: #c97c22;       /* the desk MARK: fills, lines, data. Never small text. */
+  --accent-deep: #9c5a14;  /* the desk TEXT: 4.5:1 or better on the paper. */
+  --accent-tint: #f8ead5;  /* bands and chips */
+  --accent-alt: #2d6a7a;    /* deep teal, for sea and river accents */
+  --deep: #2c1d10;         /* the plate: stages and covers only, never a page */
+  --tape: #c9c3b4;
 }
 
 /* --- Global tweaks (light paper, like politics but warmer) ------------- */
@@ -35,7 +38,7 @@
    kicker, the same editorial register as its "Vol. I, No. 01" masthead. It
    keeps 11px: RD-08's 9.5px is sized for JetBrains Mono (x-height 0.550 per
    em) and Fraunces is 0.435, so 9.5px italic would render very faint. */
-[data-topic="travel"] .px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+[data-topic="travel"] .px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: 400; }
 
 [data-topic="travel"] .px-quote {
   border-left-color: var(--accent);
@@ -73,11 +76,11 @@
   font-style: italic;
   letter-spacing: -0.01em;
 }
-[data-topic="travel"] .px-topic-hero__title em { font-style: normal; color: var(--accent); }
+[data-topic="travel"] .px-topic-hero__title em { font-style: normal; color: var(--accent-deep); }
 [data-topic="travel"] .px-topic-hero__manifesto { font-family: var(--font-display); font-style: italic; }
 
 /* --- Topic empty state (light paper) ----------------------------------- */
-[data-topic="travel"] .px-topic-empty__no { font-family: var(--font-display); font-style: italic; color: var(--accent); }
+[data-topic="travel"] .px-topic-empty__no { font-family: var(--font-display); font-style: italic; color: var(--accent-deep); }
 [data-topic="travel"] .px-topic-empty__tag { font-family: var(--font-display); font-style: italic; }
 
 /* --- Cross-topic component re-skins ----------------------------------- */
@@ -93,14 +96,14 @@
 /* COMPARISON */
 [data-topic="travel"] .px-compare__head { border-bottom-color: var(--rule); }
 [data-topic="travel"] .px-compare__side { color: var(--ink); font-family: var(--font-display); }
-[data-topic="travel"] .px-compare__side-label { color: var(--accent); font-style: italic; }
+[data-topic="travel"] .px-compare__side-label { color: var(--accent-deep); font-style: italic; }
 [data-topic="travel"] .px-compare__row { border-bottom-color: var(--rule); }
 
 /* DATA-READOUT */
 [data-topic="travel"] .px-readout__tile { background: var(--paper); border-color: var(--rule); }
 [data-topic="travel"] .px-readout__tile[data-emphasis="key"] { border-color: var(--accent); }
 [data-topic="travel"] .px-readout__num { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
-[data-topic="travel"] .px-readout__unit { color: var(--accent); font-style: italic; }
+[data-topic="travel"] .px-readout__unit { color: var(--accent-deep); font-style: italic; }
 
 /* TIMELINE — itinerary feel */
 [data-topic="travel"] .px-timeline { display: grid; grid-template-columns: 110px 40px 1fr; gap: 0; }
@@ -109,7 +112,7 @@
   font-family: var(--font-display);
   font-size: 13px;
   font-style: italic;
-  color: var(--accent);
+  color: var(--accent-deep);
   padding: 16px 16px 16px 0;
   text-align: right;
   border-bottom: 1px dashed var(--rule);
@@ -225,13 +228,13 @@
   display: flex;
   gap: 14px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
-.px-journey__arrival { color: var(--accent); }
+.px-journey__arrival { color: var(--accent-deep); }
 .px-journey__km { color: var(--ink-soft); }
 .px-journey__elev { color: var(--accent-alt); }
 .px-journey__note {
@@ -243,11 +246,11 @@
   max-width: 56ch;
 }
 .px-journey__note strong { color: var(--ink); font-weight: 600; }
-.px-journey__note em { color: var(--accent); font-style: italic; }
+.px-journey__note em { color: var(--accent-deep); font-style: italic; }
 
 .px-journey__source {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   letter-spacing: 0.04em;
   margin-top: 8px;
@@ -311,12 +314,12 @@
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
 }
 .px-route__mode {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-deep); display: flex; align-items: center; gap: 5px;
 }
 .px-route__mode-icon { font-size: 14px; }
 .px-route__stat {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.05em;
   color: var(--muted); border-left: 1px solid var(--rule); padding-left: 14px;
 }
 .px-route__note {
@@ -328,7 +331,7 @@
   color: var(--ink); padding: 6px 0;
 }
 .px-route__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
@@ -346,7 +349,7 @@
 .px-ccomp__table { border-collapse: collapse; width: 100%; min-width: 400px; }
 .px-ccomp__header-row { border-bottom: 2px solid var(--rule); }
 .px-ccomp__th {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.10em;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--muted); padding: 10px 16px;
   text-align: center; white-space: nowrap;
 }
@@ -358,7 +361,7 @@
   color: var(--ink); display: block; letter-spacing: -0.01em;
 }
 .px-ccomp__city-sub {
-  font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-top: 2px;
 }
 .px-ccomp__row { border-bottom: 1px solid var(--rule); }
@@ -371,15 +374,15 @@
   font-family: var(--font-display); font-size: 15px; color: var(--ink);
   padding: 12px 16px; text-align: center; font-weight: 500;
 }
-.px-ccomp__val--winner { color: var(--accent); }
-.px-ccomp__win-dot { margin-left: 4px; font-size: 10px; color: var(--accent); }
+.px-ccomp__val--winner { color: var(--accent-deep); }
+.px-ccomp__win-dot { margin-left: 4px; font-size: 12px; color: var(--accent-deep); }
 .px-ccomp__note-row { background: transparent; }
 .px-ccomp__note {
   font-family: var(--font-display); font-style: italic; font-size: 13px;
   color: var(--muted); padding: 4px 0 10px; line-height: 1.5;
 }
 .px-ccomp__source {
-  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-top: 14px; padding-top: 12px;
   border-top: 1px solid var(--rule);
 }
@@ -456,8 +459,8 @@
   display: inline-block;
   padding: 6px 12px;
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-alt);
   border: 1.5px solid var(--accent-alt);

@@ -32,6 +32,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSy
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { canonicalKind } from './lib/kind-aliases.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const R = (p) => join(root, p);
@@ -72,7 +73,7 @@ function walk(dir, out = []) {
    they are exempt from EXPLAIN. MUST stay in sync with the identical list in
    scripts/check-catalog.mjs and the header of src/lib/explainers.ts. */
 const NARRATIVE = new Set([
-  'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison', 'plate',
+  'act-break', 'prose', 'quote', 'analogy', 'comparison',
   'jargon-buster', 'three-steps',
 ]);
 
@@ -133,7 +134,8 @@ function buildIssues() {
     const src = read(f);
     const fm = src.slice(0, src.indexOf('\n---', 4) + 4);
     const field = (n) => (fm.match(new RegExp(`^${n}:\\s*["']?([^"'\\r\\n]+)`, 'm')) || [])[1]?.trim() ?? null;
-    const kinds = [...src.matchAll(/^\s*-\s*kind:\s*([a-z0-9-]+)/gm)].map((x) => x[1]);
+    // Retired kind names resolve to their host, as the schema does (Lens, 2026-09-30).
+    const kinds = [...src.matchAll(/^\s*-\s*kind:\s*([a-z0-9-]+)/gm)].map((x) => canonicalKind(x[1]));
     out.push({
       slug: e.name,
       topic: field('topic'),

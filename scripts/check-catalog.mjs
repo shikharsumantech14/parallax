@@ -13,6 +13,9 @@
  *      and a KIND_PRIORITY score (src/lib/story.ts)
  *   5. every field named in a catalog DATA line is actually read by its
  *      component (2026-09-15) — see the block at check 5 for why
+ *   6. every retired kind name in KIND_ALIASES (src/content/config.ts)
+ *      resolves to a registered kind, is not itself registered, and has no
+ *      catalog block of its own (the Lens verdict, 2026-09-30)
  *
  * Why 4 exists: both maps fail SILENTLY. A kind with no EXPLAIN renders no
  * comprehension line unless the author happens to supply `plain`; a kind with
@@ -35,9 +38,9 @@ const read = (p) => readFileSync(join(root, p), 'utf-8');
    they are exempt from EXPLAIN. Keep in sync with the header comment in
    src/lib/explainers.ts, which states the same list. */
 const NARRATIVE = new Set([
-  'act-break', 'prose', 'quote', 'beat-sheet', 'analogy', 'comparison',
-  'plate', // a photograph: caption + credit, no data claim (launch design 2026-09-08)
+  'act-break', 'prose', 'quote', 'analogy', 'comparison',
   'jargon-buster', 'three-steps', // plain-language kinds (REGISTER-PLAN RG-09, 2026-09-13): cells of prose, no graphic
+  // `beat-sheet` and `plate` left the registry with the Lens verdict (2026-09-30).
 ]);
 
 /* act-break is deliberately scored <= 0 in KIND_PRIORITY so the story builder
@@ -276,6 +279,23 @@ for (const kind of kinds) {
   }
 }
 
+// ── 6: the alias map (the Lens verdict, 2026-09-30) ────────────────────────
+// Renamed and folded kinds stay buildable through KIND_ALIASES. An alias that
+// points at nothing would fail every issue that uses it at build time with a
+// Zod error far from the cause; one that is ALSO a registered kind would make
+// the fold a no-op; one with its own catalog block would tell the agents to
+// author a name that no longer has a component.
+const aliasBlock = config.match(/KIND_ALIASES\s*=\s*\{([\s\S]*?)\}\s*as const/);
+if (!aliasBlock) fail('KIND_ALIASES not found in src/content/config.ts (a flat literal of quoted pairs)');
+const aliases = aliasBlock
+  ? [...aliasBlock[1].matchAll(/'([a-z0-9-]+)'\s*:\s*'([a-z0-9-]+)'/g)].map((m) => [m[1], m[2]])
+  : [];
+for (const [from, to] of aliases) {
+  if (!kindSet.has(to)) fail(`ALIAS '${from}' → '${to}': the target is not in SECTION_KINDS`);
+  if (kindSet.has(from)) fail(`ALIAS '${from}' is also a registered kind — remove one`);
+  if (blockSet.has(from)) fail(`ALIAS '${from}' has its own catalog block — a retired name gets none`);
+}
+
 // ── report ─────────────────────────────────────────────────────────────────
 if (errors.length) {
   for (const e of errors) console.error(e);
@@ -288,5 +308,5 @@ const explained = kinds.filter((k) => explainKeys.has(k)).length;
 console.log(
   `check-catalog: ${kinds.length} kinds ↔ ${blocks.length} blocks, order OK · ` +
     `${explained} explained (+${NARRATIVE.size} narrative exempt) · ${scored} scored · ` +
-    `${fieldsChecked} DATA fields read`,
+    `${fieldsChecked} DATA fields read · ${aliases.length} aliases`,
 );

@@ -5,72 +5,77 @@ paths:
   - "src/components/topic/**"
 ---
 
-# Design tokens and colour law
+# Design tokens and colour law (Lens, 2026-09-30)
 
-`shared/design/{tokens,worlds}.css` is the **canonical source for both
-projects**. Edit there, then `npm run design:sync`. **One standing exception (RD-05):** the publication's radius flip — `--r-card: 0; --r-tile: 0` — lives in `src/styles/base.css` `:root`, **not** in the shared file. `app/` consumes those two tokens in three files and keeps its own spec until Phase 8, so flipping them at the source would flatten the app. Do not "tidy" the override back into `tokens.css`. `npm run design:check` gates
-the root build — it verifies 30 palette mirrors, 6 in-world accent-deeps and 18
-record tokens across every declaring file, not just the generated copies.
+**The law is `docs/design/LENS.md` §2 (tokens) and §3 (type).** This rule is
+the working summary for anyone touching CSS. The launch design's token law
+(Literata only, the RD-05 zero-radius override, `--viz-edge`, the two-role
+`--accent-deep`, derived `--muted`) is retired; see "Retired" at the foot.
 
-Full token law with rationale: `docs/design/TOKEN-RECORD.md` (TD-01…TD-06). The two surface decisions from shell adoption — the RD-05 radius flip and the `--viz-edge` world rule — are recorded in the comment blocks above the `:root` override and `.px-viz` in `src/styles/base.css`, in `docs/REVAMP-PLAN.md` RD-05, and in `docs/design/CANON.md` §14 (a marked DRAFT until the operator signs).
+`shared/design/{tokens,worlds}.css` is the **canonical source**. Edit there,
+then `npm run design:sync`; `npm run design:check` gates the build against
+every declaring file (the theme headers, `meta.css`, the `[data-world]`
+subtrees, the share-card literals). How the legacy variable names were
+re-pointed onto the Lens palette is recorded in
+**`docs/design/TOKEN-RECORD.md` TD-09** (Phase 1); read it before renaming
+anything, because the 87 kinds still compile against the legacy names.
 
-## Hard rules
+## The palette: one paper, six inks
 
-- **`--muted` is DERIVED**, not authored: ink at 60% on dark worlds, 72% on
-  light. The previously authored values failed WCAG AA on 8 of 12
-  world/surface pairs.
-- **`--accent-deep` carries two documented roles** — in-world vs light-paper.
-  They are provably irreconcilable on dark worlds; see the comments in
-  `shared/design/worlds.css` before "fixing" one.
-- **Small text on a light ground uses `--accent-deep`, never the vivid accent.**
-- **TD-06: any FILL that carries text uses `--accent-deep`.** The vivid accent
-  fails on travel at 3.91:1.
-- **`--paper-warm` is six measured literals**, never derived from `--bg`. They
-  sit above the ground in *opposite directions* on light and dark worlds, so a
-  naive mapping inverts the moment a politics kind runs in a dark-world issue —
-  which CANON §2 permits.
-- **`--paper-deep`** is an alias of `--paper-warm`; **`--on-accent`** is the
-  world ground.
+- **One paper under every desk.** `--paper #F5F2EB`, `--paper-2 #FBFAF6`
+  (cards, inputs, the figure panel), `--paper-3 #EDE9DF` (wells, the neutral
+  chip, the primer band); `--ink #16140F`, `--ink-2 #4A463D`, `--muted
+  #6B665B` (captions, labels; passes 4.5:1, never lighter), `--hair #DCD7CB`,
+  `--hair-2 #C9C3B4`. **No desk sets a page ground**, ever.
+- **Each desk has four inks** (`--<desk>-text / -mark / -tint / -deep`,
+  values in LENS §2.2), and each has one job:
+  - **text** for words in the desk colour (≥ 4.5:1 on paper), and for any
+    fill that carries text (the old TD-06, true on every desk now);
+  - **mark** for fills, lines and data, never small text;
+  - **tint** for bands and chips;
+  - **deep** for the one bounded plate (a hero, a cover, a WebGL scene), never
+    a page.
+- Components read the desk through the role tokens a theme sets:
+  `--accent` = the mark, `--accent-deep` = the text ink, `--accent-tint` = the
+  tint, `--deep` = the plate, `--accent-lime` = the plate mark on tech and
+  sports (TD-09). A component never names a desk's literal hex.
+- **The limes** (`--tec-lime #C6F432`, `--spo-lime #E8F048`) are marks on
+  their own desk's deep plate only: never text, never on paper.
+- **On a plate:** text `--on-deep` / `--on-deep-2`, rules `--on-deep-hair`,
+  marks the desk mark or lime. Never a desk text ink on the plate.
+- A fixed data encoding (the warming ramp, win/loss, a party colour from the
+  section's data) is exempt from theming and declared in the blueprint. No new
+  brand colour, ever.
 
-- **`--viz-edge` is a per-theme token, declared only in
-  `src/styles/themes/<world>.css`** — `var(--ink)` on the light desks (politics,
-  earth, travel), `var(--accent)` on the dark ones (space, tech, sports). It is
-  the 3px top rule every figure wears (`.px-viz`, plus the bespoke roots
-  `.px-coalc` / `.px-swheel`), consumed as `var(--viz-edge, var(--ink))` so a
-  seventh world stays legible rather than edgeless. On a dark ground an ink rule
-  vanishes into the paper; on a light ground the vivid accent shouts over the
-  figure — do not unify the six values. It has **no** `shared/design` mirror and
-  `design:check` does **not** gate it; the six theme values are the only source.
-- **Reading and home surfaces are FLAT (RD-05).** `--r-card` and `--r-tile` are
-  `0` for the publication via the `base.css` `:root` override (see above);
-  surfaces carry no `box-shadow` and hover is border-colour only. Shadows survive
-  on focus rings, inset hairlines, halo rings on data marks, slider thumbs,
-  CSS-3D scene depth (RD-06), viz3d overlay chrome and modal/popover/toast
-  chrome. The reading toolbar `.rtb` is flat — opaque `var(--paper)`, a 2px ink
-  rule, no backdrop-filter; glass survives on modal chrome only. Where a shadow
-  was a surface's only edge, a 1px hairline replaced it.
-- **`--r-pill` IS flipped now (2026-09-08).** The launch design has zero rounded
-  corners, so chips, CTAs, the reading strip and progress caps are square. Only
-  colour dots and the medallion are round.
+## Corners, elevation, space
 
+- **Corners 6 / 4 / pill:** `--r-card 6px` (cards, the figure panel, the
+  plate), `--r-ctl 4px` (buttons, inputs), `--r-chip 999px` (chips, the cue
+  disc, dots, the medallion). `--r-tile` and `--r-pill` survive as aliases of
+  the card and the chip until the components move (TD-09).
+- **Elevation:** `--shadow-1` on every clickable card at rest, `--shadow-2`
+  with an ink border on hover. A card never translates or scales. Shadows
+  still belong to focus rings, data-mark halos and CSS-3D scene depth; no
+  glass, no glow, no blur on any surface.
+- **Space** in multiples of 8; the frame is a 1152 content column in 64px
+  margins (20 on phones), sections 96 apart (64 on phones).
 
 ## Type
 
-ONE family product-wide since the launch design (2026-09-08): **Literata**.
-`--font-display` / `--font-body` / `--font-mono` all resolve to it; roles differ
-by size, weight, case and tracking (display 700 tight; body 400 at 18px/1.72;
-labels 600 small capitals, .14–.20em). Worlds differ by **colour only** — the
-per-world eyebrow / numeral / prose cuts were removed from the themes. Do not
-reintroduce per-world faces or treatments. Single lever: `src/styles/type-v2.css`,
-imported last. The house pages (home, about, archive, subscribe) run the
-politics record from `src/styles/meta.css`, which is tokens only.
+Two faces (LENS §3): **Newsreader** for display, prose and captions,
+**Instrument Sans** for UI, labels and every number (600, tabular).
+`--font-display` / `--font-body` → Newsreader, `--font-ui` / `--font-mono` →
+Instrument Sans. Worlds differ by **ink only**, never by face or treatment.
+Single lever: `src/styles/type-v2.css`, imported last. **Nothing below 12px
+rendered.** The share cards render on static files of both faces
+(`scripts/fetch-fonts.mjs`).
 
-## In-SVG text (RD-01b)
+## In-SVG text (RD-01b, carried)
 
-Use a **literal font stack**, never `var()` inside an SVG presentation
-attribute. Not because `var()` fails to resolve — it does resolve in current
-Chromium, and the older claim to the contrary was disproven — but because
-presentation attributes lose to any stylesheet rule, and satori/resvg (the OG
+Use a **literal font stack** in a `style` attribute, never `var()` inside an
+SVG presentation attribute:
+`style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"`.
+Presentation attributes lose to any stylesheet rule, and satori/resvg (the OG
 card renderer) perform no `var()` substitution. Standing grep, must be zero:
 
 ```bash
@@ -82,4 +87,22 @@ grep -rn 'font-family="var(' src/components/ --include="*.astro" --include="*.ts
 Every component owns a unique `px-<abbrev>` prefix (≤6 chars). Check `meta.css`
 for collisions first. Reserved: `px-strip` (TopicStrip — the climate strip uses
 `px-cstrip`), `px-gate`, `px-acct`, `px-wb`, `px-nnote`,
-`pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`.
+`pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`. The folded kinds keep their
+prefixes inside their host until Phase 6 redraws them: `px-cgauge`,
+`px-swdial` and `px-tdial` inside `core/Gauge.astro`, `.rc` inside
+`topic/travel/Itinerary.astro`. `px-intro` / `px-xp` (the removed intro),
+`px-plate`, `px-beats`, `px-shells`, `px-elev`, `px-co`, `px-bflow`, `px-og`,
+`px-sig`, `px-dg`, `px-rg`, `px-ireel` and `.cc` (the dropped and folded
+kinds) are free; a few of their dead rules still sit in the theme files and
+`dataviz-v2.css` until Phase 8's sweep.
+
+## Retired 2026-09-30 by the Lens revamp
+
+Do not restore any of these; LENS §10 and TD-09 give the reason for each.
+**Literata as the one face** · **zero radius** and the `base.css` `:root`
+override that set `--r-card` / `--r-tile` / `--r-pill` to 0 (TD-08) ·
+**flat, shadowless surfaces** (RD-05) · **six page grounds** and the
+dark-desk worlds · **`--viz-edge`**, the 3px top rule (TD-07; now a hair) ·
+**the two `--accent-deep` roles** (TD-05; one paper makes them one) ·
+**derived `--muted`** (one ground, one muted) · **glass** on the reading
+toolbar and the modal chrome.

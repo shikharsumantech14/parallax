@@ -93,10 +93,9 @@ Rules:
   simpler kind the evidence supports. Never assume a coordinate, a rating, a
   physical value, a per-party count.
 - **Floors** (REGISTER-PLAN §5.1): at least six in ten rows visual (not
-  `prose`, `quote`, `analogy`, `beat-sheet`, `act-break`, `plate`, and not
-  `paradox`); no two text-only rows adjacent; the first row after the head is
-  a graphic or a `data-readout`; ≤ 3 `prose` rows; ≤ 1 `paradox`; at least one
-  kind from outside the six workhorses (`prose`, `data-readout`, `timeline`,
+  `prose`, `quote`, `analogy`, `act-break`, and not `paradox`); no two
+  text-only rows adjacent; the first row after the head is a graphic or a
+  `data-readout`; ≤ 3 `prose` rows; ≤ 1 `paradox`; at least one kind from outside the six workhorses (`prose`, `data-readout`, `timeline`,
   `paradox`, `quote`, `comparison`) — two when the data supports it.
 - **Drawn graphics, not cards** (added 2026-09-16): `you-think`,
   `number-sense`, `jargon-buster`, `three-steps` and `data-readout` are

@@ -5,9 +5,9 @@
    §3 (LensMark styles), §5 (interaction/a11y floor). Motion names come from
    docs/design/motion.md (`plateIn`, `lensSettle`, `reveal`, `pressDown`).
 
-   The doctrine: the app is the reading room of the same building — same trio
-   (Fraunces / Schibsted Grotesk / JetBrains Mono), same beige/ink/rust base,
-   same motion ramp and radii as the publication — but calmer. Worlds appear
+   The doctrine: the app is the reading room of the same building — same type
+   (Newsreader + Instrument Sans since Lens, 2026-09-30), the same one paper
+   and ink, the same motion ramp and radii as the publication — but calmer. Worlds appear
    only as ACCENTS via worlds.css `[data-world]` `--w-*` variables.
 
    Contract mirror (publication motion-v2 pattern): every hidden-until-reveal
@@ -25,20 +25,22 @@
    Colors, fonts, pads, gaps only. Motion/radii/glass/columns come from
    shared/tokens.css above; world accents from shared/worlds.css. */
 :root {
-  --bg: #faf7f0;
-  --paper: #ffffff;
-  --rule: #d8cfbf;
-  --ink: #15130f;
-  --ink-soft: #3d352c;
-  --muted: #7a6d5e;
-  --accent: #b8341f;        /* rust — the app's home world; emphasis, never primary buttons */
-  --accent-deep: #8b2416;
+  /* Lens (2026-09-30): the one paper and ink of shared/design/tokens.css. */
+  --bg: #f5f2eb;
+  --paper: #f5f2eb;
+  --rule: #dcd7cb;
+  --ink: #16140f;
+  --ink-soft: #4a463d;
+  --muted: #6b665b;
+  --accent: #c8412a;        /* the house mark (politics ink); emphasis, never primary buttons */
+  --accent-deep: #a02d18;
   --danger: #c0392b;
   --ok: #1a6a3f;
 
-  --font-display: 'Literata', Georgia, serif;
-  --font-body: 'Literata', Georgia, serif;
-  --font-mono: 'Literata', Georgia, serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
 
   --pad-y: 48px;
   --pad-x: 24px;

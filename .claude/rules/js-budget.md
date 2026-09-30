@@ -19,7 +19,7 @@ else.** This supersedes the older "minimal JS everywhere" line.
 Three absolutes on the generous budget:
 
 1. **Every interactive byte serves comprehension, not decoration**
-   (`docs/design/CANON.md` §12).
+   (`docs/design/LENS.md` §1.1, carried from CANON §12).
 2. **Everything is lazy-loaded and code-split** — the `viz3d` pattern: nothing
    heavy loads until its mount scrolls in, and never on pages that don't use it.
 3. **The fallback contract is untouchable** (below).
@@ -37,6 +37,30 @@ Every component paints its **final composed state** under:
 - **missing WebGL** — the mount degrades, it does not blank
 
 Any new interactivity must honour this and be justified.
+
+## The two Lens islands (2026-09-30, `docs/design/LENS.md` §5.6)
+
+Lens adds exactly two islands. Both are **small** (about 2 KB each), both are
+**`is:inline`-free ES modules** (a bundled module `<script>`, so Vite
+processes them, the `Viz3DRuntime` pattern, not the `is:inline` pattern the
+reader islands use), both are **loaded once per page**, and neither ships a
+library:
+
+- **`cues.ts`** (Lens Phase 3) — the reading system's lighting: a cue button
+  pressed or its sentence scrolled past lights its `data-cue` anchor (1 /
+  .35, a 2px desk-colour ring, 160ms) and switches the panel caption;
+  section 1 autoplays once. No JS: every anchor at full, every numeral
+  visible, the buttons inert, the caption the finding.
+- **`build.ts`** (Lens Phase 5) — the one build: an IntersectionObserver
+  starts a component's build on entry, in its `data-build="1..n"` order;
+  counters on requestAnimationFrame, draws by dashoffset, grows by scale,
+  drops by opacity and 6px. **No component animates itself** once it lands.
+  Reduced motion and no JS: the final state.
+
+Neither exists yet; until they land, the island set below is what runs.
+Phase 5 decides whether `core/Reveal.astro` and `core/VizMotion.astro`'s
+count-up fold into `build.ts`; `core/ExpandModal.astro` is retired by Lens
+and goes with the how-to-read panel in Phase 8's switch.
 
 ## The island set
 

@@ -1,60 +1,68 @@
 /* ============================================================================
    PARALLAX · META BRAND LAYER
-   The house tokens — the pages that stand in no world: home, about, archive,
-   subscribe, the guides. Since the launch design (2026-09-08) this file is
-   ONLY tokens: every house page carries its own scoped styles, built on the
-   shared primitives in base.css. The old home / topic-index / about / archive
-   rule blocks that lived here (~750 lines) had no emitters left and one of
-   them — the archive rows' scroll-in reveal — was hiding the new desk rows.
+   The house tokens — the pages that stand in no desk: home, about, archive,
+   subscribe, the guides. Tokens only: every house page carries its own scoped
+   styles, built on the shared primitives in base.css.
+
+   Lens (2026-09-30): the house sits on the same paper as every desk, in ink.
+   Its accent is the politics ink, the station the medallion's house cut
+   already sits at. `--topic-<desk>` is each desk's MARK and
+   `--topic-<desk>-deep` its TEXT colour (both gated by design:check against
+   shared/design/worlds.css).
    ============================================================================ */
 
 :root {
-  /* Meta brand tokens — the HOUSE pages (home, about, archive, subscribe).
-     Launch design 2026-09-08: the house IS the politics record — the same
-     ground, ink, rule and oxide-red accent the approved canvas draws the
-     house pages in, and the station the mark's house cut already sits at.
-     Secondary ink / muted are the WCAG-derived light-desk values. */
-  --bg: #faf7f0;
-  --paper: #ffffff;
-  --paper-warm: #f2eee4;
-  --rule: #ddd4c4;
-  --ink: #161412;
-  --ink-soft: rgba(22, 20, 18, 0.78);
-  --muted: rgba(22, 20, 18, 0.72);
-  --accent: #b8341f;
-  --accent-deep: #8b2416;
-  --on-accent: #faf7f0;
-  --viz-edge: var(--ink);
-  --tape: #e8ddc2;
+  --bg: #f5f2eb;
+  --paper: #f5f2eb;
+  --paper-2: #fbfaf6;
+  --paper-3: #ede9df;
+  --paper-warm: #ede9df;
+  --paper-deep: #ede9df;
+  --rule: #dcd7cb;
+  --rule-soft: #ede9df;
+  --hair: #dcd7cb;
+  --hair-2: #c9c3b4;
+  --ink: #16140f;
+  --ink-2: #4a463d;
+  --ink-soft: #4a463d;
+  --muted: #6b665b;
+  --accent: #c8412a;
+  --accent-deep: #a02d18;
+  --accent-tint: #f6e4df;
+  --accent-alt: #176357;
+  --deep: #2a1410;
+  --on-accent: #f5f2eb;
+  --viz-edge: var(--hair);
+  --tape: #ede9df;
 
-  /* Per-topic accents (available on meta pages for topic strip, dots, etc.) */
-  --topic-politics: #b8341f;
-  --topic-space: #00d4ff;
-  --topic-earth: #2d6a4f;
-  --topic-tech: #c6f432;
-  --topic-travel: #c85a3c;
-  --topic-sports: #e8f048;
+  /* Per-desk marks (dots, strips, data on the house pages) */
+  --topic-politics: #c8412a;
+  --topic-space: #1b9ac4;
+  --topic-earth: #22897a;
+  --topic-tech: #86a81b;
+  --topic-travel: #c97c22;
+  --topic-sports: #5a9e2f;
 
-  /* Deep variants — used for large typography on light paper where the
-     vivid strip colors would have poor contrast. */
-  --topic-politics-deep: #8b2416;
-  --topic-space-deep: #00708a;
-  --topic-earth-deep: #1a4a36;
-  --topic-tech-deep: #5a6e16;
-  --topic-travel-deep: #9a4028;
-  --topic-sports-deep: #3f5428;
+  /* Per-desk text colours, >= 4.5:1 on the paper */
+  --topic-politics-deep: #a02d18;
+  --topic-space-deep: #0c6a8c;
+  --topic-earth-deep: #176357;
+  --topic-tech-deep: #566e0f;
+  --topic-travel-deep: #9c5a14;
+  --topic-sports-deep: #33691e;
 
-  /* Meta fonts — publication serif + body + mono. Topic faces are
-     loaded site-wide via Google Fonts and referenced inline where needed. */
-  --font-display: 'Literata', Georgia, serif;
-  --font-body: 'Literata', Georgia, serif;
-  --font-mono: 'Literata', Georgia, serif;
+  /* The role fonts (type-v2.css is the lever and wins; these are the
+     fallback for any page that loads meta.css alone). */
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
 
-  /* Topic faces unified to the serif voice; worlds differ by colour, not font */
-  --font-politics: 'Literata', Georgia, serif;
-  --font-space: 'Literata', Georgia, serif;
-  --font-earth: 'Literata', Georgia, serif;
-  --font-tech: 'Literata', Georgia, serif;
-  --font-travel: 'Literata', Georgia, serif;
-  --font-sports: 'Literata', Georgia, serif;
+  /* Legacy per-desk face names: every desk uses the one serif. */
+  --font-politics: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-space: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-earth: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-tech: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-travel: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sports: 'Newsreader', Georgia, 'Times New Roman', serif;
 }

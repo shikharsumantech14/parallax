@@ -2,6 +2,17 @@
 
 > Local rules for `src/content/issues/<slug>/index.mdx` files. Read the
 > root `AGENTS.md` first for project-level context.
+>
+> **Lens (2026-09-30).** The design law is `docs/design/LENS.md`. Three things
+> an author needs today: (1) the kind names are the 87 in `SECTION_KINDS`;
+> ten kinds were dropped (a section naming one fails the build) and six old
+> names build as ALIASES of their host (`carbon-gauge`, `swing-dial`,
+> `throughput-dial` → `gauge`; `route-card`, `itinerary-reel` → `itinerary`;
+> `city-compare` → `comparison`), so author the host name. (2) The reading
+> system's `cues` field and the inline `[[n]]` prose markers arrive in Lens
+> Phase 3; the schema has neither yet. (3) `plain` and `howToRead` are
+> DEPRECATED: still accepted, still rendered, until Phase 8; the pipeline
+> keeps authoring them until Phase 7 teaches it cues.
 
 ---
 
@@ -226,8 +237,8 @@ markdown markers.
 | `city-grid: expected 1–3 cities, got N` | More than three orientation roses on one plate | Split into two `city-grid` sections. |
 | `city-grid: city "X" has N bins; the 36-bin rule requires EXACTLY 36` | Street-orientation histogram not binned to 10° sectors | Rebin to exactly 36 values, one per 10° compass sector. |
 | `season-wheel: expected EXACTLY 12 months (Jan→Dec), got N` | Partial year | The wheel is a calendar year; supply all twelve `months[]` entries. |
-| Component arity throws (`chip-die` 4–24 blocks · `moore-ladder` ≥6 points · `packet-trace` 1–8 hops · `altitude-oxygen` 2–8 stops · `fare-terrain` 1–5 routes, ≥6 points each · `ballot-flow` ≥2 candidates + ≥2 rounds) | Data outside the kind's legible range | These are deliberate legibility contracts, not bugs. Split the data across sections, or pick the kind the blueprint points you to (e.g. `moore-ladder` → `scaling-plot` for a narrow range). |
-| Conservation throws (`carbon-loop` reservoir "does not conserve" · `ballot-flow` "books don't balance" / transfers ≠ tally · `gerrymander-lens` "same votes guarantee is broken" / unequal population / non-contiguous district · `power-flow` via-node imbalance) | The authored numbers don't add up | Fix the data. `carbon-loop` alone has an escape hatch — `imbalance: 'the-point'` licenses a residual on the single `accent: true` reservoir when the imbalance *is* the story. It is not a blanket amnesty. |
+| Component arity throws (`chip-die` 4–24 blocks · `moore-ladder` ≥6 points · `packet-trace` 1–8 hops · `altitude-oxygen` 2–8 stops · `fare-terrain` 1–5 routes, ≥6 points each) | Data outside the kind's legible range | These are deliberate legibility contracts, not bugs. Split the data across sections, or pick the kind the blueprint points you to (e.g. `moore-ladder` → `scaling-plot` for a narrow range). |
+| Conservation throws (`carbon-loop` reservoir "does not conserve" · `gerrymander-lens` "same votes guarantee is broken" / unequal population / non-contiguous district · `power-flow` via-node imbalance) | The authored numbers don't add up | Fix the data. `carbon-loop` alone has an escape hatch — `imbalance: 'the-point'` licenses a residual on the single `accent: true` reservoir when the imbalance *is* the story. It is not a blanket amnesty. |
 
 ---
 
@@ -310,8 +321,7 @@ a worked section in its world's showcase issue. The other two flagships,
 `chamber` and `solar-system`, are documented below.
 
 ### politics
-- **`coalition-orbit`** (WebGL) — `{ parties[]{ name, seats, color?, bloc? }, totalSeats? }`
-- **`swing-dial`** — `{ leftLabel?, rightLabel?, value(-100..100), markers?[]{ at, label } }`
+- **`gauge`** (universal; was `carbon-gauge`, with `swing-dial` and `throughput-dial` folded in, 2026-09-30) — three shapes, told apart by their fields unless `variant?: 'budget'|'lean'|'capacity'` is set. Budget: `{ remaining(0–1), remainingGt?, usedGt?, totalGt?, target?, year? }`. Capacity: `{ value, max, unit?, label?, zones?[]{ from, to, label? } }`. Lean: `{ value(-100..100), leftLabel?, rightLabel?, markers?[]{ at, label } }`.
 - **`bill-passage`** — `{ stages[]{ label, status: 'passed'|'failed'|'pending'|'current', date?, note? } }`
 - **`vote-flow`** — `{ blocs[]{ name, seats, color?, vote: 'for'|'against'|'abstain' }, outcome?{ label, passed } }`
 - **`margin-ladder`** — `{ rows[]{ label, margin, winner?, color? } }`
@@ -319,15 +329,12 @@ a worked section in its world's showcase issue. The other two flagships,
 - **`power-flow`** — `{ nodes[]{ id, label, group?: 'source'|'via'|'sink' }, links[]{ from, to, value, note? }, unit, imbalance?: 'the-point' }` — conservation is build-enforced; blueprint: `docs/design/blueprints/politics/power-flow.md`
 
 ### space
-- **`orbit-globe`** (WebGL) — `{ orbits[]{ name, altKm, inclDeg?, color?, satCount? }, maxAltKm? }`
 - **`trajectory-arc`** — `{ phases[]{ label, altKm, downrangeKm, note? }, apoapsisKm? }`
 - **`delta-v-ladder`** — `{ segments[]{ label, dv, color? }, unit? }`
-- **`signal-readout`** — `{ bands[]{ label, freq, value, max?, color? } }`
 - **`descent-profile`** — `{ points[]{ t, altKm, phase? }, events?[]{ t, label }, craftLabel? }`
 - **`solar-system`** (WebGL · FLAGSHIP) — `{ epoch, planets?['mercury'…], bodies?[]{ name, a_AU, e, i_deg, Omega_deg, omega_deg, M0_deg, period_d, role?: 'focus', note? }, scale?: 'log'|'true', trailDays? }` — blueprint: `docs/design/blueprints/space/solar-system.md`
 
 ### earth
-- **`data-globe`** (WebGL) — `{ markers[]{ name, lat, lon, value, color? }, unit? }`
 - **`core-sample`** — `{ layers[]{ depth, label, value?, color? }, unit? }`
 - **`sea-level-tank`** — `{ levels[]{ label, riseM, year? }, landmarks?[]{ name, heightM }, maxM? }`
 - **`climate-spiral`** — `{ months[]{ year, month(1-12), value }, unit?, baseline? }`
@@ -338,12 +345,10 @@ a worked section in its world's showcase issue. The other two flagships,
 - **`latency-waterfall`** — `{ spans[]{ label, start, dur, kind? }, unit? }`
 - **`version-graph`** — `{ nodes[]{ id, parents?[], label?, tag?, lane? } }`
 - **`scaling-plot`** — `{ points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit? }`
-- **`throughput-dial`** — `{ value, max, unit?, label?, zones?[]{ from, to, label? } }`
 
 ### travel
-- **`route-globe`** (WebGL) — `{ stops[]{ city, lat, lon, note? } }`
 - **`elevation-trek`** — `{ points[]{ km, elevM, label? }, unit? }`
-- **`itinerary-reel`** — `{ days[]{ day, place, items?[] } }`
+- **`itinerary`** (was `route-card`, with `itinerary-reel` folded in, 2026-09-30) — `{ legs[]{ from, to?, mode?, distance?, duration?, note?, day?, items?[] }, title? }`, up to three `items` a stop; the old `{ days[]{ day, place, items?[] } }` still renders, one stop per day.
 - **`climate-calendar`** — `{ months[]{ month, temp?, rainfall?, note? }, tempUnit? }` — a month's `note` prints as a named footnote under the strip, never in its own column (twelve columns are ~22px wide on a phone). Unrendered until 2026-09-15.
 - **`timezone-arc`** — `{ zones[]{ city, offset }, refOffset? }`
 
@@ -395,7 +400,6 @@ if you rename the component's props.
 ### politics
 - **`coalition-calculus`** — `{ majority?, parties[]{ name, short?, seats, color?, locked? }, preset?: string[] }` — `locked` carries the sourced one-line reason nobody will govern with them. `preset` lists the parties in the opening coalition and matches on `name` (not `short`); it defaults to the largest unlocked party. `majority` defaults to ⌈(Σ seats + 1) / 2⌉; declaring a different one prints an honesty chip. Dispatched with a spread (above).
 - **`gerrymander-lens`** — `{ grid{ cols, rows, perCell, a[cols·rows] }, parties{ a{ name, short?, color? }, b{ … } }, plans[]{ label, districts[cols·rows], note? }, flagPct? }` — `a[]` is party-A votes per cell, `districts[]` a district id per cell, `flagPct` defaults to 7. Build throws on length mismatch, unequal district population, a non-contiguous district, or a plan whose A-tallies don't re-sum to the shared statewide total.
-- **`ballot-flow`** — `{ candidates[]{ id, name, short?, color? }, rounds[]{ tallies{ <candidateId>: n }, exhausted?, eliminate?{ id, transfers[]{ to, value } } }, winnerId?, majorityBasis?: 'continuing'|'firstRound' }` — the component RENDERS a precomputed count, it never runs the election. Needs ≥2 candidates and ≥2 rounds; transfers must sum to the eliminated candidate's tally and Σ tallies + exhausted must hold constant across rounds.
 
 ### tech
 - **`packet-trace`** (WebGL) — `{ hops[]{ from, fromLat, fromLon, to, toLat, toLon, rttMs, kind?: 'fiber'|'wireless'|'satellite'|'compute', note? }, originLabel?, refractiveIndex?, loopMs? }` — 1–8 hops. Shared geometry lives in `src/scripts/viz3d/packet.ts`, imported by both the component and its scene, so the fallback and the globe agree.
@@ -575,21 +579,10 @@ in `src/components/AGENTS.md` §10.
 Initial version. Captures schema, primer + skimCaption rules, source
 constraints, common build errors, EDITOR-flag convention.
 
-## `plate` — a framed photograph (launch design, 2026-09-08)
+## `plate` — retired (the Lens verdict, 2026-09-30)
 
-```yaml
-- kind: plate
-  data:
-    src: /plates/2026-04-24-delimitation/chamber.jpg   # under public/; required — no src, no section
-    alt: The Lok Sabha chamber, empty, from the press gallery
-    caption: the chamber, empty
-    credit: PIB
-    number: 1            # optional → "Plate 01 · the chamber, empty"
-    fit: cover           # or contain
-    height: 300          # px, optional
-```
-
-One per issue, after the opening prose and before the first figure. The
-credit is the plate's own caption row — do not also set `source`. The
-component renders nothing without `src`, so a plate can be authored ahead
-of the photograph without leaving an empty frame on the page.
+The framed-photograph kind of the launch design (2026-09-08) was dropped with
+nine others: it rendered nothing without an image, no published issue carried one,
+and Lens is a graphic-led system that rejects photography as the lead
+(`docs/design/LENS.md` §1, carried from CANON). A section naming `kind: plate`
+now fails the build. The one showcase section that used it was removed.

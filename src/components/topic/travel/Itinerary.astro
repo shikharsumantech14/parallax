@@ -1,0 +1,189 @@
+---
+/*
+  Itinerary — a journey as legs (.rc) inside the .px-viz card. A dashed rail
+  threads mode-glyph nodes; each leg is one hop (from → to, mode, distance,
+  duration) and may carry up to three items, the things done at that stop.
+  Legs slide in on a stagger as the card reveals. Build-time, zero runtime JS.
+
+  The Lens verdict (2026-09-30, docs/design/LENS.md §9) renamed `route-card`
+  to `itinerary` and folded `itinerary-reel` into it. Both old names stay
+  accepted as aliases (KIND_ALIASES in src/content/config.ts). A reel's
+  `days: [{day, place, items?}]` render here as legs: each day becomes a stop
+  at its place, kicked by its day label, carrying its items. An authored
+  `legs` list wins when both are present.
+
+  props:
+    legs[]   — { from, to?, mode?, distance?, duration?, note?, day?, items?: [string] }
+    days[]   — { day, place, items? }   (the folded itinerary-reel shape)
+    title    — optional journey title
+    caption
+    source   — accepted, not rendered: core/Section.astro is the one source emitter
+*/
+interface Leg {
+  from: string;
+  to?: string;
+  distance?: string;
+  duration?: string;
+  mode?: string;
+  note?: string;
+  day?: string | number;
+  items?: string[];
+}
+interface Day { day: number | string; place: string; items?: string[]; }
+interface Props {
+  legs?: Leg[];
+  days?: Day[];
+  title?: string;
+  caption?: string;
+  source?: string;
+}
+const { legs: authoredLegs = [], days = [], title, caption } = Astro.props;
+
+const fmtDay = (d: number | string) =>
+  typeof d === 'number' ? `Day ${d}` : /^\d+$/.test(String(d)) ? `Day ${d}` : String(d);
+
+// Days become legs: one stop per day, at its place, carrying its items.
+const dayLegs: Leg[] = days
+  .filter((d) => d && d.place)
+  .map((d) => ({ from: d.place, day: fmtDay(d.day), items: d.items }));
+
+const legs: Leg[] = authoredLegs.length > 0 ? authoredLegs : dayLegs;
+const fromDays = authoredLegs.length === 0 && dayLegs.length > 0;
+
+// The Lens contract is up to three items per stop (docs/design/catalog.md,
+// the itinerary block). That is an authoring cap, not a render cap: nothing
+// authored is dropped here.
+
+// Glyph keyed off the leg mode (lowercased); a leg with no mode is a stop.
+type Glyph = 'train' | 'drive' | 'ferry' | 'fly' | 'stop';
+const glyphFor = (mode?: string): Glyph => {
+  if (!mode) return 'stop';
+  const m = mode.toLowerCase();
+  if (m === 'train') return 'train';
+  if (m === 'drive' || m === 'car') return 'drive';
+  if (m === 'ferry' || m === 'ship') return 'ferry';
+  return 'fly';
+};
+const countLabel = fromDays ? `${legs.length} days` : `${legs.length} legs`;
+---
+
+<div class="px-viz" data-reveal>
+  {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
+
+  <div class="rc__head">
+    <span class="rc__title">{title}</span>
+    <span class="rc__count">{countLabel}</span>
+  </div>
+
+  <div class="rc__legs">
+    {legs.map((leg, i) => {
+      const glyph = glyphFor(leg.mode);
+      const items = leg.items ?? [];
+      return (
+        <div class="rc__leg" style={`transition-delay:${i * 70}ms`}>
+          <span class="rc__node">
+            {glyph === 'train' && (
+              <svg viewBox="0 0 24 24">
+                <rect x="6" y="3" width="12" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="6" y1="11" x2="18" y2="11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="9" cy="19" r="1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="15" cy="19" r="1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="8" y1="21" x2="6" y2="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="16" y1="21" x2="18" y2="23" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'drive' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M4 13l1.5-5h13L20 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <rect x="3" y="13" width="18" height="5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="7" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="17" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'ferry' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M4 17l1-5h14l1 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M3 17c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="12" y1="5" x2="12" y2="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'fly' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M2 16l20-7-9 11-2-5-9 1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+            {glyph === 'stop' && (
+              <svg viewBox="0 0 24 24">
+                <path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="12" cy="10.5" r="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            )}
+          </span>
+          <div class="rc__leg-body">
+            {leg.day !== undefined && <div class="rc__day">{fmtDay(leg.day)}</div>}
+            <div class="rc__cities">
+              {leg.from}
+              {leg.to && <><span class="arr">→</span>{leg.to}</>}
+            </div>
+            {(leg.mode || leg.distance || leg.duration) && (
+              <div class="rc__meta">
+                {leg.mode && <span>{leg.mode}</span>}
+                {leg.distance && <span>{leg.distance}</span>}
+                {leg.duration && <span>{leg.duration}</span>}
+              </div>
+            )}
+            {leg.note && <div class="rc__note">{leg.note}</div>}
+            {items.length > 0 && (
+              <ul class="rc__items">
+                {items.map((it) => <li class="rc__item">{it}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+</div>
+
+<style>
+  /* The stop's day label and its items (the folded itinerary-reel content).
+     The rest of `.rc__*` lives in src/styles/dataviz-v2.css. */
+  .rc__day {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-deep, var(--accent));
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .rc__items {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rc__item {
+    position: relative;
+    padding-left: 14px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    overflow-wrap: break-word;
+  }
+  .rc__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+</style>

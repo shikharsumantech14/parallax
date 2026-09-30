@@ -1,44 +1,86 @@
 /* GENERATED from shared/design/tokens.css — DO NOT EDIT.
    Edit the canonical file, then run: npm run design:sync */
 /* ============================================================================
-   PARALLAX SHARED DESIGN TOKENS — CANONICAL SOURCE
+   PARALLAX SHARED DESIGN TOKENS — CANONICAL SOURCE (Lens, 2026-09-30)
    ----------------------------------------------------------------------------
-   THE single source for motion / radii / glass / column tokens across BOTH
-   projects (publication + app). Edit HERE, then `npm run design:sync` copies
-   into src/styles/shared/ and app/src/styles/shared/ (checked-in generated
-   copies; `npm run design:check` fails the build on drift).
-   Supersedes the hand-sync note that lived in src/styles/tokens-v2.css.
+   The single source for the neutral palette, radii, elevation, motion and
+   column tokens. Edit HERE, then `npm run design:sync` copies it into
+   src/styles/shared/ (a checked-in generated copy; `npm run design:check`
+   fails the build on drift). Desk inks live beside it in worlds.css.
+
+   Lens (the design revamp of 2026-09-29, the Foundations board): one paper
+   under every desk, six inks for the marks, graphics that explain themselves.
+   The launch design's rules this replaces — Literata only, zero radius, the
+   1280 no-padding frame, six page grounds, the 3px `--viz-edge` rule — are
+   retired; see docs/design/TOKEN-RECORD.md TD-09.
    ============================================================================ */
 :root {
-  /* Motion — single ease-out ramp, editorial (see docs/design/motion.md) */
-  --t-instant: 80ms;
-  --t-quick:   140ms;
-  --t-soft:    220ms;
-  --t-slow:    420ms;
-  --t-page:    600ms;
-  --ease:      cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+  /* ── Neutrals: one paper under every desk ─────────────────────────────── */
+  --paper:   #f5f2eb;   /* every page */
+  --paper-2: #fbfaf6;   /* cards, inputs */
+  --paper-3: #ede9df;   /* wells, the neutral chip */
+  --ink:     #16140f;   /* text, the primary button */
+  --ink-2:   #4a463d;   /* secondary text */
+  --muted:   #6b665b;   /* captions, labels (5.2:1 on paper) */
+  --hair:    #dcd7cb;   /* rules, borders */
+  --hair-2:  #c9c3b4;   /* axes, the input border */
 
-  /* Radii — used sparingly. Inline/secondary buttons stay square. */
-  --r-card: 6px;   /* soft cards (primer, vote bar, telemetry inner) */
-  --r-tile: 14px;  /* tiles + elevated viz cards + item cards + app plates */
-  --r-pill: 999px; /* status, CTAs, chips, toolbar, source numerals */
+  /* ── On a deep plate (stages and covers only, never a page) ───────────── */
+  --on-deep:      #f5f2eb;
+  --on-deep-2:    rgba(245, 242, 235, 0.72);
+  --on-deep-hair: rgba(245, 242, 235, 0.18);
 
-  /* Glass — functional overlay chrome only (toolbar, modal, app masthead) */
-  --glass-bg: rgba(250, 247, 240, 0.78);
-  --glass-bg-dark: rgba(17, 31, 54, 0.72);
-  --glass-blur: saturate(140%) blur(18px);
-  --glass-border: rgba(21, 19, 15, 0.08);
+  /* ── Radii: card 6, control 4, chip a pill ────────────────────────────── */
+  --r-card: 6px;
+  --r-ctl:  4px;
+  --r-chip: 999px;
+  /* Legacy names, kept as aliases until the components move to the three
+     above: a tile is a card, a pill is a chip. */
+  --r-tile: var(--r-card);
+  --r-pill: var(--r-chip);
 
-  /* Cursor warmth — accent radial that follows the pointer (home tiles) */
-  --warmth-color: var(--accent, #161412);
+  /* ── Elevation: rest and hover, for every clickable card ──────────────── */
+  --shadow-1: 0 1px 2px rgba(22, 20, 15, 0.06), 0 6px 20px rgba(22, 20, 15, 0.06);
+  --shadow-2: 0 2px 4px rgba(22, 20, 15, 0.08), 0 16px 40px rgba(22, 20, 15, 0.10);
 
-  /* Editorial column widths */
-  --col-prose:  720px;
+  /* ── Motion: two easings, five durations, one grammar (BRIEF-4 §1) ────── */
+  --ease:      cubic-bezier(0.22, 1, 0.36, 1);   /* entrances and builds */
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);   /* things that move across space */
+  --t-micro:   160ms;    /* hover, a cue lighting up */
+  --t-el:      420ms;    /* a mark, a label, a line of text */
+  --t-build:   900ms;    /* a bar, a ring, a group */
+  --t-draw:    1400ms;   /* an axis or spiral drawing, a counter */
+  --t-scene:   4500ms;   /* a whole scene, first mark to last (a ceiling) */
+  --stagger:   80ms;     /* between siblings */
+  /* Legacy names, aliased onto the grammar until Phase 5 retires them. */
+  --t-instant: var(--t-micro);
+  --t-quick:   var(--t-micro);
+  --t-soft:    var(--t-micro);
+  --t-slow:    var(--t-el);
+  --t-page:    var(--t-el);
+  --ease-snap: var(--ease);
+
+  /* Glass — modal chrome only, and Lens has no glass: the values are the
+     paper at near-full opacity so the two consumers stay legible. */
+  --glass-bg: rgba(245, 242, 235, 0.96);
+  --glass-bg-dark: rgba(22, 20, 15, 0.92);
+  --glass-blur: none;
+  --glass-border: var(--hair);
+
+  /* Cursor warmth — retained for its consumers; ink, never a glow. */
+  --warmth-color: var(--accent, #16140f);
+
+  /* ── Frame and columns ────────────────────────────────────────────────── */
+  --col-content: 1152px;  /* the content column inside the 1280 frame */
+  --gutter-x:    64px;    /* side margin, 20 on phones */
+  --gutter-x-sm: 20px;
+  --gap-section:    96px; /* between sections, 64 on phones */
+  --gap-section-sm: 64px;
+  --col-prose:  720px;    /* reading measure until Phase 3's 620 article column */
   --col-wide:   980px;
-  --col-bleed:  1180px;
+  --col-bleed:  1152px;
 
-  /* App shell tiers (consumed by app/; harmless in the publication) */
-  --col-narrow: 480px;  /* auth / onboarding plates */
-  --col-shelf:  960px;  /* dashboard / admin */
+  /* Reader-account tiers (auth plates, the Shelf) */
+  --col-narrow: 480px;
+  --col-shelf:  960px;
 }

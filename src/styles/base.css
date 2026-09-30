@@ -11,26 +11,37 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.55;
+  /* Lens: the page speaks in the UI sans (Instrument Sans 15/1.5); prose,
+     headlines and the finding opt into the serif through --font-body and
+     --font-display. Tabular figures everywhere, so a readout never jitters. */
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui, 15px);
+  line-height: var(--lh-ui, 1.5);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* One family product-wide (type-v2.css); tabular figures everywhere so a
-     readout never jitters as a value changes. */
   font-variant-numeric: tabular-nums;
 }
 
-/* THE FRAME (launch design, 2026-09-08). 1280 wide — the handoff's own width —
-   and NO side padding: every page is a stack of full-width bands separated by
-   hairlines (`.px-band`), and each band carries the 46/40px (24/20 on phones)
-   padding itself. The old 980px cap is what squeezed the issue's three-column
-   floor plan into a 440px reading column. */
-.px-wrap { max-width: 1280px; margin: 0 auto; padding: 0; }
+/* THE FRAME (Lens, 2026-09-30). A 1280 frame holding a 1152 content column:
+   64px side gutters, 20 on phones. Every page is still a stack of bands split
+   by hairlines (`.px-band`), but a band no longer carries the side padding,
+   the frame does. `--wrap-pad` is exposed so a full-bleed element (the
+   masthead's hair, the issue floor plan until Phase 3 rebuilds it) can step
+   back out to the frame edge. */
+.px-wrap {
+  --wrap-pad: var(--gutter-x, 64px);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--wrap-pad);
+}
+@media (max-width: 768px) {
+  .px-wrap { --wrap-pad: var(--gutter-x-sm, 20px); }
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
-   MASTHEAD — the launch lockup (2026-09-08), from the canvas prototype.
-   4px ink rule above, a hairline below. Left, the LOCKUP: a 34px disc with the
+   MASTHEAD — the launch lockup (2026-09-08); the frame is Lens (2026-09-30):
+   64px, paper, a 1px hair below running to the frame edge, no ink rule above.
+   Phase 2 rebuilds the lockup itself (Newsreader 500 at 24). Left, the LOCKUP: a 34px disc with the
    ring as its edge (Mark `tight`), a 12px gap, the wordmark at 25px/700 with
    its CAP centre on the disc centre (measured: the line box centres 1.5px
    lower, hence the nudge), and the desk register centred on the same axis.
@@ -44,9 +55,11 @@ body {
   justify-content: space-between;
   column-gap: 20px;
   row-gap: 0;
-  padding: 14px 40px;
-  border-top: 4px solid var(--ink);
-  border-bottom: 1px solid var(--rule);
+  min-height: 64px;
+  margin-inline: calc(-1 * var(--wrap-pad, 0px));
+  padding: 10px var(--wrap-pad, 40px);
+  border-bottom: 1px solid var(--hair, var(--rule));
+  background: var(--paper);
   position: relative;
 }
 .mh__brand {
@@ -58,41 +71,45 @@ body {
 .mh__type { display: inline-flex; align-items: center; gap: 12px; line-height: 1; }
 .mh__name {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 25px;
+  font-weight: 500;
+  font-size: 24px;
   line-height: 1;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.01em;
   color: var(--ink);
-  position: relative; top: -1.5px;   /* cap centre onto the disc centre (measured) */
+  position: relative; top: -1px;   /* the Home board's nudge for Newsreader 24 on a 34px disc */
 }
 .mh__desk {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.17em;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent-deep, var(--muted));
   white-space: nowrap;
   line-height: 1;
   position: relative; top: -0.5px;   /* its own cap centre, same axis */
 }
-.mh__r { display: inline-flex; align-items: center; gap: 22px; white-space: nowrap; }
-.mh__links { display: inline-flex; gap: 22px; }
+.mh__r { display: inline-flex; align-items: center; gap: 28px; white-space: nowrap; }
+.mh__links { display: inline-flex; gap: 24px; }
+/* Nav: Instrument Sans 14/500 in ink, the current page underlined 2px
+   (in the desk text colour on a desk page), hover underlines. */
 .mh__links a {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
   text-decoration: none;
-  padding-bottom: 3px;
-  border-bottom: 1px solid transparent;
-  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
+  transition: color var(--t-micro) var(--ease), text-decoration-color var(--t-micro) var(--ease);
 }
-.mh__links a:hover { color: var(--ink); }
-.mh__links a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.mh__links a:hover { text-decoration: underline; text-decoration-color: var(--hair-2, var(--rule)); }
+.mh__links a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--accent-deep, var(--ink)); }
 .mh__status {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
 }
 .mh__status-dot {
@@ -103,30 +120,39 @@ body {
 }
 .mh__status-dot[data-state="draft"] { background: var(--muted); animation: none; }
 @keyframes mhPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+/* Subscribe is the primary button (.px-btn's values): ink fill, paper text,
+   44px, 4px corners, 15/600. */
 .mh__cta {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
-  color: var(--bg);
+  font-family: var(--font-ui);
+  font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  line-height: 1;
+  min-height: 44px;
+  color: var(--paper);
   background: var(--ink);
   border: 1px solid var(--ink);
-  padding: 9px 15px;
+  border-radius: var(--r-ctl);
+  padding: 0 20px;
   text-decoration: none;
   display: inline-flex; align-items: center; gap: 8px;
-  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
+  transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
 }
 .mh__cta:hover {
-  background: var(--accent-deep, var(--accent));
-  border-color: var(--accent-deep, var(--accent));
-  color: var(--on-accent, var(--bg));
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+  color: var(--paper);
 }
 .mh__menu { display: none; }
+/* The house pages stand in no desk: their register reads in muted, not in
+   the house accent. */
+:root:not([data-topic]) .mh__desk { color: var(--muted); }
 
 /* The live badge is the widest single item; it leaves first. */
 @media (max-width: 1040px) { .mh__status { display: none; } }
 
 @media (max-width: 768px) {
-  .mh { padding: 12px 20px; flex-wrap: wrap; column-gap: 16px; }
+  .mh { min-height: 0; padding: 12px var(--wrap-pad, 20px); flex-wrap: wrap; column-gap: 16px; }
   .mh__brand { gap: 10px; }
-  .mh__name { font-size: 21px; top: -2px; }
+  .mh__name { font-size: 24px; top: -1px; }
   .mh__desk { display: none; }
   .mh__r { display: none; }
 
@@ -135,13 +161,15 @@ body {
      state costs no height and the open panel pushes the page down. */
   .mh__menu { display: block; flex: 1 0 100%; }
   .mh__menu-btn {
-    position: absolute; right: 20px; top: 7px;   /* centred on the lockup: (63 − 5 − 44) / 2 − 4 border = 7 */
+    position: absolute; right: var(--wrap-pad, 20px); top: 7px;   /* centred on the lockup: 12 padding + 17 half-disc − 22 half-button = 7 */
     display: inline-flex; align-items: center; gap: 6px;
     min-height: 44px;                    /* the touch floor */
-    font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none;
     color: var(--ink);
     border: 1px solid var(--ink);
-    padding: 0 12px;
+    border-radius: var(--r-ctl);
+    padding: 0 14px;
     cursor: pointer;
     list-style: none;
     box-sizing: border-box;
@@ -161,7 +189,8 @@ body {
     min-height: 44px;
     padding: 12px 2px;
     border-bottom: 1px solid var(--rule);
-    font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none;
     color: var(--ink);
     text-decoration: none;
     box-sizing: border-box;
@@ -170,19 +199,20 @@ body {
   .mh__menu-status {
     display: flex; align-items: center; gap: 8px;
     padding: 14px 2px 4px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--muted);
   }
   .mh__menu-cta { margin: 10px 0 8px; }
 }
 
-/* THE EYEBROW — 11px/600/.18em small capitals in the deep accent (the vivid
-   one fails AA as type on the light worlds; the themes' -deep is the
-   type-safe sibling, and the LIGHTER sibling on the dark worlds). */
+/* THE EYEBROW — the Lens label: Instrument Sans 12 / 500 / .06em capitals in
+   the desk TEXT colour (never the mark, which is not a text colour). */
 .px-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-label, 12px);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: var(--ls-label, 0.06em);
   text-transform: uppercase;
   color: var(--accent-deep, var(--accent));
   margin-bottom: 16px;
@@ -198,12 +228,13 @@ body {
 .px-skim-btn {
   background: none;
   border: 1px solid var(--rule);
+  border-radius: var(--r-ctl);
   color: var(--muted);
   padding: 6px 14px;
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: border-color 0.15s ease, color 0.15s ease;
   display: flex;
@@ -212,7 +243,7 @@ body {
   line-height: 1;
 }
 .px-skim-btn:hover { border-color: var(--ink-soft); color: var(--ink-soft); }
-.px-skim-btn.active { border-color: var(--accent); color: var(--accent); }
+.px-skim-btn.active { border-color: var(--accent); color: var(--accent-deep); }
 .px-skim-dot {
   width: 6px; height: 6px; border-radius: 50%;
   background: currentColor;
@@ -221,7 +252,7 @@ body {
 }
 .px-skim-sep {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -234,17 +265,18 @@ body {
   max-width: 72ch;
 }
 .px-primer__eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 9px;
 }
 .px-primer__text {
   font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.7;
+  font-size: var(--fs-prose, 19px);
+  line-height: var(--lh-prose, 1.6);
   color: var(--ink);
   text-wrap: pretty;
 }
@@ -268,17 +300,17 @@ body {
 #px-article[data-mode="skim"] .px-prose-full { display: none; }
 #px-article[data-mode="skim"] .px-skim-caption-block { display: block; }
 
-/* SECTION — a calm 22px ornament, the eyebrow, a 34px/700 title and an
-   18px/300 lead: the prototype's section head. The 64px ghost numeral and the
-   gradient rule under the title retired with the launch design. */
+/* SECTION — the numeral (Instrument Sans 600 tabular, muted), the eyebrow, the
+   section title (Newsreader 500 30/1.12) and the intro in the prose register
+   (Newsreader 19/1.6, 18 on phones). Lens type; the geometry is Phase 3's. */
 .px-section { margin-bottom: 56px; }
 .px-section__num {
   display: block;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 22px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--fs-num-1, 20px);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--muted);
   margin-bottom: 10px;
   font-variant-numeric: tabular-nums;
@@ -291,21 +323,21 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-section .px-eyebrow { margin-bottom: 12px; }
 .px-section__title {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 34px;
-  line-height: 1.05;
-  letter-spacing: -0.028em;
+  font-weight: 500;
+  font-size: var(--fs-section, 30px);
+  line-height: var(--lh-section, 1.12);
+  letter-spacing: var(--ls-display, -0.01em);
   margin-bottom: 14px;
   color: var(--ink);
   max-width: 24ch;
   text-wrap: balance;
 }
-.px-section__title em { color: var(--accent); font-style: italic; font-weight: 400; }
+.px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: inherit; }
 .px-section__intro {
   font-family: var(--font-body);
   font-weight: 400;
-  font-size: 18px;
-  line-height: 1.72;
+  font-size: var(--fs-prose, 19px);
+  line-height: var(--lh-prose, 1.6);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
@@ -313,45 +345,45 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 @media (max-width: 768px) {
   .px-section { margin-bottom: 44px; }
   .px-section__title { font-size: 28px; }
+  .px-section__intro { font-size: var(--fs-prose-sm, 18px); }
 }
 
-/* QUOTE (v2 — accent edge, soft tint, rounded trailing corners) */
+/* QUOTE — Lens has no gradient washes: the accent edge on the paper, the
+   quotation in Newsreader italic. The library pass (Phase 6) redraws it. */
 .px-quote {
   border-left: 3px solid var(--accent);
   padding: 24px 32px;
   margin: 36px 0;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 5%, transparent) 0%, transparent 100%);
-  border-radius: 0 var(--r-card) var(--r-card) 0;
+  background: transparent;
+  border-radius: 0;
 }
 .px-quote__q {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.4;
   font-style: italic;
   color: var(--ink);
   margin-bottom: 12px;
 }
 .px-quote__attr {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-/* PROSE — 18px/1.72 Literata, JUSTIFIED with hyphenation from 640px up (the
-   operator's ruling, 2026-09-08: every flowing paragraph in the product
-   aligned the same way). Section intros share this register exactly, so a
-   prose section and a figure section read as one body. The drop cap on the
-   issue's FIRST prose paragraph — Phase 7's furniture, now in the language.
-   `> p:first-child`, not `.px-prose__p:first-of-type`: a block that opens with
-   a lead paragraph would otherwise cap its SECOND paragraph (measured). */
+/* PROSE — Newsreader 400 at 19/1.6 (18 on phones), ink, RAGGED. Lens retired
+   the justified-with-hyphenation ruling of 2026-09-08: every paragraph in the
+   product sets ragged-right. Section intros share this register exactly, so a
+   prose section and a figure section read as one body. */
 .px-prose { max-width: var(--col-prose); }
 .px-prose__lead {
   font-family: var(--font-body);
-  font-size: 18px;
+  font-size: var(--fs-prose, 19px);
   font-weight: 500;
-  line-height: 1.72;
+  line-height: var(--lh-prose, 1.6);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
@@ -359,20 +391,23 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-prose__p,
 .px-followup {
   font-family: var(--font-body);
-  font-size: 18px;
-  line-height: 1.72;
+  font-size: var(--fs-prose, 19px);
+  line-height: var(--lh-prose, 1.6);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
 }
 .px-followup { margin-top: 24px; max-width: 680px; }
 .px-prose__p:last-child { margin-bottom: 0; }
-.px-prose strong { color: var(--ink); font-weight: 700; }
+.px-prose strong { color: var(--ink); font-weight: 600; }
+@media (max-width: 768px) {
+  .px-prose__lead, .px-prose__p, .px-followup, .px-primer__text { font-size: var(--fs-prose-sm, 18px); }
+}
 .px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; }
 /* COMPARISON (shared — layout only; colors overridden per topic) */
 .px-compare {
-  background: var(--paper);
-  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  border: 1px solid var(--hair, var(--rule));
 }
 .px-compare__head {
   display: grid;
@@ -384,14 +419,14 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-compare__col-head {
   padding: 22px 26px 24px;
   border-right: 1px solid var(--rule);
-  background: var(--paper);
+  background: var(--paper-2);
   position: relative;
 }
 .px-compare__col-head:last-child { border-right: none; }
 .px-compare__col-label {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-deep); /* accent-deep, not accent: CANON §6 — small text on a light ground. */
   margin-bottom: 10px;
@@ -400,14 +435,14 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   font-family: var(--font-display);
   font-size: 22px;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
 .px-compare__col-kicker {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   margin-top: 8px;
   text-transform: uppercase;
@@ -416,7 +451,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   position: absolute;
   top: 22px; right: 22px;
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   padding: 3px 6px;
   color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */
@@ -434,18 +469,18 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-compare__row:last-child { border-bottom: none; }
 .px-compare__row-label {
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--muted);
   padding: 16px 20px 16px 26px;
   border-right: 1px solid var(--rule);
-  background: var(--paper);
+  background: var(--paper-2);
   display: flex;
   align-items: center;
 }
 .px-compare__cell {
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
@@ -455,7 +490,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   align-items: center;
 }
 .px-compare__cell:last-child { border-right: none; }
-.px-compare__cell strong { font-weight: 700; color: var(--ink); }
+.px-compare__cell strong { font-weight: 600; color: var(--ink); }
 .px-compare__cell em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
 
 /* The LIST form (`data-form="list"`): parallel columns of items that do not
@@ -479,7 +514,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 .px-compare__list { list-style: none; margin: 0; padding: 0; }
 .px-compare__item {
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
@@ -490,11 +525,11 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 /* `strong: true` — the payload item. An inset left rule, the same idiom the
    league table uses for its bands; RD-05 keeps shadows to inset hairlines. */
 .px-compare__item[data-strong="true"] {
-  font-weight: 700;
+  font-weight: 600;
   padding-left: 24px;
   box-shadow: inset 2px 0 0 var(--accent);
 }
-.px-compare__item strong { font-weight: 700; color: var(--ink); }
+.px-compare__item strong { font-weight: 600; color: var(--ink); }
 .px-compare__item em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
 
 /* Phones: the LIST form stacks to one column so a 15px line keeps its measure.
@@ -514,8 +549,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 .px-readout__caption {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */
   padding: 14px 20px;
@@ -543,24 +578,24 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   margin-bottom: 14px;
 }
 .px-readout__num {
-  font-family: var(--font-display);
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-num-3, 48px);
+  font-weight: 600;
+  line-height: var(--lh-num, 0.92);
   color: var(--ink);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 .px-readout__unit {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   text-transform: uppercase;
 }
 .px-readout__label {
   font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   letter-spacing: var(--viz-ls-mono);
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -577,8 +612,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   padding: 12px 20px;
   border-top: 1px solid var(--rule);
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   color: var(--muted);
   font-style: italic;
   text-transform: uppercase;
@@ -594,7 +629,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   margin-bottom: 20px;
   color: var(--ink);
 }
-.px-home__title em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-home__title em { font-style: italic; font-weight: 400; color: var(--accent-deep); }
 .px-home__tagline {
   font-family: var(--font-display);
   font-size: 20px;
@@ -619,8 +654,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 .px-home__issue:hover { background: var(--paper); }
 .px-home__meta {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -633,7 +668,7 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   color: var(--ink);
   letter-spacing: -0.01em;
 }
-.px-home__issue-title em { color: var(--accent); font-style: italic; font-weight: 400; }
+.px-home__issue-title em { color: var(--accent-deep); font-style: italic; font-weight: 400; }
 .px-home__hook {
   display: block;
   font-family: var(--font-body);
@@ -645,10 +680,10 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 .px-home__topic {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  font-size: 12px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-deep);
 }
 
 /* RESPONSIVE */
@@ -675,122 +710,120 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
 }
 
 /* ============================================================================
-   V2 ADDITIONS — issue banner, viz card shell, view transitions
+   V2 ADDITIONS — viz card shell, view transitions
    Topic-agnostic structure (consumes tokens from tokens-v2.css).
    ============================================================================ */
 
-/* ── READING-SURFACE FLATNESS (RD-05, Phase 6 shell adoption) ──────────────
-   Reading surfaces and home go radius-0 / shadow-none / hairline-elevation.
-   The boundary is a SURFACE CLASS, never per-component: home cards flatten
-   with the reading surfaces, because flat-next-to-soft in one scroll column
-   is the worst of both.
+/* ── RADII AND ELEVATION (Lens, 2026-09-30) ────────────────────────────────
+   The RD-05 flip that lived here (`--r-card: 0; --r-tile: 0; --r-pill: 0`) is
+   RETIRED. Lens has three corners and two shadows, all set once in
+   shared/design/tokens.css: a card 6, a control 4, a chip a pill; shadow-1 at
+   rest and shadow-2 on hover for every clickable card. Do not restore the
+   override: it would square every card the canvas rounds. TOKEN-RECORD TD-09. */
 
-   THE FLIP LIVES HERE, NOT IN shared/design/tokens.css — and that is
-   load-bearing. Those tokens are the canonical source for BOTH projects, and
-   `app/` consumes `--r-tile` / `--r-card` in three files. Flipping them at the
-   source would flatten the app too, which RD-05 explicitly forbids: the app
-   keeps its own spec until Phase 8. So the publication overrides them for
-   itself and the shared values stay as the app's.
-
-   `--r-pill` is deliberately NOT flipped. It carries status chips, CTAs, the
-   toolbar and progress caps (43 sites) — UI chrome, not a reading surface, and
-   RD-05's own carve-out keeps glass on toolbar and modal chrome until their
-   flat reskin. Squaring every chip in the product is a different decision than
-   this one. */
-:root {
-  --r-card: 0;
-  --r-tile: 0;
-  /* Launch design (2026-09-08): the handoff has zero rounded corners, so the
-     pill goes too — chips, CTAs, the toolbar. Operator ruling on the canvas. */
-  --r-pill: 0;
-}
-
-/* ── VIZ CARD SHELL (flat: a world rule on top, a hairline around) ─────────
-   The 3px top rule replaces the drop shadow as the card's edge and its world
-   signature. Colour splits by desk brightness (REVAMP-PLAN §3, correction 1,
-   verified 72/72): INK on the light desks, ACCENT on the dark ones — on a dark
-   ground an ink rule disappears into the paper, and on a light ground the
-   vivid accent is louder than the figure it frames. `--viz-edge` carries that
-   choice per world; the fallback keeps a 7th world legible rather than
-   edgeless. */
+/* ── VIZ CARD SHELL ─────────────────────────────────────────────────────────
+   The per-desk 3px `--viz-edge` top rule is retired with the six page grounds
+   (TD-09): `--viz-edge` is a hair on every desk, so a figure sits under a 1px
+   rule rather than a coloured bar. Phase 3 replaces the shell with the pinned
+   figure panel (paper-2, hair border, radius 6, shadow-1). */
 .px-viz {
   position: relative;
   background: transparent;
   border: 0;
-  border-top: 3px solid var(--viz-edge, var(--ink));
+  border-top: 1px solid var(--viz-edge, var(--hair));
   border-radius: 0;
   padding: 14px 0 0;
 }
-/* RD-05 hover split: lift on a DATA MARK survives (it is CANON §9's inspect
-   verb); lift on cards retires to border-colour only. The top rule re-asserts
-   itself so the world signature does not flicker on hover. */
-.px-viz:hover { border-top-color: var(--viz-edge, var(--ink)); }
+.px-viz:hover { border-top-color: var(--viz-edge, var(--hair)); }
 
 /* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */
-/* `--t-slow` (420ms), NOT `--t-page` (600ms), and the difference is the point.
-   This is the only motion on the site that answers a CLICK: the reader is
-   waiting on it, so 600ms reads as latency rather than as settling. Every
-   other `--t-page` use is scroll- or load-triggered, where nobody is blocked
-   and the slower tier is exactly the register the canon asks for.
-   The tokens are a magnitude ladder, so navigation sitting on the slow tier
-   is a statement about its scale, not a downgrade. Operator ruling
-   2026-09-07; motion.md `pageEnter` / `worldFade`. */
+/* The one motion that answers a CLICK, so it runs at the element tier
+   (420ms) on the entrance ease: the reader is waiting on it. */
 @view-transition { navigation: auto; }
 ::view-transition-old(root), ::view-transition-new(root) {
-  animation-duration: var(--t-slow);
+  animation-duration: var(--t-el);
   animation-timing-function: var(--ease);
 }
 
-/* ── CORE BOXED COMPONENTS (flat, RD-05) ─────────────────────────────── */
-/* `.px-readout` was dropped from this rule: DataReadout has emitted `.tel`
-   since the v2 port, so the selector matched nothing. */
+/* ── CORE BOXED COMPONENTS ──────────────────────────────────────────────── */
 .px-compare {
-  border-radius: var(--r-tile);
+  border-radius: var(--r-card);
   overflow: hidden;
-  /* RD-05: shadow-none, no lift. The hairline is the edge; hover is
-     border-colour only (card-lift retired, mark-inspect untouched). */
-  transition: border-color var(--t-quick) var(--ease);
+  transition: border-color var(--t-micro) var(--ease);
 }
-.px-compare:hover { border-color: color-mix(in oklab, var(--ink) 26%, transparent); }
+.px-compare:hover { border-color: var(--hair-2, var(--rule)); }
 
 
 /* ════════════════════════════════════════════════════════════════════════════
-   LAUNCH PRIMITIVES (2026-09-08) — the hairline grid every page is built from.
-   Pages are stacks of full-width BANDS inside the 1280 frame; cells are 1px
-   grids on the rule colour; buttons are square; small capitals are the meta
-   voice. Values are the canvas prototype's (scratch gen.mjs → artboards).
+   LENS PRIMITIVES (2026-09-30) — the Foundations board, as classes.
+   Every page is built from these. The class names are the launch design's
+   (2026-09-08) so no page changes; the values are Lens: the frame gives a
+   1152 column, a band is a vertical rhythm split by a hair, buttons are 44px
+   with 4px corners, chips are pills, cards are paper-2 with a hair and
+   shadow-1, labels are Instrument Sans 12 capitals at .06em.
    ════════════════════════════════════════════════════════════════════════════ */
-.px-band { padding: 46px 40px 40px; border-bottom: 1px solid var(--rule); }
-.px-band--head { padding: 30px 40px 8px; border-bottom: 0; }
+
+/* BANDS — 96px between sections (64 on phones): 48 above and below each
+   band's content, a 1px hair between. The frame carries the side gutter. */
+.px-band { padding: 48px 0; border-bottom: 1px solid var(--hair, var(--rule)); }
+.px-band--head { padding: 48px 0 8px; border-bottom: 0; }
 .px-band--flush { padding: 0; }
 .px-band--last { border-bottom: 0; }
 
+/* H1 — Newsreader 500, 64/1.02, -0.01em (phone 40/1.06); the one authored
+   italic word in the desk text colour. */
 .px-h1 {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 68px;
-  line-height: 1;
-  letter-spacing: -0.032em;
+  font-weight: 500;
+  font-size: var(--fs-h1, 64px);
+  line-height: var(--lh-h1, 1.02);
+  letter-spacing: var(--ls-display, -0.01em);
   color: var(--ink);
   text-wrap: balance;
   max-width: 18ch;
   margin: 0 0 20px;
 }
-.px-h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+.px-h1 em { font-style: italic; font-weight: inherit; color: var(--accent-deep); }
+/* H2 / H3 — for the page sections that need them (Phase 2 and 4 pages). */
+.px-h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-h2, 40px);
+  line-height: var(--lh-h2, 1.08);
+  letter-spacing: var(--ls-display, -0.01em);
+  color: var(--ink);
+  margin: 0;
+}
+.px-h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-h3, 28px);
+  line-height: var(--lh-h3, 1.15);
+  letter-spacing: var(--ls-display, -0.01em);
+  color: var(--ink);
+  margin: 0;
+}
+.px-h2 em, .px-h3 em { font-style: italic; font-weight: inherit; color: var(--accent-deep); }
+
+/* LEDE — the prose register at the top of a page: Newsreader 400, 19/1.6. */
 .px-lede {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: 21px;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  max-width: 48ch;
+  font-weight: 400;
+  font-size: var(--fs-prose, 19px);
+  line-height: var(--lh-prose, 1.6);
+  color: var(--ink);
+  max-width: var(--measure, 68ch);
   text-wrap: pretty;
   margin: 0;
 }
+
+/* META — the label voice: Instrument Sans 12 / 500 / .06em capitals, muted. */
 .px-meta {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-label, 12px);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: var(--ls-label, 0.06em);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -802,72 +835,155 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   flex: 0 0 auto;
 }
 
+/* BUTTONS — 44px, 15/600 Instrument Sans, 4px corners.
+     .px-btn            primary: ink fill, paper text
+     .px-btn--ghost     secondary: 1px ink border, ink text
+     .px-btn--outline   secondary, same values (kept for its call sites)
+     .px-btn--acc       the desk button: the desk TEXT colour as fill
+     .px-btn--desk      alias of --acc under the Lens name
+   Hover changes colour, never size. Disabled: paper-3, muted, hair. */
 .px-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font-family: inherit;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 20px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-ui, 15px); font-weight: 600; letter-spacing: 0; text-transform: none;
   line-height: 1.2;
-  padding: 9px 15px;
   border: 1px solid var(--ink);
+  border-radius: var(--r-ctl);
   background: var(--ink);
-  color: var(--bg);
+  color: var(--paper);
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), color var(--t-quick) var(--ease);
+  transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
 }
-.px-btn:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); color: var(--on-accent, var(--bg)); }
-.px-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.px-btn--acc { background: var(--accent); border-color: var(--accent); color: var(--on-accent, var(--bg)); }
-.px-btn--acc:hover { background: var(--accent-deep, var(--accent)); border-color: var(--accent-deep, var(--accent)); }
-.px-btn--ghost { background: transparent; border-color: color-mix(in oklab, var(--ink) 26%, transparent); color: var(--ink-soft); }
-.px-btn--ghost:hover { background: transparent; border-color: var(--ink); color: var(--ink); }
-.px-btn--outline { background: transparent; border-color: var(--accent-deep, var(--accent)); color: var(--accent-deep, var(--accent)); }
-.px-btn--outline:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); color: var(--accent-deep, var(--accent)); }
-.px-btn--block { width: 100%; padding: 15px; }
+.px-btn:hover { background: var(--ink-2); border-color: var(--ink-2); color: var(--paper); }
+.px-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.px-btn:disabled, .px-btn[aria-disabled="true"] {
+  background: var(--paper-3); border-color: var(--hair); color: var(--muted); cursor: not-allowed;
+}
+.px-btn--acc, .px-btn--desk { background: var(--accent-deep); border-color: var(--accent-deep); color: var(--paper); }
+.px-btn--acc:hover, .px-btn--desk:hover {
+  background: color-mix(in oklab, var(--accent-deep) 86%, var(--ink));
+  border-color: color-mix(in oklab, var(--accent-deep) 86%, var(--ink));
+  color: var(--paper);
+}
+.px-btn--ghost, .px-btn--outline { background: transparent; border-color: var(--ink); color: var(--ink); }
+.px-btn--ghost:hover, .px-btn--outline:hover { background: var(--paper-3); border-color: var(--ink); color: var(--ink); }
+.px-btn--block { width: 100%; }
 
-.px-cells { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+/* CELLS — a grid split by 1px hairs (the launch grid, on the Lens hair). */
+.px-cells { display: grid; gap: 1px; background: var(--hair, var(--rule)); border: 1px solid var(--hair, var(--rule)); }
 .px-cells > * { background: var(--bg); min-width: 0; }
 .px-cells--open { border-inline: 0; }
 
+/* CHIPS — the label chip is 28px, a pill, the desk tint with the desk text
+   (Instrument Sans 12 / 500 / .06em capitals). `--neutral` is the paper-3
+   chip. A chip that is a CONTROL (a link or a button, the archive's desk
+   filters) takes the filter-chip values from the Archive board instead: 44px
+   for the touch floor, paper-2 with a hair-2 border, 14/500 ink, and ink fill
+   when pressed. */
 .px-chip {
   display: inline-flex; align-items: center; gap: 7px;
-  font-family: inherit;
-  font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
-  padding: 8px 12px;
-  border: 1px solid color-mix(in oklab, var(--ink) 22%, transparent);
-  background: transparent;
-  color: var(--ink);
+  box-sizing: border-box;
+  width: fit-content;   /* a chip sizes to its label, even in a stretching column */
+  max-width: 100%;
+  height: 28px;
+  padding: 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-label, 12px); font-weight: 500; letter-spacing: var(--ls-label, 0.06em); text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  border: 0;
+  border-radius: var(--r-chip);
+  background: var(--accent-tint, var(--paper-3));
+  color: var(--accent-deep, var(--ink-2));
   text-decoration: none;
-  cursor: pointer;
-  transition: border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
 }
-.px-chip:hover { border-color: var(--ink); }
-.px-chip[aria-pressed="true"], .px-chip--on { border-color: var(--ink); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.px-chip--neutral { background: var(--paper-3); color: var(--ink-2); }
+a.px-chip, button.px-chip {
+  height: auto;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  border: 1px solid var(--hair-2, var(--rule));
+  background: var(--paper-2);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--t-micro) var(--ease), background var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
+}
+a.px-chip:hover, button.px-chip:hover { border-color: var(--ink); }
+a.px-chip:focus-visible, button.px-chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.px-chip[aria-pressed="true"], .px-chip--on {
+  border-color: var(--ink); background: var(--ink); color: var(--paper); font-weight: 600;
+}
 
-/* Text inputs: transparent, a 1px rule-2 border, square. */
+/* INPUTS — 52px, paper-2, a 1px hair-2 border, 4px corners, Instrument Sans
+   16 (16, not 15: an input under 16px zooms the page on iOS). Focus is a 2px
+   ink outline 2px off the edge. The label sits above at 14px (`.px-label`). */
 .px-input {
   width: 100%;
   box-sizing: border-box;
-  font-family: inherit;
-  font-size: 15px;
+  height: 52px;
+  font-family: var(--font-ui);
+  font-size: 16px;
   color: var(--ink);
-  background: transparent;
-  border: 1px solid color-mix(in oklab, var(--ink) 26%, transparent);
-  border-radius: 0;
-  padding: 13px 14px;
-  outline: none;
-  transition: border-color var(--t-quick) var(--ease);
+  background: var(--paper-2);
+  border: 1px solid var(--hair-2, var(--rule));
+  border-radius: var(--r-ctl);
+  padding: 0 16px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: border-color var(--t-micro) var(--ease), outline-color var(--t-micro) var(--ease);
 }
 .px-input::placeholder { color: var(--muted); }
-.px-input:focus { border-color: var(--ink); }
+.px-input:focus, .px-input:focus-visible { border-color: var(--ink); outline-color: var(--ink); }
+.px-label {
+  display: block;
+  margin: 0 0 8px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+/* CARDS — paper-2, a 1px hair, 6px corners, shadow-1; a card that is a link
+   lifts on hover by border and shadow (ink border, shadow-2), never by size. */
+.px-card {
+  display: flex; flex-direction: column; gap: 14px;
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-1);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+}
+a.px-card:hover, .px-card--link:hover { border-color: var(--ink); box-shadow: var(--shadow-2); }
+a.px-card:focus-visible, .px-card--link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.px-card--flat { box-shadow: none; }
 
 @media (max-width: 768px) {
-  .px-band { padding: 24px 20px 28px; }
-  .px-band--head { padding: 24px 20px 6px; }
+  .px-band { padding: 32px 0; }
+  .px-band--head { padding: 32px 0 6px; }
   .px-band--flush { padding: 0; }
-  .px-h1 { font-size: 40px; }
-  .px-lede { font-size: 17px; }
+  .px-h1 { font-size: var(--fs-h1-sm, 40px); line-height: var(--lh-h1-sm, 1.06); }
+  .px-h2 { font-size: 32px; }
+  .px-lede { font-size: var(--fs-prose-sm, 18px); }
+  .px-card { padding: 20px; }
 }
+
+/* ── THE ISSUE FLOOR PLAN KEEPS ITS FRAME UNTIL PHASE 3 ───────────────────────
+   The floor plan (layout-v2.css) is drawn for the full 1280 frame: its rails
+   carry their own 40px outer padding and its measure is exactly 720, the width
+   every figure is drawn for. The Lens frame's gutter would take 128px out of
+   it, so it steps back out to the frame edge. Phase 3 replaces it with the
+   620 article beside the 520 pinned figure. */
+.px-floor, .px-floor__facts-grid { margin-inline: calc(-1 * var(--wrap-pad, 0px)); }
 
 /* ── TOUCH FLOORS (launch audit, 2026-09-08) ──────────────────────────────────
    Text links that are the only control in their row — the meta strip's
@@ -880,36 +996,8 @@ html.js .px-section:not(.is-in) .px-section__num { opacity: 0; transform: transl
   }
   .px-col li a { min-height: 36px; }
   .px-rows__row { min-height: 44px; }
-  /* Square buttons and the masthead lockup measured 33–34px on the phone
-     audit; the button grows in place, the lockup's tap band is invisible. */
-  .px-btn { min-height: 44px; }
-  .mh__brand { min-height: 44px; margin-block: -5px; } /* the band, not the row: the lockup was 34px, so the masthead stays 63px */
+  .mh__brand { min-height: 44px; margin-block: -5px; } /* the lockup's tap band, invisible */
 }
 
-/* ── JUSTIFIED COPY (operator ruling 2026-09-08) ─────────────────────────────
-   Every flowing paragraph — prose, section intros, the primer, how-to-read,
-   letters, the house pages' body copy — is justified with hyphenation from
-   640px up. Ledes, titles, captions, list rows and the plain line stay
-   ragged: short measures river when justified. Phones stay ragged too. */
-@media (min-width: 640px) {
-  .px-prose__p, .px-followup, .px-prose__lead, .px-section__intro,
-  .px-primer__text, .px-viz__how, .px-letter__item-body, .px-sources__dek,
-  .px-letter__dek, .px-reactions__dek,
-  .px-abt__close, .px-abt__cop, .px-abt__edcopy, .px-abt__intro, .px-abt__markbody,
-  .px-abt__promb, .px-abt__stepb, .px-subs__body, .px-subs__nb, .px-subs__note, .px-home__promise-b {
-    text-align: justify;
-    text-justify: inter-word;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-  }
-  /* The ruling's own exception, applied where it bites: "short measures river
-     when justified." A breath section's intro is display copy at 560px — it
-     rivered on the live pages (2026-09-22) and stays ragged. (The split
-     column's exception went with the split grid on 2026-09-23: split is an
-     alias of wide now, so its intro sits at the 720 measure like any other.) */
-  .px-section[data-layout='breath'] .px-section__intro {
-    text-align: start;
-    hyphens: manual;
-    -webkit-hyphens: manual;
-  }
-}
+/* Justified copy (the operator's ruling of 2026-09-08) is RETIRED with Lens:
+   every paragraph sets ragged-right, hyphenation manual. */

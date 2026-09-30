@@ -110,7 +110,7 @@ if (cfg.narrative) console.log('  - EXPLAIN skipped (narrative kind)');
 else if (s.includes(`'${kind}':`)) console.log('  = EXPLAIN');
 else {
   const N = eol(s);
-  const re = /( *'orbital-shells':)/;
+  const re = /( *'gauge':)/;
   if (!re.test(s)) die('explainers anchor');
   const esc1 = (t) => t.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   s = s.replace(re, `  '${kind}': { what: '${esc1(explainWhat)}', how: '${esc1(explainHow)}' },${N}$1`);

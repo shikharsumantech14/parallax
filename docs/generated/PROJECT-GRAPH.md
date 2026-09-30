@@ -13,14 +13,14 @@
 
 | | |
 |---|---|
-| kinds | 101 |
-| webgl | 14 |
+| kinds | 87 |
+| webgl | 10 |
 | issues | 30 |
 | published | 17 |
-| blueprints | 40 |
-| neverUsedAnywhere | 3 |
-| neverInPublished | 64 |
-| danglingDecisions | 10 |
+| blueprints | 39 |
+| neverUsedAnywhere | 0 |
+| neverInPublished | 50 |
+| danglingDecisions | 9 |
 
 ## Section kinds
 
@@ -39,33 +39,26 @@
 | `you-think` | YouThink | ✓ | ✓ | 60 |  | ✓ | ✓ | ✓ |
 | `analogy` | BrothersAnalogy | ✓ | · | 34 |  |  | ✓ | ✓ |
 | `quote` | Quote | ✓ | · | 40 |  |  | ✓ | ✓ |
-| `beat-sheet` | BeatSheet | ✓ | · | 36 |  |  |  |  |
 | `jargon-buster` | JargonBuster | ✓ | · | 30 |  | ✓ | ✓ | ✓ |
 | `three-steps` | ThreeSteps | ✓ | · | 44 |  | ✓ | ✓ | ✓ |
 | `prose` | Prose | ✓ | · | 10 |  |  | ✓ | ✓ |
-| `plate` | Plate | ✓ | · | -1 |  |  | ✓ |  |
 | `data-readout` | DataReadout | ✓ | ✓ | 70 |  |  | ✓ | ✓ |
 | `number-sense` | NumberSense | ✓ | ✓ | 68 |  | ✓ | ✓ | ✓ |
-| `orbital-shells` | OrbitalShells | ✓ | ✓ | 72 |  |  |  |  |
 | `commit-grid` | CommitGrid | ✓ | ✓ | 58 |  |  | ✓ |  |
 | `journey-map` | JourneyMap | ✓ | ✓ | 56 |  |  | ✓ |  |
 | `match-stat-line` | MatchStatLine | ✓ | ✓ | 58 |  |  | ✓ | ✓ |
-| `elevation-profile` | ElevationProfile | ✓ | ✓ | 58 |  |  |  |  |
 | `region-map` | RegionMap | ✓ | ✓ | 60 |  |  | ✓ | ✓ |
 | `climate-strip` | ClimateStrip | ✓ | ✓ | 64 |  |  | ✓ | ✓ |
-| `carbon-gauge` | CarbonGauge | ✓ | ✓ | 64 |  |  | ✓ |  |
+| `gauge` | Gauge | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `approval-chart` | ApprovalChart | ✓ | ✓ | 62 |  |  | ✓ |  |
 | `power-matrix` | PowerMatrix | ✓ | ✓ | 56 |  |  | ✓ | ✓ |
 | `orbit-trace` | OrbitTrace | ✓ | ✓ | 60 |  |  | ✓ | ✓ |
 | `launch-stats` | LaunchStats | ✓ | ✓ | 62 |  |  | ✓ |  |
 | `benchmark-chart` | BenchmarkChart | ✓ | ✓ | 62 |  |  | ✓ | ✓ |
 | `adoption-curve` | AdoptionCurve | ✓ | ✓ | 62 |  |  | ✓ | ✓ |
-| `route-card` | RouteCard | ✓ | ✓ | 56 |  |  | ✓ |  |
-| `city-compare` | CityCompare | ✓ | ✓ | 56 |  |  | ✓ |  |
+| `itinerary` | Itinerary | ✓ | ✓ | 66 |  |  | ✓ |  |
 | `league-table` | LeagueTable | ✓ | ✓ | 62 |  |  | ✓ |  |
 | `player-radar` | PlayerRadar | ✓ | ✓ | 72 |  |  | ✓ |  |
-| `coalition-orbit` | CoalitionOrbit | ✓ | ✓ | 94 | ✓ |  | ✓ |  |
-| `swing-dial` | SwingDial | ✓ | ✓ | 80 |  |  | ✓ |  |
 | `bill-passage` | BillPassage | ✓ | ✓ | 78 |  |  | ✓ | ✓ |
 | `vote-flow` | VoteFlow | ✓ | ✓ | 80 |  |  | ✓ |  |
 | `margin-ladder` | MarginLadder | ✓ | ✓ | 78 |  |  | ✓ | ✓ |
@@ -73,13 +66,10 @@
 | `power-flow` | PowerFlow | ✓ | ✓ | 92 |  | ✓ | ✓ | ✓ |
 | `coalition-calculus` | CoalitionCalculus | ✓ | ✓ | 86 |  | ✓ | ✓ |  |
 | `gerrymander-lens` | GerrymanderLens | ✓ | ✓ | 80 |  | ✓ | ✓ |  |
-| `ballot-flow` | BallotFlow | ✓ | ✓ | 80 |  | ✓ | ✓ |  |
 | `bill-funnel` | BillFunnel | ✓ | ✓ | 66 |  | ✓ | ✓ |  |
 | `age-pyramid` | AgePyramid | ✓ | ✓ | 66 |  | ✓ | ✓ |  |
-| `orbit-globe` | OrbitGlobe | ✓ | ✓ | 96 | ✓ |  | ✓ |  |
 | `trajectory-arc` | TrajectoryArc | ✓ | ✓ | 84 |  |  | ✓ |  |
 | `delta-v-ladder` | DeltaVLadder | ✓ | ✓ | 78 |  |  | ✓ |  |
-| `signal-readout` | SignalReadout | ✓ | ✓ | 76 |  |  | ✓ |  |
 | `descent-profile` | DescentProfile | ✓ | ✓ | 84 |  |  | ✓ | ✓ |
 | `solar-system` | SolarSystem | ✓ | ✓ | 100 | ✓ | ✓ | ✓ |  |
 | `constellation-swarm` | ConstellationSwarm | ✓ | ✓ | 90 | ✓ | ✓ | ✓ |  |
@@ -87,7 +77,6 @@
 | `transfer-window` | TransferWindow | ✓ | ✓ | 80 |  | ✓ | ✓ |  |
 | `eclipse-cone` | EclipseCone | ✓ | ✓ | 76 |  | ✓ | ✓ |  |
 | `margin-bullets` | MarginBullets | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
-| `data-globe` | DataGlobe | ✓ | ✓ | 96 | ✓ |  | ✓ |  |
 | `core-sample` | CoreSample | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `sea-level-tank` | SeaLevelTank | ✓ | ✓ | 84 |  |  | ✓ |  |
 | `climate-spiral` | ClimateSpiral | ✓ | ✓ | 90 |  |  | ✓ |  |
@@ -101,16 +90,13 @@
 | `latency-waterfall` | LatencyWaterfall | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
 | `version-graph` | VersionGraph | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `scaling-plot` | ScalingPlot | ✓ | ✓ | 82 |  |  | ✓ | ✓ |
-| `throughput-dial` | ThroughputDial | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
 | `neural-flow` | NeuralFlow | ✓ | ✓ | 90 | ✓ | ✓ | ✓ |  |
 | `packet-trace` | PacketTrace | ✓ | ✓ | 84 | ✓ | ✓ | ✓ |  |
 | `queue-cliff` | QueueCliff | ✓ | ✓ | 82 |  | ✓ | ✓ |  |
 | `chip-die` | ChipDie | ✓ | ✓ | 78 |  | ✓ | ✓ |  |
 | `moore-ladder` | MooreLadder | ✓ | ✓ | 64 |  | ✓ | ✓ |  |
 | `state-timeline` | StateTimeline | ✓ | ✓ | 76 |  | ✓ | ✓ |  |
-| `route-globe` | RouteGlobe | ✓ | ✓ | 96 | ✓ |  | ✓ |  |
 | `elevation-trek` | ElevationTrek | ✓ | ✓ | 76 |  |  | ✓ | ✓ |
-| `itinerary-reel` | ItineraryReel | ✓ | ✓ | 74 |  |  | ✓ |  |
 | `climate-calendar` | ClimateCalendar | ✓ | ✓ | 74 |  |  | ✓ |  |
 | `timezone-arc` | TimezoneArc | ✓ | ✓ | 74 |  |  | ✓ |  |
 | `terminator-globe` | TerminatorGlobe | ✓ | ✓ | 92 | ✓ | ✓ | ✓ |  |
@@ -131,12 +117,12 @@
 | `channel-ternary` | ChannelTernary | ✓ | ✓ | 64 |  | ✓ | ✓ | ✓ |
 | `finish-interval` | FinishInterval | ✓ | ✓ | 68 |  | ✓ | ✓ |  |
 
-## Never in a published issue — 64 of 101
+## Never in a published issue — 50 of 87
 
 The plan's argument for workstream B over Wave 2 rests on this number.
 It is computed here rather than asserted.
 
-`beat-sheet` · `plate` · `orbital-shells` · `commit-grid` · `journey-map` · `elevation-profile` · `carbon-gauge` · `approval-chart` · `launch-stats` · `route-card` · `city-compare` · `league-table` · `player-radar` · `coalition-orbit` · `swing-dial` · `vote-flow` · `chamber` · `coalition-calculus` · `gerrymander-lens` · `ballot-flow` · `bill-funnel` · `age-pyramid` · `orbit-globe` · `trajectory-arc` · `delta-v-ladder` · `signal-readout` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `data-globe` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `route-globe` · `itinerary-reel` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `finish-interval`
+`commit-grid` · `journey-map` · `approval-chart` · `launch-stats` · `itinerary` · `league-table` · `player-radar` · `vote-flow` · `chamber` · `coalition-calculus` · `gerrymander-lens` · `bill-funnel` · `age-pyramid` · `trajectory-arc` · `delta-v-ladder` · `solar-system` · `constellation-swarm` · `lagrange-map` · `transfer-window` · `eclipse-cone` · `margin-bullets` · `sea-level-tank` · `climate-spiral` · `quake-depth` · `terrain-relief` · `plate-motion` · `atmosphere-column` · `carbon-loop` · `storm-track` · `neural-flow` · `packet-trace` · `queue-cliff` · `chip-die` · `moore-ladder` · `state-timeline` · `climate-calendar` · `timezone-arc` · `terminator-globe` · `city-grid` · `altitude-oxygen` · `season-wheel` · `fare-terrain` · `xg-race` · `momentum-wave` · `player-card` · `flight-of-the-ball` · `elo-river` · `court-value` · `pace-ridge` · `finish-interval`
 
 ## Decisions
 
@@ -167,29 +153,30 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **CD-12** | 12 files | 6 |
 | **RD-01** | 9 files | 3 |
 | **RD-01a** | 7 files | 5 |
-| **RD-01b** | 40 files | 7 |
+| **RD-01b** | 42 files | 7 |
 | **RD-02** | 4 files | 0 — _dangling_ |
 | **RD-03** | 6 files | 2 |
 | **RD-04** | 3 files | 0 — _dangling_ |
-| **RD-05** | 22 files | 13 |
-| **RD-06** | 7 files | 1 |
+| **RD-05** | 22 files | 12 |
+| **RD-06** | 5 files | 1 |
 | **RD-07** | 3 files | 1 |
 | **RD-08** | 7 files | 3 |
 | **RD-09** | 6 files | 1 |
-| **RD-10** | 13 files | 9 |
+| **RD-10** | 14 files | 9 |
 | **RD-11** | 5 files | 2 |
 | **RD-12** | 6 files | 3 |
 | **RD-13** | 5 files | 1 |
 | **RD-14** | 5 files | 0 — _dangling_ |
 | **RD-15** | 5 files | 0 — _dangling_ |
-| **TD-01** | 45 files | 10 |
+| **TD-01** | 44 files | 10 |
 | **TD-02** | 36 files | 7 |
 | **TD-03** | 31 files | 2 |
 | **TD-04** | 9 files | 8 |
-| **TD-05** | 1 files | 0 — _dangling_ |
-| **TD-06** | 16 files | 4 |
-| **TD-07** | 1 files | 0 — _dangling_ |
-| **TD-08** | 1 files | 0 — _dangling_ |
+| **TD-05** | 5 files | 3 |
+| **TD-06** | 18 files | 5 |
+| **TD-07** | 2 files | 0 — _dangling_ |
+| **TD-08** | 2 files | 0 — _dangling_ |
+| **TD-09** | 13 files | 10 |
 
 ## Issues
 
@@ -201,17 +188,17 @@ only see citations. Treat a zero as a question, never as a verdict.
 | `2026-05-03-earth-map-test` | earth | draft | 3 | 3 | 13 |
 | `2026-05-03-el-nino-new-floor` | earth | published | 9 | 8 | 15 |
 | `2026-05-03-politics-components` | politics | draft | 2 | 2 | 1 |
-| `2026-05-03-space-components` | space | draft | 3 | 3 | 1 |
+| `2026-05-03-space-components` | space | draft | 2 | 2 | 1 |
 | `2026-05-03-sports-components` | sports | draft | 3 | 3 | 1 |
 | `2026-05-03-tech-components` | tech | draft | 2 | 2 | 1 |
 | `2026-05-03-travel-components` | travel | draft | 2 | 2 | 1 |
 | `2026-05-15-seven-appeals-rupee-pressure` | politics | draft | 8 | 6 | 11 |
-| `2026-06-03-earth-showcase` | earth | draft | 16 | 16 | 15 |
-| `2026-06-03-politics-showcase` | politics | draft | 20 | 20 | 4 |
-| `2026-06-03-space-showcase` | space | draft | 15 | 15 | 4 |
+| `2026-06-03-earth-showcase` | earth | draft | 15 | 15 | 15 |
+| `2026-06-03-politics-showcase` | politics | draft | 17 | 17 | 4 |
+| `2026-06-03-space-showcase` | space | draft | 13 | 13 | 4 |
 | `2026-06-03-sports-showcase` | sports | draft | 16 | 16 | 3 |
 | `2026-06-03-tech-showcase` | tech | draft | 15 | 15 | 4 |
-| `2026-06-03-travel-showcase` | travel | draft | 16 | 16 | 9 |
+| `2026-06-03-travel-showcase` | travel | draft | 15 | 14 | 9 |
 | `2026-06-04-ai-coding-token-bill` | tech | published | 9 | 9 | 7 |
 | `2026-06-04-amazon-tipping-point` | earth | published | 8 | 8 | 8 |
 | `2026-06-04-arsenal-set-piece-title` | sports | published | 9 | 9 | 11 |

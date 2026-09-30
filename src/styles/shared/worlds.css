@@ -1,83 +1,81 @@
 /* GENERATED from shared/design/worlds.css — DO NOT EDIT.
    Edit the canonical file, then run: npm run design:sync */
 /* ============================================================================
-   PARALLAX SHARED WORLD ACCENTS — CANONICAL SOURCE
+   PARALLAX SHARED DESK INKS — CANONICAL SOURCE (Lens, 2026-09-30)
    ----------------------------------------------------------------------------
-   Variables-only per-world palette, extracted 1:1 from the six publication
-   theme headers (src/styles/themes/<topic>.css) — those files remain the law
-   for the publication; THIS file is how OTHER surfaces (the app's auth
-   tinting, dashboard chips/cards; anything outside the theme cascade) consume
-   world color without duplicating hexes.
+   Six inks over one paper. Each desk has four values (BRIEF.md, the
+   Foundations board):
+     text  words in the desk colour, >= 4.5:1 on the paper
+     mark  fills, lines, the data. Never small text
+     tint  bands and chips
+     deep  the plate: a bounded stage or cover, never a whole page
+   plus the two limes, which are marks on their own desk's deep plate only,
+   never text and never on paper.
+
    Edit HERE (and the matching theme header together), then `npm run
-   design:sync`. Two scopes:
-     1. :root  --world-<topic> / --world-<topic>-deep  → chips, dots, edges
-     2. [data-world="<topic>"]  --w-*                  → tint a subtree
-   The app tints with --w-* ACCENTS ONLY — never adopts a world's full dark
-   palette (APP-DESIGN-SPEC: "the app stays calm").
+   design:sync`. Three scopes:
+     1. :root  --<desk>-text / -mark / -tint / -deep       the Lens names
+     2. :root  --world-<desk> (mark) / --world-<desk>-deep (text)
+               the legacy pair, gated by design:check against every mirror
+     3. [data-world="<desk>"]  --w-*                        tint a subtree
+
+   THE TWO ACCENT-DEEP ROLES ARE ONE ROLE AGAIN. Until 2026-09-29 the dark
+   desks printed on their own dark grounds, so `--accent-deep` meant one thing
+   in-world and another on light paper (TD-05). Lens puts every desk on the
+   same paper, so a desk's text colour is its type-safe accent everywhere.
+   The deep plate is the only dark surface left, and on it text is
+   `--on-deep`, never a desk colour.
    ============================================================================ */
 
 :root {
-  --world-politics: #b8341f;  --world-politics-deep: #8b2416;
-  --world-space:    #00d4ff;  --world-space-deep:    #00708a;
-  --world-earth:    #2d6a4f;  --world-earth-deep:    #1a4a36;
-  --world-tech:     #c6f432;  --world-tech-deep:     #5a6e16;
-  --world-travel:   #c85a3c;  --world-travel-deep:   #9a4028;
-  --world-sports:   #e8f048;  --world-sports-deep:   #3f5428;
+  --pol-text: #a02d18; --pol-mark: #c8412a; --pol-tint: #f6e4df; --pol-deep: #2a1410;
+  --spa-text: #0c6a8c; --spa-mark: #1b9ac4; --spa-tint: #dceef5; --spa-deep: #0b1b33;
+  --ear-text: #176357; --ear-mark: #22897a; --ear-tint: #dcefea; --ear-deep: #0f2a25;
+  --tec-text: #566e0f; --tec-mark: #86a81b; --tec-tint: #ecf1d3; --tec-deep: #111111;
+  --tra-text: #9c5a14; --tra-mark: #c97c22; --tra-tint: #f8ead5; --tra-deep: #2c1d10;
+  --spo-text: #33691e; --spo-mark: #5a9e2f; --spo-tint: #e3f0da; --spo-deep: #0f2820;
+  --tec-lime: #c6f432;
+  --spo-lime: #e8f048;
+
+  /* Legacy pair: --world-<desk> is the MARK, --world-<desk>-deep the TEXT. */
+  --world-politics: #c8412a;  --world-politics-deep: #a02d18;
+  --world-space:    #1b9ac4;  --world-space-deep:    #0c6a8c;
+  --world-earth:    #22897a;  --world-earth-deep:    #176357;
+  --world-tech:     #86a81b;  --world-tech-deep:     #566e0f;
+  --world-travel:   #c97c22;  --world-travel-deep:   #9c5a14;
+  --world-sports:   #5a9e2f;  --world-sports-deep:   #33691e;
 }
 
-/* ── DERIVED VALUES ─────────────────────────────────────────────────────────
-   --muted in each theme file is DERIVED, not authored: the world's own ink
-   composited over --bg at 60% on dark grounds, 72% on light. Measured
-   2026-08-27, the previously-authored values failed WCAG AA (4.5:1) for body
-   text on 8 of 12 world/surface combinations — worst travel #8a7864 at 3.94:1
-   and sports on paper at 3.74:1. Every derived value clears 5.27:1 and every
-   one is an improvement. Recompute rather than hand-tuning them warmer.
-
-   --ink-soft is deliberately NOT derived. The spec's 74%/78% formula was
-   measured too and is WORSE on every world (6.50–10.23 derived vs 7.78–11.62
-   authored), while the authored values already clear AA everywhere. Adopting
-   it would have reduced contrast for no benefit.
-
-   ── THE TWO ACCENT-DEEP ROLES ──────────────────────────────────────────────
-   --accent-deep in a theme file means "type-safe accent ON THAT WORLD'S OWN
-   GROUND". The --world-*-deep / --w-accent-deep values HERE mean "type-safe
-   accent on a LIGHT surface", because that is what consumes them: the app
-   (ground #faf7f0) renders --w-accent-deep as text, and chips/edges print a
-   world's identity on meta paper.
-
-   For the three light worlds those roles coincide. For the three dark worlds
-   they are provably irreconcilable — space needs luminance >= 0.2168 to clear
-   4.5:1 on its own #0a1628 ground, and <= 0.1787 to clear it on white. The
-   ranges do not overlap, so ONE value cannot serve both. Keep them separate.
-   meta.css reached the same conclusion independently for tech and sports. */
-
+/* Every desk sits on the one paper, so --w-bg / --w-ink / --w-paper-warm /
+   --w-on-accent are the same six times. They stay per desk because the
+   reader-account surfaces (src/styles/app.css) consume them by scope. */
 [data-world="politics"] {
-  --w-accent: #b8341f; --w-accent-deep: #8b2416; --w-accent-alt: #1e5a3f;
-  --w-bg: #f4f1ea; --w-paper: #ffffff; --w-ink: #161412;
-  --w-paper-warm: #f2eee4; --w-on-accent: #f4f1ea;
+  --w-accent: #c8412a; --w-accent-deep: #a02d18; --w-tint: #f6e4df; --w-deep: #2a1410;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }
 [data-world="space"] {
-  --w-accent: #00d4ff; --w-accent-deep: #00708a; --w-accent-alt: #ffb347;
-  --w-bg: #0a1628; --w-paper: #111f36; --w-ink: #e8eef7;
-  --w-paper-warm: #12233c; --w-on-accent: #0a1628;
+  --w-accent: #1b9ac4; --w-accent-deep: #0c6a8c; --w-tint: #dceef5; --w-deep: #0b1b33;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }
 [data-world="earth"] {
-  --w-accent: #2d6a4f; --w-accent-deep: #1a4a36; --w-accent-alt: #a04922;
-  --w-bg: #f0e9d8; --w-paper: #fbf6e9; --w-ink: #1f2a1c;
-  --w-paper-warm: #ece2c4; --w-on-accent: #f0e9d8;
+  --w-accent: #22897a; --w-accent-deep: #176357; --w-tint: #dcefea; --w-deep: #0f2a25;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }
 [data-world="tech"] {
-  --w-accent: #c6f432; --w-accent-deep: #5a6e16; --w-accent-alt: #ff5c8a;
-  --w-bg: #0d0d0d; --w-paper: #161616; --w-ink: #fafafa;
-  --w-paper-warm: #171717; --w-on-accent: #0d0d0d;
+  --w-accent: #86a81b; --w-accent-deep: #566e0f; --w-tint: #ecf1d3; --w-deep: #111111;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }
 [data-world="travel"] {
-  --w-accent: #c85a3c; --w-accent-deep: #9a4028; --w-accent-alt: #2d6a7a;
-  --w-bg: #faf6ef; --w-paper: #fffdf7; --w-ink: #2a1f15;
-  --w-paper-warm: #f6efe2; --w-on-accent: #faf6ef;
+  --w-accent: #c97c22; --w-accent-deep: #9c5a14; --w-tint: #f8ead5; --w-deep: #2c1d10;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }
 [data-world="sports"] {
-  --w-accent: #e8f048; --w-accent-deep: #3f5428; --w-accent-alt: #ff6b35;
-  --w-bg: #0f2820; --w-paper: #143328; --w-ink: #f5f5f0;
-  --w-paper-warm: #12332a; --w-on-accent: #0f2820;
+  --w-accent: #5a9e2f; --w-accent-deep: #33691e; --w-tint: #e3f0da; --w-deep: #0f2820;
+  --w-bg: #f5f2eb; --w-paper: #fbfaf6; --w-ink: #16140f;
+  --w-paper-warm: #ede9df; --w-on-accent: #f5f2eb;
 }

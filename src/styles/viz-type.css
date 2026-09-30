@@ -1,106 +1,110 @@
 /* ============================================================================
-   PARALLAX — UNIFIED DATA-VIZ TYPE SYSTEM
+   PARALLAX — THE DATA-VIZ TYPE SCALE (Lens, 2026-09-30)
    ----------------------------------------------------------------------------
-   One coherent label scale for every data-viz/3D component, so they read as a
-   family instead of each setting tiny mono labels ad-hoc. Editorial blend:
-   the display serif carries viz titles/captions; crisp mono with TABULAR
-   figures carries axes / values / legends. Loaded after dataviz-v2.css.
+   One label scale for every chart, so the library reads as a family. Lens:
+   chart text is Instrument Sans (a sans to count), never below 12px; the
+   finding (the caption) is Newsreader italic 17 in ink, stated once; the
+   source is one 13px muted line. Loaded after dataviz-v2.css.
 
    Roles (use these classes OR the tokens in a component's scoped <style>):
-     .vz-eyebrow  mono kicker / unit            .vz-caption  serif caption (human)
-     .vz-axis     mono axis ticks (tabular)     .vz-legend   mono legend (uppercase)
-     .vz-value    display number (tabular)      .vz-annot    display-italic note
-     .vz-src      mono italic source            .vz-num      tabular-figures helper
+     .vz-eyebrow  label / unit (12 caps)      .vz-caption  the finding (serif italic)
+     .vz-axis     axis ticks (12, tabular)    .vz-legend   legend (12 caps)
+     .vz-value    a number (600, tabular)     .vz-annot    a note on the mark
+     .vz-src      the source line (13)        .vz-num      tabular-figures helper
 
-   The tokens below are overridden inside the expand modal (.px-modal__viz) so the
-   enlarged view reads as intentionally sized, not zoomed-up tiny text.
+   In-SVG <text> still takes a LITERAL font stack in its attribute
+   ("Instrument Sans, Helvetica, sans-serif"), never var(): see
+   .claude/rules/design-tokens.md. These classes size and colour it.
    ============================================================================ */
 :root {
-  --viz-fs-eyebrow: 9.5px;
-  --viz-fs-legend:  9.5px;
-  --viz-fs-axis:    9.5px;
-  --viz-fs-caption: 15.5px;
+  --viz-fs-eyebrow: 12px;
+  --viz-fs-legend:  12px;
+  --viz-fs-axis:    12px;
+  --viz-fs-caption: 17px;
   --viz-fs-annot:   13px;
-  --viz-fs-src:     10px;
-  --viz-ls-mono:    0.16em;
-  --viz-ls-wide:    0.2em;
+  --viz-fs-src:     13px;
+  --viz-ls-mono:    0.06em;
+  --viz-ls-wide:    0.08em;
+  --viz-grid:       var(--hair);    /* grid lines */
+  --viz-axis:       var(--hair-2);  /* axes */
 }
 
 .vz-eyebrow {
-  font-family: var(--font-mono); font-size: var(--viz-fs-eyebrow);
-  letter-spacing: var(--viz-ls-mono); font-weight: 600; text-transform: uppercase; color: var(--muted);
+  font-family: var(--font-ui); font-size: var(--viz-fs-eyebrow);
+  letter-spacing: var(--viz-ls-mono); font-weight: 500; text-transform: uppercase; color: var(--muted);
 }
 .vz-caption {
-  font-family: var(--font-display); font-weight: 500; font-size: var(--viz-fs-caption);
-  line-height: 1.3; letter-spacing: -0.005em; color: var(--ink-soft);
+  font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: var(--viz-fs-caption);
+  line-height: 1.5; letter-spacing: 0; color: var(--ink);
 }
 .vz-axis {
-  font-family: var(--font-mono); font-size: var(--viz-fs-axis); letter-spacing: 0.04em;
+  font-family: var(--font-ui); font-size: var(--viz-fs-axis); letter-spacing: 0;
   fill: var(--muted); color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .vz-legend {
-  font-family: var(--font-mono); font-size: var(--viz-fs-legend);
-  letter-spacing: var(--viz-ls-mono); font-weight: 600; text-transform: uppercase; color: var(--muted);
+  font-family: var(--font-ui); font-size: var(--viz-fs-legend);
+  letter-spacing: var(--viz-ls-mono); font-weight: 500; text-transform: uppercase; color: var(--muted);
 }
 .vz-value {
-  font-family: var(--font-display); font-weight: 700; color: var(--ink);
-  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  font-family: var(--font-ui); font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
 }
 .vz-annot {
-  font-family: var(--font-display); font-style: italic; font-size: var(--viz-fs-annot);
-  line-height: 1.5; color: var(--ink-soft);
+  font-family: var(--font-ui); font-size: var(--viz-fs-annot);
+  line-height: 1.45; color: var(--ink-2);
 }
 .vz-src {
-  font-family: var(--font-mono); font-size: var(--viz-fs-src); letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted); font-style: italic;
+  font-family: var(--font-ui); font-size: var(--viz-fs-src); letter-spacing: 0;
+  text-transform: none; color: var(--muted); font-style: normal;
 }
 .vz-num { font-variant-numeric: tabular-nums; }
 
-/* In the expand modal, bump the scale a notch so labels look deliberate at size. */
+/* In the expand modal the scale steps up a notch so labels look deliberate at
+   size. (The modal retires with the cue system in Phase 3.) */
 .px-modal__viz {
-  --viz-fs-eyebrow: 11px;
-  --viz-fs-legend:  11px;
-  --viz-fs-axis:    11px;
+  --viz-fs-eyebrow: 13px;
+  --viz-fs-legend:  13px;
+  --viz-fs-axis:    13px;
   --viz-fs-caption: 19px;
   --viz-fs-annot:   15px;
-  --viz-fs-src:     11px;
+  --viz-fs-src:     13px;
 }
-.px-modal__viz .px-viz__cap { font-size: 18px; margin-bottom: 26px; }
+.px-modal__viz .px-viz__cap { font-size: 19px; margin-bottom: 26px; }
 
 /* ── "In plain terms" — the in-flow comprehension line (2026-07-05) ──────────
    One quiet sentence under every viz section explaining the FORM of the
    graphic (core/Section.astro; text from section.plain or lib/explainers.ts).
-   CANON.md §10: plain = form, caption = data, prose = argument. */
+   Phase 3 retires it for the cue system; until then it sets in the UI sans. */
 .px-plain {
   max-width: var(--col-prose);
   margin: 12px 0 0;
   padding-top: 11px;
-  border-top: 1px solid var(--rule);
-  font-family: var(--font-body);
-  font-size: 13.5px;
-  line-height: 1.62;
-  color: var(--ink-soft);
+  border-top: 1px solid var(--hair, var(--rule));
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
 }
 .px-plain__k {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
   margin-right: 6px;
   white-space: nowrap;
 }
 .px-plain__k::after { content: ' \2014'; }
 
-/* The source runs ON the plain line — 9.5px / 600 / .14em small capitals,
-   inline after the sentence (REGISTER-PLAN RG-19, 2026-09-13: it was the
-   paragraph's second line; folding it saves one visual block per section on a
-   page that measured 5.7). "Source · " is real text, not ::before, so it is
+/* The source line (Foundations board): 13px muted, "Source · <label> · <date>",
+   the label a link in ink-2. It runs inline after the plain sentence
+   (REGISTER-PLAN RG-19). "Source · " is real text, not ::before, so it is
    copyable and read by AT. Rendered by core/Section.astro for every kind. */
 .px-plain__src {
   display: inline;
   margin-left: 10px;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.px-plain__src a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }

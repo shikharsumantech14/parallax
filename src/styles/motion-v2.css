@@ -12,15 +12,20 @@
    Per-component reveal rules (chart line-draws, bar grows, staggered rows) are
    added in their component styles in later phases, each likewise gated behind
    `html.js …:not(.is-in)`, with matching resets in the reduced-motion block.
+   Lens (2026-09-30): the tokens are the motion grammar of BRIEF-4 §1, set in
+   shared/design/tokens.css: --ease (entrances) and --ease-move (travel),
+   --t-micro 160 · --t-el 420 · --t-build 900 · --t-draw 1400 · --t-scene
+   4500, --stagger 80. The old names (--t-quick, --t-slow, --t-page …) are
+   aliases onto that ladder until Phase 5 moves every build to build.ts.
    ============================================================================ */
 
 /* Generic reveal: visible by default; JS hides then reveals on scroll-in. */
 [data-reveal] {
-  transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
+  transition: opacity var(--t-el) var(--ease), transform var(--t-el) var(--ease);
 }
 html.js [data-reveal]:not(.is-in) {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(8px);   /* Lens: things arrive rising 8px over 420ms (BRIEF-4 §1) */
 }
 
 /* Reduced motion: never hide, never animate — paint the final state. */

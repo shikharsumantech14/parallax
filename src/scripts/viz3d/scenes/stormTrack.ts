@@ -58,7 +58,7 @@ const lonH = (lon: number) => `${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : '
 interface Fix { t: string; lat: number; lon: number; wind_kt: number; landfall?: boolean; }
 interface Storm { name: string; fixes: Fix[]; }
 
-const R = 1.4;               // scene sphere radius (matches routeGlobe/dataGlobe)
+const R = 1.4;               // scene sphere radius (the shared globe radius)
 const TRACK_R = R * 1.02;    // just above the coastline layer (R·1.002)
 const DRAW_MS = 1400;        // sweep budget (blueprint §5, ≤1.6 s total)
 const easeOut = (x: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
