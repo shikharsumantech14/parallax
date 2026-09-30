@@ -30,8 +30,12 @@ interface Props {
   caption?: string;
   source?: string;
   status?: string;
+  /** The Lens reading system (Phase 3): the article column beside the figure
+   *  carries each tile as a sentence (label, value, note), so the figure keeps
+   *  the value and the label. */
+  compact?: boolean;
 }
-const { tiles, caption, source, status } = Astro.props;
+const { tiles, caption, source, status, compact = false } = Astro.props;
 
 // A value counts up only when it is a plain integer, optionally with thousands
 // separators (e.g. "39", "10,074", "300,000"). Anything with other glyphs
@@ -87,7 +91,7 @@ const phone = need > 4.2 ? 'stack' : undefined;
     {tiles.map((t, i) => {
       const n = countUpValue(t.value);
       return (
-        <div class="tel__tile" data-emphasis={t.emphasis ?? 'default'} style={`--i:${i}`}>
+        <div class="tel__tile" data-emphasis={t.emphasis ?? 'default'} data-cue={i + 1} style={`--i:${i}`}>
           <div class="tel__val">
             {n != null ? (
               <span class="tel__n" data-countup={n} style={t.color ? `color:${t.color}` : undefined}>{t.value}</span>
@@ -96,8 +100,10 @@ const phone = need > 4.2 ? 'stack' : undefined;
             )}
             {t.unit && <span class="tel__u">{t.unit}</span>}
           </div>
-          <div class="tel__l" set:html={renderInline(t.label)} />
-          {t.note && <div class="tel__note" set:html={renderInline(t.note)} />}
+          {/* Cue anchor (LENS §5.2): the tile is `data-cue="<n>"` in data order;
+              the empty tag is its numeral's slot, filled by core/Section.astro. */}
+          <div class="tel__l"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><Fragment set:html={renderInline(t.label)} /></div>
+          {!compact && t.note && <div class="tel__note" set:html={renderInline(t.note)} />}
         </div>
       );
     })}

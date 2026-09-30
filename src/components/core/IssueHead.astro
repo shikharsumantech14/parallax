@@ -1,69 +1,333 @@
 ---
 /**
- * IssueHead — the top of an issue (launch design, 2026-09-08).
+ * IssueHead — the top of an issue (Lens Phase 3, BRIEF-5 §3, the Issue board;
+ * docs/design/LENS.md §5.4).
  *
- * In order, as the handoff and the canvas draw it: a meta strip ("← Politics
- * desk" on the left, "№ 03 · April 24, 2026" on the right), then the band
- * with the eyebrow, the 68px headline carrying its one italic accent word,
- * the hook as a 21px/300 lede, and the primer on a 4px accent rule.
+ * Row 1, 8 / 4 across the 1152 column. LEFT: the eyebrow (the desk register
+ * and the issue number), the headline at Newsreader 72/1.02 with its one
+ * italic word in the desk text colour, the hook at 22, and the facts as one
+ * hairline row of four cells (Published · Reading time · Sources · Sections).
+ * RIGHT: the "In this issue" card: the sections by their short names, the
+ * current one on the desk dot, "0 of N read" over a 3px bar, and a desk
+ * button to section 1. Row 2: the primer band, full width, on --paper-3 with
+ * a 2px desk-mark rule, its label in a 200px column.
  *
- * Replaces core/Hero.astro + core/Banner.astro + the two per-desk
- * "back to the desk" links, which said the same things in four registers.
- * Prefix: px-ihead. No JS.
+ * Phones: the card folds into an "In this issue · N sections" <details> row
+ * under the facts (no JS needed to open it). Every list entry, the button
+ * and the rail's dots are plain links to `#sec-n`, so the head works without
+ * JS; src/scripts/cues.ts moves the current marker and the read count.
+ * Prefix: px-ihead.
  */
 import { renderEmphasis } from '../../lib/text';
 import { DESK_REGISTER } from '../../lib/desks';
 import type { Topic } from '../../content/config';
 
+export interface TocEntry { id: string; no: string; short: string; }
+
 interface Props {
   topic: Topic;
   issueNumber: string;
   publishedAt: Date;
-  eyebrow?: string;
   title: string;
   hook: string;
   primer?: string;
+  readTime?: number;
+  sourceCount: number;
+  toc: TocEntry[];
 }
-const { topic, issueNumber, publishedAt, eyebrow, title, hook, primer } = Astro.props;
+const { topic, issueNumber, publishedAt, title, hook, primer, readTime, sourceCount, toc } = Astro.props;
 
-const dateLong = publishedAt.toLocaleDateString('en-US', {
-  year: 'numeric', month: 'long', day: '2-digit', timeZone: 'UTC',
-});
+/* "28 Sep 2026", as the board sets it (en-GB would print "Sept"). */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const date = `${publishedAt.getUTCDate()} ${MONTHS[publishedAt.getUTCMonth()]} ${publishedAt.getUTCFullYear()}`;
+const total = toc.length;
+const plural = total === 1 ? 'section' : 'sections';
 ---
 
-<div class="px-ihead">
-  <div class="px-ihead__strip">
-    <a class="px-ihead__back" href={`/topics/${topic}/`}>← {DESK_REGISTER[topic]}</a>
-    <span class="px-ihead__no">№ {issueNumber} · {dateLong}</span>
-  </div>
-  <div class="px-band px-ihead__band">
-    {eyebrow && <p class="px-eyebrow">{eyebrow}</p>}
-    <h1 class="px-h1" set:html={renderEmphasis(title)} />
-    <p class="px-lede">{hook}</p>
-    {primer && (
-      <div class="px-primer">
-        <div class="px-primer__eyebrow">The primer</div>
-        <p class="px-primer__text">{primer}</p>
+<header class="px-ihead">
+  <div class="px-ihead__row">
+    <div class="px-ihead__main">
+      <div class="px-ihead__top">
+        <p class="px-eyebrow px-ihead__eyebrow">{DESK_REGISTER[topic]} · No {issueNumber}</p>
+        <h1 class="px-ihead__h1" set:html={renderEmphasis(title)} />
+        <p class="px-ihead__hook">{hook}</p>
       </div>
+      <dl class="px-ihead__facts">
+        <div class="px-ihead__fact"><dt>Published</dt><dd>{date}</dd></div>
+        <div class="px-ihead__fact"><dt>Reading time</dt><dd>{readTime ? `${readTime} min` : 'Short'}</dd></div>
+        <div class="px-ihead__fact"><dt>Sources</dt><dd><a href="#sources">{sourceCount} cited</a></dd></div>
+        <div class="px-ihead__fact"><dt>Sections</dt><dd>{total}</dd></div>
+      </dl>
+    </div>
+
+    {total > 0 && (
+      <aside class="px-ihead__toc px-card" aria-label="In this issue" style={`--px-n:${total}`}>
+        <div class="px-ihead__toc-h">
+          <span class="px-ihead__toc-k">In this issue</span>
+          <span class="px-ihead__toc-n">{total} {plural}</span>
+        </div>
+        <ol class="px-ihead__list">
+          {toc.map((t, i) => (
+            <li>
+              <a class="px-ihead__item" href={`#${t.id}`} data-toc={i + 1} aria-current={i === 0 ? 'step' : undefined}>
+                <span class="px-ihead__no">{t.no}</span>
+                <span class="px-ihead__dot" aria-hidden="true"></span>
+                <span class="px-ihead__name">{t.short}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <div class="px-ihead__prog">
+          <span class="px-ihead__bar" aria-hidden="true"><span class="px-ihead__fill"></span></span>
+          <span class="px-ihead__read"><span data-toc-read>0 of {total} read</span>{readTime && <span>{readTime} min</span>}</span>
+        </div>
+        <a class="px-ihead__start" href={`#${toc[0].id}`}>
+          Start reading
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </aside>
     )}
   </div>
-</div>
+
+  {total > 0 && (
+    <details class="px-ihead__tocm">
+      <summary>
+        <span class="px-ihead__dot" aria-hidden="true"></span>
+        <span class="px-ihead__tocm-k">In this issue <span>· {total} {plural}</span></span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <ol class="px-ihead__list">
+        {toc.map((t, i) => (
+          <li>
+            <a class="px-ihead__item" href={`#${t.id}`} data-toc={i + 1} aria-current={i === 0 ? 'step' : undefined}>
+              <span class="px-ihead__no">{t.no}</span>
+              <span class="px-ihead__dot" aria-hidden="true"></span>
+              <span class="px-ihead__name">{t.short}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  )}
+
+  {primer && (
+    <div class="px-ihead__primer">
+      <p class="px-ihead__primer-k">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="7.2" stroke="currentColor" stroke-width="1.6"/><path d="M9 8v5M9 5.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Before you start
+      </p>
+      <p class="px-ihead__primer-t">{primer}</p>
+    </div>
+  )}
+</header>
 
 <style>
-  .px-ihead__strip {
-    display: flex; justify-content: space-between; align-items: center; gap: 16px;
-    padding: 10px 40px;
-    border-bottom: 1px solid var(--rule);
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+  .px-ihead {
+    display: flex; flex-direction: column; gap: 40px;
+    padding: 56px 0 64px;
   }
-  .px-ihead__back { color: var(--muted); text-decoration: none; transition: color var(--t-quick) var(--ease); }
-  .px-ihead__back:hover { color: var(--ink); }
-  .px-ihead__band .px-h1 { margin-bottom: 18px; }
-  .px-ihead__band .px-eyebrow { margin-bottom: 16px; }
-  @media (max-width: 768px) {
-    .px-ihead__strip { padding: 10px 20px; }
-    .px-ihead__no { text-align: right; }
+  .px-ihead__row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: stretch;
+  }
+  .px-ihead__main {
+    display: flex; flex-direction: column; justify-content: space-between; gap: 32px;
+    min-width: 0;
+  }
+  .px-ihead__top { display: flex; flex-direction: column; gap: 22px; }
+  .px-ihead__eyebrow { margin: 0; color: var(--accent-deep); }
+  .px-ihead__h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 72px;
+    line-height: 1.02;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .px-ihead__h1 :global(em) { font-style: italic; color: var(--accent-deep); white-space: nowrap; }
+  .px-ihead__hook {
+    margin: 0;
+    max-width: 700px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  /* The facts: one hairline row of four cells. */
+  .px-ihead__facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border-block: 1px solid var(--hair);
+  }
+  .px-ihead__fact { display: flex; flex-direction: column; gap: 6px; padding: 14px 20px; min-width: 0; }
+  .px-ihead__fact:first-child { padding-left: 0; }
+  .px-ihead__fact + .px-ihead__fact { border-left: 1px solid var(--hair); }
+  .px-ihead__fact dt {
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  }
+  .px-ihead__fact dd {
+    margin: 0;
+    font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1.3;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .px-ihead__fact a {
+    color: var(--ink);
+    text-decoration: underline; text-decoration-color: var(--hair-2); text-underline-offset: 3px;
+  }
+  .px-ihead__fact a:hover { color: var(--accent-deep); }
+
+  /* The "In this issue" card. */
+  .px-ihead__toc { gap: 16px; padding: 22px 24px 24px; min-width: 0; }
+  .px-ihead__toc-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .px-ihead__toc-k {
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+  }
+  .px-ihead__toc-n { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--muted); }
+  .px-ihead__list { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--hair); }
+  .px-ihead__list li { border-top: 1px solid var(--hair); }
+  .px-ihead__item {
+    display: grid;
+    grid-template-columns: 30px 18px minmax(0, 1fr);
+    align-items: center;
+    min-height: 38px;
+    padding: 4px 4px 4px 0;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+  .px-ihead__no {
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-ihead__dot {
+    width: 8px; height: 8px; box-sizing: border-box;
+    border-radius: 999px; border: 1.5px solid var(--hair-2);
+    transition: background-color var(--t-micro, 160ms) var(--ease), box-shadow var(--t-micro, 160ms) var(--ease);
+  }
+  .px-ihead__name {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 500; line-height: 1.2;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  /* Read: every entry before the current one (src/scripts/cues.ts moves
+     `aria-current`; with no JS the first entry stays current). */
+  .px-ihead__list > li:has(~ li > [aria-current]) .px-ihead__dot { background: var(--accent); border-color: var(--accent); }
+  .px-ihead__item[aria-current='step'] .px-ihead__no { color: var(--accent-deep); }
+  .px-ihead__item[aria-current='step'] .px-ihead__dot {
+    width: 10px; height: 10px; border: 0;
+    background: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .px-ihead__item[aria-current='step'] .px-ihead__name { font-weight: 600; color: var(--ink); }
+  .px-ihead__item:hover .px-ihead__name { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+  .px-ihead__item:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .px-ihead__prog { display: flex; flex-direction: column; gap: 8px; }
+  .px-ihead__bar { display: block; height: 3px; border-radius: 999px; background: var(--paper-3); overflow: hidden; }
+  .px-ihead__fill {
+    display: block; height: 3px;
+    width: calc(var(--px-read, 0) / var(--px-n, 1) * 100%);
+    background: var(--accent);
+    transition: width var(--t-el, 420ms) var(--ease);
+  }
+  .px-ihead__read {
+    display: flex; justify-content: space-between; gap: 12px;
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500; line-height: 1;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .px-ihead__start {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    height: 44px; padding: 0 18px;
+    border-radius: var(--r-ctl);
+    background: var(--accent-deep); color: var(--paper);
+    font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1;
+    text-decoration: none;
+    transition: box-shadow var(--t-micro, 160ms) var(--ease), filter var(--t-micro, 160ms) var(--ease);
+  }
+  .px-ihead__start:hover { box-shadow: var(--shadow-2); filter: brightness(0.86); }
+  .px-ihead__start:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* The phone fold: hidden on desktop. */
+  .px-ihead__tocm { display: none; }
+
+  /* The primer band. */
+  .px-ihead__primer {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 720px);
+    align-items: start;
+    padding: 26px 32px 26px 24px;
+    background: var(--paper-3);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r-card) var(--r-card) 0;
+  }
+  .px-ihead__primer-k {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0; padding-top: 6px;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep);
+  }
+  .px-ihead__primer-t {
+    margin: 0;
+    font-family: var(--font-display); font-size: 19px; line-height: 1.6;
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 1023px) {
+    .px-ihead { gap: 18px; padding: 32px 0 36px; }
+    .px-ihead__row { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    .px-ihead__main { gap: 18px; }
+    .px-ihead__top { gap: 18px; }
+    .px-ihead__h1 { font-size: 40px; line-height: 1.06; letter-spacing: -0.01em; }
+    .px-ihead__h1 :global(em) { white-space: normal; }
+    .px-ihead__hook { font-size: 19px; }
+    .px-ihead__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+    .px-ihead__fact, .px-ihead__fact:first-child { padding: 12px 12px 12px 0; }
+    .px-ihead__fact + .px-ihead__fact { border-left: 0; }
+    .px-ihead__toc { display: none; }
+
+    .px-ihead__tocm {
+      display: block;
+      background: var(--paper-2);
+      border: 1px solid var(--hair);
+      border-radius: var(--r-card);
+      box-shadow: var(--shadow-1);
+    }
+    .px-ihead__tocm summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      min-height: 52px; padding: 0 16px;
+      list-style: none; cursor: pointer;
+      color: var(--ink);
+    }
+    .px-ihead__tocm summary::-webkit-details-marker { display: none; }
+    .px-ihead__tocm summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-card); }
+    .px-ihead__tocm summary > .px-ihead__dot {
+      width: 10px; height: 10px; border: 0;
+      background: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
+    }
+    .px-ihead__tocm-k { flex: 1; font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1.2; }
+    .px-ihead__tocm-k span { font-weight: 500; color: var(--muted); }
+    .px-ihead__tocm summary svg { transition: transform var(--t-micro, 160ms) var(--ease); }
+    .px-ihead__tocm[open] summary svg { transform: rotate(180deg); }
+    .px-ihead__tocm .px-ihead__list { margin: 0 16px 12px; }
+    .px-ihead__tocm .px-ihead__item { min-height: 44px; }
+
+    .px-ihead__primer {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      padding: 18px 20px 20px 18px;
+    }
+    .px-ihead__primer-k { padding-top: 0; gap: 8px; }
+    .px-ihead__primer-t { font-size: 17px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .px-ihead__fill, .px-ihead__dot, .px-ihead__start { transition: none; }
   }
 </style>

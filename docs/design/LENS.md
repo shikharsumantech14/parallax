@@ -272,12 +272,30 @@ measure with its 45px breakout are retired. The issue page's geometry is §5.
   14/500, a "Sign in" text link and a primary "Subscribe". On a desk page the
   register follows the wordmark. On a deep plate the masthead reverses to
   `--on-deep`.
-- **Footer:** the same lockup at 28px, the legal line, the "no analytics, no
-  cookies, no trackers" line.
+- **Footer:** on `--paper-3` under a hair: the same lockup at 28px (the house
+  cut on every page), the promise "Stories you think you already
+  understand.", the six desks as link chips each led by its medallion at
+  20px, three link columns (Read · Parallax · Account), then under a
+  `--hair-2` rule the line "© 2026 Parallax Lens™ · Registered in India · No
+  analytics, no cookies, no trackers" with Privacy and Terms. The chip
+  medallions keep the lettered **mark** cut at 20px, the one sanctioned
+  exception to the reversed-below-24 rule (§4.3): a reversed cut carries no
+  desk colour, and six identical ink discs would not tell the desks apart.
 - **The cover card** (Phase 2, `core/CoverCard.astro`): the graphic-dominant
-  issue card on Home, Desk, Archive, the Shelf and Subscribe. It draws the
-  issue's cover mark (§8) with its caption; a graphic never appears without
-  the line that says what it shows.
+  issue card on Home, Desk, Archive, the Shelf and Subscribe. A 216px panel
+  on the desk tint draws the issue's cover mark (`core/CoverMark.astro`),
+  then the headline (Newsreader 24, the italic word in the desk text) and
+  "No 17 · 28 Sep · 4 min". Sizes: `card` (3-across), `tile` (the desk
+  strip, a 264px panel), `row` (a 120 x 72 thumbnail inside a list row,
+  marks only). Until Phase 4's `cover` field, the mark is derived from the
+  issue's first section of eleven drawable kinds (`src/lib/cover.ts`), with
+  the desk medallion at 96 as the fallback; a graphic never appears without
+  the line that says what it shows, which on a card is its headline. **A
+  cover is never blank at any size:** on a card narrower than 340px the 13px
+  words hide and the marks and large numbers stay; the `row` thumbnail draws
+  no words and every kind keeps a mark heavy enough to read at that scale
+  (a readout becomes two bars when two tiles share a unit, otherwise one bar
+  beside the desk medallion).
 
 ### 4.3 The mark and the lockup (BRIEF-3 §1, BRIEF-5 §1)
 
@@ -294,14 +312,18 @@ the politics station in the oxide accent.
   paper P: a selected state, a share card), `reversed` (ink disc and a paper
   P, automatic below 24px, e.g. the favicon).
 - **Every desk mark at 24px and above shows the P** (the phase-only cut is
-  retired on every surface; BRIEF-5 §1). Below 24px, the reversed cut.
+  retired on every surface; BRIEF-5 §1). Below 24px, the reversed cut,
+  except the footer's desk chips (§4.2), where a row of six marks at 20px
+  keeps the lettered mark cut so each desk shows its colour.
 - **On a deep plate** the ground disc takes the plate's deep colour and the
-  ring and P take `--on-deep`.
+  ring and P take `--on-deep` (`<Mark onDeep>`). Off the plate, the ground
+  disc takes the surface the mark sits on (`<Mark ground="var(--paper-3)">`
+  in the footer), so the crescent is cut from the real ground.
 - **Misuse (binding):** no gradient or sphere shading, no off-station dial, no
   rotation, no second accent, no substitute letter, no drop shadow, never
   smaller than 16px, never the reversed cut above 24px.
-- **Use `core/Mark.astro` (props `desk`, `size`, `cut`, `tight`, `ring`) over
-  `src/lib/mark.ts`. Never paste SVG bodies.**
+- **Use `core/Mark.astro` (props `desk`, `size`, `cut`, `tight`, `ring`,
+  `ground`, `onDeep`) over `src/lib/mark.ts`. Never paste SVG bodies.**
 
 **The lockup.** The mark TIGHT (viewBox trimmed to the ring) at a **34px
 disc with ring 9**, a **12px gap**, then "Parallax" in **Newsreader 500
@@ -322,48 +344,62 @@ joined by cues.** Built in Lens Phase 3.
 
 ### 5.1 The two columns
 
-- **Desktop:** a 1164 band of **620 article column + 24 gap + 520 figure
-  panel**, with the progress rail in the left margin. LEFT, the section's full
-  text in the Parallax voice (eyebrow, title, intro, prose paragraphs), prose
-  18/1.6. RIGHT, the **pinned figure panel**: `--paper-2`, 1px hair, 6px
-  radius, `--shadow-1`, padding 20 / 24, `position: sticky; top: 24px` while
-  its section is in view. The panel carries a small header ("Figure 3 · 4
-  cues", a "Show all" control), the graphic, ONE caption sentence (the
-  finding, Newsreader 17 italic) and the source line.
-- **Phone:** the figure pins at the top of the viewport (about 40% of the
-  height) with its cues; the prose scrolls beneath it; tapping a cue lights
-  its mark above.
+- **Desktop (from 1024px):** inside the 1152 column, the **article column
+  (up to 620) + 32 gap + 520 figure panel**; the figure keeps its 520 and the
+  article takes the rest, 600 at full width (the board drew 620 + 24 + 520 on
+  a 1164 band that crossed the frame's gutter; built, it stays in the
+  column). `layout: wide` widens the figure to 620. The progress rail sits in
+  the left gutter, 56px, its names beside the dots from 1440px (narrower, on
+  hover or focus). LEFT, the section's full text in the Parallax voice
+  (eyebrow, title, intro, the kind's own sentences, the caption as the
+  finding in Newsreader 17 italic), prose 18/1.6. RIGHT, the **pinned figure
+  panel**: `--paper-2`, 1px hair, 6px radius, `--shadow-1`, padding 20 / 24,
+  `position: sticky; top: 24px` while its section is in view. The panel
+  carries a small header ("Figure 3 · 4 cues", a "Show all" control), the
+  graphic, the lit cue's sentence while one is lit, and the source line. The
+  caption is printed once, in the article.
+- **Phone (below 1024px):** the figure comes first and pins at the top while
+  the prose scrolls beneath it, when it fits 40% of the height at 0.75 scale
+  or more (the island's `zoom`); otherwise, and without JS, it sits in flow
+  above its article. Tapping a cue lights its mark above.
 - A section with no graphic (the narrative kinds: `act-break`, `prose`,
   `quote`, `analogy`, `jargon-buster`, `three-steps`) runs in the article
   column with no panel.
 
 ### 5.2 The cue contract
 
-The data shape (the schema field lands in Phase 3; the schema has no `cues`
-yet):
+The data shape (in `src/content/config.ts` since Phase 3; the City issue's
+section 4, as built):
 
 ```yaml
 sections:
-  - kind: benchmark-chart
+  - kind: latency-waterfall
     title: "Forest's whole case took 113 days"
-    intro: "The calendar showed one case finished and another still open. [[1]] Forest's case, appeal included, took 113 days. [[2]] City's first stage has run 1,330 days and has not stopped."
+    caption: "[[1]] Forest's case, appeal included, took 113 days. [[2]] City's first stage has run 1,330 days and has not stopped."
     cues:
-      - { n: 1, at: "forest", text: "Forest's case, appeal included, took 113 days." }
-      - { n: 2, at: "city",   text: "City's first stage has run 1,330 days and has not stopped." }
+      - { n: 1, at: "1 2" }   # Forest's two spans
+      - { n: 2, at: "3" }     # City's span
 ```
 
-- **`cues: [{ n, at, text }]`**: `n` is the numeral (1–4), `at` names an
-  ANCHOR the component exposes, `text` is the cue's sentence (the caption the
-  panel shows while that cue is lit). Every cue sentence is a data claim, and
+- **`cues: [{ n, at, text? }]`**: `n` is the numeral (1–4), `at` names the
+  ANCHOR id(s) the component exposes (space-separated for several), `text` is
+  the cue's sentence (the line the panel shows while that cue is lit; absent,
+  the sentence its marker introduces). Every cue sentence is a data claim, and
   the verifier traces it like a caption.
-- **`[[n]]` in any prose field** (`intro`, a prose paragraph, a `followup`)
-  renders as the cue button inline, before the sentence it belongs to. The
-  example is illustrative: the exact field list is Phase 3's schema change. A marker with no matching cue, or a cue with no
-  anchor in the figure, is a render-gate failure (Phase 5 adds the check).
-- **Anchors:** every component exposes its cue anchors as `data-cue="<at>"`
-  on the element a cue can name (a bar, a dot, a row, a band), and the SAME
-  numeral beside that element in the figure (literal SVG text or an HTML
-  overlay). The catalog lists each kind's anchors on a `CUES:` line (Phase 7).
+- **`[[n]]`** in `intro`, `caption`, a prose kind's `data.paragraphs`, the
+  `you-think` texts and a timeline event's `note` renders as the cue button
+  inline, before the sentence it belongs to. A `data-readout` tile or a
+  `timeline` event that a cue names is set as a sentence in the article and
+  gets its button without a marker. A marker with no matching cue, or a cue
+  with no anchor in the figure, is a render-gate failure (Phase 5 adds the
+  check).
+- **Anchors:** every component exposes its cue anchors as `data-cue="<id>"`
+  on the element a cue can name (a bar, a dot, a row, a band), ids numbered
+  from 1 in data order, with an empty `.px-cue-tag` slot where the SAME
+  numeral prints; `core/Section.astro` fills the numerals from `cues`, so
+  they are in the HTML without JS. Phase 3 wired the City issue's kinds; the
+  list is in `src/content/issues/_AGENTS.md` §16. The catalog lists each
+  kind's anchors on a `CUES:` line (Phase 7).
 - **Two to four cues per graphic section.** None on the narrative kinds.
 - **The cue button:** a real `<button>`, a 20px disc, desk **mark** fill,
   paper numeral in Instrument Sans 600 12, `aria-pressed`, `aria-label="Cue
@@ -374,7 +410,7 @@ sections:
 - Pressing a cue (or scrolling its sentence past the reading line) **lights**
   its anchor: the lit element at opacity 1, every other cue-able element at
   .35, a 2px desk-colour ring fading in on the lit element, over 160ms. Nothing
-  scales. The panel's caption switches to that cue's `text`.
+  scales. The panel shows that cue's sentence under the graphic.
 - "Show all" returns every element to full and the caption to the section's
   finding.
 - **Section 1 autoplays its cues once** (cue 1, then 2, …), then rests on
@@ -428,8 +464,9 @@ cue buttons are present and inert, and the caption shows the finding.
 
 `core/ReadingGate.astro` keeps counting `.px-section` elements, and the free
 allowance still includes at least one graphic. The Phase 3 rebuild of
-`core/Section.astro` either preserves that counting or reworks the gate in
-the same commit.
+`core/Section.astro` preserved that counting: each section is still a direct
+child of `#px-article` with its `data-kind`, and the rail is a sibling of the
+article, never a wrapper.
 
 ---
 
@@ -600,9 +637,9 @@ library boards on the canvas (`Lib-<kind>`) are each kind's target.
 | motion.md's named vocabulary (`reveal`, `sweep`, `settle`, `stamp`, `lensSettle`, `pageEnter` at 420ms, `--ease-snap`, `--t-page`) | the grammar in §6 |
 | The onboarding intro "The Second Angle" (removed 2026-09-30) | a three-scene intro on paper (canvas `Intro`), Phase 4 |
 
-`plain` and `howToRead` stay in the schema, still rendered, until Phase 8 (the
-backlist builds unchanged); the pipeline keeps authoring them until Phase 7
-teaches it cues.
+`plain` and `howToRead` stay in the schema until Phase 8 (the backlist
+builds unchanged) but are NOT RENDERED since Phase 3, which also deleted the
+expand modal; the pipeline stops authoring them in Phase 7.
 
 ---
 

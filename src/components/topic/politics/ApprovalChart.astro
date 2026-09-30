@@ -48,8 +48,8 @@ const capText = caption ?? subject ?? 'Approval';
    All geometry, no state: the callout is part of the composed still, so it
    paints under no-JS and reduced motion with no motion of its own. Positions
    come from the chart's own x() / y() scales. */
-const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
-const A_LH = 14;     // leading between the two wrapped lines
+const A_FS = 12;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 15;     // leading between the two wrapped lines
 const A_LEAD = 16;   // leader length (spec §3: 14–22)
 const A_GAP = 5;     // clearance between the marker dot and the leader
 const A_L = padL, A_R = W - padR, A_T = padT, A_B = H - padB;
@@ -146,7 +146,7 @@ for (const a of annotations) {
           <line class="ac__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} stroke="var(--rule)" stroke-width="1" />
           <text
             class="ac__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-            style="font-family:Literata,Georgia,'Times New Roman',serif;font-size:11px;font-style:italic;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:2.5px;stroke-linejoin:round"
+            style="font-family:'Newsreader',Georgia,'Times New Roman',serif;font-size:12px;font-style:italic;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:2.5px;stroke-linejoin:round"
           >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
         </g>
       ))}

@@ -9,10 +9,11 @@
 > names build as ALIASES of their host (`carbon-gauge`, `swing-dial`,
 > `throughput-dial` → `gauge`; `route-card`, `itinerary-reel` → `itinerary`;
 > `city-compare` → `comparison`), so author the host name. (2) The reading
-> system's `cues` field and the inline `[[n]]` prose markers arrive in Lens
-> Phase 3; the schema has neither yet. (3) `plain` and `howToRead` are
-> DEPRECATED: still accepted, still rendered, until Phase 8; the pipeline
-> keeps authoring them until Phase 7 teaches it cues.
+> system landed in Lens Phase 3 (2026-09-30): a graphic section is the
+> article beside a pinned figure, joined by `cues` and inline `[[n]]`
+> markers (§16). (3) `plain` and `howToRead` are DEPRECATED and NO LONGER
+> RENDERED: still accepted (bounds and all) until Phase 8; the pipeline
+> stops authoring them in Phase 7.
 
 ---
 
@@ -59,61 +60,51 @@ Every section conforms to:
   number?: string;            // optional; auto-formatted via formatSectionLabel
   title?: string;             // *italic* for one accent word
   eyebrow?: string;           // ALL CAPS short label
-  intro?: string;             // 1–3 sentences setting up the section
+  short?: string;             // ≤24 chars, ≤3 words: the section's name in the
+                              // "In this issue" card and the progress rail.
+                              // Absent, derived from the eyebrow (shortLabel in
+                              // src/lib/text.ts). Author it when the eyebrow's
+                              // words are not the name ("THE VOCABULARY" →
+                              // "Glossary").
+  intro?: string;             // 1–3 sentences setting up the section. Accepts
+                              // `[[n]]` cue markers; a blank line starts a new
+                              // paragraph.
   skimCaption?: string;       // 90-sec-skim caption — ANY kind may carry one
                               // (2026-07-05; prose hides behind it in skim
                               // mode, viz kinds show it alongside — author one
                               // per viz so the skim rail reads complete)
-  plain?: string;             // ≤220 chars, ZOD-ENFORCED — overshooting breaks
-                              // the build (see §7). The "In plain terms" line:
-                              // one sentence explaining the FORM of the viz
-                              // ("each block is one seat…"), NEVER the data
-                              // (that's the caption's job). Omit to fall back to
-                              // the per-kind default in src/lib/explainers.ts.
-  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED (2026-08-27).
-                              // The FORM at PARAGRAPH length, rendered ABOVE
-                              // the graphic by core/Section.astro for EVERY
-                              // kind (2026-09-04) — what a mark IS, what the
-                              // axes mean, any inversion in the form. The ten
-                              // VizCard kinds render theirs inside the card
-                              // instead; a :has() rule in dataviz-v2.css hides
-                              // Section's copy there, so a section shows exactly
-                              // one panel. Omit and EXPLAIN[kind].how renders in
-                              // its place ONLY for the NEEDS_HOW kinds (instruments,
-                              // WebGL, counter-intuitive forms — RG-19, 2026-09-13);
-                              // a timeline shows none unless authored. Author one
-                              // where the default misleads (channel-ternary:
-                              // distance FROM a corner = LOW use — readers get
-                              // it backwards). Never a longer restatement of
-                              // `plain`. On instrumented kinds (scaling-plot,
-                              // xg-race, climate-spiral) the static reading
-                              // LEADS and the control clause TRAILS: the
-                              // controls are html.js-gated, the paragraph is not.
+  cues?: { n: 1|2|3|4; at: string; text?: string }[];
+                              // ≤4, ZOD-ENFORCED (text ≤240). Lens Phase 3: the
+                              // numerals that join the article to the figure
+                              // (§16). None on a narrative kind.
+  plain?: string;             // ≤220 chars, ZOD-ENFORCED. DEPRECATED and NOT
+                              // RENDERED since Lens Phase 3 (2026-09-30); it
+                              // was the "In plain terms" line on the FORM.
+  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED. DEPRECATED and NOT
+                              // RENDERED since Lens Phase 3; it was the
+                              // how-to-read panel above the graphic. Cues and
+                              // the caption do its work.
   caption?: string;           // TOP-LEVEL since 2026-08-27 — the DATA claim,
                               // one sentence, traceable ("214 bills went in and
                               // 47 came out"). The ONE comprehension field that
                               // SHOULD assert data; the verifier traces it.
-                              // Legacy data.caption still works (SectionBody
-                              // merges; authored data.* wins).
+                              // Renders ONCE, at the end of the article column
+                              // (Newsreader italic); accepts `[[n]]` markers.
+                              // Legacy data.caption still works.
   source?: string | { label: string; date?: string };
                               // TOP-LEVEL since 2026-08-27. CANON §7: no
-                              // source, no section. Since 2026-09-04 it renders
-                              // ONCE, from core/Section.astro, as the second
-                              // line of the "In plain terms" paragraph BELOW the
-                              // graphic (`.px-plain__src`, literal text
-                              // "Source · …"); object form joins to
-                              // "Source · label · date". Components and VizCard
-                              // render no source of their own any more
-                              // (`.px-viz__src` is gone). The ⤢ study modal
-                              // portals only the card, so it shows no source —
-                              // ruled as-is. Legacy data.source still works.
+                              // source, no section. Renders ONCE, from
+                              // core/Section.astro, as "Source · label · date"
+                              // with the label linked to the first sourceRefs
+                              // entry: in the figure panel's foot on a desktop
+                              // graphic section, under the caption on phones
+                              // and on narrative sections. Components render no
+                              // source. Legacy data.source still works.
   layout?: 'default'|'wide'|'bleed'|'split'|'split-flip'|'breath';
-                              // geometry variant (src/styles/layout-v2.css).
-                              // Author default | wide | breath ONLY. Since
-                              // 2026-09-23 bleed, split and split-flip render
-                              // as wide on the floor plan (they crossed the
-                              // rails); the values stay valid so old issues
-                              // build. Rhythm rules: CANON §3.
+                              // Since Lens Phase 3 every value renders the one
+                              // reading-system geometry: `wide` widens the
+                              // figure panel to 620, the rest render as
+                              // `default`. Author `default` or `wide` only.
   data?: unknown;             // section-kind-specific shape; §11–§12 below,
                               // then src/components/AGENTS.md
   sourceRefs: string[];       // ids that must exist in this issue's sources[]
@@ -203,8 +194,8 @@ In skim mode:
 - 1–3 sentences (one for viz kinds). The job: "if someone reads only the
   skim view, what does this section contribute structurally?"
 - Should be readable as a standalone caption, not a paraphrase of the
-  prose paragraphs. Don't duplicate the `plain` line (plain = how to READ
-  the form; skimCaption = what this section SAYS).
+  prose paragraphs, and not a copy of the caption (the caption states the
+  finding; skimCaption = what this section SAYS in the issue's argument).
 
 ---
 
@@ -455,20 +446,19 @@ have no story page.** They are viz reference, not story reference.
 
 ---
 
-## 14. The comprehension fields — who says what (2026-08-27, render sites updated 2026-09-04)
+## 14. The comprehension fields — who says what (2026-08-27, render sites rebuilt 2026-09-30)
 
 | Field | Carries | Renders | Length | Verifier |
 |---|---|---|---|---|
-| `howToRead` | the FORM, paragraph | ABOVE the graphic, from `core/Section.astro` for every kind; when omitted, `EXPLAIN[kind].how` renders in its place only for the `NEEDS_HOW` kinds (RG-19, 2026-09-13). The twelve VizCard kinds (bill-funnel, age-pyramid, margin-bullets, state-timeline, attrition-waffle, finish-interval, channel-ternary, scaling-plot, xg-race, climate-spiral, you-think, number-sense) render it inside the card instead — a `:has()` rule hides Section's copy, so a section shows exactly ONE panel | 40–360 | flags data-assertion (PLAIN-CLAIM) and `plain` restatement (REDUNDANT-HOWTO) |
-| `plain` | the FORM, one sentence | BELOW the graphic, the "In plain terms" paragraph from `core/Section.astro` | ≤220 | flags data-assertion (PLAIN-CLAIM) |
-| `caption` | **the DATA — the finding** | with the figure (VizCard's caption row, or the component's own `__cap`); for kinds with neither — timeline, seat-chart, vote-result, bill-breakdown, comparison — `core/Section.astro` prints it directly below the graphic (`.px-section__claim`, since 2026-09-13; before that an authored caption on those kinds rendered nowhere) | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
-| `source` | the citation | BELOW the graphic as the plain paragraph's SECOND LINE — `.px-plain__src`, literal "Source · …" — from `core/Section.astro` for every kind. Components render none; the ⤢ modal shows none (ruled as-is) | free | CANON §7: no source, no section |
+| `cues[].text` (or the marked sentence) | a DATA claim, one per numeral | in the figure panel's foot while its cue is lit; the marked sentence itself sits in the article | ≤240 | **traced to the dossier**, like the caption |
+| `caption` | **the DATA — the finding** | once, at the end of the article column, `core/Section.astro` (`.px-rs__caption`). The component in the figure gets no caption (SectionBody `bare`), and the panel hides any caption row a component still prints | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
+| `source` | the citation | once: the figure panel's foot on a desktop graphic section, under the caption on phones and on narrative sections; the label links to the first `sourceRefs` entry | free | CANON §7: no source, no section |
+| `howToRead` | (retired) | **nowhere** since Lens Phase 3 | 40–360 | none in the render; still bounded by Zod |
+| `plain` | (retired) | **nowhere** since Lens Phase 3 | ≤220 | none in the render; still bounded by Zod |
 
 **Instrumented kinds (`scaling-plot` LOG/LINEAR toggle, `xg-race` minute scrub,
-`climate-spiral` month scrub — 2026-09-04).** The controls are `html.js`-gated;
-the paragraph is not. So in `howToRead` the static reading LEADS and the
-control clause TRAILS ("…Press Linear for the proportional view…"), and the
-`caption` must not name a projection the reader can flip — the published
+`climate-spiral` month scrub — 2026-09-04).** The controls are `html.js`-gated.
+The `caption` must not name a projection the reader can flip — the published
 token-bill caption dropped its trailing "· log scale" for exactly that
 CAPTION-FORM reason. The `data` shapes in §11 are unchanged: the toggle and
 scrubs are derived at build, never authored.
@@ -522,7 +512,75 @@ in the precision layer: English only, verifier-traced. Contract:
 `hero` is no longer a kind (retired 2026-09-13; it had rendered nothing since
 the launch design). The template opens with the first real section.
 
+## 16. The reading system: cues and `[[n]]` (Lens Phase 3, 2026-09-30)
+
+The design law is `docs/design/LENS.md` §5; the geometry is
+`src/styles/layout-v2.css`, the lighting `src/styles/dataviz-v2.css` and
+`src/scripts/cues.ts`.
+
+**What renders where.** A graphic section is two columns from 1024px: the
+article (up to 620) and the pinned figure panel (520; 620 with `layout:
+wide`). Below 1024px the figure comes first and pins at the top while the
+article scrolls under it, when it fits 40% of the screen. A NARRATIVE kind
+(`prose`, `quote`, `analogy`, `jargon-buster`, `three-steps`) is the article
+column alone. The article holds, in order: "01 · EYEBROW", the title, the
+intro, the kind's own sentences, the caption, the source (phones). Three kinds
+move their sentences into the article, and their figure keeps the rest:
+
+- `data-readout`: each tile becomes "**Label: value unit.** note"; the figure
+  keeps the value and the label.
+- `timeline`: each event becomes a row, the date and "**Label.** note
+  annotation"; the figure keeps the date and the label.
+- `you-think`: "What you think" + `think.text`, "What the record shows" +
+  `actually.text` (+ `note`); the figure keeps the two labels, the belief as
+  a dashed box, the record as a ruled one with its figure.
+
+**Authoring a cue.** Two to four per graphic section:
+
+```yaml
+    cues:
+      - { n: 1, at: "2 6" }            # lights timeline events 2 and 6
+      - { n: 2, at: "3", text: "Everton lose 10 points." }
+```
+
+`at` names anchor ids (space- or comma-separated). `[[n]]` goes BEFORE its
+sentence in `intro`, `caption`, a prose kind's `data.paragraphs`, the
+you-think texts or a timeline event's `note`. A readout tile or a timeline
+event that a cue names gets its button automatically, before its sentence.
+Without `text`, the panel's lit line is the sentence the marker introduces,
+or the named item's own sentence. A marker with no matching cue is a button
+that lights nothing; a cue naming an id the component does not expose lights
+nothing (the render gate learns to flag both in Phase 5).
+
+**The anchor contract (components).** An element a cue can name carries
+`data-cue="<id>"`, ids from 1 in DATA order (authored order, before any sort),
+and an empty `<span class="px-cue-tag" data-cue-tag="<id>" hidden></span>`
+where its numeral should print. `core/Section.astro` fills and shows the
+numerals from `cues` (so they are in the HTML without JS) and adds
+`data-cue-n`; the island sets `data-lit="true"` / `"false"`. Wired in Phase 3
+(the City issue's kinds): `data-readout` tiles, `you-think` ("1" belief, "2"
+record, "3" the record's figure), `timeline` events, `benchmark-chart` bars,
+`latency-waterfall` spans, `margin-ladder` rungs, `power-matrix` institution
+rows, `jargon-buster` terms, `comparison` rows (columns in the list form).
+Phase 6 wires the rest.
+
+**The worked example** is `2026-09-28-verdict-arrived-sentence-didnt`,
+sections 1 to 4: readout tiles "1"–"4" on cues 1–4; you-think "1", "2", "3"
+with markers in both texts; timeline cue 1 at "2 6" (the charge and today),
+2 at "3", 3 at "4", 4 at "5"; latency-waterfall cue 1 at "1 2" (Forest's two
+spans) and 2 at "3" (City), with the markers in the caption.
+
 ## Change log
+
+### 2026-09-30 — Lens Phase 3: the reading system
+`cues`, `short` and inline `[[n]]` markers joined the section schema (§2,
+§16). `plain` and `howToRead` stopped rendering (§14): the how-to-read panel,
+the "In plain terms" line, the `.px-section__claim` caption fallback and the
+⤢ expand modal are deleted. The caption renders once, in the article column;
+the source once, in the figure panel's foot (desktop) or under the caption
+(phones). Every `layout` value renders the one geometry, `wide` widening the
+figure. `check:prose` strips markers before counting and ignores `cues` in
+NUMBER-DRIFT.
 
 ### 2026-09-04 — Shell adoption: render sites for `howToRead` / `source` moved to Section
 Phase 6.1 changed WHERE two schema fields render, not their meaning. `source`

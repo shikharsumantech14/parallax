@@ -1,91 +1,263 @@
 ---
 /**
- * Section — the article chrome around every numbered section.
+ * Section — the reading system (Lens Phase 3, 2026-09-30; docs/design/LENS.md
+ * §5). "The article stays, the picture explains it."
  *
- * 2026-07-05 additions (docs/design/CANON.md §10 + §3):
- *  - the "In plain terms" line: one quiet sentence under every viz explaining
- *    the FORM of the graphic. Authored `plain` overrides the per-kind default
- *    from src/lib/explainers.ts; kinds with no entry (prose, quote…) render
- *    nothing. Static HTML — no JS, no toggle.
- *  - `layout` variants (data-layout attr; geometry in src/styles/layout-v2.css).
- *    `split`/`split-flip` restructure into a copy column + sticky stage — the
- *    scrollytelling primitive. All other layouts keep the flat structure.
+ * A GRAPHIC section is two columns from 1024px (layout-v2.css):
+ *
+ *   .px-section__copy   the article: "01 · EYEBROW", the title, the intro, the
+ *                       kind's own sentences (a timeline's events, a readout's
+ *                       tiles, a you-think's two texts) with their cue buttons,
+ *                       the caption (the finding, Newsreader italic), and on
+ *                       phones the source line.
+ *   .px-section__stage  the pinned figure panel (a `.px-card`): "Figure n ·
+ *                       k cues" and Show all, the component, the line that
+ *                       shows a lit cue's sentence, the source line.
+ *
+ * Below 1024px the figure panel comes first and pins at the top of the screen
+ * while the article scrolls beneath it (the island decides whether it fits;
+ * without JS it simply sits above the article). A NARRATIVE section (prose,
+ * quote, analogy, jargon-buster, three-steps) is the article column alone,
+ * with its component inside it. The class names `__copy` / `__stage` are the
+ * ones scripts/ui-probe.mjs already compares apart.
+ *
+ * CUES. A cue's `at` names anchors the component exposes as `data-cue="<id>"`
+ * (numbered from 1 in data order). This file renders the component to a
+ * string and decorates it: each named anchor gains `data-cue-n` and its empty
+ * `.px-cue-tag` slot gets the numeral, so the numerals are in the HTML (no JS
+ * needed to see them). src/scripts/cues.ts does the lighting.
+ *
+ * RETIRED here (LENS §10): the how-to-read panel, the "In plain terms" line
+ * and the `Source ·` line that rode on it, the per-section number block, and
+ * the ⤢ expand modal. `plain` and `howToRead` stay in the schema, unrendered.
+ *
+ * The reading gate counts `.px-section` elements among `#px-article`'s
+ * children and reads `data-kind` (core/ReadingGate.astro): both are kept, and
+ * the section is still a direct child of the article.
  */
-import { renderEmphasis, renderInline } from '../../lib/text';
-import { EXPLAIN, howToReadFor } from '../../lib/explainers';
+import type { Cue, Section as SectionT } from '../../content/config';
+import {
+  renderEmphasis, renderInline, paragraphsOf, shortLabel, cueButton, cueSentence, hasCues, stripEmphasis,
+} from '../../lib/text';
 
 interface Props {
-  number?: string;
-  eyebrow?: string;
-  title?: string;
-  intro?: string;
-  kind?: string;
-  plain?: string;
-  layout?: string;
-  /** Shell adoption (Phase 6): the source line moves OUT of the card and
-   *  becomes the second line of the plain paragraph — one render site for
-   *  every kind instead of ~70, which also ends the sibling-vs-child depth
-   *  split that story.css had to special-case. `string` or the schema's
-   *  `{ label, date }`; joined the way VizCard used to. */
-  source?: string | { label: string; date?: string };
-  /** Contract part 02, "how to read this" — a paragraph ABOVE the graphic.
-   *  Authored `howToRead` always wins, for every kind. The per-kind default
-   *  (EXPLAIN[kind].how) renders only for the kinds in NEEDS_HOW — instruments,
-   *  WebGL scenes and counter-intuitive forms (REGISTER-PLAN RG-19, ruled
-   *  2026-09-13; the 2026-09-04 every-kind fallback had put a paragraph on 69
-   *  published sections). The resolution lives in ONE function,
-   *  `howToReadFor`, shared with SectionBody's VizCard dispatch. The ten
-   *  VizCard kinds render theirs inside the card; dataviz-v2.css hides this
-   *  copy when the slotted card already carries one, so a section shows at
-   *  most one. */
-  howToRead?: string;
-  /** The DATA claim (`section.caption ?? data.caption`). Rendered here, directly
-   *  below the graphic, ONLY for kinds whose component carries no caption
-   *  element of its own — timeline, seat-chart, vote-result, bill-breakdown,
-   *  comparison and their like — which until 2026-09-13 silently dropped an
-   *  authored caption (the delimitation rewrite's reader panel found the two
-   *  restatements that answer its quiz were authored and not on the page).
-   *  A `:has()` rule in dataviz-v2.css hides this copy wherever the slotted
-   *  component already shows one (VizCard's caption row, DataReadout's
-   *  `.tel__cap`, any `*__cap`), so a section shows exactly one. */
-  caption?: string;
-  /** Anchor for the aside's contents list (launch design). */
-  id?: string;
+  section: SectionT;
+  /** 1-based section number (act-breaks take none). */
+  n: number;
+  /** How many numbered sections the issue has. */
+  total: number;
+  /** The first cited source's URL, for the source line's link. */
+  sourceUrl?: string;
 }
-const { number, eyebrow, title, intro, kind, plain, layout, source, howToRead, caption, id } = Astro.props;
+const { section, n, total, sourceUrl } = Astro.props;
+const data: any = section.data ?? {};
+const kind = section.kind;
 
-const plainText = plain ?? (kind ? EXPLAIN[kind]?.what : undefined);
-const howText = howToReadFor(kind, howToRead);
+/* Kept in step with LENS §5.1. The reading gate's own NARRATIVE list also
+   carries `comparison` (it decides which sections count as a free graphic),
+   which is a different question from which ones get a figure panel. */
+const NARRATIVE = new Set(['act-break', 'prose', 'quote', 'analogy', 'jargon-buster', 'three-steps']);
+const narrative = NARRATIVE.has(kind);
+
+const pad = (x: number) => String(x).padStart(2, '0');
+const no = pad(n);
+const short = shortLabel(section, `Section ${n}`);
+const titleId = section.title ? `sec-${n}-t` : undefined;
+
+const cues: Cue[] = narrative ? [] : [...(section.cues ?? [])].sort((a, b) => a.n - b.n);
+/* anchor id → the numerals that name it */
+const anchorCues = new Map<string, number[]>();
+for (const c of cues) {
+  for (const id of String(c.at).split(/[\s,]+/).filter(Boolean)) {
+    anchorCues.set(id, [...(anchorCues.get(id) ?? []), c.n]);
+  }
+}
+
+const caption: string | undefined = section.caption ?? data.caption;
+const src = section.source ?? data.source;
 const sourceLine =
-  typeof source === 'string'
-    ? source
-    : source
-      ? [source.label, source.date].filter(Boolean).join(' · ')
+  typeof src === 'string'
+    ? src
+    : src && typeof src === 'object' && src.label
+      ? [src.label, src.date].filter(Boolean).join(' · ')
       : undefined;
-const layoutAttr = layout && layout !== 'default' ? layout : undefined;
-/* One markup for every layout (2026-09-23). `split` / `split-flip` used to
-   wrap the copy and the graphic in `__copy` / `__stage` for a two-column grid
-   that put the plain line and source ABOVE the graphic once the grid stacked
-   (every phone, and the floor plan now). The geometry is retired in
-   layout-v2.css — split is an alias of wide — so the order is the same as
-   every other section: number, eyebrow, title, intro, how, GRAPHIC, caption,
-   plain + source. */
+/* The label links to the first cited source; the date stays text. */
+const [srcLabel, ...srcRest] = (sourceLine ?? '').split(' · ');
+const srcTail = srcRest.length ? ' · ' + srcRest.join(' · ') : '';
+
+const unit = typeof data.unit === 'string' && data.unit.length <= 24 ? data.unit : undefined;
+const layoutAttr = section.layout === 'wide' ? 'wide' : undefined;
+
+/* ── the kind's own sentences, for the article column ─────────────────────
+   A sentence an anchor stands for leads with that anchor's cue button when a
+   cue names it and the text carries no marker of its own. */
+const lead = (anchor: string, html: string, raw?: string): string => {
+  const ns = anchorCues.get(anchor);
+  if (!ns || hasCues(raw)) return html;
+  return ns.map((k) => cueButton(k)).join(' ') + ' ' + cueSentence(ns[0], html);
+};
+const sentenceEnd = (s: string) => (/[.!?…]$/.test(s.trim()) ? s.trim() : s.trim() + '.');
+const bareBold = (s: string) => s.trim().replace(/^\*\*(.+)\*\*$/, '$1');
+
+/* An item's plain sentence, before any cue button, for the figure's cue line. */
+const plain = (html: string) => html.replace(/<[^>]+>/g, '').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const itemText = new Map<string, string>();
+
+type Block = { label?: string; html: string };
+type Row = { date: string; cued: boolean; html: string };
+let blocks: Block[] = [];
+let rows: Row[] = [];
+if (!narrative && kind === 'you-think') {
+  if (data.think?.text) blocks.push({ label: data.think.label ?? 'What most people think', html: lead('1', renderInline(data.think.text), data.think.text) });
+  if (data.actually?.text) blocks.push({ label: data.actually.label ?? 'What the data shows', html: lead('2', renderInline(data.actually.text), data.actually.text) });
+  if (data.note) blocks.push({ html: renderInline(data.note) });
+}
+if (!narrative && kind === 'data-readout') {
+  blocks = (data.tiles ?? []).map((t: any, i: number) => {
+    const head = `${bareBold(String(t.label ?? ''))}: ${t.value}${t.unit ? ' ' + t.unit : ''}`;
+    const html = `<strong>${renderInline(sentenceEnd(head))}</strong>${t.note ? ' ' + renderInline(t.note) : ''}`;
+    itemText.set(String(i + 1), plain(html));
+    return { html: lead(String(i + 1), html, t.note) };
+  });
+}
+if (!narrative && kind === 'timeline') {
+  const events: any[] = data.events ?? [];
+  const notes = new Map<number, string[]>();
+  for (const a of data.annotations ?? []) {
+    if (!a || !a.text) continue;
+    const i = typeof a.at === 'number' ? a.at : events.findIndex((e) => e.date === a.at);
+    if (i >= 0 && i < events.length) notes.set(i, [...(notes.get(i) ?? []), a.text]);
+  }
+  rows = events.map((e, i) => {
+    const tail = [e.note, ...(notes.get(i) ?? [])].filter(Boolean).map((t: string) => sentenceEnd(t)).join(' ');
+    const html = `<strong>${renderInline(sentenceEnd(bareBold(String(e.label ?? ''))))}</strong>${tail ? ' ' + renderInline(tail) : ''}`;
+    itemText.set(String(i + 1), plain(html));
+    return { date: String(e.date ?? ''), cued: anchorCues.has(String(i + 1)), html: lead(String(i + 1), html, tail) };
+  });
+}
+
+/* ── the line the figure panel shows while a cue is lit ───────────────────
+   The authored `text`, else the sentence its marker introduces in the prose,
+   else the sentence of the item its anchor stands for. One line per cue is
+   rendered; the CSS shows the lit one (`data-lit-n` on the section). */
+const rawProse: string[] = [
+  section.intro, caption, data.think?.text, data.actually?.text, data.note,
+  ...((data.events ?? []) as any[]).map((e) => e?.note),
+].filter((x): x is string => typeof x === 'string');
+const cueText = (c: Cue): string => {
+  if (c.text) return c.text;
+  for (const raw of rawProse) {
+    const mk = `[[${c.n}]]`;
+    const at = raw.indexOf(mk);
+    if (at < 0) continue;
+    const rest = raw.slice(at + mk.length);
+    const end = rest.indexOf('[[');
+    const t = (end < 0 ? rest : rest.slice(0, end)).trim();
+    if (t) return stripEmphasis(t);
+  }
+  for (const id of String(c.at).split(/[\s,]+/)) if (itemText.has(id)) return itemText.get(id)!;
+  return '';
+};
+
+/* ── the figure: the component, rendered and decorated ──────────────────── */
+const slotHtml = Astro.slots.has('default') ? await Astro.slots.render('default') : '';
+const decorate = (html: string): string => {
+  if (!anchorCues.size) return html;
+  return html
+    // an anchor gains the numerals that name it (never a cue button, whose
+    // attributes run class, type, data-cue — src/lib/text.ts)
+    .replace(/(?<!type="button" )data-cue="([^"]+)"/g, (m, id) => {
+      const ns = anchorCues.get(id);
+      return ns ? `${m} data-cue-n="${ns.join(' ')}"` : m;
+    })
+    // its empty numeral slot is filled and shown
+    .replace(/<span class="px-cue-tag" data-cue-tag="([^"]+)"([^>]*)><\/span>/g, (m, id, rest) => {
+      const ns = anchorCues.get(id);
+      if (!ns) return m;
+      const attrs = rest.replace(/\s+hidden(="[^"]*")?/, '');
+      return ns.map((k) => `<span class="px-cue-tag" data-cue-tag="${id}"${attrs} aria-hidden="true">${k}</span>`).join('');
+    });
+};
+const figHtml = narrative ? slotHtml : decorate(slotHtml);
+const intro = paragraphsOf(section.intro);
 ---
 
-<section class="px-section" id={id} data-reveal data-kind={kind} data-layout={layoutAttr}>
-  {number && <div class="px-section__num" data-n={number}>{number}</div>}
-  {eyebrow && <div class="px-eyebrow">{eyebrow}</div>}
-  {title && <h2 class="px-section__title" set:html={renderEmphasis(title)} />}
-  {intro && <p class="px-section__intro">{intro}</p>}
-  {howText && (
-    <p class="px-viz__how px-viz__how--section"><b>How to read this —</b>{' ' + howText}</p>
-  )}
-  <slot />
-  {caption && <p class="px-section__claim vz-caption" set:html={renderInline(caption)} />}
-  {(plainText || sourceLine) && (
-    <p class="px-plain">
-      {plainText && <><span class="px-plain__k">In plain terms</span>{' ' + plainText}</>}
-      {sourceLine && <span class="px-plain__src">Source · {sourceLine}</span>}
-    </p>
+<section
+  class:list={['px-section', 'px-rs', narrative ? 'px-rs--narr' : 'px-rs--fig']}
+  id={`sec-${n}`}
+  data-reveal
+  data-kind={kind}
+  data-layout={layoutAttr}
+  data-short={short}
+  aria-labelledby={titleId}
+>
+  <div class="px-section__copy px-rs__copy">
+    <p class="px-eyebrow px-rs__eyebrow"><span class="px-rs__no">{no}</span>{section.eyebrow && <span> · <span set:html={renderEmphasis(section.eyebrow)} /></span>}</p>
+    {section.title && <h2 class="px-section__title" id={titleId} set:html={renderEmphasis(section.title)} />}
+    {intro.map((p) => <p class="px-section__intro" set:html={renderInline(p)} />)}
+
+    {blocks.length > 0 && (
+      <div class="px-rs__prose">
+        {blocks.map((b) => (
+          <div class="px-rs__block">
+            {b.label && <p class="px-rs__label">{b.label}</p>}
+            <p class="px-rs__p" set:html={b.html} />
+          </div>
+        ))}
+      </div>
+    )}
+
+    {rows.length > 0 && (
+      <ol class="px-rs__events">
+        {rows.map((r) => (
+          <li class="px-rs__event">
+            <span class="px-rs__date" data-cued={r.cued ? 'true' : undefined}>{r.date}</span>
+            <p class="px-rs__p" set:html={r.html} />
+          </li>
+        ))}
+      </ol>
+    )}
+
+    {narrative && <div class="px-rs__body"><Fragment set:html={figHtml} /></div>}
+
+    {caption && <p class="px-rs__caption" set:html={renderInline(caption)} />}
+    {sourceLine && (
+      <p class="px-rs__src">Source · {sourceUrl ? <a href={sourceUrl}>{srcLabel}</a> : srcLabel}{srcTail}</p>
+    )}
+  </div>
+
+  {!narrative && (
+    <aside class="px-section__stage px-fig px-card" aria-label={`Figure ${n}`}>
+      <div class="px-fig__head">
+        <span class="px-fig__k">
+          <span class="px-fig__k-d">Figure {n}{unit && ` · ${unit}`}{cues.length > 0 && ` · ${cues.length} ${cues.length === 1 ? 'cue' : 'cues'}`}</span>
+          <span class="px-fig__k-m">{no} of {pad(total)} · {short}</span>
+        </span>
+        {cues.length > 0 && (
+          <button class="px-fig__all" type="button" data-cue-all>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="1.5" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="1.5" y="8" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="8" width="4.5" height="4.5" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+            Show all
+          </button>
+        )}
+      </div>
+      <div class="px-fig__body"><Fragment set:html={figHtml} /></div>
+      {(cues.length > 0 || sourceLine) && (
+        <div class="px-fig__foot">
+          {cues.length > 0 && (
+            <div class="px-fig__live" aria-live="polite">
+              {cues.map((c) => (
+                <div class="px-fig__cue" data-cue-line={c.n}>
+                  <span class="px-fig__cue-n" aria-hidden="true">{c.n}</span>
+                  <p class="px-fig__cue-t">{cueText(c)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {sourceLine && (
+            <p class="px-fig__src">Source · {sourceUrl ? <a href={sourceUrl}>{srcLabel}</a> : srcLabel}{srcTail}</p>
+          )}
+        </div>
+      )}
+    </aside>
   )}
 </section>

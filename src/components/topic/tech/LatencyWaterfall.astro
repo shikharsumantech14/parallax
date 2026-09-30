@@ -13,6 +13,9 @@
  * are plain text, always present.
  *
  * data: { spans[]{ label, start, dur, kind? }, unit?, caption?, source? }
+ *
+ * Cue anchors (LENS §5.2): each row is `data-cue="<n>"`, the spans numbered
+ * from 1 in data order.
  */
 interface Span { label: string; start: number; dur: number; kind?: string; }
 interface Props { spans: Span[]; unit?: string; caption?: string; source?: string; }
@@ -74,8 +77,8 @@ const fmt = (n: number) => n.toLocaleString();
 
     <div class="px-lwf__rows">
       {rows.map((r) => (
-        <div class="px-lwf__row" style={`--i:${r.i}`}>
-          <span class="px-lwf__label" title={r.label}>{r.label}</span>
+        <div class="px-lwf__row" style={`--i:${r.i}`} data-cue={r.i + 1}>
+          <span class="px-lwf__label" title={r.label}><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span>{r.label}</span>
           <span class="px-lwf__track">
             <span
               class="px-lwf__bar"

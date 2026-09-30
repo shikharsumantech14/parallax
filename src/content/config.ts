@@ -150,28 +150,50 @@ export const SECTION_LAYOUTS = ['default', 'wide', 'bleed', 'split', 'split-flip
 export const sectionLayoutEnum = z.enum(SECTION_LAYOUTS);
 export type SectionLayout = z.infer<typeof sectionLayoutEnum>;
 
+/* A cue (the Lens reading system, docs/design/LENS.md §5.2, Phase 3). The
+   numeral `n` appears twice: as an inline `[[n]]` marker in the section's
+   prose (rendered as a cue button, src/lib/text.ts) and beside the element the
+   figure exposes as `data-cue="<at>"`. `at` names one anchor id, or several
+   separated by spaces or commas ("2 6" lights both events). Anchor ids are the
+   component's own, numbered from 1 in DATA order (the first tile is "1"), the
+   list per kind in src/content/issues/_AGENTS.md. `text` is the sentence the
+   figure panel shows while the cue is lit; absent, the panel shows the prose
+   sentence the marker introduces. A cue sentence is a data claim, traced like
+   a caption. */
+const cueSchema = z.object({
+  n: z.number().int().min(1).max(4),
+  at: z.union([z.string().min(1), z.number().int().positive()]).transform((v) => String(v)),
+  text: z.string().max(240).optional(),
+});
+export type Cue = z.infer<typeof cueSchema>;
+
 const sectionSchema = z.object({
   kind: sectionKindInput,
   number: z.string().optional(),
   title: z.string().optional(),
   eyebrow: z.string().optional(),
+  /* The section's name in the "In this issue" card and the progress rail, at
+     most three words ("Hisaab", "You think"). Absent, src/lib/text.ts derives
+     one from the eyebrow, then the title (`shortLabel`). */
+  short: z.string().max(24).optional(),
+  // Prose fields (`intro`, `caption`, a prose kind's `data.paragraphs`, the
+  // you-think texts, the timeline notes) accept inline `[[n]]` cue markers. A
+  // blank line in `intro` starts a new paragraph.
   intro: z.string().optional(),
   skimCaption: z.string().optional(),
-  // DEPRECATED by the Lens reading system (2026-09-30, docs/design/LENS.md §5):
-  // `plain` and `howToRead` give way to `cues` (Phase 3). Both are still
-  // accepted and still rendered until Phase 8 retires them with the old shell,
-  // so the backlist builds unchanged. The pipeline authors them until Phase 7
-  // teaches it cues.
+  /* Two to four per graphic section, none on the narrative kinds. */
+  cues: z.array(cueSchema).max(4).optional(),
+  // DEPRECATED by the Lens reading system (2026-09-30, docs/design/LENS.md §5)
+  // and NO LONGER RENDERED since Phase 3: the cues and the one caption do this
+  // work. Both stay in the schema, bounds and all, so the backlist builds
+  // unchanged; Phase 8 removes them, and the pipeline stops authoring them in
+  // Phase 7.
   //
-  // One sentence explaining the FORM of the viz ("each block is one seat…") —
-  // rendered as the in-flow "In plain terms" line. Falls back to the per-kind
-  // default in src/lib/explainers.ts. Captions explain the DATA instead.
+  // `plain` was one sentence on the FORM of the viz ("each block is one
+  // seat…"), the old "In plain terms" line.
   plain: z.string().max(220).optional(),
-  // How to read the graphic — the FORM, at paragraph length, rendered ABOVE it.
-  // `plain` is one sentence below the graphic and stays that; this is the
-  // handoff's contract part 02, which the 220-char cap cannot hold (13 of the
-  // 28 supplied strings exceed it). Optional for now: it is tightened toward
-  // required only after the existing issues are backfilled, in its own commit.
+  // `howToRead` was the FORM at paragraph length, the old panel above the
+  // graphic.
   howToRead: z.string().min(40).max(360).optional(),
   // Promoted OUT of `data: z.any()`, where they were unvalidated and could go
   // missing silently. The handoff's floor is "never a graphic without both",
@@ -185,8 +207,10 @@ const sectionSchema = z.object({
       z.object({ label: z.string(), date: z.string().optional() }),
     ])
     .optional(),
-  // Geometry variant — see src/styles/layout-v2.css + docs/design/CANON.md §3
-  // rhythm rules (≤1 bleed per act; split only for the issue's hero metaphor).
+  // Geometry variant (src/styles/layout-v2.css). Since Lens Phase 3 every value
+  // renders the one reading-system geometry (the article beside the pinned
+  // figure): `wide` widens the figure panel to 620, every other value renders
+  // as `default`. The values stay valid so the backlist builds.
   layout: sectionLayoutEnum.optional(),
   data: z.any().optional(),
   sourceRefs: z.array(z.string()).default([])

@@ -29,10 +29,16 @@ interface Props {
   caption?: string;
   /** Accepted and ignored — core/Section.astro prints it. Never a `__src` here. */
   source?: string | { label: string; date?: string };
-  howToRead?: string;
+  /** The Lens reading system (Phase 3): the article column beside the figure
+   *  carries both texts with their cues, so the figure keeps the two labels,
+   *  the belief as a dashed box and the record as a ruled one with its
+   *  figure. Cue anchors, in data order: "1" the belief panel, "2" the record
+   *  panel, "3" the record's figure. */
+  compact?: boolean;
 }
 
-const { think, actually, note, caption, source, howToRead } = Astro.props;
+const { think, actually, note, caption, source, compact = false } = Astro.props;
+const tag = (k: number) => `<span class="px-cue-tag" data-cue-tag="${k}" hidden></span>`;
 
 /* A belief with no correction — or a correction with no belief — is half an
    argument, and would publish as a full panel beside an empty one. Loud at
@@ -45,23 +51,23 @@ if (!actually?.text) {
 }
 ---
 
-<VizCard prefix="px-yt" howToRead={howToRead} caption={caption} source={source}>
+<VizCard prefix="px-yt" caption={caption} source={source} class={compact ? 'px-yt--compact' : undefined}>
   <div class="px-yt__grid">
-    <div class="px-yt__panel px-yt__panel--think">
-      <p class="px-yt__k vz-eyebrow">{think.label ?? 'What most people think'}</p>
-      <p class="px-yt__t" set:html={renderInline(think.text)} />
+    <div class="px-yt__panel px-yt__panel--think" data-cue="1">
+      <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(1)} />{think.label ?? 'What most people think'}</p>
+      {!compact && <p class="px-yt__t" set:html={renderInline(think.text)} />}
     </div>
 
-    <div class="px-yt__panel px-yt__panel--act">
-      <p class="px-yt__k vz-eyebrow">{actually.label ?? 'What the data shows'}</p>
+    <div class="px-yt__panel px-yt__panel--act" data-cue="2">
+      <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(2)} />{actually.label ?? 'What the data shows'}</p>
       {/* Value and unit on ONE line on purpose: the 10px gap is the unit's
           margin, so an authored line break must not add to it. */}
-      {actually.value && <p class="px-yt__v vz-value">{actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}</p>}
-      <p class="px-yt__t" set:html={renderInline(actually.text)} />
+      {actually.value && <p class="px-yt__v vz-value" data-cue="3"><Fragment set:html={tag(3)} />{actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}</p>}
+      {!compact && <p class="px-yt__t" set:html={renderInline(actually.text)} />}
     </div>
   </div>
 
-  {note && <p class="px-yt__note" set:html={renderInline(note)} />}
+  {!compact && note && <p class="px-yt__note" set:html={renderInline(note)} />}
 </VizCard>
 
 <style>
@@ -115,6 +121,18 @@ if (!actually?.text) {
     line-height: 1.5;
     color: var(--muted);
   }
+
+  /* ── compact (the reading system's figure) ─────────────────────────────
+     The texts live in the article column. The belief is a dashed box (a
+     claim nobody recorded), the record a solid one with the figure. */
+  /* `:global` on the modifier: it sits on VizCard's root, which carries
+     VizCard's scope attribute, not this component's. */
+  :global(.px-yt--compact) .px-yt__grid { gap: 16px; align-items: stretch; }
+  :global(.px-yt--compact) .px-yt__panel { border-radius: var(--r-ctl); }
+  :global(.px-yt--compact) .px-yt__panel--think { border: 1.5px dashed var(--hair-2); }
+  :global(.px-yt--compact) .px-yt__panel--act { border: 1.5px solid var(--ink); }
+  :global(.px-yt--compact) .px-yt__v { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+  :global(.px-yt--compact) .px-yt__u { margin-left: 0; }
 
   /* ── 640px: one column, the evidence panel second (blueprint §4) ──────── */
   @media (max-width: 640px) {

@@ -18,11 +18,14 @@
  * prose, quote, analogy, comparison, jargon-buster, three-steps)
  * deliberately have none — they explain themselves.
  *
- * Lens (2026-09-30, docs/design/LENS.md §5): the plain line and the
- * how-to-read panel are DEPRECATED. The cue system replaces both in Phase 3,
- * and this file retires with them in Phase 8. Until then it keeps serving
- * the backlist. The verdict removed the dropped and folded kinds' entries;
- * `gauge` and `itinerary` carry merged wording.
+ * Lens (2026-09-30, docs/design/LENS.md §5): RENDERED NOWHERE since Phase 3.
+ * The reading system (core/Section.astro, cues and the one caption) replaced
+ * the plain line and the how-to-read panel, and the expand modal was deleted
+ * with them, so neither `EXPLAIN` nor `howToReadFor` has a caller in src/.
+ * The file stays until Phase 8 because `npm run check:catalog` still asserts
+ * an entry per non-narrative kind; Phase 7 moves the catalog to `CUES:` lines
+ * and this file retires then. The verdict removed the dropped and folded
+ * kinds' entries; `gauge` and `itinerary` carry merged wording.
  */
 export interface Explainer {
   what: string;

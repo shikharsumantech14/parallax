@@ -111,7 +111,9 @@ const B = (() => {
   return { W, H, SW, cx, cy, trackPath, usedPath, gaugeColor, pct, ticks, n, RG_FS, rgShown, rgTop, meta, usedGt, totalGt };
 })();
 
-const SERIF = "font-family:Literata,Georgia,'Times New Roman',serif";
+/* Lens (2026-09-30): the gauge's words and its number are UI, so they set in
+   the Instrument Sans stack, literal (RD-01b: never var() inside an SVG). */
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
 /* ── lean (was swing-dial) ──────────────────────────────────────────────────
    A semicircle swing-o-meter: -100..100 mapped onto a ±82° needle throw. */
@@ -238,16 +240,16 @@ const C = (() => {
         style={`fill:${B.gaugeColor};stroke:var(--bg);stroke-width:2`} />
       {B.rgShown.length > 0 && (
         <text x={B.cx} y={B.rgTop} text-anchor="middle"
-          style={`${SERIF};font-size:${B.RG_FS}px;fill:var(--ink-soft);letter-spacing:0.01em`}>
+          style={`${SANS};font-size:${B.RG_FS}px;fill:var(--ink-soft);letter-spacing:0.01em`}>
           {B.rgShown.map((ln, i) => <tspan x={B.cx} dy={i === 0 ? 0 : B.RG_FS + 3}>{ln}</tspan>)}
         </text>
       )}
       <text x={B.cx} y={B.cy - 26} text-anchor="middle"
-        style={`${SERIF};font-size:60px;font-weight:600;fill:${B.gaugeColor};letter-spacing:-0.02em`}>
+        style={`${SANS};font-size:60px;font-weight:600;fill:${B.gaugeColor};letter-spacing:-0.02em`}>
         {B.pct}%
       </text>
       <text x={B.cx} y={B.cy - 4} text-anchor="middle"
-        style={`${SERIF};font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:0.14em;text-transform:uppercase`}>
+        style={`${SANS};font-size:12px;font-weight:600;fill:var(--muted);letter-spacing:0.14em;text-transform:uppercase`}>
         remaining
       </text>
     </svg>

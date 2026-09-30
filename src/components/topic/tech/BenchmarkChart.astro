@@ -61,7 +61,10 @@ const {
   source,
 } = Astro.props;
 
-const rows = sortDesc ? [...items].sort((a, b) => b.value - a.value) : items;
+/* Cue anchors (LENS §5.2) are numbered in DATA order, before the sort, so an
+   author counts from the list they wrote: the first item is "1". */
+const numbered = items.map((it, k) => ({ ...it, cue: k + 1 }));
+const rows = sortDesc ? [...numbered].sort((a, b) => b.value - a.value) : numbered;
 // Honor an explicit maxValue; otherwise derive as the kit does (data peak × 1.05).
 const dataMax = Math.max(refValue ?? 0, ...items.map((i) => i.value), 1) * 1.05;
 const max = maxValue ?? dataMax;
@@ -120,9 +123,9 @@ const annotPad = (v: number) => {
     aria-label={caption ? `Benchmark comparison: ${caption}` : 'Benchmark comparison chart'}
   >
     {rows.map((it, i) => (
-      <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'}>
+      <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'} data-cue={it.cue}>
         <span class="bc__label">
-          {it.label}
+          <span class="px-cue-tag" data-cue-tag={it.cue} hidden></span>{it.label}
           {it.sublabel && <span class="bc__sub">{it.sublabel}</span>}
         </span>
         <span class="bc__track">

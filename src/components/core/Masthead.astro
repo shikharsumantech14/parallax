@@ -1,19 +1,30 @@
 ---
 /**
- * Masthead — the launch lockup (2026-09-08), one header for every page.
+ * Masthead — the Lens lockup (2026-09-30), one header for every page.
+ * docs/design/LENS.md §4.2 and §4.3; the Foundations board's two mastheads
+ * and the Home / Desk boards' stage mastheads are the reference.
  *
- * Left: the lockup — the medallion drawn TIGHT (the ring is the edge, so the
- * 12px gap is measured from the ring, not from the brand file's clear space),
- * the wordmark at 25px/700 with its cap centre on the disc centre, and the
- * register on the same axis: the desk's own name on a desk page ("Politics
- * desk", "Mission control"), "Visual explainers" on the house pages. A long
- * house line is what once pushed Sign in and Subscribe onto a second row.
+ * Left, the LOCKUP: the medallion drawn TIGHT at a 34px disc with ring 9 (the
+ * ring is the edge, so the 12px gap is measured from it), then "Parallax" in
+ * Newsreader 500 at 24px with its cap centre on the disc centre (the Home
+ * board's -1px nudge), then, on a desk page, the register ("Mission control")
+ * in 13px capitals in the desk TEXT colour. The house pages carry no register.
  *
- * Right: Home · Desks · Archive · About (the current one underlined in the
- * accent), the pulsing live badge, the account slot, and a square ink
- * Subscribe. Below 768px the right side folds into a native <details> Menu —
- * it opens, closes and announces itself with zero JavaScript, and only one of
- * the two navs is ever in the accessibility tree.
+ * Right: Home · Desks · Archive · About in Instrument Sans 14/500 (the current
+ * one underlined 2px), the live-issue badge, a hair, the account slot as a
+ * "Sign in" text link, and Subscribe as the primary ink button. 64px tall,
+ * paper, a 1px hair below.
+ *
+ * `variant="stage"` is the on-deep masthead for a stage (LENS §8, used from
+ * Phase 4): transparent over the plate, words in --on-deep, the rule in
+ * --on-deep-hair, the mark on its deep body, and Subscribe filled with the
+ * desk lime (tech, sports) or the paper. `desk` names the stage's desk; pass
+ * `register` to print its register (a desk page's stage).
+ *
+ * Below 768px the nav folds into a native <details> menu: it opens, closes
+ * and announces itself with zero JavaScript, its rows are 44px, and only one
+ * of the two navs is ever in the accessibility tree. Subscribe stays visible
+ * beside the menu button, as on the phone boards.
  *
  * Styling lives in base.css (`.mh`). Brand naming: the public brand
  * "Parallax" is the wordmark; the legal "Parallax Lens™" stays in <title>,
@@ -22,29 +33,53 @@
 import AccountEntry from './AccountEntry.astro';
 import Mark from './Mark.astro';
 import { DESK_REGISTER } from '../../lib/desks';
+import { ink, lime } from '../../lib/desk-inks';
 import type { Topic } from '../../content/config';
 
-type Variant = 'meta' | Topic;
+type Variant = 'meta' | 'stage' | Topic;
 type Current = 'home' | 'desks' | 'archive' | 'about' | 'subscribe';
 
 interface Props {
-  /** The world this page stands in; 'meta' (or omitted) = the house pages. */
+  /** The desk this page stands in; 'meta' (or omitted) = the house pages;
+   *  'stage' = the on-deep masthead over a stage (with `desk`). */
   variant?: Variant;
+  /** The stage's desk (station, deep and lime). With `variant="stage"`;
+   *  omitted = the house cut. */
+  desk?: Topic;
+  /** Print the desk register after the wordmark. Defaults to true on a desk
+   *  page and false on the house pages and a house stage. */
+  register?: boolean;
   /** The badge: "Issue NN · live". */
   issueNumber?: string;
-  /** Accepted for call-site compatibility; the date now reads in the fact
-   *  rail, not here. */
+  /** Accepted for call-site compatibility; the date reads in the issue head. */
   date?: string;
   status?: 'live' | 'draft';
   /** Which nav item is the current page. */
   current?: Current;
 }
-const { variant, issueNumber, status = 'live', current } = Astro.props;
+const { variant, desk: stageDesk, register: registerProp, issueNumber, status = 'live', current } = Astro.props;
 
-const desk = variant && variant !== 'meta' ? (variant as Topic) : undefined;
-const register = desk ? DESK_REGISTER[desk] : 'Visual explainers';
+const stage = variant === 'stage';
+const desk: Topic | undefined = stage
+  ? stageDesk
+  : variant && variant !== 'meta'
+    ? (variant as Topic)
+    : undefined;
+const showRegister = registerProp ?? (!stage && Boolean(desk));
+const register = desk && showRegister ? DESK_REGISTER[desk] : undefined;
+
 const stateWord = status === 'draft' ? 'draft' : 'live';
-const badge = issueNumber ? `Issue ${issueNumber} · ${stateWord}` : 'Est. 2026';
+const badge = issueNumber ? `Issue ${issueNumber} · ${stateWord}` : undefined;
+
+/* On a stage the header carries its desk's plate inks as local tokens, so the
+   rules in base.css never need to know which desk they stand on. */
+const stageVars = stage
+  ? [
+      `--mh-deep: ${desk ? ink(desk, 'deep') : 'var(--deep)'}`,
+      `--mh-line: ${desk ? (lime(desk) ?? ink(desk, 'mark')) : 'var(--accent)'}`,
+      `--mh-cta: ${desk ? (lime(desk) ?? 'var(--on-deep)') : 'var(--on-deep)'}`,
+    ].join('; ')
+  : undefined;
 
 const nav: { key: Current; label: string; href: string }[] = [
   { key: 'home', label: 'Home', href: '/' },
@@ -54,15 +89,13 @@ const nav: { key: Current; label: string; href: string }[] = [
 ];
 ---
 
-<header class="mh">
-  <a class="mh__brand" href="/" aria-label="Parallax — home">
-    {/* RD-10 step 5 — the PER-DESK CUT: the mark carries the station and the
-        accent of the world it stands in. House pages take the house cut. */}
-    <Mark desk={desk} size={34} ring={9} tight class="mh__mark" />
-    <span class="mh__type">
-      <span class="mh__name">Parallax</span>
-      <span class="mh__desk">{register}</span>
-    </span>
+<header class:list={['mh', { 'mh--stage': stage }]} style={stageVars}>
+  <a class="mh__brand" href="/" aria-label="Parallax, home">
+    {/* RD-10 step 5, the PER-DESK CUT: the mark carries the station and the
+        accent of the desk it stands in. House pages take the house cut. */}
+    <Mark desk={desk} size={34} ring={9} tight onDeep={stage && Boolean(desk)} class="mh__mark" />
+    <span class="mh__name">Parallax</span>
+    {register && <span class="mh__desk">{register}</span>}
   </a>
 
   <div class="mh__r">
@@ -71,28 +104,38 @@ const nav: { key: Current; label: string; href: string }[] = [
         <a href={n.href} aria-current={current === n.key ? 'page' : undefined}>{n.label}</a>
       ))}
     </nav>
-    <span class="mh__status">
-      <span class="mh__status-dot" data-state={status}></span>
-      {badge}
-    </span>
+    {badge && (
+      <span class="mh__status">
+        <span class="mh__status-dot" data-state={status}></span>
+        {badge}
+      </span>
+    )}
+    <span class="mh__sep" aria-hidden="true"></span>
     <AccountEntry />
-    <a href="/subscribe/" class="mh__cta" aria-current={current === 'subscribe' ? 'page' : undefined}>
-      Subscribe<span aria-hidden="true">→</span>
-    </a>
+    <a href="/subscribe/" class="mh__cta" aria-current={current === 'subscribe' ? 'page' : undefined}>Subscribe</a>
   </div>
 
+  <a href="/subscribe/" class="mh__cta mh__cta--sm" aria-current={current === 'subscribe' ? 'page' : undefined}>Subscribe</a>
+
   <details class="mh__menu">
-    <summary class="mh__menu-btn">Menu</summary>
+    <summary class="mh__menu-btn" aria-label="Menu">
+      <svg class="mh__menu-ico" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" focusable="false">
+        <path class="mh__menu-bars" d="M3 6 H19 M3 11 H19 M3 16 H19" />
+        <path class="mh__menu-x" d="M5 5 L17 17 M17 5 L5 17" />
+      </svg>
+    </summary>
     <nav class="mh__menu-panel" aria-label="Primary (compact)">
       {nav.map((n) => (
         <a href={n.href} aria-current={current === n.key ? 'page' : undefined}>{n.label}</a>
       ))}
-      <a href="/subscribe/">Subscribe</a>
-      <span class="mh__menu-status">
-        <span class="mh__status-dot" data-state={status}></span>
-        {badge}
-      </span>
-      <span class="mh__menu-cta"><AccountEntry /></span>
+      <a href="/subscribe/" aria-current={current === 'subscribe' ? 'page' : undefined}>Subscribe</a>
+      {badge && (
+        <span class="mh__menu-status">
+          <span class="mh__status-dot" data-state={status}></span>
+          {badge}
+        </span>
+      )}
+      <span class="mh__menu-acct"><AccountEntry /></span>
     </nav>
   </details>
 </header>

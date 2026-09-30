@@ -1,5 +1,4 @@
 ---
-import { howToReadFor } from '../lib/explainers';
 /**
  * SectionBody — the kind → component switch, with NO wrapper chrome.
  *
@@ -107,13 +106,24 @@ import JargonBuster from './core/JargonBuster.astro';
 
 interface Props {
   section: Section;
+  /** The Lens reading system (core/Section.astro, Phase 3) renders the
+   *  component inside the pinned figure panel, beside an article column that
+   *  already carries the caption and, for timeline / you-think / data-readout,
+   *  the kind's own sentences. `bare` hands the component no caption (the
+   *  article holds the one copy) and asks those three kinds for their compact
+   *  figure. Story mode omits it and renders every component whole. */
+  bare?: boolean;
 }
 
 /* The schema already resolves a retired kind name to its host (KIND_ALIASES in
    src/content/config.ts). Resolving again here keeps a caller that hands in a
    section built outside the collection (a test page, a story beat) honest. */
-const { section: authored } = Astro.props;
-const section = { ...authored, kind: canonicalKind(authored.kind) };
+const { section: authored, bare = false } = Astro.props;
+const section = {
+  ...authored,
+  kind: canonicalKind(authored.kind),
+  ...(bare ? { caption: undefined } : {}),
+};
 
 /* `caption` and `source` were promoted onto the section schema in Phase 2, but
    the ~90 dispatch arms below were written before that and read `data.caption`
@@ -134,12 +144,12 @@ const promotedSource =
 
 const data: any = {
   ...(section.data ?? {}),
-  caption: (section.data as any)?.caption ?? section.caption,
+  caption: bare ? undefined : ((section.data as any)?.caption ?? section.caption),
   source: (section.data as any)?.source ?? promotedSource,
 };
 ---
 
-    {section.kind === 'timeline' && <Timeline events={data.events ?? []} annotations={data.annotations} source={data.source} />}
+    {section.kind === 'timeline' && <Timeline events={data.events ?? []} annotations={data.annotations} source={data.source} compact={bare} />}
 
     {section.kind === 'bill-breakdown' && <BillBreakdown cards={data.cards ?? []} source={data.source} />}
 
@@ -177,7 +187,7 @@ const data: any = {
       />
     )}
     {section.kind === 'you-think' && (
-      <YouThink think={data.think} actually={data.actually} note={data.note} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <YouThink think={data.think} actually={data.actually} note={data.note} caption={section.caption ?? data.caption} source={section.source ?? data.source} compact={bare} />
     )}
 
     {section.kind === 'quote' && (
@@ -202,10 +212,10 @@ const data: any = {
     )}
 
     {section.kind === 'data-readout' && (
-      <DataReadout tiles={data.tiles ?? []} caption={data.caption} source={data.source} />
+      <DataReadout tiles={data.tiles ?? []} caption={data.caption} source={data.source} compact={bare} />
     )}
     {section.kind === 'number-sense' && (
-      <NumberSense value={data.value} unit={data.unit} label={data.label} equals={data.equals ?? []} note={data.note} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <NumberSense value={data.value} unit={data.unit} label={data.label} equals={data.equals ?? []} note={data.note} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {section.kind === 'commit-grid' && (
@@ -434,10 +444,10 @@ const data: any = {
     )}
 
     {section.kind === 'bill-funnel' && (
-      <BillFunnel stages={data.stages ?? []} unit={data.unit} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <BillFunnel stages={data.stages ?? []} unit={data.unit} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'age-pyramid' && (
-      <AgePyramid bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <AgePyramid bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* space */}
@@ -467,7 +477,7 @@ const data: any = {
       <EclipseCone source={data.source} occulter={data.occulter} target={data.target} showPenumbra={data.showPenumbra} caption={data.caption} sourceCite={data.sourceCite} />
     )}
     {section.kind === 'margin-bullets' && (
-      <MarginBullets rows={data.rows ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <MarginBullets rows={data.rows ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terrain-relief' && (
       <TerrainRelief dem={data.dem} place={data.place} exaggeration={data.exaggeration} exaggerateTo={data.exaggerateTo} contourInterval_m={data.contourInterval_m} peaks={data.peaks ?? []} seaLevel={data.seaLevel} caption={data.caption} source={data.source} />
@@ -500,7 +510,7 @@ const data: any = {
       <MooreLadder points={data.points ?? []} yLabel={data.yLabel} unit={data.unit} fit={data.fit} fitRange={data.fitRange} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'state-timeline' && (
-      <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <StateTimeline window={data.window} states={data.states ?? []} lanes={data.lanes ?? []} marks={data.marks ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'terminator-globe' && (
       <TerminatorGlobe epoch={data.epoch} from={data.from} to={data.to} flightHours={data.flightHours} arcBulge={data.arcBulge} caption={data.caption} source={data.source} />
@@ -518,7 +528,7 @@ const data: any = {
       <FareTerrain routes={data.routes ?? []} unit={data.unit} sweetSpotDays={data.sweetSpotDays} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'attrition-waffle' && (
-      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <AttritionWaffle n={data.n} trueN={data.trueN} subject={data.subject} groups={data.groups ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'flight-of-the-ball' && (
       <FlightOfTheBall sport={data.sport} shot={data.shot} goal={data.goal} showGhost={data.showGhost} slowmo={data.slowmo} caption={data.caption} source={data.source} />
@@ -533,10 +543,10 @@ const data: any = {
       <PaceRidge metric={data.metric} unit={data.unit} source_n={data.source_n} stat={data.stat} domain={data.domain} groups={data.groups ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'channel-ternary' && (
-      <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ChannelTernary corners={data.corners ?? []} entities={data.entities ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'finish-interval' && (
-      <FinishInterval model={data.model} runs={data.runs} positions={data.positions} zones={data.zones ?? []} rows={data.rows ?? []} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <FinishInterval model={data.model} runs={data.runs} positions={data.positions} zones={data.zones ?? []} rows={data.rows ?? []} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* earth */}
@@ -548,7 +558,7 @@ const data: any = {
       <SeaLevelTank levels={data.levels ?? []} landmarks={data.landmarks} maxM={data.maxM} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'climate-spiral' && (
-      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ClimateSpiral months={data.months ?? []} unit={data.unit} baseline={data.baseline} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'quake-depth' && (
       <QuakeDepth quakes={data.quakes ?? []} caption={data.caption} source={data.source} />
@@ -565,7 +575,7 @@ const data: any = {
       <VersionGraph nodes={data.nodes ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'scaling-plot' && (
-      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} annotations={data.annotations} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <ScalingPlot points={data.points ?? []} xLabel={data.xLabel} yLabel={data.yLabel} logX={data.logX} logY={data.logY} fit={data.fit} annotations={data.annotations} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
 
     {/* travel */}
@@ -589,7 +599,7 @@ const data: any = {
       <ShotMap shots={data.shots ?? []} caption={data.caption} source={data.source} />
     )}
     {section.kind === 'xg-race' && (
-      <XgRace events={data.events ?? []} home={data.home} away={data.away} annotations={data.annotations} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
+      <XgRace events={data.events ?? []} home={data.home} away={data.away} annotations={data.annotations} caption={section.caption ?? data.caption} source={section.source ?? data.source} />
     )}
     {section.kind === 'momentum-wave' && (
       <MomentumWave points={data.points ?? []} events={data.events} home={data.home} away={data.away} caption={data.caption} source={data.source} />

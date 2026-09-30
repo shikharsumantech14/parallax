@@ -39,15 +39,17 @@ body {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   MASTHEAD — the launch lockup (2026-09-08); the frame is Lens (2026-09-30):
-   64px, paper, a 1px hair below running to the frame edge, no ink rule above.
-   Phase 2 rebuilds the lockup itself (Newsreader 500 at 24). Left, the LOCKUP: a 34px disc with the
-   ring as its edge (Mark `tight`), a 12px gap, the wordmark at 25px/700 with
-   its CAP centre on the disc centre (measured: the line box centres 1.5px
-   lower, hence the nudge), and the desk register centred on the same axis.
-   Right: Home · Desks · Archive · About, the live badge, the account slot and
-   a square ink Subscribe. Below 768px everything on the right folds into a
-   native <details> Menu — zero JS, keyboard-operable by construction.
+   MASTHEAD — the Lens lockup (2026-09-30, LENS §4.2 / §4.3, Phase 2).
+   64px, paper, a 1px hair below running to the frame edge. Left the LOCKUP:
+   the medallion tight at a 34px disc with ring 9 (Mark `tight`), a 12px gap,
+   "Parallax" in Newsreader 500 24px with its cap centre on the disc centre
+   (the Home board's -1px nudge), and on a desk page the register in 13px
+   capitals in the desk TEXT colour. Right: Home · Desks · Archive · About in
+   Instrument Sans 14/500 (ink-2, the current one ink with a 2px underline in
+   the desk mark), the live badge, a hair, "Sign in" as a text link and the
+   primary ink Subscribe. `.mh--stage` is the on-deep version for a stage.
+   Below 768px the nav folds into a native <details> menu (zero JS, 44px rows)
+   beside a compact Subscribe.
    ────────────────────────────────────────────────────────────────────────── */
 .mh {
   display: flex;
@@ -57,26 +59,30 @@ body {
   row-gap: 0;
   min-height: 64px;
   margin-inline: calc(-1 * var(--wrap-pad, 0px));
-  padding: 10px var(--wrap-pad, 40px);
-  border-bottom: 1px solid var(--hair, var(--rule));
+  padding: 0 var(--wrap-pad, 64px);
+  border-bottom: 1px solid var(--hair);
   background: var(--paper);
+  color: var(--ink);
   position: relative;
 }
 .mh__brand {
   display: inline-flex; align-items: center; gap: 12px;
+  min-height: 44px;
+  min-width: 0;
   color: var(--ink);
   text-decoration: none;
 }
-.mh__brand:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-.mh__type { display: inline-flex; align-items: center; gap: 12px; line-height: 1; }
+.mh a:focus-visible, .mh summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mh--stage a:focus-visible, .mh--stage summary:focus-visible { outline-color: var(--on-deep); }
 .mh__name {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 24px;
   line-height: 1;
   letter-spacing: -0.01em;
-  color: var(--ink);
-  position: relative; top: -1px;   /* the Home board's nudge for Newsreader 24 on a 34px disc */
+  color: inherit;
+  position: relative; top: -1px;   /* cap centre on the disc centre (the Home board's nudge) */
+  white-space: nowrap;
 }
 .mh__desk {
   font-family: var(--font-ui);
@@ -84,33 +90,36 @@ body {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-deep, var(--muted));
-  white-space: nowrap;
   line-height: 1;
-  position: relative; top: -0.5px;   /* its own cap centre, same axis */
+  color: var(--accent-deep);
+  white-space: nowrap;
 }
 .mh__r { display: inline-flex; align-items: center; gap: 28px; white-space: nowrap; }
-.mh__links { display: inline-flex; gap: 24px; }
-/* Nav: Instrument Sans 14/500 in ink, the current page underlined 2px
-   (in the desk text colour on a desk page), hover underlines. */
+.mh__links { display: inline-flex; align-items: center; gap: 28px; }
 .mh__links a {
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 500;
   line-height: 1;
-  color: var(--ink);
+  color: var(--ink-2);
   text-decoration: none;
-  text-underline-offset: 6px;
-  text-decoration-thickness: 2px;
-  transition: color var(--t-micro) var(--ease), text-decoration-color var(--t-micro) var(--ease);
+  text-underline-offset: 4px;
+  transition: color var(--t-micro) var(--ease);
 }
-.mh__links a:hover { text-decoration: underline; text-decoration-color: var(--hair-2, var(--rule)); }
-.mh__links a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--accent-deep, var(--ink)); }
+.mh__links a:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; }
+.mh__links a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--accent);
+}
+.mh__sep { width: 1px; height: 20px; background: var(--hair); flex: 0 0 1px; }
 .mh__status {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-ui);
   font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .mh__status-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -120,89 +129,142 @@ body {
 }
 .mh__status-dot[data-state="draft"] { background: var(--muted); animation: none; }
 @keyframes mhPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .mh__status-dot { animation: none; } }
+
+/* The account slot (core/AccountEntry.astro, `px-acct`) reads as the board's
+   "Sign in" text link here: 14/500 ink, not the slot's own small capitals. */
+.mh .px-acct .px-acct__link {
+  font-family: var(--font-ui);
+  font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  line-height: 1;
+  color: var(--ink);
+  padding: 0;
+  border-bottom: 0;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.mh .px-acct .px-acct__link:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; }
+
 /* Subscribe is the primary button (.px-btn's values): ink fill, paper text,
    44px, 4px corners, 15/600. */
 .mh__cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 18px;
   font-family: var(--font-ui);
   font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none;
   line-height: 1;
-  min-height: 44px;
   color: var(--paper);
   background: var(--ink);
   border: 1px solid var(--ink);
   border-radius: var(--r-ctl);
-  padding: 0 20px;
   text-decoration: none;
-  display: inline-flex; align-items: center; gap: 8px;
+  white-space: nowrap;
   transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
 }
-.mh__cta:hover {
-  background: var(--ink-2);
-  border-color: var(--ink-2);
-  color: var(--paper);
-}
-.mh__menu { display: none; }
-/* The house pages stand in no desk: their register reads in muted, not in
-   the house accent. */
-:root:not([data-topic]) .mh__desk { color: var(--muted); }
+.mh__cta:hover { background: var(--ink-2); border-color: var(--ink-2); color: var(--paper); }
+.mh__cta--sm, .mh__menu { display: none; }
 
-/* The live badge is the widest single item; it leaves first. */
-@media (max-width: 1040px) { .mh__status { display: none; } }
+/* THE STAGE — the on-deep masthead over a plate (LENS §8.2). The header sets
+   --mh-deep / --mh-line / --mh-cta from its desk (Masthead.astro), so these
+   rules hold for all six plates. */
+.mh--stage {
+  background: transparent;
+  border-bottom-color: var(--on-deep-hair);
+  color: var(--on-deep);
+}
+.mh--stage .mh__brand { color: var(--on-deep); }
+.mh--stage .mh__desk { color: var(--mh-line, var(--on-deep-2)); }
+.mh--stage .mh__links a { color: var(--on-deep-2); }
+.mh--stage .mh__links a:hover,
+.mh--stage .mh__links a[aria-current="page"] { color: var(--on-deep); }
+.mh--stage .mh__links a[aria-current="page"] { text-decoration-color: var(--mh-line, var(--on-deep)); }
+.mh--stage .mh__sep { background: var(--on-deep-hair); }
+.mh--stage .mh__status { color: var(--on-deep-2); }
+.mh--stage .mh__status-dot { background: var(--mh-line, var(--on-deep)); }
+.mh--stage .px-acct .px-acct__link,
+.mh--stage .px-acct .px-acct__link:hover { color: var(--on-deep); }
+.mh--stage .mh__cta {
+  background: var(--mh-cta, var(--on-deep));
+  border-color: var(--mh-cta, var(--on-deep));
+  color: var(--mh-deep, var(--ink));
+}
+.mh--stage .mh__cta:hover { background: var(--on-deep); border-color: var(--on-deep); color: var(--mh-deep, var(--ink)); }
+
+/* Widths: the badge is the widest single item and leaves first; the register
+   and the wider gaps follow before the right side can touch the lockup. */
+@media (max-width: 1180px) { .mh__status { display: none; } }
+@media (max-width: 1000px) {
+  .mh__desk { display: none; }
+  .mh__r, .mh__links { gap: 20px; }
+}
 
 @media (max-width: 768px) {
-  .mh { min-height: 0; padding: 12px var(--wrap-pad, 20px); flex-wrap: wrap; column-gap: 16px; }
-  .mh__brand { gap: 10px; }
-  .mh__name { font-size: 24px; top: -1px; }
-  .mh__desk { display: none; }
-  .mh__r { display: none; }
+  .mh { flex-wrap: wrap; padding: 10px 12px 10px var(--wrap-pad, 20px); }
+  .mh__r, .mh__desk { display: none; }
 
-  /* The details takes a row of its own under the brand; its summary is
-     lifted out of flow to sit at the right of the brand row, so the closed
-     state costs no height and the open panel pushes the page down. */
+  /* The compact Subscribe and the menu button sit at the right of the brand
+     row, lifted out of flow; the <details> takes a row of its own under the
+     brand, so the closed state costs no height and the open panel pushes the
+     page down. 10 padding + 22 half-row - 22 half-control = 10. */
+  .mh__cta--sm {
+    display: inline-flex;
+    position: absolute; top: 10px; right: 60px;   /* 12 edge + 44 button + 4 gap */
+    padding: 0 14px;
+    font-size: 14px;
+  }
   .mh__menu { display: block; flex: 1 0 100%; }
   .mh__menu-btn {
-    position: absolute; right: var(--wrap-pad, 20px); top: 7px;   /* centred on the lockup: 12 padding + 17 half-disc − 22 half-button = 7 */
-    display: inline-flex; align-items: center; gap: 6px;
-    min-height: 44px;                    /* the touch floor */
-    font-family: var(--font-ui);
-    font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none;
-    color: var(--ink);
-    border: 1px solid var(--ink);
+    position: absolute; top: 10px; right: 12px;
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
     border-radius: var(--r-ctl);
-    padding: 0 14px;
+    color: inherit;
     cursor: pointer;
     list-style: none;
-    box-sizing: border-box;
-    background: var(--bg);
   }
   .mh__menu-btn::-webkit-details-marker { display: none; }
-  .mh__menu-btn::after { content: '+'; font-size: 13px; line-height: 1; }
-  .mh__menu[open] .mh__menu-btn::after { content: '−'; }
-  .mh__menu-btn:focus-visible { outline: 2px solid var(--accent-deep, var(--accent)); outline-offset: 2px; }
+  .mh__menu-ico { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .mh__menu-x { display: none; }
+  .mh__menu[open] .mh__menu-bars { display: none; }
+  .mh__menu[open] .mh__menu-x { display: inline; }
 
   /* MUST be gated on [open]: setting display on a <details> child overrides
      the browser's own hiding of the closed state (measured, not assumed). */
-  .mh__menu-panel { display: none; flex-direction: column; margin-top: 12px; border-top: 1px solid var(--rule); }
+  .mh__menu-panel {
+    display: none; flex-direction: column;
+    margin: 10px 8px 0 0;
+    border-top: 1px solid var(--hair);
+  }
   .mh__menu[open] .mh__menu-panel { display: flex; }
-  .mh__menu-panel a {
+  .mh__menu-panel > a {
     display: flex; align-items: center;
     min-height: 44px;
-    padding: 12px 2px;
-    border-bottom: 1px solid var(--rule);
+    padding: 0 2px;
+    border-bottom: 1px solid var(--hair);
     font-family: var(--font-ui);
     font-size: 15px; font-weight: 500; letter-spacing: 0; text-transform: none;
-    color: var(--ink);
+    color: inherit;
     text-decoration: none;
-    box-sizing: border-box;
   }
-  .mh__menu-panel a[aria-current="page"] { color: var(--accent-deep, var(--accent)); }
+  .mh__menu-panel > a[aria-current="page"] { font-weight: 600; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; text-decoration-color: var(--accent); }
   .mh__menu-status {
     display: flex; align-items: center; gap: 8px;
-    padding: 14px 2px 4px;
-    font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    min-height: 44px;
+    padding: 0 2px;
+    border-bottom: 1px solid var(--hair);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--muted);
   }
-  .mh__menu-cta { margin: 10px 0 8px; }
+  .mh__menu-acct { display: flex; align-items: center; min-height: 44px; padding: 0 2px; }
+  .mh__menu-acct .px-acct { justify-content: flex-start; min-width: 0; }
+  .mh .mh__menu-acct .px-acct .px-acct__link { min-height: 44px; font-size: 15px; }
+
+  .mh--stage .mh__menu-panel,
+  .mh--stage .mh__menu-panel > a,
+  .mh--stage .mh__menu-status { border-color: var(--on-deep-hair); }
+  .mh--stage .mh__menu-status { color: var(--on-deep-2); }
 }
 
 /* THE EYEBROW — the Lens label: Instrument Sans 12 / 500 / .06em capitals in
@@ -994,9 +1056,9 @@ a.px-card:focus-visible, .px-card--link:focus-visible { outline: 2px solid var(-
   .px-ihead__back, .px-ihead__no, .px-inav a, .px-gate__alt, .px-subs__signin a {
     display: inline-flex; align-items: center; min-height: 44px;
   }
-  .px-col li a { min-height: 36px; }
-  .px-rows__row { min-height: 44px; }
-  .mh__brand { min-height: 44px; margin-block: -5px; } /* the lockup's tap band, invisible */
+  .px-col__links a { display: inline-flex; align-items: center; min-height: 44px; }
+  /* The lockup and the list rows are 44px by construction since Lens Phase 2
+     (.mh__brand, .px-rows__row), so they need no tap band here. */
 }
 
 /* Justified copy (the operator's ruling of 2026-09-08) is RETIRED with Lens:

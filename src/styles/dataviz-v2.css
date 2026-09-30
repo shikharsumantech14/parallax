@@ -29,13 +29,6 @@
 .px-viz__cap {
   display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
   margin-bottom: 22px;
-  /* The ⤢ study button (modal.css `.px-vexp`) sits absolutely at the card's
-     top-right on a hover-capable wide screen, 30px wide at 10px in. Without
-     this reserve the chip and the button share the same corner and collide
-     on hover — measured live on every card with a chip, 2026-09-22. On touch
-     and phones the button is an in-flow row under the graphic instead
-     (2026-09-23), so the reserve is released below. */
-  padding-right: 44px;
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
@@ -64,11 +57,6 @@
   white-space: normal;
   max-width: 40%;
   text-align: right;
-}
-/* No corner button here: the same three conditions as modal.css's in-flow
-   `.px-vexp` row, so the caption takes the full width back. */
-@media (hover: none), (pointer: coarse), (max-width: 768px) {
-  .px-viz__cap { padding-right: 0; }
 }
 @media (max-width: 640px) {
   .px-viz__cap { flex-wrap: wrap; }
@@ -225,75 +213,167 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* "How to read this" — contract part 02, ABOVE the graphic (core/VizCard.astro).
-   Geometry is the handoff's, measured off the prototypes and invariant across
-   all 60 instruments: 10px 13px padding, 14px/1.58, a 3px accent rule on the
-   leading edge, on --paper-warm (TD-01). Ink clears 11.5:1 on that surface in
-   every world. */
-.px-viz__how {
-  margin: 0 0 18px;
-  padding: 12px 16px;
-  background: var(--paper-warm, var(--paper-3));
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--r-ctl) var(--r-ctl) 0;
+/* ══════════════════════════════════════════════════════════════════════════
+   THE CUES AND THE LIGHTING (Lens Phase 3, 2026-09-30; docs/design/LENS.md
+   §5.2, §5.3). The section's geometry is layout-v2.css; this is what a cue
+   looks like and what lighting does.
+
+   RETIRED here in the same change: the how-to-read panel (`.px-viz__how`,
+   `.px-viz__how--section` and the one-panel `:has()` rule), the caption
+   fallback under the graphic (`.px-section__claim` and its hide rules), and
+   the caption row's reserve for the ⤢ study button (the modal is gone). The
+   caption is printed once, in the article column; the figure panel hides any
+   component caption row (layout-v2.css). `.px-viz__src` stays retired.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* The cue button, inline before its sentence: a real <button>, a 20px disc
+   in the desk mark, the numeral in paper. Its hit area is 44px. */
+.px-cue {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--paper);
   font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--ink-2);
-}
-.px-viz__how b {
+  font-size: 12px;
+  font-style: normal;
   font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 2px;
+  cursor: pointer;
+  transition: background-color var(--t-micro, 160ms) var(--ease), box-shadow var(--t-micro, 160ms) var(--ease);
+}
+.px-cue::after { content: ''; position: absolute; inset: -12px; }
+.px-cue:hover,
+.px-cue[aria-pressed='true'] { background: var(--accent-deep); box-shadow: 0 0 0 3px var(--accent-tint); }
+.px-cue:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+html:not(.js) .px-cue { cursor: default; }
+
+/* The sentence a cue introduces is tinted while its cue is lit. The tint has
+   no horizontal outset: a wrapped line starts at the column's edge, and any
+   side padding would carry the span across the article's rule (the render
+   gate's COLUMN check). */
+.px-cue-s {
+  padding: 1px 0;
+  margin: 0;
+  border-radius: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-color var(--t-micro, 160ms) var(--ease);
+}
+.px-rs[data-lit-n='1'] .px-cue-s[data-cue-s='1'],
+.px-rs[data-lit-n='2'] .px-cue-s[data-cue-s='2'],
+.px-rs[data-lit-n='3'] .px-cue-s[data-cue-s='3'],
+.px-rs[data-lit-n='4'] .px-cue-s[data-cue-s='4'] { background: var(--accent-tint); }
+
+/* The numeral beside the element in the figure. Components render an empty
+   `.px-cue-tag[hidden]` slot on each anchor; core/Section.astro fills and
+   shows the ones a cue names. */
+.px-cue-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 1px;
+  transition: background-color var(--t-micro, 160ms) var(--ease), box-shadow var(--t-micro, 160ms) var(--ease);
+}
+.px-cue-tag[hidden] { display: none !important; }
+.px-cue-tag + .px-cue-tag { margin-left: -4px; }
+
+/* Lighting (src/scripts/cues.ts): the lit anchor at full strength with a 2px
+   ring in the desk mark, every other anchor at .35, over 160ms. Nothing
+   scales. Opacity multiplies, so an unlit anchor that holds the lit one, or
+   sits inside it, stays at full strength. The selectors carry the section and
+   the panel so they outrank a component's own revealed opacity. */
+.px-rs > .px-fig [data-cue]:not(.px-cue) {
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+.px-rs > .px-fig [data-cue][data-lit='false'] { opacity: 0.35; }
+.px-rs > .px-fig [data-cue][data-lit='false']:has([data-lit='true']),
+.px-rs > .px-fig [data-lit='true'] [data-cue][data-lit='false'] { opacity: 1; }
+.px-rs > .px-fig [data-cue][data-lit='true'] { opacity: 1; outline-color: var(--accent); }
+/* A component's own reveal stagger (a timeline row waits up to half a second)
+   must not delay the light: while lighting, an anchor answers in 160ms. */
+.px-rs > .px-fig [data-cue][data-lit] {
+  transition: opacity var(--t-micro, 160ms) var(--ease), outline-color var(--t-micro, 160ms) var(--ease) !important;
+}
+.px-rs > .px-fig [data-lit='true'] .px-cue-tag {
+  background: var(--accent-deep);
+  box-shadow: 0 0 0 2px var(--paper-2), 0 0 0 4px var(--accent);
+}
+/* A readout clips its tiles (`.tel` hides the last divider's overhang), so a
+   tile's ring is drawn inside it; four tiles sit two by two in the panel. */
+.px-rs > .px-fig .tel__tile[data-cue] { outline-offset: -4px; }
+.px-fig .tel__grid:has(> .tel__tile:nth-child(4):last-child) { --tel-cols: 2; }
+:where(.px-rs > .px-fig [data-cue]:not(.px-cue)) {
+  transition: opacity var(--t-micro, 160ms) var(--ease), outline-color var(--t-micro, 160ms) var(--ease);
+}
+
+/* The line the panel shows while a cue is lit: the numeral and its sentence
+   (one rendered per cue, the lit one shown). */
+.px-fig__cue { display: none; align-items: flex-start; gap: 10px; }
+.px-rs[data-lit-n='1'] .px-fig__cue[data-cue-line='1'],
+.px-rs[data-lit-n='2'] .px-fig__cue[data-cue-line='2'],
+.px-rs[data-lit-n='3'] .px-fig__cue[data-cue-line='3'],
+.px-rs[data-lit-n='4'] .px-fig__cue[data-cue-line='4'] { display: flex; }
+.px-fig__cue-n {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+  border-radius: 999px;
+  background: var(--accent-deep);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.px-fig__cue-t {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.45;
   color: var(--ink);
 }
-/* ONE PANEL PER SECTION. Since the EXPLAIN.how fallback flipped on (Phase
-   6.1), core/Section.astro renders the how-to-read block for EVERY kind,
-   above the graphic — that is the only way the 87 kinds that do not route
-   through VizCard can show one at all (an authored howToRead on a timeline
-   was silently dropped before this). The twelve VizCard kinds still render
-   theirs INSIDE the card, where the handoff's shell puts it. So a section
-   whose slotted card already carries a panel hides Section's copy. `:has()`
-   rather than an allowlist of VizCard kinds, because every Wave 2–4 kind
-   will route through VizCard and an allowlist is a double-render waiting to
-   happen. Support floor is the same as color-mix(), already relied on. */
-.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none; }
-
-/* THE CAPTION FALLBACK (2026-09-13). Kinds whose component carries no caption
-   element — timeline, seat-chart, vote-result, bill-breakdown, comparison and
-   their like — dropped an authored `caption` silently; the delimitation
-   rewrite's reader panel found its two quiz answers authored and invisible.
-   core/Section.astro now prints `section.caption ?? data.caption` directly
-   below the graphic as `.px-section__claim`, and this rule hides that copy
-   wherever the slotted component already shows one: VizCard's `.px-viz__cap`,
-   DataReadout's `.tel__cap`, any `*__cap` — except VoteResult's `.vb__cap`,
-   which displays the vote's LABEL, not its caption. One claim per section. */
-.px-section__claim { max-width: var(--col-prose); margin: 12px 0 0; }
-/* `__caption` joined `__cap` on 2026-09-22. Six components spell the hook out
-   in full — carbon-gauge, elevation-profile, region-map, orbital-shells,
-   commit-grid, journey-map — so the suffix match missed them and every one
-   printed its caption twice, once inside the figure and once below it
-   (measured live on the earth issue). Exactly the gap that hid Comparison's
-   duplicate source until 2026-09-15. `.px-seats__caption` is excluded for the
-   same reason as `.vb__cap`: it carries seat-chart's SUBTITLE, not its
-   caption, so Section must still print the real one. */
-.px-section:has([class$='__cap']:not(.vb__cap)) .px-section__claim,
-.px-section:has([class$='__caption']:not(.px-seats__caption)) .px-section__claim { display: none; }
-
-/* Phone: the tint reads as noise at 353px, and the accent edge alone carries
-   the block. Mirrors the prototypes' own S-figure treatment, which drops the
-   tint at small size. Carried from day one so shell adoption never has to
-   reopen mobile. */
-@media (max-width: 640px) {
-  .px-viz__how {
-    background: transparent;
-    padding: 2px 0 2px 11px;
-  }
+@media (max-width: 1023px) {
+  .px-fig__cue-n { margin-top: 0; }
+  .px-fig__cue-t { font-family: var(--font-ui); font-size: 14px; font-style: normal; font-weight: 500; line-height: 1.4; }
 }
-
-/* `.px-viz__src` is RETIRED (Phase 6.1). The source line renders from
-   core/Section.astro as `.px-plain__src`, the plain paragraph's second line;
-   the seventy per-component emitters were stripped in the same pass, so no
-   element carries this class any more. story.css's `[class$='__src']` beat
-   rule is left in place — it is a suffix rule and costs nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .px-cue, .px-cue-s, .px-cue-tag, .px-rs > .px-fig [data-cue] { transition: none; }
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    APPROVAL CHART (politics) — dual line, animated draw, gradient fill
@@ -940,8 +1020,8 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   /* The CARD scrolls, so the page never does.
      `[data-viz-root]` joined the selector 2026-09-22. The rule assumed every
      figure root is `.px-viz`, but eleven kinds carry a bespoke root marked
-     with `[data-viz-root]` instead (the same opt-in modal.css and
-     ExpandModal already use). region-map is one of them, and it is the only
+     with `[data-viz-root]` instead (the opt-in the retired expand modal
+     also read). region-map is one of them, and it is the only
      bespoke root in the min-width list below — so its 800px SVG had nothing
      to scroll inside and pushed the PAGE to 820px on a 375px phone, on both
      the earth and travel issues (measured 2026-09-22). A root with no

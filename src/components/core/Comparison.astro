@@ -98,10 +98,10 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
        The matrix form below cannot do this: its head and its rows share a
        column count, so they must stay two grids that line up. */
     <div class="px-compare__lists">
-      {columns.map((c) => (
-        <section class="px-compare__col">
+      {columns.map((c, ci) => (
+        <section class="px-compare__col" data-cue={ci + 1}>
           <div class="px-compare__col-head">
-            <div class="px-compare__col-title" set:html={renderInline(c.label)} />
+            <div class="px-compare__col-title"><span class="px-cue-tag" data-cue-tag={ci + 1} hidden></span><Fragment set:html={renderInline(c.label)} /></div>
           </div>
           <ul class="px-compare__list">
             {c.items.map((it) => (
@@ -126,9 +126,12 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
         ))}
       </div>
       <div class="px-compare__body">
-        {rows.map((row) => (
-          <div class="px-compare__row">
-            <div class="px-compare__row-label">{row.label}</div>
+        {/* Cue anchors (LENS §5.2): each row (matrix and pair forms) or each
+            column (list form) is `data-cue="<n>"`, numbered from 1 in data
+            order; the empty tag is the numeral's slot. */}
+        {rows.map((row, ri) => (
+          <div class="px-compare__row" data-cue={ri + 1}>
+            <div class="px-compare__row-label"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{row.label}</div>
             {row.values.map((v, i) => (
               <div class="px-compare__cell" data-win={row.win === i ? 'true' : undefined} set:html={renderInline(v)} />
             ))}

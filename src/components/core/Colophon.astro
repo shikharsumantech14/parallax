@@ -1,33 +1,75 @@
 ---
 /**
- * Colophon — the footer (launch design, 2026-09-08, from the canvas).
+ * Colophon — the footer (Lens, 2026-09-30, Phase 2; the Home board's footer).
  *
- * A 4px ink rule, then four columns: the lockup with the brand promise, the
- * six desks with their dots, Read, Practical; under them a hairline and the
- * legal line — "Parallax Lens™ · Registered in India · Trademark cls. 16, 41"
- * on the left, the no-tracking promise on the right. Phones stack it two-up.
+ * On --paper-3 under a 1px hair, stepped out to the frame edge like the
+ * masthead. Left (six of twelve columns): the lockup at 28px (the house cut,
+ * tight, its ground cut from the footer's own paper), the promise "Stories you
+ * think you already understand.", and the six desks as chips, each with its
+ * own medallion at 20px. Right (the other six): three link columns, Read,
+ * Parallax and Account. Under a hair-2 rule, the colophon line and the two
+ * legal pages. Phones stack it: lockup, promise, chips, the three columns,
+ * the line.
  *
- * Same lockup as the masthead (28px disc, 21px wordmark, both nudged to a
- * common cap axis), so the two ends of every page agree. The optional
- * NewsletterForm above it survives from the previous footer; the home page
- * and /subscribe carry their own form and pass `newsletter={false}`.
+ * The footer is the same on every layout that mounts it: it always carries
+ * the house cut, whatever desk the page stands in (`desk` is accepted for
+ * call-site compatibility and ignored). The chips use the lettered MARK cut
+ * at 20px, which is below the 24px step where Mark would otherwise reverse
+ * it: a reversed cut is an ink disc with no desk colour, and six identical
+ * discs would not tell the desks apart.
+ *
+ * The optional NewsletterForm above it survives from the previous footer; the
+ * home page and /subscribe carry their own form and pass `newsletter={false}`.
  *
  * Prefix: px-col. No JS of its own.
  */
+import { getCollection } from 'astro:content';
 import NewsletterForm from './NewsletterForm.astro';
 import Mark from './Mark.astro';
 import { TOPICS, type Topic } from '../../content/config';
+import { DESK_COPY } from '../../lib/desks';
+import { ink } from '../../lib/desk-inks';
 
 interface Props {
+  /** Accepted for call-site compatibility; the footer is the same everywhere. */
   desk?: Topic;
   newsletter?: boolean;
 }
-const { newsletter = true, desk } = Astro.props;
+const { newsletter = true } = Astro.props;
 
 const year = new Date().getFullYear();
-const deskLabel: Record<Topic, string> = {
-  politics: 'Politics', space: 'Space', earth: 'Earth', tech: 'Tech', travel: 'Travel', sports: 'Sports',
-};
+
+/* "Latest issue" opens the newest published issue; with none yet, the archive. */
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const latest = [...published].sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug)
+)[0];
+
+const columns: { label: string; links: { label: string; href: string }[] }[] = [
+  {
+    label: 'Read',
+    links: [
+      { label: 'Latest issue', href: latest ? `/issues/${latest.slug}/` : '/archive/' },
+      { label: 'Desks', href: '/#desks' },
+      { label: 'Archive', href: '/archive/' },
+    ],
+  },
+  {
+    label: 'Parallax',
+    links: [
+      { label: 'About', href: '/about/' },
+      { label: 'Subscribe', href: '/subscribe/' },
+      { label: 'RSS', href: '/rss.xml' },
+    ],
+  },
+  {
+    label: 'Account',
+    links: [
+      { label: 'Sign in', href: '/login' },
+      { label: 'Your shelf', href: '/dashboard' },
+    ],
+  },
+];
 ---
 
 {newsletter && <NewsletterForm />}
@@ -35,108 +77,148 @@ const deskLabel: Record<Topic, string> = {
 <footer class="px-col">
   <div class="px-col__grid">
     <div class="px-col__brand-cell">
-      <a class="px-col__brand" href="/" aria-label="Parallax — home">
-        <Mark desk={desk} size={28} ring={9} tight />
+      <a class="px-col__brand" href="/" aria-label="Parallax, home">
+        <Mark size={28} ring={10} tight ground="var(--paper-3)" />
         <span class="px-col__name">Parallax</span>
       </a>
-      <p class="px-col__promise">
-        Stories you think you already understand. Six desks, one publication, every claim sourced.
-      </p>
-    </div>
-
-    <div>
-      <p class="px-col__h">Desks</p>
-      <ul>
+      <p class="px-col__promise">Stories you think you already understand.</p>
+      <ul class="px-col__desks" aria-label="The six desks">
         {TOPICS.map((t) => (
-          <li><a href={`/topics/${t}/`}><span class="px-col__dot" style={`background: var(--topic-${t})`} aria-hidden="true"></span>{deskLabel[t]}</a></li>
+          <li>
+            <a class="px-chip px-col__desk" href={`/topics/${t}/`} style={`--dk-tint: ${ink(t, 'tint')}; --dk-text: ${ink(t, 'text')}`}>
+              <Mark desk={t} size={20} cut="mark" ground={ink(t, 'tint')} />
+              {DESK_COPY[t].name}
+            </a>
+          </li>
         ))}
       </ul>
     </div>
-    <div>
-      <p class="px-col__h">Read</p>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/archive/">Archive</a></li>
-        <li><a href="/about/">About</a></li>
-        <li><a href="/subscribe/">Subscribe</a></li>
-        <li><a href="/rss.xml">RSS</a></li>
-      </ul>
-    </div>
-    <div class="px-col__practical">
-      <p class="px-col__h">Practical</p>
-      <ul>
-        <li><a href="/dashboard">Your account</a></li>
-        <li><a href="/login">Sign in</a></li>
-        <li><a href="/about/privacy/">Privacy</a></li>
-        <li><a href="/about/terms/">Terms</a></li>
-        <li><a href="/about/#colophon">Colophon</a></li>
-      </ul>
+
+    <div class="px-col__links">
+      {columns.map((c) => (
+        <nav aria-label={c.label}>
+          <p class="px-col__h">{c.label}</p>
+          <ul>
+            {c.links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+          </ul>
+        </nav>
+      ))}
     </div>
   </div>
 
   <div class="px-col__legal">
-    <span>© {year} Parallax Lens™ · Registered in India · Trademark cls. 16, 41</span>
-    <span>No analytics · no cookies · no trackers · no ads</span>
+    <span>© {year} Parallax Lens™ · Registered in India · No analytics, no cookies, no trackers</span>
+    <span class="px-col__legal-links">
+      <a href="/about/privacy/">Privacy</a>
+      <a href="/about/terms/">Terms</a>
+    </span>
   </div>
 </footer>
 
 <style>
-  .px-col { border-top: 4px solid var(--ink); }
+  .px-col {
+    display: flex; flex-direction: column; gap: 32px;
+    margin-inline: calc(-1 * var(--wrap-pad, 0px));
+    padding: 40px var(--wrap-pad, 64px) 28px;
+    background: var(--paper-3);
+    border-top: 1px solid var(--hair);
+    color: var(--ink);
+  }
   .px-col__grid {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
-    gap: 34px;
-    padding: 36px 40px 32px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .px-col__brand-cell {
+    grid-column: span 6;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+    min-width: 0;
   }
   .px-col__brand {
-    display: inline-flex; align-items: center; gap: 10px;
+    display: inline-flex; align-items: center; gap: 12px;
+    min-height: 44px;
     color: var(--ink);
     text-decoration: none;
-    margin-bottom: 12px;
   }
   .px-col__name {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 21px;
+    font-weight: 500;
+    font-size: 24px;
     line-height: 1;
-    letter-spacing: -0.035em;
-    position: relative; top: -2px;   /* cap centre on the disc centre (measured) */
+    letter-spacing: -0.01em;
+    position: relative; top: -1px;   /* cap centre on the disc centre, as in the masthead */
   }
   .px-col__promise {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.55;
-    color: var(--ink-soft);
-    max-width: 30ch;
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1.4;
+    color: var(--ink-2);
+    max-width: 34ch;
+    text-wrap: pretty;
+  }
+  .px-col__desks {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  /* The desk chip is a link, so it keeps the control chip's 44px touch height
+     from base.css, but wears the label chip's colours (LENS §4.2): the desk
+     tint, the desk text ink. The medallion leads it, its crescent cut from the
+     tint. Hover draws the ink border every clickable surface takes. */
+  .px-col__desk {
+    padding: 0 16px 0 12px; gap: 8px;
+    background: var(--dk-tint);
+    border-color: var(--dk-tint);
+    color: var(--dk-text);
+    font-weight: 500;
+  }
+  .px-col__desk:hover { border-color: var(--ink); }
+  .px-col__links {
+    grid-column: span 6;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    min-width: 0;
   }
   .px-col__h {
-    margin: 0 0 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--rule);
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
-    color: var(--ink);
-  }
-  .px-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-  .px-col li a {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    margin: 0 0 10px;
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    line-height: 1.4;
     color: var(--muted);
+  }
+  .px-col__links ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .px-col__links a,
+  .px-col__legal-links a {
+    font-family: var(--font-ui);
+    color: var(--ink-2);
     text-decoration: none;
-    transition: color var(--t-quick) var(--ease);
+    text-underline-offset: 4px;
+    transition: color var(--t-micro) var(--ease);
   }
-  .px-col li a:hover { color: var(--ink); }
-  .px-col__dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+  .px-col__links a { font-size: 15px; line-height: 1.4; }
+  .px-col__links a:hover,
+  .px-col__legal-links a:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; }
+  .px-col a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .px-col__legal {
-    display: flex; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
-    padding: 14px 40px 18px;
-    border-top: 1px solid var(--rule);
-    font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-    line-height: 1.8;
+    display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--hair-2);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
     color: var(--muted);
+  }
+  .px-col__legal-links { display: inline-flex; gap: 20px; }
+  .px-col__legal-links a { font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .px-col__brand-cell, .px-col__links { grid-column: 1 / -1; }
   }
   @media (max-width: 768px) {
-    .px-col__grid { grid-template-columns: 1fr 1fr; gap: 22px 20px; padding: 26px 20px 24px; }
-    .px-col__brand-cell, .px-col__practical { grid-column: 1 / -1; }
-    .px-col__legal { padding: 14px 20px 18px; }
+    .px-col { padding: 32px var(--wrap-pad, 20px) 24px; }
+    .px-col__links { gap: 16px; }
+    .px-col__links a { font-size: 14px; }
+    .px-col__legal { padding-top: 16px; }
   }
 </style>

@@ -46,21 +46,37 @@ processes them, the `Viz3DRuntime` pattern, not the `is:inline` pattern the
 reader islands use), both are **loaded once per page**, and neither ships a
 library:
 
-- **`cues.ts`** (Lens Phase 3) — the reading system's lighting: a cue button
-  pressed or its sentence scrolled past lights its `data-cue` anchor (1 /
-  .35, a 2px desk-colour ring, 160ms) and switches the panel caption;
-  section 1 autoplays once. No JS: every anchor at full, every numeral
-  visible, the buttons inert, the caption the finding.
+- **`src/scripts/cues.ts`** (Lens Phase 3, LANDED 2026-09-30) — loaded by
+  `src/pages/issues/[slug].astro` only. **Measured 2,030 bytes minified,
+  1,026 gzipped** (`npx esbuild src/scripts/cues.ts --bundle --minify
+  --format=esm`); keep it under 2 KB minified. Three jobs:
+  1. *Lighting.* A cue button pressed, or crossing the middle third of the
+     screen, sets `data-lit="true"` on the anchors its cue names and
+     `"false"` on the rest of that figure (the CSS: 1 / .35, a 2px desk-mark
+     ring, 160ms), and `data-lit-n` on the section (the CSS tints the
+     sentence, presses the discs and shows the panel's line for that cue).
+     Pressing it again, or Show all, clears it. Section 1 plays its cues once,
+     1400ms apart, when its figure first comes into view.
+  2. *Progress.* A band 40% down the screen picks the current section:
+     `aria-current` on the rail's dot and the head card's entry, `--px-read`
+     on the root for the card's bar, "k of N read".
+  3. *The phone pin.* Below 1024px a figure pins at the top only when it fits
+     40% of the screen at 0.75 scale or more (`zoom`); refitted on a width
+     change, never on a height-only one (the address bar).
+  No JS: every anchor at full strength, every numeral visible (they are
+  server-rendered), the cue buttons inert, Show all not offered, each figure
+  in flow above its article, the head card's links still jump. Reduced
+  motion: no autoplay, no transitions.
 - **`build.ts`** (Lens Phase 5) — the one build: an IntersectionObserver
   starts a component's build on entry, in its `data-build="1..n"` order;
   counters on requestAnimationFrame, draws by dashoffset, grows by scale,
   drops by opacity and 6px. **No component animates itself** once it lands.
-  Reduced motion and no JS: the final state.
+  Reduced motion and no JS: the final state. Not built yet; Phase 5 decides
+  whether `core/Reveal.astro` and `core/VizMotion.astro`'s count-up fold
+  into it.
 
-Neither exists yet; until they land, the island set below is what runs.
-Phase 5 decides whether `core/Reveal.astro` and `core/VizMotion.astro`'s
-count-up fold into `build.ts`; `core/ExpandModal.astro` is retired by Lens
-and goes with the how-to-read panel in Phase 8's switch.
+`core/ExpandModal.astro` (the ⤢ study view) and `src/styles/modal.css` were
+DELETED in Phase 3 with the how-to-read panel and the plain line.
 
 ## The island set
 
@@ -69,10 +85,7 @@ and goes with the how-to-read panel in Phase 8's switch.
 - `core/ReadingToolbar.astro` — reading progress, Full⇄Skim, Save
 - `core/Viz3DRuntime.astro` — lazy-boots the WebGL runtime on `[data-viz3d]`
 - `core/Tilt.astro` — CSS-3D pointer-tilt + flip
-- `core/ExpandModal.astro` — ⤢ portals a viz card into a modal study view;
-  the button is a hover-revealed corner on hover screens and an in-flow
-  "Study this figure" row under the graphic below 768px and on coarse
-  pointers (2026-09-23), so it can never cover a caption or a label
+- `src/scripts/cues.ts` — the reading system (above), issue pages only
 - `core/ReadingGate.astro` — the metered soft signup wall
 - Phase-B reader islands — Save, Reactions, ReadingTracker,
   Letters, NewsletterForm (AnnotationLayer — margin notes — was removed with

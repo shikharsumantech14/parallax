@@ -1,18 +1,28 @@
 ---
 /**
- * IssueRows — the one list-row implementation (launch design, 2026-09-08).
+ * IssueRows — the one list-row implementation (Lens Phase 2, 2026-09-30).
  *
- * Home's "Latest dispatches", the archive and every desk page list issues as
- * hairline rows on the canvas's grid:
- *   home / archive   110px 1fr 170px — dot + № · title 21px + hook · date · read
- *   desk              92px 1fr 170px — № 22px · title 25px + hook · date · read
- * Phones drop the right column under the title.
+ * Home's latest dispatches, the archive and every desk page list issues as
+ * hairline rows: the desk dot and "No 17" in the first column; the headline
+ * in Newsreader 24 (the authored `*word*` italic in the desk text colour),
+ * the hook in 15 muted and "28 Sep 2026 · 4 min" in the body; the issue's
+ * cover mark as a 120 x 72 thumbnail on the right (`core/CoverCard`
+ * size="row", marks only). The whole row is one link. Hover lays a paper-2
+ * wash behind it and underlines the headline; nothing moves (LENS §1.1).
+ * Phones put the number above the headline and keep a 96px thumbnail.
+ *
+ * `variant` is accepted for call-site compatibility: "desk" drops the dot,
+ * because on a desk page every row is that desk.
  *
  * The class names `.px-archive__list` / `.px-archive__row` / `.px-archive__none`
  * and the `data-topic` / `data-search` hooks are what the /archive filter island
  * queries, so the archive keeps working without touching its script.
  */
+import { getCollection } from 'astro:content';
+import CoverCard from '../core/CoverCard.astro';
 import { renderEmphasis, stripEmphasis } from '../../lib/text';
+import { ink } from '../../lib/desk-inks';
+import { formatNo } from '../../lib/issue-number';
 import type { Topic } from '../../content/config';
 
 export interface RowItem {
@@ -35,90 +45,129 @@ interface Props {
 }
 const { items, variant = 'home', emptyText, filterable = false } = Astro.props;
 
+/* The thumbnail draws from the issue's own sections, so each row finds its
+   collection entry by slug. */
+const entries = new Map((await getCollection('issues')).map((e) => [e.slug, e]));
+
 const deskName: Record<Topic, string> = {
   politics: 'Politics', space: 'Space', earth: 'Earth', tech: 'Tech', travel: 'Travel', sports: 'Sports',
 };
 const fmt = (d: Date) =>
-  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC' });
-const no = (n: number) => String(n).padStart(2, '0');
+  d.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 ---
 
 <div class="px-rows px-archive__list" data-variant={variant}>
-  {items.map((i) => (
-    <a
-      class="px-rows__row px-archive__row"
-      href={`/issues/${i.slug}/`}
-      data-topic={i.topic}
-      data-search={filterable ? `${stripEmphasis(i.title)} ${deskName[i.topic]}`.toLowerCase() : undefined}
-    >
-      {variant === 'desk' ? (
-        <span class="px-rows__no px-rows__no--big">№ {no(i.issueNumber)}</span>
-      ) : (
-        <span class="px-rows__no"><span class="px-rows__dot" style={`background: var(--topic-${i.topic})`} aria-hidden="true"></span>№ {no(i.issueNumber)}</span>
-      )}
-      <span class="px-rows__body">
-        <span class="px-rows__t" set:html={renderEmphasis(i.title)} />
-        {i.hook && <span class="px-rows__hook">{i.hook}</span>}
-      </span>
-      <span class="px-rows__meta">{fmt(i.publishedAt)}{i.readTimeMinutes ? ` · ${i.readTimeMinutes} min` : ''}</span>
-    </a>
-  ))}
+  {items.map((i) => {
+    const entry = entries.get(i.slug);
+    return (
+      <a
+        class="px-rows__row px-archive__row"
+        href={`/issues/${i.slug}/`}
+        data-topic={i.topic}
+        data-search={filterable ? `${stripEmphasis(i.title)} ${deskName[i.topic]}`.toLowerCase() : undefined}
+        style={`--rw-text: ${ink(i.topic, 'text')}; --rw-mark: ${ink(i.topic, 'mark')}`}
+      >
+        <span class="px-rows__no">
+          {variant !== 'desk' && <span class="px-rows__dot" aria-hidden="true"></span>}
+          {formatNo(i.issueNumber)}
+          <span class="px-rows__desk">{deskName[i.topic]}</span>
+        </span>
+        <span class="px-rows__body">
+          <span class="px-rows__t" set:html={renderEmphasis(i.title)} />
+          {i.hook && <span class="px-rows__hook">{i.hook}</span>}
+          <span class="px-rows__meta">{fmt(i.publishedAt)}{i.readTimeMinutes ? ` · ${i.readTimeMinutes} min` : ''}</span>
+        </span>
+        {entry && <CoverCard issue={entry} size="row" number={i.issueNumber} class="px-rows__thumb" />}
+      </a>
+    );
+  })}
   <p class="px-rows__none px-archive__none" hidden={items.length !== 0}>{emptyText ?? 'Nothing here yet.'}</p>
 </div>
 
 <style>
-  .px-rows { display: flex; flex-direction: column; }
+  .px-rows { display: flex; flex-direction: column; border-top: 1px solid var(--hair); }
   .px-rows__row {
     display: grid;
-    grid-template-columns: 110px 1fr 170px;
-    gap: 18px;
-    align-items: baseline;
-    padding: 15px 40px;
-    border-bottom: 1px solid var(--rule);
+    grid-template-columns: 96px minmax(0, 1fr) 120px;
+    grid-template-areas: "no body thumb";
+    gap: 24px;
+    align-items: start;
+    padding: 24px 0;
+    min-height: 44px;
+    border-bottom: 1px solid var(--hair);
     color: var(--ink);
     text-decoration: none;
-    transition: background var(--t-quick) var(--ease);
+    transition: background var(--t-micro) var(--ease);
   }
-  .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 92px 1fr 170px; gap: 20px; padding: 20px 40px; }
-  .px-rows__row:hover { background: color-mix(in oklab, var(--accent) 4%, var(--bg)); }
+  /* The wash reaches 16px past the column on each side by box-shadow, so the
+     hairlines between rows stay exactly on the column. */
+  .px-rows__row:hover { background: var(--paper-2); box-shadow: -16px 0 0 var(--paper-2), 16px 0 0 var(--paper-2); }
+  .px-rows__row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
   .px-rows__row[hidden] { display: none; }
   .px-rows__no {
-    display: inline-flex; align-items: center; gap: 9px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted);
+    grid-area: no;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding-top: 6px;
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink-2);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .px-rows__no--big {
-    font-family: var(--font-display);
-    font-size: 22px; font-weight: 700; letter-spacing: -0.02em; text-transform: none;
+  .px-rows__dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 999px; background: var(--rw-mark); }
+  /* The desk's name is for assistive technology and search: the dot already
+     shows it to a sighted reader. */
+  .px-rows__desk {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
   }
-  .px-rows__dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
-  .px-rows__body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .px-rows__body { grid-area: body; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .px-rows__t {
     font-family: var(--font-display);
-    font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.18;
+    font-size: 24px; font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
     color: var(--ink);
+    text-wrap: pretty;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 5px;
   }
-  .px-rows[data-variant="desk"] .px-rows__t { font-size: 25px; letter-spacing: -0.022em; line-height: 1.14; }
-  .px-rows__t :global(em) { font-style: italic; font-weight: 400; color: var(--accent); }
-  .px-rows__hook { font-size: 14px; line-height: 1.5; color: var(--ink-soft); max-width: 60ch; }
-  .px-rows[data-variant="desk"] .px-rows__hook { font-size: 15px; line-height: 1.55; }
-  .px-rows__meta {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  .px-rows__row:hover .px-rows__t { text-decoration-line: underline; }
+  .px-rows__t :global(em) { font-style: italic; color: var(--rw-text); }
+  .px-rows__hook {
+    font-family: var(--font-ui);
+    font-size: 15px; line-height: 1.5;
     color: var(--muted);
-    text-align: right;
-    white-space: nowrap;
+    max-width: 64ch;
+  }
+  .px-rows__meta {
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
-  .px-rows__none { margin: 0; padding: 22px 40px; font-size: 15px; line-height: 1.6; color: var(--muted); border-bottom: 1px solid var(--rule); }
+  .px-rows__row > :global(.px-rows__thumb) { grid-area: thumb; }
+  .px-rows__none {
+    margin: 0;
+    padding: 24px 0;
+    font-size: 15px; line-height: 1.6;
+    color: var(--muted);
+    border-bottom: 1px solid var(--hair);
+  }
   .px-rows__none[hidden] { display: none; }
 
   @media (max-width: 768px) {
-    .px-rows__row,
-    .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 84px 1fr; gap: 14px; padding: 15px 20px; }
-    .px-rows[data-variant="desk"] .px-rows__row { grid-template-columns: 64px 1fr; }
-    .px-rows__meta { grid-column: 2 / 3; text-align: left; margin-top: 4px; }
-    .px-rows__none { padding: 20px; }
+    .px-rows__row {
+      grid-template-columns: minmax(0, 1fr) 96px;
+      grid-template-areas: "no thumb" "body thumb";
+      gap: 8px 16px;
+      padding: 20px 0;
+    }
+    .px-rows__no { padding-top: 0; }
+    .px-rows__t { font-size: 22px; }
+    .px-rows__row > :global(.px-rows__thumb) { width: 96px; height: 58px; flex-basis: 96px; }
+    .px-rows__row > :global(.px-rows__thumb) :global(.px-cover__panel) { height: 58px; flex-basis: 58px; }
   }
 </style>

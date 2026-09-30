@@ -12,6 +12,16 @@
  * kind (STORY-MODE-SPEC §4; extend it kind-by-kind as cards are verified).
  */
 import type { Section } from '../content/config';
+import { stripCues } from './text';
+
+/* Cue markers (`[[n]]`, the Lens reading system) belong beside a figure
+   panel; a story card has none, so every string in a story section loses
+   them. */
+const noCues = (v: any): any =>
+  typeof v === 'string' ? stripCues(v)
+    : Array.isArray(v) ? v.map(noCues)
+      : v && typeof v === 'object' && !(v instanceof Date) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noCues(x)]))
+        : v;
 
 export const MAX_BEATS = 6;
 
@@ -121,13 +131,14 @@ const TRIM: Record<string, Trim> = {
 
 export function fitSectionForStory(section: Section): Section {
   const trim = TRIM[section.kind];
-  const data = trim ? trim(section.data ?? {}) : section.data;
-  return { ...section, data };
+  const data = noCues(trim ? trim(section.data ?? {}) : section.data);
+  return { ...section, data, caption: section.caption && stripCues(section.caption), cues: undefined };
 }
 
 /* ── beat text derivation chain (spec §1) ── */
 function beatText(section: Section): string | undefined {
-  return section.skimCaption ?? section.intro ?? section.title;
+  const t = section.skimCaption ?? section.intro ?? section.title;
+  return t && stripCues(t);
 }
 
 export function selectStoryCards(issue: {

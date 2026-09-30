@@ -48,9 +48,11 @@ const cells = items.map((t, i) => {
 {n > 0 && (
   <div class="px-jb" data-reveal>
     <dl class="px-jb__grid">
-      {cells.map((c) => (
-        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom}>
-          <dt class="px-jb__term">{c.term}</dt>
+      {/* Cue anchors (LENS §5.2): each term is `data-cue="<n>"` in data order.
+          A narrative kind has no figure panel, so no cue names these today. */}
+      {cells.map((c, i) => (
+        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom} data-cue={i + 1}>
+          <dt class="px-jb__term"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>{c.term}</dt>
           <dd class="px-jb__m" set:html={renderInline(c.meaning)} />
           {c.hindi && <dd class="px-jb__h">{c.hindi}</dd>}
         </div>

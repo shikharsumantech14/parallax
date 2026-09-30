@@ -46,9 +46,12 @@
  *    their offline state; none of them sits inside #px-article.
  *
  * ── What is measured (issue pages; all inside #px-article) ───────────────────
- *  The column is #px-article's PADDING box, rule to rule. Measured at 1280 it
- *  is 858, not 860: the grid cell is 860 and the two 1px rules sit inside it,
- *  so the content measure is 718, not the 720 the figures are drawn for.
+ *  The column is #px-article's PADDING box. Since the Lens reading system
+ *  (Phase 3, 2026-09-30) that is the 1152 content column at 1280 (the frame
+ *  less its 64px gutters) and the page less its 20px margins on a phone; a
+ *  section's article (`.px-section__copy`) and its figure panel
+ *  (`.px-section__stage`) both sit inside it. The 170 / 1fr / 250 floor plan
+ *  and its 720 measure are retired.
  *  Skipped everywhere: display:none,
  *  visibility:hidden, opacity 0 (self or ancestor), zero-size, non-rendering
  *  SVG (defs, clipPath, title…), a back-facing flip-card face, and HTML inside
@@ -58,9 +61,9 @@
  *  BLOCKING
  *   COLUMN   an element's visible rect (after ancestor overflow clipping)
  *            crosses the column by >1px; collapsed to the outermost offender
- *            per section. No layout is exempt: the floor-plan ruling of
- *            2026-09-23 (layout-v2.css) is that nothing crosses the rails, so
- *            a bleed / split plate wider than the column IS the defect. Above
+ *            per section. No layout is exempt: nothing crosses the column
+ *            (layout-v2.css), so a figure or a tinted cue sentence wider than
+ *            the column IS the defect. Above
  *            900px a horizontal scroller whose content actually scrolls is
  *            reported too (the phone card-scroll rule is the only designed
  *            scroller).
@@ -86,21 +89,24 @@
  *            with the eyebrow above it on the first trial. An identical
  *            string at the same spot is a halo copy and is ignored.
  *   CHIP     the caption-row chip `.px-viz__cap b` under the ⤢ study button
- *            `.px-vexp` (ExpandModal) by any amount, or any text whose ink band
- *            runs under it by more than 2px in both axes.
+ *            `.px-vexp` by any amount, or any text whose ink band runs under
+ *            it by more than 2px in both axes. The expand modal that drew the
+ *            button was deleted in Lens Phase 3, so the check finds none today;
+ *            it stays in case a control of that shape comes back.
  *   CHROME   more than one visible caption / source / how-to-read in a section
  *            (`.vb__cap` and `.px-seats__caption` are a label and a subtitle,
  *            not captions — the same exclusions as dataviz-v2.css).
  *  WARNING
- *   ALIGN    edges spread by >8px within one of a section's two edge sets —
- *            TEXT (Section's chrome: number, eyebrow, title, intro, how, claim,
- *            plain; right edges only where ruled or boxed, since a 24ch title
- *            is ragged by design) and FIGURE (the graphic root, plus a ruled
- *            child one level inside it spanning ≥85% of the section; right
- *            edges skip plain paragraphs) — or a figure that is not
- *            symmetric about the text column. The two sets may differ (`wide`
- *            puts the figure at the 860 column and the text at the 720
- *            measure); side-by-side copy/stage columns are compared apart.
+ *   ALIGN    THE READING SYSTEM (a section with `.px-section__copy`, Lens
+ *            Phase 3): the article's blocks share its left edge (within 8px)
+ *            and none runs past its right edge; the figure panel's children
+ *            (head, graphic, foot) sit on the panel's content box within 4px.
+ *            The two columns are measured apart, each on its own geometry.
+ *            ANY OTHER SECTION keeps the older rule: edges spread by >8px
+ *            within one of its two edge sets, TEXT (Section's chrome; right
+ *            edges only where ruled or boxed) and FIGURE (the graphic root,
+ *            plus a ruled child one level inside it spanning ≥85% of the
+ *            section), or a figure not symmetric about the text column.
  *   TOUCH    glyphs of two separate text blocks closer than 1.5px, side by
  *            side on one line ("FEB 18 2025Earth-impact…") or stacked (an
  *            axis title sitting on a reference label) — including a crossing
@@ -145,6 +151,7 @@ const THRESHOLDS = {
   chip: 0.5, // px in both axes (the chip box)
   chipText: 2, // px in both axes (a text line box under the button)
   align: 8, // px spread of edges
+  panel: 4, // px between a figure panel's content box and its children (the reading system)
   empty: 60, // px graphic height
   tinyHtml: 9, // px computed font-size
   tinySvg: 7, // px rendered text box height
@@ -972,6 +979,59 @@ function measure(cfg) {
     b.rec.chrome = { captions: caps.length, sources: srcs.length, how: hows.length };
 
     // ALIGN
+    /* The Lens reading system (core/Section.astro, Phase 3, 2026-09-30): a
+       section is `.px-section__copy` (the article) beside `.px-section__stage`
+       (the figure panel), or the copy alone on a narrative kind. The two are
+       measured each on its own: the article's blocks share its left edge and
+       stay inside its right edge, and the panel's children (head, graphic,
+       foot) sit on the panel's content box, within `panel` px. A section
+       without a copy column keeps the rule below it. */
+    const copyEl = sec.querySelector(':scope > .px-section__copy');
+    if (copyEl) {
+      const rsNotes = [];
+      let rsPx = 0;
+      const kidsOf = (el) => [...el.children]
+        .filter((c) => {
+          const s = cs(c);
+          if (s.display === 'none' || s.display === 'inline' || s.position === 'absolute' || s.position === 'fixed' || !visible(c)) return false;
+          const r = c.getBoundingClientRect();
+          return r.width >= 1 && r.height >= 1;
+        })
+        .map((c) => ({ el: c, r: R(c.getBoundingClientRect()) }));
+      const boxOf = (el) => {
+        const r = R(el.getBoundingClientRect());
+        const s = cs(el);
+        return {
+          l: r.l + (parseFloat(s.borderLeftWidth) || 0) + (parseFloat(s.paddingLeft) || 0),
+          r: r.r - (parseFloat(s.borderRightWidth) || 0) - (parseFloat(s.paddingRight) || 0),
+        };
+      };
+      const note = (label, list, key, ref, tol) => {
+        const off = list.filter((k) => Math.abs(key(k) - ref) > tol);
+        if (!off.length) return;
+        const worst = Math.max(...off.map((k) => Math.abs(key(k) - ref)));
+        rsNotes.push(`${label}: ${off.slice(0, 5).map((k) => `${desc(k.el)}@${r1(key(k) - ref)}`).join(', ')}`);
+        rsPx = Math.max(rsPx, worst);
+      };
+      // the article: one left edge, nothing past its right edge
+      const cb = boxOf(copyEl);
+      const copyKids = kidsOf(copyEl);
+      note('copy left edges off the article column', copyKids, (k) => k.r.l, cb.l, T.align);
+      const past = copyKids.filter((k) => k.r.r > cb.r + T.align);
+      if (past.length) {
+        rsNotes.push(`copy past the article column's right edge: ${past.slice(0, 5).map((k) => `${desc(k.el)}+${r1(k.r.r - cb.r)}`).join(', ')}`);
+        rsPx = Math.max(rsPx, ...past.map((k) => k.r.r - cb.r));
+      }
+      // the figure panel: every child on its content box
+      const stageEl = sec.querySelector(':scope > .px-section__stage');
+      if (stageEl && visible(stageEl)) {
+        const sb = boxOf(stageEl);
+        const stageKids = kidsOf(stageEl);
+        note('figure panel children off its left edge', stageKids, (k) => k.r.l, sb.l, T.panel);
+        note('figure panel children off its right edge', stageKids, (k) => k.r.r, sb.r, T.panel);
+      }
+      if (rsNotes.length) F('ALIGN', b, rsNotes.join('; '), rsPx);
+    }
     const items = [];
     const addKids = (parent, depth) => {
       for (const c of parent.children) {
@@ -1035,9 +1095,9 @@ function measure(cfg) {
       const off = vals.filter((v) => Math.abs(v.x - modal) > T.align).slice(0, 5);
       return `${r1(modal - colL)}px (${off.map((v) => `${desc(v.el)}@${r1(v.x - colL)}`).join(', ')})`;
     };
-    /* Two edge sets per column group, compared separately, because a layout
-       may legitimately put them at different widths (`wide`: the figure at
-       the 860 column, the text at the 720 measure — layout-v2.css). TEXT =
+    /* (A section WITHOUT the reading system's copy column.) Two edge sets per
+       column group, compared separately, because a layout may put them at
+       different widths. TEXT =
        Section's chrome blocks; FIGURE = everything else plus full-ish
        hairlines inside it. Each set must share its own edges, and the figure
        must sit symmetrically about the text column (flush, or centred, or
@@ -1078,7 +1138,7 @@ function measure(cfg) {
         }
       }
     }
-    if (alignNotes.length) F('ALIGN', b, alignNotes.join('; '), alignPx);
+    if (alignNotes.length && !copyEl) F('ALIGN', b, alignNotes.join('; '), alignPx);
 
     // EMPTY
     if (!cfg.narrative.includes(b.kind)) {

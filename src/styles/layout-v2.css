@@ -1,197 +1,418 @@
 /* ============================================================================
-   PARALLAX — LAYOUT VARIANTS (section geometry)
+   PARALLAX — THE READING SYSTEM (section geometry) · Lens Phase 3, 2026-09-30
    ----------------------------------------------------------------------------
-   Consumed via `section.layout` → `data-layout` on `.px-section`
-   (core/Section.astro). Pure CSS — no per-component changes, no JS. Rhythm
-   rules live in docs/design/CANON.md §3.
+   docs/design/LENS.md §5, the Issue and Issue-Phone boards. "The article
+   stays, the picture explains it": a section is the article beside a pinned
+   figure, joined by cues. core/Section.astro emits one markup for every
+   section and every `layout` value:
 
-   THE FLOOR-PLAN RULING (2026-09-23). On the launch floor plan a section has
-   exactly two widths: the MEASURE (720, the article's content box) and the
-   COLUMN (858, rule to rule — the 860 grid cell less its two 1px rules).
-   Nothing crosses the rails. They carry the facts
-   and the aside, and the hero is often section 1, so a plate that crosses
-   them covers content — on the ISS issue the split hero hid "Nº 14" and the
-   contents list under its own ground. The old breakouts were derived for the
-   980 single-column frame, where the margins were empty; the floor plan
-   (2026-09-08) put content in the margins and kept the breakouts as
-   half-crossings (1080 on an 860 column), which the operator read, correctly,
-   as components overflowing their column (2026-09-22).
+     .px-rs.px-rs--fig   a graphic section
+       .px-section__copy    the article column (eyebrow, title, intro, the
+                            kind's sentences with cue buttons, the caption,
+                            the phone's source line)
+       .px-section__stage   the figure panel, `.px-fig` (a `.px-card`)
+     .px-rs.px-rs--narr  a narrative section (prose, quote, analogy,
+                         jargon-buster, three-steps): the article column only,
+                         its component inside it
 
-   · default  — everything at the measure.
-   · wide     — the FIGURE breaks out of the measure by 45px on each side
-                (810 wide, 24px clear of each rule); the text (number, eyebrow,
-                title, intro, how-to-read, caption, plain line) stays at the
-                measure. Symmetric, and never touching the rules: the first cut
-                (2026-09-23) ran the figure rule to rule, and the operator read
-                a figure with zero air on both sides as "fitted to the exact
-                size" against sections that breathe 69px (2026-09-24).
-                Flush-left text against the rule with a 720 hairline under an
-                860 figure was the "component mismatch" of 2026-09-22.
-   · bleed, split, split-flip — ALIASES of wide until a design pass re-derives
-                them on the floor plan. The size system's L (1080) cannot exist
-                inside a floor with populated rails, and the sticky two-column
-                split would cramp five of its six published stages (all SVGs
-                drawn at 720) to about 480px. The values stay valid in the
-                schema so nothing stops building; bleed keeps its vertical air.
-                core/Section.astro renders one markup for every layout — the
-                split wrappers (`__copy` / `__stage`) are gone with the grid.
-   · breath   — the whitespace valve: air above and below, the intro set as
-                display copy, LEFT-ALIGNED like every other section. The
-                centred version read as a misaligned block in a left-aligned
-                page, and its `text-align: center` leaked into the jargon
-                cards and step columns it carried.
+   · From 1024px: two columns in the 1152 content column, the article up to
+     620 and the figure 520 with a 32 gap (the article takes what is left:
+     600). The figure sticks 24px from the top while its section is in view.
+     `wide` widens the figure to 620 (the pair still fills the 1152). Every
+     other `layout` value (bleed, split, split-flip, breath) renders as the
+     default: the floor plan they were drawn for is retired (LENS §4.1, §10).
+   · Below 1024px: one column. The figure comes first and, when the island
+     has fitted it into 40% of the screen, pins to the top while the article
+     scrolls beneath it (`[data-pin]`, src/scripts/cues.ts); without JS, or
+     when it cannot fit at 0.75 scale, it sits in flow above its article.
+   · The progress rail sits in the left gutter beside #px-article, as a
+     SIBLING: ReadingGate walks `#px-article`.children to count `.px-section`,
+     so the sections stay direct children of the article.
 
-   Below 1101px there are no rails and every layout is the column.
+   The cue discs, the numerals in the figure and the lighting are in
+   dataviz-v2.css. The retired 170 / 1fr / 250 floor plan, the 720 measure
+   and the `wide` breakout of 2026-09-23/24 are gone from this file.
    ============================================================================ */
 
-/* ── wide, and its aliases ─────────────────────────────────────────────────── */
-@media (min-width: 1101px) {
-  .px-floor .px-section[data-layout='wide'],
-  .px-floor .px-section[data-layout='bleed'],
-  .px-floor .px-section[data-layout='split'],
-  .px-floor .px-section[data-layout='split-flip'] {
-    /* 45 each side, not the full 69 to the rule: a wide figure breathes. */
-    width: calc(100% + 90px);
-    margin-inline: -45px;
-  }
-  /* The text sits at the measure; only the figure takes the breakout. */
-  .px-floor .px-section[data-layout='wide'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
-  .px-floor .px-section[data-layout='bleed'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
-  .px-floor .px-section[data-layout='split'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain),
-  .px-floor .px-section[data-layout='split-flip'] > :is(.px-section__num, .px-eyebrow, .px-section__title, .px-section__intro, .px-viz__how--section, .px-section__claim, .px-plain) {
-    margin-inline: 45px;
-  }
-  /* The timeline is a figure too, but it carries its own 720 cap (`.tl` in
-     dataviz-v2.css), so in a wide section it sat flush against the left edge
-     and stopped 90px short of the right one while the text above it started
-     45px in. Lift the cap here so it spans the breakout like every figure. */
-  .px-floor .px-section:is([data-layout='wide'], [data-layout='bleed'], [data-layout='split'], [data-layout='split-flip']) > .tl {
-    max-width: none;
-  }
-}
-.px-section[data-layout='bleed'] { margin-top: 24px; margin-bottom: 72px; }
+/* ── the reading band ──────────────────────────────────────────────────────── */
+.px-read { position: relative; }
+.px-read > #px-article { min-width: 0; }
 
-/* ── breath — the whitespace valve ────────────────────────────────────────── */
-.px-section[data-layout='breath'] { padding-block: 72px 40px; }
-.px-section[data-layout='breath'] .px-section__intro {
-  font-family: var(--font-display);
-  font-size: clamp(19px, 2.6vw, 24px);
-  line-height: 1.5;
-  color: var(--ink);
-  max-width: 560px;
+/* ── a section ─────────────────────────────────────────────────────────────── */
+.px-rs {
+  margin: 0;
+  padding: 64px 0 72px;
+  border-top: 1px solid var(--hair);
+  scroll-margin-top: 16px;
 }
-@media (max-width: 640px) {
-  .px-section[data-layout='breath'] { padding-block: 48px 32px; }
-}
+.px-rs__copy { display: flex; flex-direction: column; min-width: 0; max-width: 620px; }
+.px-rs__copy > * { margin: 0; }
+.px-rs__copy > * + * { margin-top: 20px; }
+.px-rs__copy > .px-section__title { margin-top: 12px; }
+.px-rs__copy > .px-section__title + * { margin-top: 28px; }
+.px-rs__copy > .px-rs__caption { margin-top: 28px; }
 
-
-/* ══════════════════════════════════════════════════════════════════════════
-   THE ISSUE FLOOR PLAN (RD-12; launch geometry 2026-09-08)
-   170px fact rail · 1fr prose · 250px aside on the 1280 frame. The rails
-   INCLUDE the page's 40px outer padding. The prose cell is 860: a 1px rule on
-   each side and 69px of padding inside each rule, so the measure is exactly
-   720 — the width every figure in the library is drawn for (M in the size
-   system). It was 70px until 2026-09-23, which forgot the rules and left the
-   measure at 718: every M figure was drawn 2px wider than its column. The
-   old 980px frame put this same grid into 916px and left the prose 436px
-   wide.
-
-   The rails are SIBLINGS of #px-article, never wrappers around it. That is
-   deliberate and load-bearing: ReadingGate walks `#px-article`.children to
-   count `.px-section`, so nesting the sections one level deeper would make
-   the gate find nothing and hand the whole issue away for free. Keep the
-   article's own child list flat.
-   ══════════════════════════════════════════════════════════════════════════ */
-.px-floor {
-  display: grid;
-  grid-template-columns: 170px minmax(0, 1fr) 250px;
-  align-items: start;
-  column-gap: 0;
-  border-bottom: 1px solid var(--rule);
-  /* Lens: the frame gained a 64px gutter (base.css .px-wrap); base.css steps
-     the floor plan back out to the frame edge so this geometry holds until
-     Phase 3 replaces it. */
-}
-.px-floor > #px-article {
-  min-width: 0;
-  padding: 26px 69px 30px;
-  border-inline: 1px solid var(--rule);
-}
-
-.px-floor__facts,
-.px-floor__aside {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding-block: 26px;
+.px-rs__eyebrow {
   font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.px-rs__no { font-variant-numeric: tabular-nums; }
+.px-rs .px-section__title {
+  max-width: none;
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.px-rs .px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: inherit; }
+.px-rs .px-section__intro,
+.px-rs__p {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink);
+  text-align: start;
+  text-wrap: pretty;
+}
+.px-rs__p { margin: 0; }
+.px-rs__p strong, .px-rs .px-section__intro strong { font-weight: 600; }
+
+/* The kind's own sentences: a you-think's two texts, a readout's tiles. */
+.px-rs__prose { display: flex; flex-direction: column; gap: 24px; }
+.px-rs__block { display: flex; flex-direction: column; gap: 8px; }
+.px-rs__label {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.px-floor__facts { padding-inline: 40px 16px; }
-.px-floor__aside { padding-inline: 18px 40px; }
-
-.px-floor__no {
+/* A timeline's events, one row each. */
+.px-rs__events { list-style: none; padding: 0; }
+.px-rs__event {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--hair);
+}
+.px-rs__date {
+  padding-top: 4px;
   font-family: var(--font-ui);
-  font-size: var(--fs-num-1, 20px);
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
 }
-.px-floor__fact { display: flex; flex-direction: column; gap: 4px; }
-.px-floor__fact b {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-}
-/* The Voice cell is the one that carries the world (standing ruling). */
-.px-floor__fact--voice b { color: var(--accent-deep, var(--accent)); }
+.px-rs__date[data-cued] { color: var(--accent-deep); }
 
-.px-floor__aside-l { margin: 0 0 8px; letter-spacing: 0.06em; }
-.px-floor__dek-t {
-  margin: 0;
+/* The finding, once, at the end of the article. */
+.px-rs__caption {
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 17px;
   font-style: italic;
   font-weight: 400;
   line-height: 1.55;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink-soft);
+  color: var(--ink-2);
+  text-wrap: pretty;
 }
-.px-floor__block { padding-top: 16px; border-top: 1px solid var(--rule); }
-.px-floor__block:first-child { padding-top: 0; border-top: 0; }
-.px-floor__toc { display: flex; flex-direction: column; gap: 7px; }
-.px-floor__toc a {
-  display: grid; grid-template-columns: 30px 1fr; gap: 6px;
-  font-family: var(--font-ui);
-  font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; line-height: 1.4;
-  color: var(--ink-soft);
-  text-decoration: none;
-}
-.px-floor__toc a:hover { color: var(--ink); }
-.px-floor__toc a span:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
-.px-floor__share { display: flex; flex-direction: column; gap: 7px; }
+.px-rs__caption strong { font-weight: 600; }
 
-/* The phone facts — the rail's four cells as a 2×2 grid under the head, with
-   the dek in a strip beside the issue number. The rails themselves are gone
-   below 1100px: a 170/250 rail pair on a 1000px screen leaves 440px of
-   prose, which is the exact defect the launch design exists to remove. */
-.px-floor__facts-grid { display: none; }
-@media (max-width: 1100px) {
-  .px-floor { grid-template-columns: 1fr; }
-  .px-floor__facts, .px-floor__aside { display: none; }
-  .px-floor > #px-article { padding-inline: 40px; border-inline: 0; }
-  .px-floor__facts-grid { display: grid; grid-template-columns: 1fr 1fr; }
+/* The source line: under the caption on phones and on narrative sections,
+   in the figure panel's foot on a desktop graphic section. One is visible. */
+.px-rs__src,
+.px-fig__src {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--muted);
 }
-@media (max-width: 768px) {
-  .px-floor > #px-article { padding: 22px 20px 26px; }
+.px-rs__src a,
+.px-fig__src a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--hair-2);
+  text-underline-offset: 3px;
+  transition: color var(--t-micro, 160ms) var(--ease);
+}
+.px-rs__src a:hover,
+.px-fig__src a:hover { color: var(--accent-deep); }
+.px-rs__copy > .px-rs__src { margin-top: 10px; }
+.px-rs__caption + .px-rs__src { margin-top: 10px; }
+
+/* A narrative section's component sits in the article column. */
+.px-rs__body { min-width: 0; }
+.px-rs__body > :first-child { margin-top: 0; }
+.px-rs__body > :last-child { margin-bottom: 0; }
+
+/* ── the figure panel ──────────────────────────────────────────────────────── */
+.px-fig {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 20px 24px 22px;
+  background: var(--paper-2);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-1);
+}
+.px-fig__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+.px-fig__k {
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.px-fig__k-m { display: none; }
+.px-fig__all {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--hair-2);
+  border-radius: var(--r-chip);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--t-micro, 160ms) var(--ease), border-color var(--t-micro, 160ms) var(--ease);
+}
+.px-fig__all:hover { border-color: var(--ink); }
+.px-fig__all:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* At rest every mark shows, so Show all reads as the pressed state. */
+.px-rs:not([data-lit-n]) .px-fig__all,
+.px-rs[data-lit-n=''] .px-fig__all { background: var(--accent-tint); }
+/* Inert without the island, so it is not offered. */
+html:not(.js) .px-fig__all { display: none; }
+@media (pointer: coarse) {
+  .px-fig__all { position: relative; }
+  .px-fig__all::after { content: ''; position: absolute; inset: -6px 0; }
+}
+
+.px-fig__body { min-width: 0; }
+.px-fig__body > :first-child { margin-top: 0; }
+.px-fig__body > :last-child { margin-bottom: 0; }
+/* The component sits in the panel, so its own card edge goes. */
+.px-fig__body > .px-viz,
+.px-fig__body > [data-viz-root] { border-top: 0; padding-top: 0; }
+/* The caption lives once, in the article column. A component that still
+   prints a caption row (a unit chip over an empty caption) is hidden here;
+   `.vb__cap` (a vote's label) and `.px-seats__caption` (a subtitle) are not
+   captions and stay. */
+.px-fig__body [class$='__cap']:not(.vb__cap),
+.px-fig__body [class$='__caption']:not(.px-seats__caption) { display: none; }
+
+.px-fig__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+}
+.px-fig__foot:empty { display: none; }
+.px-fig__live:empty { display: none; }
+
+/* ── the progress rail ─────────────────────────────────────────────────────── */
+.px-rail { display: none; }
+
+/* ── desktop: the two columns ──────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .px-rs--fig {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+    column-gap: 32px;
+    align-items: start;
+  }
+  .px-rs--fig[data-layout='wide'] { grid-template-columns: minmax(0, 1fr) minmax(0, 620px); }
+  .px-rs--fig > .px-fig {
+    position: sticky;
+    top: var(--px-pin-top, 24px);
+  }
+  .px-rs--fig > .px-section__copy > .px-rs__src { display: none; }
+
+  /* The rail: 56px in the left gutter, dots joined by a line that fills as
+     the sections pass. The names sit left of the dots where the screen has
+     room for them beside the frame (1440 and up); narrower, a name shows on
+     hover or focus. */
+  .px-rail {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 100%;
+    width: 56px;
+    margin-right: 4px;
+  }
+  .px-rail__in { position: sticky; top: 24px; padding-top: 64px; }
+  .px-rail__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .px-rail__list > li { position: relative; }
+  /* the connector from this dot down to the next one */
+  .px-rail__list > li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 11px;
+    top: 16px;
+    width: 2px;
+    height: 36px;
+    background: var(--hair);
+    transition: background-color var(--t-el, 420ms) var(--ease);
+  }
+  .px-rail__list > li:has(~ li > [aria-current])::after { background: var(--accent); }
+  .px-rail__a {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 32px;
+    text-decoration: none;
+  }
+  .px-rail__dot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+  .px-rail__dot::before {
+    content: '';
+    box-sizing: border-box;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 1.5px solid var(--hair-2);
+    transition: background-color var(--t-micro, 160ms) var(--ease), box-shadow var(--t-micro, 160ms) var(--ease);
+  }
+  .px-rail__list > li:has(~ li > [aria-current]) .px-rail__dot::before,
+  .px-rail__a[aria-current] .px-rail__dot::before {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    background: var(--accent);
+  }
+  .px-rail__a[aria-current] .px-rail__dot::before { box-shadow: 0 0 0 3px var(--paper); }
+  .px-rail__name {
+    position: absolute;
+    right: 30px;
+    white-space: nowrap;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.15;
+    color: var(--muted);
+    /* hidden but read (the link's only text) until there is room to show it */
+    clip-path: inset(50%);
+  }
+  .px-rail__list > li:has(~ li > [aria-current]) .px-rail__name,
+  .px-rail__a[aria-current] .px-rail__name { font-weight: 600; color: var(--ink); }
+  .px-rail__a:hover .px-rail__name,
+  .px-rail__a:focus-visible .px-rail__name {
+    clip-path: none;
+    right: auto;
+    left: 30px;
+    z-index: 2;
+    padding: 4px 8px;
+    border: 1px solid var(--hair);
+    border-radius: var(--r-ctl);
+    background: var(--paper-2);
+    box-shadow: var(--shadow-1);
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .px-rail__a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-ctl); }
+}
+@media (min-width: 1440px) {
+  /* 1440 leaves 80px of page beside the frame: a name may take two lines */
+  .px-rail__name { clip-path: none; width: max-content; max-width: 96px; white-space: normal; text-align: right; }
+  .px-rail__a:hover .px-rail__name,
+  .px-rail__a:focus-visible .px-rail__name {
+    left: auto;
+    right: 30px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+/* ── phones and tablets: the figure first, pinned when it fits ─────────────── */
+@media (max-width: 1023px) {
+  .px-rs { padding: 0 0 48px; scroll-margin-top: 0; }
+  .px-rs--narr { padding-top: 40px; }
+  .px-rs--fig { display: flex; flex-direction: column; }
+  .px-rs--fig > .px-fig {
+    order: -1;
+    margin-top: 24px;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .px-rs--fig > .px-fig[data-pin] {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    box-shadow: 0 8px 16px -12px rgba(22, 20, 15, 0.18), var(--shadow-1);
+  }
+  .px-rs__copy { padding-top: 28px; }
+  .px-rs--narr > .px-rs__copy { padding-top: 0; }
+  .px-rs__copy > * + * { margin-top: 18px; }
+  .px-rs__copy > .px-section__title { margin-top: 10px; }
+  .px-rs__copy > .px-section__title + * { margin-top: 22px; }
+  .px-rs .px-section__title { font-size: 28px; line-height: 1.14; }
+  .px-rs .px-section__intro, .px-rs__p { font-size: 17px; }
+  .px-rs__event { grid-template-columns: 88px minmax(0, 1fr); gap: 12px; }
+  .px-fig__k { color: var(--accent-deep); }
+  .px-fig__k-d { display: none; }
+  .px-fig__k-m { display: inline; }
+  .px-fig__head { min-height: 28px; }
+  .px-fig__all { height: 28px; padding: 0 10px; }
+  .px-fig__foot { padding-top: 10px; }
+  /* Below 900px a figure root scrolls sideways inside itself (the min-width
+     block in dataviz-v2.css), which clips anything drawn outside it: 6px of
+     padding, given back by the margin, keeps a lit anchor's ring in view. */
+  .px-fig__body > :is(.px-viz, [data-viz-root]) { padding: 6px; margin: -6px; }
+  /* a readout's tiles tighten so the pinned figure can hold them */
+  .px-fig .tel__tile { padding-block: 14px; }
+  /* the source is the article's on a phone */
+  .px-fig__src { display: none; }
+  /* the cue line keeps its height, so a pinned figure never jumps */
+  html.js .px-fig__live { min-height: 36px; }
+  .px-fig__foot:not(:has(.px-fig__live)),
+  html:not(.js) .px-fig__foot { display: none; }
 }

@@ -57,6 +57,7 @@ for (const e of equals)
 ---
 
 <VizCard prefix="px-ns" howToRead={howToRead} caption={caption} source={source}>
+  <div class="px-ns__box">
   <div class="px-ns__grid">
     <div class="px-ns__num">
       <p class="px-ns__k vz-eyebrow">{label}</p>
@@ -78,11 +79,21 @@ for (const e of equals)
       ))}
     </ul>
   </div>
+  </div>
 </VizCard>
 
 <style>
-  /* Phone first: one column, the number on top. `gap: 0` — the rule between the
+  /* THE BOX DECIDES, NOT THE SCREEN (Lens Phase 3, 2026-09-30). The kind now
+     sits in a 520px figure panel on a 1280 screen, where a viewport query
+     split it into 2fr / 3fr and a 72px value ran over its own equivalences
+     (the render gate's OVERLAP, on four issues). `.px-ns__box` is a size
+     container: the two columns open only when the component itself is 600px
+     or wider, and the value is sized against the box (`cqi`), so it can never
+     be wider than the column that holds it.
+
+     One column first, the number on top. `gap: 0` — the rule between the
      halves is a border, so the two columns meet on a single hairline. */
+  .px-ns__box { container-type: inline-size; min-width: 0; }
   .px-ns__grid { display: grid; gap: 0; }
   .px-ns__num, .px-ns__eq { min-width: 0; }
   .px-ns__num { padding: 16px; }
@@ -94,7 +105,8 @@ for (const e of equals)
   .px-ns__v {
     display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0;
     font-family: var(--font-display); font-weight: 700;
-    font-size: clamp(44px, 9vw, 72px); line-height: 1; letter-spacing: -0.02em;
+    font-size: clamp(36px, 13cqi, 72px); line-height: 1; letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
     font-variant-numeric: tabular-nums; color: var(--accent-deep);
   }
   .px-ns__u {
@@ -125,7 +137,7 @@ for (const e of equals)
     font-size: 13px; line-height: 1.45; color: var(--muted);
   }
 
-  @media (min-width: 640px) {
+  @container (min-width: 600px) {
     .px-ns__grid { grid-template-columns: 2fr 3fr; }
     .px-ns__num { padding: 20px 22px; }
     .px-ns__eq { border-top: 0; border-left: 1px solid var(--rule); }
@@ -134,5 +146,5 @@ for (const e of equals)
 
   /* Under 400px a long value plus its unit crowds the line; the unit takes a
      line of its own rather than shrinking the figure. */
-  @media (max-width: 400px) { .px-ns__u { flex-basis: 100%; } }
+  @container (max-width: 400px) { .px-ns__u { flex-basis: 100%; } }
 </style>

@@ -29,8 +29,12 @@ interface Props {
   /* Optional — promoted onto the section schema in Phase 2 and merged
      down in SectionBody. CANON §7: no source, no section. */
   source?: string;
+  /* The Lens reading system (Phase 3): the article column beside the figure
+     carries each event's full sentence (label, note, annotation, with its
+     cue), so the figure keeps the date and the label only. */
+  compact?: boolean;
 }
-const { events = [], annotations = [], source} = Astro.props;
+const { events = [], annotations = [], source, compact = false } = Astro.props;
 
 /* Resolve each annotation to one row: a number is the 0-based index, a string
    is the event's `date` — the FIRST row carrying it, since two events may
@@ -45,14 +49,17 @@ for (const a of annotations ?? []) {   // `annotations:` with no items parses as
 }
 ---
 
-<div class="tl" data-reveal>
+{/* Cue anchors (LENS §5.2): each row is `data-cue="<n>"`, numbered from 1 in
+    data order; the empty `.px-cue-tag` is the numeral's slot, filled by
+    core/Section.astro when a cue names the row. */}
+<div class="tl" data-reveal data-compact={compact ? 'true' : undefined}>
   {events.map((e, i) => (
-    <div class="tl__row" data-state={e.state ?? 'default'}>
+    <div class="tl__row" data-state={e.state ?? 'default'} data-cue={i + 1}>
       <div class="tl__date">{e.date}</div>
       <div>
-        <div class="tl__label" set:html={renderInline(e.label)} />
-        {e.note && <div class="tl__note" set:html={renderInline(e.note)} />}
-        {(annotRows.get(i) ?? []).map((t) => (
+        <div class="tl__label"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><Fragment set:html={renderInline(e.label)} /></div>
+        {!compact && e.note && <div class="tl__note" set:html={renderInline(e.note)} />}
+        {!compact && (annotRows.get(i) ?? []).map((t) => (
           <span class="tl__annot vz-annot" style="display:block;margin-top:6px">
             <span class="tl__annot-dot" style="display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:var(--accent);vertical-align:middle"></span>{t}
           </span>

@@ -1,0 +1,141 @@
+---
+/**
+ * CoverMark — an issue's cover graphic, drawn small (Lens Phase 2).
+ *
+ * The graphic panel of `core/CoverCard.astro`: a compact, honest mark drawn
+ * from the issue's own data, in the desk MARK on the desk TINT (LENS §2.2),
+ * with labels of at most three words (LENS §5.5). Until Phase 4 gives an
+ * issue a `cover` field, the cover is DERIVED (`src/lib/cover.ts`): the
+ * issue's first section of one of eleven kinds, drawn as
+ *
+ *   data-readout      the key tile and one more, as two numbers
+ *   benchmark-chart   a two-bar race: the subject against its largest rival
+ *                     (another item or the reference line)
+ *   timeline          a dotted axis, the events on it, three of them named
+ *   descent-profile   the falling line, its altitudes on dashed guides
+ *   attrition-waffle  a 10 x 10 waffle and the two leading groups
+ *   bill-funnel       the stages as a centred funnel of bars
+ *   climate-strip     one stripe a year, darker for higher
+ *   vote-result       a dot chamber, the threshold as a tick
+ *   gauge             an arc: the used share, the load, or the lean
+ *   scaling-plot      a scatter (log axes stated)
+ *   power-flow        where the flow lands, as bars
+ *
+ * and falls back to the desk medallion at 96 on the tint. Every number is the
+ * section's own; the full labels go into the aria-label.
+ *
+ * In-SVG text takes the literal Instrument Sans stack (RD-01b, LENS §3.3).
+ * The drawing is 368 x 216, the width of a cover card in the 3-across grid;
+ * in a narrower panel it scales, and below 340px (where 13px would print
+ * under the 12px floor) its words hide and the marks stay: the card's
+ * headline says what the graphic shows. Numbers of 20px and up keep
+ * printing (they stay above the floor at any card width), so a narrow card
+ * never loses both its words and its marks.
+ *
+ * `labels={false}` is the 120 x 72 row thumbnail: the model's COMPACT mode
+ * (no words at all, strokes and dots sized to read at about 0.3 scale, and
+ * the readout drawn as bars or as one bar beside the desk medallion), hidden
+ * from assistive technology because the row's own text already reads it. A
+ * cover is never blank at any size.
+ *
+ * Prefix: px-cmark. No JS.
+ */
+import type { CollectionEntry } from 'astro:content';
+import Mark from './Mark.astro';
+import { ink } from '../../lib/desk-inks';
+import { COVER_H, COVER_W, coverModel } from '../../lib/cover';
+import { markBody, ringFor } from '../../lib/mark';
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+  /** false = marks only (thumbnails); the figure is then aria-hidden. */
+  labels?: boolean;
+  class?: string;
+}
+const { issue, labels = true, class: extra } = Astro.props;
+
+const desk = issue.data.topic;
+const TINT = ink(desk, 'tint');
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const W = COVER_W;
+const H = COVER_H;
+const { drawn, rects, circles, paths, texts, aria, medallion } = coverModel(
+  desk, issue.data.sections, issue.data.title, { compact: !labels },
+);
+/* The medallion inside the drawing (the compact readout), from the one
+   geometry in src/lib/mark.ts, sized for the 40px it prints at. */
+const medal = medallion && {
+  transform: `translate(${medallion.x} ${medallion.y}) scale(${+(medallion.size / 300).toFixed(4)})`,
+  body: markBody({
+    desk, size: 40, ring: ringFor(40), cut: 'mark',
+    colors: { accent: `var(--topic-${desk})`, ground: TINT, ink: 'var(--ink)', paper: TINT },
+  }),
+};
+---
+
+{drawn ? (
+  <svg
+    class:list={['px-cmark', extra]}
+    viewBox={`0 0 ${W} ${H}`}
+    width={W}
+    height={H}
+    role={labels ? 'img' : undefined}
+    aria-label={labels ? aria : undefined}
+    aria-hidden={labels ? undefined : 'true'}
+    focusable="false"
+  >
+    {paths.map((p) => (
+      <path
+        d={p.d}
+        fill={p.fill ?? 'none'}
+        stroke={p.stroke}
+        stroke-width={p.sw}
+        stroke-dasharray={p.dash}
+        stroke-linecap={p.cap}
+        stroke-linejoin="round"
+        opacity={p.op}
+      />
+    ))}
+    {rects.map((r) => (
+      <rect x={r.x} y={r.y} width={r.w} height={r.h} rx={r.rx} fill={r.fill} fill-opacity={r.op} />
+    ))}
+    {circles.map((c) => (
+      <circle cx={c.cx} cy={c.cy} r={c.r} fill={c.fill} stroke={c.stroke} stroke-width={c.stroke ? c.sw : undefined} />
+    ))}
+    {medal && <g transform={medal.transform} set:html={medal.body} />}
+    {labels && texts.map((t) => (
+      <text
+        class:list={['px-cmark__t', { 'px-cmark__t--sm': t.fs < 20 }]}
+        x={t.x}
+        y={t.y}
+        text-anchor={t.anchor}
+        fill={t.fill}
+        style={`${SANS};font-size:${t.fs}px;font-weight:${t.w ?? 400};font-variant-numeric:tabular-nums${t.caps ? ';letter-spacing:0.06em' : t.fs >= 32 ? ';letter-spacing:-0.02em' : ''}`}
+      >{t.t}</text>
+    ))}
+  </svg>
+) : (
+  <span class:list={['px-cmark', 'px-cmark--seal', extra]} aria-hidden="true">
+    <Mark desk={desk} size={labels ? 96 : 40} ground={TINT} />
+  </span>
+)}
+
+<style>
+  .px-cmark {
+    display: block;
+    width: 100%;
+    max-width: 368px;
+    height: auto;
+    overflow: visible;
+  }
+  .px-cmark--seal {
+    display: flex; align-items: center; justify-content: center;
+    width: auto; max-width: none;
+  }
+  /* Below 340px of panel the 13px words would print under the 12px floor
+     (LENS §3.4): they go; the marks and the large numbers stay, and the
+     card's headline carries the rest. */
+  @container (max-width: 339px) {
+    .px-cmark__t--sm { display: none; }
+  }
+</style>

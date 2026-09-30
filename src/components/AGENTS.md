@@ -384,7 +384,9 @@ Known reservations (still-live `px-` prefixes):
 | `px-fplate` | home featured plate (scoped in `home/FeaturedPlate.astro`) | |
 | `px-wb` | WelcomeBack post-auth toast (scoped in `core/WelcomeBack.astro`) | mounted in `[slug].astro`; fires on `?welcome=1` |
 | `px-nnote` | NewsletterNotice home ribbon (scoped in `core/NewsletterNotice.astro`) | mounted above `<Masthead>` in `index.astro`; fires on `/?newsletter=confirmed` |
-| `px-mark` | the Parallax medallion (scoped in `core/Mark.astro`, RD-10 step 2) | inline SVG; `desk` picks the fixed dial station, `size` drives ring 7/10/14 AND the glyph tier, `cut` is mark/seal/reversed (auto-reversed below 24px). The P is an OUTLINE from `src/lib/mark-glyph.ts`, never live text. **Not mounted yet** — the swap is RD-10 step 3, which retires `.mh__lens` |
+| `px-mark` | the Parallax medallion (scoped in `core/Mark.astro`, RD-10 step 2) | inline SVG; `desk` picks the fixed dial station, `size` drives ring 7/10/14 AND the glyph tier, `cut` is mark/seal/reversed (auto-reversed below 24px unless `cut` is passed), `tight` trims the box to the ring, `ring` pins the stroke. `ground` (Lens Phase 2) is the surface colour the offset disc takes, so the crescent is cut from the real ground (the footer's paper-3, a chip's paper-2, a cover's tint); `onDeep` draws the on-deep body for a stage (ground = the desk deep, ring and P = `--on-deep`). The P is an OUTLINE from `src/lib/mark-glyph.ts`, never live text. Mounted by the masthead, the footer, the cover cards, About and the account pages |
+| `px-cover` | `core/CoverCard.astro` (Lens Phase 2) | the graphic-dominant issue card: `size` card (3-across, 216px tint panel) / tile (the desk strip, 264px panel) / row (the 120 x 72 thumbnail inside a list row, not a link). One `<a>` on `.px-card` for card and tile |
+| `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic, DERIVED from the issue's first section of eleven kinds until Phase 4's `cover` field (`src/lib/cover.ts`); falls back to the desk medallion. In-SVG text in the literal Instrument Sans stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
 | `px-arch` | `/archive` head, search and desk chips (in `meta.css`) | rows reuse `.px-archive__*`, so home and `/archive` share ONE row implementation; the filter island reveals the controls, which ship `hidden` |
 | `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | `story/StoryCard.astro` composes `SectionBody` **except** for `kind: 'prose'`, which it skips entirely and renders as a pure-text card (`.pxs-card--text`) |
 | `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
@@ -581,18 +583,18 @@ These render directly in templates, not via the dispatcher:
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
 | `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
 | `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) — the **single** source every mount embeds (SubscribeStrip / Colophon / Footer / BeatJoin), so a change here covers all of them. POSTs to the app's `/api/join` (repointed from `/api/subscribe` on 2026-07-14) and handles the degraded `{ok:true, account:false}` response. **No-JS-gated:** the form is hidden behind `html:not(.js)` with an "Enable JavaScript to subscribe." line, because a no-JS submit used to do a native GET that put the reader's email in the URL, history and server logs. |
-| `core/Masthead.astro` | in `IssueLayout.astro` and `HomeLayout.astro` |
+| `core/Masthead.astro` | in `IssueLayout.astro` and on each house page (index, archive, about, subscribe, desks). Lens Phase 2: the lockup (34px tight disc, ring 9, Newsreader 500 24, the register on a desk page), the nav, the live badge, the account slot as a "Sign in" link, the ink Subscribe; `variant="stage"` + `desk` (+ `register`) is the on-deep version for a stage (Phase 4). Below 768px a `<details>` menu with 44px rows beside a compact Subscribe |
 | `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
 | `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre glass toast fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
 | `core/NewsletterNotice.astro` | inline in `index.astro`, **above `<Masthead>`** — in-flow ribbon fired by `/?newsletter=confirmed`. Occupies no space until revealed, so no-JS / crawlers see nothing. Dismissible; cleans the URL. `px-nnote`. |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
-| `core/Colophon.astro` | in both layouts (editorial footer; replaced `core/Footer.astro`) |
+| `core/Colophon.astro` | in both layouts. Lens Phase 2: on `--paper-3`, the lockup at 28px (house cut), the promise, the six desks as link chips (20px medallions, the MARK cut), three link columns (Read · Parallax · Account), the colophon line with Privacy and Terms. Same on every page: `desk` is accepted and ignored |
 | `core/Reveal.astro` | both layouts, after content — scroll-reveal island (adds `.is-in` to `[data-reveal]`) |
 | `core/VizMotion.astro` | both layouts, after content — count-up + cursor-warmth island (`[data-countup]` / `[data-warmth]`) |
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
 | `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. The ⤢ button (`.px-vexp`) has two shapes: on a hover-capable screen wider than 768px, a hover-revealed 30px square at the card's top-right (`.px-viz__cap` keeps a 44px reserve for it); under `(hover: none), (pointer: coarse), (max-width: 768px)` it is `position: static`, the card's LAST row, right-aligned, 44px tall, labelled "Study this figure ⤢" (2026-09-23). The corner shape covered captions, first timeline events and readout captions on 16 issues at 375; appended last and in flow, it cannot cover anything. **Do not put it back in the corner on phones, and do not add per-component corner reserves** — the in-flow row is the fix. Because the source line renders from `core/Section.astro` rather than inside the card, **the modal shows no source** — ruled as-is on 2026-09-04, not a bug. The modal keeps its glass; it is the only surface that does. |
-| `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. `px-rows`. |
+| `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Newsreader 24, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
 | `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). `px-desk__`. |
 
 ---
@@ -616,7 +618,7 @@ experience.
 | `px-letter` | LettersBlock (end-of-issue reader letters, Phase B-6) |
 | `px-mstrip` | ManifestoStrip (home, three editorial promises — v2 `.mf-strip` port) |
 | `px-sub` | SubscribeStrip (home, editorial `.sub` framing wrapping NewsletterForm) |
-| `px-col` | Colophon (editorial footer, replaces Footer in both layouts — v2 `.col` port) |
+| `px-col` | Colophon (the footer; Lens Phase 2 rebuilt it to the Home board's, with the desk chips) |
 | `px-gate` | ReadingGate (metered signup wall, scoped in `ReadingGate.astro`) |
 | `px-wb` | WelcomeBack (post-auth return toast on issues, scoped in `WelcomeBack.astro`) |
 | `px-nnote` | NewsletterNotice (home `?newsletter=confirmed` ribbon, scoped in `NewsletterNotice.astro`) |
@@ -953,6 +955,24 @@ for `status !== 'draft'`). Data shapes for every kind are in
 ---
 
 ## Change log
+
+### 2026-09-30 — Lens Phase 2: the shell
+
+`core/Masthead.astro` (`.mh` in `base.css`), `core/Colophon.astro` and
+`home/IssueRows.astro` are rebuilt to the Lens boards (LENS §4.2, §4.3), and
+two components are new: **`core/CoverCard.astro`** (`px-cover`) and
+**`core/CoverMark.astro`** (`px-cmark`), with their pure helpers in
+`src/lib/cover.ts` (the derivation and the label clipping),
+`src/lib/desk-inks.ts` (`ink(desk, role)` → `var(--spo-text)` and so on: a
+house page names a desk's ink by role, never by hex) and
+`src/lib/issue-number.ts` (the home page's numbering, "No 07", "28 Sep").
+`core/Mark.astro` gained `ground` and `onDeep`. The masthead's `variant`
+still names the desk; `variant="stage"` with `desk` is the on-deep version.
+The six SVG annotation and gauge stacks that still named Literata
+(`Gauge`, `ApprovalChart`, `EloRiver`, `XgRace`, `AdoptionCurve`,
+`ScalingPlot`) moved to Instrument Sans (the gauge's words and number) and
+Newsreader italic (the annotation callouts), each at 12px or more; the
+Literata share-card TTFs left `assets/fonts/`.
 
 ### 2026-09-30 — Lens Phase 0: the verdict applied to the library
 

@@ -85,8 +85,8 @@ consecutive sentences, at most two *matlab / basically* per section.
 
 ### Script and setting
 
-Roman script only — the typeface has no Devanagari and the share cards render
-from static Literata. Hindi is set **roman, never italic**: italics mark it as
+Roman script only — the typefaces have no Devanagari and the share cards render
+from static Newsreader and Instrument Sans. Hindi is set **roman, never italic**: italics mark it as
 foreign, which is the opposite of the point. One spelling per word, from
 `research/_voice/hinglish-lexicon.md` (to be created under the plan; until it
 exists: *samajh, kyunki, zyada, thoda, matlab, jhoola, hisaab, jugaad, asli,

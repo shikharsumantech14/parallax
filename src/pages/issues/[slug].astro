@@ -1,19 +1,22 @@
 ---
 /**
- * /issues/<slug> — the issue page (launch design, 2026-09-08).
+ * /issues/<slug> — the issue page (Lens Phase 3, 2026-09-30; the Issue board,
+ * docs/design/LENS.md §5).
  *
- * Block order, per the handoff and the approved canvas:
- *   meta strip → head (eyebrow · headline · hook · primer)
- *   → the floor plan: 170px facts rail · the 720px prose column · 250px aside
- *   → the reading strip (fixed, JS-only)
- *   → reader signal → letters → sources → desk / next-issue nav → footer.
+ * Block order:
+ *   the head (core/IssueHead: eyebrow · headline · hook · facts, the "In this
+ *   issue" card, the primer band)
+ *   → the reading band: the progress rail in the left gutter beside
+ *     #px-article, whose sections are the reading system (core/Section.astro:
+ *     the article beside the pinned figure)
+ *   → reader signal → letters → sources → desk / next-issue nav → footer,
+ *   with the reading strip (fixed, JS-only) over it all.
  *
- * The rails are SIBLINGS of #px-article, and the article's child list stays
+ * The rail is a SIBLING of #px-article and the article's child list stays
  * flat: ReadingGate counts `.px-section` among `#px-article.children`, so
  * anything that nests the sections one level deeper hands the whole issue
- * away for free. Below 1100px the rails go and the facts become a 2×2 grid
- * under the head (the aside's dek joins it), so a tablet never gets a 440px
- * column.
+ * away for free. src/scripts/cues.ts is the page's one Lens island: the cue
+ * lighting, the rail and the card's progress, the phone pin.
  */
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { Topic } from '../../content/config';
@@ -28,7 +31,7 @@ import Sources from '../../components/core/Sources.astro';
 import ReadingGate from '../../components/core/ReadingGate.astro';
 import WelcomeBack from '../../components/core/WelcomeBack.astro';
 import { DESK_REGISTER } from '../../lib/desks';
-import { stripEmphasis } from '../../lib/text';
+import { stripEmphasis, shortLabel } from '../../lib/text';
 
 export async function getStaticPaths() {
   const issues = await getCollection('issues');
@@ -62,25 +65,21 @@ const newerAny = published[issueIndex + 1];
 const next = issueIndex >= 0 ? (newerOnDesk ?? newerAny) : undefined;
 const nextNumber = next ? pad(published.findIndex((i) => i.slug === next.slug) + 1) : undefined;
 
-const factDate = data.publishedAt.toLocaleDateString('en-US', {
-  year: 'numeric', month: 'long', day: '2-digit', timeZone: 'UTC',
-});
-
 const darkTopics: Topic[] = ['space', 'tech', 'sports'];
 const toolbarTheme: 'light' | 'dark' = darkTopics.includes(data.topic) ? 'dark' : 'light';
 
-/* Section numbering — act-break dividers are air, not sections: they don't
-   consume a number. The aside's contents list uses the same index. */
+/* Section numbering: act-break dividers are air, not sections, and take no
+   number. The head's card, the rail and each section's eyebrow share it. */
 let numbered = 0;
 const numberIndex = data.sections.map((s) => (s.kind === 'act-break' ? -1 : numbered++));
-const contents = data.sections
+const total = numbered;
+const toc = data.sections
   .map((s, i) => ({ s, n: numberIndex[i] }))
-  .filter(({ s, n }) => n >= 0 && s.title)
-  .map(({ s, n }) => ({ id: `sec-${n + 1}`, no: pad(n + 1), title: stripEmphasis(s.title!) }));
+  .filter(({ n }) => n >= 0)
+  .map(({ s, n }) => ({ id: `sec-${n + 1}`, no: pad(n + 1), short: shortLabel(s, `Section ${n + 1}`) }));
 
 // OG cards are generated for non-draft issues only.
 const ogSlug = data.status !== 'draft' ? issue.slug : undefined;
-const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 ---
 
 <IssueLayout
@@ -95,68 +94,38 @@ const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
     topic={data.topic}
     issueNumber={issueNumber}
     publishedAt={data.publishedAt}
-    eyebrow={eyebrow}
     title={data.title}
     hook={data.hook}
     primer={data.primer}
+    readTime={data.readTimeMinutes}
+    sourceCount={data.sources.length}
+    toc={toc}
   />
 
-  {/* Phone / tablet: the rail's cells as a grid under the head. */}
-  <div class="px-floor__facts-grid px-cells px-cells--open" aria-label="Issue facts">
-    <div class="px-ifact"><span class="px-ifact__l">Published</span><b>{factDate}</b></div>
-    <div class="px-ifact"><span class="px-ifact__l">Reading time</span><b>{data.readTimeMinutes ? `${data.readTimeMinutes} min` : '—'}</b></div>
-    <div class="px-ifact"><span class="px-ifact__l">Sources</span><b>{data.sources.length} cited</b></div>
-    {data.voice
-      ? <div class="px-ifact"><span class="px-ifact__l">Voice</span><b class="px-ifact__voice">{data.voice}</b></div>
-      : <div class="px-ifact"><span class="px-ifact__l">Desk</span><b class="px-ifact__voice">{DESK_REGISTER[data.topic]}</b></div>}
-    <div class="px-ifact px-ifact--dek"><span class="px-ifact__l">The dek</span><i>{data.dek}</i></div>
-  </div>
-
-  <div class="px-floor">
-    <aside class="px-floor__facts" aria-label="Issue facts">
-      <span class="px-floor__no">№ {issueNumber}</span>
-      <span class="px-floor__fact">Published<b>{factDate}</b></span>
-      {data.readTimeMinutes && (
-        <span class="px-floor__fact">Reading time<b>{data.readTimeMinutes} min</b></span>
-      )}
-      <span class="px-floor__fact">Sources<b>{data.sources.length} cited</b></span>
-      {/* VOICE, not "Mode" — the standing ruling: "Mode" collides with the
-          Full/Skim state the toolbar owns. Renders only when authored. */}
-      {data.voice && (
-        <span class="px-floor__fact px-floor__fact--voice">Voice<b>{data.voice}</b></span>
-      )}
-    </aside>
+  <div class="px-read">
+    {toc.length > 1 && (
+      <nav class="px-rail" aria-label="Sections">
+        <div class="px-rail__in">
+          <ol class="px-rail__list">
+            {toc.map((t, i) => (
+              <li>
+                <a class="px-rail__a" href={`#${t.id}`} data-rail={i + 1} aria-current={i === 0 ? 'step' : undefined}>
+                  <span class="px-rail__name">{t.short}</span>
+                  <span class="px-rail__dot" aria-hidden="true"></span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </nav>
+    )}
 
     <article id="px-article" data-mode="full">
       {data.sections.map((section, i) => (
-        <SectionRenderer section={section} index={numberIndex[i]} />
+        <SectionRenderer section={section} index={numberIndex[i]} total={total} sources={data.sources} />
       ))}
       <span id="px-finish-sentinel" aria-hidden="true"></span>
     </article>
-
-    <aside class="px-floor__aside" aria-label="About this issue">
-      <div class="px-floor__block">
-        <p class="px-floor__aside-l">The dek</p>
-        <p class="px-floor__dek-t">{data.dek}</p>
-      </div>
-      {contents.length > 1 && (
-        <div class="px-floor__block">
-          <p class="px-floor__aside-l">In this issue</p>
-          <nav class="px-floor__toc" aria-label="Sections">
-            {contents.map((c) => (
-              <a href={`#${c.id}`}><span>{c.no}</span><span>{c.title}</span></a>
-            ))}
-          </nav>
-        </div>
-      )}
-      <div class="px-floor__block">
-        <p class="px-floor__aside-l">Share</p>
-        <div class="px-floor__share">
-          <button type="button" class="px-btn px-btn--ghost" data-copy-link hidden>Copy link</button>
-          <a class="px-btn px-btn--ghost" href={`/s/${issue.slug}/`}>60-second version</a>
-        </div>
-      </div>
-    </aside>
   </div>
 
   <ReadingGate freeSections={2} />
@@ -171,6 +140,10 @@ const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 
   <nav class="px-inav" aria-label="Issue navigation">
     <a class="px-inav__back" href={`/topics/${data.topic}/`}>← {DESK_REGISTER[data.topic]}</a>
+    <span class="px-inav__share">
+      <button type="button" class="px-inav__copy" data-copy-link hidden>Copy link</button>
+      <a href={`/s/${issue.slug}/`}>60-second version</a>
+    </span>
     {next ? (
       <a class="px-inav__next" href={`/issues/${next.slug}/`}>Next · № {nextNumber} {stripEmphasis(next.data.title)} →</a>
     ) : (
@@ -182,6 +155,10 @@ const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 
   <WelcomeBack />
 </IssueLayout>
+
+<script>
+  import '../../scripts/cues';
+</script>
 
 <script is:inline>
   /* Copy link — shown only when the clipboard API exists (no-JS readers get
@@ -201,41 +178,30 @@ const eyebrow = data.tags[0]?.toUpperCase().replace(/-/g, ' ');
 </script>
 
 <style>
-  /* The phone facts grid (display is switched in layout-v2.css). */
-  .px-ifact {
-    display: flex; flex-direction: column; gap: 4px;
-    padding: 12px 40px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--muted);
-  }
-  .px-ifact b {
-    font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
-    color: var(--ink);
-  }
-  .px-ifact__voice { color: var(--accent-deep, var(--accent)); }
-  .px-ifact--dek { grid-column: 1 / -1; }
-  .px-ifact--dek i {
-    font-family: var(--font-display);
-    font-size: 15px; font-style: italic; font-weight: 400; line-height: 1.5;
-    letter-spacing: 0; text-transform: none;
-    color: var(--ink-soft);
-  }
-  @media (max-width: 768px) {
-    .px-ifact { padding: 12px 20px; }
-  }
-
-  /* Desk / next-issue navigation. */
+  /* Desk / next-issue navigation, with the share links between them. */
   .px-inav {
-    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 18px 40px 96px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px 24px; flex-wrap: wrap;
+    padding: 24px 0 96px;
+    border-top: 1px solid var(--hair);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.3;
+    letter-spacing: 0.06em; text-transform: uppercase;
   }
-  .px-inav a { text-decoration: none; transition: color var(--t-quick) var(--ease); }
+  .px-inav a { text-decoration: none; transition: color var(--t-micro, 160ms) var(--ease); }
   .px-inav__back { color: var(--ink); }
-  .px-inav__back:hover { color: var(--accent-deep, var(--accent)); }
-  .px-inav__next { color: var(--accent-deep, var(--accent)); text-align: right; }
+  .px-inav__back:hover { color: var(--accent-deep); }
+  .px-inav__share { display: flex; align-items: center; gap: 20px; }
+  .px-inav__share a { color: var(--ink-2); }
+  .px-inav__share a:hover { color: var(--accent-deep); }
+  .px-inav__copy {
+    padding: 0; border: 0; background: transparent; cursor: pointer;
+    font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--ink-2);
+  }
+  .px-inav__copy[hidden] { display: none; }
+  .px-inav__copy:hover { color: var(--accent-deep); }
+  .px-inav__next { color: var(--accent-deep); text-align: right; }
   .px-inav__next:hover { color: var(--ink); }
-  @media (max-width: 768px) {
-    .px-inav { padding: 18px 20px 96px; }
+  .px-inav :is(a, button):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (pointer: coarse) {
+    .px-inav__share a, .px-inav__copy { display: inline-flex; align-items: center; min-height: 44px; }
   }
 </style>

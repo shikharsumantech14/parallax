@@ -21,7 +21,9 @@ interface Props { rows: Row[]; caption?: string; source?: string; unit?: string;
 // names its own unit. A card's copy is desk-neutral (AGENTS.md §7).
 const { rows = [], caption, source, unit = 'win margins' } = Astro.props;
 
-const sorted = [...rows].sort((a, b) => (b.margin || 0) - (a.margin || 0));
+/* Cue anchors (LENS §5.2) are numbered in DATA order, before the sort: the
+   first authored row is "1". */
+const sorted = rows.map((r, k) => ({ ...r, cue: k + 1 })).sort((a, b) => (b.margin || 0) - (a.margin || 0));
 const maxMargin = Math.max(1, ...sorted.map((r) => Math.abs(r.margin) || 0));
 const fmt = (n: number) => n.toLocaleString();
 ---
@@ -34,9 +36,9 @@ const fmt = (n: number) => n.toLocaleString();
       {sorted.map((r, i) => {
         const w = (Math.abs(r.margin) / maxMargin) * 100;
         return (
-          <div class="px-mladr__row" style={`--i:${i}`}>
+          <div class="px-mladr__row" style={`--i:${i}`} data-cue={r.cue}>
             <div class="px-mladr__label">
-              <span class="px-mladr__name">{r.label}</span>
+              <span class="px-mladr__name"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span>{r.label}</span>
               {r.winner && <span class="px-mladr__winner">{r.winner}</span>}
             </div>
             <div class="px-mladr__track">

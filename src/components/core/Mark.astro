@@ -41,6 +41,7 @@
  * drop shadow.
  */
 import { markBody, ringFor, viewBoxFor, type Cut, type Desk } from '../../lib/mark';
+import { ink } from '../../lib/desk-inks';
 import type { Topic } from '../../content/config';
 
 interface Props {
@@ -56,6 +57,13 @@ interface Props {
   tight?: boolean;
   /** Pin the ring weight (SVG units) instead of the size ladder. */
   ring?: number;
+  /** The surface the mark sits on (a CSS colour). The offset disc takes it, so
+   *  the crescent is cut out of the real ground: a footer on paper-3, a chip
+   *  on paper-2. Defaults to the page ground. */
+  ground?: string;
+  /** On a deep plate (LENS §4.3): the ground disc takes the desk's deep, the
+   *  ring and the P take --on-deep. Overrides `ground`. */
+  onDeep?: boolean;
   /** Accessible name. Omit for a decorative mark beside a wordmark. */
   title?: string;
   class?: string;
@@ -63,7 +71,11 @@ interface Props {
 
 const {
   desk = 'politics', size = 40, cut, glyph = true, tight = false, ring: ringProp, title, class: extra,
+  ground, onDeep = false,
 } = Astro.props;
+
+const groundColor = onDeep ? ink(desk, 'deep') : (ground ?? 'var(--bg)');
+const inkColor = onDeep ? 'var(--on-deep)' : 'var(--ink)';
 
 const ring = ringProp ?? ringFor(size);
 
@@ -80,9 +92,9 @@ const body = markBody({
      the house cut works off-world. */
   colors: {
     accent: `var(--topic-${desk})`,
-    ground: 'var(--bg)',
-    ink: 'var(--ink)',
-    paper: 'var(--bg)',
+    ground: groundColor,
+    ink: inkColor,
+    paper: groundColor,
   },
 });
 

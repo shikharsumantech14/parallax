@@ -223,8 +223,8 @@ const layers = B ? [{ p: A, k: 'a' }, { p: B, k: 'b' }] : [{ p: A, k: 'a' }];
    with zero new JS and zero new state. Default side is `right`: the point's own
    label already owns the space directly above the dot. Geometry only — no
    motion of its own beyond the layer cross-fade it rides. */
-const A_FS = 11;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
-const A_LH = 14;     // leading between the two wrapped lines
+const A_FS = 12;     // SVG units — this chart runs at natural scale (dataviz-v2.css)
+const A_LH = 15;     // leading between the two wrapped lines
 const A_LEAD = 16;   // leader length (spec §3: 14–22)
 const A_GAP = 5;     // clearance between the marker dot and the leader
 const A_CLEAR = 3;   // air kept between a note and any label, dot or other note
@@ -607,7 +607,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
               <line class="px-scale__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
               <text
                 class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-                style="font-family:Literata,Georgia,'Times New Roman',serif"
+                style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
               >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
             </g>
           ))}
@@ -726,7 +726,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
   .px-scale__annot-dot { fill: var(--accent); }
   .px-scale__annot-lead { stroke: var(--rule); stroke-width: 1; }
   .px-scale__annot-t {
-    font-size: 11px;
+    font-size: 12px;
     font-style: italic;
     fill: var(--ink);
     /* paper halo: the note crosses gridlines and the fit line */

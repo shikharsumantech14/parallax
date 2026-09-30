@@ -41,9 +41,11 @@ const attrOf = (control: string) => (control === 'contested' ? 'partial' : contr
       <div class="pm__head" style="padding-left:0"></div>
       {parties.map((p) => <div class="pm__head">{p.label}</div>)}
     </div>
+    {/* Cue anchors (LENS §5.2): each institution row is `data-cue="<n>"`,
+        numbered from 1 in data order (the header row is not an anchor). */}
     {institutions.map((inst, ri) => (
-      <div class="pm__row">
-        <div class="pm__inst">{inst}</div>
+      <div class="pm__row" data-cue={ri + 1}>
+        <div class="pm__inst"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{inst}</div>
         {parties.map((p) => {
           const c = cellFor(inst, p.id);
           const bg = c.control === 'none' ? undefined : colorOf(p.id);

@@ -2,28 +2,32 @@
 /**
  * SectionRenderer — the article shell around every section.
  *
- * Composition (since 2026-07-05): the kind → component switch lives in
- * SectionBody.astro (shared with story mode); this file owns the ARTICLE
- * chrome — core/Section.astro (number / eyebrow / title / intro / plain line /
- * layout attribute), the act-break divider, and the skim-mode caption block
- * (any section kind may carry `skimCaption`; in skim mode prose hides behind
- * its caption, viz sections show caption alongside — the skim rail reads as a
- * complete summary).
+ * The kind → component switch lives in SectionBody.astro (shared with story
+ * mode). This file hands a section to its shell: the act-break divider, or
+ * core/Section.astro, the Lens reading system (article beside the pinned
+ * figure, Phase 3), with SectionBody in `bare` mode inside it. It also keeps
+ * the skim-mode caption block (any kind may carry `skimCaption`; in skim mode
+ * prose hides behind its caption).
  */
-import type { Section } from '../content/config';
+import type { Section, Source } from '../content/config';
 import CoreSection from './core/Section.astro';
 import SectionBody from './SectionBody.astro';
 import ActBreak from './core/ActBreak.astro';
 
 interface Props {
   section: Section;
+  /** 0-based numbered index; -1 for an act-break, which takes no number. */
   index: number;
+  /** How many numbered sections the issue has. */
+  total?: number;
+  /** The issue's sources, so the source line can link its first cited one. */
+  sources?: Source[];
 }
 
-const { section, index } = Astro.props;
+const { section, index, total = 0, sources = [] } = Astro.props;
 const data: any = section.data ?? {};
-
-const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`;
+const n = index + 1;
+const sourceUrl = sources.find((s) => s.id === section.sourceRefs?.[0])?.url;
 ---
 
 {section.kind === 'act-break' && (
@@ -33,20 +37,8 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
 {section.kind === 'prose' && (
   <Fragment>
     <div class="px-prose-full">
-      <CoreSection
-        number={autoNumber}
-        eyebrow={section.eyebrow}
-        title={section.title}
-        intro={section.intro}
-        kind={section.kind}
-        plain={section.plain}
-        layout={section.layout}
-        source={section.source ?? data.source}
-        howToRead={section.howToRead}
-        caption={section.caption ?? data.caption}
-        id={index >= 0 ? `sec-${index + 1}` : undefined}
-      >
-        <SectionBody section={section} />
+      <CoreSection section={section} n={n} total={total} sourceUrl={sourceUrl}>
+        <SectionBody section={section} bare />
       </CoreSection>
     </div>
     {section.skimCaption && (
@@ -59,20 +51,8 @@ const autoNumber = section.number ?? `— ${String(index + 1).padStart(2, '0')}`
 
 {section.kind !== 'act-break' && section.kind !== 'prose' && (
   <Fragment>
-    <CoreSection
-      number={autoNumber}
-      eyebrow={section.eyebrow}
-      title={section.title}
-      intro={section.intro}
-      kind={section.kind}
-      plain={section.plain}
-      layout={section.layout}
-      source={section.source ?? data.source}
-      howToRead={section.howToRead}
-      caption={section.caption ?? data.caption}
-      id={index >= 0 ? `sec-${index + 1}` : undefined}
-    >
-      <SectionBody section={section} />
+    <CoreSection section={section} n={n} total={total} sourceUrl={sourceUrl}>
+      <SectionBody section={section} bare />
     </CoreSection>
     {section.skimCaption && (
       <div class="px-skim-caption-block">

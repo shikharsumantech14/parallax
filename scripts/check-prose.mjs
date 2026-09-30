@@ -323,7 +323,13 @@ for (const slug of slugs) {
   const file = join(issuesDir, slug, 'index.mdx');
   if (!existsSync(file)) continue;
   const raw = readFileSync(file, 'utf-8');
-  const fm = matter(raw).data;
+  // Cue markers (`[[n]]`, the Lens reading system, 2026-09-30) render as
+  // buttons, not words: strip them before anything is counted or scored.
+  const noCues = (v) => typeof v === 'string' ? v.replace(/\s*\[\[[1-4]\]\]\s*/g, ' ').trim()
+    : Array.isArray(v) ? v.map(noCues)
+      : v && typeof v === 'object' && !(v instanceof Date) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noCues(x)]))
+        : v;
+  const fm = noCues(matter(raw).data);
   const status = fm.status ?? 'draft';
   if (GATE && status === 'draft') continue;
 
@@ -574,7 +580,10 @@ for (const slug of slugs) {
     let prev = null;
     try { prev = execSync(`git show HEAD:${rel}`, { cwd: root, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { prev = null; }
     if (prev && prev !== raw) {
-      const count = (txt) => { const m = new Map(); for (const n of numerals(matter(txt).content + JSON.stringify(matter(txt).data))) m.set(n, (m.get(n) ?? 0) + 1); return m; };
+      // A section's `cues` (numerals and anchor ids) and its `[[n]]` markers
+      // are structure, not reader numbers (Lens Phase 3): neither is counted.
+      const bare = (d) => { const x = noCues(d); if (Array.isArray(x.sections)) x.sections = x.sections.map(({ cues, ...rest }) => rest); return x; };
+      const count = (txt) => { const m = new Map(); for (const n of numerals(matter(txt).content + JSON.stringify(bare(matter(txt).data)))) m.set(n, (m.get(n) ?? 0) + 1); return m; };
       const a = count(prev), b = count(raw);
       const removed = [...a].filter(([n, c]) => (b.get(n) ?? 0) < c).map(([n]) => n);
       const added = [...b].filter(([n, c]) => (a.get(n) ?? 0) < c).map(([n]) => n);

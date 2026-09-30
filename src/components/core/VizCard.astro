@@ -1,49 +1,32 @@
 ---
 /**
- * VizCard — the shared shell every NEW section kind renders inside.
+ * VizCard — the shared shell the newer section kinds render inside.
  *
- * WHY THIS EXISTS (RD-01a, docs/REVAMP-PLAN.md §1). The 28 kinds are being
- * built against TODAY'S canon while the rebrand is deferred. The design's
- * instrument shell — a 3px world rule on top, a mono eyebrow row, a tinted
- * "How to read this" callout, a plain+source footer — is a later decision. If
- * each kind hand-rolled its own chrome, adopting that shell later would be
- * markup surgery on 28 components. Routed through here it is ONE file.
+ * WHY THIS EXISTS (RD-01a, docs/REVAMP-PLAN.md §1): a kind that routes its
+ * chrome through one file can change shell with one edit instead of markup
+ * surgery on every component.
  *
- * So: this deliberately renders the CURRENT look. It is the seam, not the skin.
+ * WHERE IT SITS (Lens Phase 3, 2026-09-30). Inside the pinned figure panel of
+ * core/Section.astro, the reading system (docs/design/LENS.md §5):
  *
- * WHERE IT SITS. Inside core/Section.astro's slot:
+ *   article column   eyebrow · title · intro · the kind's sentences · caption
+ *   figure panel     "Figure n · k cues"  ·  VizCard [<slot/> the graphic]  ·  source
  *
- *   Section   number · eyebrow · title · intro
- *     VizCard   [how-to-read]  ·  <slot/> the graphic  ·  caption · source
- *   Section   "In plain terms …"          ← already renders after the slot
- *
- * `plain` stays Section's job and keeps its meaning (the FORM, one sentence,
- * below the graphic). `howToRead` is the handoff's contract part 02 — the same
- * subject at paragraph length, ABOVE the graphic. Two fields, two positions,
- * two lengths; see docs/REVAMP-PLAN.md §1 for why collapsing them breaks the
- * verifier.
- *
- * THE howToRead DEFAULT IS PER KIND (REGISTER-PLAN RG-19, ruled 2026-09-13;
- * it was on for every kind from 2026-09-04). This card renders whatever
- * `howToRead` it is handed, inside the card, where the handoff's shell puts
- * it — but it never resolves the default itself, because it does not know its
- * kind. SectionBody calls `howToReadFor(kind, section.howToRead)` at the
- * dispatch line for the twelve VizCard kinds (the ten instruments are in
- * NEEDS_HOW; you-think and number-sense are not, so their panel renders only
- * when authored). For every other kind, core/Section.astro renders the
- * same panel ABOVE the graphic through the same function; a `:has()` rule in
- * dataviz-v2.css hides Section's copy when the slotted card carries its own,
- * so a section shows at most one.
- *
- * `source` is still accepted but no longer rendered here — see the note below.
+ * The how-to-read panel this card used to carry is RETIRED with the plain
+ * line and the expand modal (LENS §10): the cues and the one caption do that
+ * work. `howToRead` is still accepted so a stray caller compiles; it renders
+ * nothing. In the reading system SectionBody hands the card no caption (the
+ * article column holds the one copy), so the caption row renders only in
+ * story mode, where story.css hides it anyway. `source` is accepted and never
+ * rendered: core/Section.astro prints it once.
  */
 import { renderInline } from '../../lib/text';
 
 interface Props {
   /** Component prefix, e.g. `px-fnl`. Joined to the shared `px-viz` root so
-   *  ExpandModal's `.px-viz` selector attaches and the kit's reveal works. */
+   *  the kit's reveal attaches. */
   prefix: string;
-  /** Contract part 02 — a paragraph, above the graphic. Authored only. */
+  /** Retired (Lens Phase 3). Accepted, never rendered. */
   howToRead?: string;
   /** The DATA claim. Inline emphasis is rendered. */
   caption?: string;
@@ -56,12 +39,7 @@ interface Props {
   style?: string;
 }
 
-const { prefix, howToRead, caption, chip, class: extra, style } = Astro.props;
-/* `source` is still ACCEPTED so the ten kinds that pass it keep compiling, but
-   it is no longer rendered here. Shell adoption (Phase 6) moved the source
-   line out of the card into core/Section.astro, as the second line of the
-   plain paragraph — one render site for every kind. Section reads it from the
-   section frontmatter directly, so nothing needs to flow through this prop. */
+const { prefix, caption, chip, class: extra, style } = Astro.props;
 ---
 
 <div class:list={['px-viz', prefix, extra]} data-reveal style={style}>
@@ -70,10 +48,6 @@ const { prefix, howToRead, caption, chip, class: extra, style } = Astro.props;
       <span set:html={renderInline(caption)} />
       {chip && <b>{chip}</b>}
     </div>
-  )}
-
-  {howToRead && (
-    <p class="px-viz__how"><b>How to read this —</b>{' ' + howToRead}</p>
   )}
 
   <slot />
