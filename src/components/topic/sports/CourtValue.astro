@@ -9,16 +9,14 @@
  *
  * Tier: SVG, build-time only. The value field, the marching-squares contour
  * extraction and the filled bands are all computed here in the frontmatter;
- * the only client JS is the shared core/Reveal.astro island, and the only
- * motion is CSS fill-opacity growth. Zero runtime compute, no three.js,
+ * there is no client JS and, since Lens Phase 5, no motion (its build order
+ * arrives in Phase 6). Zero runtime compute, no three.js,
  * no d3-contour (an inlined marching-squares routine is used — see §4 of the
  * blueprint / the CONTOUR block below).
  *
- * No-JS / reduced-motion: the complete surface — bands, iso-lines, chalk court,
- * peak marker + value label, in-SVG ramp legend, and (if enabled) the shot
- * cloud — is painted in its FINAL state. The reveal only animates the growth of
- * the band fill-opacity, and every hidden state is gated behind `html.js`.
- * This IS the print plate.
+ * The complete surface — bands, iso-lines, chalk court, peak marker + value
+ * label, in-SVG ramp legend, and (if enabled) the shot cloud — always paints
+ * in its FINAL state. This IS the print plate.
  *
  * Coordinate convention (the ShotMap convention): shot x,y are 0–100 pitch
  * coords — x toward goal (depth), y across — mapped into the selected surface's
@@ -411,7 +409,7 @@ const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
 // stays here is the MODEL name — data, not chrome — on its own class.
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && (
     <div class="px-viz__cap"><span set:html={renderInline(caption)} /><b>court value</b></div>
   )}
@@ -545,8 +543,8 @@ const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
   .px-cval__turf { fill: color-mix(in oklab, var(--ink) 4%, transparent); }
 
   /* value bands — the fixed volt elevation ramp. Fill colour + fill-opacity
-     are presentation values (the FINAL plate); the reveal grows element
-     `opacity` 0→1 so the no-JS / reduced-motion state is the composed surface. */
+     are presentation values (the FINAL plate); `opacity` rests at 1 and the
+     transition waits for the Phase 6 build. */
   .px-cval__band { opacity: 1; transition: opacity 480ms var(--ease, ease); }
 
   /* iso-lines — the contour lines that make it read as a map, not a blur */
@@ -595,26 +593,12 @@ const clipId = `px-cval-clip-${Math.random().toString(36).slice(2, 8)}`;
     fill: var(--muted); font-variant-numeric: tabular-nums;
   }
 
-  /* ── REVEAL (gated behind html.js — no-JS paints the final plate) ──────── */
-  /* chalk sweep-draws (staggered), bands grow inner-last, iso + dots reveal,
-     peak stamps last. All initial/hidden states live behind html.js. */
-  html.js .px-viz:not(.is-in) .px-cval__chalk { stroke-dashoffset: 1; }
+  /* ── final state (static since Lens Phase 5; transitions wait for Phase 6) ── */
+  /* the chalk rests fully drawn; bands, iso-lines, dots and peak rest fully shown. */
   .px-cval__chalk { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 700ms var(--ease, ease); }
-  .px-viz.is-in .px-cval__chalk { transition-delay: calc(var(--i) * 40ms); }
-
-  html.js .px-viz:not(.is-in) .px-cval__band { opacity: 0; }
-  .px-viz.is-in .px-cval__band { transition-delay: calc(var(--k) * 60ms); }
-
-  html.js .px-viz:not(.is-in) .px-cval__iso { opacity: 0; }
-  .px-viz.is-in .px-cval__iso { transition-delay: 320ms; }
-
-  html.js .px-viz:not(.is-in) .px-cval__dot { opacity: 0; }
   .px-cval__dot { transition: opacity 220ms var(--ease, ease); }
-  .px-viz.is-in .px-cval__dot { transition-delay: calc(360ms + var(--i) * 6ms); }
 
   .px-cval__peak { transform: scale(1); transition: transform 220ms var(--ease-snap, ease-out), opacity 220ms var(--ease, ease); }
-  html.js .px-viz:not(.is-in) .px-cval__peak { transform: scale(0.4); opacity: 0; }
-  .px-viz.is-in .px-cval__peak { transition-delay: 900ms; }
 
   @media (prefers-reduced-motion: reduce) {
     .px-cval__chalk { stroke-dashoffset: 0 !important; }

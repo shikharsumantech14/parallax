@@ -4,12 +4,12 @@
  * x runs along time (event order, oldest → newest), y is depth (0 km at the
  * surface line up top, deeper downward). Each quake is a circle whose radius ∝
  * magnitude and whose fill ramps muted → accent → deep with magnitude. Circles
- * pop in (scale from 0), staggered along the time axis on scroll-in; hovering a
- * circle lifts it (scale + accent ring) and exposes its place/mag via <title>.
+ * rest at full scale (static since Lens Phase 5, the build order arrives in
+ * Phase 6); hovering a circle lifts it (scale + accent ring) and exposes its
+ * place/mag via <title>.
  *
- * No-JS / reduced-motion: every circle paints at full scale (the scale:0 hidden
- * rule sits behind `html.js`; reduced-motion resets with !important). The depth
- * axis + legend carry the reading.
+ * Every circle always paints at full scale. The depth axis + legend carry the
+ * reading.
  *
  * data: { quakes[]{ date, depthKm, mag, place? }, caption?, source? }
  */
@@ -85,7 +85,7 @@ const lastDate = events[n - 1]?.date ?? '';
 const fmtMag = (m: number) => `M${m.toFixed(1)}`;
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span>{n > 0 && <b>{fmtMag(maxMag)} max</b>}</div>}
 
   <div class="px-quake">
@@ -190,9 +190,6 @@ const fmtMag = (m: number) => `M${m.toFixed(1)}`;
     transition-delay: 0ms;
   }
 
-  /* reveal: dots pop from 0 scale, staggered along time (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-quake__dot { transform: scale(0); }
-
   .px-quake__foot {
     display: flex;
     justify-content: space-between;
@@ -225,8 +222,4 @@ const fmtMag = (m: number) => `M${m.toFixed(1)}`;
   }
   .px-quake__key { display: inline-flex; align-items: center; gap: 6px; }
   .px-quake__key svg { display: block; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-quake__dot { transform: scale(1) !important; }
-  }
 </style>

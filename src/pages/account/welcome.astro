@@ -5,21 +5,32 @@
 export const prerender = false;
 import AppLayout from '../../layouts/AppLayout.astro';
 import Mark from '../../components/core/Mark.astro';
+import { TOPICS } from '../../content/config';
+import { DESK_COPY, DESK_REGISTER } from '../../lib/desks';
+import { ink } from '../../lib/desk-inks';
 import { requireUser, safeNextPath } from '../../lib/auth';
 
 /**
- * App /welcome — the one-time post-signup onboarding (JOURNEY-SPEC §3,
- * APP-DESIGN-SPEC §4). Reached from /auth/callback when profiles.welcomed_at
- * is NULL. Asks two OPTIONAL questions — a name and which worlds to shelf
- * first — then routes the reader on to where they were headed.
+ * /account/welcome — the one-time post-signup step (Lens, 2026-09-30, Phase
+ * 4b; the CreateAccount board, BRIEF-3 §4). Reached from /auth/callback when
+ * profiles.welcomed_at is NULL. Two optional choices, a name and the desks to
+ * follow, then on to where the reader was headed.
  *
- * ⚠️ Not to be confused with the publication's /welcome (the cinematic
- * "Second Angle" story). Different domain, different file.
+ * Not the publication's old /welcome intro (removed 2026-09-30).
  *
- * Fallback contract: the whole thing is a plain <form> POST to
- * /api/onboarding. The world picker is native checkboxes (visually-hidden
- * input + styled face, selected via :checked) so it submits and shows state
- * with NO JavaScript. There is no client script on this page.
+ * LEFT (360): the lockup, "You're in." in Newsreader 48 on one line, the name
+ * field, "Save and open the Shelf" and "Skip for now". RIGHT (696): PICK YOUR
+ * DESKS, six medallion tiles (the desk's mark cut at 64, its name, register
+ * and tagline). A picked tile turns to the SEAL cut on its desk tint with a
+ * 2px mark border, and the live sentence under the grid ("You follow Politics
+ * and Space. The letter carries those first.") follows the picks.
+ *
+ * Fallback contract: the whole page is a plain <form> POST to /api/onboarding
+ * with the fields it has always sent (intent=save|skip, name, interest
+ * repeated, next). Each tile IS a native checkbox inside its label (visually
+ * hidden input, the face styled from :checked), so it submits and shows its
+ * state with no JavaScript. The one inline script only rewrites the live
+ * sentence and the count; without it they read the state the page loaded in.
  */
 
 const user = requireUser(Astro);
@@ -27,18 +38,8 @@ const { supabase } = Astro.locals;
 
 const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
 
-const WORLDS = [
-  { id: 'politics', label: 'Politics' },
-  { id: 'space', label: 'Space' },
-  { id: 'earth', label: 'Earth' },
-  { id: 'tech', label: 'Tech' },
-  { id: 'travel', label: 'Travel' },
-  { id: 'sports', label: 'Sports' },
-] as const;
-const WORLD_IDS = WORLDS.map((w) => w.id) as readonly string[];
-
 const worldRaw = (Astro.url.searchParams.get('world') ?? '').toLowerCase();
-const world = WORLD_IDS.includes(worldRaw) ? worldRaw : null;
+const world = (TOPICS as readonly string[]).includes(worldRaw) ? worldRaw : null;
 
 // Prefill from the profile (re-visits keep state) then the OAuth metadata.
 const { data: profile } = await supabase
@@ -63,225 +64,278 @@ const stated: string[] = Array.isArray(profile?.stated_interests)
 const preselected = new Set<string>(stated);
 if (world) preselected.add(world);
 
-// CTA copy depends on whether we're returning the reader to a specific issue
-// on the publication, or just opening their shelf.
+// The CTA names where the reader goes next: back to an issue, or the Shelf.
 const nextIsIssue = /\/issues\//.test(next);
-const ctaLabel = nextIsIssue ? 'Back to the issue →' : 'Open my shelf';
+const ctaLabel = nextIsIssue ? 'Save and return to the issue' : 'Save and open the Shelf';
 
-const FEATURES = [
-  { k: 'THE SHELF', v: 'save any issue' },
-  { k: 'THE MARGINS', v: 'annotate; editors read every note' },
-  { k: 'THE DISPATCH', v: 'one email per issue, no more' },
-];
+/* The live sentence, written from the picks. The inline script below writes
+   the same four forms, so the server and the island never disagree. */
+function sentenceFor(names: string[]): string {
+  const n = names.length;
+  if (n === 0) return 'Pick a desk, or skip for now.';
+  if (n === TOPICS.length) return 'You follow all six desks. The letter carries every one.';
+  const list = n > 1 ? `${names.slice(0, -1).join(', ')} and ${names[n - 1]}` : names[0];
+  return n === 1 ? `You follow ${list}. The letter carries it first.` : `You follow ${list}. The letter carries those first.`;
+}
+const pickedNames = TOPICS.filter((t) => preselected.has(t)).map((t) => DESK_COPY[t].name);
 ---
 
-<AppLayout title="Welcome" description="Two quick questions to set up your Parallax shelf.">
-  <div class="wel">
-    <div class="wel__mark" aria-hidden="true">
-      <Mark size={56} />
+<AppLayout title="Welcome" description="Two quick choices to set up your Parallax Shelf.">
+  <form method="post" action="/api/onboarding" class="wel" data-welcome>
+    <input type="hidden" name="next" value={next} />
+
+    <div class="wel__head">
+      <a class="app-lockup" href="/" aria-label="Parallax, home">
+        <Mark size={34} ring={9} tight />
+        <span class="app-lockup__name">Parallax</span>
+      </a>
+      <div class="wel__title">
+        <h1 class="wel__h1">You're in.</h1>
+        <p class="wel__sub">Two quick choices, then your Shelf.</p>
+      </div>
+      <div class="field">
+        <label for="name">Your name</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          value={nameValue}
+          maxlength="80"
+          autocomplete="name"
+          placeholder="Your name"
+        />
+      </div>
     </div>
 
-    <div class="plate wel__plate" data-world={world ?? undefined}>
-      <h1 class="wel__h1">You're in.</h1>
-      <p class="dek wel__sub">Your shelf is open. Two quick questions — both optional.</p>
+    <fieldset class="wel__desks">
+      <legend class="wel__legend">
+        <span class="px-meta">Pick your desks</span>
+        <span class="wel__count" data-count>{pickedNames.length} of 6</span>
+      </legend>
+      <div class="wel__grid">
+        {TOPICS.map((t) => (
+          <label
+            class="wtile"
+            style={`--dk-mark: ${ink(t, 'mark')}; --dk-tint: ${ink(t, 'tint')}; --dk-text: ${ink(t, 'text')}`}
+          >
+            <input
+              type="checkbox"
+              name="interest"
+              value={t}
+              checked={preselected.has(t)}
+              class="wtile__input"
+              data-name={DESK_COPY[t].name}
+            />
+            <span class="wtile__face">
+              <span class="wtile__marks" aria-hidden="true">
+                <Mark desk={t} size={64} tight ground="var(--paper-2)" class="wtile__mark wtile__mark--open" />
+                <Mark desk={t} size={64} tight cut="seal" ground="var(--paper)" class="wtile__mark wtile__mark--seal" />
+              </span>
+              <span class="wtile__names">
+                <span class="wtile__name">{DESK_COPY[t].name}</span>
+                <span class="wtile__reg">{DESK_REGISTER[t]}</span>
+              </span>
+              <span class="wtile__tag">{DESK_COPY[t].tag}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <p class="wel__sentence" aria-live="polite" data-sentence>{sentenceFor(pickedNames)}</p>
+    </fieldset>
 
-      <form method="post" action="/api/onboarding" class="wel__form">
-        <input type="hidden" name="next" value={next} />
-
-        {/* ── name ─────────────────────────────────────────────────────── */}
-        <div class="field wel__name">
-          <label for="name">What should we call you?</label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            value={nameValue}
-            maxlength="80"
-            autocomplete="name"
-            placeholder="Your name"
-          />
-        </div>
-
-        {/* ── worlds ───────────────────────────────────────────────────── */}
-        <fieldset class="wel__worlds">
-          <legend class="wel__worlds-legend">
-            Which worlds pull you in?
-            <span class="wel__worlds-sub">We'll put these first on your shelf.</span>
-          </legend>
-          <div class="wel__chips">
-            {WORLDS.map((w) => (
-              <label class="wchip" data-world={w.id}>
-                <input
-                  type="checkbox"
-                  name="interest"
-                  value={w.id}
-                  checked={preselected.has(w.id)}
-                  class="wchip__input"
-                />
-                <span class="chip wchip__face">
-                  <span class="chip__dot" aria-hidden="true"></span>
-                  {w.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* ── what the account gives you ───────────────────────────────── */}
-        <ul class="wel__features">
-          {FEATURES.map((f) => (
-            <li class="wel__feature">
-              <span class="wel__feature-k">{f.k}</span>
-              <span class="wel__feature-sep" aria-hidden="true">—</span>
-              <span class="wel__feature-v">{f.v}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* ── actions ──────────────────────────────────────────────────── */}
-        <div class="wel__actions">
-          <button class="btn btn--block wel__cta" type="submit" name="intent" value="save">
-            {ctaLabel}
-          </button>
-          <button class="wel__skip" type="submit" name="intent" value="skip" formnovalidate>
-            Skip for now
-          </button>
-        </div>
-      </form>
+    <div class="wel__actions">
+      <button class="btn btn--block btn--tall" type="submit" name="intent" value="save">
+        <span>{ctaLabel}</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <button class="wel__skip" type="submit" name="intent" value="skip" formnovalidate>Skip for now</button>
     </div>
-  </div>
+  </form>
 </AppLayout>
 
+<script is:inline>
+  /* The live sentence and the count follow the picks. */
+  (function () {
+    var form = document.querySelector('[data-welcome]');
+    if (!form) return;
+    var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="interest"]'));
+    var say = form.querySelector('[data-sentence]');
+    var count = form.querySelector('[data-count]');
+    function paint() {
+      var names = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.getAttribute('data-name'); });
+      var n = names.length;
+      var list = n > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[n - 1] : names[0];
+      var text = n === 0 ? 'Pick a desk, or skip for now.'
+        : n === boxes.length ? 'You follow all six desks. The letter carries every one.'
+        : n === 1 ? 'You follow ' + list + '. The letter carries it first.'
+        : 'You follow ' + list + '. The letter carries those first.';
+      if (say) say.textContent = text;
+      if (count) count.textContent = n + ' of ' + boxes.length;
+    }
+    boxes.forEach(function (b) { b.addEventListener('change', paint); });
+  })();
+</script>
+
 <style>
+  /* The CreateAccount board: a 360 column and a 696 fieldset, 72 apart. The
+     actions sit in the left column but come after the tiles in the source, so
+     the tab order runs name, desks, save. */
   .wel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 4vh;
+    display: grid;
+    grid-template-columns: 360px 696px;
+    grid-template-areas:
+      'head desks'
+      'actions desks';
+    grid-template-rows: auto 1fr;
+    column-gap: 72px;
+    row-gap: 32px;
+    align-items: start;
   }
-  @media (min-height: 760px) {
-    .wel { padding-top: 8vh; }
-  }
-  .wel__mark { margin-bottom: 20px; color: var(--ink); }
-
-  .wel__plate {
-    width: 100%;
-    max-width: 460px;
-    border-top: 3px solid var(--w-accent-deep, var(--accent-deep));
-  }
-
-  .wel__h1 {
+  .wel__head { grid-area: head; display: flex; flex-direction: column; gap: 32px; }
+  .wel__title { display: flex; flex-direction: column; gap: 12px; }
+  .wel .wel__h1 {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: 34px;
-    line-height: 1.1;
-    font-weight: 600;
-    margin: 2px 0 8px;
+    font-weight: 500;
+    font-size: 48px;
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
   }
-  .wel__sub { margin-bottom: 22px; }
+  .wel__sub { margin: 0; font-family: var(--font-ui); font-size: 16px; line-height: 1.5; color: var(--ink-2); }
 
-  .wel__name { margin-bottom: 20px; }
-
-  /* ── worlds ── */
-  .wel__worlds {
-    border: none;
-    margin: 0 0 20px;
-    padding: 0;
-  }
-  .wel__worlds-legend {
-    display: block;
-    padding: 0;
-    font-family: var(--font-body);
+  .wel__actions { grid-area: actions; display: flex; flex-direction: column; gap: 8px; }
+  .wel__skip {
+    min-height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    font-family: var(--font-ui);
     font-size: 15px;
     font-weight: 500;
-    color: var(--ink);
-    margin-bottom: 10px;
-  }
-  .wel__worlds-sub {
-    display: block;
-    font-weight: 400;
-    font-size: 12.5px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-  .wel__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  /* The pill anatomy (border/radius/mono type/dot) is the shared `.chip`
-     primitive (app.css §2) so a future .chip restyle propagates here. Only the
-     checkbox-driven states live locally — the native input inside the label is
-     what lets the picker submit AND show its selected state with zero JS. */
-  .wchip { position: relative; display: inline-flex; }
-  .wchip__input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .wchip__face { cursor: pointer; }
-  .wchip__face:hover { border-color: var(--w-accent-deep, var(--accent-deep)); }
-  .wchip__input:checked + .chip {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: var(--paper);
-  }
-  .wchip__input:checked + .chip .chip__dot {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--paper) 40%, transparent);
-  }
-  .wchip__input:focus-visible + .chip {
-    outline: 2px solid var(--w-accent, var(--accent));
-    outline-offset: 2px;
-  }
-
-  /* ── features ── */
-  .wel__features {
-    list-style: none;
-    margin: 0 0 24px;
-    padding: 16px 0 0;
-    border-top: 1px solid var(--rule);
-    display: grid;
-    gap: 8px;
-  }
-  .wel__feature {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    line-height: 1.4;
-  }
-  .wel__feature-k {
-    color: var(--w-accent-deep, var(--accent-deep));
-    font-weight: 500;
-    text-transform: uppercase;
-    flex: none;
-  }
-  .wel__feature-sep { color: var(--rule); flex: none; }
-  .wel__feature-v { color: var(--muted); }
-
-  /* ── actions ── */
-  .wel__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .wel__cta { margin: 0; }
-  .wel__skip {
-    background: none;
-    border: none;
-    padding: 4px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    color: var(--muted);
+    color: var(--ink-2);
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
   }
   .wel__skip:hover { color: var(--ink); }
-  .wel__skip:focus-visible { outline: 2px solid var(--w-accent, var(--accent)); outline-offset: 2px; border-radius: 2px; }
+  .wel__skip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-ctl); }
+
+  /* ── the desks ── */
+  .wel__desks {
+    grid-area: desks;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .wel__legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .wel__count {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .wel__grid {
+    clear: both;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .wel__sentence {
+    margin: 0;
+    min-height: 27px;
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+
+  /* A tile is its label: the visually hidden checkbox, then the face. */
+  .wtile { position: relative; display: flex; min-width: 0; cursor: pointer; }
+  .wtile__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .wtile__face {
+    flex: 1;
+    min-height: 204px;
+    box-sizing: border-box;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--paper-2);
+    border: 2px solid var(--hair);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-1);
+    color: var(--ink);
+    transition: background-color var(--t-el) var(--ease), border-color var(--t-el) var(--ease), box-shadow var(--t-micro) var(--ease);
+  }
+  .wtile:hover .wtile__face { box-shadow: var(--shadow-2); }
+  .wtile__input:checked + .wtile__face { background: var(--dk-tint); border-color: var(--dk-mark); }
+  .wtile__input:focus-visible + .wtile__face { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .wtile__marks { position: relative; width: 64px; height: 64px; flex: none; display: block; }
+  .wtile__marks :global(.wtile__mark) {
+    position: absolute;
+    inset: 0;
+    transition: opacity var(--t-el) var(--ease);
+  }
+  .wtile__marks :global(.wtile__mark--seal) { opacity: 0; }
+  .wtile__input:checked + .wtile__face .wtile__marks :global(.wtile__mark--seal) { opacity: 1; }
+  .wtile__input:checked + .wtile__face .wtile__marks :global(.wtile__mark--open) { opacity: 0; }
+  .wtile__names { display: flex; flex-direction: column; gap: 4px; }
+  .wtile__name { font-family: var(--font-display); font-weight: 500; font-size: 22px; line-height: 1.1; }
+  .wtile__reg {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dk-text);
+  }
+  .wtile__tag { font-family: var(--font-ui); font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+
+  @media (max-width: 1180px) {
+    .wel {
+      grid-template-columns: minmax(0, 696px);
+      grid-template-areas: 'head' 'desks' 'actions';
+      grid-template-rows: auto;
+      justify-content: center;
+      padding-bottom: 32px;
+    }
+    .wel__head { max-width: 480px; }
+    .wel__actions { max-width: 480px; }
+  }
+  @media (max-width: 720px) {
+    .wel { grid-template-columns: minmax(0, 1fr); width: 100%; }
+    .wel__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .wtile__face { min-height: 0; padding: 14px; }
+    .wel .wel__h1 { font-size: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wtile__face, .wtile__marks :global(.wtile__mark) { transition: none; }
+  }
 </style>

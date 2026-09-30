@@ -10,9 +10,9 @@
  * surveyor or footpath — from the silhouette alone. The Boeing (2019)
  * orientation-order score φ sums that up as one mono readout under each rose.
  *
- * Build-time static SVG (a printed plate) — zero runtime JS beyond the shared
- * Reveal island. No-JS / reduced-motion: the final plate paints in full (every
- * petal at length, rings, ticks, name, φ). Up to three cities side by side.
+ * Build-time static SVG (a printed plate) — zero runtime JS. The final plate
+ * always paints in full (every petal at length, rings, ticks, name, φ; static
+ * since Lens Phase 5). Up to three cities side by side.
  *
  * data: { cities[]{ name, subtitle?, bins[36], orderScore? }, caption?, source? }
  */
@@ -140,7 +140,7 @@ const CARDINALS = [
 const multi = cities.length > 1;
 ---
 
-<div class="px-viz px-cgrid" data-reveal>
+<div class="px-viz px-cgrid">
   {(caption || multi) && (
     <div class="px-viz__cap">
       {caption && <span>{caption}</span>}
@@ -300,16 +300,6 @@ const multi = cities.length > 1;
   .px-cgrid__phi-l { fill: var(--ink); fill-opacity: 0.6; text-transform: uppercase; }
   .px-cgrid__phi-v { fill: var(--accent-deep, var(--accent)); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* ── reveal (html.js-gated): rings fade, petals grow from centre, then
-        ticks / name / φ. Reduced-motion / no-JS = final plate. ───────────── */
-  html.js .px-viz:not(.is-in) .px-cgrid__petal { transform: scale(0); }
-  html.js .px-viz:not(.is-in) .px-cgrid__rings,
-  html.js .px-viz:not(.is-in) .px-cgrid__minor { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-cgrid__cards,
-  html.js .px-viz:not(.is-in) .px-cgrid__name,
-  html.js .px-viz:not(.is-in) .px-cgrid__sub,
-  html.js .px-viz:not(.is-in) .px-cgrid__phi { opacity: 0; }
-
   .px-cgrid__rings, .px-cgrid__minor { transition: opacity 400ms var(--ease); }
   .px-cgrid__cards, .px-cgrid__name, .px-cgrid__sub, .px-cgrid__phi {
     /* fire after the last petal lands (≤1.32s worst case), full seq ≤1.6s */
@@ -321,15 +311,5 @@ const multi = cities.length > 1;
     .px-cgrid__roses { flex-direction: column; align-items: center; gap: 34px; }
     .px-cgrid__rose { flex: 1 1 auto; width: 100%; max-width: 340px; }
     .px-cgrid__card { font-size: 9.5px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-cgrid__petal { transform: none !important; }
-    .px-viz:not(.is-in) .px-cgrid__rings,
-    .px-viz:not(.is-in) .px-cgrid__minor,
-    .px-viz:not(.is-in) .px-cgrid__cards,
-    .px-viz:not(.is-in) .px-cgrid__name,
-    .px-viz:not(.is-in) .px-cgrid__sub,
-    .px-viz:not(.is-in) .px-cgrid__phi { opacity: 1 !important; }
   }
 </style>

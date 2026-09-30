@@ -8,8 +8,8 @@
 
    No-JS / reduced-motion / no-WebGL: we return early and leave each mount's
    static SVG/HTML fallback in place — no canvas, no loop. This mirrors the
-   html.js + prefers-reduced-motion contract used by core/Reveal.astro and
-   motion-v2.css.
+   no-JS / reduced-motion contract of the build island (src/scripts/build.ts,
+   motion-v2.css): the static page is the final state.
 
    Each scene builder receives THREE as a parameter (it must NOT import three
    itself) so three stays out of the eager bundle and in one lazy chunk.

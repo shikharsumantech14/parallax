@@ -21,9 +21,9 @@
  * size-scale (occulter anchors it); the target clamps at 64px with a
  * "~true size" tick. The angular inset is never compressed.
  *
- * Build-time SVG only. The tilt (core/Tilt.astro), reveal (core/Reveal.astro)
- * and scan are the only motion, all gated → no-JS / reduced-motion = the flat,
- * complete print plate + geometry ledger. This is the composed still.
+ * Build-time SVG only. The tilt (core/Tilt.astro) and the scan are the only
+ * motion (the scroll reveal retired in Lens Phase 5), and the scan is JS-gated
+ * → no-JS / reduced-motion = the flat, complete print plate + geometry ledger.
  *
  * data: EclipseConeData. NB the citation field is `sourceCite` (the nested
  * `source` object is the light SOURCE, e.g. the Sun, not the citation).
@@ -135,7 +135,7 @@ const ariaLabel =
   (range ? `, flipping to ${verdict(rUmbraAt(range[0]))} near perigee` : '') + '.';
 ---
 
-<div class="px-viz px-eclp" data-reveal>
+<div class="px-viz px-eclp">
   {caption && (
     <div class="px-viz__cap">
       <span>{caption}</span>
@@ -347,7 +347,7 @@ const ariaLabel =
     100% { opacity: 0; transform: translateX(var(--scan-dx)); }
   }
 
-  /* ── entrance (base = final; html.js hides until .is-in) ─────────────────── */
+  /* ── the final state (the scroll reveal retired in Lens Phase 5) ──────── */
   .px-eclp__occ, .px-eclp__pen, .px-eclp__target, .px-eclp__callout,
   .px-eclp__band, .px-eclp__bracket, .px-eclp__inset {
     opacity: 1; transition: opacity var(--t-soft) var(--ease);
@@ -360,25 +360,6 @@ const ariaLabel =
     stroke-dasharray: var(--len); stroke-dashoffset: 0;
     transition: stroke-dashoffset var(--t-slow) var(--ease);
   }
-
-  html.js .px-viz:not(.is-in) .px-eclp__occ { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-eclp__rays line { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-eclp__cone { transform: scaleX(0); }
-  html.js .px-viz:not(.is-in) .px-eclp__pen { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-eclp__target,
-  html.js .px-viz:not(.is-in) .px-eclp__band { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-eclp__inset { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-eclp__callout,
-  html.js .px-viz:not(.is-in) .px-eclp__bracket { opacity: 0; }
-
-  .px-viz.is-in .px-eclp__rays line { transition-delay: 150ms; }
-  .px-viz.is-in .px-eclp__cone { transition-delay: 450ms; }
-  .px-viz.is-in .px-eclp__pen { transition-delay: 700ms; }
-  .px-viz.is-in .px-eclp__target,
-  .px-viz.is-in .px-eclp__band { transition-delay: 800ms; }
-  .px-viz.is-in .px-eclp__inset { transition-delay: 900ms; }
-  .px-viz.is-in .px-eclp__bracket { transition-delay: 1100ms; }
-  .px-viz.is-in .px-eclp__callout { transition-delay: 1240ms; }
 
   /* ── geometry ledger ────────────────────────────────────────────────────── */
   .px-eclp__ledger { margin: 18px 0 0; padding: 0; }
@@ -430,14 +411,5 @@ const ariaLabel =
 
   @media (prefers-reduced-motion: reduce) {
     html.js .px-eclp__scan { animation: none !important; opacity: 0 !important; }
-    .px-viz:not(.is-in) .px-eclp__occ,
-    .px-viz:not(.is-in) .px-eclp__pen,
-    .px-viz:not(.is-in) .px-eclp__target,
-    .px-viz:not(.is-in) .px-eclp__band,
-    .px-viz:not(.is-in) .px-eclp__inset,
-    .px-viz:not(.is-in) .px-eclp__callout,
-    .px-viz:not(.is-in) .px-eclp__bracket { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-eclp__cone { transform: scaleX(1) !important; }
-    .px-viz:not(.is-in) .px-eclp__rays line { stroke-dashoffset: 0 !important; }
   }
 </style>

@@ -14,9 +14,8 @@
  * declares `imbalance: 'the-point'`, in which case the residual renders as an
  * accent-alt stub with a mono label.
  *
- * No-JS / reduced-motion: the diagram paints complete and the dashes stay as
- * static directional stipple (hidden reveal states gated behind `html.js`,
- * ClimateSpiral pattern; keyframes never run under reduced motion).
+ * The diagram always paints complete (static since Lens Phase 5) and the
+ * dashes stay as static directional stipple.
  *
  * data: { nodes[]{id, label, group?}, links[]{from, to, value, note?},
  *         unit, imbalance?: 'the-point', caption?, source? }
@@ -151,7 +150,7 @@ for (const l of orderedLinks) {
   // per 8px dash period, clamped 1.2s…8s, scaled from the SMALLEST flow.
   const durS = Math.min(8, Math.max(1.2, (8 * minVal) / l.value)).toFixed(2);
   // sweep offset: a multiple of the dash period ≥ the path length, so the
-  // reveal streams the dashes in from the source and lands seamlessly at 0.
+  // Phase 6 build streams the dashes in from the source and lands seamlessly at 0.
   const est = Math.hypot(x1 - x0, y1 - y0) + 0.25 * Math.abs(y1 - y0);
   const sweep = Math.ceil(est / 8) * 8 + 8;
   ribbons.push({ band, dash, t, midX: mx, midY: (y0 + y1) / 2, value: l.value, note: l.note, durS, sweep });
@@ -193,7 +192,7 @@ function wrapLabel(label: string, max = 16): string[] {
 }
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>}
 
   <div class="px-pflow">
@@ -224,7 +223,7 @@ function wrapLabel(label: string, max = 16): string[] {
         </g>
       ))}
 
-      <!-- node bars (grow reveal, 50ms column stagger) -->
+      <!-- node bars (final height; the Phase 6 build grows them, 50ms column stagger) -->
       <g>
         {nodeList.map((p) => (
           <rect
@@ -294,7 +293,7 @@ function wrapLabel(label: string, max = 16): string[] {
     stroke-width: 1.5;
     stroke-dasharray: 2 6;
     stroke-dashoffset: 0;
-    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* the sweep draw */
+    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* rests at 0, the draw arrives in Phase 6 */
   }
   .px-pflow__node {
     fill: var(--ink);
@@ -302,7 +301,7 @@ function wrapLabel(label: string, max = 16): string[] {
     transform: scaleY(1);
     transform-box: fill-box;
     transform-origin: center;
-    transition: transform 400ms var(--ease) var(--nd, 0ms); /* grow */
+    transition: transform 400ms var(--ease) var(--nd, 0ms); /* rests at full height, the grow arrives in Phase 6 */
   }
   .px-pflow__node--via { opacity: 0.6; }
 
@@ -351,25 +350,6 @@ function wrapLabel(label: string, max = 16): string[] {
     transition: opacity 450ms var(--ease) 1150ms, transform 450ms var(--ease) 1150ms;
   }
 
-  /* ── reveal (blueprint §5): nodes grow → ribbons sweep → values reveal.
-        Hidden states gated behind html.js — no-JS paints the final frame. ── */
-  html.js .px-viz:not(.is-in) .px-pflow__node { transform: scaleY(0); }
-  html.js .px-viz:not(.is-in) .px-pflow__band { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-pflow__dash { stroke-dashoffset: var(--sweep, 0); }
-  html.js .px-viz:not(.is-in) .px-pflow__val,
-  html.js .px-viz:not(.is-in) .px-pflow__note,
-  html.js .px-viz:not(.is-in) .px-pflow__stub { opacity: 0; transform: translateY(14px); }
-
-  /* flowDash — the card's ONE ambient motion; takes over the centerline the
-     moment the sweep lands (delay = 250ms start + 900ms draw). */
-  html.js .px-viz.is-in .px-pflow__dash {
-    animation: px-pflow-flow var(--dur, 4s) linear 1150ms infinite;
-  }
-  @keyframes px-pflow-flow {
-    from { stroke-dashoffset: 0; }
-    to { stroke-dashoffset: -8; }
-  }
-
   /* Mobile legibility is the min-width rule in dataviz-v2.css (Phase 5): the
      chart renders at its own 720-unit width and the card scrolls, so labels
      land at their authored size. The SVG-unit bump that used to live here
@@ -380,12 +360,5 @@ function wrapLabel(label: string, max = 16): string[] {
   @media (prefers-reduced-motion: reduce) {
     .px-pflow__node, .px-pflow__band, .px-pflow__dash,
     .px-pflow__val, .px-pflow__note, .px-pflow__stub { transition: none !important; }
-    html.js .px-viz.is-in .px-pflow__dash { animation: none !important; }
-    .px-viz:not(.is-in) .px-pflow__node { transform: none !important; }
-    .px-viz:not(.is-in) .px-pflow__band { opacity: 0.3 !important; }
-    .px-viz:not(.is-in) .px-pflow__dash { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-pflow__val,
-    .px-viz:not(.is-in) .px-pflow__note,
-    .px-viz:not(.is-in) .px-pflow__stub { opacity: 1 !important; transform: none !important; }
   }
 </style>

@@ -1,10 +1,13 @@
 ---
 /**
- * BenchmarkChart — v2 horizontal comparison bars (.bc) inside the elevated
- * .px-viz card. Bars grow-in left→right on scroll, an optional dashed
- * reference line drops in over the track grid. Faithful port of the
- * publication-v2 kit <BenchmarkChart>. Build-time, zero runtime JS (reveal
- * handled by CSS; core/Reveal.astro toggles .is-in on the .px-viz shell).
+ * BenchmarkChart — v2 horizontal comparison bars (.bc) inside the .px-viz
+ * card, with an optional dashed reference line over the track grid. Faithful
+ * port of the publication-v2 kit <BenchmarkChart>. Build-time, zero JS of its
+ * own. THE BUILD (Lens Phase 5, LENS §6.4): the card is a
+ * `data-build-scene`: 1 the axis (the row labels and the reference line)
+ * fades in, 2 the bars grow from the left, 80ms apart, 3 the values rise,
+ * 4 any annotation (src/scripts/build.ts). No JS or reduced motion: the chart
+ * as drawn.
  *
  * Use for: LLM benchmark scores, hardware performance, framework speed
  * comparisons, pricing tables.
@@ -98,7 +101,7 @@ const annotPad = (v: number) => {
 };
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz" data-build-scene>
   <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
   {/* The reference label owns its own row between the caption and the bars,
@@ -112,7 +115,7 @@ const annotPad = (v: number) => {
       onto a line of its own). The
       dashed tick drops from under the label to the first bar. */}
   {hasRef && (
-    <div class="bc__ref" style={annotPad(refValue!)}>
+    <div class="bc__ref" data-build="1" style={annotPad(refValue!)}>
       <span class="bc__reflabel">{refLabel ? `${refLabel}\u00a0·\u00a0${refValue}` : refValue}</span>
       <span class="bc__refline" style={`left:${barEnd(refValue!)}`}></span>
     </div>
@@ -122,21 +125,23 @@ const annotPad = (v: number) => {
     role="img"
     aria-label={caption ? `Benchmark comparison: ${caption}` : 'Benchmark comparison chart'}
   >
-    {rows.map((it, i) => (
+    {rows.map((it) => (
       <div class="bc__row" data-hl={it.highlight ? 'true' : 'false'} data-cue={it.cue}>
-        <span class="bc__label">
+        <span class="bc__label" data-build="1">
           <span class="px-cue-tag" data-cue-tag={it.cue} hidden></span>{it.label}
           {it.sublabel && <span class="bc__sub">{it.sublabel}</span>}
         </span>
         <span class="bc__track">
           <span
             class="bc__fill"
-            style={`--w:${(it.value / max) * 100}%;transition-delay:${i * 60}ms${it.color ? `;background:${it.color}` : ''}`}
+            data-build="2"
+            data-build-kind="grow-x"
+            style={`--w:${(it.value / max) * 100}%${it.color ? `;background:${it.color}` : ''}`}
           ></span>
         </span>
-        <span class="bc__val">{it.value}</span>
+        <span class="bc__val" data-build="3" data-build-kind="rise">{it.value}</span>
         {(annotFor.get(it.label) ?? []).map((t) => (
-          <span class="bc__annot" style={`grid-column:1/-1;position:relative;display:block;padding-top:6px;${annotPad(it.value)}`}>
+          <span class="bc__annot" data-build="4" style={`grid-column:1/-1;position:relative;display:block;padding-top:6px;${annotPad(it.value)}`}>
             <span class="bc__annot-d" style={`position:absolute;left:${barEnd(it.value)};top:-17px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent)`}></span>
             <span class="bc__annot-l" style={`position:absolute;left:${barEnd(it.value)};top:-11px;width:1px;height:14px;margin-left:-0.5px;background:var(--rule)`}></span>
             <span class="bc__annot-t vz-annot" style="display:block">{t}</span>

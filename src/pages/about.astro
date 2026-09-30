@@ -1,98 +1,69 @@
 ---
 /**
- * /about — "How Parallax works" (launch design, 2026-09-08).
+ * /about — "How Parallax works" (Lens Phase 4; the About and About-Phone
+ * boards). Bands on the one paper, each opening on a 12px capital eyebrow in
+ * the house text colour, split by hairs:
  *
- * Built to the approved artboards (About.dc.html at 1280, AboutPhone.dc.html
- * at 412): a stack of full-width hairline BANDS inside the 1280 frame, with
- * two `.px-cells` strips (the three steps, the three promises) breaking the
- * rhythm as edge-to-edge grids. Every shared value comes from the launch
- * primitives in base.css — `.px-band`, `.px-h1`, `.px-lede`, `.px-eyebrow`,
- * `.px-cells` — so this page re-declares only what is genuinely local to it.
+ *   1. the H1 and the lede, beside the lens-assembly plate (draft 03, drawn)
+ *   2. the mark: the house medallion at 168 on paper-3, the story, and the
+ *      dial row, the six lettered desk marks with their stations
+ *   3. three promises, as cards with their stroke icons
+ *   4. the editor (no portrait)
+ *   5. the eight voices an issue can use, 4 x 2
+ *   6. the making of the mark: six drafts, and the one survivor
+ *   7. the colophon, under a 2px ink rule
  *
- * The two `.px-cells--open` strips drop their own `border-top`: the band above
- * already draws that hairline, and the artboards show one rule there, not two.
- *
- * No JavaScript. Everything paints in its final state on first render.
+ * The mark's story and the six drafts are the operator's copy, kept exactly
+ * (LENS §4.3). No JavaScript.
  */
-import { getCollection } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
 import Mark from '../components/core/Mark.astro';
+import PromiseStrip from '../components/core/PromiseStrip.astro';
 import { renderEmphasis } from '../lib/text';
 import { MARK_GLYPH } from '../lib/mark-glyph';
-import { TOPICS, type Topic } from '../content/config';
+import { DIAL } from '../lib/mark';
+import { ink } from '../lib/desk-inks';
+import { TOPICS } from '../content/config';
+import { DESK_COPY, DESK_REGISTER } from '../lib/desks';
 
-/* The badge reads the real backlist, like /archive and /. */
-const published = await getCollection('issues', (e) => e.data.status !== 'draft');
-const issueNumber = String(published.length).padStart(2, '0');
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
-/* THE EDITOR'S PORTRAIT. The band renders only when this is filled in —
-   OPERATOR: supply the image (drop it in public/, then set src/alt/caption/
-   date here). While it is null the whole band is omitted rather than shipping
-   a placeholder frame, because an empty hairline box on a live page reads as
-   a broken image, not as a promise. */
-const EDITOR_PORTRAIT: { src: string; alt: string; caption: string; date: string } | null = null;
-
-/* THE SIX DRAFTS (RD-10 step 4). Copy and shapes are the handoff's own. The art
-   was authored as React.createElement calls (Web.dc.html:665-698) rather than
-   as SVG files, which §3 correction 5 flagged as needing re-drawing — but the
-   primitives are fully specified there, so these are TRANSCRIBED, not
-   reinvented. Only the two that drew their P as live `<text>` needed a real
-   decision, and they take the outlined glyph for the same reason the mark
-   does: a thumbnail that falls back to Georgia misrepresents the draft it is
-   illustrating. */
-const LORE_INK = 'var(--ink)';
-const LORE_ACC = 'var(--topic-politics)';
-const LORE_BG = 'var(--bg)';
-
+/* THE SIX DRAFTS (RD-10 step 4). Copy and shapes are the handoff's own,
+   transcribed (Web.dc.html:665-698), the P from the outlined glyph. */
+const INK = 'var(--ink)';
+const ACC = 'var(--pol-mark)';
+const BG = 'var(--paper)';
 const drafts = [
   { no: '01', title: 'Two offset squares', verdict: 'Discarded',
-    body: 'The first draft said displacement with two rectangles, one outlined and one filled. It was legible at any size and completely anonymous — a hundred other publications own that shape.',
+    body: 'The first draft said displacement with two rectangles, one outlined and one filled. It was legible at any size and completely anonymous, a hundred other publications own that shape.',
     note: 'Too generic to defend. A mark has to be ours before it is anything else.',
-    art: `<rect x="114" y="114" width="144" height="144" fill="${LORE_ACC}"/><rect x="42" y="42" width="144" height="144" fill="none" stroke="${LORE_INK}" stroke-width="18"/>` },
+    art: `<rect x="114" y="114" width="144" height="144" fill="${ACC}"/><rect x="42" y="42" width="144" height="144" fill="none" stroke="${INK}" stroke-width="18"/>` },
   { no: '02', title: 'The observatory seal', verdict: 'Discarded',
     body: 'A full stellar-parallax diagram inside a ring of type: an orbit, two observer positions, two sightlines crossing at the object, the six desks standing in for fixed stars.',
     note: 'Correct and unreadable. A reader should not have to be taught a diagram to recognise a publication.',
-    art: `<circle cx="150" cy="150" r="132" fill="none" stroke="${LORE_INK}" stroke-width="12"/><line x1="72" y1="214" x2="228" y2="92" stroke="${LORE_INK}" stroke-width="10"/><line x1="228" y1="214" x2="72" y2="92" stroke="${LORE_INK}" stroke-width="10"/><circle cx="150" cy="150" r="26" fill="${LORE_ACC}"/>` },
+    art: `<circle cx="150" cy="150" r="132" fill="none" stroke="${INK}" stroke-width="12"/><line x1="72" y1="214" x2="228" y2="92" stroke="${INK}" stroke-width="10"/><line x1="228" y1="214" x2="72" y2="92" stroke="${INK}" stroke-width="10"/><circle cx="150" cy="150" r="26" fill="${ACC}"/>` },
   { no: '03', title: 'The lens assembly', verdict: 'Kept, reassigned',
     body: 'The name taken at its word, drawn as a plate from an optics catalogue: parallel light in, two ground elements, and two focal points on the plate because the subject was seen from two positions.',
     note: 'Kept, but not as a logo. It is the illustration on this page and the first onboarding screen.',
-    art: `<path d="M 150 40 A 150 150 0 0 1 150 260 A 150 150 0 0 1 150 40 Z" fill="none" stroke="${LORE_INK}" stroke-width="16"/><circle cx="150" cy="150" r="30" fill="${LORE_ACC}"/>` },
+    art: `<path d="M 150 40 A 150 150 0 0 1 150 260 A 150 150 0 0 1 150 40 Z" fill="none" stroke="${INK}" stroke-width="16"/><circle cx="150" cy="150" r="30" fill="${ACC}"/>` },
   { no: '04', title: 'The eclipse', verdict: 'Kept, reassigned',
-    body: 'Two discs of the same size, one behind the other, moved apart by a single step. What you see is the crescent — the part the front disc was hiding until something moved.',
+    body: 'Two discs of the same size, one behind the other, moved apart by a single step. What you see is the crescent, the part the front disc was hiding until something moved.',
     note: 'The idea was right and the disc was empty. It needed the name in it.',
-    art: `<circle cx="132" cy="168" r="118" fill="${LORE_ACC}"/><circle cx="168" cy="132" r="118" fill="${LORE_BG}"/><circle cx="168" cy="132" r="118" fill="none" stroke="${LORE_INK}" stroke-width="14"/>` },
+    art: `<circle cx="132" cy="168" r="118" fill="${ACC}"/><circle cx="168" cy="132" r="118" fill="${BG}"/><circle cx="168" cy="132" r="118" fill="none" stroke="${INK}" stroke-width="14"/>` },
   { no: '05', title: 'The letter, four ways', verdict: 'Discarded',
     body: 'A P set into the disc, cut out of it, made into it, and stood in front of it. The version where the ring became the bowl of the letter was clever and unreadable at a glance.',
     note: 'Clever lost to legible. The letter belongs in the calm middle, not fused to the frame.',
-    art: `<circle cx="150" cy="150" r="118" fill="${LORE_INK}"/><path d="${MARK_GLYPH.display}" fill="${LORE_BG}"/>` },
+    art: `<circle cx="150" cy="150" r="118" fill="${INK}"/><path d="${MARK_GLYPH.display}" fill="${BG}"/>` },
   { no: '06', title: 'The phase medallion', verdict: 'Adopted',
     body: 'The crescent moves inside the ring and becomes a band of light riding the rim, so the mark closes into a roundel and the letter sits in the calm middle. One dial position per desk, 60° apart.',
     note: 'Adopted. It survives every circular crop, and the six desks read as one family.',
-    /* No transcription: row six IS the mark, so it renders the component. */
     art: null },
 ];
 
-const deskLabels: Record<Topic, string> = {
-  politics: 'Politics', space: 'Space', earth: 'Earth',
-  tech: 'Tech', travel: 'Travel', sports: 'Sports',
-};
-
-/* The three steps an issue walks the reader through. */
-const steps = [
-  { no: '01', title: 'Start with what you know',
-    body: 'A headline you have already scrolled past. We assume you know the summary and skip it.' },
-  { no: '02', title: 'Move the viewpoint',
-    body: 'The structure underneath — the procedure, the arithmetic, the incentive — rebuilt as something you can operate.' },
-  { no: '03', title: 'Keep the argument',
-    body: 'Sources under every number, a skim mode for the hurry, and sixty days of letters.' },
-];
-
-/* The eight rhetorical modes an issue can use (AGENTS §6; the working canon is
-   research/_voice/mode-library.md). The internal canon pins each mode to a
-   register by naming real broadcasters and writers; those belong in the
-   stylist's brief, not on a public page, where naming them reads as a claim of
-   endorsement. These are the artboard's reader-facing one-liners. */
+/* The eight rhetorical modes an issue can use (AGENTS §6), in their
+   reader-facing one-liners; the internal canon's named registers stay in the
+   stylist's brief. */
 const voices = [
   { n: 'Awe', d: 'Scale, deep time, mechanism marvel.' },
   { n: 'Conversational', d: 'Step-by-step mechanism.' },
@@ -104,373 +75,276 @@ const voices = [
   { n: 'Lyrical compression', d: 'One emotional landing.' },
 ];
 
-const promises = [
-  { no: '01', title: 'Independent', body: 'Not for profit. No investors. No advertisers.' },
-  { no: '02', title: 'Sourced', body: 'Every claim cites a primary source. Every dataset linked.' },
-  { no: '03', title: 'Slow', body: 'Read in six minutes. Argued in sixty days.' },
+/* The lens assembly (draft 03 as a plate): five parallel rays, one lens, two
+   focal points on the plate, one per viewpoint. */
+const rays = [
+  { y: 110, lx: 199.5, ex: 270.5 }, { y: 140, lx: 190, ex: 280 }, { y: 170, lx: 187, ex: 283 },
+  { y: 200, lx: 190, ex: 280 }, { y: 230, lx: 199.5, ex: 270.5 },
 ];
 ---
 
 <HomeLayout
+  footerNewsletter={false}
   title="About · Parallax Lens"
-  description="How Parallax works — the second angle, the mark, the eight voices, and what the publication refuses to do."
+  description="How Parallax works: the second angle, the mark, the eight voices, and what the publication refuses to do."
 >
-  <Masthead variant="meta" current="about" issueNumber={issueNumber} />
+  <Masthead variant="meta" current="about" />
 
-  <!-- 1 · Hero -->
-  <section class="px-band px-abt__hero">
-    <p class="px-eyebrow">How Parallax works</p>
-    <h1 class="px-h1" set:html={renderEmphasis('Two eyes, one object, a *second* angle.')} />
-    <p class="px-lede">
-      Parallax is the shift you get when you move your viewpoint. We do it to one
-      story at a time — the object stays put, the angle changes, and the depth
-      appears.
-    </p>
-  </section>
-
-  <!-- 2 · The mark -->
-  <section class="px-band px-abt__markband">
-    <div class="px-abt__markart">
-      <Mark size={168} title="The Parallax medallion" />
-      <div class="px-abt__dial">
-        {TOPICS.map((t) => (
-          <span class="px-abt__phase" title={deskLabels[t]}>
-            <Mark desk={t} size={30} glyph={false} ring={13} />
-          </span>
-        ))}
+  <div class="px-abt">
+    <section class="px-abt__hero" aria-labelledby="px-abt-h1">
+      <div class="px-abt__herocopy">
+        <p class="px-abt__eyebrow">How Parallax works</p>
+        <h1 class="px-abt__h1" id="px-abt-h1" set:html={renderEmphasis('Two eyes, one object, a *second* angle.')} />
+        <p class="px-abt__lede">Parallax is the shift you get when you move your viewpoint. We do it to one story at a time. The object stays put, the angle changes, and the depth appears.</p>
       </div>
-    </div>
-    <div class="px-abt__markcopy">
-      <p class="px-eyebrow">The mark</p>
-      <p class="px-abt__marklead">
-        A star's distance is measured by looking at it twice, six months apart,
-        from opposite ends of Earth's orbit. Depth is what patience and
-        displacement buy you.
-      </p>
-      <p class="px-abt__markbody">
-        So the mark is a disc lit from one side. The crescent is the part that
-        was hidden until something moved, and it sits at a different hour for
-        each of the six desks — 60° apart, one full turn of the dial across the
-        publication.
-      </p>
-    </div>
-  </section>
+      <figure class="px-abt__plate">
+        <div class="px-abt__platebox">
+          <svg class="px-abt__lens" viewBox="0 0 470 340" width="470" height="340" role="img" focusable="false" aria-label="Draft 03, the lens assembly: five parallel rays pass through one lens and land on the plate at two focal points, one for each viewpoint">
+            <text class="px-abt__lensl" x="24" y="92" fill="var(--muted)" style={`${SANS};font-weight:500;letter-spacing:1px`}>LIGHT IN</text>
+            <text class="px-abt__lensl" x="412" y="80" text-anchor="middle" fill="var(--muted)" style={`${SANS};font-weight:500;letter-spacing:1px`}>PLATE</text>
+            {rays.map((r) => <line x1="24" y1={r.y} x2={r.lx} y2={r.y} stroke="var(--ink)" stroke-width="2" stroke-linecap="round" />)}
+            {rays.map((r) => (
+              <>
+                <line x1={r.ex} y1={r.y} x2="412" y2="152" stroke="var(--ink)" stroke-width="1.5" stroke-opacity=".55" />
+                <line x1={r.ex} y1={r.y} x2="412" y2="188" stroke="var(--pol-mark)" stroke-width="1.5" stroke-opacity=".8" />
+              </>
+            ))}
+            <g transform="translate(85 20)">
+              <path d="M 150 40 A 150 150 0 0 1 150 260 A 150 150 0 0 1 150 40 Z" fill="var(--paper-3)" stroke="var(--ink)" stroke-width="6" />
+              <circle cx="150" cy="150" r="22" fill="var(--pol-mark)" />
+            </g>
+            <line x1="412" y1="96" x2="412" y2="244" stroke="var(--hair-2)" stroke-width="6" stroke-linecap="round" />
+            <circle cx="412" cy="152" r="7" fill="var(--ink)" />
+            <circle cx="412" cy="188" r="7" fill="var(--pol-mark)" />
+          </svg>
+        </div>
+        <figcaption class="px-abt__platecap">Draft 03 · The lens assembly</figcaption>
+      </figure>
+    </section>
 
-  <!-- 3 · The three steps -->
-  <div class="px-cells px-cells--open px-abt__steps">
-    {steps.map((s) => (
-      <div class="px-abt__step">
-        <span class="px-abt__stepno">{s.no}</span>
-        <p class="px-abt__stept">{s.title}</p>
-        <p class="px-abt__stepb">{s.body}</p>
+    <section class="px-abt__band" aria-labelledby="px-abt-mark">
+      <h2 class="px-abt__eyebrow" id="px-abt-mark">The mark</h2>
+      <div class="px-abt__markrow">
+        <div class="px-abt__markwell">
+          <Mark size={168} ground="var(--paper-3)" title="The Parallax medallion, the house cut at the politics station" />
+        </div>
+        <div class="px-abt__markcopy">
+          <p class="px-abt__marklead">A star's distance is measured by looking at it twice, six months apart, from opposite ends of Earth's orbit. Depth is what patience and displacement buy you.</p>
+          <p class="px-abt__markbody">So the mark is a disc lit from one side. The crescent is the part that was hidden until something moved, and it sits at a different hour for each of the six desks, 60° apart, one full turn of the dial across the publication.</p>
+        </div>
       </div>
-    ))}
-  </div>
-
-  <!-- 4 · The editor — omitted entirely until the portrait exists -->
-  {EDITOR_PORTRAIT && (
-    <section class="px-band px-abt__editor">
-      <p class="px-eyebrow">The editor</p>
-      <p class="px-abt__edcopy">
-        Parallax is written, designed and built by one person. The portrait is
-        shot in the field rather than at a desk, and the caption gives the date,
-        because a portrait is evidence of when someone was there.
-      </p>
-      <div class="px-abt__figs">
-        <figure class="px-abt__fig">
-          <div class="px-abt__frame">
-            <img class="px-abt__img" src={EDITOR_PORTRAIT.src} alt={EDITOR_PORTRAIT.alt} />
-          </div>
-          <figcaption class="px-abt__figcap">
-            <span>{EDITOR_PORTRAIT.caption}</span>
-            <span>{EDITOR_PORTRAIT.date}</span>
-          </figcaption>
-        </figure>
+      <div class="px-abt__dialwrap">
+        <span class="px-abt__small">The dial · one station per desk</span>
+        <div class="px-abt__dial">
+          {TOPICS.map((t) => (
+            <a class="px-abt__station" href={`/topics/${t}/`} style={`--st-mark: ${ink(t, 'mark')}; --st-text: ${ink(t, 'text')}`}>
+              <Mark desk={t} size={48} title={`${DESK_COPY[t].name} mark, dial station ${DIAL[t]}°`} />
+              <span class="px-abt__stname">
+                <span class="px-abt__stn">{DESK_COPY[t].name}</span>
+                <span class="px-abt__str">{DESK_REGISTER[t]}</span>
+              </span>
+              <span class="px-abt__deg">Station {DIAL[t]}°</span>
+            </a>
+          ))}
+        </div>
       </div>
     </section>
-  )}
 
-  <!-- 5 · The eight voices -->
-  <section class="px-band px-abt__voices">
-    <p class="px-eyebrow">The eight voices an issue can use</p>
-    <div class="px-cells px-abt__voicegrid">
-      {voices.map((v) => (
-        <div class="px-abt__voice">
-          <p class="px-abt__voicen">{v.n}</p>
-          <p class="px-abt__voiced">{v.d}</p>
-        </div>
-      ))}
-    </div>
-  </section>
+    <section class="px-abt__band" aria-labelledby="px-abt-prom">
+      <h2 class="px-abt__eyebrow" id="px-abt-prom">Three promises</h2>
+      <PromiseStrip variant="cards" />
+    </section>
 
-  <!-- 6 · The promises -->
-  <div class="px-cells px-cells--open px-abt__promises">
-    {promises.map((p) => (
-      <div class="px-abt__promise">
-        <span class="px-abt__promno">{p.no}</span>
-        <p class="px-abt__promt">{p.title}</p>
-        <p class="px-abt__promb">{p.body}</p>
+    <section class="px-abt__band" aria-labelledby="px-abt-ed">
+      <h2 class="px-abt__eyebrow" id="px-abt-ed">The editor</h2>
+      <div class="px-abt__ed">
+        <p class="px-abt__edlead">Parallax is written, designed and built by one person.</p>
+        <p class="px-abt__edbody">One person picks the topic, reads the sources, draws the graphics and answers for every number. That is slower than a newsroom, and it is why an issue takes a week.</p>
       </div>
-    ))}
-  </div>
+    </section>
 
-  <!-- 7 · The making of the mark -->
-  <section class="px-band px-abt__making">
-    <p class="px-eyebrow">The making of the mark</p>
-    <h2 class="px-abt__h2" set:html={renderEmphasis('Six drafts, and the one *survivor*.')} />
-    <p class="px-abt__intro">
-      The mark took six rounds to find. Every discarded draft was discarded for a
-      reason, and the reasons are the argument for what survived.
-    </p>
+    <section class="px-abt__band" aria-labelledby="px-abt-voice">
+      <h2 class="px-abt__eyebrow" id="px-abt-voice">The eight voices an issue can use</h2>
+      <ol class="px-abt__voices">
+        {voices.map((v, i) => (
+          <li class="px-abt__voice">
+            <span class="px-abt__vno">{String(i + 1).padStart(2, '0')}</span>
+            <span class="px-abt__vn">{v.n}</span>
+            <span class="px-abt__vd">{v.d}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
 
-    <ol class="px-abt__lore">
-      {drafts.map((d) => (
-        <li class="px-abt__row">
-          <span class="px-abt__rowlead">
+    <section class="px-abt__band" aria-labelledby="px-abt-make">
+      <div class="px-abt__makehead">
+        <p class="px-abt__eyebrow">The making of the mark</p>
+        <h2 class="px-abt__h2" id="px-abt-make" set:html={renderEmphasis('Six drafts, and the one *survivor*.')} />
+        <p class="px-abt__intro">The mark took six rounds to find. Every discarded draft was discarded for a reason, and the reasons are the argument for what survived.</p>
+      </div>
+      <ol class="px-abt__lore">
+        {drafts.map((d) => (
+          <li class="px-abt__row">
             <span class="px-abt__no">{d.no}</span>
-            <span class="px-abt__art" aria-hidden="true">
-              {d.art
-                ? <svg viewBox="0 0 300 300" width="46" height="46"><Fragment set:html={d.art} /></svg>
-                : <Mark size={46} />}
+            {d.art
+              ? <svg class="px-abt__art" viewBox="0 0 300 300" width="64" height="64" role="img" aria-label={`Draft ${d.no}: ${d.title}`} focusable="false"><Fragment set:html={d.art} /></svg>
+              : <Mark size={64} title={`Draft ${d.no}: ${d.title}`} class="px-abt__art" />}
+            <span class="px-abt__rowtext">
+              <span class="px-abt__t">{d.title}</span>
+              <span class="px-abt__b">{d.body}</span>
             </span>
-          </span>
-          <span class="px-abt__rowtext">
-            <b class="px-abt__t">{d.title}</b>
-            <span class="px-abt__b">{d.body}</span>
-          </span>
-          <span class="px-abt__rowverdict">
-            <span class="px-abt__v" data-verdict={d.verdict}>{d.verdict}</span>
-            <span class="px-abt__note">{d.note}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
+            <span class="px-abt__rowverdict">
+              <span class="px-abt__v" data-verdict={d.verdict}>{d.verdict}</span>
+              <span class="px-abt__note">{d.note}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p class="px-abt__close">What survived is four concentric circles, one dial position and one letter. Nothing in it is decoration, and nothing in it needs the story above in order to be read, which is the only test a mark has to pass.</p>
+    </section>
 
-    <p class="px-abt__close">
-      What survived is four concentric circles, one dial position and one letter.
-      Nothing in it is decoration, and nothing in it needs the story above in
-      order to be read — which is the only test a mark has to pass.
-    </p>
-  </section>
-
-  <!-- 8 · Colophon -->
-  <section class="px-band px-band--last px-abt__colophon" id="colophon">
-    <p class="px-eyebrow">Colophon</p>
-    <p class="px-abt__cop">
-      Parallax is published by <b>Parallax Lens</b>™, registered in India. Set in
-      Newsreader and Instrument Sans. Built as a static site with no analytics, no cookies and no
-      trackers.
-    </p>
-  </section>
+    <section class="px-abt__colophon" id="colophon" aria-labelledby="px-abt-colo">
+      <h2 class="px-abt__eyebrow" id="px-abt-colo">Colophon</h2>
+      <p class="px-abt__cop">Parallax is published by <b>Parallax Lens</b>™, registered in India. Set in Newsreader and Instrument Sans. Built as a static site with no analytics, no cookies and no trackers.</p>
+    </section>
+  </div>
 </HomeLayout>
 
 <style>
-  /* ── 1 · Hero ─────────────────────────────────────────────────────────────
-     The primitives carry 68→40px, the italic accent word and the 300-weight
-     lede; only the two measures are the artboard's own. */
-  .px-abt__hero .px-h1 { max-width: 20ch; }
-  .px-abt__hero .px-lede { max-width: 54ch; line-height: 1.5; }
-
-  /* ── 2 · The mark ──────────────────────────────────────────────────────── */
-  .px-abt__markband {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 34px;
-    align-items: center;
-  }
-  .px-abt__markband .px-eyebrow { color: var(--muted); margin-bottom: 14px; }
-  .px-abt__markart {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-  .px-abt__dial { display: flex; gap: 9px; }
-  .px-abt__phase { display: flex; }
-  .px-abt__marklead {
-    margin: 0 0 14px;
-    font-family: var(--font-display);
-    font-size: 19px;
-    font-weight: 300;
-    line-height: 1.5;
-    color: var(--ink-soft);
-    max-width: 52ch;
-  }
-  .px-abt__markbody {
+  .px-abt { display: flex; flex-direction: column; gap: 96px; padding: 80px 0 112px; }
+  .px-abt__eyebrow {
     margin: 0;
-    font-size: 16px;
-    line-height: 1.65;
-    color: var(--ink-soft);
-    max-width: 56ch;
+    font: 500 12px/16px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--pol-text);
   }
+  .px-abt__band { display: flex; flex-direction: column; gap: 32px; padding-top: 24px; border-top: 1px solid var(--hair); }
 
-  /* ── 3 · The three steps ───────────────────────────────────────────────── */
-  .px-abt__steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* The band above already draws this hairline. */
-    border-top: 0;
+  /* 1 · the hero: seven columns of copy, five of plate. */
+  .px-abt__hero { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; align-items: center; }
+  .px-abt__herocopy { grid-column: span 7; display: flex; flex-direction: column; gap: 24px; }
+  .px-abt__h1 {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 500; font-size: 64px; line-height: 1.02; letter-spacing: -0.01em;
+    text-wrap: balance;
   }
-  .px-abt__step { padding: 26px 24px; }
-  .px-abt__stepno {
-    font-size: 30px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--accent);
-  }
-  .px-abt__stept {
-    margin: 10px 0 7px;
-    font-size: 21px;
-    font-weight: 700;
-    letter-spacing: -0.018em;
-    color: var(--ink);
-  }
-  .px-abt__stepb { margin: 0; font-size: 15px; line-height: 1.62; color: var(--ink-soft); }
+  .px-abt__h1 :global(em), .px-abt__h2 :global(em) { font-style: italic; color: var(--pol-text); }
+  .px-abt__lede { margin: 0; max-width: 600px; font-family: var(--font-display); font-size: 22px; line-height: 1.5; color: var(--ink-2); text-wrap: pretty; }
+  .px-abt__plate { grid-column: 8 / span 5; margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .px-abt__platebox { background: var(--paper-3); border-radius: var(--r-card); padding: 16px 0; display: flex; justify-content: center; }
+  .px-abt__lens { display: block; width: 100%; max-width: 470px; height: auto; }
+  /* The plate's two labels print at 13px; the 470 box shrinks to about 335 on
+     a phone, so there they are drawn at 18 to stay at 12 or more. */
+  .px-abt__lensl { font-size: 13px; }
+  .px-abt__platecap { font: 400 13px/1.4 var(--font-ui); color: var(--muted); }
 
-  /* ── 4 · The editor ────────────────────────────────────────────────────── */
-  .px-abt__editor .px-eyebrow { color: var(--muted); margin-bottom: 6px; }
-  .px-abt__edcopy {
-    margin: 0 0 20px;
-    font-size: 15px;
-    line-height: 1.62;
-    color: var(--ink-soft);
-    max-width: 62ch;
+  /* 2 · the mark. */
+  .px-abt__band:has(.px-abt__markrow) { gap: 40px; }
+  .px-abt__markrow { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; align-items: center; }
+  .px-abt__markwell {
+    grid-column: span 5; height: 320px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--paper-3); border-radius: var(--r-card);
   }
-  .px-abt__figs { display: flex; flex-wrap: wrap; gap: 20px; }
-  .px-abt__fig { flex: 0 1 300px; margin: 0; }
-  .px-abt__frame { border: 1px solid var(--rule); padding: 7px; }
-  .px-abt__img { display: block; width: 100%; height: 232px; object-fit: cover; }
-  .px-abt__figcap {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding-top: 9px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
+  .px-abt__markcopy { grid-column: 7 / span 6; display: flex; flex-direction: column; gap: 20px; }
+  .px-abt__marklead { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 30px; line-height: 1.3; letter-spacing: -0.01em; text-wrap: pretty; }
+  .px-abt__markbody { margin: 0; font-family: var(--font-display); font-size: 19px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+  .px-abt__dialwrap { display: flex; flex-direction: column; gap: 16px; }
+  .px-abt__small { font: 500 12px/1.3 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px-abt__dial { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px; }
+  .px-abt__station {
+    display: flex; flex-direction: column; gap: 12px; min-width: 0;
+    padding: 20px 20px 18px;
+    border: 1px solid var(--hair); border-top: 3px solid var(--st-mark); border-radius: var(--r-card);
+    color: var(--ink); text-decoration: none;
+    transition: border-color var(--t-micro, 160ms) var(--ease);
   }
+  .px-abt__station:hover { border-color: var(--ink); border-top-color: var(--st-mark); }
+  .px-abt__station:hover .px-abt__stn { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+  .px-abt__station:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-abt__stname { display: flex; flex-direction: column; gap: 4px; }
+  .px-abt__stn { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.15; letter-spacing: -0.01em; }
+  .px-abt__str { font: 500 12px/1.3 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--st-text); }
+  .px-abt__deg { font: 500 13px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  /* ── 5 · The eight voices ──────────────────────────────────────────────── */
-  .px-abt__voices .px-eyebrow { color: var(--muted); margin-bottom: 18px; }
-  .px-abt__voicegrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .px-abt__voice { padding: 15px 16px; }
-  .px-abt__voicen {
-    margin: 0 0 5px;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-  }
-  .px-abt__voiced { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+  /* 4 · the editor. */
+  .px-abt__ed { display: flex; flex-direction: column; gap: 20px; max-width: 864px; }
+  .px-abt__edlead { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.12; letter-spacing: -0.01em; text-wrap: balance; }
+  .px-abt__edbody { margin: 0; max-width: 620px; font-family: var(--font-display); font-size: 19px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
 
-  /* ── 6 · The promises ──────────────────────────────────────────────────── */
-  .px-abt__promises {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    border-top: 0;
+  /* 5 · the eight voices, 4 x 2. */
+  .px-abt__voices { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+  .px-abt__voice {
+    display: flex; flex-direction: column; gap: 10px; min-width: 0;
+    padding: 20px 24px 22px;
+    background: var(--paper-2); border: 1px solid var(--hair); border-radius: var(--r-card);
   }
-  .px-abt__promise { padding: 24px; }
-  .px-abt__promno { font-size: 22px; font-weight: 700; color: var(--accent); }
-  .px-abt__promt {
-    margin: 8px 0 5px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-  .px-abt__promb { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
+  .px-abt__vno { font: 600 12px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-abt__vn { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.15; letter-spacing: -0.01em; }
+  .px-abt__vd { font: 400 15px/1.45 var(--font-ui); color: var(--ink-2); }
 
-  /* ── 7 · The making of the mark ────────────────────────────────────────── */
-  .px-abt__making .px-eyebrow { margin-bottom: 14px; }
-  .px-abt__h2 {
-    margin: 0 0 16px;
-    font-family: var(--font-display);
-    font-size: 34px;
-    font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: -0.028em;
-    color: var(--ink);
-    max-width: 22ch;
-  }
-  /* :global — the <em> arrives through set:html, so it carries no scope. */
-  .px-abt__h2 :global(em) { font-style: italic; font-weight: 400; color: var(--accent); }
-  .px-abt__intro {
-    margin: 0 0 26px;
-    font-size: 16px;
-    line-height: 1.65;
-    color: var(--ink-soft);
-    max-width: 62ch;
-  }
-
-  .px-abt__lore { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  /* 6 · the making of the mark. */
+  .px-abt__makehead { display: flex; flex-direction: column; gap: 16px; }
+  .px-abt__h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.08; letter-spacing: -0.01em; }
+  .px-abt__intro { margin: 0; max-width: 720px; font-family: var(--font-display); font-size: 19px; line-height: 1.6; color: var(--ink-2); }
+  .px-abt__lore { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hair); }
   .px-abt__row {
-    display: grid;
-    grid-template-columns: 150px 1fr 260px;
-    gap: 34px;
-    align-items: start;
-    padding: 22px 0;
-    border-top: 1px solid var(--rule);
+    display: grid; grid-template-columns: 40px 64px minmax(0, 1fr) 300px; gap: 28px; align-items: start;
+    padding: 28px 0; border-bottom: 1px solid var(--hair);
   }
-  .px-abt__rowlead { display: flex; align-items: center; gap: 16px; }
-  .px-abt__no {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--muted);
-  }
-  .px-abt__art {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 64px;
-    height: 64px;
-    border: 1px solid var(--rule);
-    flex: 0 0 auto;
-  }
-  .px-abt__rowtext { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .px-abt__t { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
-  .px-abt__b { font-size: 15px; line-height: 1.62; color: var(--ink-soft); max-width: 58ch; }
-  .px-abt__rowverdict { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .px-abt__no { padding-top: 6px; font: 600 13px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-abt__row :global(.px-abt__art) { display: block; flex: none; }
+  .px-abt__rowtext { display: flex; flex-direction: column; gap: 8px; max-width: 620px; }
+  .px-abt__t { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.15; letter-spacing: -0.005em; }
+  .px-abt__b { font-family: var(--font-display); font-size: 17px; line-height: 1.6; color: var(--ink-2); }
+  .px-abt__rowverdict { display: flex; flex-direction: column; gap: 12px; padding-top: 2px; }
   .px-abt__v {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
+    align-self: flex-start;
+    height: 28px; box-sizing: border-box; padding: 0 12px; display: inline-flex; align-items: center;
+    border-radius: var(--r-chip);
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+    background: var(--paper-3); color: var(--muted); border: 1px solid var(--hair);
   }
-  .px-abt__v[data-verdict='Discarded'] { color: var(--muted); }
-  .px-abt__note { font-size: 14px; line-height: 1.58; color: var(--ink-soft); max-width: 34ch; }
+  .px-abt__v[data-verdict='Kept, reassigned'] { background: transparent; color: var(--ink); border-color: var(--ink); }
+  .px-abt__v[data-verdict='Adopted'] { background: var(--pol-text); color: var(--paper); border-color: var(--pol-text); }
+  .px-abt__note { font: 400 14px/1.5 var(--font-ui); color: var(--ink-2); }
+  .px-abt__close { margin: 0; max-width: 820px; font-family: var(--font-display); font-style: italic; font-size: 24px; line-height: 1.45; }
 
-  .px-abt__close {
-    margin: 26px 0 0;
-    padding-top: 18px;
-    border-top: 2px solid var(--ink);
-    font-size: 16px;
-    line-height: 1.65;
-    color: var(--ink-soft);
-    max-width: 62ch;
+  /* 7 · the colophon. */
+  .px-abt__colophon { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding-top: 24px; border-top: 2px solid var(--ink); }
+  .px-abt__colophon .px-abt__eyebrow { grid-column: span 3; }
+  .px-abt__cop { grid-column: 4 / span 8; margin: 0; font-family: var(--font-display); font-size: 22px; line-height: 1.5; color: var(--ink-2); text-wrap: pretty; }
+  .px-abt__cop b { font-weight: 600; color: var(--ink); }
+
+  @media (max-width: 1100px) {
+    .px-abt__dial { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .px-abt__row { grid-template-columns: 32px 56px minmax(0, 1fr); }
+    .px-abt__rowverdict { grid-column: 3; }
   }
-
-  /* ── 8 · Colophon ──────────────────────────────────────────────────────── */
-  .px-abt__colophon .px-eyebrow { color: var(--muted); margin-bottom: 10px; }
-  .px-abt__cop {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.62;
-    color: var(--ink-soft);
-    max-width: 62ch;
-  }
-  .px-abt__cop b { color: var(--ink); font-weight: 700; }
-
-  /* ── Phone (the 412 artboard) ──────────────────────────────────────────── */
   @media (max-width: 768px) {
-    .px-abt__markband { grid-template-columns: 1fr; gap: 22px; }
-    .px-abt__steps { grid-template-columns: 1fr; }
-    .px-abt__voicegrid { grid-template-columns: 1fr 1fr; }
-    .px-abt__promises { grid-template-columns: 1fr; }
-    .px-abt__h2 { font-size: 28px; }
-    .px-abt__row { grid-template-columns: 1fr; gap: 22px; }
+    .px-abt { gap: 64px; padding: 48px 0 72px; }
+    .px-abt__band { gap: 24px; }
+    .px-abt__hero, .px-abt__markrow, .px-abt__colophon { grid-template-columns: 1fr; }
+    .px-abt__herocopy, .px-abt__plate, .px-abt__markwell, .px-abt__markcopy,
+    .px-abt__colophon .px-abt__eyebrow, .px-abt__cop { grid-column: auto; }
+    .px-abt__h1 { font-size: 40px; line-height: 1.06; }
+    .px-abt__lede { font-size: 19px; }
+    .px-abt__lensl { font-size: 18px; }
+    .px-abt__markwell { height: 240px; }
+    .px-abt__marklead { font-size: 24px; }
+    .px-abt__markbody { font-size: 18px; }
+    .px-abt__dial { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .px-abt__station { padding: 16px; }
+    .px-abt__stn { font-size: 20px; }
+    .px-abt__edlead { font-size: 30px; }
+    .px-abt__edbody { font-size: 18px; }
+    .px-abt__voices { grid-template-columns: 1fr; gap: 12px; }
+    .px-abt__h2 { font-size: 32px; }
+    .px-abt__intro { font-size: 18px; }
+    .px-abt__row { grid-template-columns: 48px minmax(0, 1fr); gap: 12px 16px; padding: 24px 0; }
+    .px-abt__no { display: none; }
+    .px-abt__row :global(.px-abt__art) { width: 48px; height: 48px; }
+    .px-abt__rowtext, .px-abt__rowverdict { grid-column: 2; }
+    .px-abt__close { font-size: 20px; }
+    .px-abt__cop { font-size: 19px; }
   }
 </style>

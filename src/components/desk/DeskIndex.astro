@@ -1,130 +1,232 @@
 ---
 /**
- * DeskIndex — the ONE desk-page template (launch design, 2026-09-08).
+ * DeskIndex — the ONE desk-page template (Lens Phase 4; the Desk and
+ * Desk-Phone boards). Six desks, one structure; they differ by ink.
  *
- * Six bespoke <World>Index components collapse into this: the worlds differ by
- * accent and register, never by structure, so the page is the same three bands
- * everywhere and `data-topic` on <html> (set by HomeLayout) does the theming.
+ *   1. the stage          the desk's latest issue told as a picture on the
+ *                         desk's plate (core/Stage + stage/StageScene; the
+ *                         orbit on the space desk, the clock where an issue
+ *                         carries one, else the cover number beside the
+ *                         issue's cover mark), with the register in the lockup
+ *   2. the dispatches     every issue on this desk as a cover tile, three across
+ *   3. the reading path   "New here? Start with No N": the three earliest
+ *                         issues as a dot strip
+ *   4. the other desks    five tiles, each with its medallion, its count and
+ *                         its latest cover as a thumbnail
+ *   then the footer (HomeLayout's Colophon).
  *
- *   1. head band       dot + register · N dispatches / headline / lede
- *   2. the rows        <IssueRows variant="desk"> — the shared row implementation
- *   3. the other desks a head band + a chip row to the five siblings
+ * Copy comes from `src/lib/desks.ts`, which the home page's desk cards read
+ * too. Every count is derived from the published collection.
  *
- * Copy comes from `src/lib/desks.ts` (DESK_REGISTER / DESK_COPY), which the
- * home page's six cards read too — so a desk's tagline can never disagree
- * between the card and the page it opens.
- *
- * The two small-capital lines here are deliberately NOT `.px-eyebrow`: the
- * travel and sports themes re-cut that class (italic serif, lowercase) and the
- * artboard wants the mono register on every desk.
+ * Prefix: px-desk. No JS.
  */
-import IssueRows from '../home/IssueRows.astro';
+import type { CollectionEntry } from 'astro:content';
+import Stage from '../core/Stage.astro';
+import StageScene from '../stage/StageScene.astro';
+import CoverCard from '../core/CoverCard.astro';
+import Mark from '../core/Mark.astro';
 import { DESK_COPY, DESK_REGISTER } from '../../lib/desks';
+import { ink } from '../../lib/desk-inks';
 import { renderEmphasis } from '../../lib/text';
+import { formatNo } from '../../lib/issue-number';
 import { TOPICS, type Topic } from '../../content/config';
-
-export interface DeskItem {
-  slug: string;
-  topic: Topic;
-  title: string;
-  hook?: string;
-  issueNumber: number;
-  publishedAt: Date;
-  readTimeMinutes?: number;
-}
 
 interface Props {
   topic: Topic;
   /** This desk's published issues, newest first. */
-  items: DeskItem[];
+  issues: CollectionEntry<'issues'>[];
+  /** Every published issue, newest first (the other desks' tiles). */
+  all: CollectionEntry<'issues'>[];
+  /** Publication-wide issue numbers. */
+  numbers: Map<string, number>;
 }
-const { topic, items } = Astro.props;
+const { topic, issues, all, numbers } = Astro.props;
 
 const copy = DESK_COPY[topic];
-const count = items.length;
-const others = TOPICS.filter((t) => t !== topic);
+const register = DESK_REGISTER[topic];
+const latest = issues[0];
+const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+const count = issues.length;
+const head = `${WORDS[count] ?? count} ${count === 1 ? 'dispatch' : 'dispatches'}`;
+const eyebrow = `${register} · ${count} ${count === 1 ? 'dispatch' : 'dispatches'}`;
+const no = (i: CollectionEntry<'issues'>) => formatNo(numbers.get(i.slug) ?? 0);
+
+/* The path: the three earliest, oldest first. */
+const path = [...issues].reverse().slice(0, 3);
+
+const others = TOPICS.filter((t) => t !== topic).map((t) => {
+  const mine = all.filter((i) => i.data.topic === t);
+  return {
+    topic: t,
+    name: DESK_COPY[t].name,
+    count: `${mine.length} ${mine.length === 1 ? 'issue' : 'issues'}`,
+    latest: mine[0],
+    inks: `--ot-text: ${ink(t, 'text')}; --ot-mark: ${ink(t, 'mark')}; --ot-tint: ${ink(t, 'tint')}`,
+  };
+});
+const deskInks = `--dk-text: ${ink(topic, 'text')}; --dk-mark: ${ink(topic, 'mark')}`;
 ---
 
-<section class="px-band px-desk__head">
-  <p class="px-desk__reg">
-    <span class="px-dot px-desk__dot" aria-hidden="true"></span>
-    {DESK_REGISTER[topic]} · {count} {count === 1 ? 'dispatch' : 'dispatches'}
-  </p>
-  <h1 class="px-h1" set:html={renderEmphasis(copy.title)} />
-  <p class="px-lede px-desk__lede">{copy.blurb}</p>
-</section>
+<Stage desk={topic} height={720} label={`Latest from ${register}`} register current="desks">
+  {latest ? (
+    <StageScene issue={latest} variant="desk" eyebrow={eyebrow} cta={`Read ${no(latest)}`} />
+  ) : (
+    <div class="px-desk__empty">
+      <p class="px-desk__emptyreg">{eyebrow}</p>
+      <h1 class="px-desk__emptyh" set:html={renderEmphasis(copy.title)} />
+      <p class="px-desk__emptyp">{copy.blurb}</p>
+    </div>
+  )}
+</Stage>
 
-<IssueRows
-  variant="desk"
-  items={items}
-  emptyText="No dispatches yet. The first will open this desk."
-/>
+<div class="px-desk" style={deskInks}>
+  {count > 0 && (
+    <section class="px-desk__list" aria-labelledby="px-desk-list">
+      <div class="px-desk__listhead">
+        <h2 class="px-desk__h2" id="px-desk-list">{head}</h2>
+        <a class="px-desk__arch" href="/archive/">The archive
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8 H13 M9 4 L13 8 L9 12" /></svg>
+        </a>
+      </div>
+      <div class="px-desk__grid">
+        {issues.map((i) => <CoverCard issue={i} size="tile" number={numbers.get(i.slug)} />)}
+      </div>
+    </section>
+  )}
 
-<div class="px-band px-band--head px-desk__oh">
-  <p class="px-desk__label">The other desks</p>
-  <span class="px-meta">Six worlds, one publication</span>
+  {path.length > 0 && (
+    <nav class="px-desk__path" aria-label="Reading path">
+      <span class="px-desk__pathh">New here? Start with {no(path[0])}</span>
+      <ol class="px-desk__dots">
+        {path.map((i, k) => (
+          <>
+            {k > 0 && <li class="px-desk__line" aria-hidden="true"></li>}
+            <li class="px-desk__stop">
+              <a class:list={['px-desk__dot', { 'px-desk__dot--first': k === 0 }]} href={`/issues/${i.slug}/`}>
+                <span class="px-desk__disc" aria-hidden="true"></span>
+                <span class="px-desk__dotl">{no(i)}</span>
+              </a>
+            </li>
+          </>
+        ))}
+      </ol>
+    </nav>
+  )}
+
+  <section class="px-desk__others" aria-labelledby="px-desk-others">
+    <h2 class="px-desk__label" id="px-desk-others">Other desks</h2>
+    <div class="px-desk__tiles">
+      {others.map((o) => (
+        <a class="px-desk__tile" href={`/topics/${o.topic}/`} style={o.inks}>
+          {o.latest
+            ? <CoverCard issue={o.latest} size="row" />
+            : <span class="px-desk__thumbempty" aria-hidden="true"></span>}
+          <span class="px-desk__tfoot">
+            <span class="px-desk__tname">
+              <Mark desk={o.topic} size={36} tight ground="var(--paper-2)" />
+              <span class="px-desk__tn">{o.name}</span>
+            </span>
+            <span class="px-desk__chip">{o.count}</span>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
 </div>
 
-<nav class="px-desk__chips" aria-label="The other desks">
-  {others.map((t) => (
-    <a class="px-chip" href={`/topics/${t}/`}>
-      <span class="px-desk__cdot" style={`background: var(--topic-${t})`} aria-hidden="true"></span>
-      {DESK_COPY[t].name}
-    </a>
-  ))}
-</nav>
-
 <style>
-  /* The register line — 11px/600/.2em small capitals in muted, with the
-     world's 9px accent dot leading it. */
-  .px-desk__reg {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    margin: 0 0 16px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
+  .px-desk { display: flex; flex-direction: column; gap: 96px; padding: 96px 0; }
+  .px-desk__list { display: flex; flex-direction: column; gap: 32px; }
+  .px-desk__listhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+  .px-desk__h2 {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.08; letter-spacing: -0.01em;
   }
-  .px-desk__dot { width: 9px; height: 9px; }
-
-  /* 56ch, four wider than the primitive's default: the desk lede is the one
-     paragraph on the page and it wants the full measure. */
-  .px-desk__lede { max-width: 56ch; }
-
-  .px-desk__oh {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 16px;
-    flex-wrap: wrap;
+  .px-desk__arch {
+    min-height: 44px; display: inline-flex; align-items: center; gap: 8px;
+    font: 600 15px/1 var(--font-ui); color: var(--dk-text); text-decoration: none;
+    white-space: nowrap;
   }
+  .px-desk__arch:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .px-desk__arch svg, .px-desk__tile svg.px-desk__none { display: block; flex: none; }
+  .px-desk__arch path { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .px-desk__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+
+  /* The reading path: a 360 heading beside a dot strip, between an ink rule
+     and a hair (the Desk board). */
+  .px-desk__path {
+    display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 48px; align-items: center;
+    padding: 24px 0;
+    border-top: 2px solid var(--ink); border-bottom: 1px solid var(--hair);
+  }
+  .px-desk__pathh { font-family: var(--font-display); font-weight: 500; font-size: 28px; line-height: 1.15; letter-spacing: -0.01em; }
+  .px-desk__dots { margin: 0; padding: 0; list-style: none; display: flex; align-items: center; gap: 16px; }
+  .px-desk__stop { display: flex; }
+  .px-desk__line { flex: 1; height: 2px; background: var(--dk-mark); }
+  .px-desk__dot {
+    min-height: 44px; display: flex; align-items: center; gap: 12px;
+    color: var(--ink); text-decoration: none;
+    font: 600 15px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+  }
+  .px-desk__dot:hover .px-desk__dotl { text-decoration: underline; text-underline-offset: 4px; }
+  .px-desk__disc {
+    width: 14px; height: 14px; box-sizing: border-box; border-radius: 999px;
+    border: 2px solid var(--dk-text); background: var(--paper);
+  }
+  .px-desk__dot--first { color: var(--dk-text); }
+  .px-desk__dot--first .px-desk__disc { width: 20px; height: 20px; background: var(--dk-text); }
+
+  .px-desk__others { display: flex; flex-direction: column; gap: 24px; }
   .px-desk__label {
     margin: 0;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
+    font: 500 13px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  }
+  .px-desk__tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+  .px-desk__tile {
+    min-width: 0; min-height: 200px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+    padding: 20px;
+    background: var(--paper-2);
+    border: 1px solid var(--hair); border-top: 3px solid var(--ot-mark);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-1);
+    color: var(--ink); text-decoration: none;
+    transition: border-color var(--t-micro, 160ms) var(--ease), box-shadow var(--t-micro, 160ms) var(--ease);
+  }
+  .px-desk__tile:hover { border-color: var(--ink); border-top-color: var(--ot-mark); box-shadow: var(--shadow-2); }
+  .px-desk__tile:hover .px-desk__tn { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+  .px-desk__tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-desk__thumbempty { display: block; width: 120px; height: 72px; border-radius: var(--r-ctl); background: var(--ot-tint); }
+  .px-desk__tfoot { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+  .px-desk__tname { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .px-desk__tn { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.1; letter-spacing: -0.01em; }
+  .px-desk__chip {
+    height: 28px; box-sizing: border-box; padding: 0 10px; display: inline-flex; align-items: center;
+    border-radius: var(--r-chip); background: var(--ot-tint); color: var(--ot-text);
+    font: 600 12px/1 var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap;
   }
 
-  .px-desk__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 40px 34px;
-  }
-  .px-desk__cdot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex: 0 0 auto;
-  }
+  /* A desk that has yet to file: its title and lede on the plate. */
+  .px-desk__empty { padding: 64px 0 80px; max-width: 720px; }
+  .px-desk__emptyreg { margin: 0 0 16px; font: 500 13px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-deep-2); }
+  .px-desk__emptyh { margin: 0 0 16px; font-family: var(--font-display); font-weight: 500; font-size: 56px; line-height: 1.04; color: var(--on-deep); }
+  .px-desk__emptyh :global(em) { color: var(--st-hi); }
+  .px-desk__emptyp { margin: 0; font-family: var(--font-display); font-size: 22px; line-height: 1.5; color: var(--on-deep-2); }
 
+  @media (max-width: 1100px) {
+    .px-desk__tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .px-desk__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 768px) {
-    .px-desk__chips { padding: 8px 20px 28px; }
+    .px-desk { gap: 64px; padding: 64px 0; }
+    .px-desk__h2 { font-size: 32px; }
+    .px-desk__grid { grid-template-columns: 1fr; gap: 16px; }
+    .px-desk__path { grid-template-columns: 1fr; gap: 16px; }
+    .px-desk__pathh { font-size: 24px; }
+    .px-desk__dots { gap: 10px; }
+    .px-desk__tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .px-desk__tile { min-height: 0; padding: 16px; }
+    .px-desk__tn { font-size: 20px; }
+    .px-desk__emptyh { font-size: 40px; }
   }
 </style>

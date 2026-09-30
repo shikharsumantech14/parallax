@@ -13,22 +13,19 @@ import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync } from 'f
 import { join } from 'path';
 import matter from 'gray-matter';
 import { ogCard, toPng, TOPICS, type OgData, type Topic } from './og-card.js';
-import { stripEmphasis } from '../../src/lib/text.js';
+import { DESK_REGISTER } from '../../src/lib/desks.js';
+import { canonicalKind } from '../lib/kind-aliases.mjs';
 
 const ISSUES_DIR = join(process.cwd(), 'src', 'content', 'issues');
 const OUT_DIR = join(process.cwd(), 'public', 'og', 'story');
 
-const DESK: Record<Topic, string> = {
-  politics: 'Parliamentary Desk',
-  space: 'Mission Control',
-  earth: 'Field Atlas',
-  tech: 'Tech Desk',
-  travel: 'Field Bureau',
-  sports: 'Matchday Programme',
-};
+interface Found {
+  slug: string; topic: Topic; title: string; publishedAt: number; readTime?: number;
+  sections?: unknown[]; cover?: OgData['cover'];
+}
 
-function discoverIssues(): { slug: string; topic: Topic; title: string; dek: string }[] {
-  const out: { slug: string; topic: Topic; title: string; dek: string }[] = [];
+function discoverIssues(): Found[] {
+  const out: Found[] = [];
   for (const entry of readdirSync(ISSUES_DIR)) {
     if (entry.startsWith('_')) continue; // _template, _AGENTS.md
     const dir = join(ISSUES_DIR, entry);
@@ -43,8 +40,14 @@ function discoverIssues(): { slug: string; topic: Topic; title: string; dek: str
     out.push({
       slug: entry,
       topic: data.topic as Topic,
-      title: stripEmphasis(String(data.title ?? entry)),
-      dek: String(data.dek ?? data.hook ?? ''),
+      title: String(data.title ?? entry),
+      publishedAt: new Date(data.publishedAt).getTime(),
+      readTime: typeof data.readTimeMinutes === 'number' ? data.readTimeMinutes : undefined,
+      /* Retired kind names resolve to their host, as the schema does. */
+      sections: Array.isArray(data.sections)
+        ? data.sections.map((sec: any) => ({ ...sec, kind: canonicalKind(sec?.kind) }))
+        : undefined,
+      cover: data.cover,
     });
   }
   return out;
@@ -53,13 +56,19 @@ function discoverIssues(): { slug: string; topic: Topic; title: string; dek: str
 function run(): void {
   mkdirSync(OUT_DIR, { recursive: true });
   const issues = discoverIssues();
+  /* Issue numbers the way the site derives them (src/lib/issue-number.ts):
+     every non-draft issue, oldest first, ties broken by slug. */
+  const order = [...issues].sort((a, b) => a.publishedAt - b.publishedAt || a.slug.localeCompare(b.slug));
+  const numberOf = new Map(order.map((i, k) => [i.slug, k + 1]));
   let n = 0;
   for (const iss of issues) {
+    const no = `No ${String(numberOf.get(iss.slug)).padStart(2, '0')}`;
     const d: OgData = {
-      eyebrow: `Parallax · ${DESK[iss.topic]}`,
+      eyebrow: `Parallax · ${DESK_REGISTER[iss.topic]}`,
       title: iss.title,
-      dek: iss.dek,
-      source: 'parallaxlens.com',
+      meta: [no, iss.readTime ? `${iss.readTime} min` : undefined, 'parallaxlens.com'].filter(Boolean).join(' · '),
+      sections: iss.sections,
+      cover: iss.cover,
     };
     const png = toPng(ogCard(d, iss.topic));
     const path = join(OUT_DIR, `${iss.slug}.png`);

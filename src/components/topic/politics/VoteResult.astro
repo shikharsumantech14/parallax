@@ -6,9 +6,10 @@
  * the bar into its own row (2026-09-23). Props/semantics
  * unchanged from the previous version, so existing MDX usages keep working.
  *
- * Reveal: the .vb root carries data-reveal; core/Reveal.astro adds .is-in and
- * the segments/threshold/stamp/dots animate in (gated no-JS-safe in
- * dataviz-v2.css). For/Against numbers count up via core/VizMotion.astro.
+ * THE BUILD (Lens Phase 5, LENS §6.4): the .vb root is a `data-build-scene`
+ * and the For / Against numbers count up to the values in the HTML
+ * (src/scripts/build.ts). The rest paints as drawn; Phase 6 gives the bar,
+ * the threshold, the stamp and the dots their own steps.
  */
 interface Props {
   for: number;
@@ -37,7 +38,7 @@ const dots = Array.from({ length: seats }, (_, i) =>
 );
 ---
 
-<div class="vb" data-reveal role="img" aria-label={`Vote: ${forVotes} for, ${against} against — ${required} required`}>
+<div class="vb" data-build-scene role="img" aria-label={`Vote: ${forVotes} for, ${against} against — ${required} required`}>
   {label && <div class="vb__cap">{label}</div>}
 
   <div class="vb__rail">
@@ -45,8 +46,8 @@ const dots = Array.from({ length: seats }, (_, i) =>
       <span class="vb__th-label">{required} required</span>
     </div>
     <div class="vb__bar">
-      <div class="vb__seg vb__seg--for" style={`width: ${forPct}%;`}>For&nbsp;<span data-countup={forVotes}>{forVotes}</span></div>
-      <div class="vb__seg vb__seg--against" style={`width: ${againstPct}%;`}>Against&nbsp;<span data-countup={against}>{against}</span></div>
+      <div class="vb__seg vb__seg--for" style={`width: ${forPct}%;`}>For&nbsp;<span data-build="1" data-build-kind="counter" data-to={forVotes}>{forVotes}</span></div>
+      <div class="vb__seg vb__seg--against" style={`width: ${againstPct}%;`}>Against&nbsp;<span data-build="1" data-build-kind="counter" data-to={against}>{against}</span></div>
     </div>
   </div>
 
@@ -65,8 +66,8 @@ const dots = Array.from({ length: seats }, (_, i) =>
   )}
 
   <div class="vb__legend">
-    <div><span class="vb__n vb__n--for" data-countup={forVotes}>{forVotes}</span>For</div>
-    <div><span class="vb__n vb__n--neg" data-countup={against}>{against}</span>Against</div>
+    <div><span class="vb__n vb__n--for" data-build="1" data-build-kind="counter" data-to={forVotes}>{forVotes}</span>For</div>
+    <div><span class="vb__n vb__n--neg" data-build="1" data-build-kind="counter" data-to={against}>{against}</span>Against</div>
     <div><span class="vb__n">{required}</span>Required</div>
     <div><span class="vb__n vb__n--neg">−{shortfall}</span>Short</div>
   </div>

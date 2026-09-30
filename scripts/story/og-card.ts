@@ -11,9 +11,13 @@
  *
  * Lens (2026-09-30): a share card is a COVER, so it is the one place a desk's
  * deep plate fills the frame (BRIEF.md principle 1; the Brand-ShareCards
- * board). Text on it is the on-deep paper; the desk's mark (the lime on tech
- * and sports) carries the eyebrow and the medallion. Phase 4 adds the cover
- * graphic and the emphasised word; this pass moves the palette and the faces.
+ * board). Text on it is the on-deep paper. Phase 4 (2026-09-30) drew the
+ * board's anatomy: the SEAL-cut medallion top-left at the desk's station, the
+ * register beside it, the headline in Newsreader 500 with its authored
+ * `*word*` in italic in the desk's hi (the lime on tech and sports, the mark
+ * elsewhere), "No 17 · 4 min · parallaxlens.com" at the foot, and on the
+ * right 45%, behind a hair, the issue's cover mark drawn from
+ * `coverModel()` (src/lib/cover.ts, pure) in on-deep colours.
  *
  * History: this was the `ogCard` archetype of the 2026-06 social card system
  * (scripts/social/cards.ts). The social pipelines that used the other six
@@ -24,6 +28,7 @@ import { readdirSync } from 'fs';
 import { join } from 'path';
 import { Resvg } from '@resvg/resvg-js';
 import { markBody } from '../../src/lib/mark';
+import { coverModel, COVER_W, COVER_H, type CoverField } from '../../src/lib/cover';
 
 /* The six desks. Mirrors TOPICS in src/content/config.ts, which cannot be
    imported here: that module imports `astro:content`, a virtual module that
@@ -94,18 +99,27 @@ const H = 630; // the link-preview size every platform accepts
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const label = (t: string, x: number, y: number, size: number, color: string, ls = 1.4, anchor = 'start') =>
   `<text x="${x}" y="${y}" font-family="${SANS}" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
-const serif = (t: string, x: number, y: number, size: number, color: string, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="${SERIF}" font-weight="500" font-size="${size}" letter-spacing="${(-0.01 * size).toFixed(2)}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 
-// crude word-wrap (raw SVG has no auto-wrap): break into lines of ~maxChars
-function wrapWords(text: string, maxChars: number): string[] {
-  const lines: string[] = [];
-  let cur = '';
-  for (const wd of text.split(' ')) {
-    if (cur && (cur + ' ' + wd).length > maxChars) { lines.push(cur); cur = wd; }
-    else cur = cur ? `${cur} ${wd}` : wd;
+/* A title with its authored `*word*` emphasis, as words that remember which
+   are emphasised, wrapped into lines of about `maxChars`. */
+interface Word { w: string; em: boolean }
+function words(title: string): Word[] {
+  const out: Word[] = [];
+  title.split(/(\*[^*]+\*)/).forEach((part) => {
+    const em = /^\*[^*]+\*$/.test(part);
+    part.replace(/\*/g, '').split(/\s+/).filter(Boolean).forEach((w) => out.push({ w, em }));
+  });
+  return out;
+}
+function wrap(ws: Word[], maxChars: number): Word[][] {
+  const lines: Word[][] = [];
+  let cur: Word[] = [];
+  const len = (l: Word[]) => l.map((x) => x.w).join(' ').length;
+  for (const w of ws) {
+    if (cur.length && len([...cur, w]) > maxChars) { lines.push(cur); cur = [w]; }
+    else cur.push(w);
   }
-  if (cur) lines.push(cur);
+  if (cur.length) lines.push(cur);
   return lines;
 }
 
@@ -113,51 +127,103 @@ function wrapWords(text: string, maxChars: number): string[] {
    uses on a deep plate, at the desk's own station. A card renderer resolves
    neither CSS variables nor fonts, so the P is an outlined path. Geometry
    comes from src/lib/mark.ts, the same source the in-page component uses. */
-function mark(t: Theme, topic: Topic, cx: number, cy: number, r = 30): string {
-  const scale = (r * 2) / 300;
+function mark(t: Theme, topic: Topic, x: number, y: number, size: number): string {
   const body = markBody({
     desk: topic,
-    size: r * 2,
+    size,
     cut: 'seal',
-    colors: { accent: t.accent, ground: t.plate, ink: t.ring, paper: t.ink },
+    colors: { accent: t.accent, ground: t.ring, ink: t.ring, paper: t.ink },
   });
-  return `<g transform="translate(${cx - r} ${cy - r}) scale(${scale.toFixed(4)})">${body}</g>`;
+  return `<g transform="translate(${x} ${y}) scale(${(size / 300).toFixed(4)})">${body}</g>`;
 }
 
-// ── shared frame (the plate + footer) ────────────────────────────────────────
-function frame(t: Theme, topic: Topic, inner: string, source: string): string {
-  const soft = over(t.ink, t.plate, 0.72);   // --on-deep-2
-  const hair = over(t.ink, t.plate, 0.18);   // --on-deep-hair
-  const fy = H - 56;
-  const footer =
-    `<line x1="80" y1="${fy - 36}" x2="${W - 80}" y2="${fy - 36}" stroke="${hair}" stroke-width="1"/>` +
-    mark(t, topic, 108, fy) +
-    serif('Parallax', 150, fy + 12, 36, t.ink) +
-    label(source, W - 80, fy + 6, 20, soft, 0, 'end');
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
-    `<rect width="${W}" height="${H}" fill="${t.plate}"/>` +
-    inner + footer + `</svg>`
-  );
+// ── the cover mark, on the plate ─────────────────────────────────────────────
+/* src/lib/cover.ts draws in CSS colour references for paper (the desk inks by
+   role, the neutrals by name). On the deep plate each role takes its on-deep
+   counterpart, as literals: the desk's marks and words in its hi, ink in the
+   on-deep paper, the greys in on-deep-2, the paper wells as a faint hair. */
+function onDeep(c: string | undefined, t: Theme): string | undefined {
+  if (!c) return c;
+  const soft = over(t.ink, t.plate, 0.72);
+  if (/--[a-z]{3}-(mark|text)\)|--topic-/.test(c)) return t.hi;
+  if (/--[a-z]{3}-tint\)/.test(c)) return t.plate;
+  if (c === 'var(--ink)') return t.ink;
+  if (c === 'var(--ink-2)' || c === 'var(--muted)') return soft;
+  if (c === 'var(--paper-2)') return over(t.ink, t.plate, 0.12);
+  if (c === 'var(--hair-2)') return over(t.ink, t.plate, 0.24);
+  return c.startsWith('var(') ? soft : c;
+}
+function coverArt(t: Theme, topic: Topic, d: OgData, x0: number, y0: number, k: number): string {
+  const m = coverModel(topic, d.sections as any, d.title, { cover: d.cover });
+  /* No drawable section: the desk medallion, large, the card's own mark. */
+  if (!m.drawn) return mark(t, topic, x0 + (COVER_W * k - 200) / 2, y0 + (COVER_H * k - 200) / 2, 200);
+  const g: string[] = [];
+  for (const p of m.paths) {
+    g.push(`<path d="${p.d}" fill="${onDeep(p.fill, t) ?? 'none'}"`
+      + (p.stroke ? ` stroke="${onDeep(p.stroke, t)}" stroke-width="${p.sw ?? 1}"` : '')
+      + (p.dash ? ` stroke-dasharray="${p.dash}"` : '')
+      + (p.cap ? ` stroke-linecap="${p.cap}"` : '')
+      + ` stroke-linejoin="round"` + (p.op != null ? ` opacity="${p.op}"` : '') + `/>`);
+  }
+  for (const r of m.rects) {
+    g.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"` + (r.rx ? ` rx="${r.rx}"` : '')
+      + ` fill="${onDeep(r.fill, t)}"` + (r.op != null ? ` fill-opacity="${r.op}"` : '') + `/>`);
+  }
+  for (const c of m.circles) {
+    g.push(`<circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${onDeep(c.fill, t)}"`
+      + (c.stroke ? ` stroke="${onDeep(c.stroke, t)}" stroke-width="${c.sw ?? 1}"` : '') + `/>`);
+  }
+  for (const x of m.texts) {
+    g.push(`<text x="${x.x}" y="${x.y}" font-family="${SANS}" font-size="${x.fs}" font-weight="${x.w && x.w >= 600 ? 600 : 500}"`
+      + (x.caps ? ' letter-spacing="0.8"' : '')
+      + ` fill="${onDeep(x.fill, t)}" text-anchor="${x.anchor ?? 'start'}">${esc(x.t)}</text>`);
+  }
+  return `<g transform="translate(${x0.toFixed(1)} ${y0.toFixed(1)}) scale(${k.toFixed(4)})">${g.join('')}</g>`;
 }
 
-// ── the card: eyebrow + title + dek on the desk's plate ──────────────────────
-export interface OgData { eyebrow: string; title: string; dek: string; source: string; }
+// ── the card: the seal and the eyebrow, the headline, the meta; the cover ───
+export interface OgData {
+  /** "Parallax · Match programme" */
+  eyebrow: string;
+  /** The title with its authored `*word*` emphasis. */
+  title: string;
+  /** "No 17 · 4 min · parallaxlens.com" */
+  meta: string;
+  /** The issue's sections and cover, for the cover mark on the right. */
+  sections?: unknown[];
+  cover?: CoverField;
+}
 export function ogCard(d: OgData, topic: Topic): string {
   const t = THEMES[topic];
   const soft = over(t.ink, t.plate, 0.72);
   const hair = over(t.ink, t.plate, 0.18);
-  const titleLines = wrapWords(d.title, 26);
-  const tY = 212, tLineH = 72, tSize = 66;
-  const title = titleLines.map((ln, i) => serif(ln, 80, tY + i * tLineH, tSize, t.ink)).join('');
-  const dekY = tY + (titleLines.length - 1) * tLineH + 70;
-  const dek = wrapWords(d.dek, 64).slice(0, 2)
-    .map((ln, i) => label(ln, 80, dekY + i * 40, 28, soft, 0)).join('');
-  const inner =
-    label(d.eyebrow.toUpperCase(), 80, 108, 22, t.hi, 1.3) +
-    `<line x1="80" y1="140" x2="${W - 80}" y2="140" stroke="${hair}" stroke-width="1"/>` +
-    title + dek;
-  return frame(t, topic, inner, d.source);
+  const LEFT = 660; // the words take 55%, the cover 45% (the Brand-ShareCards board)
+
+  let size = 76;
+  let lines = wrap(words(d.title), 15);
+  if (lines.length > 4) { size = 60; lines = wrap(words(d.title), 19); }
+  if (lines.length > 5) lines = lines.slice(0, 5);
+  const lh = Math.round(size * 1.04);
+  const top = Math.round((H - lines.length * lh) / 2 + size * 0.8);
+  const title = lines.map((ln, i) =>
+    `<text x="52" y="${top + i * lh}" font-family="${SERIF}" font-weight="500" font-size="${size}" letter-spacing="${(-0.01 * size).toFixed(2)}" fill="${t.ink}">`
+    + ln.map((w, j) => `<tspan${w.em ? ` font-style="italic" fill="${t.hi}"` : ''}>${j ? ' ' : ''}${esc(w.w)}</tspan>`).join('')
+    + `</text>`).join('');
+
+  const k = 460 / COVER_W;
+  const art = coverArt(t, topic, d, LEFT + (W - LEFT - COVER_W * k) / 2, (H - COVER_H * k) / 2, k);
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+    `<rect width="${W}" height="${H}" fill="${t.plate}"/>` +
+    mark(t, topic, 52, 44, 80) +
+    label(d.eyebrow.toUpperCase(), 156, 94, 24, soft, 1.9) +
+    title +
+    label(d.meta, 52, H - 48, 24, soft, 0) +
+    `<line x1="${LEFT}" y1="0" x2="${LEFT}" y2="${H}" stroke="${hair}" stroke-width="2"/>` +
+    art +
+    `</svg>`
+  );
 }
 
 // ── render ─────────────────────────────────────────────────────────────────

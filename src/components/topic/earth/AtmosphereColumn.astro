@@ -172,7 +172,7 @@ const desc = pins.length
 const uid = 'atmc-' + Math.random().toString(36).slice(2, 8);
 ---
 
-<div class="px-viz px-atmc" data-reveal>
+<div class="px-viz px-atmc">
   {(caption || logAlt) && (
     <div class="px-viz__cap">
       {caption && <span>{caption}</span>}
@@ -313,37 +313,25 @@ const uid = 'atmc-' + Math.random().toString(36).slice(2, 8);
   .px-atmc__lm-name { font-family: var(--font-display); font-style: italic; }
   .px-atmc__lm-stat { font-family: var(--font-mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 
-  /* ── reveal: slabs GROW from the ground up, staggered bottom→top ─────── */
+  /* ── final state: slabs rest at full height (build order arrives in Phase 6) ── */
   .px-atmc__slab {
     transform-box: fill-box;
     transform-origin: 50% 100%;
     transform: scaleY(1);
     transition: transform 600ms var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-atmc__slab { transform: scaleY(0); }
-  .px-viz.is-in .px-atmc__slab { transition-delay: calc(var(--i) * 50ms); }
 
-  /* the pressure curve SWEEPS in (dashoffset draw), starting after the slabs */
+  /* the pressure curve rests fully drawn (dashoffset 0) */
   .px-atmc__curve {
     stroke-dasharray: var(--len);
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 900ms var(--ease) 200ms;
   }
-  html.js .px-viz:not(.is-in) .px-atmc__curve { stroke-dashoffset: var(--len); }
 
-  /* landmark pins REVEAL last, overlapping the curve tail (40ms stagger) */
+  /* landmark pins rest fully shown */
   .px-atmc__pin {
     opacity: 1;
     transform: translateY(0);
     transition: opacity 300ms var(--ease), transform 300ms var(--ease);
-  }
-  html.js .px-viz:not(.is-in) .px-atmc__pin { opacity: 0; transform: translateY(14px); }
-  .px-viz.is-in .px-atmc__pin { transition-delay: calc(700ms + var(--j) * 40ms); }
-
-  /* ── reduced-motion: the composed still, flat (no tilt, all final) ───── */
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-atmc__slab { transform: scaleY(1) !important; }
-    .px-viz:not(.is-in) .px-atmc__curve { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-atmc__pin { opacity: 1 !important; transform: none !important; }
   }
 </style>

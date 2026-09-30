@@ -99,7 +99,9 @@ npm run check:render         [-- --slug <s> --widths 1280,375 --report]
                           # the RENDER gate (2026-09-23): headless Chrome loads every
                           # published issue signed in, at 1280 and 375, and measures
                           # overflow, clipping, text-on-text, the ⤢ button on text,
-                          # duplicate chrome; screenshots per section under
+                          # duplicate chrome, and (Phase 5) cue numerals without
+                          # anchors, a build ending off the no-JS page, text below
+                          # 9.5px; screenshots per section under
                           # research/_ui/<date>/. Exit 1 on a blocking finding.
 ```
 
@@ -171,12 +173,13 @@ src/
 │                                (IntroLayout, the onboarding shell, was
 │                                removed with the intro on 2026-09-30)
 ├── pages/
-│   ├── index.astro            ← home: chord + strip + category grid + archive
-│   │                            + <NewsletterNotice/> above the masthead
-│   ├── about.astro            (the /welcome intro story and the home
-│   │                            first-visit overlay were removed on
-│   │                            2026-09-30 by the operator's ruling; the
-│   │                            new design brings its own intro)
+│   ├── index.astro            ← home (Lens Phase 4): the stage (core/Stage
+│   │                            + stage/StageScene) · six desk cards ·
+│   │                            the six latest covers · the promise strip ·
+│   │                            the letter · core/IntroOverlay (first visit)
+│   ├── about.astro            (the /welcome intro story was removed on
+│   │                            2026-09-30; the new intro is
+│   │                            core/IntroOverlay, on Home)
 │   ├── rss.xml.ts
 │   ├── issues/[slug].astro    ← dynamic issue route (one per published+draft);
 │   │                            mounts core/ReadingGate.astro (soft signup
@@ -205,17 +208,17 @@ src/
 │   │                            source], Quote, Prose, Comparison,
 │   │                            DataReadout, Sources, Colophon,
 │   │                            ReadingToolbar [replaced SkimToggle; mounts
-│   │                            SaveButton], the Reveal + VizMotion motion
-│   │                            islands, the Viz3DRuntime + Tilt islands for
+│   │                            SaveButton], the Viz3DRuntime + Tilt islands for
 │   │                            the 3D library, ReadingGate [metered soft
 │   │                            signup wall], and the funnel islands
 │   │                            AccountEntry / WelcomeBack / NewsletterNotice)
 │   ├── story/                 ← story mode: StoryShell, StoryHookCard,
 │   │                            StoryCard, StoryCtaCard, StoryShare
-│   ├── home/                  ← IssueRows — the ONE list-row implementation
-│   │                            (home, archive, desks). The old home pieces
-│   │                            (cards, plate, wire, chord, strips) retired
-│   │                            2026-09-08; the home page is scoped styles
+│   ├── stage/                 ← StageScene: an issue as a picture on the
+│   │                            deep plate (Home and desk heroes, Phase 4)
+│   ├── home/                  ← IssueRows, the list-row implementation.
+│   │                            Since Phase 4 no page mounts it (Home,
+│   │                            archive and desks list cover cards)
 │   ├── desk/                  ← DeskIndex — one template for all six desks
 │   │                            (the six bespoke <Topic>Index fronts retired)
 │   └── topic/<topic>/         ← per-topic signature components
@@ -252,6 +255,11 @@ src/
 │   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
+├── scripts/build.ts           ← the ONE build island (Lens Phase 5): every
+│                                layout loads it; runs `data-build` scenes
+│                                (LENS §6.4); classes in motion-v2.css
+├── scripts/cues.ts            ← the cue lighting, progress and phone pin
+│                                (Lens Phase 3), issue pages only
 └── scripts/viz3d/             ← lazy WebGL for the 10 3D section kinds:
                                   runtime.ts (dynamic-imports three on
                                   scroll-in) + scenes/index.ts (the registry —
@@ -632,6 +640,11 @@ because the page still shows it.
   through the last; counters on requestAnimationFrame, lines by dashoffset,
   bars by `scale`, never by animating `width` / `height` / `r`. Reduced motion
   and no JS paint the final state. No overshoot; hover never moves layout.
+  **Every build runs through ONE island, `src/scripts/build.ts`, from
+  `data-build-scene` / `data-build="n"` / `data-build-kind` in the markup
+  (the contract: LENS §6.4, `src/components/AGENTS.md` §11); no component
+  animates itself, and `core/Reveal.astro`, `core/VizMotion.astro` and the
+  `[data-reveal]` / `.is-in` reveal are retired (Phase 5, 2026-09-30).**
 - **The number scale** (LENS §7): stage counter 160 (88 on phones), pinned
   figure headline 96, secondary figures and stat tiles 48, card numbers 40;
   line-height 0.92, the label 8px below.
@@ -657,8 +670,9 @@ because the page still shows it.
   scrolls, so every label lands at the size it was drawn at. **Read that block
   before touching any of it** — it records the exclusions (narrow-viewBox
   forms, the WebGL fallbacks, `climate-spiral`, `flight-of-the-ball`,
-  `region-map`) and why each is not a bug. The render gate still reports TINY
-  below 9.5px; LENS raises the floor to 12px and the gate follows in Phase 5.
+  `region-map`) and why each is not a bug. Since Phase 5 the render gate
+  follows LENS's 12px floor: TINY (a warning) below 12px, FLOOR (blocking)
+  below 9.5px, measured as rendered, the phone pin's zoom taken out.
 - **No sitemap integration.** `@astrojs/sitemap` was tried and removed — it
   errored on the collection shape. Verify before re-adding.
 

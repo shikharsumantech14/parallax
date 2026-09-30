@@ -1,13 +1,13 @@
 ---
 /**
  * SeaLevelTank (earth) — a cross-section "tank" where a translucent water fill
- * rises from the floor to the highest scenario level on scroll-in. Every
- * `levels` entry draws a horizontal marker line + label at its height; optional
- * `landmarks` sit on the outer side as reference height ticks. A faint
- * perspective on the tank rim (core/Tilt.astro `data-tilt`) gives it body.
+ * stands at the highest scenario level (its rise from the floor arrives with
+ * the Phase 6 build). Every `levels` entry draws a horizontal marker line +
+ * label at its height; optional `landmarks` sit on the outer side as reference
+ * height ticks. A faint perspective on the tank rim (core/Tilt.astro
+ * `data-tilt`) gives it body.
  *
- * No-JS / reduced-motion: the water paints at its FINAL height (the height:0
- * hidden rule sits behind `html.js`; reduced-motion resets with !important).
+ * The water always paints at its FINAL height (static since Lens Phase 5).
  * Marker lines + labels + the landmark ticks read without animation.
  *
  * data: { levels[]{ label, riseM, year? }, landmarks?[]{ name, heightM },
@@ -78,7 +78,7 @@ const ticks = declutter(
 const fmtM = (m: number) => `${m >= 0 ? '+' : ''}${m.toFixed(2)}m`;
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>{fmtM(waterM)} crest</b></div>}
 
   <div class="px-sltank px3d-stage">
@@ -257,20 +257,10 @@ const fmtM = (m: number) => `${m >= 0 ? '+' : ''}${m.toFixed(2)}m`;
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── reveal: water rises from the floor (gated behind html.js) ───────── */
-  html.js .px-viz:not(.is-in) .px-sltank__water { height: 0; }
-  html.js .px-viz:not(.is-in) .px-sltank__mark { opacity: 0; }
-  .px-viz.is-in .px-sltank__mark { transition-delay: calc(620ms + var(--i) * 80ms); }
-
   @media (max-width: 560px) {
     .px-sltank__rim { grid-template-columns: 1fr; gap: 14px; }
     .px-sltank__marks { width: auto; min-height: 0; display: flex; flex-wrap: wrap; gap: 14px; }
     .px-sltank__tick { position: static; transform: none; }
     .px-sltank__tick-line { display: none; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-sltank__water { height: var(--h) !important; }
-    .px-viz:not(.is-in) .px-sltank__mark { opacity: 1 !important; }
   }
 </style>

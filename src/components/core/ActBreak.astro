@@ -18,7 +18,7 @@ interface Props {
 const { act = 'I', title, epigraph } = Astro.props;
 ---
 
-<div class="px-act" data-reveal aria-label={`Act ${act}${title ? ` — ${title}` : ''}`}>
+<div class="px-act" aria-label={`Act ${act}${title ? ` — ${title}` : ''}`}>
   <div class="px-act__ghost" aria-hidden="true">{act}</div>
   <div class="px-act__rule">
     <span class="px-act__label">Act {act}</span>
@@ -104,21 +104,11 @@ const { act = 'I', title, epigraph } = Astro.props;
     margin: 14px auto 0;
     max-width: 480px;
   }
-
-  /* reveal: ghost drifts up as the rule fades in (html.js-gated; no-JS paints final) */
-  :global(html.js) .px-act:not(.is-in) .px-act__ghost { opacity: 0; transform: translateY(18px); }
-  :global(html.js) .px-act:not(.is-in) .px-act__rule,
-  :global(html.js) .px-act:not(.is-in) .px-act__title,
-  :global(html.js) .px-act:not(.is-in) .px-act__epigraph { opacity: 0; }
   .px-act__ghost { transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
   .px-act__rule { transition: opacity 700ms var(--ease) 120ms; }
   .px-act__title { transition: opacity 700ms var(--ease) 220ms; }
   .px-act__epigraph { transition: opacity 700ms var(--ease) 320ms; }
   @media (prefers-reduced-motion: reduce) {
-    :global(html.js) .px-act:not(.is-in) .px-act__ghost { opacity: 0.045; transform: none; }
-    :global(html.js) .px-act:not(.is-in) .px-act__rule,
-    :global(html.js) .px-act:not(.is-in) .px-act__title,
-    :global(html.js) .px-act:not(.is-in) .px-act__epigraph { opacity: 1; }
     .px-act__ghost,
     .px-act__rule,
     .px-act__title,

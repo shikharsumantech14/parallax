@@ -83,7 +83,7 @@ const samples: { x: number; y: number }[] = [];
 for (let a = 0; a <= maxElevM; a += 100) {
   samples.push({ x: +x(o2At(a)).toFixed(2), y: +y(a).toFixed(2) });
 }
-// right-edge curve (bottom→top so the sweep draws upward)
+// right-edge curve (bottom→top so the Phase 6 draw runs upward)
 const curvePath =
   `M ${samples[0].x} ${samples[0].y} ` +
   samples.slice(1).map((p) => `L ${p.x} ${p.y}`).join(' ');
@@ -229,7 +229,7 @@ const rowsOf = (m: Marker) => {
 };
 ---
 
-<div class="px-viz px-altox" data-reveal>
+<div class="px-viz px-altox">
   <div class="px-altox__head">
     {caption && <div class="px-viz__cap"><span>{caption}</span><b>altitude</b></div>}
     <span class="px-altox__chip" title="the curve is the standard-atmosphere approximation, not station data">model: {model}</span>
@@ -266,9 +266,9 @@ const rowsOf = (m: Marker) => {
         <line class="px-altox__axis" x1={PLOT_L} y1={PLOT_T} x2={PLOT_L} y2={PLOT_B} />
         <line class="px-altox__axis" x1={PLOT_L} y1={PLOT_B} x2={PLOT_R} y2={PLOT_B} />
 
-        <!-- the air column (grows upward on reveal) -->
+        <!-- the air column (full height; the Phase 6 build grows it upward) -->
         <path class="px-altox__area" d={areaPath} fill="url(#pxAltoxFill)" />
-        <!-- right-edge curve = the air/space boundary (sweeps bottom→top) -->
+        <!-- right-edge curve = the air/space boundary (fully drawn) -->
         <path class="px-altox__curve" d={curvePath} style={`--len:${curveLen}`} />
 
         <!-- sea-level reference line at the right edge -->
@@ -359,22 +359,20 @@ const rowsOf = (m: Marker) => {
   .px-altox__g-base { stop-color: var(--accent); stop-opacity: 0.28; }
 
   .px-altox__area {
-    /* resting = grown (no-JS safe) */
+    /* resting = full height */
     transform: scaleY(1);
     transform-box: fill-box; transform-origin: bottom;
     transition: transform 900ms var(--ease, ease);
   }
-  :global(html.js) .px-viz:not(.is-in) .px-altox__area { transform: scaleY(0); }
 
   .px-altox__curve {
     fill: none; stroke: var(--accent-deep, var(--accent));
     stroke-width: 1.5; stroke-opacity: 0.9;
     stroke-linejoin: round; stroke-linecap: round;
-    /* resting = fully drawn (no-JS safe) */
+    /* resting = fully drawn */
     stroke-dasharray: var(--len); stroke-dashoffset: 0;
     transition: stroke-dashoffset 1400ms var(--ease, ease) 300ms;
   }
-  :global(html.js) .px-viz:not(.is-in) .px-altox__curve { stroke-dashoffset: var(--len); }
 
   .px-altox__sea { stroke: var(--ink); opacity: 0.42; stroke-width: 1; stroke-dasharray: 3 4; }
   .px-altox__sea-lbl {
@@ -407,13 +405,11 @@ const rowsOf = (m: Marker) => {
     fill: var(--accent-alt); fill-opacity: 0.9; font-variant-numeric: tabular-nums;
   }
 
-  /* stops settle in low→high order (reveal-gated) */
+  /* stops rest shown (the Phase 6 build settles them low→high) */
   .px-altox__stop {
     opacity: 1;
     transition: opacity var(--t-soft, 420ms) var(--ease, ease);
   }
-  :global(html.js) .px-viz:not(.is-in) .px-altox__stop { opacity: 0; }
-  .px-viz.is-in .px-altox__stop { transition-delay: calc(1000ms + var(--i) * 60ms); }
 
   /* 375px: labels shrink, altitude ticks stay ≥ 9.5px; SVG scales, no overflow */
   @media (max-width: 560px) {
@@ -425,8 +421,5 @@ const rowsOf = (m: Marker) => {
 
   @media (prefers-reduced-motion: reduce) {
     .px-altox__tilt { transform: none !important; transition: none !important; }
-    .px-viz:not(.is-in) .px-altox__area { transform: scaleY(1) !important; }
-    .px-viz:not(.is-in) .px-altox__curve { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-altox__stop { opacity: 1 !important; }
   }
 </style>

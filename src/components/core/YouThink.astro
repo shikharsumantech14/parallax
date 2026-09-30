@@ -11,9 +11,11 @@
  * else. This component renders NO source, NO plain line and NO how-to-read of
  * its own — core/Section.astro owns all three (CANON §7, §10; blueprint §1).
  * `source` is accepted and handed on exactly as its siblings do, so the
- * dispatch line reads the same; VizCard ignores it. VizCard's root already
- * carries `data-reveal`, so there is no second reveal root here and no motion
- * of this component's own (blueprint §5).
+ * dispatch line reads the same; VizCard ignores it. VizCard's root is the
+ * `data-build-scene` (Lens Phase 5, LENS §6.4), so this component only
+ * declares its order: 1 the belief drops in, 2 the record, 3 the record's
+ * figure counts up to the value in the HTML when it is one plain number
+ * (else it rises). No motion of its own (src/scripts/build.ts runs it).
  *
  * Two-panel shape after topic/politics/Paradox.astro; number treatment after
  * core/DataReadout.astro — both via the shared `.vz-*` roles in viz-type.css
@@ -39,6 +41,13 @@ interface Props {
 
 const { think, actually, note, caption, source, compact = false } = Astro.props;
 const tag = (k: number) => `<span class="px-cue-tag" data-cue-tag="${k}" hidden></span>`;
+/* The figure counts up only when it is ONE plain number with any text around
+   it ("1,330", "£120m", "28.3%"); a range or a phrase ("1 in 3") rises. */
+const numOf = (v?: string) => {
+  const m = /^[^d]*?(d{1,3}(?:,d{3})+|d+)(.d)?[^d]*$/.exec(v ?? '');
+  return m ? { n: parseFloat((m[1] + (m[2] ?? '')).replace(/,/g, '')), dp: !!m[2] } : null;
+};
+const num = numOf(actually?.value);
 
 /* A belief with no correction — or a correction with no belief — is half an
    argument, and would publish as a full panel beside an empty one. Loud at
@@ -53,16 +62,20 @@ if (!actually?.text) {
 
 <VizCard prefix="px-yt" caption={caption} source={source} class={compact ? 'px-yt--compact' : undefined}>
   <div class="px-yt__grid">
-    <div class="px-yt__panel px-yt__panel--think" data-cue="1">
+    <div class="px-yt__panel px-yt__panel--think" data-cue="1" data-build="1" data-build-kind="drop">
       <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(1)} />{think.label ?? 'What most people think'}</p>
       {!compact && <p class="px-yt__t" set:html={renderInline(think.text)} />}
     </div>
 
-    <div class="px-yt__panel px-yt__panel--act" data-cue="2">
+    <div class="px-yt__panel px-yt__panel--act" data-cue="2" data-build="2" data-build-kind="drop">
       <p class="px-yt__k vz-eyebrow"><Fragment set:html={tag(2)} />{actually.label ?? 'What the data shows'}</p>
       {/* Value and unit on ONE line on purpose: the 10px gap is the unit's
           margin, so an authored line break must not add to it. */}
-      {actually.value && <p class="px-yt__v vz-value" data-cue="3"><Fragment set:html={tag(3)} />{actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}</p>}
+      {actually.value && (
+        <p class="px-yt__v vz-value" data-cue="3" data-build={num ? undefined : '3'} data-build-kind={num ? undefined : 'rise'}>
+          <Fragment set:html={tag(3)} />{num ? <span class="px-yt__n" data-build="3" data-build-kind="counter" data-to={num.n} data-format={num.dp ? '1dp' : undefined}>{actually.value}</span> : actually.value}{actually.unit && <span class="px-yt__u">{actually.unit}</span>}
+        </p>
+      )}
       {!compact && <p class="px-yt__t" set:html={renderInline(actually.text)} />}
     </div>
   </div>

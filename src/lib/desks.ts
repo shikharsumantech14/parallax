@@ -42,14 +42,14 @@ export const DESK_COPY: Record<Topic, DeskCopy> = {
     tag: 'The machinery behind the headlines.',
     cta: 'Visit the desk →',
     title: 'The machinery behind the headlines',
-    blurb: 'Not who won. How the winning was arranged — the procedure, the arithmetic, the incentive that made the outcome inevitable before anyone voted.',
+    blurb: 'Not who won. How the winning was arranged: the procedure, the arithmetic, the incentive that made the outcome inevitable before anyone voted.',
   },
   space: {
     name: 'Space',
     tag: 'Transmissions from beyond the line.',
     cta: 'Open mission control →',
     title: 'Transmissions from beyond the line',
-    blurb: 'Orbits, missions and the telemetry underneath them — what the instruments actually recorded, before anyone wrote a press release.',
+    blurb: 'Orbits, missions and the telemetry underneath them. What the instruments actually recorded, before anyone wrote a press release.',
   },
   earth: {
     name: 'Earth',
@@ -63,7 +63,7 @@ export const DESK_COPY: Record<Topic, DeskCopy> = {
     tag: 'The commit messages of a changing world.',
     cta: '→ cd /tech',
     title: 'The commit messages of a changing world',
-    blurb: 'Not the launch. The diff underneath it — what shipped, what broke, and who pays for the tokens.',
+    blurb: 'Not the launch. The diff underneath it: what shipped, what broke, and who pays for the tokens.',
   },
   travel: {
     name: 'Travel',
@@ -77,9 +77,10 @@ export const DESK_COPY: Record<Topic, DeskCopy> = {
     tag: 'The tactics, told honestly.',
     cta: 'Open the programme →',
     title: 'The tactics, told honestly',
-    blurb: 'Shape, xG and the decisions behind the table — without the pundit shrug.',
+    blurb: 'Shape, xG and the decisions behind the table, without the pundit shrug.',
   },
 };
 
-/** The three dark grounds — where the accent, not the ink, is the world's edge. */
-export const DARK_DESKS: ReadonlySet<Topic> = new Set<Topic>(['space', 'tech', 'sports']);
+/* DARK_DESKS (the three dark page grounds) was retired with them on
+   2026-09-30: under Lens every desk sits on the one paper and its deep colour
+   lives only on the stage (LENS §8). */

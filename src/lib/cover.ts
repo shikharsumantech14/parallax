@@ -1,9 +1,11 @@
 /**
  * The cover mark's derivation (Lens Phase 2, `core/CoverMark.astro`).
  *
- * Until Phase 4 gives an issue a `cover` field, its cover graphic is DERIVED:
- * the first section whose kind has a compact drawing below is the cover, and
- * its own `data` is what the mark draws. Nothing is invented: every number on
+ * An issue's authored `cover` (Phase 4, LENS §4.2) picks the section when
+ * `cover.section` names one of the kinds below; otherwise the cover is
+ * DERIVED: the first section whose kind has a compact drawing below is the
+ * cover, and its own `data` is what the mark draws. The model also carries
+ * the one-line `caption` a desk card prints under the figure. Nothing is invented: every number on
  * a cover is a number the section already carries, and a label is the
  * section's own label clipped to at most three words (LENS §5.5).
  */
@@ -31,11 +33,44 @@ export type CoverKind = (typeof COVER_KINDS)[number];
 interface SectionLike {
   kind: string;
   data?: unknown;
+  /** The section's authored caption (the data claim the verifier traces). */
+  caption?: string;
 }
 
-/** The issue's first section a cover can draw, or undefined (the medallion). */
-export function coverSection<S extends SectionLike>(sections: S[] | undefined): S | undefined {
-  return (sections ?? []).find((s) => (COVER_KINDS as readonly string[]).includes(s.kind));
+/** The first sentence of an authored caption, cue markers and emphasis
+ *  dropped, when it is short enough to sit on one line under a card figure. */
+export function captionLine(raw: unknown, max = 90): string {
+  const t = String(raw ?? '').replace(/\[\[\d+\]\]\s*/g, '').replace(/\*\*|\*/g, '').replace(/\s+/g, ' ').trim();
+  const first = (t.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? t).replace(/[.]$/, '').trim();
+  return first.length && first.length <= max ? first : '';
+}
+
+/** The authored cover (LENS §4.2): the section to draw and its one number. */
+export interface CoverField {
+  section: number;
+  number: string;
+  label: string;
+  headline?: string;
+}
+
+const drawable = (s: SectionLike | undefined) => Boolean(s && (COVER_KINDS as readonly string[]).includes(s.kind));
+
+/** The section a cover draws: the authored `cover.section` when it names a
+ *  drawable kind, else the issue's first section a cover can draw, or
+ *  undefined (the medallion). */
+export function coverSection<S extends SectionLike>(sections: S[] | undefined, index?: number): S | undefined {
+  const list = sections ?? [];
+  if (index != null && drawable(list[index])) return list[index];
+  return list.find((s) => drawable(s));
+}
+
+/** The authored cover's number and label as one line: the number leads when
+ *  the label starts with a unit ("1,330 days since City were charged"),
+ *  otherwise it follows ("The station's last year, 2030"). */
+export function coverLine(c: Pick<CoverField, 'number' | 'label'>): string {
+  const label = c.label.trim();
+  if (/^[a-z]/.test(label) && !/^(the|a|an)\s/i.test(label)) return `${c.number} ${label}`;
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}, ${c.number}`;
 }
 
 const LEADING = new Set(['if', 'when', 'the', 'a', 'an']);
@@ -208,6 +243,10 @@ export interface CoverModel {
   texts: CoverText[];
   /** The figure in words, full labels, for the aria-label. */
   aria: string;
+  /** One line under the figure saying what it shows (a desk card's
+   *  figcaption, LENS §4.2: no graphic without its caption). Empty when
+   *  nothing was drawn (the medallion carries no caption). */
+  caption: string;
   /** Draw the desk medallion here too (box units): the compact readout. */
   medallion?: { x: number; y: number; size: number };
 }
@@ -217,6 +256,9 @@ export interface CoverOptions {
    *  marks heavy enough to read at about 0.3 scale, and no kind is left with
    *  nothing drawn. */
   compact?: boolean;
+  /** The issue's authored `cover`: picks the section and supplies the
+   *  caption when it is that section's number. */
+  cover?: CoverField;
 }
 
 /**
@@ -248,9 +290,19 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
   const texts: T[] = [];
   let aria = '';
 
-  const sec = coverSection(sections);
+  const sec = coverSection(sections, opts.cover?.section);
   const d: any = sec?.data ?? {};
   let drawn = false;
+  let caption = '';
+  /* A label lower-cased to sit mid-sentence, unless its first word reads as
+     a name: "Days since the charge" -> "days since the charge", while
+     "Manchester City" and "Lok Sabha" keep their capitals. */
+  const lc = (t: unknown) => {
+    const x = String(t ?? '').replace(/\*\*|\*/g, '').trim();
+    const [w1, w2] = x.split(/\s+/);
+    const name = /^[A-Z]{2,}/.test(w1 ?? '') || Boolean(w2 && /^[A-Z]/.test(w2));
+    return name ? x : x.charAt(0).toLowerCase() + x.slice(1);
+  };
 
   /* ── bars: two to four labelled rows, a value on the right, a track behind.
      Two rows take the Home board's geometry exactly. `centre` draws a funnel. */
@@ -323,6 +375,9 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       if (rival) rows.push({ label: rival.label, value: rival.value, display: show(rival.value), emph: false });
       drawn = bars(rows, unitIsLong(d.unit) ? clipWords(d.unit) : undefined);
       aria = rows.map((r) => `${r.label}: ${r.display}`).join('. ') + (unitIsLong(d.unit) ? ` (${d.unit})` : '');
+      caption = rival
+        ? `${clipWords(subj.label)} ${show(Number(subj.value))}, against ${clipWords(rival.label)} ${show(rival.value)}`
+        : `${clipWords(subj.label)} ${show(Number(subj.value))}`;
       break;
     }
     case 'data-readout': {
@@ -332,6 +387,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       const other = tiles.find((t) => t !== key);
       const val = (t: any) => withUnit(String(t.value ?? ''), t.unit);
       aria = [key, other].filter(Boolean).map((t: any) => `${t.label}: ${val(t)}`).join('. ');
+      caption = `${val(key)} ${lc(key.label)}`;
       if (compact) {
         /* Two tiles in the same unit race as two bars, scaled to the larger.
            Otherwise the key value is one bar on a hair baseline, beside the
@@ -397,6 +453,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       }
       drawn = true;
       aria = ev.map((x) => `${shortDate(x.date)}: ${String(x.label ?? '').replace(/\*/g, '')}`).join('. ');
+      caption = `${ev.length} dated events, ${shortDate(ev[0].date)} to ${shortDate(ev[ev.length - 1].date)}`;
       break;
     }
     case 'descent-profile': {
@@ -428,7 +485,8 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       const evs: any[] = (d.events ?? []).filter((e: any) => Number.isFinite(altAt(e.t)));
       evs.forEach((e, i) => circles.push({ cx: X(e.t), cy: Y(altAt(e.t)), r: i === evs.length - 1 ? z(6, 20) : z(5, 15), fill: i === evs.length - 1 ? TEXT : MARK }));
       drawn = true;
-      aria = `Altitude falls from ${fmtNum(pts[0].altKm)} km to ${fmtNum(pts[pts.length - 1].altKm)} km`
+      caption = `Altitude falls from ${fmtNum(pts[0].altKm)} km to ${fmtNum(pts[pts.length - 1].altKm)} km`;
+      aria = caption
         + (evs.length ? `. ${evs.map((e) => String(e.label ?? '')).join('. ')}` : '');
       break;
     }
@@ -454,6 +512,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       });
       drawn = true;
       aria = `Of every 100: ${groups.map((g, i) => `${cells[i]} ${g.label}`).join(', ')}`;
+      caption = `${cells[0]} of every 100 ${lc(clipWords(groups[0].label, 4))}`;
       break;
     }
     case 'bill-funnel': {
@@ -465,6 +524,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       }));
       drawn = bars(rows, stages.length <= 3 && d.unit ? clipWords(d.unit) : undefined, true);
       aria = rows.map((r) => `${r.label}: ${r.display}`).join('. ');
+      caption = `${rows[0].display} ${lc(clipWords(rows[0].label))}, ${rows[rows.length - 1].display} ${lc(clipWords(rows[rows.length - 1].label))}`;
       break;
     }
     case 'climate-strip': {
@@ -483,6 +543,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       texts.push({ x: 184, y: 188, t: 'Darker is higher', fs: 13, fill: MUTED, anchor: 'middle' });
       drawn = true;
       aria = `One stripe a year, ${vals[0].year} to ${vals[vals.length - 1].year}, darker for a higher value`;
+      caption = `One stripe a year, ${vals[0].year} to ${vals[vals.length - 1].year}`;
       break;
     }
     case 'vote-result': {
@@ -515,6 +576,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       texts.push({ x: 24, y: 204, t: `For ${fmtNum(yes)}`, fs: 13, w: 600, fill: TEXT });
       drawn = true;
       aria = `${fmtNum(yes)} for${Number.isFinite(no) ? `, ${fmtNum(no)} against` : ''}, ${fmtNum(present)} present${Number.isFinite(need) ? `, ${fmtNum(need)} needed` : ''}`;
+      caption = aria;
       break;
     }
     case 'gauge': {
@@ -554,6 +616,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
         aria = `A lean of ${v} between ${d.leftLabel ?? 'left'} and ${d.rightLabel ?? 'right'}`;
       }
       drawn = true;
+      caption = aria.split(';')[0];
       break;
     }
     case 'scaling-plot': {
@@ -579,6 +642,7 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       if (logNote) texts.push({ x: 64, y: 192, t: logNote, fs: 13, fill: MUTED });
       drawn = true;
       aria = pts.map((p) => `${p.label ?? ''} ${fmtNum(Number(p.y))}`.trim()).join('. ') + (logNote ? `. ${logNote}` : '');
+      caption = `${pts.length} points${d.yLabel ? `, ${lc(clipWords(d.yLabel, 4))}` : ''}${logNote ? `, ${logNote.toLowerCase()}` : ''}`;
       break;
     }
     case 'power-flow': {
@@ -599,10 +663,20 @@ export function coverModel(desk: Topic, sections: SectionLike[] | undefined, tit
       const foot = unitIsLong(d.unit) ? `Where it goes · ${clipWords(d.unit)}` : 'Where it goes';
       drawn = bars(rows, foot);
       aria = `Where it goes: ${rows.map((r) => `${r.label} ${r.display}`).join(', ')}${unitIsLong(d.unit) ? ` (${d.unit})` : ''}`;
+      caption = `The largest share goes to ${clipWords(rows[0].label)}, ${rows[0].display}`;
       break;
     }
   }
 
   if (drawn && !aria) aria = title.replace(/\*/g, '');
-  return { drawn, rects, circles, paths, texts: compact ? [] : texts, aria, medallion };
+  /* The authored cover's own line wins when it names the section drawn. */
+  /* The section's own authored caption wins over the derived line when its
+     first sentence fits; the authored cover's line wins over both when it
+     names the section drawn and its number is one that section carries. */
+  const authored = captionLine(sec?.caption);
+  if (authored) caption = authored;
+  if (drawn && opts.cover && sec === (sections ?? [])[opts.cover.section]
+    && JSON.stringify(sec?.data ?? {}).includes(opts.cover.number)) caption = coverLine(opts.cover);
+  if (!drawn) caption = '';
+  return { drawn, rects, circles, paths, texts: compact ? [] : texts, aria, caption: caption.replace(/\s+/g, ' ').trim(), medallion };
 }

@@ -4,12 +4,12 @@
  * month: an upper temperature cell tinted warm→cool by the month's value, and
  * a lower rainfall bar (height proportional to rainfall). A small legend shows
  * the temperature gradient + the rainfall scale. The best (mildest) and wettest
- * months get a subtle highlight ring. Cells reveal left→right on a stagger
- * (scaleY + opacity, CSS, reveal-gated). Flat CSS grid — no 3D, no JS.
+ * months get a subtle highlight ring. Cells rest at their final height (static
+ * since Lens Phase 5; the Phase 6 build brings them in left→right). Flat CSS
+ * grid — no 3D, no JS.
  *
- * No-JS / reduced-motion: cells paint at their FINAL height/opacity (hidden
- * offsets sit behind `html.js`; reduced-motion resets with !important). Every
- * value is labelled textually inside the cell.
+ * Cells always paint at their FINAL height/opacity. Every value is labelled
+ * textually inside the cell.
  *
  * Temperature tint: linearly mapped across the month range onto a fixed
  * cool→warm hue ramp (deterministic, theme-independent — the warm/cool palette
@@ -106,7 +106,7 @@ function tagAlign(i: number): 'start' | 'end' | 'center' {
 }
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>climate</b></div>}
 
   {hasData ? (
@@ -244,10 +244,6 @@ function tagAlign(i: number): 'start' | 'end' | 'center' {
   .px-ccal__tag[data-align='end'] { left: auto; right: 0; transform: none; }
   .px-ccal__col[data-hl="wet"] .px-ccal__tag { background: var(--accent-deep, var(--accent)); }
 
-  /* reveal: cells rise + scale up left→right (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-ccal__col { opacity: 0; transform: scaleY(0.55) translateY(8px); }
-  .px-viz.is-in .px-ccal__col { transition-delay: calc(var(--i) * 55ms); }
-
   /* legend — system legend role: mono uppercase muted ~10px ls 0.14em */
   .px-ccal__legend {
     display: flex; gap: 22px; flex-wrap: wrap;
@@ -315,9 +311,5 @@ function tagAlign(i: number): 'start' | 'end' | 'center' {
     .px-ccal__temp { min-height: 46px; padding-left: 3px; padding-right: 3px; }
     .px-ccal__rain { height: 32px; }
     .px-ccal__m { font-size: 9.5px; letter-spacing: 0; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-ccal__col { opacity: 1 !important; transform: none !important; }
   }
 </style>

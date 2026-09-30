@@ -4,8 +4,8 @@
  * timeline carries a day-band and a night-band (a gradient from dawn → noon →
  * dusk → night); each city is pinned at its current local hour, showing the
  * local time and a sun/moon day-night glyph. A "now" marker sits at the
- * reference zone's local hour. Cities reveal on a stagger (CSS, reveal-gated).
- * Flat SVG/CSS — no 3D, no JS.
+ * reference zone's local hour. Cities rest in place (static since Lens Phase
+ * 5; the Phase 6 build brings them in). Flat SVG/CSS — no 3D, no JS.
  *
  * Deterministic build: "now" is NOT read from the live clock (that would make
  * every build differ). Instead UTC is anchored at noon (12:00 UTC); each zone's
@@ -13,8 +13,7 @@
  * "now" marker position. The result is stable across builds while still showing
  * a coherent set of relative local times + day/night states.
  *
- * No-JS / reduced-motion: city rows + the now marker paint in their FINAL state
- * (hidden offsets sit behind `html.js`; reduced-motion resets with !important).
+ * City rows + the now marker always paint in their FINAL state.
  * Each city's local time + day/night word is stated textually.
  *
  * data: { zones[]{ city, offset }, refOffset?, caption?, source? }  (offset = hrs from UTC)
@@ -92,7 +91,7 @@ const nowEdge = nowPct < 12 ? 'l' : nowPct > 88 ? 'r' : 'c';
 const ticks = [0, 6, 12, 18].map((h) => ({ h, xPct: (h / 24) * 100 }));
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>time zones</b></div>}
 
   {hasData ? (
@@ -207,7 +206,6 @@ const ticks = [0, 6, 12, 18].map((h) => ({ h, xPct: (h / 24) * 100 }));
   /* edge-aware: pin the label inside the band near 0% / 100% so it can't spill */
   .px-tzarc__now[data-edge="l"] .px-tzarc__nowl { left: 0; transform: translateX(0); }
   .px-tzarc__now[data-edge="r"] .px-tzarc__nowl { left: auto; right: 0; transform: translateX(0); }
-  html.js .px-viz:not(.is-in) .px-tzarc__now { opacity: 0; }
 
   /* ── city ladder ─────────────────────────────────────────────────────────── */
   .px-tzarc__cities { display: flex; flex-direction: column; gap: 0; }
@@ -257,10 +255,6 @@ const ticks = [0, 6, 12, 18].map((h) => ({ h, xPct: (h / 24) * 100 }));
   }
   .px-tzarc__city[data-day="true"] .px-tzarc__state { color: var(--accent-deep, var(--accent)); }
 
-  /* reveal: cities slide in on a stagger (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-tzarc__city { opacity: 0; transform: translateX(8px); }
-  .px-viz.is-in .px-tzarc__city { transition-delay: calc(var(--i) * 70ms); }
-
   .px-tzarc__empty {
     font-family: var(--font-mono); font-size: 12px; color: var(--muted);
     text-align: center; padding: 28px 0;
@@ -271,10 +265,5 @@ const ticks = [0, 6, 12, 18].map((h) => ({ h, xPct: (h / 24) * 100 }));
     .px-tzarc__state { display: none; }
     .px-tzarc__name { font-size: 15px; }
     .px-tzarc__time { font-size: 16px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-tzarc__now { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-tzarc__city { opacity: 1 !important; transform: none !important; }
   }
 </style>

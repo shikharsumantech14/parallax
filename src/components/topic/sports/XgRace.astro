@@ -540,13 +540,8 @@ for (const a of annotations) {
     stroke-linejoin: round;
   }
 
-  /* end markers fade in after the lines draw */
+  /* end markers rest shown (the Phase 6 build fades them in after the lines) */
   .px-xgr__end { opacity: 1; transition: opacity var(--t-soft) var(--ease) 1300ms; }
-  html.js .px-viz:not(.is-in) .px-xgr__end { opacity: 0; }
-
-  /* reveal: draw both step paths (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-xgr__line { stroke-dashoffset: 1; }
-  .px-viz.is-in .px-xgr__line--home { transition-delay: 200ms; }
 
   .px-xgr__legend {
     display: flex; gap: 24px; flex-wrap: wrap;
@@ -576,8 +571,6 @@ for (const a of annotations) {
   .px-xgr__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-xgr__line { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-xgr__end { opacity: 1 !important; }
     /* the scrub still works — it is comprehension. Only the tween goes. */
     .px-xgr__end { transition: none; }
   }

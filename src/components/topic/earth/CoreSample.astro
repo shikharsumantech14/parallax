@@ -7,9 +7,8 @@
  * down the left rail. The column lives on a CSS-3D stage (core/Tilt.astro
  * `data-tilt`) so it reads as a recovered core lifted from the ground.
  *
- * No-JS / reduced-motion: every band paints in its FINAL state (the hidden
- * scaleY/opacity rule sits behind `html.js`; reduced-motion resets with
- * !important). The depth + label + value text carries the reading regardless.
+ * Every band always paints in its FINAL state (static since Lens Phase 5).
+ * The depth + label + value text carries the reading regardless.
  *
  * data: { layers[]{ depth, label, value?, color? }, unit?, caption?, source? }
  */
@@ -45,7 +44,7 @@ const topDepth = layers[0]?.depth ?? '';
 const bottomDepth = layers[n - 1]?.depth ?? '';
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {/* No chip: the kind's own name is not a label a reader can use (2026-09-23). */}
   {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
 
@@ -138,7 +137,7 @@ const bottomDepth = layers[n - 1]?.depth ?? '';
     padding: 12px 16px;
     background: color-mix(in oklab, var(--fill) 26%, var(--paper));
     border-bottom: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
-    /* base/resting = final visible state (no-JS safe) */
+    /* resting = final visible state; Phase 6 builds from here */
     transform: scaleY(1);
     transform-origin: top;
     opacity: 1;
@@ -186,17 +185,9 @@ const bottomDepth = layers[n - 1]?.depth ?? '';
     white-space: nowrap;
   }
 
-  /* ── reveal: bands drop in top→bottom (scaleY + fade), staggered ─────── */
-  html.js .px-viz:not(.is-in) .px-core__band { transform: scaleY(0); opacity: 0; }
-  .px-viz.is-in .px-core__band { transition-delay: calc(var(--i) * 90ms); }
-
   @media (max-width: 560px) {
     .px-core { grid-template-columns: 40px 1fr; gap: 12px; }
     .px-core__band { min-height: 52px; padding: 10px 13px; gap: 11px; }
     .px-core__label { font-size: 15px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-core__band { transform: scaleY(1) !important; opacity: 1 !important; }
   }
 </style>

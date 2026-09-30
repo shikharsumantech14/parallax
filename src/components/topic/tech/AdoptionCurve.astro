@@ -1,11 +1,10 @@
 ---
 /**
  * AdoptionCurve — v2 technology S-curve (.adc) inside the elevated .px-viz
- * card. The curve stroke-draws left→right on scroll, the gradient area fades
- * in behind, milestone pins pop in sequence, and a milestone strip lists the
- * key moments below. Faithful port of the publication-v2 kit <AdoptionCurve>.
- * Build-time SVG, zero runtime JS (reveal handled by CSS; core/Reveal.astro
- * toggles .is-in on the .px-viz shell). Reuses the shared .ac__grid / .ac__axis
+ * card: the curve, the gradient area behind it, milestone pins, and a
+ * milestone strip listing the key moments below. Faithful port of the
+ * publication-v2 kit <AdoptionCurve>. Build-time SVG, zero runtime JS; static
+ * since Lens Phase 5 (its build order arrives in Phase 6). Reuses the shared .ac__grid / .ac__axis
  * classes (defined in dataviz-v2.css).
  *
  * Shows technology diffusion over time (Rogers' curve).
@@ -141,7 +140,7 @@ const annots: PlacedAnnot[] = (annotations ?? [])   // `annotations:` with no it
   .filter((a): a is PlacedAnnot => a !== null);
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   <div class="px-viz__cap"><span>{caption}</span>{yLabel && <b>{yLabel}</b>}</div>
 
   <svg class="adc__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"

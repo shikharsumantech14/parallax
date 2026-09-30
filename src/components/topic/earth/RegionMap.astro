@@ -195,24 +195,72 @@ const graticulePath = pathGen(gratGen() as any) ?? '';
 const spherePath = framed ? '' : (pathGen({ type: 'Sphere' } as any) ?? '');
 
 // ── Legend geometry (inside SVG, lower-left) ─────────────────────────────────
-const LX = 16, LY = H - 86, LW = 178, LH = 72;
-const RY = LY + 30, RW = LW - 22, RH = 11;
+/* Sized from what it holds (2026-09-30). The box was a fixed 178 x 72 with
+   8px end labels and a 7.5px "no data" label hung OUTSIDE its right edge;
+   the render gate measured them under its 9.5px floor on two issues, and the
+   travel issue's title ran past the box. Now every word is 12px or more (the
+   title 13), the title wraps to two lines inside the box, the no-data swatch
+   takes its own row, and the box grows to the widest row (200 to 340 units).
+   Widths are measured in Chrome: Newsreader italic 13px 0.45em a character,
+   Instrument Sans 500 capitals at 12px and 0.06em tracking 0.76em. */
+const LEG_PAD = 12;
+const LEG_TITLE_FS = 13, LEG_TITLE_CH = 13 * 0.45, LEG_TITLE_LH = 16;
+const LEG_FS = 12, LEG_CH = 12 * 0.76;
+const legTitle = legend?.title ?? 'Relative intensity';
+const legLow = (legend?.low ?? 'LOW').toUpperCase();
+const legHigh = (legend?.high ?? 'HIGH').toUpperCase();
+const legNone = legend?.none ? legend.none.toUpperCase() : '';
+const LW_MIN = 200, LW_MAX = 340;
+const noneRowW = legNone ? 12 + 8 + legNone.length * LEG_CH : 0;
+const endsW = (legLow.length + legHigh.length) * LEG_CH + 24;
+const titleOneW = legTitle.length * LEG_TITLE_CH;
+// the widest row sets the box; a title longer than the widest box wraps
+const LW = Math.ceil(Math.min(LW_MAX, Math.max(LW_MIN, noneRowW + 2 * LEG_PAD, endsW + 2 * LEG_PAD,
+  titleOneW + 2 * LEG_PAD)));
+// the title, wrapped at word boundaries into at most two lines of the box
+const legTitleLines: string[] = (() => {
+  const max = Math.floor((LW - 2 * LEG_PAD) / LEG_TITLE_CH);
+  if (legTitle.length <= max) return [legTitle];
+  const words = legTitle.split(' ');
+  const out: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= max || !cur) cur = next;
+    else { out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  return out.length <= 2 ? out : [out[0], `${out.slice(1).join(' ').slice(0, max - 1).trimEnd()}…`];
+})();
+const LH_TITLE = 20 + (legTitleLines.length - 1) * LEG_TITLE_LH;   // title baseline(s) + descent
+const RULE_Y = LH_TITLE + 5;
+const RY_OFF = RULE_Y + 9, RH = 11;
+const ENDS_Y = RY_OFF + RH + 16;          // low / high baseline
+const NONE_Y = ENDS_Y + 12;               // top of the no-data row
+const LH = (legNone ? NONE_Y + 12 : ENDS_Y) + 10;
+const LX = 14, LY = H - LH - 14;
+const RY = LY + RY_OFF, RW = LW - 2 * LEG_PAD;
 const hasLegend = zones.length > 0;
 
-/* ── Label placement (2026-09-22) ────────────────────────────────────────────
-   Labels are authored at 9.5px — the floor the 2026-09-07 type harvest set.
-   They were 9px (zones) and 8.5px (markers), which the mobile-legibility block
-   in dataviz-v2.css recorded as below the floor.
+/* ── Label placement (2026-09-22; 12px and Lens faces 2026-09-30) ────────────
+   Labels are authored at 12px, LENS's floor (§3), in Instrument Sans: zone
+   names in 600 capitals, marker names in 500. The SVG keeps its 800-unit
+   width in the figure panel and on a phone (the card scrolls, dataviz-v2.css),
+   so 12 authored is 12 rendered. They were 9.5px in Fraunces and JetBrains
+   Mono, two faces Lens retired. A zone name of two or more words may also
+   break onto two lines when its one-line spot is taken.
 
    THE OVERLAP RULE, chosen once here so it is not re-decided per map:
      · MARKERS ARE PLACED FIRST AND NEVER YIELD to a zone label. A marker names
        one exact point the section is about; a country label only names the fill
        it sits on, and the legend already explains the fill.
      · Two labels collide when their boxes overlap — each box is one label
-       height (12px) tall, so in practice: vertical centres within a label
+       height (16 units) tall, so in practice: vertical centres within a label
        height of each other AND horizontal overlap of the estimated text width.
-     · A colliding label is offset VERTICALLY ONLY — 0, −12, +12, −24, +24 in
-       that order (a marker label may also flip to the other side of its dot).
+     · A colliding label is offset VERTICALLY ONLY — 0, −16, +16, −32, +32 in
+       that order, then ±48 and ±64 while the name stays inside its own
+       country's bounds (a marker label may also flip to the other side of its
+       dot, and a zone name of two or more words may take two lines).
        Vertical-only keeps a country label over its own country.
      · If no offset in that ladder is free, the label is DROPPED. For a zone
        that means the marker sitting on it carries the name, which is the more
@@ -220,25 +268,28 @@ const hasLegend = zones.length > 0;
      · The legend box, every marker dot and the card edge are pre-occupied, so
        no label can land under the legend or bleed outside the SVG.
 */
-/* Width model, MEASURED off the rendered SVG rather than guessed (the first
-   pass guessed 0.74em/char for the caps and let MADAGASCAR sit on ANGOLA).
-   Per-character advance tops out at 8.6 for the tracked serif caps and 5.7
-   for the mono, and every label carries a halo stroke that adds ~6 to the
-   painted box. Both numbers are deliberately the worst case — over-reserving
-   only makes the pass move a label that would just have cleared. */
-const LABEL_FS = 9.5;
-const LABEL_H = 12;                // measured painted height is 11
-const ZONE_CH = 8.6, ZONE_HALO = 6;   // serif caps + .12em tracking
-const MARK_CH = 5.7, MARK_HALO = 6;   // mono + .06em tracking
+/* Width model, MEASURED off rendered SVG text in Chrome rather than guessed
+   (the first pass guessed and let MADAGASCAR sit on ANGOLA). Instrument Sans
+   capitals at 12px and 0.06em tracking run 0.64 to 0.74em a character, the
+   mixed-case marker names 0.46 to 0.49em. The per-character figures below
+   are rounded up to the worst case, and every label carries a halo stroke
+   that adds ~4 to the painted box: over-reserving only moves a label that
+   would just have cleared. */
+const LABEL_FS = 12;
+const LABEL_H = 16;                // one 12px line with its halo
+const ZONE_CH = 12 * 0.76, ZONE_HALO = 4;   // 600 capitals, .06em tracking
+const MARK_CH = 12 * 0.53, MARK_HALO = 4;   // 500 mixed case, .02em tracking
 const EDGE = 6;
+const LABEL_FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
 type Box = { x0: number; x1: number; y0: number; y1: number };
 const occupied: Box[] = [];
 if (hasLegend) occupied.push({ x0: LX - 2, x1: LX + LW + 2, y0: LY - 2, y1: LY + LH + 2 });
 
-function place<T extends { x0: number; x1: number; y: number }>(options: T[]): T | null {
+function place<T extends { x0: number; x1: number; y: number; h?: number }>(options: T[]): T | null {
   for (const o of options) {
-    const b: Box = { x0: o.x0, x1: o.x1, y0: o.y - LABEL_H / 2, y1: o.y + LABEL_H / 2 };
+    const h = o.h ?? LABEL_H;
+    const b: Box = { x0: o.x0, x1: o.x1, y0: o.y - h / 2, y1: o.y + h / 2 };
     if (b.x0 < EDGE || b.x1 > W - EDGE || b.y0 < EDGE || b.y1 > H - EDGE) continue;
     if (occupied.some(p => b.x0 < p.x1 && b.x1 > p.x0 && b.y0 < p.y1 && b.y1 > p.y0)) continue;
     occupied.push(b);
@@ -285,21 +336,43 @@ const labels = zones
     const c = pathGen.centroid(feat);
     if (!c || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) return null;
     const text = z.label!.toUpperCase();
-    const w = text.length * ZONE_CH + ZONE_HALO;
     const x = Math.round(c[0]), y = Math.round(c[1]);
-    const got = place([0, -LABEL_H, LABEL_H, -2 * LABEL_H, 2 * LABEL_H].map(dy => ({
-      x0: x - w / 2 - 2, x1: x + w / 2 + 2, y: y + dy,
-    })));
+    // A large country may move its name further, three or four lines from its
+    // centroid, but only while the name's centre stays inside the country's
+    // own drawn bounds: a big zone whose centroid the markers crowd (the
+    // Indonesia issue) keeps its name, a small one never wanders off itself.
+    const [[, by0], [, by1]] = pathGen.bounds(feat);
+    const LADDER = [0, -LABEL_H, LABEL_H, -2 * LABEL_H, 2 * LABEL_H,
+      ...[-3, 3, -4, 4].map(k => k * LABEL_H).filter(dy => y + dy > by0 + LABEL_H / 2 && y + dy < by1 - LABEL_H / 2)];
+    // one line, then (for a name of two or more words) two balanced lines
+    const words = text.split(' ');
+    let split: string[] | null = null;
+    if (words.length > 1) {
+      let best = 1, bestW = Infinity;
+      for (let k = 1; k < words.length; k++) {
+        const wk = Math.max(words.slice(0, k).join(' ').length, words.slice(k).join(' ').length);
+        if (wk < bestW) { bestW = wk; best = k; }
+      }
+      split = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+    }
+    const w1 = text.length * ZONE_CH + ZONE_HALO;
+    const opts: { x0: number; x1: number; y: number; h?: number; lines: string[] }[] =
+      LADDER.map(dy => ({ x0: x - w1 / 2 - 2, x1: x + w1 / 2 + 2, y: y + dy, lines: [text] }));
+    if (split) {
+      const w2 = Math.max(...split.map(l => l.length)) * ZONE_CH + ZONE_HALO;
+      LADDER.forEach(dy => opts.push({ x0: x - w2 / 2 - 2, x1: x + w2 / 2 + 2, y: y + dy, h: LABEL_H * 2 - 2, lines: split! }));
+    }
+    const got = place(opts);
     if (!got) return null;   // dropped — a marker or the legend already owns that spot
-    return { text, x, y: got.y };
+    return { lines: got.lines, x, y: got.y };
   })
-  .filter(Boolean) as { text: string; x: number; y: number }[];
+  .filter(Boolean) as { lines: string[]; x: number; y: number }[];
 
 // ── Zone notes ───────────────────────────────────────────────────────────────
 const notes = zones.filter(z => z.note);
 ---
 
-<div class="px-map" data-viz-root data-reveal>
+<div class="px-map" data-viz-root>
   {caption && <div class="px-map__caption">{caption}</div>}
 
   <svg
@@ -388,17 +461,17 @@ const notes = zones.filter(z => z.note);
     <!-- ⑧ Zone labels (display serif, warm paper on a dark halo) -->
     {labels.map(l => (
       <text
-        x={l.x} y={l.y}
+        x={l.x} y={l.y - ((l.lines.length - 1) * (LABEL_H - 2)) / 2}
         text-anchor="middle"
         dominant-baseline="central"
-        style="font-family:'Fraunces',Georgia,serif;font-size:9.5px;font-weight:700;letter-spacing:0.12em;"
+        style={`${LABEL_FONT};font-size:${LABEL_FS}px;font-weight:600;letter-spacing:0.06em;`}
         fill="#f4ecd8"
         paint-order="stroke"
         stroke="rgba(18,12,2,0.60)"
         stroke-width="2.8"
         stroke-linejoin="round"
       >
-        {l.text}
+        {l.lines.map((ln, li) => <tspan x={l.x} dy={li === 0 ? 0 : LABEL_H - 2}>{ln}</tspan>)}
       </text>
     ))}
 
@@ -416,7 +489,7 @@ const notes = zones.filter(z => z.note);
               x={m.lx} y={m.ly + 0.5}
               text-anchor={m.anchor}
               dominant-baseline="central"
-              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:0.06em;"
+              style={`${LABEL_FONT};font-size:${LABEL_FS}px;font-weight:500;letter-spacing:0.02em;`}
               fill="#1c2218"
               paint-order="stroke"
               stroke="rgba(244,234,208,0.90)"
@@ -439,55 +512,55 @@ const notes = zones.filter(z => z.note);
           fill="#f0e9d8" fill-opacity="0.90"
           rx="2" stroke="#c0af8a" stroke-width="0.75"
         />
-        <!-- Title -->
+        <!-- Title: up to two lines, inside the box -->
         <text
-          x={LX + 10} y={LY + 17}
-          style="font-family:'Fraunces',Georgia,serif;font-size:11.5px;font-style:italic;letter-spacing:0.02em;"
+          x={LX + LEG_PAD} y={LY + 19}
+          style={`font-family:'Newsreader',Georgia,serif;font-size:${LEG_TITLE_FS}px;font-style:italic;`}
           fill="#3a4530"
         >
-          {legend?.title ?? 'Relative intensity'}
+          {legTitleLines.map((ln, li) => <tspan x={LX + LEG_PAD} dy={li === 0 ? 0 : LEG_TITLE_LH}>{ln}</tspan>)}
         </text>
         <!-- Rule under title -->
         <line
-          x1={LX + 10} y1={LY + 22}
-          x2={LX + LW - 10} y2={LY + 22}
+          x1={LX + LEG_PAD} y1={LY + RULE_Y}
+          x2={LX + LW - LEG_PAD} y2={LY + RULE_Y}
           stroke="#c0af8a" stroke-width="0.5"
         />
         <!-- Gradient ramp -->
-        <rect x={LX + 10} y={RY} width={RW} height={RH} fill="url(#px-ramp)" rx="1.5" />
+        <rect x={LX + LEG_PAD} y={RY} width={RW} height={RH} fill="url(#px-ramp)" rx="1.5" />
         <!-- Low label -->
         <text
-          x={LX + 10} y={RY + RH + 12}
-          style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;letter-spacing:0.10em;"
-          fill="#6a7050"
+          x={LX + LEG_PAD} y={LY + ENDS_Y}
+          style={`${LABEL_FONT};font-size:${LEG_FS}px;font-weight:500;letter-spacing:0.06em;`}
+          fill="#5a6044"
         >
-          {(legend?.low ?? 'LOW').toUpperCase()}
+          {legLow}
         </text>
         <!-- High label -->
         <text
-          x={LX + RW + 10} y={RY + RH + 12}
+          x={LX + LW - LEG_PAD} y={LY + ENDS_Y}
           text-anchor="end"
-          style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:8px;letter-spacing:0.10em;"
-          fill="#6a7050"
+          style={`${LABEL_FONT};font-size:${LEG_FS}px;font-weight:500;letter-spacing:0.06em;`}
+          fill="#5a6044"
         >
-          {(legend?.high ?? 'HIGH').toUpperCase()}
+          {legHigh}
         </text>
-        <!-- No-data swatch (optional) -->
-        {legend?.none && (
+        <!-- No-data row (optional): its own line, inside the box -->
+        {legNone && (
           <>
             <rect
-              x={LX + RW + 14} y={RY}
-              width={11} height={RH}
+              x={LX + LEG_PAD} y={LY + NONE_Y}
+              width={12} height={12}
               fill={noDataColor} rx="1"
               stroke="#c0af8a" stroke-width="0.5"
             />
             <text
-              x={LX + RW + 27} y={RY + 7}
+              x={LX + LEG_PAD + 20} y={LY + NONE_Y + 6.5}
               dominant-baseline="central"
-              style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:7.5px;letter-spacing:0.06em;"
-              fill="#6a7050"
+              style={`${LABEL_FONT};font-size:${LEG_FS}px;font-weight:500;letter-spacing:0.06em;`}
+              fill="#5a6044"
             >
-              {legend.none.toUpperCase()}
+              {legNone}
             </text>
           </>
         )}

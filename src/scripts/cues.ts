@@ -14,7 +14,8 @@
  *    rendered, one per cue). Pressing the lit cue again, or Show all, clears
  *    it. A cue button crossing the middle third of the screen lights too.
  *    Section 1 plays its cues once, 1400ms apart, when its figure first comes
- *    into view, then shows all.
+ *    into view and has finished its build (the `px:built` event from
+ *    src/scripts/build.ts; at once when nothing is building), then shows all.
  * 2. PROGRESS. The section crossing a line 40% down the screen is current:
  *    the rail's dot and the head card's entry take `aria-current` (the CSS
  *    marks the ones before it as read and fills the rail's line up to it),
@@ -91,7 +92,9 @@ if (first && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
         first.auto = !!n;
         setTimeout(step, 1400);
       };
-      step();
+      // The cues play once the figure has built (src/scripts/build.ts).
+      const b = first.fig.querySelector('[data-build-state]:not([data-build-state=done])');
+      b ? b.addEventListener('px:built', step, { once: true }) : step();
     },
     { threshold: 0.35 },
   );

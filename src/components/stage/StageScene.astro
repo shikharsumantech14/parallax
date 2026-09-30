@@ -1,0 +1,469 @@
+---
+/**
+ * StageScene — an issue told as a picture on the plate (Lens Phase 4, LENS §8;
+ * the Home board's spiral clock, the Desk board's orbit). Sits in the slot of
+ * `core/Stage.astro`. The data is `src/lib/stage.ts` (pure); this draws it.
+ *
+ * The composition is the same for every scene: the eyebrow and the number at
+ * 160 top-left (88 on phones), the figure in the middle, a ladder of at most
+ * three rows on the right, then the headline (Newsreader 48, the authored
+ * italic word in the desk hi) with the paper "Read …" button and Replay.
+ * Which figure: `spiral` (a running clock), `orbit` (a descent), `bars` (a
+ * readout) or `cover` (the issue's cover mark on a tint panel, 520 wide).
+ *
+ * THE BUILD (Phase 5's `src/scripts/build.ts`, LENS §6.4). The markup is the
+ * final state, and it is what no-JS and reduced-motion readers get. The
+ * scene root is this component's root, `[data-build-scene]`, with
+ * `data-build-tempo="1.6"` on Home (the Home board's timing, BRIEF-5 §2).
+ * Every element that builds carries `data-build="n"` (its step: 1 the ground
+ * and the number's block, 2 the long draw and the counter, 3 to 5 the marks
+ * and their labels, 6 and 7 the rungs, 8 the foot of the clock, 9 the
+ * headline and the button) and `data-build-kind` (fade · rise · drop · draw ·
+ * grow-x · grow-y · counter). The counter is
+ * `data-build-kind="counter" data-to="<n>"` on the number's own span; a
+ * draw is a path with `pathLength="1000"`. Replay is a `<button hidden
+ * data-build-replay>`, shown by the island.
+ *
+ * In-SVG text takes the literal Instrument Sans stack (RD-01b, LENS §3.3);
+ * nothing prints below 12px at 1280 or 375 (LENS §3.4).
+ *
+ * Prefix: px-scn. No JS.
+ */
+import type { CollectionEntry } from 'astro:content';
+import CoverMark from '../core/CoverMark.astro';
+import { stageModel } from '../../lib/stage';
+import { ink } from '../../lib/desk-inks';
+import { renderEmphasis } from '../../lib/text';
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+  /** The small capitals above the number ("Match programme · No 17 · 4 min"). */
+  eyebrow: string;
+  /** The primary button's words ("Read the issue", "Read No 14"). */
+  cta: string;
+  /** home: the Home board's geometry and its 1.6x timing. desk: the Desk board's. */
+  variant?: 'home' | 'desk';
+}
+const { issue, eyebrow, cta, variant = 'desk' } = Astro.props;
+
+const d = issue.data;
+const m = stageModel({ topic: d.topic, title: d.title, sections: d.sections as any, cover: d.cover });
+const href = `/issues/${issue.slug}/`;
+const scale = variant === 'home' ? 1.6 : 1;
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const sp = m.spiral;
+const ob = m.orbit;
+const n = m.ladder.length;
+const ladderSpan = m.scene === 'orbit' ? 260 : 192;
+const pathId = `px-scn-path-${issue.slug}`;
+/* Beats: 1 the ground (guides, counter), 2 the long draw and the first rung,
+   3.. the marks, then the rungs, the foot, the headline, the button. */
+const markBeat = (i: number) => 3 + i;
+const rungBeat = (i: number) => (i === 0 ? 2 : 5 + i);
+const lastBeat = 9;
+const tint = ink(d.topic, 'tint');
+---
+
+<div class:list={['px-scn', `px-scn--${m.scene}`, `px-scn--${variant}`, { 'px-scn--nocount': !m.counter }]} data-build-scene data-build-tempo={scale === 1 ? undefined : scale} data-scene={m.scene}>
+
+  {ob && (
+    <svg class="px-scn__orbit px-scn__orbit--desk" viewBox={`0 0 ${ob.desktop.w} ${ob.desktop.h}`} width={ob.desktop.w} height={ob.desktop.h} role="img" aria-label={ob.desktop.aria} focusable="false">
+      <circle cx={ob.desktop.earth.cx} cy={ob.desktop.earth.cy} r={ob.desktop.earth.r + 9} fill="none" stroke="var(--st-mark)" stroke-opacity=".3" stroke-width="1" />
+      <circle cx={ob.desktop.earth.cx} cy={ob.desktop.earth.cy} r={ob.desktop.earth.r} fill="var(--on-deep)" fill-opacity=".05" stroke="var(--on-deep)" stroke-opacity=".42" stroke-width="1.5" />
+      {ob.desktop.rings.map((r, i) => (
+        <circle
+          cx={ob.desktop.earth.cx} cy={ob.desktop.earth.cy} r={r.r} fill="none"
+          stroke={r.style === 'solid' ? 'var(--st-hi)' : 'var(--on-deep)'}
+          stroke-width={r.style === 'solid' ? 2 : 1.5}
+          stroke-dasharray={r.style === 'dash' ? '8 8' : r.style === 'dot' ? '2 7' : undefined}
+          stroke-linecap={r.style === 'dot' ? 'round' : undefined}
+          data-build="1" data-build-kind="fade"
+        />
+      ))}
+      <path id={pathId} d={ob.desktop.d} fill="none" stroke="var(--st-hi)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1000" data-build="2" data-build-kind="draw" />
+      {ob.desktop.marks.map((k, i) => (
+        <g data-build={markBeat(i)} data-build-kind="drop">
+          <circle cx={k.x} cy={k.y} r={k.last ? 8 : 7} fill={k.last ? 'var(--st-deep)' : 'var(--st-hi)'} stroke={k.last ? 'var(--st-hi)' : 'var(--st-deep)'} stroke-width="3" />
+          <text x={k.lx} y={k.ly} fill="var(--on-deep)" style={`${SANS};font-size:13px;font-weight:600;font-variant-numeric:tabular-nums`}>{k.alt}</text>
+        </g>
+      ))}
+    </svg>
+  )}
+
+  <div class="px-scn__left">
+    <p class="px-scn__eyebrow" data-build="1" data-build-kind="fade">{eyebrow}</p>
+    {m.counter && (
+      <div class="px-scn__count" data-build="1" data-build-kind="rise">
+        <span class="px-scn__num" data-build="2" data-build-kind="counter" data-to={Number.isFinite(m.counter.to) ? m.counter.to : undefined}>{m.counter.text}</span>
+        <span class="px-scn__numlabel">{m.counter.label}</span>
+      </div>
+    )}
+
+    {sp && (
+      <div class="px-scn__fig">
+        {[sp.desktop, sp.phone].map((g, gi) => (
+          <svg
+            class:list={['px-scn__spiral', gi === 0 ? 'px-scn__spiral--desk' : 'px-scn__spiral--phone']}
+            viewBox={`${g.vx} ${g.vy} ${g.w} ${g.h}`} width={g.w} height={g.h}
+            role="img" aria-label={g.aria} focusable="false"
+          >
+            <g data-build="1" data-build-kind="fade">
+              {g.guides.map((r) => (
+                <>
+                  <circle cx={g.cx} cy={g.cy} r={r.r} fill="none" stroke="var(--on-deep)" stroke-opacity=".16" stroke-width="1" stroke-dasharray="2 5" />
+                  <text x={g.cx - 5} y={r.ly} text-anchor="end" fill="var(--on-deep)" fill-opacity=".72" stroke="var(--st-deep)" stroke-width="5" stroke-linejoin="round" paint-order="stroke" style={`${SANS};font-size:${g.yfs}px`}>{r.label}</text>
+                </>
+              ))}
+            </g>
+            {g.inner && (
+              <g data-build="1" data-build-kind="fade">
+                <path d={g.inner.d} fill="none" stroke="var(--on-deep)" stroke-opacity=".72" stroke-width={gi === 0 ? 3 : 2.5} stroke-linecap="round" pathLength="1000" data-build="1" data-build-kind="draw" />
+                <text x={g.inner.lx} y={g.inner.ly} text-anchor="middle" fill="var(--on-deep)" fill-opacity=".72" style={`${SANS};font-size:${g.yfs}px;font-weight:600;font-variant-numeric:tabular-nums`}>{g.inner.label}</text>
+              </g>
+            )}
+            <path id={gi === 0 ? pathId : `${pathId}-p`} d={g.d} fill="none" stroke="var(--st-hi)" stroke-width={gi === 0 ? 3 : 2.5} stroke-linecap="round" stroke-linejoin="round" pathLength="1000" data-build="2" data-build-kind="draw" />
+            <circle cx={g.start.x} cy={g.start.y} r={gi === 0 ? 5 : 4} fill="var(--st-hi)" data-build="1" data-build-kind="fade" />
+            {g.marks.map((k, i) => (
+              <>
+                <circle cx={k.x} cy={k.y} r={gi === 0 ? 6 : 5} fill="var(--on-deep)" stroke="var(--st-deep)" stroke-width="3" data-build={markBeat(i)} data-build-kind="drop" />
+                <text x={k.tx} y={k.ty} text-anchor={k.anchor} fill="var(--on-deep)" stroke="var(--st-deep)" stroke-width="5" stroke-linejoin="round" paint-order="stroke" style={`${SANS};font-size:${g.fs}px;font-weight:500`} data-build={markBeat(i)} data-build-kind="fade">{k.who} {k.what && <tspan style="font-weight:600">{k.what}</tspan>}</text>
+              </>
+            ))}
+            <circle cx={g.head.x} cy={g.head.y} r={gi === 0 ? 10 : 8} fill="var(--st-deep)" stroke="var(--st-hi)" stroke-width="3" data-build="2" data-build-kind="fade" />
+            <g data-build="8" data-build-kind="fade">
+              <text x={g.today.x} y={g.today.y} text-anchor="end" fill="var(--st-hi)" stroke="var(--st-deep)" stroke-width="5" stroke-linejoin="round" paint-order="stroke" style={`${SANS};font-size:${g.fs}px;font-weight:600`}>Today</text>
+              {gi === 0 && g.today.date && (
+                <text x={g.today.x} y={g.today.y + 19} text-anchor="end" fill="var(--on-deep)" fill-opacity=".72" stroke="var(--st-deep)" stroke-width="5" stroke-linejoin="round" paint-order="stroke" style={`${SANS};font-size:12px`}>{g.today.date}</text>
+              )}
+            </g>
+          </svg>
+        ))}
+      </div>
+    )}
+
+    {ob && (
+      <svg class="px-scn__orbit px-scn__orbit--phone" viewBox={`0 0 ${ob.phone.w} ${ob.phone.h}`} width={ob.phone.w} height={ob.phone.h} role="img" aria-label={ob.phone.aria} focusable="false">
+        <circle cx={ob.phone.earth.cx} cy={ob.phone.earth.cy} r={ob.phone.earth.r + 6} fill="none" stroke="var(--st-mark)" stroke-opacity=".3" stroke-width="1" />
+        <circle cx={ob.phone.earth.cx} cy={ob.phone.earth.cy} r={ob.phone.earth.r} fill="var(--on-deep)" fill-opacity=".05" stroke="var(--on-deep)" stroke-opacity=".42" stroke-width="1.5" />
+        {ob.phone.rings.map((r, i) => (
+          <circle cx={ob.phone.earth.cx} cy={ob.phone.earth.cy} r={r.r} fill="none"
+            stroke={r.style === 'solid' ? 'var(--st-hi)' : 'var(--on-deep)'} stroke-width={r.style === 'solid' ? 2 : 1.5}
+            stroke-dasharray={r.style === 'dash' ? '6 6' : r.style === 'dot' ? '2 6' : undefined}
+            stroke-linecap={r.style === 'dot' ? 'round' : undefined}
+            data-build="1" data-build-kind="fade" />
+        ))}
+        <path d={ob.phone.d} fill="none" stroke="var(--st-hi)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1000" data-build="2" data-build-kind="draw" />
+        {ob.phone.marks.map((k, i) => (
+          <circle cx={k.x} cy={k.y} r={k.last ? 7 : 6} fill={k.last ? 'var(--st-deep)' : 'var(--st-hi)'} stroke={k.last ? 'var(--st-hi)' : 'var(--st-deep)'} stroke-width="3" data-build={markBeat(i)} data-build-kind="drop" />
+        ))}
+      </svg>
+    )}
+
+    {m.bars && (
+      <ul class="px-scn__bars" role="list">
+        {m.bars.map((b, i) => (
+          <li class:list={['px-scn__bar', { 'px-scn__bar--key': b.key }]}>
+            <span class="px-scn__barlabel">{b.label}</span>
+            <span class="px-scn__barval">{b.value}</span>
+            <span class="px-scn__bartrack" aria-hidden="true">
+              <span class="px-scn__barfill" style={`transform: scaleX(${b.frac.toFixed(4)})`} data-build={2 + i} data-build-kind="grow-x"></span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    {m.foot && <p class="px-scn__foot">{m.foot}</p>}
+  </div>
+
+  <div class="px-scn__right">
+    {m.scene === 'cover' && (
+      <div class="px-scn__panel" style={`background: ${tint}`} data-build="2" data-build-kind="rise">
+        <CoverMark issue={issue} />
+      </div>
+    )}
+
+    {n > 0 && (
+      <div class="px-scn__ladder" style={`--span: ${ladderSpan}px`}>
+        <span class="px-scn__rail" aria-hidden="true"></span>
+        <span class="px-scn__railfill" aria-hidden="true" data-build="6" data-build-kind="grow-y"></span>
+        <ol class="px-scn__rungs">
+        {m.ladder.map((r, i) => {
+          const pos = r.at ?? (n > 1 ? i / (n - 1) : 0);
+          return (
+            <li class:list={['px-scn__rung', { 'px-scn__rung--hot': r.hot }]} style={`--at: ${pos.toFixed(4)}`} data-build={rungBeat(i)} data-build-kind="fade">
+              <span class="px-scn__dot" aria-hidden="true"></span>
+              <span class="px-scn__val">{r.value}</span>
+              <span class="px-scn__who">
+                <span class="px-scn__name">{r.name}</span>
+                {r.note && <span class="px-scn__note">{r.note}</span>}
+              </span>
+            </li>
+          );
+        })}
+        </ol>
+      </div>
+    )}
+
+    <div class="px-scn__head">
+      <a class="px-scn__hl" href={href} data-build={lastBeat} data-build-kind="rise">
+        <h1 class="px-scn__h1" set:html={renderEmphasis(m.headline)} />
+      </a>
+      <div class="px-scn__ctarow">
+        <a class="px-scn__cta" href={href} data-build={lastBeat} data-build-kind="rise">
+          {cta}
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8 H13 M9 4 L13 8 L9 12" /></svg>
+        </a>
+        <button class="px-scn__replay" type="button" data-build-replay aria-label="Replay the picture" hidden>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.1" /><path d="M2.5 2.5v3h3" /></svg>
+          <span class="px-scn__replaytext">Replay</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Desktop: two columns inside the 1152 column (the boards' geometry,
+     measured from the stage's top-left: the eyebrow at 92, the number at
+     116, the ladder at 140, the headline column at x 720). ─────────────── */
+  .px-scn {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(520px, 1fr) minmax(0, 496px);
+    column-gap: 24px;
+    min-height: calc(var(--st-h, 720px) - 64px);
+    color: var(--on-deep);
+  }
+  .px-scn__left, .px-scn__right { position: relative; z-index: 1; min-width: 0; }
+  .px-scn__left { display: flex; flex-direction: column; padding-top: 28px; }
+  .px-scn__right { display: flex; flex-direction: column; padding-top: 76px; padding-bottom: 100px; }
+  .px-scn--desk .px-scn__right { padding-top: 64px; padding-bottom: 56px; }
+
+  .px-scn__eyebrow {
+    margin: 0 0 8px;
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 500; line-height: 16px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--on-deep-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .px-scn__count { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-left: -4px; }
+  .px-scn__num {
+    font-family: var(--font-ui);
+    font-size: 160px; font-weight: 600; line-height: 0.92; letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    color: var(--st-hi);
+  }
+  .px-scn__numlabel {
+    padding-left: 6px;
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--on-deep-2);
+  }
+
+  /* The spiral: the board's 540 x 460 box, starting 13px under the label. */
+  .px-scn__fig { margin: 13px 0 0 -4px; }
+  .px-scn__spiral { display: block; width: 100%; height: auto; overflow: visible; }
+  .px-scn__spiral--desk { max-width: 540px; }
+  .px-scn__spiral--phone { display: none; max-width: 350px; }
+
+  .px-scn__foot {
+    position: absolute; left: 0; bottom: 26px;
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500; line-height: 16px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--on-deep-2);
+  }
+
+  /* The orbit draws across the whole plate, under both columns, from the
+     plate's top-left (the Desk board's 1280 x 720 drawing). */
+  .px-scn__orbit { display: block; overflow: visible; }
+  .px-scn__orbit--desk { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; }
+  .px-scn__orbit--phone { display: none; }
+
+  /* The readout drawn as bars (on-deep tracks, the key in the hi). */
+  .px-scn__bars { list-style: none; margin: 40px 0 0; padding: 0; display: flex; flex-direction: column; gap: 20px; max-width: 520px; }
+  .px-scn__bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; column-gap: 16px; }
+  .px-scn__barlabel { font: 500 13px/1.3 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-deep-2); }
+  .px-scn__barval { font: 600 20px/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--on-deep); }
+  .px-scn__bar--key .px-scn__barval { color: var(--st-hi); }
+  .px-scn__bartrack { grid-column: 1 / -1; height: 16px; border-radius: 2px; background: var(--on-deep-hair); overflow: hidden; }
+  .px-scn__barfill { display: block; height: 100%; background: var(--on-deep-2); transform-origin: 0 50%; }
+  .px-scn__bar--key .px-scn__barfill { background: var(--st-hi); }
+
+  /* The cover scene: the issue's cover mark on its tint, 520 wide. */
+  .px-scn--cover { grid-template-columns: minmax(0, 1fr) minmax(0, 520px); }
+  .px-scn__panel {
+    display: flex; align-items: center; justify-content: center;
+    container-type: inline-size;
+    padding: 32px 24px;
+    border-radius: var(--r-card);
+  }
+  .px-scn__panel :global(.px-cmark) { max-width: 472px; }
+  /* The right column dissolves so the headline can sit under the number,
+     beside the panel. */
+  .px-scn--cover {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'left panel' 'head panel';
+  }
+  .px-scn--cover .px-scn__right { display: contents; }
+  .px-scn--cover .px-scn__left { grid-area: left; }
+  .px-scn--cover .px-scn__panel { grid-area: panel; align-self: center; }
+  .px-scn--cover .px-scn__head { grid-area: head; align-self: end; margin: 40px 0 56px; }
+  .px-scn--cover.px-scn--home .px-scn__head { margin-bottom: 100px; }
+  /* No cover number: the headline takes the number's place, larger, set
+     against the middle of the panel. */
+  .px-scn--cover.px-scn--nocount .px-scn__head { align-self: center; margin: 0 0 40px; }
+  .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 56px; line-height: 1.04; }
+
+  /* ── The ladder: at most three rungs on a 2px rail. Evenly spaced on the
+     clock (a 192 span, rungs 44 tall), by altitude on the orbit (260). ── */
+  .px-scn__ladder {
+    position: relative;
+    margin: 0 0 0 16px;
+    height: calc(var(--span) + 44px);
+  }
+  .px-scn__rungs { list-style: none; margin: 0; padding: 0; }
+  .px-scn__rail, .px-scn__railfill {
+    position: absolute; left: 7px; top: 22px;
+    width: 2px; height: var(--span);
+    background: var(--on-deep-hair);
+  }
+  .px-scn__railfill { background: var(--st-hi); transform-origin: 50% 0; }
+  .px-scn__rung {
+    position: absolute; left: 0; right: 0;
+    top: calc(var(--at) * var(--span));
+    height: 44px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .px-scn__dot {
+    width: 16px; height: 16px; flex: 0 0 16px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    border: 2px solid var(--on-deep);
+    background: var(--on-deep);
+    box-shadow: 0 0 0 2px var(--st-deep);
+  }
+  .px-scn--orbit .px-scn__dot { border-color: var(--st-hi); background: var(--st-hi); }
+  .px-scn__rung--hot .px-scn__dot { border-color: var(--st-hi); background: var(--st-hi); }
+  .px-scn__val {
+    flex: 0 0 190px; width: 190px;
+    font-family: var(--font-ui);
+    font-size: 32px; font-weight: 600; line-height: 1; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--on-deep);
+    white-space: nowrap;
+  }
+  .px-scn--orbit .px-scn__val { flex-basis: 132px; width: 132px; }
+  .px-scn__rung--hot .px-scn__val { color: var(--st-hi); }
+  .px-scn--orbit .px-scn__rung--hot .px-scn__val { color: var(--on-deep); }
+  .px-scn__who {
+    min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: var(--font-ui);
+    font-size: 13px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .px-scn__name { color: var(--on-deep); }
+  .px-scn__note { color: var(--on-deep-2); }
+  .px-scn--orbit .px-scn__name { color: var(--on-deep-2); }
+  .px-scn__rung--hot .px-scn__name { color: var(--st-hi); }
+  .px-scn--orbit .px-scn__rung--hot .px-scn__name { color: var(--on-deep-2); }
+
+  /* ── The headline, last, and the two buttons. ────────────────────────── */
+  .px-scn__head { margin-top: auto; display: flex; flex-direction: column; gap: 52px; }
+  .px-scn--desk .px-scn__head { gap: 32px; }
+  .px-scn__hl { display: block; color: var(--on-deep); text-decoration: none; }
+  .px-scn__hl:hover .px-scn__h1 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+  .px-scn__hl:focus-visible, .px-scn__cta:focus-visible, .px-scn__replay:focus-visible { outline: 2px solid var(--on-deep); outline-offset: 2px; }
+  .px-scn__h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500; font-size: 48px; line-height: 1.06; letter-spacing: -0.01em;
+    color: var(--on-deep);
+    text-wrap: balance;
+  }
+  .px-scn__h1 :global(em) { font-style: italic; color: var(--st-hi); }
+  .px-scn__ctarow { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; }
+  .px-scn__cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 44px; box-sizing: border-box; padding: 0 20px;
+    border-radius: var(--r-ctl);
+    background: var(--paper); color: var(--ink);
+    font: 600 15px/1 var(--font-ui);
+    text-decoration: none;
+    transition: background var(--t-micro, 160ms) var(--ease);
+  }
+  .px-scn__cta:hover { background: var(--st-hi); color: var(--ink); }
+  .px-scn__cta svg, .px-scn__replay svg { display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .px-scn__replay {
+    display: inline-flex;
+    align-items: center; gap: 8px;
+    height: 44px; box-sizing: border-box; padding: 0 16px;
+    border: 1px solid color-mix(in srgb, var(--on-deep) 50%, transparent);
+    border-radius: var(--r-ctl);
+    background: transparent; color: var(--on-deep);
+    font: 600 15px/1 var(--font-ui);
+    cursor: pointer;
+    transition: border-color var(--t-micro, 160ms) var(--ease);
+  }
+  .px-scn__replay:hover { border-color: var(--on-deep); }
+  /* Replay ships `hidden`; the build island shows it (it does nothing
+     without the island, and nothing under reduced motion). */
+  .px-scn__replay[hidden] { display: none; }
+
+  /* ── Below 1024: one column, the Home-Phone and Desk-Phone boards. ──── */
+  @media (max-width: 1023px) {
+    .px-scn, .px-scn--cover { display: flex; flex-direction: column; min-height: 0; padding: 20px 0 24px; }
+    .px-scn__left { padding-top: 0; }
+    .px-scn__right, .px-scn--desk .px-scn__right { padding: 0; }
+    .px-scn__eyebrow { font-size: 12px; margin-bottom: 12px; }
+    .px-scn__count { margin-left: -3px; }
+    .px-scn__num { font-size: 88px; }
+    .px-scn__numlabel { padding-left: 4px; font-size: 12px; }
+    .px-scn__fig { margin: 6px 0 0; }
+    .px-scn__spiral--desk { display: none; }
+    .px-scn__spiral--phone { display: block; margin-inline: auto; }
+    .px-scn__foot { position: static; margin: 0; }
+    .px-scn__orbit--desk { display: none; }
+    /* The phone drawing keeps to its own box: the planet and the rings are
+       cut at its edges (the Desk-Phone board), never drawn under the text. */
+    .px-scn__orbit--phone {
+      display: block;
+      overflow: hidden;
+      width: calc(100% + 2 * var(--wrap-pad, 20px));
+      max-width: none; height: auto;
+      margin: 16px calc(-1 * var(--wrap-pad, 20px)) 0;
+    }
+    .px-scn--orbit .px-scn__foot { margin-top: 8px; }
+    .px-scn__bars { margin-top: 24px; }
+    .px-scn__panel { margin-top: 24px; padding: 20px 12px; }
+    .px-scn--cover .px-scn__right { display: flex; }
+    .px-scn--cover .px-scn__panel { align-self: stretch; }
+    .px-scn--cover .px-scn__head, .px-scn--cover.px-scn--nocount .px-scn__head { margin: 24px 0 0; }
+    .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 40px; line-height: 1.06; }
+
+    .px-scn__ladder { height: auto; margin: 18px 0 0; }
+    .px-scn__rungs { display: flex; flex-direction: column; gap: 4px; }
+    .px-scn__rail, .px-scn__railfill { display: none; }
+    .px-scn__rung { position: static; height: 36px; gap: 14px; }
+    .px-scn__dot { width: 12px; height: 12px; flex-basis: 12px; box-shadow: none; }
+    .px-scn__val, .px-scn--orbit .px-scn__val { flex-basis: 128px; width: 128px; font-size: 22px; }
+    .px-scn__who { font-size: 12px; }
+    .px-scn__head, .px-scn--desk .px-scn__head { margin-top: 22px; gap: 20px; }
+    .px-scn__h1 { font-size: 40px; }
+    .px-scn__replay { width: 44px; padding: 0; justify-content: center; }
+    .px-scn__replaytext {
+      position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
+  }
+  @media (max-width: 1023px) and (min-width: 600px) {
+    .px-scn__h1 { font-size: 48px; }
+  }
+  @media (max-width: 360px) {
+    .px-scn__val, .px-scn--orbit .px-scn__val { flex-basis: 108px; width: 108px; font-size: 20px; }
+  }
+</style>

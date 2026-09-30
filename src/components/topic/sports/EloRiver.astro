@@ -7,11 +7,11 @@
  * streamgraph, so every crossover — the moment one team overtakes another —
  * is a visible weave. "The table, unrolled into time."
  *
- * 100% build-time SVG geometry (blueprint §4). The ONLY motion is a CSS
- * clip-path `sweep` that flows each ribbon in left→right on scroll-in; no
- * ambient motion (a rating river is a finished record). No-JS / reduced-motion
- * paints the final braided plate — clipPaths render full-width, tags + rail +
- * legend placed, subject ribbon volt. This IS the print plate.
+ * 100% build-time SVG geometry (blueprint §4). No motion since Lens Phase 5:
+ * the ribbons rest fully drawn (a rating river is a finished record) and the
+ * Phase 6 build brings them in. The final braided plate always paints —
+ * clipPaths render full-width, tags + rail + legend placed, subject ribbon
+ * volt. This IS the print plate.
  *
  * Blueprint (the contract): docs/design/blueprints/sports/elo-river.md.
  * Honesty (CANON §7): the rating `model` is NAMED in the source row; `kInfo`
@@ -191,7 +191,7 @@ function fillSpec(t: (typeof prepared)[number], idx: number) {
 }
 
 // ── ribbon render models ────────────────────────────────────────────────────
-// stagger rank: ascending by final rating (broadcast pace; capped 320ms) — §5
+// build-order rank: ascending by final rating (broadcast pace; capped 320ms) — §5
 const finalRating = (t: (typeof prepared)[number]) => t.vals[nDates - 1];
 const rankOrder = prepared.map((_, i) => i).sort((a, b) => finalRating(prepared[a]) - finalRating(prepared[b]));
 const rankOf = new Map<number, number>();
@@ -415,7 +415,7 @@ const ariaLabel = degenerate
 const sourceLine = [source, model].filter(Boolean).join(' · ');
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {(caption || kInfo || anyInterp) && (
     <div class="px-viz__cap">
       {caption && <span>{caption}</span>}
@@ -437,8 +437,8 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
       role="img"
       aria-label={ariaLabel}
     >
-      <!-- the braided river: one clipped <g> per team; the sweep grows the
-           clip left→right on scroll-in (no-JS = full width) -->
+      <!-- the braided river: one clipped <g> per team; the clip rests at full
+           width (the Phase 6 build grows it left→right) -->
       {ribbons.map((r) => (
         <g
           class={`px-eriv__ribbon${r.isSubject ? ' px-eriv__ribbon--subject' : ''}`}
@@ -547,8 +547,8 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
     text-transform: uppercase; color: var(--muted); margin: 0;
   }
 
-  /* ── ribbons: fill = team colour @ --op (§6); solid resting state = no-JS
-        final plate. The clip-path sweep grows on scroll-in only. ── */
+  /* ── ribbons: fill = team colour @ --op (§6); solid resting state = final
+        plate. The clip-path transition waits for the Phase 6 build. ── */
   .px-eriv__ribbon {
     clip-path: inset(0 0 0 0);
     transition: clip-path 900ms var(--ease) var(--rd, 0ms);
@@ -625,9 +625,8 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
     stroke-linejoin: round;
   }
 
-  /* ── reveal (§5): each ribbon `sweep`s in left→right; tags + rail + legend
-        reveal overlapping the sweep tail; subject tag `stamp`s. Hidden states
-        gated behind html.js → no-JS paints the final braided river. ── */
+  /* ── tags, rail, legend and the subject tag (§5): final state, transitions
+        kept for the Phase 6 build order. ── */
   .px-eriv__tag, .px-eriv__rail, .px-eriv__legend {
     opacity: 1;
     transition: opacity 300ms var(--ease) 900ms;
@@ -638,11 +637,6 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
     transform-origin: left center;
     transition: opacity 220ms var(--ease) 1150ms, transform 220ms var(--ease-snap, var(--ease)) 1150ms;
   }
-  html.js .px-viz:not(.is-in) .px-eriv__ribbon { clip-path: inset(0 100% 0 0); }
-  html.js .px-viz:not(.is-in) .px-eriv__tag,
-  html.js .px-viz:not(.is-in) .px-eriv__rail,
-  html.js .px-viz:not(.is-in) .px-eriv__legend { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-eriv__tag--subject { transform: scale(0.6); }
 
   /* ── 375px: shorten tags to [SHORT] only, thin rail labels, bump SVG-unit
         type so rendered mono holds ≥ 9.5px (the power-flow approach) ── */
@@ -651,7 +645,7 @@ const sourceLine = [source, model].filter(Boolean).join(' · ');
      the min-width makes unnecessary — at natural scale the full labels fit in
      the space they were drawn for. */
 
-  /* reduced motion / no-JS: full braided plate, no sweep, subject pre-stamped */
+  /* reduced motion: full braided plate, no sweep, subject pre-stamped */
   @media (prefers-reduced-motion: reduce) {
     .px-eriv__ribbon, .px-eriv__tag, .px-eriv__rail, .px-eriv__legend, .px-eriv__tag--subject {
       transition: none !important;

@@ -38,6 +38,12 @@ shape:
   ogImage?: string;                      // deprecated/unused — kept optional so
                                          //   legacy MDX validates; do NOT set it.
                                          //   The site renders no raster cover art.
+  cover?: {                              // Lens Phase 4 (2026-09-30), optional
+    section: number;                     //   index of the section the cover draws
+    number: string;                      //   the ONE number set large, as printed ("1,330")
+    label: string;                       //   3–60 chars, under it ("days since City were charged")
+    headline?: string;                   //   ≤ 120, the stage's headline if not the title
+  };                                     //   see .claude/rules/issue-authoring.md
   story?: StoryBlock;                    // optional authored story-mode beats; see §13
   sections: Section[];                   // see §2
   sources: Source[];                     // see §3
@@ -571,6 +577,16 @@ with markers in both texts; timeline cue 1 at "2 6" (the charge and today),
 spans) and 2 at "3" (City), with the markers in the caption.
 
 ## Change log
+
+### 2026-09-30 — Lens Phase 4: the `cover` field
+`cover: { section, number, label, headline? }` joined the issue schema (§1).
+The Home and desk stages (`core/Stage.astro`, `stage/StageScene.astro`) set
+its number at 160 and draw a scene from the issue's own data: a spiral clock
+when the issue has a timeline with a dated `key` anchor and a dated `now`
+event a year or more later (No 17), an orbit when the cover section is a
+descent-profile (No 14), else the cover mark on a tint panel. Its section
+also picks the cover card's drawing. The rules and bounds are in
+`.claude/rules/issue-authoring.md`. No 17 and No 14 carry one.
 
 ### 2026-09-30 — Lens Phase 3: the reading system
 `cues`, `short` and inline `[[n]]` markers joined the section schema (§2,

@@ -1,0 +1,434 @@
+---
+/**
+ * IntroOverlay — the first-visit intro on Home (Lens Phase 4; the Intro and
+ * Intro-Phone boards, BRIEF-7 §4). Three quiet scenes on paper that teach the
+ * reading system:
+ *
+ *   1 Two angles             the house medallion assembled from its parts
+ *   2 Six desks              the six lettered marks at their stations
+ *   3 Read with the picture  two cue sentences from the cover issue beside
+ *                            the figure they point at (No 17's two clocks);
+ *                            when the issue lacks that shape, its cover mark
+ *
+ * Shown once per browser (`localStorage` key `px_intro_v2`); `?intro=1`
+ * replays it, `?intro=0` suppresses it (for render checks). Skip is always
+ * visible; a 3-dot stepper of buttons, Back and Next; Escape skips; the
+ * arrow keys step. Scenes 1 and 2 hand on by themselves after about six
+ * seconds (never under reduced motion, and never after a manual step).
+ *
+ * FALLBACK. The overlay ships `hidden`, so a reader without JS never meets
+ * a dialog they cannot dismiss. Every scene's markup is its final state; the
+ * stepper shows one at a time only once the script sets `data-step`, and
+ * without it the three stack in order. Reduced motion: final states, no
+ * auto-advance, no cue autoplay.
+ *
+ * THE BUILD (Phase 5's `src/scripts/build.ts`, LENS §6.4). Each scene is a
+ * `[data-build-scene]` with `data-build` / `data-build-kind` on its parts.
+ * Showing a scene dispatches a bubbling `px:build` event on it, and the
+ * island replays that scene; nothing here animates.
+ *
+ * Script: inline, show-once, stepper and cue lighting only (under 3 KB).
+ * Prefix: px-intro.
+ */
+import type { CollectionEntry } from 'astro:content';
+import Mark from './Mark.astro';
+import CoverMark from './CoverMark.astro';
+import { TOPICS } from '../../content/config';
+import { DESK_COPY, DESK_REGISTER } from '../../lib/desks';
+import { ink } from '../../lib/desk-inks';
+import { markBody, viewBoxFor } from '../../lib/mark';
+import { introFigure } from '../../lib/stage';
+import { coverModel } from '../../lib/cover';
+import { formatNo } from '../../lib/issue-number';
+
+interface Props {
+  issue: CollectionEntry<'issues'>;
+  number?: number;
+}
+const { issue, number } = Astro.props;
+const d = issue.data;
+const desk = d.topic;
+const fig = introFigure({ topic: desk, title: d.title, sections: d.sections as any, cover: d.cover });
+const no = number ? formatNo(number) : '';
+const href = `/issues/${issue.slug}/`;
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+
+/* Scene 1: the house medallion, one element per part so each can build. */
+const parts = markBody({
+  desk: 'politics', size: 168, cut: 'mark',
+  colors: { accent: 'var(--topic-politics)', ground: 'var(--paper)', ink: 'var(--ink)', paper: 'var(--paper)' },
+}).match(/<(circle|path)[^>]*\/>/g) ?? [];
+const fx = ['fade', 'drop', 'fade', 'rise'];
+const medal = parts.map((p, i) => p.replace(/\/>$/, ` data-build="${i + 1}" data-build-kind="${fx[i]}"/>`)).join('');
+
+/* Scene 3: the two-clock bars, scaled to the open clock. */
+const W = 330;
+const k = fig ? W / fig.open.days : 0;
+const widths = fig ? fig.closed.spans.map((s) => +(s * k).toFixed(1)) : [];
+const endX = widths.reduce((s, w) => s + w + 1.5, 0);
+const MARK = ink(desk, 'mark');
+const TEXT = ink(desk, 'text');
+const TINT = ink(desk, 'tint');
+const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { cover: d.cover }).caption;
+---
+
+<div class="px-intro" id="px-intro" role="dialog" aria-modal="true" aria-label="Welcome to Parallax" tabindex="-1" hidden style={`--in-mark: ${MARK}; --in-text: ${TEXT}; --in-tint: ${TINT}`}>
+  <header class="px-intro__top">
+    <span class="px-intro__brand">
+      <Mark size={28} tight />
+      <span class="px-intro__name">Parallax</span>
+    </span>
+    <button class="px-intro__skip" type="button" data-intro-skip>
+      <span>Skip<span class="px-intro__long"> intro</span></span>
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 2l8 8M10 2l-8 8" /></svg>
+    </button>
+  </header>
+
+  <div class="px-intro__scenes">
+    <section class="px-intro__scene px-intro__s1" data-scene="1" data-build-scene aria-label="Scene 1 of 3, Two angles">
+      <svg class="px-intro__medal" viewBox={viewBoxFor(7, true)} width="168" height="168" role="img" aria-label="The Parallax medallion: an oxide disc, a paper disc shifted along the dial to leave a crescent, a ring, and the letter P" focusable="false">
+        <Fragment set:html={medal} />
+      </svg>
+      <div class="px-intro__lines">
+        <p class="px-intro__line" data-build="5" data-build-kind="rise">A star's distance is measured by looking at it twice.</p>
+        <p class="px-intro__sub" data-build="6" data-build-kind="rise">So is a story.</p>
+      </div>
+    </section>
+
+    <section class="px-intro__scene px-intro__s2" data-scene="2" data-build-scene aria-label="Scene 2 of 3, Six desks">
+      <ul class="px-intro__desks">
+        {TOPICS.map((t, i) => (
+          <li class="px-intro__desk" data-build="1" data-build-kind="drop" data-stagger={i}>
+            <Mark desk={t} size={96} tight title={`${DESK_COPY[t].name} medallion`} class="px-intro__dmark" />
+            <span class="px-intro__dname" data-build="4" data-build-kind="rise">
+              <span class="px-intro__dn">{DESK_COPY[t].name}</span>
+              <span class="px-intro__dr" style={`color: ${ink(t, 'text')}`}>{DESK_REGISTER[t]}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p class="px-intro__line" data-build="5" data-build-kind="rise">Six desks. One way of reading.</p>
+    </section>
+
+    <section class="px-intro__scene px-intro__s3" data-scene="3" data-build-scene aria-label="Scene 3 of 3, Read with the picture">
+      <div class="px-intro__read">
+        {fig ? (
+          <article class="px-intro__prose" data-build="1" data-build-kind="rise">
+            <span class="px-intro__eyebrow">{[no, fig.eyebrow].filter(Boolean).join(' · ')}</span>
+            {fig.cues.map((c) => (
+              <p class="px-intro__cuep" data-cue-p={c.n}>
+                <button class="px-intro__cue" type="button" data-intro-cue={c.n} aria-pressed="false" aria-label={`Cue ${c.n}: light it on the figure`}>{c.n}</button>{' '}
+                <span class="px-intro__hl"><strong>{c.lead}</strong> {c.rest}</span>
+              </p>
+            ))}
+          </article>
+        ) : null}
+        <figure class="px-intro__fig" data-build="1" data-build-kind="rise">
+          {fig ? (
+            <>
+              <div class="px-intro__ro" aria-live="polite">
+                {fig.cues.map((c) => (
+                  <div class="px-intro__roi" data-ro={c.n}>
+                    <span class="px-intro__rov">{c.value}</span>
+                    <span class="px-intro__rou">{c.unit}</span>
+                  </div>
+                ))}
+              </div>
+              <svg class="px-intro__bars" viewBox="0 0 372 112" width="372" height="112" role="img" focusable="false"
+                aria-label={`Days each case has run. 1: ${fig.open.label}, ${fig.open.days.toLocaleString('en-US')} and still open. 2: ${fig.closed.label}, ${fig.closed.total} and closed.`}>
+                <g class="px-intro__lite" data-lite="1">
+                  <circle class="px-intro__ring" cx="10" cy="14" r="14" fill="none" stroke={MARK} stroke-width="2" />
+                  <circle cx="10" cy="14" r="10" fill={MARK} />
+                  <text class="px-intro__t px-intro__t--n" x="10" y="18.2" text-anchor="middle" fill="var(--paper)" style={SANS}>1</text>
+                  <text class="px-intro__t" x="32" y="19" fill="var(--ink-2)" style={SANS}>{fig.open.label}</text>
+                  <rect x="0" y="32" width={W} height="16" rx="2" fill={MARK} data-build="2" data-build-kind="grow-x" />
+                  <g data-build="2" data-build-kind="rise">
+                    <line x1="334" y1="40" x2="354" y2="40" stroke={MARK} stroke-width="2" stroke-dasharray="3 3" />
+                    <path d="M356 34l7 6-7 6" fill="none" stroke={MARK} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </g>
+                </g>
+                <g class="px-intro__lite" data-lite="2">
+                  <circle class="px-intro__ring" cx="10" cy="72" r="14" fill="none" stroke={MARK} stroke-width="2" />
+                  <circle cx="10" cy="72" r="10" fill={MARK} />
+                  <text class="px-intro__t px-intro__t--n" x="10" y="76.2" text-anchor="middle" fill="var(--paper)" style={SANS}>2</text>
+                  <text class="px-intro__t" x="32" y="77" fill="var(--ink-2)" style={SANS}>{fig.closed.label}</text>
+                  {widths.map((w, i) => {
+                    const x = widths.slice(0, i).reduce((s, v) => s + v + 1.5, 0);
+                    return <rect x={x.toFixed(1)} y="90" width={w} height="16" rx="2" fill="var(--ink-2)" fill-opacity={i === 0 ? undefined : '.45'} data-build="2" data-build-kind="grow-x" />;
+                  })}
+                  <text class="px-intro__t px-intro__t--b" x={(endX + 9).toFixed(1)} y="103" fill="var(--ink)" style={SANS} data-build="2" data-build-kind="rise">{fig.closed.total} days, closed</text>
+                </g>
+              </svg>
+            </>
+          ) : (
+            <span class="px-intro__cover"><CoverMark issue={issue} /></span>
+          )}
+          <figcaption class="px-intro__cap">
+            {caption && <span class="px-intro__capt">{caption}</span>}
+            {fig?.source && <span class="px-intro__src">Source · {fig.source.label}{fig.source.date ? ` · ${fig.source.date}` : ''}</span>}
+          </figcaption>
+        </figure>
+      </div>
+      <div class="px-intro__end">
+        <p class="px-intro__line px-intro__line--sm" data-build="3" data-build-kind="rise">Every sentence with a number points at its mark. Read, or look. Both work.</p>
+        <div class="px-intro__ctas" data-build="4" data-build-kind="rise">
+          <a class="px-intro__go" href={href} data-intro-close>Start with {no || 'the latest'}
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
+          </a>
+          <a class="px-intro__browse" href="/#desks" data-intro-close>Browse the desks
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="px-intro__foot">
+    <span class="px-intro__label" aria-live="polite"><span data-intro-n>01</span> / 03<span class="px-intro__lname"> · <span data-intro-label>Two angles</span></span></span>
+    <div class="px-intro__dots" role="group" aria-label="Intro scenes">
+      <button class="px-intro__dot" type="button" data-intro-go="1" aria-label="Scene 1 of 3, Two angles"><span></span></button>
+      <button class="px-intro__dot" type="button" data-intro-go="2" aria-label="Scene 2 of 3, Six desks"><span></span></button>
+      <button class="px-intro__dot" type="button" data-intro-go="3" aria-label="Scene 3 of 3, Read with the picture"><span></span></button>
+    </div>
+    <div class="px-intro__nav">
+      <button class="px-intro__back" type="button" data-intro-back>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M12 7H2M6 3L2 7l4 4" /></svg>Back
+      </button>
+      <button class="px-intro__next" type="button" data-intro-next>Next
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<script is:inline>
+(function () {
+  var el = document.getElementById('px-intro'), K = 'px_intro_v2', q = location.search, ls = null, seen = false;
+  if (!el) return;
+  try { ls = localStorage; seen = !!ls.getItem(K); } catch (e) {}
+  if (/[?&]intro=0/.test(q) || (seen && !/[?&]intro=1/.test(q))) return;
+  var N = ['Two angles', 'Six desks', 'Read with the picture'];
+  var rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var R = document.documentElement, prev = document.activeElement, tm = [], cur = 0;
+  var $ = function (s) { return el.querySelector(s); }, $$ = function (s) { return el.querySelectorAll(s); };
+  var fig = $('.px-intro__fig');
+  function clear() { tm.forEach(clearTimeout); tm = []; }
+  function lit(n) {
+    if (fig) fig.setAttribute('data-lit', n || '');
+    $$('[data-intro-cue]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-intro-cue') == n)); });
+  }
+  function close() {
+    clear(); el.hidden = true; R.classList.remove('px-intro-open');
+    try { ls && ls.setItem(K, '1'); } catch (e) {}
+    document.removeEventListener('keydown', key);
+    if (prev && prev.focus) prev.focus();
+  }
+  function go(n, manual) {
+    clear(); cur = n; el.setAttribute('data-step', n);
+    $$('[data-scene]').forEach(function (s) {
+      var on = s.getAttribute('data-scene') == n;
+      s.inert = !on;
+      if (on) s.dispatchEvent(new Event('px:build', { bubbles: true }));
+    });
+    $$('[data-intro-go]').forEach(function (b) { b.setAttribute('aria-current', b.getAttribute('data-intro-go') == n ? 'step' : 'false'); });
+    $('[data-intro-n]').textContent = '0' + n;
+    $('[data-intro-label]').textContent = N[n - 1];
+    $('[data-intro-back]').setAttribute('aria-disabled', String(n === 1));
+    $('[data-intro-next]').hidden = n === 3;
+    lit(0);
+    if (rm) return;
+    if (n < 3 && !manual) tm.push(setTimeout(function () { go(n + 1); }, n === 1 ? 6200 : 6600));
+    if (n === 3) { tm.push(setTimeout(function () { lit(1); }, 924)); tm.push(setTimeout(function () { lit(2); }, 2400)); }
+  }
+  function key(e) {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight' && cur < 3) go(cur + 1, true);
+    else if (e.key === 'ArrowLeft' && cur > 1) go(cur - 1, true);
+  }
+  el.addEventListener('click', function (e) {
+    var t = e.target.closest('button,a');
+    if (!t) return;
+    if (t.hasAttribute('data-intro-skip') || t.hasAttribute('data-intro-close')) return close();
+    if (t.hasAttribute('data-intro-go')) return go(+t.getAttribute('data-intro-go'), true);
+    if (t.hasAttribute('data-intro-back')) return cur > 1 && go(cur - 1, true);
+    if (t.hasAttribute('data-intro-next')) return cur < 3 && go(cur + 1, true);
+    if (t.hasAttribute('data-intro-cue')) { clear(); var n = t.getAttribute('data-intro-cue'); lit(fig && fig.getAttribute('data-lit') == n ? 0 : n); }
+  });
+  document.addEventListener('keydown', key);
+  el.hidden = false; R.classList.add('px-intro-open');
+  go(1); el.focus();
+})();
+</script>
+
+<style>
+  /* While it is open the page beneath does not scroll. */
+  :global(html.px-intro-open), :global(html.px-intro-open body) { overflow: hidden; }
+  /* A first-visit surface that JS opens and closes: never shown without it. */
+  :global(html:not(.js)) .px-intro { display: none !important; }
+  /* Fixed over everything, masthead and stage included, on an OPAQUE paper
+     ground in its own stacking context: nothing beneath ever shows through. */
+  .px-intro {
+    position: fixed; inset: 0; z-index: 10000;
+    isolation: isolate;
+    display: grid; grid-template-rows: 76px minmax(0, 1fr) 96px;
+    background-color: #F5F2EB;
+    background-color: var(--paper, #F5F2EB);
+    color: var(--ink);
+    overflow: hidden;
+    outline: none;
+  }
+  .px-intro[hidden] { display: none; }
+  .px-intro button { font-family: var(--font-ui); cursor: pointer; }
+  .px-intro :is(a, button):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-intro :is(button, a) svg path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  .px-intro__top { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
+  .px-intro__brand { display: flex; align-items: center; gap: 10px; }
+  .px-intro__name { font: 500 20px/1 var(--font-display); letter-spacing: -0.01em; position: relative; top: -1px; }
+  .px-intro__skip, .px-intro__back {
+    height: 44px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--hair-2); border-radius: var(--r-ctl); background: transparent;
+    color: var(--ink-2); font-size: 14px; font-weight: 500;
+    transition: border-color var(--t-micro, 160ms) var(--ease);
+  }
+  .px-intro__back { font-size: 15px; font-weight: 600; }
+  .px-intro__skip:hover, .px-intro__back:hover { border-color: var(--ink); color: var(--ink); }
+  .px-intro__back[aria-disabled='true'] { opacity: 0.4; pointer-events: none; }
+
+  /* The scenes: stacked in order until the stepper takes over. */
+  .px-intro__scenes { display: flex; flex-direction: column; gap: 64px; padding: 24px 32px; min-height: 0; overflow-y: auto; }
+  .px-intro[data-step] .px-intro__scenes { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); padding: 0 32px; gap: 0; }
+  .px-intro[data-step] .px-intro__scene {
+    grid-area: 1 / 1; opacity: 0; visibility: hidden;
+    transition: opacity 200ms var(--ease), visibility 0s linear 200ms;
+  }
+  .px-intro[data-step='1'] [data-scene='1'],
+  .px-intro[data-step='2'] [data-scene='2'],
+  .px-intro[data-step='3'] [data-scene='3'] { opacity: 1; visibility: inherit; transition: opacity 200ms var(--ease); }
+  .px-intro__scene { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; min-height: 0; }
+
+  .px-intro__medal { display: block; overflow: visible; }
+  .px-intro__lines { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .px-intro__line { margin: 0; font: 500 32px/1.2 var(--font-display); letter-spacing: -0.01em; text-align: center; text-wrap: balance; }
+  .px-intro__line--sm { font-size: 28px; }
+  .px-intro__sub { margin: 0; font: italic 400 18px/1.5 var(--font-display); color: var(--muted); text-align: center; }
+
+  .px-intro__s2 { gap: 56px; }
+  .px-intro__desks {
+    list-style: none; margin: 0; padding: 0;
+    width: min(1128px, 100%);
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px;
+  }
+  .px-intro__desk { display: flex; flex-direction: column; align-items: center; gap: 18px; min-width: 0; }
+  .px-intro__dname { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+  .px-intro__dn { font: 500 24px/1.1 var(--font-display); letter-spacing: -0.01em; }
+  .px-intro__dr { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .px-intro__s3 { gap: 36px; }
+  .px-intro__read { display: grid; grid-template-columns: 300px 420px; gap: 48px; align-items: center; }
+  .px-intro__read:has(> :only-child) { grid-template-columns: 420px; }
+  .px-intro__prose { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .px-intro__eyebrow { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--in-text); }
+  .px-intro__cuep { margin: 0; font: 400 18px/1.6 var(--font-display); }
+  .px-intro__cuep strong { font-weight: 600; }
+  .px-intro__cue {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; padding: 0; border: 0; border-radius: 999px;
+    background: var(--in-mark); color: var(--paper);
+    font: 600 12px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+    vertical-align: 2px;
+    transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  /* A 44px hit area around the 20px disc. */
+  .px-intro__cue::after { content: ''; position: absolute; inset: -12px; }
+  .px-intro__cue[aria-pressed='true'] { background: var(--in-text); box-shadow: 0 0 0 3px var(--in-tint); }
+  .px-intro__hl { padding: 1px 3px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; transition: background-color 160ms var(--ease); }
+  .px-intro__read:has([data-lit='1']) [data-cue-p='1'] .px-intro__hl,
+  .px-intro__read:has([data-lit='2']) [data-cue-p='2'] .px-intro__hl { background: var(--in-tint); }
+
+  .px-intro__fig {
+    margin: 0; min-width: 0;
+    display: flex; flex-direction: column; gap: 16px;
+    padding: 20px 24px;
+    background: var(--paper-2); border: 1px solid var(--hair); border-radius: var(--r-card);
+    box-shadow: var(--shadow-1);
+  }
+  .px-intro__ro { height: 44px; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); align-items: end; }
+  .px-intro__roi { grid-area: 1 / 1; display: flex; align-items: baseline; gap: 10px; transition: opacity 160ms var(--ease); }
+  .px-intro__roi[data-ro='2'], .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='1'] { opacity: 0; visibility: hidden; }
+  .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='2'] { opacity: 1; visibility: inherit; }
+  .px-intro__rov { font: 600 48px/0.92 var(--font-ui); letter-spacing: -0.02em; color: var(--in-text); font-variant-numeric: tabular-nums; }
+  .px-intro__rou { font: 500 14px/1.3 var(--font-ui); color: var(--ink-2); }
+  .px-intro__bars { display: block; width: 100%; max-width: 372px; height: auto; overflow: visible; }
+  .px-intro__t { font-size: 13px; font-weight: 500; }
+  .px-intro__t--n { font-size: 12px; font-weight: 600; }
+  .px-intro__t--b { font-weight: 600; }
+  .px-intro__lite { transition: opacity 160ms var(--ease); }
+  .px-intro__ring { opacity: 0; transition: opacity 160ms var(--ease); }
+  .px-intro__fig[data-lit='1'] [data-lite='2'], .px-intro__fig[data-lit='2'] [data-lite='1'] { opacity: 0.35; }
+  .px-intro__fig[data-lit='1'] [data-lite='1'] .px-intro__ring, .px-intro__fig[data-lit='2'] [data-lite='2'] .px-intro__ring { opacity: 1; }
+  .px-intro__cover { display: flex; justify-content: center; padding: 12px; border-radius: var(--r-ctl); background: var(--in-tint); container-type: inline-size; }
+  .px-intro__cap { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--hair); }
+  .px-intro__capt { font: italic 400 16px/1.4 var(--font-display); }
+  .px-intro__src { font: 400 13px/1.4 var(--font-ui); color: var(--muted); }
+
+  .px-intro__end { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  .px-intro__ctas { display: flex; align-items: center; gap: 28px; }
+  .px-intro__go, .px-intro__browse {
+    height: 44px; display: inline-flex; align-items: center; gap: 10px;
+    font: 600 15px/1 var(--font-ui); text-decoration: none;
+  }
+  .px-intro__go { padding: 0 20px; border-radius: var(--r-ctl); background: var(--ink); color: var(--paper); transition: background-color 160ms var(--ease); }
+  .px-intro__go:hover { background: var(--ink-2); color: var(--paper); }
+  .px-intro__browse { color: var(--ink-2); gap: 8px; }
+  .px-intro__browse:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+
+  .px-intro__foot { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; padding: 0 32px; }
+  .px-intro__label { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-intro__dots { display: flex; align-items: center; gap: 4px; }
+  .px-intro__dot { width: 44px; height: 44px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
+  .px-intro__dot span { width: 10px; height: 10px; border-radius: 999px; border: 1.5px solid var(--muted); box-sizing: border-box; transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease); }
+  .px-intro__dot[aria-current='step'] span { border-color: var(--ink); background: var(--ink); box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
+  .px-intro__dot:hover span { border-color: var(--ink); }
+  .px-intro__nav { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+  .px-intro__next {
+    height: 44px; padding: 0 20px; border: 0; border-radius: var(--r-ctl);
+    background: var(--ink); color: var(--paper); font-size: 15px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .px-intro__next[hidden] { display: none; }
+  .px-intro__next:hover { background: var(--ink-2); }
+  /* The stepper does nothing until the script has taken over. */
+  .px-intro:not([data-step]) .px-intro__foot { display: none; }
+
+  @media (max-width: 900px) {
+    .px-intro { grid-template-rows: 60px minmax(0, 1fr) 68px; }
+    .px-intro__top, .px-intro__foot { padding: 0 20px; }
+    .px-intro__long { display: none; }
+    .px-intro[data-step] .px-intro__scenes, .px-intro__scenes { padding: 4px 20px 0; }
+    .px-intro__scene { justify-content: flex-start; gap: 24px; padding-top: 24px; overflow-y: auto; }
+    .px-intro__line { font-size: 26px; }
+    .px-intro__line--sm { font-size: 22px; text-align: left; }
+    .px-intro__desks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 12px; }
+    .px-intro__desk :global(.px-intro__dmark) { width: 64px; height: 64px; }
+    .px-intro__dn { font-size: 20px; }
+    .px-intro__read { grid-template-columns: minmax(0, 1fr); gap: 18px; width: 100%; }
+    .px-intro__read:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+    .px-intro__fig { order: -1; padding: 16px; gap: 14px; }
+    .px-intro__prose { gap: 10px; }
+    .px-intro__cuep { font-size: 17px; }
+    .px-intro__t { font-size: 15px; }
+    .px-intro__t--n { font-size: 13px; }
+    .px-intro__capt { font-size: 15px; }
+    .px-intro__src { font-size: 12px; }
+    .px-intro__s3 { gap: 18px; }
+    .px-intro__end { align-items: stretch; gap: 16px; }
+    .px-intro__ctas { gap: 20px; flex-wrap: wrap; }
+    .px-intro__foot { grid-template-columns: auto auto 1fr; }
+    .px-intro__label { order: 3; justify-self: end; }
+    .px-intro__lname { display: none; }
+    .px-intro__nav { order: -1; justify-content: flex-start; }
+    .px-intro__next { display: none; }
+  }
+</style>

@@ -93,7 +93,7 @@ const payload = JSON.stringify({
 });
 ---
 
-<div class="px-coalc" data-viz-root class:list={[{ 'is-clears': clears, 'is-tight': tight, 'is-edge': nearEdge }]} data-reveal>
+<div class="px-coalc" data-viz-root class:list={[{ 'is-clears': clears, 'is-tight': tight, 'is-edge': nearEdge }]}>
   {(caption || showThresholdChip) && (
     <div class="px-coalc__cap">
       {caption && <span class="px-coalc__cap-text">{caption}</span>}
@@ -140,11 +140,11 @@ const payload = JSON.stringify({
         style={`--mid:${(midFrac * 100).toFixed(3)}%`}
         aria-hidden="true">
         <span class="px-coalc__vword">{verdictWord}</span>
-        <span class="px-coalc__vnum vz-num" data-countup={verdictNum}>{verdictNum.toLocaleString()}</span>
+        <span class="px-coalc__vnum vz-num">{verdictNum.toLocaleString()}</span>
       </span>
       {/* the aria-live verdict (§8 rule 3) — a visually-hidden readout, kept OFF
-          the count-up subtree so the entrance tween can't announce intermediate
-          values; the island writes the settled verdict here on every toggle. */}
+          the visible verdict so it never announces intermediate values; the
+          island writes the settled verdict here on every toggle. */}
       <span class="px-coalc__sr" data-vlive role="status" aria-live="polite">{verdictWord} {verdictNum.toLocaleString()}</span>
     </div>
   </div>
@@ -287,7 +287,7 @@ const payload = JSON.stringify({
       });
 
       // boot: unhide the control, fold the ledger, lay out, then switch to
-      // fast toggle-time transitions after the entrance sequence.
+      // fast toggle-time transitions once `is-live` lands (1.7s after boot).
       bench.hidden = false;
       if (details) { details.open = false; var s = root.querySelector('.px-coalc__summary'); if (s) s.textContent = 'party ledger — show all'; }
       layout();
@@ -359,8 +359,7 @@ const payload = JSON.stringify({
     margin-right: 1px; /* 1px gap shows the page background between blocks */
   }
   .px-coalc.is-live .px-coalc__block { transition: width var(--t-soft, 220ms) var(--ease), margin-right var(--t-soft, 220ms) var(--ease); transition-delay: 0ms !important; }
-  /* entrance grow: staggered left→right, gated behind reveal */
-  html.js .px-coalc:not(.is-in) .px-coalc__block.is-on { width: 0; margin-right: 0; }
+  /* left→right 50ms delays on toggles until the island adds `is-live` */
   .px-coalc__block:nth-child(1) { transition-delay: 0ms; }
   .px-coalc__block:nth-child(2) { transition-delay: 50ms; }
   .px-coalc__block:nth-child(3) { transition-delay: 100ms; }
@@ -423,14 +422,10 @@ const payload = JSON.stringify({
     text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
     left: clamp(0px, calc(var(--mid) - 66px), calc(100% - 132px));
   }
-  /* Stamp motion is gated behind the reveal, like block-grow (§5) — so it never
-     plays/finishes off-screen and lands as the LAST beat of the entrance. The
-     pre-live entrance instance is delayed to fire after block-grow + count-up;
-     post-live toggle crossings stamp instantly. No-JS / pre-reveal / reduced-
-     motion keep the static pre-stamped box above (no animation). */
-  html.js .px-coalc.is-in:not(.is-live) .px-coalc__vchip.is-stamp {
-    animation: px-coalc-stamp 220ms var(--ease-snap, cubic-bezier(0.5,1.6,0.4,1)) 950ms both;
-  }
+  /* Stamp motion plays only under `.is-live` (added by the island after boot),
+     so the server-rendered stamp above stays static and post-live toggle
+     crossings stamp with the animation. No-JS and reduced motion keep the
+     static pre-stamped box above (no animation). */
   .px-coalc.is-live .px-coalc__vchip.is-stamp {
     animation: px-coalc-stamp 220ms var(--ease-snap, cubic-bezier(0.5,1.6,0.4,1)) both;
   }
@@ -493,12 +488,11 @@ const payload = JSON.stringify({
     .px-coalc__block.is-on.is-wide:not(.is-mwide) .px-coalc__tag { display: none; }
   }
 
-  /* ── reduced motion: hard swaps; stamp pre-stamped; count-up shows final ── */
+  /* ── reduced motion: hard swaps; stamp pre-stamped ────────────────────── */
   @media (prefers-reduced-motion: reduce) {
     .px-coalc__block,
     .px-coalc.is-live .px-coalc__block,
     .px-coalc__chip, .px-coalc__why { transition: none !important; }
-    html.js .px-coalc:not(.is-in) .px-coalc__block.is-on { width: max(2px, calc(var(--w) * 100%)); margin-right: 1px; }
     .px-coalc__vchip.is-stamp { animation: none !important; }
   }
 </style>

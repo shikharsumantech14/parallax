@@ -230,6 +230,14 @@ const storySchema = z.object({
   cta: z.string().max(160).optional()
 });
 
+const coverSchema = z.object({
+  section: z.number().int().min(0),
+  number: z.string().min(1).max(12),
+  label: z.string().min(3).max(60),
+  headline: z.string().max(120).optional(),
+});
+export type Cover = z.infer<typeof coverSchema>;
+
 const issuesCollection = defineCollection({
   type: 'content',
   schema: z.object({
@@ -263,6 +271,13 @@ const issuesCollection = defineCollection({
       .optional(),
     primer: z.string().min(80).max(420).optional(),
     ogImage: z.string().optional(),
+    // The cover (Lens Phase 4, LENS §4.2 and §8.2): the section a stage and a
+    // cover card draw, the ONE number set large (160 on a desktop stage, 88 on
+    // a phone, 40 on a card) and its label. `number` is a string so it keeps
+    // the issue's own grouping ("1,330"); `headline` overrides the title on
+    // the stage only. Optional: without it the cover is derived
+    // (src/lib/cover.ts) and a stage falls back to its generic scene.
+    cover: coverSchema.optional(),
     story: storySchema.optional(),
     sections: z.array(sectionSchema),
     sources: z.array(sourceSchema)

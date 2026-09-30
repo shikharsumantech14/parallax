@@ -6,21 +6,21 @@
    themes so every chart auto-themes through the per-topic CSS variables
    (--accent, --paper, --ink …) set by `data-topic` on <html>.
 
-   TWO DELIBERATE EXCEPTIONS to the house rules (documented in
-   src/components/AGENTS.md):
-     1. Generic kit class names (.ac, .pm, .ot, .ls, .cs, .px2, .bc, .adc,
-        .rc, .cc, .lt, .pr, .vb, .tel, .tl) are adopted verbatim — the kit's
-        animation + reveal CSS is tightly coupled to them. The shared shell
-        keeps its house prefix (.px-viz / .px-viz__cap / .px-viz__src).
-     2. EVERY reveal-hidden rule is gated behind `html.js` so that with JS
-        disabled (or print / headless) the chart paints in its FINAL state —
-        the no-JS-safety contract from motion-v2.css. The reveal class
-        (`.is-in`) is added by core/Reveal.astro to the [data-reveal] element
-        (the .px-viz shell, or the .vb / .tl / .tel root for the standalone
-        cards). Count-up + cursor-warmth are handled by core/CountUp.astro.
+   ONE DELIBERATE EXCEPTION to the house rules (documented in
+   src/components/AGENTS.md): generic kit class names (.ac, .pm, .ot, .ls,
+   .cs, .px2, .bc, .adc, .rc, .cc, .lt, .pr, .vb, .tel, .tl) are adopted
+   verbatim. The shared shell keeps its house prefix (.px-viz /
+   .px-viz__cap).
 
-   Reduced-motion: a reset block at the bottom neutralises every hidden offset
-   with !important, so reduced-motion always paints the final state too.
+   MOTION (Lens Phase 5, 2026-09-30). Nothing here hides or animates a chart
+   on its own any more. The `[data-reveal]` / `.is-in` reveal block that
+   lived in this file (and in every component's scoped style), with its
+   reduced-motion reset, was RETIRED with core/Reveal.astro and
+   core/VizMotion.astro: every rule below is the chart's FINAL state, which
+   is also what no JS, print and reduced motion paint. A build is declared
+   in the markup (`data-build-scene` / `data-build`) and run by the one
+   island, src/scripts/build.ts, whose classes live in motion-v2.css
+   (docs/design/LENS.md §6.4).
    ============================================================================ */
 
 /* ── SHARED SHELL CAPTION / SOURCE (the .px-viz card lives in base.css) ──── */
@@ -383,11 +383,8 @@ html:not(.js) .px-cue { cursor: default; }
 .ac__line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
   stroke-dasharray: var(--len); stroke-dashoffset: 0;
   transition: stroke-dashoffset 1500ms var(--ease); }
-html.js .px-viz:not(.is-in) .ac__line { stroke-dashoffset: var(--len); }
 .ac__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 700ms; }
-html.js .px-viz:not(.is-in) .ac__area { opacity: 0; }
 .ac__dot { opacity: 1; transition: opacity var(--t-quick) var(--ease); }
-html.js .px-viz:not(.is-in) .ac__dot { opacity: 0; }
 .ac__legend { display: flex; gap: 24px; margin-top: 16px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); }
 .ac__key { display: inline-flex; align-items: center; gap: 8px; }
 .ac__key i { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
@@ -410,7 +407,6 @@ html.js .px-viz:not(.is-in) .ac__dot { opacity: 0; }
   transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
   position: relative; overflow: hidden;
 }
-html.js .px-viz:not(.is-in) .pm__cell { opacity: 0; transform: scale(0.9); }
 .pm__cell[data-control="full"]    { color: var(--paper); }
 .pm__cell[data-control="partial"] { color: var(--ink); }
 .pm__cell[data-control="partial"]::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(251,250,246,0.4) 5px, rgba(251,250,246,0.4) 6px); }
@@ -427,13 +423,10 @@ html.js .px-viz:not(.is-in) .pm__cell { opacity: 0; transform: scale(0.9); }
 .ot__stage { position: relative; aspect-ratio: 1; width: 100%; }
 .ot__svg { width: 100%; height: 100%; overflow: visible; }
 .ot__ring { fill: none; stroke: color-mix(in oklab, var(--accent) 28%, transparent); stroke-width: 1; opacity: 1; transition: opacity var(--t-slow) var(--ease); }
-html.js .px-viz:not(.is-in) .ot__ring { opacity: 0; }
 .ot__earth { fill: color-mix(in oklab, var(--accent) 80%, var(--ink)); }
 .ot__sat { transform-box: fill-box; transform-origin: center; }
 .ot__legend { display: flex; flex-direction: column; gap: 12px; }
 .ot__item { display: grid; grid-template-columns: 12px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px dashed var(--rule); cursor: default; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-html.js .px-viz:not(.is-in) .ot__item { opacity: 0; transform: translateX(8px); }
-.px-viz.is-in .ot__item:nth-child(1){transition-delay:.2s}.px-viz.is-in .ot__item:nth-child(2){transition-delay:.32s}.px-viz.is-in .ot__item:nth-child(3){transition-delay:.44s}.px-viz.is-in .ot__item:nth-child(4){transition-delay:.56s}.px-viz.is-in .ot__item:nth-child(5){transition-delay:.68s}
 .ot__dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
 .ot__name { font-family: var(--font-ui); font-size: 15px; color: var(--ink); font-weight: 600; }
 .ot__alt { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
@@ -447,7 +440,6 @@ html.js .px-viz:not(.is-in) .ot__item { opacity: 0; transform: translateX(8px); 
 .ls__year { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
 .ls__bars { display: flex; gap: 3px; align-items: flex-end; height: 100%; width: 100%; justify-content: center; }
 .ls__bar { width: 100%; max-width: 14px; border-radius: 3px 3px 0 0; height: var(--h); transition: height 900ms var(--ease); align-self: flex-end; position: relative; }
-html.js .px-viz:not(.is-in) .ls__bar { height: 0; }
 .ls__yr { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
 .ls__legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .ls__legend .key { display: inline-flex; align-items: center; gap: 8px; }
@@ -458,7 +450,6 @@ html.js .px-viz:not(.is-in) .ls__bar { height: 0; }
    ────────────────────────────────────────────────────────────────────────── */
 .cs__strip { display: flex; height: 150px; border-radius: 8px; overflow: hidden; position: relative; }
 .cs__bar { flex: 1; transform: scaleY(1); transform-origin: bottom; transition: transform 700ms var(--ease); }
-html.js .px-viz:not(.is-in) .cs__bar { transform: scaleY(0); }
 /* An absolutely positioned <svg> is a REPLACED element: `inset: 0` does not
    stretch it, it takes its height from the viewBox ratio instead. At 1280 that
    made the overlay 201px tall on a 150px strip and the strip cut the trend
@@ -467,7 +458,6 @@ html.js .px-viz:not(.is-in) .cs__bar { transform: scaleY(0); }
    preserveAspectRatio="none" then maps the viewBox onto the strip exactly. */
 .cs__overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .cs__path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1600ms var(--ease) 400ms; }
-html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
 .cs__axis { display: flex; justify-content: space-between; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
 .cs__scale { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); align-items: center; }
 .cs__grad { width: 120px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2166ac, #67a9cf, #f7f7f7, #fddbc7, #ef8a62, #b2182b); }
@@ -503,7 +493,6 @@ html.js .px-viz:not(.is-in) .cs__path { stroke-dashoffset: var(--len); }
 .bc__row[data-hl="true"] .bc__sub { color: var(--muted); font-weight: 400; }
 .bc__track { position: relative; height: 22px; background: color-mix(in oklab, var(--ink) 5%, var(--bg)); border-radius: 4px; overflow: hidden; }
 .bc__fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--w); background: color-mix(in oklab, var(--ink) 30%, var(--bg)); border-radius: 4px; transition: width 1000ms var(--ease); }
-html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
 .bc__row[data-hl="true"] .bc__fill { background: var(--accent); }
 .bc__val { font-family: var(--font-mono); font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
 /* The reference row: in flow between the caption and the bars (never hung
@@ -520,11 +509,8 @@ html.js .px-viz:not(.is-in) .bc__fill { width: 0; }
    ────────────────────────────────────────────────────────────────────────── */
 .adc__svg { width: 100%; height: auto; overflow: visible; }
 .adc__area { opacity: 1; transition: opacity var(--t-slow) var(--ease) 600ms; }
-html.js .px-viz:not(.is-in) .adc__area { opacity: 0; }
 .adc__line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: var(--len); stroke-dashoffset: 0; transition: stroke-dashoffset 1700ms var(--ease); }
-html.js .px-viz:not(.is-in) .adc__line { stroke-dashoffset: var(--len); }
 .adc__pin { opacity: 1; transform: none; transition: opacity var(--t-quick) var(--ease), transform var(--t-quick) var(--ease); }
-html.js .px-viz:not(.is-in) .adc__pin { opacity: 0; transform: translateY(6px); }
 .adc__milestones { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 20px; }
 .adc__ms { padding: 10px 0 0; border-top: 2px solid var(--accent); }
 .adc__ms-yr { font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep); font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
@@ -539,7 +525,6 @@ html.js .px-viz:not(.is-in) .adc__pin { opacity: 0; transform: translateY(6px); 
 .rc__legs { position: relative; }
 .rc__legs::before { content: ''; position: absolute; left: 21px; top: 14px; bottom: 14px; width: 2px; background: repeating-linear-gradient(var(--accent), var(--accent) 4px, transparent 4px, transparent 9px); }
 .rc__leg { display: grid; grid-template-columns: 44px 1fr; gap: 16px; padding: 12px 0; position: relative; opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-html.js .px-viz:not(.is-in) .rc__leg { opacity: 0; transform: translateX(8px); }
 .rc__node { width: 44px; height: 44px; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--accent-deep); z-index: 1; }
 .rc__node svg { width: 20px; height: 20px; }
 .rc__leg-body { padding-top: 2px; }
@@ -558,7 +543,6 @@ html.js .px-viz:not(.is-in) .rc__leg { opacity: 0; transform: translateX(8px); }
 .cc__city-sub { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); }
 .cc__vs { font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep); letter-spacing: 0.06em; }
 .cc__row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-html.js .px-viz:not(.is-in) .cc__row { opacity: 0; transform: translateY(6px); }
 .cc__a, .cc__b { font-family: var(--font-ui); font-weight: 600; font-size: 17px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .cc__b { text-align: right; }
 .cc__a[data-win="true"], .cc__b[data-win="true"] { color: var(--accent-deep); font-weight: 700; }
@@ -575,7 +559,6 @@ html.js .px-viz:not(.is-in) .cc__row { opacity: 0; transform: translateY(6px); }
 .lt thead th { font-family: var(--font-mono); font-size: 12px; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); padding: 0 10px 14px; text-align: center; font-weight: 600; }
 .lt thead th.l { text-align: left; }
 .lt tbody tr { border-top: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-html.js .px-viz:not(.is-in) .lt tbody tr { opacity: 0; transform: translateX(8px); }
 .lt td { padding: 12px 10px; text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; vertical-align: middle; }
 .lt td.team { text-align: left; font-family: var(--font-ui); font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
 .lt td.pts { font-weight: 600; color: var(--ink); font-size: 15px; }
@@ -606,23 +589,21 @@ html.js .px-viz:not(.is-in) .lt tbody tr { opacity: 0; transform: translateX(8px
 .pr__web { fill: none; stroke: var(--rule); stroke-width: 1; }
 .pr__axis { stroke: var(--rule); stroke-width: 1; }
 .pr__poly { fill: color-mix(in oklab, var(--accent) 28%, transparent); stroke: var(--accent); stroke-width: 2; transform: scale(1); transform-origin: center; transform-box: fill-box; opacity: 1; transition: transform 900ms var(--ease-snap), opacity var(--t-soft) var(--ease); }
-html.js .px-viz:not(.is-in) .pr__poly { transform: scale(0.1); opacity: 0; }
 .pr__lbl { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--muted); }
 .pr__stats { display: flex; flex-direction: column; gap: 0; }
 .pr__stat { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--rule); }
 .pr__stat-l { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
 .pr__stat-bar { grid-column: 1 / -1; height: 4px; background: color-mix(in oklab, var(--ink) 6%, var(--bg)); border-radius: 2px; overflow: hidden; margin-top: -4px; }
 .pr__stat-fill { height: 100%; background: var(--accent); width: var(--w); border-radius: 2px; transition: width 900ms var(--ease) 300ms; }
-html.js .px-viz:not(.is-in) .pr__stat-fill { width: 0; }
 .pr__stat-v { font-family: var(--font-ui); font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pr__name { font-family: var(--font-display); font-size: 22px; color: var(--ink); font-weight: 500; margin-bottom: 2px; }
 .pr__team { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
 @media (max-width: 720px) { .pr { grid-template-columns: 1fr; } }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   VOTE BAR (politics) — animated segments, dashed threshold, slam stamp,
-   and the 44-column MP-dot chamber. Standalone card (its own .vb root holds
-   the data-reveal + .is-in). 108px prose offset dropped for our section grid.
+   VOTE BAR (politics) — segments, dashed threshold, slam stamp, and the
+   44-column MP-dot chamber. Standalone card (its own .vb root is the build
+   scene; the numbers count up). 108px prose offset dropped for our section grid.
    ────────────────────────────────────────────────────────────────────────── */
 .vb {
   background: var(--paper);
@@ -661,14 +642,12 @@ html.js .px-viz:not(.is-in) .pr__stat-fill { width: 0; }
 }
 .vb__seg--for { left: 0; background: var(--ear-text, #176357); }
 .vb__seg--against { right: 0; background: var(--accent-deep); transform-origin: right center; justify-content: flex-end; }
-html.js .vb:not(.is-in) .vb__seg { transform: scaleX(0); }
 .vb__th {
   position: absolute; top: 0; bottom: -6px;
   border-left: 2px dashed var(--ink);
   opacity: 1; transform: none;
   transition: opacity var(--t-soft) var(--ease) 800ms, transform var(--t-soft) var(--ease) 800ms;
 }
-html.js .vb:not(.is-in) .vb__th { opacity: 0; transform: translateY(-8px); }
 .vb__th-label {
   position: absolute; top: 0; transform: translateX(-50%);
   font-family: var(--font-mono); font-size: 12px;
@@ -696,7 +675,6 @@ html.js .vb:not(.is-in) .vb__th { opacity: 0; transform: translateY(-8px); }
   transition: opacity var(--t-soft) var(--ease) 1100ms,
               transform var(--t-soft) var(--ease-snap) 1100ms;
 }
-html.js .vb:not(.is-in) .vb__stamp { opacity: 0; transform: rotate(0deg) scale(0.7); }
 .vb__chamber {
   display: grid;
   grid-template-columns: repeat(44, 1fr);
@@ -713,7 +691,6 @@ html.js .vb:not(.is-in) .vb__stamp { opacity: 0; transform: rotate(0deg) scale(0
   opacity: 1; transform: scale(1);
   transition: opacity 400ms var(--ease), transform 80ms var(--ease);
 }
-html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
 .vb__mp--for { background: var(--ear-text, #176357); }
 .vb__mp--against { background: var(--accent); }
 .vb__mp:hover { transform: scale(1.6); }
@@ -790,29 +767,15 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
    on the RETIRED `.px-readout__tile` prefix in the six theme files, so the
    attribute painted nothing for anyone. Restored here, once, on the class the
    component really emits (2026-09-15). An INSET rule, not a border: the tile
-   is `overflow: hidden` with a sweep on ::before, and an inset hairline is
+   is `overflow: hidden` (the scan sweep on ::before was retired with the
+   reveals in Lens Phase 5), and an inset hairline is
    what RD-05 leaves standing. The numeral may take the vivid accent because
    it is 40px — CANON §6's accent-deep rule is about SMALL text. */
 .tel__tile[data-emphasis="key"] { box-shadow: inset 0 2px 0 var(--accent); }
 .tel__tile[data-emphasis="key"] .tel__n { color: var(--accent-deep); }
 .tel__tile[data-emphasis="warn"] { box-shadow: inset 0 2px 0 var(--accent-alt, var(--accent)); }
 .tel__tile[data-emphasis="warn"] .tel__n { color: var(--accent-alt, var(--accent)); }
-.tel__tile::before {
-  content: '';
-  position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
-  background: linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--accent) 22%, transparent) 50%, transparent 100%);
-  transform: translateX(0);
-  opacity: 0;
-}
-.tel.is-in .tel__tile::before {
-  animation: telSweep 1400ms var(--ease) forwards;
-  animation-delay: calc(var(--i, 0) * 160ms);
-}
-@keyframes telSweep {
-  0% { opacity: 0; transform: translateX(0); }
-  20% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(360%); }
-}
+
 .tel__val { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
 /* The numeral never wraps and is never cut (2026-09-23): its size is the
    tile's content width over the readout's widest value in em (`--tel-em`,
@@ -829,7 +792,13 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
   font-variant-numeric: tabular-nums;
 }
 .tel__u { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); color: var(--muted); text-transform: uppercase; }
-.tel__l { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--ink-soft); line-height: 1.5; }
+/* A label wraps inside its tile and is never cut (2026-09-30). The tile is
+   `overflow: hidden`, so a single capitalised word wider than a narrow tile
+   ("PUNISHMENTS" in a 360px story card's third of a row) was clipped at the
+   tile's edge. Hyphenation breaks it where the language allows, and
+   `overflow-wrap: anywhere` is the last resort, so no word can outrun the
+   tile. It never shrinks below LENS's 12px floor to fit. */
+.tel__l { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--ink-soft); line-height: 1.5; min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
 .tel__note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
 @media (max-width: 720px) {
   .tel__grid, .tel[data-cols="2"] .tel__grid { --tel-cols: 2; --tel-padx: 16px; }
@@ -842,8 +811,8 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   TIMELINE — vertical rail, fade-in events, hover lifts connector
-   Standalone (.tl holds the data-reveal + .is-in). 108px offset dropped.
+   TIMELINE — vertical rail, events, hover lifts connector
+   Standalone (.tl is the build scene; its rows drop in). 108px offset dropped.
    ────────────────────────────────────────────────────────────────────────── */
 .tl { max-width: var(--col-prose); position: relative; }
 .tl::before { content: ''; position: absolute; left: 18px; top: 6px; bottom: 6px; width: 1px; background: var(--rule); }
@@ -861,14 +830,6 @@ html.js .vb:not(.is-in) .vb__mp { opacity: 0; transform: scale(0.4); }
   opacity: 1; transform: none;
   transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
 }
-html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
-.tl.is-in .tl__row:nth-child(1) { transition-delay: 80ms; }
-.tl.is-in .tl__row:nth-child(2) { transition-delay: 160ms; }
-.tl.is-in .tl__row:nth-child(3) { transition-delay: 240ms; }
-.tl.is-in .tl__row:nth-child(4) { transition-delay: 320ms; }
-.tl.is-in .tl__row:nth-child(5) { transition-delay: 400ms; }
-.tl.is-in .tl__row:nth-child(6) { transition-delay: 480ms; }
-.tl.is-in .tl__row:nth-child(7) { transition-delay: 560ms; }
 .tl__row::before {
   content: '';
   position: absolute; left: 12px; top: 22px;
@@ -888,38 +849,6 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   .tl__row { grid-template-columns: 1fr; gap: 4px; }
   /* The node keeps its desktop `left: 12px`, centred on the rail at 18px. A
      `left: -4px` here put every phone node 16px off the rail it marks. */
-}
-
-/* ──────────────────────────────────────────────────────────────────────────
-   REDUCED MOTION — neutralise every hidden offset so the final state paints.
-   (The global motion-v2.css block already kills transitions/animations.)
-   ────────────────────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .px-viz:not(.is-in) .ac__line,
-  .px-viz:not(.is-in) .cs__path,
-  .px-viz:not(.is-in) .adc__line { stroke-dashoffset: 0 !important; }
-  .px-viz:not(.is-in) .ac__area,
-  .px-viz:not(.is-in) .ac__dot,
-  .px-viz:not(.is-in) .ot__ring,
-  .px-viz:not(.is-in) .adc__area { opacity: 1 !important; }
-  .px-viz:not(.is-in) .pm__cell,
-  .px-viz:not(.is-in) .ot__item,
-  .px-viz:not(.is-in) .adc__pin,
-  .px-viz:not(.is-in) .rc__leg,
-  .px-viz:not(.is-in) .cc__row,
-  .px-viz:not(.is-in) .lt tbody tr { opacity: 1 !important; transform: none !important; }
-  .px-viz:not(.is-in) .ls__bar { height: var(--h) !important; }
-  .px-viz:not(.is-in) .cs__bar { transform: scaleY(1) !important; }
-  .px-viz:not(.is-in) .bc__fill,
-  .px-viz:not(.is-in) .pr__stat-fill { width: var(--w) !important; }
-  .px-viz:not(.is-in) .pr__poly { transform: scale(1) !important; opacity: 1 !important; }
-
-  /* vote bar + timeline (standalone roots) */
-  .vb:not(.is-in) .vb__seg { transform: scaleX(1) !important; }
-  .vb:not(.is-in) .vb__th { opacity: 1 !important; transform: none !important; }
-  .vb:not(.is-in) .vb__stamp { opacity: 0.92 !important; transform: rotate(-8deg) scale(1) !important; }
-  .vb:not(.is-in) .vb__mp { opacity: 1 !important; transform: scale(1) !important; }
-  .tl:not(.is-in) .tl__row { opacity: 1 !important; transform: none !important; }
 }
 
 /* ============================================================================
@@ -1014,7 +943,9 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
    now, the floor the type harvest set, with an overlap pass in the component
    (markers placed first, zone labels offset vertically or dropped) so the
    larger type cannot collide. The min-width below already gives this SVG
-   scale 1 on a phone, so 9.5px authored is 9.5px rendered there.
+   scale 1 on a phone, so 9.5px authored is 9.5px rendered there. RAISED to
+   12px on 2026-09-30 (LENS §3), in Instrument Sans, with the legend rebuilt
+   to hold its words inside its box.
    ========================================================================== */
 @media (max-width: 900px) {
   /* The CARD scrolls, so the page never does.
@@ -1066,4 +997,51 @@ html.js .tl:not(.is-in) .tl__row { opacity: 0; transform: translateY(8px); }
   /* court-value carries its own width: its viewBox is per-surface. */
   .px-cval__svg { min-width: var(--vbw); }
 }
+
+/* THE SAME RULE IN THE FIGURE PANEL, AT EVERY WIDTH (Lens Phase 3,
+   2026-09-30). The reading system seats every graphic in a 520px panel
+   (`.px-section__stage`, about 472px of content), so on a 1280 screen a chart
+   drawn for 720 units scaled to ~0.65 and its labels printed under the LENS
+   12px floor (FLOOR / TINY on scaling-plot, adoption-curve, descent-profile,
+   power-flow, region-map, elevation-trek). Until Phase 6 redraws each kind
+   for the panel, the 2026-09-07 ruling applies there too: the chart keeps its
+   coordinate width and the figure root scrolls sideways inside the panel.
+   The list is the one above, entry for entry, and it keeps that block's
+   exclusions (the narrow-viewBox forms, shot-map among them; the WebGL
+   fallbacks; climate-spiral; flight-of-the-ball). region-map's labels were
+   AUTHORED at 7.5 to 9.5px, which no scroll could lift; since 2026-09-30 they
+   are authored at 12 (13 for the legend title), and so is scaling-plot's
+   point label, so both print at LENS's floor here. KEEP THE TWO LISTS IN STEP.
+
+   Only a root that holds one of these charts scrolls (`:has`), so a panel
+   figure whose 3D depth or ring runs past its box is not clipped by a
+   scroller it does not need. The scrollbar is a visible hair, and there is
+   no snapping. The root's 6px padding (given back by the margin) keeps a lit
+   cue's ring inside the scroller. */
+.px-section__stage .px-fig__body > :is(.px-viz, [data-viz-root]):has(:is(
+  .px-map__svg, .px-eriv__svg, .px-bflow__svg, .px-cloop__svg, .px-eclp__svg,
+  .px-etrek__svg, .px-fterr__svg, .px-lagr__svg, .px-mldr__svg, .px-mom__svg,
+  .px-pflow__svg, .px-pkt__bar, .px-prdg__svg, .px-qc__svg, .px-quake__svg,
+  .px-vflow__svg, .px-xgr__svg, .px-altox__svg, .ac__svg, .adc__svg,
+  .px-desc__svg, .px-scale__svg, .px-traj__svg, .px-atmc__svg, .px-cval__svg
+)) {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hair-2) transparent;
+  padding: 6px 6px 10px;
+  margin: -6px -6px -4px;
+}
+.px-section__stage .px-map__svg { min-width: 800px; }
+.px-section__stage .px-eriv__svg { min-width: 760px; }
+.px-section__stage :is(
+  .px-bflow__svg, .px-cloop__svg, .px-eclp__svg, .px-etrek__svg, .px-fterr__svg,
+  .px-lagr__svg, .px-mldr__svg, .px-mom__svg, .px-pflow__svg, .px-pkt__bar,
+  .px-prdg__svg, .px-qc__svg, .px-quake__svg, .px-vflow__svg, .px-xgr__svg
+) { min-width: 720px; }
+.px-section__stage .px-altox__svg { min-width: 668px; }
+.px-section__stage :is(.ac__svg, .adc__svg, .px-desc__svg, .px-scale__svg, .px-traj__svg) { min-width: 640px; }
+.px-section__stage .px-atmc__svg { min-width: 560px; }
+.px-section__stage .px-cval__svg { min-width: var(--vbw); }
 

@@ -4,12 +4,12 @@
  * horizontal bars on a slightly tilted, receding 3D plane. Rows are sorted by
  * margin (widest first); each bar's width is proportional to the largest
  * margin. The global core/Tilt.astro `data-tilt` island adds pointer-tilt to
- * the plane; bars grow from zero on scroll-in (CSS, reveal-gated) and a row
- * lifts/brightens on hover.
+ * the plane, and a row lifts/brightens on hover.
  *
- * No-JS / reduced-motion: bars paint at their FINAL width (the width:0 hidden
- * rule sits behind `html.js`; reduced-motion resets with !important). The
- * numeric margin sits beside every bar regardless.
+ * THE BUILD (Lens Phase 5, LENS §6.4): the card is a `data-build-scene`:
+ * 1 the row names fade in, 2 the bars grow from the left, 80ms apart,
+ * 3 the margins rise (src/scripts/build.ts). No JS or reduced motion: the
+ * bars at their FINAL width, the numeric margin beside every bar.
  *
  * data: { rows[]{ label, margin, winner?, color? }, caption?, source? }
  */
@@ -28,26 +28,28 @@ const maxMargin = Math.max(1, ...sorted.map((r) => Math.abs(r.margin) || 0));
 const fmt = (n: number) => n.toLocaleString();
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz" data-build-scene>
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}</b></div>}
 
   <div class="px-mladr px3d-stage">
     <div class="px-mladr__plane px3d-tilt" data-tilt="6">
-      {sorted.map((r, i) => {
+      {sorted.map((r) => {
         const w = (Math.abs(r.margin) / maxMargin) * 100;
         return (
-          <div class="px-mladr__row" style={`--i:${i}`} data-cue={r.cue}>
-            <div class="px-mladr__label">
+          <div class="px-mladr__row" data-cue={r.cue}>
+            <div class="px-mladr__label" data-build="1">
               <span class="px-mladr__name"><span class="px-cue-tag" data-cue-tag={r.cue} hidden></span>{r.label}</span>
               {r.winner && <span class="px-mladr__winner">{r.winner}</span>}
             </div>
             <div class="px-mladr__track">
               <span
                 class="px-mladr__fill"
+                data-build="2"
+                data-build-kind="grow-x"
                 style={`--w:${w.toFixed(2)}%; background:${r.color || 'var(--accent)'}`}
               ></span>
             </div>
-            <div class="px-mladr__val">{fmt(r.margin)}</div>
+            <div class="px-mladr__val" data-build="3" data-build-kind="rise">{fmt(r.margin)}</div>
           </div>
         );
       })}
@@ -136,16 +138,8 @@ const fmt = (n: number) => n.toLocaleString();
     min-width: 3ch;
   }
 
-  /* reveal: bars grow from 0 width, staggered (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-mladr__fill { width: 0; }
-  .px-viz.is-in .px-mladr__fill { transition-delay: calc(var(--i) * 70ms); }
-
   @media (max-width: 560px) {
     .px-mladr__row { grid-template-columns: minmax(90px, 1fr) 1.6fr auto; gap: 10px; }
     .px-mladr__name { font-size: 13px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-mladr__fill { width: var(--w) !important; }
   }
 </style>

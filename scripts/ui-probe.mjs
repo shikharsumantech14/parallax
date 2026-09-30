@@ -31,13 +31,23 @@
  *    core/ReadingGate.astro sees a session and removes itself: the whole
  *    article renders, exactly as for a signed-in reader. Verified after load
  *    (no `.px-gate`, no `.px-gate-hidden`) or the page is reported HARNESS.
- *  - `prefers-reduced-motion: reduce` is emulated, so reveals, count-ups and
- *    the viz3d runtime settle into their final static state. NOTE: the WebGL
- *    kinds are therefore measured as their static fallback, never the canvas —
- *    that is the fallback contract (AGENTS.md §2), not a gap in the probe.
+ *  - `prefers-reduced-motion: reduce` is emulated, so the build island
+ *    (src/scripts/build.ts) applies no start state, and the viz3d runtime
+ *    settles into its final static state. NOTE: the WebGL kinds are therefore
+ *    measured as their static fallback, never the canvas — that is the
+ *    fallback contract (AGENTS.md §2), not a gap in the probe.
  *  - The page is scrolled through once (IntersectionObservers, lazy islands),
- *    every `[data-reveal]` is forced to `.is-in`, `document.fonts.ready` is
- *    awaited, and the Astro dev toolbar is removed.
+ *    `px:build-finish` is dispatched (every build scene to its final state,
+ *    a no-op under reduced motion), `document.fonts.ready` is awaited, and the
+ *    Astro dev toolbar is removed. (Until Lens Phase 5 this step forced
+ *    `[data-reveal]` to `.is-in`; that contract is retired.)
+ *  - The home page is loaded as a RETURNING reader (`px_intro_v2` set), so
+ *    the intro overlay (core/IntroOverlay.astro) never covers what is
+ *    measured; one more load as a FIRST visit checks the overlay on its own:
+ *    that it opens, FRAME under it, and `home/<width>/intro.png`.
+ *  - The BUILD check (below) loads the page TWICE more, one page at a time:
+ *    once with JS and motion allowed, every scene left to finish its build,
+ *    and once with JavaScript disabled.
  *  - SAFETY: request interception lets through only GET/HEAD to the base
  *    origin (minus `/api/*`) and Google Fonts. Everything else is aborted —
  *    above all ReadingTracker's POST to PUBLIC_APP_URL, which would otherwise
@@ -65,8 +75,9 @@
  *            (layout-v2.css), so a figure or a tinted cue sentence wider than
  *            the column IS the defect. Above
  *            900px a horizontal scroller whose content actually scrolls is
- *            reported too (the phone card-scroll rule is the only designed
- *            scroller).
+ *            reported too (the designed scrollers are the phone card-scroll
+ *            rule and, at every width, a figure root directly inside a
+ *            reading-system figure panel, `.px-fig__body`).
  *   FRAME    the honest overflow test (scrollTo(9999) ⇒ scrollX 0 and
  *            scrollWidth ≤ innerWidth), at every width; on failure the
  *            outermost elements past the viewport are listed.
@@ -96,6 +107,33 @@
  *   CHROME   more than one visible caption / source / how-to-read in a section
  *            (`.vb__cap` and `.px-seats__caption` are a label and a subtitle,
  *            not captions — the same exclusions as dataviz-v2.css).
+ *   CUES     the cue contract (LENS §5.2, Lens Phase 5): in a section whose
+ *            article carries cue buttons (`button.px-cue`), every numeral n
+ *            has at least one anchor in that section's figure panel that it
+ *            names (`[data-cue-n~="n"]`: the component's `data-cue` holds the
+ *            anchor's id, core/Section.astro writes the numerals that name
+ *            it beside it), and every numeral printed in the panel (an
+ *            anchor's `data-cue-n`, a filled `.px-cue-tag`) has a button in
+ *            the article. A button in a section with no panel fails too.
+ *   BUILD    the build contract (LENS §6.4, Lens Phase 5): with JS and motion
+ *            on, every `[data-build-scene]` left to finish its build (or
+ *            finished by `px:build-finish` after 8 s) must equal the same
+ *            page with JavaScript disabled: the scene's size, and each
+ *            `[data-build]` element's text, box relative to the scene
+ *            (within 1px) and opacity; and no `bx-*` class may be left
+ *            behind. So a build can never end in a state the static page
+ *            does not show. Scenes with no build element are skipped, and
+ *            so is a scene the static page does not draw at all (0×0 or
+ *            display:none, e.g. the intro overlay's later scenes, shown only
+ *            by JS) as long as it holds no .px-section: those are counted in
+ *            the report as "not shown statically". The
+ *            decision is compareBuild() in scripts/lib/render-checks.mjs,
+ *            as CUES's is cueNotes().
+ *            The cue lighting and the phone pin's zoom (cues.ts) are cleared
+ *            before the JS snapshot: they are reading states, not builds.
+ *   FLOOR    text rendered below 9.5px (the old floor): HTML by computed
+ *            size, SVG by its size times the SVG's scale. The phone pin's
+ *            CSS zoom (≥ 0.75, LENS §5.1) is taken out: it is designed.
  *  WARNING
  *   ALIGN    THE READING SYSTEM (a section with `.px-section__copy`, Lens
  *            Phase 3): the article's blocks share its left edge (within 8px)
@@ -112,11 +150,11 @@
  *            axis title sitting on a reference label) — including a crossing
  *            too small for OVERLAP's 25% share.
  *   EMPTY    a graphic kind whose graphic is under 60px tall.
- *   TINY     HTML text under 9px computed, SVG text whose rendered box is
- *            under 7px tall.
+ *   TINY     text rendered below LENS's 12px floor (§3.4), measured as FLOOR
+ *            is; below 9.5px it is FLOOR instead, and blocking.
  *
  *  The home page gets FRAME, COLUMN (against the 1280 frame), CLIP, OVERLAP,
- *  CHIP and TINY, grouped by band.
+ *  CHIP, BUILD, FLOOR and TINY, grouped by band.
  */
 import fs from 'node:fs';
 import net from 'node:net';
@@ -125,6 +163,7 @@ import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { renderFingerprint, renderedIssueSlugs } from './lib/render-fingerprint.mjs';
+import { cueNotes, compareBuild } from './lib/render-checks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ISSUES_DIR = path.join(ROOT, 'src', 'content', 'issues');
@@ -134,7 +173,7 @@ const ISSUES_DIR = path.join(ROOT, 'src', 'content', 'issues');
 const STAMP = path.join(ROOT, 'research', '_ui', 'last-run.json');
 const GATE_WIDTHS = [1280, 375];
 
-const BLOCKING = ['HARNESS', 'FRAME', 'COLUMN', 'CLIP', 'OVERLAP', 'CHIP', 'CHROME'];
+const BLOCKING = ['HARNESS', 'FRAME', 'COLUMN', 'CLIP', 'OVERLAP', 'CHIP', 'CHROME', 'CUES', 'BUILD', 'FLOOR'];
 const WARNING = ['ALIGN', 'TOUCH', 'EMPTY', 'TINY'];
 const TYPES = [...BLOCKING, ...WARNING];
 
@@ -153,8 +192,10 @@ const THRESHOLDS = {
   align: 8, // px spread of edges
   panel: 4, // px between a figure panel's content box and its children (the reading system)
   empty: 60, // px graphic height
-  tinyHtml: 9, // px computed font-size
-  tinySvg: 7, // px rendered text box height
+  tiny: 12, // px rendered type: LENS §3.4's floor (a warning below it)
+  floor: 9.5, // px rendered type: the old floor (blocking below it)
+  build: 1, // px a build element may sit from its static box
+  buildWait: 8000, // ms the JS pass waits for every scene to finish
   touch: 1.5, // px: glyphs of two separate text blocks closer than this
   cross: 2, // px in both axes: an ink-on-ink crossing that is an OVERLAP whatever its share
   scrollerDesktop: 900, // the card-scroll rule is `max-width: 900px`
@@ -371,7 +412,9 @@ async function scrollThrough() {
   window.scrollTo(0, document.documentElement.scrollHeight);
   await wait(250);
   window.scrollTo(0, 0);
-  document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('is-in'));
+  // Every build scene to its final state (src/scripts/build.ts; a no-op
+  // under reduced motion, where the island applies no start state).
+  document.dispatchEvent(new Event('px:build-finish'));
   await wait(120);
 }
 
@@ -628,6 +671,7 @@ function measure(cfg) {
   out.meta.docHeight = document.documentElement.scrollHeight;
   out.meta.faces = ['Newsreader', 'Instrument Sans'].filter((fam) => Array.from(document.fonts).some((f) => f.family.replace(/["']/g, '') === fam && f.status === 'loaded')).length;
   out.meta.gate = { present: !!document.querySelector('.px-gate'), hidden: document.querySelectorAll('.px-gate-hidden').length };
+  out.meta.scenes = document.querySelectorAll('[data-build-scene]').length;
 
   const outermost = (set, stopAt) => {
     // set: Map el -> data. Returns [{el, data, inside}] where no ancestor (below stopAt) is in the set.
@@ -756,7 +800,12 @@ function measure(cfg) {
     if ((s.overflowX === 'auto' || s.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
       const rec = { nn: b.nn, kind: b.kind, el: desc(el), scrollWidth: el.scrollWidth, clientWidth: el.clientWidth };
       // Issue article only: the home page's wire strip is a designed scroller.
-      if (vw > T.scrollerDesktop && cfg.mode === 'issue') {
+      // So is a figure root sitting directly in a reading-system figure panel
+      // (`.px-fig__body > .px-viz` / `[data-viz-root]`): a chart drawn for 720
+      // keeps its authored label size and scrolls inside the 520 panel at
+      // every width (dataviz-v2.css, Lens Phase 3). Nothing else is exempt.
+      const panelScroller = !!(el.parentElement && el.parentElement.classList.contains('px-fig__body'));
+      if (vw > T.scrollerDesktop && cfg.mode === 'issue' && !panelScroller) {
         F('COLUMN', b, `${desc(el)} scrolls sideways at ${vw}px: ${el.scrollWidth}px of content in a ${el.clientWidth}px box`, el.scrollWidth - el.clientWidth, { el: desc(el) });
       } else out.scrollers.push(rec);
     }
@@ -934,27 +983,28 @@ function measure(cfg) {
       }
     }
 
-    // TINY
+    // TINY (below LENS's 12px, a warning) and FLOOR (below 9.5px, blocking).
+    // The rendered type size: an HTML leaf's computed size (Chrome reports it
+    // before any CSS zoom), an SVG leaf's size times the SVG's scale with the
+    // CSS zoom taken back out. The zoom is the phone pin's (cues.ts, ≥ 0.75,
+    // LENS §5.1), which is designed.
     const tiny = [];
+    const floor = [];
     for (const L of leaves) {
+      let px = parseFloat(cs(L.el).fontSize) || 0;
       if (isSvg(L.el)) {
-        const h = L.u.b - L.u.t;
-        if (h < T.tinySvg) {
-          let est = null;
-          try {
-            const m = L.el.getScreenCTM();
-            if (m) est = (parseFloat(cs(L.el).fontSize) || 0) * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
-          } catch (e) { /* no CTM */ }
-          tiny.push({ t: snip(L.text).slice(0, 30), px: r1(h), how: `svg box ${r1(h)}px${est ? `, ≈${r1(est)}px type` : ''}` });
-        }
-      } else {
-        const f = parseFloat(cs(L.el).fontSize);
-        if (f < T.tinyHtml) tiny.push({ t: snip(L.text).slice(0, 30), px: r1(f), how: `${r1(f)}px` });
+        try {
+          const m = L.el.getScreenCTM();
+          if (m) px *= Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) / (L.el.currentCSSZoom || 1);
+        } catch (e) { /* no CTM: keep the computed size */ }
       }
+      if (px >= T.tiny || px <= 0) continue;
+      (px < T.floor ? floor : tiny).push({ t: snip(L.text).slice(0, 30), px: r1(px), how: `${r1(px)}px${isSvg(L.el) ? ' (svg)' : ''}` });
     }
-    if (tiny.length) {
-      const min = Math.min(...tiny.map((x) => x.px));
-      F('TINY', b, `${tiny.length} text lea${tiny.length > 1 ? 'ves' : 'f'} below legibility, e.g. ${tiny.slice(0, 3).map((x) => `“${x.t}” ${x.how}`).join(' · ')}`, min, { n: tiny.length });
+    for (const [type, list, what] of [['FLOOR', floor, 'below the 9.5px floor'], ['TINY', tiny, "below LENS's 12px"]]) {
+      if (!list.length) continue;
+      const min = Math.min(...list.map((x) => x.px));
+      F(type, b, `${list.length} text lea${list.length > 1 ? 'ves' : 'f'} ${what}, e.g. ${list.slice(0, 3).map((x) => `“${x.t}” ${x.how}`).join(' · ')}`, min, { n: list.length });
     }
   }
 
@@ -977,6 +1027,20 @@ function measure(cfg) {
     if (hows.length > 1) dup.push(`${hows.length} how-to-read panels (${hows.map(desc).join(', ')})`);
     if (dup.length) F('CHROME', b, `duplicate-chrome: ${dup.join('; ')}`, null);
     b.rec.chrome = { captions: caps.length, sources: srcs.length, how: hows.length };
+
+    // CUES — every numeral in the article has an anchor in the figure panel,
+    // and every numeral in the panel has a button in the article (LENS §5.2).
+    // DOM-level, visible or not: a cue is a contract, not a pixel.
+    {
+      const copyC = sec.querySelector(':scope > .px-section__copy');
+      const stageC = sec.querySelector(':scope > .px-section__stage');
+      const btns = copyC ? [...new Set([...copyC.querySelectorAll('button.px-cue[data-cue]')].map((x) => x.dataset.cue.trim()))] : [];
+      const anchors = stageC ? [...stageC.querySelectorAll('[data-cue]:not(.px-cue)')] : [];
+      const named = new Set(anchors.flatMap((a) => (a.dataset.cueN || '').split(/\s+/).filter(Boolean)));
+      const tags = new Set(stageC ? [...stageC.querySelectorAll('.px-cue-tag:not([hidden])')].map((t) => t.textContent.trim()).filter(Boolean) : []);
+      // Decided Node-side by cueNotes() (scripts/lib/render-checks.mjs).
+      b.rec.cueData = { buttons: btns, named: [...named], tags: [...tags], hasStage: !!stageC, anchors: anchors.length };
+    }
 
     // ALIGN
     /* The Lens reading system (core/Section.astro, Phase 3, 2026-09-30): a
@@ -1163,46 +1227,63 @@ function measure(cfg) {
 /* Per-page job                                                               */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-async function probe(browser, job, opts) {
+/* One page, set up the way every pass reads it: a signed-in returning reader
+   on the job's viewport, the service worker bypassed, and nothing but GET /
+   HEAD to the base origin (less /api/*) and Google Fonts let out. `motion`
+   false emulates prefers-reduced-motion; `js` false disables JavaScript. */
+async function openPage(browser, job, opts, res, { motion = false, js = true, firstVisit = false } = {}) {
   const phone = job.width < 768;
   const height = phone ? 812 : 900;
+  const baseOrigin = new URL(opts.base).origin;
+  const page = await browser.newPage();
+  await page.setBypassServiceWorker(true);
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: motion ? 'no-preference' : 'reduce' }]);
+  if (!js) await page.setJavaScriptEnabled(false);
+  if (phone) await page.setUserAgent(MOBILE_UA);
+  await page.setViewport({ width: job.width, height, deviceScaleFactor: phone ? 2 : 1, isMobile: phone, hasTouch: phone });
+  // ReadingGate's isAuthed(): /sb-[^=;]*-auth-token(?:\.\d+)?=/ on document.cookie.
+  await page.setCookie({ name: 'sb-probe-auth-token', value: '1', url: baseOrigin + '/' });
+  // A signed-in, returning reader has seen the home intro overlay
+  // (core/IntroOverlay.astro reads `px_intro_v2`; any value means seen).
+  // `firstVisit` leaves it unset: the separate intro check below.
+  // The browser profile is shared by every page of a worker, so localStorage
+  // persists between them: a first visit REMOVES the key an earlier page set.
+  await page.evaluateOnNewDocument((first) => {
+    try {
+      if (first) localStorage.removeItem('px_intro_v2');
+      else localStorage.setItem('px_intro_v2', '1');
+    } catch (e) { /* storage off */ }
+  }, firstVisit);
+  await page.setRequestInterception(true);
+  page.on('request', (req) => {
+    let u;
+    try { u = new URL(req.url()); } catch { return req.abort('blockedbyclient'); }
+    if (u.protocol === 'data:' || u.protocol === 'blob:') return req.continue();
+    const m = req.method();
+    const safe = m === 'GET' || m === 'HEAD';
+    const same = u.origin === baseOrigin && !u.pathname.startsWith('/api/');
+    const fonts = /^fonts\.(googleapis|gstatic)\.com$/.test(u.hostname);
+    if (safe && (same || fonts)) return req.continue();
+    const key = `${m} ${u.origin}${u.pathname}`;
+    res.blocked[key] = (res.blocked[key] || 0) + 1;
+    return req.abort('blockedbyclient');
+  });
+  page.on('pageerror', (e) => { if (res.pageErrors.length < 5) res.pageErrors.push(String(e.message || e).slice(0, 200)); });
+  const resp = await page.goto(job.url, { waitUntil: 'load', timeout: 180_000 });
+  if (!resp || resp.status() >= 400) throw new Error(`HTTP ${resp ? resp.status() : 'no response'}`);
+  return page;
+}
+
+async function probe(browser, job, opts) {
   const res = {
     page: job.page, url: job.url, width: job.width, ok: false, error: null,
     meta: {}, sections: [], findings: [], scrollers: [], counts: {},
     blocked: {}, pageErrors: [], screenshots: [],
   };
-  const page = await browser.newPage();
-  const baseOrigin = new URL(opts.base).origin;
+  let page = null;
   try {
-    await page.setBypassServiceWorker(true);
-    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-    if (phone) await page.setUserAgent(MOBILE_UA);
-    await page.setViewport({ width: job.width, height, deviceScaleFactor: phone ? 2 : 1, isMobile: phone, hasTouch: phone });
-    // ReadingGate's isAuthed(): /sb-[^=;]*-auth-token(?:\.\d+)?=/ on document.cookie.
-    await page.setCookie({ name: 'sb-probe-auth-token', value: '1', url: baseOrigin + '/' });
-    // A signed-in, returning reader has seen the home intro overlay.
-    await page.evaluateOnNewDocument(() => {
-      try { localStorage.setItem('px_intro_seen_v1', '1'); } catch (e) { /* storage off */ }
-    });
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      let u;
-      try { u = new URL(req.url()); } catch { return req.abort('blockedbyclient'); }
-      if (u.protocol === 'data:' || u.protocol === 'blob:') return req.continue();
-      const m = req.method();
-      const safe = m === 'GET' || m === 'HEAD';
-      const same = u.origin === baseOrigin && !u.pathname.startsWith('/api/');
-      const fonts = /^fonts\.(googleapis|gstatic)\.com$/.test(u.hostname);
-      if (safe && (same || fonts)) return req.continue();
-      const key = `${m} ${u.origin}${u.pathname}`;
-      res.blocked[key] = (res.blocked[key] || 0) + 1;
-      return req.abort('blockedbyclient');
-    });
-    page.on('pageerror', (e) => { if (res.pageErrors.length < 5) res.pageErrors.push(String(e.message || e).slice(0, 200)); });
-
     const t0 = Date.now();
-    const resp = await page.goto(job.url, { waitUntil: 'load', timeout: 180_000 });
-    if (!resp || resp.status() >= 400) throw new Error(`HTTP ${resp ? resp.status() : 'no response'}`);
+    page = await openPage(browser, job, opts, res);
     await page.evaluate(() => {
       document.querySelectorAll('astro-dev-toolbar').forEach((e) => e.remove());
     });
@@ -1218,11 +1299,12 @@ async function probe(browser, job, opts) {
     await page.evaluate(scrollThrough);
     await page.waitForNetworkIdle({ idleTime: 400, timeout: 20_000 }).catch(() => {});
     await page.evaluate(() => document.fonts.ready.then(() => true));
-    // Reveal's 2 s safety net and VizMotion's 2.2 s count-up fallback.
+    // Settling time for the lazy islands (the viz3d runtime's fallback bail,
+    // the phone pin's refit on fonts.ready).
     const elapsed = Date.now() - t0;
     if (elapsed < 2600) await sleep(2600 - elapsed);
     await page.evaluate(() => {
-      document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('is-in'));
+      document.dispatchEvent(new Event('px:build-finish'));
       document.querySelectorAll('astro-dev-toolbar').forEach((e) => e.remove());
       window.scrollTo(0, 0);
       return new Promise((r) => setTimeout(r, 300));
@@ -1236,6 +1318,14 @@ async function probe(browser, job, opts) {
     res.scrollers = m.scrollers;
     res.counts = m.counts;
     res.findings.push(...m.findings);
+    // CUES, from the numerals measure() gathered per section.
+    for (const sec of m.blocks) {
+      if (!sec.cueData) continue;
+      const notes = cueNotes(sec.cueData);
+      if (notes.length) res.findings.push({ type: 'CUES', nn: sec.nn, kind: sec.kind, layout: sec.layout, desc: notes.join('; '), px: null });
+      sec.cues = { buttons: sec.cueData.buttons.length, anchors: sec.cueData.anchors };
+      delete sec.cueData;
+    }
 
     if (cfg.mode === 'issue') {
       if (m.meta.gate && (m.meta.gate.present || m.meta.gate.hidden)) {
@@ -1254,10 +1344,180 @@ async function probe(browser, job, opts) {
     res.error = String(e && e.message ? e.message : e).slice(0, 300);
     res.findings.push({ type: 'HARNESS', nn: '--', kind: 'page', layout: '', desc: `probe failed: ${res.error}`, px: null });
   } finally {
-    await page.close().catch(() => {});
+    if (page) await page.close().catch(() => {});
+  }
+  /* The intro overlay on a first visit (home only), on its own page after
+     the measured one is closed: FRAME and a screenshot, nothing else. */
+  if (res.ok && job.page === 'home') {
+    try {
+      await introCheck(browser, job, opts, res);
+    } catch (e) {
+      res.findings.push({ type: 'HARNESS', nn: '--', kind: 'intro', layout: '', desc: `intro pass failed: ${String(e && e.message ? e.message : e).slice(0, 200)}`, px: null });
+    }
+  }
+  /* The BUILD pass, after the measured page is CLOSED: one page at a time per
+     browser, or the second becomes a background page whose animation frames
+     never run (the concurrency note in main()). */
+  if (res.ok && res.meta.scenes > 0) {
+    try {
+      await buildCheck(browser, job, opts, res);
+    } catch (e) {
+      res.findings.push({ type: 'HARNESS', nn: '--', kind: 'page', layout: '', desc: `build pass failed: ${String(e && e.message ? e.message : e).slice(0, 200)}`, px: null });
+    }
   }
   for (const f of res.findings) f.severity = BLOCKING.includes(f.type) ? 'blocking' : 'warning';
   return res;
+}
+
+/* ── INTRO: the first-visit overlay (core/IntroOverlay.astro) ────────────── */
+
+/* The measured home page is loaded as a returning reader, so the overlay
+   never covers what is measured. This pass loads it as a FIRST visit (no
+   `px_intro_v2`), reduced motion as everywhere, and checks only that the
+   overlay opened, that the page does not scroll sideways under it (FRAME),
+   and takes `home/<width>/intro.png` of the viewport for the reader of the
+   screenshots. The overlay's content is not measured here. */
+async function introCheck(browser, job, opts, res) {
+  const page = await openPage(browser, job, opts, res, { firstVisit: true });
+  try {
+    await page.evaluate(() => document.querySelectorAll('astro-dev-toolbar').forEach((e) => e.remove()));
+    await page.evaluate(() => document.fonts.ready.then(() => true));
+    await sleep(600);
+    const st = await page.evaluate(() => {
+      const el = document.getElementById('px-intro');
+      const open = !!el && !el.hidden && el.getBoundingClientRect().width > 0;
+      const y = window.scrollY;
+      window.scrollTo(9999, y);
+      const sx = window.scrollX;
+      const sw = document.documentElement.scrollWidth;
+      window.scrollTo(0, y);
+      return { present: !!el, open, sx, sw, vw: window.innerWidth };
+    });
+    res.meta.intro = st.present ? (st.open ? 'opened on first visit' : 'present but did not open') : 'not on the page';
+    if (st.open && (st.sx !== 0 || st.sw > st.vw)) {
+      res.findings.push({ type: 'FRAME', nn: '--', kind: 'intro', layout: '', desc: `with the intro overlay open the page scrolls sideways (scrollX ${st.sx}, scrollWidth ${st.sw} > ${st.vw})`, px: st.sw - st.vw });
+    }
+    if (opts.shots && st.open) {
+      const dir = path.join(opts.out, job.page, String(job.width));
+      fs.mkdirSync(dir, { recursive: true });
+      const p = path.join(dir, 'intro.png');
+      await page.screenshot({ path: p });
+      res.screenshots.push(path.relative(opts.out, p).split(path.sep).join('/'));
+    }
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+/* ── BUILD: the build's end state against the no-JS page ─────────────────── */
+
+/* Browser-side (serialised, self-contained). Every scene in document order:
+   its section, its size, and each of its own [data-build] elements' box
+   relative to the scene, opacity, text and any class the island left
+   behind. */
+function buildSnapshot() {
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const descOf = (el) => {
+    const c = (el.getAttribute('class') || '').trim().split(/\s+/).filter((x) => x && !/^astro-/.test(x) && !/^bx-/.test(x)).slice(0, 2);
+    return el.tagName.toLowerCase() + (c.length ? '.' + c.join('.') : '');
+  };
+  return [...document.querySelectorAll('[data-build-scene]')].map((s, i) => {
+    const sr = s.getBoundingClientRect();
+    const sec = s.closest('.px-section');
+    const idm = sec && /^sec-(\d+)$/.exec(sec.id || '');
+    const band = s.closest('.px-band, header, footer');
+    return {
+      i,
+      nn: idm ? idm[1].padStart(2, '0') : '--',
+      kind: sec ? sec.dataset.kind || '?' : band ? descOf(band) : descOf(s),
+      scene: descOf(s),
+      state: s.dataset.buildState || null,
+      w: r1(sr.width),
+      h: r1(sr.height),
+      // Not drawn at all (a JS-shown overlay's scene, say): 0×0 or display:none.
+      shown: !((sr.width === 0 && sr.height === 0) || getComputedStyle(s).display === 'none'),
+      hasSection: !!s.querySelector('.px-section'),
+      els: [...s.querySelectorAll('[data-build]')]
+        .filter((e) => e.closest('[data-build-scene]') === s)
+        .map((e) => {
+          const r = e.getBoundingClientRect();
+          return {
+            d: descOf(e),
+            x: r1(r.left - sr.left), y: r1(r.top - sr.top), w: r1(r.width), h: r1(r.height),
+            o: Math.round(parseFloat(getComputedStyle(e).opacity) * 100) / 100,
+            t: (e.textContent || '').replace(/\s+/g, ' ').trim(),
+            bx: [...e.classList].filter((c) => /^bx-/.test(c)).join(' '),
+          };
+        }),
+    };
+  });
+}
+
+/* Browser-side: take off the reading states cues.ts puts on the page, which
+   are not builds. "Show all" in every figure stops section 1's cue autoplay
+   and clears the lighting through cues.ts's own path; the attributes are
+   then removed outright, and the phone pin's zoom with them. The lighting's
+   160ms fade back to full is waited out before the snapshot. */
+async function clearReading() {
+  document.querySelectorAll('[data-cue-all]').forEach((b) => b.click());
+  document.querySelectorAll('[data-lit]').forEach((e) => e.removeAttribute('data-lit'));
+  document.querySelectorAll('[data-lit-n]').forEach((e) => e.removeAttribute('data-lit-n'));
+  document.querySelectorAll('[data-pin]').forEach((e) => e.removeAttribute('data-pin'));
+  document.querySelectorAll('.px-fig__body').forEach((e) => { e.style.zoom = ''; });
+  await new Promise((r) => setTimeout(r, 600));
+}
+
+async function buildCheck(browser, job, opts, res) {
+  // 1. JS on, motion allowed: scroll through so every scene starts, then let
+  //    each finish on its own; `px:build-finish` only for the stragglers.
+  let live;
+  let page = await openPage(browser, job, opts, res, { motion: true });
+  try {
+    await page.evaluate(() => document.querySelectorAll('astro-dev-toolbar').forEach((e) => e.remove()));
+    await page.evaluate(async () => {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const step = Math.max(200, Math.floor(window.innerHeight * 0.5));
+      for (let y = 0; y < document.documentElement.scrollHeight + step; y += step) {
+        window.scrollTo(0, y);
+        await wait(120);
+      }
+      window.scrollTo(0, 0);
+    });
+    await page.evaluate(() => document.fonts.ready.then(() => true));
+    const t0 = Date.now();
+    let left = 1;
+    while (Date.now() - t0 < THRESHOLDS.buildWait) {
+      left = await page.evaluate(() => document.querySelectorAll('[data-build-scene]:not([data-build-state="done"])').length);
+      if (!left) break;
+      await sleep(250);
+    }
+    const unfinished = await page.evaluate(() => {
+      const n = [...document.querySelectorAll('[data-build-scene]')].filter((s) => s.dataset.buildState !== 'done').map((s) => s.dataset.buildState || 'never armed');
+      document.dispatchEvent(new Event('px:build-finish'));
+      return n;
+    });
+    await sleep(100);
+    await page.evaluate(clearReading);
+    live = await page.evaluate(buildSnapshot);
+    res.meta.build = { scenes: live.length, finishedAlone: live.length - unfinished.length, forced: unfinished };
+  } finally {
+    await page.close().catch(() => {});
+  }
+
+  // 2. JavaScript disabled: the static page, which is the final state.
+  let still;
+  page = await openPage(browser, job, opts, res, { js: false });
+  try {
+    await page.evaluate(() => document.fonts.ready.then(() => true));
+    still = await page.evaluate(buildSnapshot);
+  } finally {
+    await page.close().catch(() => {});
+  }
+
+  // 3. Compare (scripts/lib/render-checks.mjs).
+  const cmp = compareBuild(live, still, THRESHOLDS.build);
+  for (const x of cmp.findings) res.findings.push({ type: 'BUILD', layout: '', ...x });
+  res.meta.build.notShown = cmp.notShown;
 }
 
 async function shoot(page, job, res, opts) {
@@ -1345,7 +1605,7 @@ function writeReport(results, opts, extra) {
   const L = [];
   L.push(`# UI probe — ${extra.date}`);
   L.push('');
-  L.push(`Base \`${opts.base}\` · widths ${opts.widths.join(', ')} · ${results.length} page renders · signed-in reader, reduced motion · Chrome ${extra.chromeVersion}`);
+  L.push(`Base \`${opts.base}\` · widths ${opts.widths.join(', ')} · ${results.length} page renders · signed-in reader, reduced motion (the BUILD pass: motion on, then JS off) · Chrome ${extra.chromeVersion}`);
   L.push('');
   L.push(`**${blocking} blocking** (${BLOCKING.join(', ')}) · warnings: ${WARNING.map((t) => `${t} ${totals[t]}`).join(', ')}`);
   L.push('');
@@ -1361,6 +1621,8 @@ function writeReport(results, opts, extra) {
     if (r.sections && r.sections.length) meta.push(`${r.sections.length} sections`);
     if (r.scrollers && r.scrollers.length) meta.push(`${r.scrollers.length} card scroller${r.scrollers.length > 1 ? 's' : ''} (designed): ${r.scrollers.map((s) => `§${s.nn} ${s.el} ${s.scrollWidth}/${s.clientWidth}`).join(', ')}`);
     if (r.counts && r.counts.ellipsis) meta.push(`${r.counts.ellipsis} ellipsis-truncated text`);
+    if (r.meta && r.meta.intro) meta.push(`intro overlay: ${r.meta.intro}${r.screenshots.some((x) => x.endsWith('intro.png')) ? ' (intro.png)' : ''}`);
+    if (r.meta && r.meta.build) meta.push(`${r.meta.build.scenes} build scene${r.meta.build.scenes === 1 ? '' : 's'} compared with no JS (${r.meta.build.finishedAlone} finished on their own${r.meta.build.forced.length ? `, ${r.meta.build.forced.length} finished by px:build-finish: ${r.meta.build.forced.join(', ')}` : ''}${r.meta.build.notShown ? `; ${r.meta.build.notShown} not shown statically, skipped` : ''})`);
     if (r.meta && r.meta.fontWarning) meta.push(`**${r.meta.fontWarning}**`);
     if (r.pageErrors && r.pageErrors.length) meta.push(`page errors: ${r.pageErrors.map((e) => `\`${e.slice(0, 90)}\``).join('; ')}`);
     if (r.fullScale) meta.push(`full.png captured at ${r.fullScale}x (page too tall for DPR ${r.meta.dpr})`);

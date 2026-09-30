@@ -4,9 +4,10 @@
  *
  * The graphic panel of `core/CoverCard.astro`: a compact, honest mark drawn
  * from the issue's own data, in the desk MARK on the desk TINT (LENS §2.2),
- * with labels of at most three words (LENS §5.5). Until Phase 4 gives an
- * issue a `cover` field, the cover is DERIVED (`src/lib/cover.ts`): the
- * issue's first section of one of eleven kinds, drawn as
+ * with labels of at most three words (LENS §5.5). An issue's authored
+ * `cover.section` picks the section when it is one of the eleven kinds below;
+ * otherwise the cover is DERIVED (`src/lib/cover.ts`): the issue's first
+ * section of one of eleven kinds, drawn as
  *
  *   data-readout      the key tile and one more, as two numbers
  *   benchmark-chart   a two-bar race: the subject against its largest rival
@@ -60,7 +61,7 @@ const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 const W = COVER_W;
 const H = COVER_H;
 const { drawn, rects, circles, paths, texts, aria, medallion } = coverModel(
-  desk, issue.data.sections, issue.data.title, { compact: !labels },
+  desk, issue.data.sections, issue.data.title, { compact: !labels, cover: issue.data.cover },
 );
 /* The medallion inside the drawing (the compact readout), from the one
    geometry in src/lib/mark.ts, sized for the 40px it prints at. */

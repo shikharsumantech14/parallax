@@ -6,16 +6,16 @@
  * Pure HTML/CSS, zero JS. Universal, so core/. Prefix `px-ns`.
  *
  * SHELL. `core/VizCard.astro` owns the caption row, the in-card how-to-read
- * panel AND the `data-reveal` root — this component adds none of the three and
- * must not add a second `data-reveal`. The plain line and the `Source · …` on
+ * panel AND the `data-build-scene` root (Lens Phase 5) — this component adds
+ * none of the three and must not add a second scene. The plain line and the `Source · …` on
  * it are `core/Section.astro`'s, for every kind. `number-sense` is not in
  * NEEDS_HOW: an authored `howToRead` renders, the per-kind default does not.
  *
- * THE VALUE IS STATIC, deliberately — blueprint §5 permits either. The shared
- * count-up (`[data-countup]` + core/VizMotion.astro) needs no new JS, so the
- * gate is passed; it is declined because the island finishes by writing
- * `Number.toLocaleString()` in the READER's locale, and an en-IN browser
- * regroups 1,500,000 as 15,00,000. This kind carries one published, verified
+ * THE VALUE IS STATIC, deliberately — blueprint §5 permits either. A build
+ * counter (`data-build-kind="counter"`, src/scripts/build.ts) needs no new
+ * JS, so the gate is passed; it is declined because a counter's in-between
+ * frames are grouped en-US, and this figure is often Indian-grouped
+ * (15,00,000): the tween would regroup it on the way up. This kind carries one published, verified
  * figure — often an Indian-grouped rupee amount — so it must render exactly as
  * authored (CANON §7). Nothing moves, so the still IS the component.
  */

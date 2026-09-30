@@ -1,32 +1,99 @@
 ---
 /**
- * StoryCard — one beat: text (top) + the LIVE fitted section component
- * (center, via SectionBody) + kicker (bottom). Spec §2 anatomy/dvh budget.
+ * StoryCard — one beat (Lens, 2026-09-30, Phase 4b; the Story board's cards
+ * 2 to 4). A paper-2 card: the header (the desk medallion at 24, the
+ * register and issue number in the desk text, "k / n"), the section's
+ * eyebrow and title (Newsreader 26), the section's COMPACT figure through
+ * SectionBody's `bare` mode (Phase 3: no caption, the compact form of the
+ * kinds that have one), then the beat text in Newsreader 17 (at most forty
+ * words) and the source line. A prose beat is a pure-text card: the beat text
+ * set large, no figure (STORY-MODE-SPEC §1).
+ *
+ * The section arrives already fitted by src/lib/story.ts (trimmed data, cues
+ * stripped). On a phone the card is the screen and carries its own dots.
  */
 import SectionBody from '../SectionBody.astro';
-import type { Section } from '../../content/config';
+import Mark from '../core/Mark.astro';
+import type { Section, Topic } from '../../content/config';
+import { DESK_REGISTER } from '../../lib/desks';
+import { renderEmphasis, stripCues } from '../../lib/text';
 
 interface Props {
   section: Section;   // already fitted (lib/story.ts fitSectionForStory)
   text: string;
   kicker?: string;
   index: number;      // 1-based card number (c2, c3, …)
+  count: number;
+  desk: Topic;
+  issueNo: string;
 }
-const { section, text, kicker, index } = Astro.props;
+const { section, text, kicker, index, count, desk, issueNo } = Astro.props;
 
 // prose beats are pure-text cards (STORY-MODE-SPEC §1): the beat text IS the
 // card — rendering the full prose section would just be a tall duplicate.
 const isText = section.kind === 'prose';
+
+/* At most forty words: whole sentences while they fit, else the first forty
+   words and an ellipsis. The beat derivation itself is untouched. */
+function clip(input: string, max = 40): string {
+  const words = input.trim().split(/\s+/);
+  if (words.length <= max) return input.trim();
+  const sentences = input.trim().match(/[^.!?]+[.!?]+(\s|$)/g) ?? [];
+  let out = '';
+  for (const s of sentences) {
+    const next = (out + s).trim();
+    if (next.split(/\s+/).length > max) break;
+    out = next + ' ';
+  }
+  return out.trim() || `${words.slice(0, max).join(' ').replace(/[,;:]$/, '')}…`;
+}
+const beat = clip(text);
+
+const src = section.source ?? (section.data as any)?.source;
+const sourceLine =
+  typeof src === 'string'
+    ? stripCues(src)
+    : src && typeof src === 'object' && 'label' in src
+      ? [src.label, src.date].filter(Boolean).join(' · ')
+      : undefined;
+const eyebrow = kicker ?? section.eyebrow;
 ---
 
-<section class:list={['pxs-card', isText && 'pxs-card--text']} id={`c${index}`} data-kind={section.kind}>
-  <div class="pxs-card__inner">
-    <p class="pxs-beat__text">{text}</p>
-    {!isText && (
-      <div class="pxs-beat__viz" data-reveal>
-        <SectionBody section={section} />
-      </div>
-    )}
-    {kicker && <p class="pxs-beat__kicker">{kicker}</p>}
+<section
+  class:list={['pxs-card', 'pxs-beat', isText && 'pxs-card--text']}
+  id={`c${index}`}
+  data-kind={section.kind}
+  aria-label={`Story card ${index} of ${count}`}
+>
+  <div class="pxs-card__top">
+    <span class="pxs-card__desk">
+      <Mark desk={desk} size={24} tight ground="var(--paper-2)" />
+      <span>{DESK_REGISTER[desk]}{issueNo && ` · ${issueNo}`}</span>
+    </span>
+    <span class="pxs-card__count">{index} / {count}</span>
   </div>
+
+  {(eyebrow || (section.title && !isText)) && (
+    <div class="pxs-beat__head">
+      {eyebrow && <span class="pxs-beat__eyebrow">{eyebrow}</span>}
+      {section.title && !isText && <h2 class="pxs-beat__title" set:html={renderEmphasis(section.title)} />}
+    </div>
+  )}
+
+  {isText ? (
+    <p class="pxs-beat__text pxs-beat__text--lead">{beat}</p>
+  ) : (
+    <>
+      <div class="pxs-beat__viz">
+        <SectionBody section={section} bare />
+      </div>
+      <p class="pxs-beat__text">{beat}</p>
+    </>
+  )}
+
+  {sourceLine && <p class="pxs-beat__source">Source · {sourceLine}</p>}
+
+  <span class="pxs-dots" role="img" aria-label={`Card ${index} of ${count}`}>
+    {Array.from({ length: count }).map((_, i) => <span class:list={['pxs-dots__d', { 'is-on': i === index - 1 }]}></span>)}
+  </span>
 </section>

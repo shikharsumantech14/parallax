@@ -2,9 +2,8 @@
 /**
  * OrbitTrace — v2 orbital diagram (.ot) inside the elevated .px-viz card.
  * A compact Earth with log-scaled orbit rings; one satellite per ring rides
- * its ellipse via SVG <animateMotion>. Rings fade in and the legend rows
- * slide in on scroll (gated no-JS-safe in dataviz-v2.css via .px-viz.is-in).
- * Faithful port of publication-v2 <OrbitTrace>. Build-time, zero runtime JS.
+ * its ellipse via SVG <animateMotion> (an ambient loop). The scroll reveal of
+ * the rings and legend retired in Lens Phase 5. Faithful port of publication-v2 <OrbitTrace>. Build-time, zero runtime JS.
  *
  * props (unchanged — see SectionRenderer 'orbit-trace'):
  *   orbits[]      — { name, altKm, inclDeg?, color?, satCount?, note? }
@@ -48,7 +47,7 @@ const items = orbits.map((o, i) => ({
 }));
 ---
 
-<div class="px-viz ot" data-reveal role="img"
+<div class="px-viz ot" role="img"
   aria-label={caption ? `Orbital diagram: ${caption}` : 'Orbital diagram'}>
   <div class="ot__stage">
     <svg class="ot__svg" viewBox={`0 0 ${C} ${C}`}>

@@ -88,7 +88,7 @@ for (let i = 0; i <= STEPS; i++) {
 const curveD = pts
   .map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`)
   .join(' ');
-// polyline length (for the sweep stroke-dash draw)
+// polyline length (for the stroke-dash draw, at rest fully drawn)
 let curveLen = 0;
 for (let i = 1; i < pts.length; i++) {
   curveLen += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
@@ -191,7 +191,7 @@ const cfg = JSON.stringify({
 });
 ---
 
-<div class="px-viz px-qc" data-reveal>
+<div class="px-viz px-qc">
   {caption && (
     <div class="px-viz__cap"><span>{caption}</span><b>M/M/1</b></div>
   )}
@@ -621,18 +621,12 @@ const cfg = JSON.stringify({
   .px-qc__table-anno--ok td:first-child { color: var(--accent-deep, var(--accent)); }
   .px-qc__table-anno--hot td:first-child { color: var(--accent-alt); }
 
-  /* ── reveal (gated behind html.js) ────────────────────────────────────── */
+  /* ── final state: annotations, area and marker rest shown (static since Lens Phase 5) ── */
   .px-qc__curve { }
   .px-qc__anno, .px-qc__area, .px-qc__live-g {
     opacity: 1;
     transition: opacity var(--t-soft, 220ms) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-qc__curve { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-qc__anno,
-  html.js .px-viz:not(.is-in) .px-qc__area,
-  html.js .px-viz:not(.is-in) .px-qc__live-g { opacity: 0; }
-  .px-viz.is-in .px-qc__area { transition-delay: 900ms; }
-  .px-viz.is-in .px-qc__live-g { transition-delay: 1000ms; }
 
   /* ── 375px: stack, thin ticks, collapse annotation labels ─────────────── */
   @media (max-width: 520px) {
@@ -642,10 +636,6 @@ const cfg = JSON.stringify({
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-qc__curve { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-qc__anno,
-    .px-viz:not(.is-in) .px-qc__area,
-    .px-viz:not(.is-in) .px-qc__live-g { opacity: 1 !important; }
     .px-qc__curve, .px-qc__anno, .px-qc__area, .px-qc__live-g,
     .px-qc__range::-webkit-slider-thumb { transition: none !important; }
   }

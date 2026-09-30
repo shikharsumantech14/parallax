@@ -1,8 +1,11 @@
 ---
 /**
  * PowerMatrix — v2 institutional control grid (.pm) inside the elevated .px-viz
- * card. Cells scale-in row by row on scroll. Faithful port of publication-v2
- * DataViz1.jsx <PowerMatrix>. Build-time, zero runtime JS.
+ * card. Faithful port of publication-v2 DataViz1.jsx <PowerMatrix>.
+ * Build-time, zero JS of its own. THE BUILD (Lens Phase 5, LENS §6.4): the
+ * card is a `data-build-scene`: 1 the axes (party heads, institution
+ * names) fade in, 2 the cells drop in row by row, 3 the legend
+ * (src/scripts/build.ts). No JS or reduced motion: the grid as written.
  *
  * props:
  *   institutions[] — string[]
@@ -34,24 +37,24 @@ const GLYPH: Record<string, string> = { full: '●', partial: '◐', none: '○'
 const attrOf = (control: string) => (control === 'contested' ? 'partial' : control);
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz" data-build-scene>
   {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
   <div class="pm__grid" style={`--cols:${parties.length}`}>
     <div class="pm__row">
       <div class="pm__head" style="padding-left:0"></div>
-      {parties.map((p) => <div class="pm__head">{p.label}</div>)}
+      {parties.map((p) => <div class="pm__head" data-build="1">{p.label}</div>)}
     </div>
     {/* Cue anchors (LENS §5.2): each institution row is `data-cue="<n>"`,
         numbered from 1 in data order (the header row is not an anchor). */}
     {institutions.map((inst, ri) => (
       <div class="pm__row" data-cue={ri + 1}>
-        <div class="pm__inst"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{inst}</div>
+        <div class="pm__inst" data-build="1"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{inst}</div>
         {parties.map((p) => {
           const c = cellFor(inst, p.id);
           const bg = c.control === 'none' ? undefined : colorOf(p.id);
           return (
-            <div class="pm__cell" data-control={attrOf(c.control)}
-                 style={`${bg ? `background:${bg};` : ''}transition-delay:${ri * parties.length * 40}ms`}>
+            <div class="pm__cell" data-control={attrOf(c.control)} data-build={2 + ri} data-build-kind="drop"
+                 style={bg ? `background:${bg}` : undefined}>
               <span>{GLYPH[c.control] ?? '○'}</span>
             </div>
           );
@@ -59,7 +62,7 @@ const attrOf = (control: string) => (control === 'contested' ? 'partial' : contr
       </div>
     ))}
   </div>
-  <div class="pm__legend">
+  <div class="pm__legend" data-build={2 + institutions.length}>
     <span class="key">● Full control</span>
     <span class="key">◐ Partial / contested</span>
     <span class="key">○ None</span>

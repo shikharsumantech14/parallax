@@ -1,207 +1,178 @@
 ---
 /**
- * /archive — every published issue, filterable by desk and by a live search.
+ * /archive — every published issue (Lens Phase 4; the Archive and
+ * Archive-Phone boards).
  *
- * Restyled to the launch design (2026-09-08): a head band, a filter band on
- * the same 40px gutter, then the ONE row implementation (home/IssueRows) so a
- * row on the archive and a row on the home page are the same object. The
- * class hooks the island reads (`.px-archive__list` / `__row` / `__none`) come
- * from IssueRows, which is why the script below needs no edit.
+ * The head ("The archive", "N issues since <first month>"), seven filter
+ * chips (All, then each desk with a published issue, led by its lettered
+ * mark at 24px and its count), then the issues as cover cards three across,
+ * grouped by month under a hairline month label with the month's count.
+ * Phones: one column.
  *
- * Built against the TEN REAL ISSUES. The handoff prototype's backlist carries
- * 24 rows of which 14 are fiction; §4-v3 says explicitly that they must not
- * shape this page, so nothing here is sized or worded around a backlist we do
- * not have. The empty state names the six desks rather than apologising for a
- * thin archive.
- *
- * FALLBACK CONTRACT. Every row is server-rendered and visible. The search box
- * and the chips ship `hidden` and are revealed by the island below, so a
- * reader without JS gets the complete archive and never meets a control that
- * cannot work. Same pattern as the Phase 6.2 instruments.
+ * FALLBACK. Every card is server-rendered and visible. The chips ship
+ * `hidden` and the island below reveals them, so a reader without JS gets the
+ * complete archive and never meets a control that cannot work. The island
+ * filters by `data-topic` on each card's cell, hides a month left empty, and
+ * announces the count.
  */
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import HomeLayout from '../layouts/HomeLayout.astro';
 import Masthead from '../components/core/Masthead.astro';
-import IssueRows from '../components/home/IssueRows.astro';
-import { TOPICS, type Topic } from '../content/config';
+import CoverCard from '../components/core/CoverCard.astro';
+import Mark from '../components/core/Mark.astro';
+import { TOPICS } from '../content/config';
+import { DESK_COPY } from '../lib/desks';
+import { issueNumbers } from '../lib/issue-number';
 
-const published = (await getCollection('issues', (e) => e.data.status !== 'draft'));
-const oldestFirst = [...published].sort(
-  (a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime()
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const newestFirst = [...published].sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug)
 );
-const issueNumberFor = (slug: string) => oldestFirst.findIndex((i) => i.slug === slug) + 1;
+const numbers = await issueNumbers();
 
-const items = [...published]
-  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime())
-  .map((issue) => ({
-    slug: issue.slug,
-    topic: issue.data.topic,
-    title: issue.data.title,
-    hook: issue.data.hook,
-    issueNumber: issueNumberFor(issue.slug),
-    publishedAt: issue.data.publishedAt,
-    readTimeMinutes: issue.data.readTimeMinutes,
-  }));
+const monthOf = (d: Date) => d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+const groups: { key: string; label: string; issues: CollectionEntry<'issues'>[] }[] = [];
+for (const i of newestFirst) {
+  const key = monthKey(i.data.publishedAt);
+  let g = groups.find((x) => x.key === key);
+  if (!g) groups.push((g = { key, label: monthOf(i.data.publishedAt), issues: [] }));
+  g.issues.push(i);
+}
 
-const topicLabels: Record<Topic, string> = {
-  politics: 'Politics',
-  space: 'Space',
-  earth: 'Earth',
-  tech: 'Tech',
-  travel: 'Travel',
-  sports: 'Sports',
-};
-
-/* Desks with at least one published issue get a chip. A chip that filters to
-   nothing is a dead control, and the count beside it would be a lie. */
-const desksWithIssues = TOPICS.filter((t) => items.some((i) => i.topic === t));
-
-const countLabel = `${items.length} ${items.length === 1 ? 'issue' : 'issues'} · every one still readable`;
+const plural = (n: number) => `${n} ${n === 1 ? 'issue' : 'issues'}`;
+const first = newestFirst[newestFirst.length - 1];
+const since = first ? ` since ${monthOf(first.data.publishedAt)}` : '';
+/* Desks with at least one published issue get a chip: a chip that filters to
+   nothing is a dead control. */
+const chips = TOPICS.map((t) => ({ t, n: newestFirst.filter((i) => i.data.topic === t).length })).filter((c) => c.n > 0);
 ---
 
-<HomeLayout
-  title="The archive · Parallax Lens"
-  description="Every published Parallax issue, by desk and by date."
->
-  <Masthead
-    variant="meta"
-    current="archive"
-    issueNumber={String(items.length).padStart(2, '0')}
-  />
+<HomeLayout title="The archive · Parallax Lens" description="Every published Parallax issue, by desk and by month." footerNewsletter={false}>
+  <Masthead variant="meta" current="archive" />
 
-  <header class="px-band px-arch__head">
-    <p class="px-meta px-arch__count">{countLabel}</p>
-    <h1 class="px-h1">The archive</h1>
-  </header>
+  <div class="px-arch">
+    <header class="px-arch__head">
+      <div class="px-arch__titles">
+        <h1 class="px-arch__h1">The archive</h1>
+        <p class="px-arch__count">{plural(newestFirst.length)}{since}</p>
+      </div>
+      <div class="px-arch__chips" id="px-arch-chips" role="group" aria-label="Filter by desk" hidden>
+        <button class="px-arch__chip" type="button" data-desk="" aria-pressed="true">All<span class="px-arch__n">{newestFirst.length}</span></button>
+        {chips.map((c) => (
+          <button class="px-arch__chip" type="button" data-desk={c.t} aria-pressed="false">
+            <Mark desk={c.t} size={24} tight ground="var(--paper-2)" class="px-arch__mk" />
+            {DESK_COPY[c.t].name}<span class="px-arch__n">{c.n}</span>
+          </button>
+        ))}
+      </div>
+      <p class="px-arch__status" id="px-arch-status" role="status" aria-live="polite"></p>
+    </header>
 
-  <div class="px-arch__filter" id="px-arch-filter" hidden>
-    <label class="px-arch__search">
-      <span class="px-meta px-arch__label">Search</span>
-      <input
-        class="px-input px-arch__q"
-        type="search"
-        id="px-arch-q"
-        placeholder="Title or desk…"
-        autocomplete="off"
-        aria-describedby="px-arch-status"
-      />
-    </label>
-    <div class="px-arch__chips" role="group" aria-label="Filter by desk">
-      <button class="px-chip px-arch-chip" type="button" data-desk="" aria-pressed="true">All</button>
-      {desksWithIssues.map((t) => (
-        <button class="px-chip px-arch-chip" type="button" data-desk={t} aria-pressed="false">
-          <span class="px-arch__dot" style={`background: var(--topic-${t})`} aria-hidden="true"></span>
-          {topicLabels[t]}
-        </button>
-      ))}
-    </div>
-    <p class="px-meta px-arch__status" id="px-arch-status" role="status" aria-live="polite"></p>
+    {groups.length ? groups.map((g) => (
+      <section class="px-arch__month" aria-labelledby={`m-${g.key}`} data-month>
+        <div class="px-arch__mhead">
+          <h2 class="px-arch__mlabel" id={`m-${g.key}`}>{g.label}</h2>
+          <span class="px-arch__mrule" aria-hidden="true"></span>
+          <span class="px-arch__mcount" data-month-count>{plural(g.issues.length)}</span>
+        </div>
+        <ul class="px-arch__grid">
+          {g.issues.map((i) => (
+            <li class="px-arch__cell" data-topic={i.data.topic}>
+              <CoverCard issue={i} size="card" number={numbers.get(i.slug)} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )) : (
+      <p class="px-arch__none">Nothing published yet. The desks are {TOPICS.map((t) => DESK_COPY[t].name).join(', ')}, and the first issue will open one of them.</p>
+    )}
   </div>
-
-  <IssueRows
-    variant="home"
-    filterable
-    items={items}
-    emptyText={`Nothing published yet. The desks are ${TOPICS.map((t) => topicLabels[t]).join(', ')} — the first issue will open one of them.`}
-  />
 </HomeLayout>
 
 <style>
-  /* The head band: the count in the meta voice, then the headline. Nothing
-     follows the h1 inside the band, so its own bottom margin is dropped and
-     the band's 40px does the spacing. */
-  .px-arch__count { margin: 0 0 14px; }
-  .px-arch__head .px-h1 { margin-bottom: 0; }
+  .px-arch { display: flex; flex-direction: column; gap: 64px; padding: 72px 0 96px; }
+  .px-arch__head { display: flex; flex-direction: column; gap: 32px; }
+  .px-arch__titles { display: flex; flex-direction: column; gap: 12px; }
+  .px-arch__h1 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 64px; line-height: 1.02; letter-spacing: -0.01em; }
+  .px-arch__count { margin: 0; font: 500 17px/1.5 var(--font-ui); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .px-arch__status { margin: -20px 0 0; min-height: 1.4em; font: 500 13px/1.4 var(--font-ui); color: var(--muted); }
 
-  /* The filter band sits on the same 40px gutter as every other band, at the
-     tighter 16px rhythm the controls want. It ships `hidden`, so the display
-     rule has to yield to the attribute — the island unhides it. */
-  .px-arch__filter {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 16px 24px;
-    padding: 16px 40px;
-    border-bottom: 1px solid var(--rule);
+  .px-arch__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .px-arch__chips[hidden] { display: none; }
+  .px-arch__chip {
+    height: 44px; flex: none; box-sizing: border-box;
+    padding: 0 16px 0 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--hair-2); border-radius: var(--r-chip);
+    background: var(--paper-2); color: var(--ink);
+    font: 500 14px/1 var(--font-ui);
+    cursor: pointer;
+    transition: border-color var(--t-micro, 160ms) var(--ease), background var(--t-micro, 160ms) var(--ease), color var(--t-micro, 160ms) var(--ease);
   }
-  .px-arch__filter[hidden] { display: none; }
+  .px-arch__chip:first-child { padding: 0 18px; }
+  .px-arch__chip:hover { border-color: var(--ink); }
+  .px-arch__chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-arch__chip[aria-pressed='true'] { border-color: var(--ink); background: var(--ink); color: var(--paper); font-weight: 600; }
+  .px-arch__n { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-arch__chip[aria-pressed='true'] .px-arch__n { color: color-mix(in srgb, var(--paper) 72%, transparent); }
 
-  .px-arch__search { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; }
-  .px-arch__label { flex: 0 0 auto; }
-  .px-arch__q { flex: 1 1 auto; min-width: 0; max-width: 320px; min-height: 44px; }
+  .px-arch__month { display: flex; flex-direction: column; gap: 24px; }
+  .px-arch__month[hidden] { display: none; }
+  .px-arch__mhead { display: flex; align-items: center; gap: 16px; }
+  .px-arch__mlabel { margin: 0; flex: none; font: 500 12px/20px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+  .px-arch__mrule { flex: 1; height: 1px; background: var(--hair); }
+  .px-arch__mcount { flex: none; font: 500 13px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-arch__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .px-arch__cell { display: flex; min-width: 0; }
+  .px-arch__cell[hidden] { display: none; }
+  .px-arch__cell > :global(.px-cover) { flex: 1; }
+  .px-arch__none { margin: 0; font-family: var(--font-display); font-size: 19px; line-height: 1.6; color: var(--ink-2); }
 
-  .px-arch__chips { display: flex; flex-wrap: wrap; gap: 8px; }
-
-  /* The chips are the shared .px-chip. meta.css still carries the Phase-7
-     .px-arch-chip skin (paper fill, rule border, accent-tinted pressed
-     state) and the class has to stay for the island's querySelector, so the
-     launch look is restated here — a scoped rule outranks the global one. */
-  .px-arch-chip {
-    background: transparent;
-    border-color: color-mix(in oklab, var(--ink) 22%, transparent);
-    color: var(--ink);
+  @media (max-width: 1100px) and (min-width: 769px) {
+    .px-arch__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  .px-arch-chip:hover { border-color: var(--ink); }
-  .px-arch-chip[aria-pressed='true'] {
-    border-color: var(--ink);
-    background: color-mix(in oklab, var(--accent) 10%, transparent);
-    color: var(--ink);
-  }
-  .px-arch__dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
-
-  .px-arch__status { margin: 0; flex: 0 0 auto; }
-
   @media (max-width: 768px) {
-    .px-arch__filter { gap: 12px 16px; padding: 14px 20px; }
-    .px-arch__search { width: 100%; }
-    .px-arch__q { max-width: none; }
+    .px-arch { gap: 48px; padding: 48px 0 64px; }
+    .px-arch__h1 { font-size: 40px; line-height: 1.06; }
+    .px-arch__head { gap: 24px; }
+    .px-arch__grid { grid-template-columns: 1fr; gap: 16px; }
   }
 </style>
 
 <script is:inline>
   (function () {
-    var panel = document.getElementById('px-arch-filter');
-    var q = document.getElementById('px-arch-q');
+    var bar = document.getElementById('px-arch-chips');
     var status = document.getElementById('px-arch-status');
-    var list = document.querySelector('.px-archive__list');
-    if (!panel || !q || !list) return;
-
-    var rows = Array.prototype.slice.call(list.querySelectorAll('.px-archive__row'));
-    var none = document.querySelector('.px-archive__none');
-    var chips = Array.prototype.slice.call(panel.querySelectorAll('.px-arch-chip'));
-    var desk = '';
-
-    /* Reveal only now: the controls were shipped hidden so a no-JS reader
-       never meets a dead input. */
-    panel.hidden = false;
-
-    function apply() {
-      var term = (q.value || '').trim().toLowerCase();
+    if (!bar) return;
+    var chips = Array.prototype.slice.call(bar.querySelectorAll('[data-desk]'));
+    var months = Array.prototype.slice.call(document.querySelectorAll('[data-month]'));
+    var cells = Array.prototype.slice.call(document.querySelectorAll('.px-arch__cell'));
+    /* Reveal only now: the chips ship hidden so a no-JS reader never meets a
+       dead control. */
+    bar.hidden = false;
+    function apply(desk) {
       var shown = 0;
-      rows.forEach(function (row) {
-        var okDesk = !desk || row.getAttribute('data-topic') === desk;
-        var okTerm = !term || (row.getAttribute('data-search') || '').indexOf(term) !== -1;
-        var show = okDesk && okTerm;           /* chip AND search, per README §353 */
-        row.hidden = !show;
-        if (show) shown++;
+      months.forEach(function (m) {
+        var n = 0;
+        m.querySelectorAll('.px-arch__cell').forEach(function (c) {
+          var on = !desk || c.getAttribute('data-topic') === desk;
+          c.hidden = !on;
+          if (on) n++;
+        });
+        m.hidden = n === 0;
+        var mc = m.querySelector('[data-month-count]');
+        if (mc) mc.textContent = n + (n === 1 ? ' issue' : ' issues');
+        shown += n;
       });
-      if (none) none.hidden = shown !== 0;
-      if (status) {
-        /* The noun agrees with the TOTAL, not the match: "1 of 10 issues". */
-        status.textContent = shown === rows.length
-          ? ''
-          : shown + ' of ' + rows.length + (rows.length === 1 ? ' issue' : ' issues');
-      }
+      /* The noun agrees with the TOTAL: "3 of 17 issues". */
+      if (status) status.textContent = shown === cells.length ? '' : shown + ' of ' + cells.length + (cells.length === 1 ? ' issue' : ' issues');
     }
-
-    q.addEventListener('input', apply);
     chips.forEach(function (chip) {
       chip.addEventListener('click', function () {
-        desk = chip.getAttribute('data-desk') || '';
-        chips.forEach(function (c) {
-          c.setAttribute('aria-pressed', String(c === chip));
-        });
-        apply();
+        chips.forEach(function (c) { c.setAttribute('aria-pressed', String(c === chip)); });
+        apply(chip.getAttribute('data-desk') || '');
       });
     });
   })();

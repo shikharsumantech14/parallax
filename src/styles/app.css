@@ -1,710 +1,256 @@
 /* ============================================================================
-   Parallax app subdomain — design language v2
+   Parallax · the reader-account pages (Lens, 2026-09-30, Phase 4b)
    ============================================================================
-   Implements docs/design/APP-DESIGN-SPEC.md §1 (foundation), §2 (primitives),
-   §3 (LensMark styles), §5 (interaction/a11y floor). Motion names come from
-   docs/design/motion.md (`plateIn`, `lensSettle`, `reveal`, `pressDown`).
+   Sign in, welcome, the Shelf and the moderation queue load the publication's
+   own stylesheets (AppLayout: tokens-v2, base, meta, type-v2, motion-v2) and
+   then this file. So the paper, the ink, the two faces, the radii, the
+   shadows, the masthead and the footer are the publication's, and this file
+   only carries what those pages need that base.css does not:
 
-   The doctrine: the app is the reading room of the same building — same type
-   (Newsreader + Instrument Sans since Lens, 2026-09-30), the same one paper
-   and ink, the same motion ramp and radii as the publication — but calmer. Worlds appear
-   only as ACCENTS via worlds.css `[data-world]` `--w-*` variables.
+     .app-shell   the full-chrome column (the Shelf, the queue)
+     .app-focus   the focus chrome (sign in, welcome): no masthead, one line
+     .app-lockup  the lockup a focus page carries itself (the boards' 34 / 12
+                  / Newsreader 24 lockup, as core/Masthead.astro draws it)
+     .btn .field .notice .divider .eyebrow .dek .empty .app-back
+                  the legacy primitive names the queue and the auth panes still
+                  use, restyled to the Lens parts (LENS §4.2)
 
-   Contract mirror (publication motion-v2 pattern): every hidden-until-reveal
-   state is gated behind `html.js` (set by a one-line inline <head> guard in
-   AppLayout.astro). No JS ⇒ everything paints in its final state. Reduced
-   motion ⇒ the block at the bottom neutralises plateIn / reveal / lensSettle.
+   Every rule is scoped to `.app-shell` or `.app-focus`, so nothing here leaks
+   into the masthead or the Colophon. Retired with this pass: the glass appbar,
+   the mono brand line, the LensMark and its `lensSettle`, the plate shadow,
+   the square buttons and the translate-on-hover tiles.
    ============================================================================ */
 
-/* Shared generated tokens — motion, radii, glass, column tiers (do not edit
-   the shared files; edit shared/design/* and run npm run design:sync). */
-@import './shared/tokens.css';
-@import './shared/worlds.css';
-
-/* ── App-specific tokens ─────────────────────────────────────────────────────
-   Colors, fonts, pads, gaps only. Motion/radii/glass/columns come from
-   shared/tokens.css above; world accents from shared/worlds.css. */
 :root {
-  /* Lens (2026-09-30): the one paper and ink of shared/design/tokens.css. */
-  --bg: #f5f2eb;
-  --paper: #f5f2eb;
-  --rule: #dcd7cb;
-  --ink: #16140f;
-  --ink-soft: #4a463d;
-  --muted: #6b665b;
-  --accent: #c8412a;        /* the house mark (politics ink); emphasis, never primary buttons */
-  --accent-deep: #a02d18;
-  --danger: #c0392b;
-  --ok: #1a6a3f;
-
-  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
-
-  --pad-y: 48px;
-  --pad-x: 24px;
+  --danger: #a02d18;   /* the politics text ink: an error is words, >= 4.5:1 */
+  --ok: #176357;       /* the earth text ink */
   --gap-sm: 16px;
-  --gap-md: 28px;
+  --gap-md: 24px;
   --gap-lg: 48px;
-  --gap-xl: 72px;
-
-  /* Shell tier default — overridden by [data-width="shelf"] (see below). */
-  --shell-w: var(--col-narrow);
-
-  /* Plate elevation (spec §2) */
-  --shadow-plate: 0 1px 2px rgba(21, 19, 15, 0.05), 0 12px 32px rgba(21, 19, 15, 0.07);
 }
 
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--ink);
-}
-
-body {
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.6;
-  min-height: 100vh;
+/* ── The full chrome: one 1152 column under the masthead ──────────────────── */
+.app-shell {
   display: flex;
   flex-direction: column;
-  -webkit-font-smoothing: antialiased;
+  padding: 56px 0 96px;
+  min-height: 60vh;
+}
+@media (max-width: 768px) {
+  .app-shell { padding: 32px 0 64px; }
 }
 
-/* ── Focus floor (spec §5) ───────────────────────────────────────────────────
-   2px accent ring, offset 2, site-wide; world scopes tint via --w-accent-deep
-   (every world's deep value is AA on light paper). */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* ── The focus chrome (SignIn / CreateAccount boards) ────────────────────── */
+.app-focus {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
 }
-[data-world] :focus-visible,
-[data-world]:focus-visible {
-  outline-color: var(--w-accent-deep, var(--accent));
-}
-
-/* ── Shell — two tiers (spec §1) ─────────────────────────────────────────────
-   narrow (480px, auth/onboarding) | shelf (960px, dashboard/admin).
-   AppLayout puts data-width on both the .app-shell and the .appbar so the
-   glass bar's inner row tracks the same column. */
-[data-width='shelf'] { --shell-w: var(--col-shelf); }
-
-.app-shell {
-  width: 100%;
-  max-width: var(--shell-w);
-  margin: 0 auto;
-  padding: var(--pad-y) var(--pad-x);
+.app-focus__main {
   flex: 1 0 auto;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 64px 0;
 }
-
-/* ── Appbar — glass masthead (spec §2 table) ────────────────────────────── */
-.appbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
+.app-focus__foot {
   flex: none;
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.appbar__inner {
-  width: 100%;
-  max-width: var(--shell-w);
-  margin: 0 auto;
-  padding: 0 var(--pad-x);
-  min-height: 56px;
+  min-height: 72px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: center;
+  padding: 16px 20px;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  .app-focus__main { align-items: flex-start; padding: 24px 20px 0; }
 }
 
-.appbar__brand {
+/* The lockup a focus page carries: the medallion tight at 34 (ring 9), a 12px
+   gap, "Parallax" in Newsreader 500 24 with its cap centre on the disc centre
+   (the boards' +2px baseline nudge). */
+.app-lockup {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-height: 44px;
+  align-self: flex-start;
   color: var(--ink);
   text-decoration: none;
-  transition: opacity var(--t-quick) var(--ease);
 }
-.appbar__brand:hover { opacity: 0.78; }
-
-.appbar__wordmark {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.appbar__session {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.appbar__email {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.appbar__signout {
-  min-height: 44px; /* target floor, visually light */
-  padding: 0 14px;
-  font-size: 12px;
-}
-
-@media (max-width: 560px) {
-  .appbar__email { max-width: 120px; }
-}
-
-/* ── Footer / back link ─────────────────────────────────────────────────── */
-.app-back {
-  display: inline-block;
-  margin-top: var(--gap-lg);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  text-decoration: none;
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 3px;
-  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
-}
-.app-back:hover {
-  color: var(--accent-deep);
-  border-bottom-color: var(--accent-deep);
-}
-
-.app-footer {
-  margin-top: auto;
-  padding-top: var(--gap-lg);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--muted);
-}
-
-/* ── Typography ─────────────────────────────────────────────────────────── */
-h1, .h1 {
+.app-lockup__name {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 36px;
-  line-height: 1.15;
+  font-size: 24px;
+  line-height: 1;
   letter-spacing: -0.01em;
-  margin: 0 0 var(--gap-sm);
-  color: var(--ink);
+  position: relative;
+  top: 2px;
 }
-h1 em, .h1 em {
-  color: var(--accent-deep); /* deep on light paper — AA (canon §6) */
-  font-style: italic;
-  font-weight: 400;
-}
-[data-world] h1 em,
-[data-world] .h1 em { color: var(--w-accent-deep, var(--accent-deep)); }
+.app-lockup:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-ctl); }
 
-h2 {
+/* ── Type, scoped ─────────────────────────────────────────────────────────── */
+.app-shell h1, .app-focus h1 {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 22px;
-  line-height: 1.25;
-  letter-spacing: -0.005em;
-  margin: var(--gap-md) 0 var(--gap-sm);
+  font-size: 48px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
   color: var(--ink);
+  margin: 0 0 var(--gap-sm);
+  text-wrap: balance;
 }
-
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
+.app-shell h1 em, .app-focus h1 em { font-style: italic; color: var(--accent-deep); }
+.app-shell .eyebrow, .app-focus .eyebrow {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   margin: 0 0 12px;
 }
-
-p {
-  color: var(--ink-soft);
-  margin: 0 0 var(--gap-sm);
+.app-shell .dek, .app-focus .dek {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  margin: 0 0 var(--gap-md);
   max-width: 56ch;
 }
-
-p.dek {
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-style: italic;
-  font-size: 18px;
-  line-height: 1.4;
-  color: var(--ink-soft);
-  margin-bottom: var(--gap-md);
-  max-width: 40ch;
-}
-
-a {
-  color: var(--accent-deep);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-}
-a:hover { color: var(--accent); }
-
-hr {
-  border: none;
-  border-top: 1px solid var(--rule);
-  margin: var(--gap-md) 0;
-}
-
-/* ── Plate — the elevated card (spec §2) ────────────────────────────────────
-   plateIn (motion.md): opacity 0→1 + translateY 10px→0 · 420ms --ease · one
-   stagger level max (use inline animation-delay). html.js-gated: no JS ⇒ the
-   plate simply paints (the base state below is fully visible). */
-.plate {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-tile);
-  box-shadow: var(--shadow-plate);
-  padding: 32px;
-}
-
-html.js .plate {
-  animation: plateIn var(--t-slow) var(--ease) backwards;
-}
-
-@keyframes plateIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Tile — issue card (spec §2): plate anatomy at padding 20 + world edge ── */
-.tile {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--w-accent, var(--accent));
-  border-radius: var(--r-tile);
-  box-shadow: var(--shadow-plate);
-  padding: 20px;
-  transition: transform var(--t-quick) var(--ease), box-shadow var(--t-quick) var(--ease);
-}
-.tile:hover {
-  transform: translateY(-2px); /* lift only — hover never moves layout */
-  box-shadow: 0 1px 2px rgba(21, 19, 15, 0.05), 0 16px 40px rgba(21, 19, 15, 0.1);
-}
-
-/* ── Chip (spec §2) ──────────────────────────────────────────────────────────
-   Pill · 1px border · mono 11px uppercase +0.08em. World-typed chips carry an
-   8px dot (`.chip__dot`) in --w-accent — put data-world on the chip itself or
-   on an ancestor. Selected state: ink bg / paper text (`aria-pressed="true"`
-   or `.is-selected`). */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-pill);
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease),
-    border-color var(--t-quick) var(--ease), transform var(--t-instant) var(--ease);
-}
-button.chip {
-  cursor: pointer;
-  min-height: 44px; /* interactive target floor (spec §5) */
-  padding: 12px 18px;
-}
-button.chip:hover { border-color: var(--ink); }
-button.chip:active { transform: scale(0.98); } /* pressDown */
-
-.chip__dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--w-accent, var(--accent));
-}
-
-.chip.is-selected,
-.chip[aria-pressed='true'] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-/* ── Toggle (spec §2) ────────────────────────────────────────────────────────
-   Markup:
-     <label class="toggle">
-       <input type="checkbox" name="…" checked />
-       <span class="toggle__track" aria-hidden="true"></span>
-       <span class="toggle__label">Weekly digest</span>
-     </label>
-   Native checkbox = keyboard (space) + form semantics for free. AA both
-   states: track --muted (unchecked) / --accent-deep (checked) on paper. */
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px; /* target floor */
-  cursor: pointer;
-}
-
-.toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.toggle__track {
-  flex: none;
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: var(--r-pill);
-  background: var(--muted);
-  transition: background var(--t-quick) var(--ease);
-}
-.toggle__track::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--paper);
-  transition: transform var(--t-quick) var(--ease);
-}
-
-.toggle input:checked + .toggle__track { background: var(--accent-deep); }
-.toggle input:checked + .toggle__track::after { transform: translateX(16px); }
-
-.toggle input:focus-visible + .toggle__track {
-  outline: 2px solid var(--accent);
+.app-shell a:focus-visible, .app-focus a:focus-visible,
+.app-shell button:focus-visible, .app-focus button:focus-visible {
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
-[data-world] .toggle input:focus-visible + .toggle__track {
-  outline-color: var(--w-accent-deep, var(--accent));
+@media (max-width: 768px) {
+  .app-shell h1, .app-focus h1 { font-size: 40px; line-height: 1.06; }
 }
 
-.toggle input:disabled + .toggle__track { opacity: 0.45; }
-
-/* ── Stat — StatTile (spec §2) ──────────────────────────────────────────── */
-.stat { display: flex; flex-direction: column; gap: 6px; }
-.stat__label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.stat__value {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 32px;
-  line-height: 1.1;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-.stat__note {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 0;
-}
-
-/* ── Buttons (restyled in place — API unchanged) ─────────────────────────────
-   Primary = filled ink (NOT rust; rust is emphasis). Square corners per the
-   publication's button rule — only chips/pills round. */
-.btn {
+/* ── Buttons (the legacy names on the Lens values, LENS §4.2) ────────────── */
+.app-shell .btn, .app-focus .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 44px; /* target floor */
-  font-family: var(--font-body);
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 20px;
+  font-family: var(--font-ui);
   font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  padding: 12px 22px;
+  font-weight: 600;
+  line-height: 1.2;
   border: 1px solid var(--ink);
-  border-radius: 0;
+  border-radius: var(--r-ctl);
   background: var(--ink);
   color: var(--paper);
-  cursor: pointer;
   text-decoration: none;
-  transition: background var(--t-quick) var(--ease), color var(--t-quick) var(--ease),
-    border-color var(--t-quick) var(--ease), transform var(--t-instant) var(--ease);
+  cursor: pointer;
+  transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
 }
+.app-shell .btn:hover, .app-focus .btn:hover { background: var(--ink-2); border-color: var(--ink-2); color: var(--paper); }
+.app-shell .btn:disabled, .app-focus .btn:disabled {
+  background: var(--paper-3); border-color: var(--hair); color: var(--muted); cursor: not-allowed;
+}
+.app-shell .btn--ghost, .app-focus .btn--ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+.app-shell .btn--ghost:hover, .app-focus .btn--ghost:hover { background: var(--paper-3); color: var(--ink); border-color: var(--ink); }
+.app-shell .btn--danger, .app-focus .btn--danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+.app-shell .btn--danger:hover, .app-focus .btn--danger:hover { background: var(--danger); color: var(--paper); border-color: var(--danger); }
+.app-shell .btn--block, .app-focus .btn--block { display: flex; width: 100%; }
+.app-shell .btn--tall, .app-focus .btn--tall { min-height: 52px; font-size: 16px; }
 
-.btn:hover {
-  background: var(--ink-soft);
-  border-color: var(--ink-soft);
-  color: var(--paper);
-}
-
-.btn:active { transform: scale(0.98); } /* pressDown (motion.md) */
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn--ghost {
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--rule);
-}
-.btn--ghost:hover {
-  background: color-mix(in oklab, var(--ink) 4%, transparent);
-  color: var(--ink);
-  border-color: var(--ink);
-}
-
-/* Destructive: --danger border+text; fills only at the confirm step (the
-   dashboard's delete button sits behind <details> + confirm(), so its hover
-   fill is the confirm-adjacent emphasis). */
-.btn--danger {
-  background: transparent;
-  color: var(--danger);
-  border-color: var(--danger);
-}
-.btn--danger:hover {
-  background: var(--danger);
-  color: var(--paper);
-  border-color: var(--danger);
-}
-
-.btn--block {
-  display: flex;
-  width: 100%;
-}
-
-.btn__icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* ── Fields (restyled in place — API unchanged) ──────────────────────────────
-   48px tall, 16px text (no iOS zoom). Labels always visible above. */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: var(--gap-md);
-}
-
-.field label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.field input[type='email'],
-.field input[type='text'],
-.field input[type='password'],
-.field select,
-.field textarea {
-  font-family: var(--font-body);
-  font-size: 16px;
-  min-height: 48px;
-  padding: 12px 16px;
-  border: 1px solid var(--rule);
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: var(--r-card);
-  transition: border-color var(--t-quick) var(--ease);
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: var(--accent);
-}
-[data-world] .field input:focus,
-[data-world] .field select:focus,
-[data-world] .field textarea:focus {
-  border-color: var(--w-accent-deep, var(--accent));
-}
-
-.field input:disabled {
-  background: var(--bg);
-  color: var(--muted);
-  cursor: not-allowed;
-}
-
-.field__hint {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 0;
-  font-style: italic;
-}
-
-/* ── Notice / status blocks (API unchanged) ─────────────────────────────── */
-.notice {
-  padding: 14px 18px;
-  border: 1px solid var(--rule);
-  border-left-width: 3px;
-  border-left-color: var(--rule);
-  border-radius: var(--r-card);
-  background: var(--paper);
-  margin: var(--gap-md) 0;
+/* ── Fields ──────────────────────────────────────────────────────────────── */
+.app-shell .field, .app-focus .field { display: flex; flex-direction: column; gap: 8px; }
+.app-shell .field label, .app-focus .field label {
+  font-family: var(--font-ui);
   font-size: 14px;
-  color: var(--ink-soft);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
 }
-.notice--ok   { border-left-color: var(--ok); }
-.notice--err  { border-left-color: var(--danger); color: var(--danger); }
-.notice--info { border-left-color: var(--ink); }
+.app-shell .field input[type='email'], .app-focus .field input[type='email'],
+.app-shell .field input[type='text'], .app-focus .field input[type='text'] {
+  box-sizing: border-box;
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--hair-2);
+  border-radius: var(--r-ctl);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: border-color var(--t-micro) var(--ease), outline-color var(--t-micro) var(--ease);
+}
+.app-shell .field input::placeholder, .app-focus .field input::placeholder { color: var(--muted); }
+.app-shell .field input:focus, .app-focus .field input:focus { border-color: var(--ink); outline-color: var(--ink); }
+.app-shell .field input:disabled, .app-focus .field input:disabled { background: var(--paper-3); color: var(--muted); cursor: not-allowed; }
 
-/* ── Divider with label (API unchanged) ─────────────────────────────────── */
-.divider {
+/* ── Notice (status lines) ───────────────────────────────────────────────── */
+.app-shell .notice, .app-focus .notice {
+  margin: 0;
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: var(--paper-3);
+  border-left: 2px solid var(--ink);
+  border-radius: var(--r-ctl);
+}
+.app-shell .notice--ok, .app-focus .notice--ok { border-left-color: var(--ok); }
+.app-shell .notice--err, .app-focus .notice--err { border-left-color: var(--danger); color: var(--danger); }
+
+/* ── The "or" rule ───────────────────────────────────────────────────────── */
+.app-shell .divider, .app-focus .divider {
   display: flex;
   align-items: center;
-  gap: 14px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  gap: 16px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: var(--gap-md) 0;
 }
-.divider::before,
-.divider::after {
+.app-shell .divider::before, .app-shell .divider::after,
+.app-focus .divider::before, .app-focus .divider::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--rule);
+  background: var(--hair);
 }
 
-/* ── List rows (API unchanged) ──────────────────────────────────────────── */
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--rule);
-}
-.row:last-child { border-bottom: none; }
-.row__label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.row__value {
-  font-family: var(--font-body);
-  font-size: 15px;
-  color: var(--ink);
-  text-align: right;
-}
-
-/* ── Empty states ───────────────────────────────────────────────────────── */
-.empty {
-  padding: 28px 0;
+/* ── Empty states and the back link ──────────────────────────────────────── */
+.app-shell .empty, .app-focus .empty {
+  margin: 0;
+  padding: 24px 0;
   font-family: var(--font-display);
-  font-style: italic;
-  color: var(--muted);
-  font-size: 17px;
-  text-align: left;
+  font-size: 19px;
+  line-height: 1.5;
+  color: var(--ink-2);
 }
+.app-shell .app-back, .app-focus .app-back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: var(--gap-lg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.app-shell .app-back:hover, .app-focus .app-back:hover { color: var(--accent-deep); }
 
-/* ── LensMark (spec §3 — component: src/components/LensMark.astro) ──────────
-   lensSettle (motion.md): the two rings translate from ±6 overlap into
-   registration + sphere opacity 0→1 · 600ms --ease-snap · ONCE per surface.
-   Gated behind html.js: no JS ⇒ the static registered lockup below. */
-.lens-mark { display: inline-block; vertical-align: middle; overflow: visible; }
-
-html.js .lens-mark--animate .lens-mark__ring--l {
-  animation: lensSettleL var(--t-page) var(--ease-snap) both;
-}
-html.js .lens-mark--animate .lens-mark__ring--r {
-  animation: lensSettleR var(--t-page) var(--ease-snap) both;
-}
-html.js .lens-mark--animate .lens-mark__sphere {
-  animation: lensSettleDot var(--t-page) var(--ease-snap) both;
-}
-
-@keyframes lensSettleL {
-  from { transform: translateX(6px); }
-  to   { transform: translateX(0); }
-}
-@keyframes lensSettleR {
-  from { transform: translateX(-6px); }
-  to   { transform: translateX(0); }
-}
-@keyframes lensSettleDot {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* ── Reveal (IO island port — bootstrap lives inline in AppLayout) ──────────
-   motion.md `reveal`, app calibration: translateY 10px / opacity 0 until
-   `.is-in`. Hidden state gated behind html.js; fires once (island unobserves). */
-.reveal {
-  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
-}
-html.js .reveal:not(.is-in) {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-/* ── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  :root {
-    --pad-y: 28px; /* spec §1: 28px below 480px viewport */
-    --pad-x: 20px;
-  }
-  h1, .h1 { font-size: 30px; }
-  .plate { padding: 24px; } /* spec §2: 24px mobile */
-}
-
-/* ── Reduced motion (spec §5) ────────────────────────────────────────────────
-   plateIn / reveal / lensSettle render their final state; everything else
-   loses its transitions. Mirrors the publication's motion-v2 reset pattern. */
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  html.js .plate,
-  html.js .lens-mark--animate .lens-mark__ring--l,
-  html.js .lens-mark--animate .lens-mark__ring--r,
-  html.js .lens-mark--animate .lens-mark__sphere {
-    animation: none !important;
-  }
-  html.js .reveal:not(.is-in) {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-  *, *::before, *::after {
-    transition: none !important;
-    animation: none !important;
-  }
+  .app-shell *, .app-focus * { transition: none !important; }
 }

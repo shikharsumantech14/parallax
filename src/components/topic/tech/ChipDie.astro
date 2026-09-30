@@ -166,7 +166,7 @@ function labelFits(label: string, count: number | undefined, areaTxt: string, w:
   return lines * t.name * 1.1 + 1 + t.area * 1.1 <= boxH;
 }
 
-// ── Render objects: area-descending (= tab / reveal / legend order) ─────────
+// ── Render objects: area-descending (= tab / build / legend order) ──────────
 const groupFill: Record<Group, string> = {
   compute: 'color-mix(in srgb, var(--accent) 85%, transparent)',
   memory: 'color-mix(in srgb, var(--accent) 45%, transparent)',
@@ -206,12 +206,12 @@ const tiles = rects
     };
   })
   .sort((a, b) => b.area - a.area);
-// stagger index in area-descending order (biggest silicon lands first)
+// build index in area-descending order (biggest silicon first, for the Phase 6 build)
 tiles.forEach((t, i) => ((t as any).i = i));
 const lastI = tiles.length - 1;
 const primaryIdx = tiles.findIndex((t) => t.primary);
-const stagger = Math.min(40, 800 / Math.max(1, blocks.length - 1)); // tech's tight cadence, capped so the reveal ≤1.6s
-// primary "stamps" last: its lift lands after the final tile settles
+const stagger = Math.min(40, 800 / Math.max(1, blocks.length - 1)); // tech's tight cadence, capped so the build ≤1.6s
+// primary lands last: its lift follows the final tile
 const primaryDelay = Math.round(lastI * stagger + 260);
 
 // ── Legend (area-desc; ≤5 visible incl. primary pinned; rest behind details) ─
@@ -234,7 +234,7 @@ const defaultRead = tiles[primaryIdx]?.read ?? `${chip} · ${fmtArea(dieArea)} m
 const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
 ---
 
-<div class="px-viz px-die" data-reveal style={`--stagger:${stagger}ms; --p-delay:${primaryDelay}ms`}>
+<div class="px-viz px-die" style={`--stagger:${stagger}ms; --p-delay:${primaryDelay}ms`}>
   {caption && (
     <div class="px-viz__cap">
       <span set:html={renderInline(caption)} />
@@ -556,25 +556,6 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
   .px-die__more[open] > summary::before { content: '– '; }
   .px-die__morec { color: var(--muted); }
   .px-die__morelist { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-
-  /* ── reveal (html.js-gated): tiles settle in area-desc order ─────────── */
-  html.js .px-viz:not(.is-in) .px-die__tile {
-    opacity: 0;
-    transform: translateZ(0) scale(0.9);
-  }
-  .px-viz.is-in .px-die__tile {
-    transition:
-      transform 400ms var(--ease-snap) calc(var(--i) * var(--stagger)),
-      opacity 400ms var(--ease) calc(var(--i) * var(--stagger)),
-      filter 150ms var(--ease);
-  }
-  /* primary stamps last — its resting lift lands after the final tile settles */
-  .px-viz.is-in .px-die__tile.is-primary {
-    transition:
-      transform 400ms var(--ease-snap) var(--p-delay),
-      opacity 400ms var(--ease) var(--p-delay),
-      filter 150ms var(--ease);
-  }
   /* hover/active always wins with a snappy delay-free transition */
   .px-die__tile:hover,
   .px-die__tile:focus-visible,
@@ -595,13 +576,10 @@ const dieId = `die-${Math.random().toString(36).slice(2, 8)}`;
     .px-die__area { font-size: 9.5px; } /* CANON §5 hard floor — this is a primary mm² value */
   }
 
-  /* ── reduced-motion / no-JS composed still (the print plate) ─────────── */
+  /* ── reduced-motion: no transitions, the composed still (the print plate) ── */
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-die__tile,
     .px-die__tile {
       transition: none !important;
     }
-    .px-viz:not(.is-in) .px-die__tile { opacity: 1 !important; transform: translateZ(3px) !important; }
-    .px-viz:not(.is-in) .px-die__tile.is-primary { transform: translateZ(9px) !important; }
   }
 </style>

@@ -11,9 +11,9 @@
  * highs, pool in a three-to-five-week valley (marked SWEET SPOT), then rocket in
  * the final fortnight (the cliff tag).
  *
- * Static print plate — no runtime data JS. On scroll-in the axes + valley fade,
- * the ridge strokes draw back-to-front (`sweep`, travel's slow signature), and
- * the labels settle last. No-JS / reduced-motion = the final painted ridgeline,
+ * Static print plate — no runtime data JS, and no motion since Lens Phase 5:
+ * the axes, valley, ridge strokes and labels all rest in their final painted
+ * state (the Phase 6 build brings them in). The plate is the final ridgeline,
  * valley gorge shaded + labelled, and the cliff tag. Blueprint:
  * docs/design/blueprints/travel/fare-terrain.md.
  *
@@ -164,7 +164,7 @@ const TICKS = [90, 60, 30, 14, 7, 1];
 const MOBILE_TICKS = new Set([90, 30, 7, 1]);
 const ticks = TICKS.filter((d) => d <= maxDays).map((d) => ({ d, x: x(d), mobile: MOBILE_TICKS.has(d) }));
 
-// per-route reveal stagger, capped so the whole sweep still lands ≤1.6s (§5)
+// per-route build stagger (Phase 6), capped so the whole sweep still lands ≤1.6s (§5)
 const stagMs = n > 1 ? Math.min(120, Math.floor(200 / (n - 1))) : 0;
 
 // route-label y, clamped below the strip and above the axis chips; dashed
@@ -193,7 +193,7 @@ const cliffHits = cliffEnd - cliffW < spotBox[1] && cliffEnd > spotBox[0];
 const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
 ---
 
-<div class="px-viz px-fterr" data-reveal>
+<div class="px-viz px-fterr">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>when to book</b></div>}
 
   <div class="px-fterr__wrap">
@@ -239,7 +239,7 @@ const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
         <text class="px-fterr__chip" x={PLOT_R} y={(axisY + 32).toFixed(1)} text-anchor="end">{fareAxisChip}</text>
       </g>
 
-      <!-- labels + tags (reveal last) -->
+      <!-- labels + tags (built last in Phase 6) -->
       <g class="px-fterr__labels">
         <!-- SWEET SPOT band label -->
         <text
@@ -308,7 +308,7 @@ const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
     fill: none;
     stroke: var(--ink); stroke-opacity: 0.55;   /* field routes = ink */
     stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round;
-    /* base/resting = fully drawn (no-JS safe) */
+    /* resting = fully drawn */
     stroke-dasharray: var(--len); stroke-dashoffset: 0;
     transition: stroke-dashoffset 1400ms var(--ease);
   }
@@ -353,38 +353,14 @@ const cliffY = cliffHits ? ROW1_Y : ROW0_Y;
   .px-fterr__rlabel.is-hi text { fill: var(--accent-deep, var(--accent)); fill-opacity: 1; font-weight: 600; }
   .px-fterr__connector { stroke: var(--ink); stroke-opacity: 0.4; stroke-width: 1; stroke-dasharray: 2 3; }
 
-  /* ── reveal sequence (html.js-gated): axes+valley → curves sweep → labels ─ */
+  /* ── final state: valley, labels and routes rest shown (Phase 6 build order: valley → curves → labels) ── */
   .px-fterr__valley, .px-fterr__labels { opacity: 1; transition: opacity var(--t-soft) var(--ease); }
   .px-fterr__route { opacity: 1; transition: opacity var(--t-soft) var(--ease); }
-
-  html.js .px-viz:not(.is-in) .px-fterr__valley { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-fterr__labels { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-fterr__route { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-fterr__line { stroke-dashoffset: var(--len); }
-
-  /* Budget (motion.md ≤1.6s): valley/axes fade at 0; curves sweep from 0,
-     staggered ≤200ms total (§4 stag cap) + 1400ms draw = ≤1.6s even at 5 routes;
-     labels land last, still inside 1.6s. */
-  .px-viz.is-in .px-fterr__valley { transition-delay: 0ms; }
-  .px-viz.is-in .px-fterr__route {
-    transition-delay: calc(var(--i) * var(--stag) * 1ms);
-  }
-  .px-viz.is-in .px-fterr__line {
-    transition-delay: calc(var(--i) * var(--stag) * 1ms);
-  }
-  .px-viz.is-in .px-fterr__labels { transition-delay: 1150ms; }
 
   @media (max-width: 560px) {
     .px-fterr__wrap { padding: 0 18px; }
     .px-fterr__rlabel text, .px-fterr__spot, .px-fterr__clifftag, .px-fterr__chip { font-size: 9.5px; }
     /* thin the day ticks to 90 / 30 / 7 / 1 */
     .px-fterr__tick[data-mobile='0'] { display: none; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-fterr__valley { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-fterr__labels { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-fterr__route { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-fterr__line { stroke-dashoffset: 0 !important; }
   }
 </style>

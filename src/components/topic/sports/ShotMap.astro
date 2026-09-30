@@ -3,15 +3,15 @@
  * ShotMap (sports) — shots fired toward a goal. The goal frame + penalty-area
  * arc sit at the top of a vertical attacking-third plane; each shot is a circle
  * with radius proportional to its xG and a treatment by outcome (goal = accent
- * fill + ring, saved = outline, miss = faint with an ✕, blocked = muted). A
+ * fill + ring, saved = outline, miss = faint with a drawn ✕, blocked = muted). A
  * faint 3D goal frame floats on a CSS-3D stage above the flat, readable shot
- * plane. Circles pop in staggered on scroll-in; hovering a shot scales it and
- * surfaces its xG via a native <title>. A small legend + a goals/xG summary sit
- * below. Build-time only; the only motion is CSS.
+ * plane. Circles rest in place (static since Lens Phase 5; their build order
+ * arrives in Phase 6); hovering a shot scales it and surfaces its xG via a
+ * native <title>. A small legend + a goals/xG summary sit below. Build-time
+ * only; the only motion is CSS.
  *
- * No-JS / reduced-motion: shots paint in their FINAL state (the hidden pop-in
- * rule sits behind `html.js`; reduced-motion resets with !important). Every
- * shot + its <title> is in the DOM regardless of JS.
+ * Shots always paint in their FINAL state. Every shot + its <title> is in
+ * the DOM regardless of JS.
  *
  * Coords: x,y in 0..100 of the attacking-third / goal-mouth area. x = width
  * (0 = left post side, 100 = right), y = depth (0 = on the goal-line, 100 =
@@ -71,6 +71,13 @@ const placed = (shots || []).map((s, i) => {
   };
 });
 
+/* The miss marker is DRAWN, not typed (2026-09-30). It was a "✕" glyph at
+   10px, which is text: on a 375 phone the 360-unit viewBox scales to about
+   0.8 and the glyph printed at 8.1px, under the render gate's 9.5px floor and
+   LENS's 12px one. A mark is not a label, so it is two strokes, sized in
+   viewBox units like the circle it sits in, with the same paper halo. */
+const X_ARM = 3.6;
+
 const OUTS: { key: Outcome; label: string }[] = [
   { key: 'goal', label: 'Goal' },
   { key: 'saved', label: 'Saved' },
@@ -84,7 +91,7 @@ const totXg = placed.reduce((a, s) => a + Math.max(0, Math.min(1, s.xg ?? 0)), 0
 const shotCount = placed.length;
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>shot map</b></div>}
 
   <div class="px-shot px3d-stage">
@@ -117,9 +124,15 @@ const shotCount = placed.length;
             {s.outcome === 'goal' && (
               <circle class="px-shot__ring" cx={s.cx.toFixed(1)} cy={s.cy.toFixed(1)} r={(s.r + 3.5).toFixed(1)} />
             )}
-            {s.outcome === 'miss' && (
-              <text class="px-shot__x" x={s.cx.toFixed(1)} y={s.cy.toFixed(1)} text-anchor="middle" dominant-baseline="central">✕</text>
-            )}
+            {s.outcome === 'miss' && (() => {
+              const d = `M ${(s.cx - X_ARM).toFixed(1)} ${(s.cy - X_ARM).toFixed(1)} L ${(s.cx + X_ARM).toFixed(1)} ${(s.cy + X_ARM).toFixed(1)} M ${(s.cx + X_ARM).toFixed(1)} ${(s.cy - X_ARM).toFixed(1)} L ${(s.cx - X_ARM).toFixed(1)} ${(s.cy + X_ARM).toFixed(1)}`;
+              return (
+                <g class="px-shot__x" aria-hidden="true">
+                  <path class="px-shot__x-halo" d={d} />
+                  <path class="px-shot__x-mark" d={d} />
+                </g>
+              );
+            })()}
           </g>
         ))}
       </g>
@@ -152,7 +165,7 @@ const shotCount = placed.length;
     stroke-width: 6; stroke-linecap: round;
   }
 
-  /* shots — base/resting = final visible state (no-JS safe) */
+  /* shots — resting = final visible state */
   .px-shot__pt {
     transform: scale(1);
     transform-box: fill-box;
@@ -180,14 +193,12 @@ const shotCount = placed.length;
     stroke: color-mix(in oklab, var(--muted) 70%, transparent);
     stroke-dasharray: 2.5 2.5;
   }
-  .px-shot__x {
-    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
-    fill: var(--muted); pointer-events: none;
-    /* the ✕ sits inside a miss circle over the shot plane — paper halo keeps
-       it crisp against the dashed outline + any overlap */
-    paint-order: stroke;
-    stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round;
-  }
+  /* the ✕ sits inside a miss circle over the shot plane: a paper halo under
+     the mark keeps it crisp against the dashed outline and any overlap */
+  .px-shot__x { pointer-events: none; }
+  .px-shot__x path { fill: none; stroke-linecap: round; }
+  .px-shot__x-halo { stroke: var(--paper); stroke-width: 4.5; }
+  .px-shot__x-mark { stroke: var(--muted); stroke-width: 1.8; }
 
   .px-shot__legend {
     display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
@@ -210,15 +221,7 @@ const shotCount = placed.length;
     color: var(--ink-soft); font-variant-numeric: tabular-nums;
   }
 
-  /* reveal: shots pop in staggered (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-shot__pt { opacity: 0; transform: scale(0.2); }
-  .px-viz.is-in .px-shot__pt { transition-delay: calc(var(--i) * 50ms); }
-
   @media (max-width: 560px) {
     .px-shot__sum { margin-left: 0; flex-basis: 100%; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-shot__pt { opacity: 1 !important; transform: scale(1) !important; }
   }
 </style>

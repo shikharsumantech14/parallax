@@ -5,12 +5,12 @@
  * doubling-time fit drawn through it (slope printed as "doubling every N yr").
  * Every rung up the y-ruler is ×2 — the ladder of the title. One chip the
  * story follows is highlighted on the rungs. Build-time SVG + regression;
- * zero WebGL, zero runtime JS beyond the shared Reveal island.
+ * zero WebGL, zero runtime JS.
  *
- * No-JS / reduced-motion / print: the SVG IS its own composed still — all
- * points placed, fit line fully drawn with its doubling callout, labeled log
- * rungs, highlight labels. The `settle`/`sweep` reveals are gated behind
- * `html.js`; nothing is hidden without JS.
+ * The SVG IS its own composed still (static since Lens Phase 5) — all points
+ * placed, fit line fully drawn with its doubling callout, labeled log rungs,
+ * highlight labels. Its build order (points in year order, then the fit)
+ * arrives in Phase 6.
  *
  * Honesty (CANON §7): the `y: log₂ scale` chip ALWAYS renders. If `fitRange`
  * is set, a `fit: {start}–{end}` chip states the doubling claim's scope.
@@ -180,7 +180,7 @@ for (const p of order) {
 // Highlighted chips → fixed right-gutter labels with a leader (never overrun VB)
 const highlights = plotted.filter((p) => p.highlight);
 
-// ── Reveal timing (blueprint §5; motion.md ≤1.6s) ───────────────────────────
+// ── Build timing for Phase 6 (blueprint §5; motion.md ≤1.6s) ─────────────────
 const stagger = Math.min(40, 700 / Math.max(1, n1)); // ms — tech mechanical cadence
 const lastSettleAt = n1 * stagger;                    // last point starts settling
 const sweepMs = 900;                                  // matches power-flow
@@ -202,7 +202,7 @@ const ariaSummary = doubling
   : `Log₂ growth ladder of ${points.length} chips (${yLabel}).`;
 ---
 
-<div class="px-viz px-mldr" data-reveal>
+<div class="px-viz px-mldr">
   <div class="px-viz__cap">
     {caption && <span set:html={renderInline(caption)} />}
     <span class="px-mldr__chips">
@@ -256,7 +256,7 @@ const ariaSummary = doubling
         transform={`rotate(-90 20 ${Y0 + H_plot / 2})`}
       >TRANSISTORS (log₂)</text>
 
-      <!-- data points (settle in year order) -->
+      <!-- data points (final positions; year-order build arrives in Phase 6) -->
       <g class="px-mldr__pts">
         {plotted.map((p) => (
           <g
@@ -290,7 +290,7 @@ const ariaSummary = doubling
         })}
       </g>
 
-      <!-- the fit line (drawn LAST, sweep-animated) + doubling callout -->
+      <!-- the fit line (fully drawn; built last in Phase 6) + doubling callout -->
       {fitLine && (
         <g class="px-mldr__fitg">
           <line
@@ -473,7 +473,7 @@ const ariaSummary = doubling
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── reveal (settle points in year order → sweep the fit last) ─────────── */
+  /* ── final state: points and fit rest in place (Phase 6 builds points in year order, then the fit) ── */
   .px-mldr__pt {
     transform-box: fill-box;
     transform-origin: center;
@@ -491,20 +491,8 @@ const ariaSummary = doubling
   .px-mldr__hls, .px-mldr__callout {
     opacity: 1;
     transition: opacity var(--t-soft) var(--ease);
-    /* revealed after the sweep completes */
+    /* rests shown; the Phase 6 build lands it after the fit completes */
     transition-delay: calc(var(--last, 0ms) + var(--sweep, 900ms));
-  }
-
-  html.js .px-viz:not(.is-in) .px-mldr__pt { opacity: 0; transform: scale(0.1); }
-  html.js .px-viz:not(.is-in) .px-mldr__fit { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-mldr__hls,
-  html.js .px-viz:not(.is-in) .px-mldr__callout { opacity: 0; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-mldr__pt { opacity: 1 !important; transform: none !important; }
-    .px-viz:not(.is-in) .px-mldr__fit { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-mldr__hls,
-    .px-viz:not(.is-in) .px-mldr__callout { opacity: 1 !important; }
   }
 
   /* ── 375px: thin ticks/rungs, drop faint rungs + optional labels ───────── */

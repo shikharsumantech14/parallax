@@ -1,16 +1,14 @@
 ---
 /**
  * DescentProfile (space) — an altitude-vs-time profile (descent or ascent).
- * The x-axis is time t, the y-axis is altitude; the profile path stroke-draws
- * on scroll-in, phase bands shade the area under the curve where a point names
- * a `phase`, event pins drop in at their times, and a small craft glyph sits on
- * the curve at the final point. The glyph also rides the curve once on reveal
- * via a CSS offset-path animation (gated to `.is-in`, reset under reduced
- * motion). Flat SVG — no 3D.
+ * The x-axis is time t, the y-axis is altitude; phase bands shade the area
+ * under the curve where a point names a `phase`, event pins mark their times,
+ * and a small craft glyph sits on the curve at the final point. Flat SVG, no
+ * 3D. Static since Lens Phase 5 (the scroll reveal and the glyph's ride
+ * retired); its build order (LENS §6.4) arrives in Phase 6.
  *
- * No-JS / reduced-motion: the path paints drawn, the craft rests at the end
- * point, pins are visible (hidden rules sit behind `html.js`; reduced-motion
- * resets with !important).
+ * The path always paints drawn, the craft rests at the end point and the pins
+ * are visible.
  *
  * Every in-plot label (event flags, phase-band names, the craft label) goes
  * through ONE build-time collision rule — see "label placement" below. Flags
@@ -281,7 +279,7 @@ const summary = nodes.length
   : 'profile';
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>{summary}</b></div>}
 
   <div class="px-desc">
@@ -315,7 +313,7 @@ const summary = nodes.length
       <!-- baseline -->
       <line class="px-desc__base" x1={padL} y1={baseY} x2={W - padR} y2={baseY} />
 
-      <!-- profile path (stroke-draws on reveal) -->
+      <!-- profile path (rests fully drawn) -->
       {profilePath && <path class="px-desc__line" d={profilePath} style={`--len:${len}`} />}
 
       <!-- axis labels (mono) -->
@@ -347,7 +345,7 @@ const summary = nodes.length
         );
       })}
 
-      <!-- craft glyph (rests at the final point; rides the curve once on reveal) -->
+      <!-- craft glyph (rests at the final point) -->
       {craft && profilePath && (
         <g
           class="px-desc__craft"
@@ -394,7 +392,6 @@ const summary = nodes.length
   .px-desc__band[data-tone="0"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 12%, transparent); }
   .px-desc__band[data-tone="1"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 20%, transparent); }
   .px-desc__band[data-tone="2"] .px-desc__band-fill { fill: color-mix(in oklab, var(--accent) 28%, transparent); }
-  html.js .px-viz:not(.is-in) .px-desc__band-fill { opacity: 0; }
   .px-desc__band-lbl {
     font-family: var(--font-mono);
     font-size: var(--viz-fs-axis, 9.5px);
@@ -420,7 +417,6 @@ const summary = nodes.length
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 1700ms var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-desc__line { stroke-dashoffset: var(--len); }
 
   .px-desc__axis {
     font-family: var(--font-mono);
@@ -453,10 +449,8 @@ const summary = nodes.length
     transform-box: view-box;
     transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-desc__ev { opacity: 0; transform: translateY(-6px); }
-  .px-viz.is-in .px-desc__ev { transition-delay: calc(900ms + var(--i) * 120ms); }
 
-  /* craft glyph — rests at the end point; rides the curve once on reveal */
+  /* craft glyph — rests at the end point */
   .px-desc__craft {
     transform-box: view-box;
     /* fallback for no offset-path support: position at the final node */
@@ -481,13 +475,6 @@ const summary = nodes.length
       transform: none;
       offset-distance: 100%;       /* resting = end of the path (no-JS safe) */
       offset-rotate: 0deg;
-    }
-    html.js .px-viz.is-in .px-desc__craft {
-      animation: descRide 1700ms var(--ease) forwards;
-    }
-    @keyframes descRide {
-      0% { offset-distance: 0%; }
-      100% { offset-distance: 100%; }
     }
   }
 
@@ -519,9 +506,6 @@ const summary = nodes.length
   .px-desc__lbl { font-family: var(--font-body); font-size: 12.5px; line-height: 1.4; color: var(--ink-soft); }
 
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-desc__line { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-desc__band-fill { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-desc__ev { opacity: 1 !important; transform: none !important; }
     .px-desc__craft { animation: none !important; }
   }
 </style>

@@ -22,10 +22,10 @@
  * cross-fade, because each projection runs its own label placement and
  * de-clutter pass and can legitimately drop a different label.
  *
- * No-JS / reduced-motion: the fit line paints fully drawn, points fully shown,
- * axes in the authored projection (hidden states sit behind `html.js`;
- * reduced-motion resets with !important). Reduced-motion keeps the toggle
- * working — it is comprehension, not decoration — and only drops the tween.
+ * The fit line always paints fully drawn, points fully shown, axes in the
+ * authored projection (static since Lens Phase 5). Reduced-motion keeps the
+ * toggle working — it is comprehension, not decoration — and only drops the
+ * tween.
  *
  * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
  *         howToRead?, caption?, source?, annotations? }
@@ -64,8 +64,10 @@ const {
   annotations = [],
 } = Astro.props;
 
-const W = 640, H = 340, padL = 60, padR = 22, padT = 22, padB = 46;
-const iw = W - padL - padR, ih = H - padT - padB;
+const W = 640, H = 340, padR = 22, padT = 22, padB = 46;
+const ih = H - padT - padB;
+// padL is measured from the widest y-tick label and the y title's line count
+// (the gutter block below), so it is declared further down, before project().
 
 // Domain in transformed space, padded so points don't sit on the frame.
 const safeMinMax = (arr: number[]) => {
@@ -76,26 +78,26 @@ const safeMinMax = (arr: number[]) => {
   return { lo: lo - pad, hi: hi + pad };
 };
 
-// Point label placement — defensive clamps so labels never clip the frame and
-// edge points keep their text inside the plot. Label normally sits ABOVE the
-// dot (cy − 10); if that would clip the top, flip it BELOW the dot. The anchor
-// is decided by the label's estimated WIDTH, not by a fixed distance from the
-// edge: centred on the dot when the whole label fits inside [padL, W − padR],
-// otherwise pinned to the edge it would cross and grown inward. The old rule
-// (flip within 28 units of the edge) let a 27-character label centred 39
-// units from the right edge run 8 units past the viewBox (measured 2026-09-23).
-const LBL_FS = 9;            // matches .px-scale__plabel font-size
-// Per-character advance of a point label, in em. Measured 2026-09-23 on the
-// live page: "GPT-5 Codex task (measured)" is 137.5 units at 9px, 0.566 em a
-// character (Literata at the label's 0.02em tracking). Rounded up so the box
-// errs wide, never narrow.
-const LBL_CW = 0.58;
+// Point labels: their size and width model. Placement is the collision pass
+// inside project(): every candidate spot is a box estimated from the label's
+// width, and a spot that leaves the frame is never taken, so no label can run
+// past the viewBox (the 2026-09-23 failure the old anchor clamp fixed).
+/* 12px since 2026-09-30 (LENS §3, the 12px floor). This chart keeps its
+   640-unit coordinate width in the figure panel and on a phone (the card
+   scrolls, dataviz-v2.css), so an authored 12 prints at 12px at 1280 and 375.
+   It was 9, which the render gate measured as FLOOR on two issues. */
+const LBL_FS = 12;           // matches .px-scale__plabel font-size
+// Per-character advance of a point label, in em. Measured 2026-09-30 in
+// Chrome: Instrument Sans 400 at 0.02em tracking runs 0.43 to 0.54 em a
+// character ("GPT-5 Codex task (measured)" 151.7 units at 12px, "West Ham"
+// the widest per character). Rounded up so the box errs wide, never narrow.
+const LBL_CW = 0.55;
 const lblW = (s?: string) => LBL_CW * LBL_FS * String(s ?? '').length;
-const LBL_UP = 10;           // gap above the dot
-const LBL_DOWN = 15;         // gap below the dot (room for the glyph + dot)
-const EDGE = 4;              // keep this far inside the frame
-// Greedy de-clutter box — see the pass inside project().
-const LBL_MIN_DX = 46, LBL_MIN_DY = 13;
+const LBL_UP = 10;           // dot centre up to the baseline
+const LBL_DOWN = 19;         // dot centre down to the baseline (clears the dot)
+const LBL_SIDE = 10;         // dot centre out to a side label's anchor
+const LBL_STACK = 15;        // one more line of offset when the first is taken
+const LBL_AIR = 3;           // air kept between two labels
 
 // A padded domain may sit below zero — harmless in log space (the values are
 // exponents) but on a linear count axis it prints a negative quantity, which is
@@ -127,6 +129,74 @@ const fmtTicks = (vTs: number[], isLog: boolean) => {
   return new Set(zero).size === zero.length ? zero : at(1);
 };
 
+/* ── The y gutter, measured (2026-09-30) ──────────────────────────────────
+   padL used to be a fixed 60, with the y title at x=14 and the tick labels
+   right-aligned at padL−8. At the 12px axis size a six-character tick
+   ("114.31") starts near x=17 and touched the title's glyphs (the render
+   gate's TOUCH on the squad-cost issue). So the gutter is built from what it
+   holds: the title's lines from the left edge, 6 units of air, the widest
+   tick label of either projection, and the 8-unit tick gap, never narrower
+   than 60. Widths are Instrument Sans measured in Chrome: ticks 0.55em a
+   character at 12px (0.04em tracking, tabular figures), axis titles 0.86em
+   at 12px (700, capitals, 0.16em tracking). */
+const TICK_CH = 12 * 0.55;               // units per tick-label character
+const AXT_CHARS_PER_UNIT = 12 * 0.86;    // units per axis-title character
+const AXT_LINE = 17;                     // leading between two rotated title lines (12px glyph boxes need > 15 to not touch)
+const AXT_X0 = 13;                       // the outer line's baseline (cap height 8.7 + 4 air)
+
+const yTitleLog = yLabel ? `${yLabel}${logY ? ' (log)' : ''}` : '';
+const yTitleLin = yLabel ?? '';
+const yTitleChars = Math.max(1, Math.floor(ih / AXT_CHARS_PER_UNIT));
+const yTitleLogLines = wrapAxisTitle(yTitleLog, yTitleChars);
+const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
+const yTitleN = Math.max(yTitleLogLines.length, (logX || logY) ? yTitleLinLines.length : 0);
+
+function yTickLabels(lgY: boolean): string[] {
+  const txY = (v: number) => (lgY ? Math.log10(Math.max(v, 1e-9)) : v);
+  const yD = floorAtZero(safeMinMax(points.map((p) => txY(p.y))), points.map((p) => p.y), lgY);
+  const yAt = Array.from({ length: TICKS }, (_, i) => yD.lo + (i / (TICKS - 1)) * (yD.hi - yD.lo));
+  return fmtTicks(yAt, lgY);
+}
+const tickLabelsAll = [...yTickLabels(logY), ...((logX || logY) ? yTickLabels(false) : [])];
+const tickW = Math.max(0, ...tickLabelsAll.map((t) => t.length * TICK_CH));
+const titleRight = yTitleN > 0 ? AXT_X0 + (yTitleN - 1) * AXT_LINE + 3 : 0;
+const padL = Math.max(60, Math.ceil(titleRight + 6 + tickW + 8));
+const iw = W - padL - padR;
+// The x each rotated title line sits on: line 0 outermost, because a title
+// turned −90° reads bottom to top and its next line falls to the right.
+const yTitleX = (li: number) => AXT_X0 + li * AXT_LINE;
+
+/* ── Label geometry, shared by the point labels and the annotations ───── */
+interface LblBox { l: number; r: number; t: number; b: number; }
+/* The box a point's own label occupies, in viewBox units, at the label's font
+   size, measured advance (LBL_CW) and anchor. */
+const lblBoxOf = (q: { label?: string; lx: number; ly: number; anchor: string }): LblBox => {
+  const w = lblW(q.label);
+  const l = q.anchor === 'start' ? q.lx : q.anchor === 'end' ? q.lx - w : q.lx - w / 2;
+  return { l, r: l + w, t: q.ly - LBL_FS * 0.8, b: q.ly + LBL_FS * 0.25 };
+};
+const dotBox = (x: number, y: number): LblBox => ({ l: x - 6, r: x + 6, t: y - 6, b: y + 6 });
+const boxesHit = (a: LblBox, b: LblBox, pad = 0) =>
+  a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
+// Where a point label may sit: right of the tick gutter, inside the viewBox,
+// above the x-tick row. The empty top pad is allowed.
+const L_FRAME = { l: padL + 2, r: W - 4, t: 3, b: padT + ih - 2 };
+// Which label wins a collision: a lower rank places first.
+const annotatedIdx = new Set<number>();
+for (const a of annotations) {
+  if (!a || !a.text) continue;
+  const num = typeof a.at === 'number' ? a.at : Number(String(a.at).trim() || NaN);
+  const i = points.findIndex(
+    (p) => (p.label !== undefined && String(a.at) === p.label) || (Number.isFinite(num) && p.x === num),
+  );
+  if (i >= 0) annotatedIdx.add(i);
+}
+const yVals = points.map((p) => p.y);
+const iMaxY = yVals.length ? yVals.indexOf(Math.max(...yVals)) : -1;
+const iMinY = yVals.length ? yVals.indexOf(Math.min(...yVals)) : -1;
+const rankOf = (i: number) =>
+  (annotatedIdx.has(i) ? 0 : i === iMaxY || i === iMinY ? 1 : 2) * 10000 + i;
+
 /* ── One projection of the data ───────────────────────────────────────────
    Everything downstream of the axis mapping — pixel positions, label
    placement, de-clutter, ticks, the least-squares fit — depends on whether an
@@ -145,33 +215,48 @@ function project(lgX: boolean, lgY: boolean) {
   const px = (vT: number) => padL + ((vT - xD.lo) / (xD.hi - xD.lo)) * iw;
   const py = (vT: number) => padT + (1 - (vT - yD.lo) / (yD.hi - yD.lo)) * ih;
 
-  const plotted = points.map((p, i) => {
-    const cx = px(txX(p.x));
-    const cy = py(txY(p.y));
-    const above = cy - LBL_UP - LBL_FS >= padT;      // does it clip the top?
-    const labelY = above ? cy - LBL_UP : cy + LBL_DOWN;
-    // horizontal anchor: centred when the whole label fits, else pinned to the
-    // edge it would cross so it grows inward
-    const half = lblW(p.label) / 2;
-    let anchor: 'start' | 'middle' | 'end' = 'middle';
-    let labelX = cx;
-    if (cx + half > W - padR - EDGE) { anchor = 'end'; labelX = W - padR - EDGE; }
-    else if (cx - half < padL + EDGE) { anchor = 'start'; labelX = padL + EDGE; }
-    return { ...p, i, cx, cy, lx: labelX, ly: labelY, anchor, showLabel: !!p.label };
-  });
+  const plotted = points.map((p, i) => ({
+    ...p, i,
+    cx: px(txX(p.x)),
+    cy: py(txY(p.y)),
+    lx: 0, ly: 0,
+    anchor: 'middle' as 'start' | 'middle' | 'end',
+    showLabel: false,
+  }));
 
-  // Greedy de-clutter: when label anchor points cluster within a small box,
-  // drop the later one's label so we never stack illegible text. Pure
-  // visibility flag — data + dots are untouched (only the <text> is gated).
-  // Runs per projection: linear crowds points the log axis had spread out.
-  const placed: { x: number; y: number }[] = [];
-  for (const p of plotted) {
-    if (!p.showLabel) continue;
-    const collides = placed.some(
-      (q) => Math.abs(q.x - p.lx) < LBL_MIN_DX && Math.abs(q.y - p.ly) < LBL_MIN_DY,
-    );
-    if (collides) p.showLabel = false;
-    else placed.push({ x: p.lx, y: p.ly });
+  /* Collision-aware label placement (2026-09-30). Each label tries, in
+     order: above the dot, below it, to its right, to its left, then hung off
+     each of the dot's four corners, then one line further out above and
+     below. The first spot that stays inside the frame and clears every dot
+     and every label already placed wins. A label with no clean spot is
+     DROPPED: its dot stays. Labels place most important first (a point an
+     annotation names, then the highest and lowest values, then authored
+     order), so the least important is the one that yields; its dot keeps
+     the name as a <title>. Runs per projection: linear crowds points the
+     log axis had spread out. The x-tick row sits 19 below the plot so its
+     first label clears the lowest y tick in the corner. */
+  const dots = plotted.map((q) => dotBox(q.cx, q.cy));
+  const order = [...plotted].sort((a, b) => rankOf(a.i) - rankOf(b.i));
+  const taken: LblBox[] = [];
+  for (const q of order) {
+    if (!q.label) continue;
+    const up = q.cy - LBL_UP, dn = q.cy + LBL_DOWN, mid = q.cy + LBL_FS * 0.35;
+    const cands: Array<[number, number, 'start' | 'middle' | 'end']> = [
+      [q.cx, up, 'middle'], [q.cx, dn, 'middle'],
+      [q.cx + LBL_SIDE, mid, 'start'], [q.cx - LBL_SIDE, mid, 'end'],
+      [q.cx - 4, up, 'start'], [q.cx + 4, up, 'end'],
+      [q.cx - 4, dn, 'start'], [q.cx + 4, dn, 'end'],
+      [q.cx, up - LBL_STACK, 'middle'], [q.cx, dn + LBL_STACK, 'middle'],
+    ];
+    for (const [lx, ly, anchor] of cands) {
+      const b = lblBoxOf({ label: q.label, lx, ly, anchor });
+      if (b.l < L_FRAME.l || b.r > L_FRAME.r || b.t < L_FRAME.t || b.b > L_FRAME.b) continue;
+      if (dots.some((d) => boxesHit(b, d))) continue;
+      if (taken.some((t) => boxesHit(b, t, LBL_AIR))) continue;
+      q.lx = lx; q.ly = ly; q.anchor = anchor; q.showLabel = true;
+      taken.push(b);
+      break;
+    }
   }
 
   const xAt = Array.from({ length: TICKS }, (_, i) => xD.lo + (i / (TICKS - 1)) * (xD.hi - xD.lo));
@@ -249,17 +334,6 @@ interface PlacedAnnot {
   x1: number; y1: number; x2: number; y2: number;
   tx: number; ty: number; anchor: 'start' | 'middle' | 'end';
 }
-interface LblBox { l: number; r: number; t: number; b: number; }
-/* The box a point's own label occupies, in viewBox units, at the label's font
-   size, measured advance (LBL_CW) and anchor. */
-const lblBoxOf = (q: { label?: string; lx: number; ly: number; anchor: string }): LblBox => {
-  const w = lblW(q.label);
-  const l = q.anchor === 'start' ? q.lx : q.anchor === 'end' ? q.lx - w : q.lx - w / 2;
-  return { l, r: l + w, t: q.ly - LBL_FS * 0.8, b: q.ly + LBL_FS * 0.25 };
-};
-const dotBox = (x: number, y: number): LblBox => ({ l: x - 6, r: x + 6, t: y - 6, b: y + 6 });
-const boxesHit = (a: LblBox, b: LblBox, pad = 0) =>
-  a.l < b.r + pad && a.r > b.l - pad && a.t < b.b + pad && a.b > b.t - pad;
 const overlapArea = (a: LblBox, b: LblBox, pad = 0) =>
   Math.max(0, Math.min(a.r, b.r + pad) - Math.max(a.l, b.l - pad)) *
   Math.max(0, Math.min(a.b, b.b + pad) - Math.max(a.t, b.t - pad));
@@ -432,18 +506,15 @@ const longestReadout = readLinear.length >= readLog.length ? readLinear : readLo
 // logged axis gets swap strings; the island falls back to the rendered text.
 const xTitleLog = xLabel ? `${xLabel}${logX ? ' (log)' : ''}` : '';
 const xTitleLin = xLabel ?? '';
-const yTitleLog = yLabel ? `${yLabel}${logY ? ' (log)' : ''}` : '';
-const yTitleLin = yLabel ?? '';
 
 /* ── axis-title wrapping (AGENTS.md, 2026-09-22: an outward SVG label wraps
    or is budgeted in characters against the gutter it is drawn into) ──────
    The y title runs the inner-height gutter (rotated -90°, up padT..padT+ih);
    the x title runs the inner-width gutter (padL..padL+iw). Same font both
-   ways — the shared 10px mono eyebrow cut at 0.16em tracking — so the same
-   per-character width estimate (glyph advance ≈0.62em + 0.16em tracking)
-   sizes both budgets, just against a different span. */
-const AXT_CHARS_PER_UNIT = 10 * 0.62 + 10 * 0.16; // ≈ 7.8 SVG units/char
-const yTitleChars = Math.max(1, Math.floor(ih / AXT_CHARS_PER_UNIT));
+   ways (the 12px eyebrow cut at 0.16em tracking), so the same per-character
+   estimate, AXT_CHARS_PER_UNIT in the gutter block above, sizes both
+   budgets against a different span. The y title's lines are wrapped up
+   there, because the gutter's width depends on how many there are. */
 const xTitleChars = Math.max(1, Math.floor(iw / AXT_CHARS_PER_UNIT));
 
 // Greedy word-wrap into AT MOST TWO lines, never breaking a word (a single
@@ -483,8 +554,6 @@ const truncateAxisTitle = (s: string, max: number): string =>
 
 const xTitleLogText = truncateAxisTitle(xTitleLog, xTitleChars);
 const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
-const yTitleLogLines = wrapAxisTitle(yTitleLog, yTitleChars);
-const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
 ---
 
 <VizCard
@@ -520,7 +589,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
           {p.xTicks.map((t) => (
             <g>
               <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} stroke="var(--rule)" opacity="0.55" />
-              <text class="px-scale__tick" x={t.x} y={padT + ih + 16} text-anchor="middle">{t.label}</text>
+              <text class="px-scale__tick" x={t.x} y={padT + ih + 19} text-anchor="middle">{t.label}</text>
             </g>
           ))}
         </g>
@@ -547,7 +616,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
             style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(B ? B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(B ? B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
           >
             <g class="px-scale__pop" style={`transition-delay:${600 + p.i * 60}ms`}>
-              <circle cx="0" cy="0" r="5" />
+              <circle cx="0" cy="0" r="5">{p.label && <title>{p.label}</title>}</circle>
             </g>
           </g>
         ))}
@@ -584,7 +653,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
         return (
           <g class:list={['px-scale__ytitle', 'px-scale__lyr', `px-scale__lyr--${k}`]}>
             {lines.map((ln, li) => {
-              const x = lines.length > 1 ? (li === 0 ? 26 : 14) : 14;
+              const x = yTitleX(li);
               return (
                 <text
                   class="px-scale__axis-title"
@@ -705,11 +774,12 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
     stroke-width: 1.5;
   }
   .px-scale__plabel {
-    /* point label — mono, ink-soft, tabular (point names often carry magnitudes).
-       font-size stays 9px: the de-clutter math in project() depends on LBL_FS,
-       so a responsive bump here needs per-breakpoint de-clutter (Phase 5). */
+    /* point label — Instrument Sans, ink-soft, tabular (point names often
+       carry magnitudes). 12px, and it must equal LBL_FS: the placement pass
+       in project() sizes every label's box from it. The chart renders at its
+       coordinate width everywhere (the card scrolls), so 12 is 12. */
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 0.02em;
     fill: var(--ink-soft);
     font-variant-numeric: tabular-nums;
@@ -745,7 +815,7 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
     transform: translate(var(--x2), var(--y2));
   }
 
-  /* reveal: the pop-in lives on an inner group so it never fights the
+  /* the point group rests shown; its transition lives on an inner group so it never fights the
      positional transform above */
   .px-scale__pop {
     opacity: 1;
@@ -759,29 +829,14 @@ const yTitleLinLines = wrapAxisTitle(yTitleLin, yTitleChars);
   .px-scale__ctl { display: none; }
   html.js .px-scale__ctl { display: flex; }
 
-  /* reveal: fit line stroke-draws, points pop in staggered (behind html.js) */
-  html.js .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-scale__pop { opacity: 0; transform: scale(0.1); }
-
-  /* PHASE 5 (mobile legibility) — measured here, deliberately NOT fixed.
-     At a 375px viewport this SVG lays out at 273px against a 640 viewBox, so
-     the scale factor is 0.427 and rendered text is: ticks 4.06px, axis titles
-     4.27px, point labels 3.84px. Clearing the 9.5px floor needs ~23 SVG units.
-
-     A plain font-size bump does NOT work here, which is why this is left whole
-     for the phase that owns it:
-       - y-ticks are right-anchored at x=52 (padL−8). "3,192" at 23 units is
-         ~69 units wide, so it starts at x=−17 — off the canvas and straight
-         through the rotated axis title at x=14.
-       - the de-clutter math in project() is tuned to LBL_FS=9; scaling the
-         point labels needs LBL_MIN_DX/DY to scale with them, and those are
-         build-time constants that cannot know the viewport.
-     The real fixes (a mobile tick format, or per-breakpoint de-clutter with
-     two rendered label sets) are cross-component decisions, not this file's. */
+  /* Mobile legibility (closed 2026-09-30). This SVG no longer scales down on
+     a phone: the min-width block in dataviz-v2.css keeps it at its 640-unit
+     coordinate width and the card scrolls sideways, in the figure panel too.
+     So the authored sizes are the rendered sizes: point labels 12, ticks and
+     titles at the 12px viz scale, and the y gutter measured to hold them
+     (the gutter block in frontmatter). */
 
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-scale__fit { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-scale__pop { opacity: 1 !important; transform: none !important; }
     /* the toggle still switches — it is comprehension. Only the tween goes. */
     .px-scale__lyr, .px-scale__pt { transition: none; }
   }

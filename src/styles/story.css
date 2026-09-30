@@ -1,13 +1,56 @@
 /* ============================================================================
    PARALLAX STORY MODE — /s/<slug>/ ("the short version")
    ----------------------------------------------------------------------------
-   The pxs- layer. Spec (the contract): docs/design/STORY-MODE-SPEC.md —
-   snap spec §3, card anatomy + type scale §2. Cards are ordinary stacked DOM
-   in source order: no-JS = natural scroll with NOTHING hidden; snap is pure
-   CSS; progress/chevrons/share are unhidden by the shell's island.
+   The pxs- layer. Lens (2026-09-30, Phase 4b): the Story and Story-Phone
+   boards. Spec for the behaviour: docs/design/STORY-MODE-SPEC.md.
+
+   PHONE (below 768px): each card is the screen, the shell snaps vertically,
+   every card carries its own "k of n" dots, the hook card is the desk's deep
+   plate edge to edge.
+   DESKTOP: a head, then the 360 x 640 cards in one horizontal row that snaps
+   card by card (three show at 1280), then the labelled dot stepper.
+
+   Cards are ordinary DOM in source order: no JS = natural scroll with
+   NOTHING hidden; the snap is pure CSS; the shell's island only marks the
+   current step and adds prev / next and the arrow keys.
    ============================================================================ */
 
-/* ── the shell (snap container) ───────────────────────────────────────────── */
+.pxs {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ── the desktop head ─────────────────────────────────────────────────────── */
+.pxs-head { display: none; }
+.pxs-head__text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pxs-head__eyebrow {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dk-text);
+}
+.pxs-head__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.pxs-head__url {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* ── the shell: PHONE first ───────────────────────────────────────────────── */
 .pxs-shell {
   height: 100vh;
   height: 100dvh;
@@ -15,8 +58,9 @@
   scroll-snap-type: y mandatory;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  background: var(--bg);
+  background: var(--paper);
 }
+.pxs-shell:focus { outline: none; }
 @media (max-height: 560px) {
   .pxs-shell { scroll-snap-type: y proximity; }   /* short-viewport escape hatch */
 }
@@ -24,257 +68,530 @@
   .pxs-shell { scroll-snap-type: y proximity; }
 }
 
-/* ── cards ────────────────────────────────────────────────────────────────── */
+/* ── a card ───────────────────────────────────────────────────────────────── */
 .pxs-card {
-  min-height: 100vh;
-  min-height: 100dvh;
+  position: relative;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  min-width: 0;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  padding: max(20px, env(safe-area-inset-top)) 20px max(72px, env(safe-area-inset-bottom));
-  position: relative;
-}
-.pxs-card__inner {
-  width: 100%;
-  max-width: 520px;               /* desktop: centered column, no phone bezel */
-  display: grid;
-  gap: 14px;
-}
-/* The accent field glow that sat behind the column is retired with Lens (no
-   glow, no gradient washes): the card is the one paper. */
-
-/* beat anatomy (dvh budget: text ≤26 · viz ≤62 · kicker ≤8) */
-.pxs-beat__text {
-  font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: max(16px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  background: var(--paper-2);
   color: var(--ink);
-  max-height: 26dvh;
   overflow: hidden;
 }
-.pxs-beat__viz {
-  max-height: 62dvh;
-  overflow-y: auto;               /* per-card internal scroller escape hatch */
-  overscroll-behavior: contain;
-  min-width: 0;
-  width: 100%;
+
+.pxs-card__top {
+  flex: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.pxs-beat__viz .px-viz { margin: 0; }
-/* Story-teaser compaction: the beat text frames the card and the CTA links to
-   the full issue (where the sources live), so the section's own top title-
-   caption + source-citation are redundant chrome here. Hiding them (direct
-   children of the section root only — never nested data labels) gives the
-   GRAPHIC the dvh budget and cuts internal scrolling. Data is never hidden. */
-.pxs-beat__viz > * > [class$='__cap'],
-.pxs-beat__viz > * > [class$='__src'],
-/* DEPTH 1 as well as depth 2, and the difference is not cosmetic. Most kinds
-   nest their source inside the graphic root (`.px-viz > .px-viz__src`), but
-   Timeline, BillBreakdown and VoteResult emit it as a SIBLING of the root when
-   they gained source rendering in the 2026-08-28 backfill — so it lands as a
-   direct child of the beat and the `> * >` chain above sails straight past it.
-   Measured at shell adoption: three of five source nodes in a real story were
-   still visible. Depth 1 is chrome by construction (a beat's own children are
-   the section root and its siblings), so this cannot reach a nested data
-   label. */
-.pxs-beat__viz > [class$='__cap'],
-.pxs-beat__viz > [class$='__src'],
-/* Named EXPLICITLY, not left to the `__cap`/`__src` suffix match above: the
-   how-to-read block is `px-viz__how`, which matches neither. It is reading
-   guidance for the full issue and a paragraph of it would eat a story card's
-   entire dvh budget. Any future chrome element must be added here by name —
-   the suffix convention is a coincidence, not a contract. */
-.pxs-beat__viz > * > .px-viz__how { display: none; }
-.pxs-beat__viz > * { margin: 0; }
-.pxs-beat__kicker {
+.pxs-card__kicker,
+.pxs-card__desk {
   font-family: var(--font-ui);
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-deep, var(--accent));
-  max-height: 8dvh;
+}
+.pxs-card__desk { display: flex; align-items: center; gap: 8px; color: var(--dk-text); min-width: 0; }
+.pxs-card__count {
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
-/* prose beat = pure-text card (spec §1): no viz box, so let the beat text be
-   the whole card — Newsreader at display size, no 26dvh clamp. */
-.pxs-card--text .pxs-beat__text {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(21px, 5.4vw, 27px);
-  line-height: 1.36;
-  color: var(--ink);
-  max-height: none;
-  overflow: visible;
+/* The phone dots: every card carries its own, so no control floats. */
+.pxs-dots {
+  flex: none;
+  align-self: center;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+.pxs-dots__d { width: 8px; height: 8px; border-radius: 999px; background: var(--hair-2); }
+.pxs-dots__d.is-on { width: 24px; background: var(--dk-mark); }
 
-/* ── hook card ────────────────────────────────────────────────────────────── */
+/* ── the hook card: the desk's deep plate ─────────────────────────────────── */
+.pxs-hook {
+  background: var(--hk-deep);
+  color: var(--on-deep);
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
+}
+.pxs-hook .pxs-card__kicker,
+.pxs-hook .pxs-card__count { color: var(--on-deep-2); }
+.pxs-hook .pxs-card__count { display: none; }
+.pxs-hook__close {
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-ctl);
+  color: var(--on-deep);
+}
+.pxs-hook__close:focus-visible { outline: 2px solid var(--on-deep); outline-offset: 2px; }
+.pxs-hook__body { flex: none; display: flex; flex-direction: column; gap: 32px; min-height: 0; }
+.pxs-hook__mark { display: flex; }
+.pxs-hook__mark .px-mark { width: 96px; height: 96px; }
+.pxs-hook__text { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .pxs-hook__eyebrow {
   font-family: var(--font-ui);
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-deep, var(--accent));
+  color: var(--on-deep-2);
 }
 .pxs-hook__title {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(34px, 9vw, 56px);
+  font-size: 44px;
   line-height: 1.04;
   letter-spacing: -0.01em;
-  color: var(--ink);
-  margin: 10px 0 14px;
+  color: var(--on-deep);
+  text-wrap: balance;
 }
-.pxs-hook__title em { font-style: italic; font-weight: inherit; color: var(--accent-deep, var(--accent)); }
+.pxs-hook__title em { font-style: italic; font-weight: inherit; color: var(--hk-em); }
 .pxs-hook__hook {
-  font-family: var(--font-body);
-  font-size: 18px;
-  line-height: 1.55;
-  color: var(--ink-soft);
-  max-width: 44ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--on-deep-2);
 }
-.pxs-hook__chevron {
-  margin-top: 26px;
-  width: 22px; height: 22px;
-  justify-self: start;
-  color: var(--muted);
+.pxs-hook__facts {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--on-deep-2);
+  font-variant-numeric: tabular-nums;
 }
-html.js .pxs-hook__chevron { animation: pxs-bob 2.4s var(--ease) infinite; }
-@keyframes pxs-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
-@media (prefers-reduced-motion: reduce) {
-  html.js .pxs-hook__chevron { animation: none; }
+.pxs-hook__foot { flex: none; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pxs-hook__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--on-deep-2);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
+.pxs-hook__chev--side, .pxs-hook__hint-side { display: none; }
+.pxs-hook .pxs-dots__d { background: var(--on-deep-hair); }
+.pxs-hook .pxs-dots__d.is-on { background: var(--hk-em); }
+@media (prefers-reduced-motion: no-preference) {
+  html.js .pxs-hook__chev { animation: pxs-nudge 2.4s var(--ease) infinite; }
+}
+@keyframes pxs-nudge { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
 
-/* ── CTA card ─────────────────────────────────────────────────────────────── */
-.pxs-cta__lede {
+/* ── a beat card ──────────────────────────────────────────────────────────── */
+.pxs-beat__head { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.pxs-beat__eyebrow {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dk-text);
+}
+.pxs-beat__title {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: clamp(24px, 6vw, 32px);
-  line-height: 1.2;
+  font-size: 26px;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.pxs-beat__title em { font-style: italic; font-weight: inherit; color: var(--dk-text); }
+
+/* The figure takes the room the card has; a tall one scrolls inside it. */
+.pxs-beat__viz {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.pxs-beat__viz > * { margin: 0; }
+/* A readout in a story card: the card is 312px of content at 1280 (and a
+   phone's width below 768), so three tiles a row leave each label about 60px,
+   narrower than one capitalised word ("PUNISHMENTS IMPOSED" was cut at its
+   tile's edge on the sports story). Two a row, on a tighter inset, as in the
+   figure panel's four-tile rule (dataviz-v2.css); a readout the component
+   already stacks keeps one. The label also wraps (`.tel__l`), so nothing is
+   ever clipped, whatever the value. */
+.pxs-beat__viz .tel__grid { --tel-cols: 2; --tel-padx: 14px; }
+.pxs-beat__viz .tel[data-phone="stack"] .tel__grid { --tel-cols: 1; }
+
+/* The component sits in the card, so its own card edge goes (as in the
+   figure panel, layout-v2.css). */
+.pxs-beat__viz > .px-viz,
+.pxs-beat__viz > [data-viz-root] { border-top: 0; padding-top: 0; }
+/* Story-teaser compaction: the beat text frames the card and the CTA links to
+   the full issue (where the sources live), so a section's own caption row and
+   source line are chrome here. Hidden at depth 1 AND depth 2, because
+   Timeline, BillBreakdown and VoteResult emit their chrome as a SIBLING of
+   the graphic root. `.vb__cap` (a vote's label) and `.px-seats__caption` (a
+   subtitle) are data, not captions, and stay. Graphic containers must never
+   end in `__cap` / `__src` (root AGENTS.md §7). */
+.pxs-beat__viz > * > [class$='__cap']:not(.vb__cap),
+.pxs-beat__viz > * > [class$='__src'],
+.pxs-beat__viz > [class$='__cap']:not(.vb__cap),
+.pxs-beat__viz > [class$='__src'],
+.pxs-beat__viz [class$='__caption']:not(.px-seats__caption) { display: none; }
+
+.pxs-beat__text {
+  flex: none;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.pxs-beat__source {
+  flex: none;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* A prose beat is a pure-text card: the beat text set large, no figure. */
+.pxs-card--text .pxs-beat__text--lead {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 26px;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+/* ── the CTA card ─────────────────────────────────────────────────────────── */
+.pxs-cta__lede {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 .pxs-cta__stats {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.pxs-cta__stat { padding: 12px 0 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pxs-cta__stat:first-child { padding-left: 0; }
+.pxs-cta__stat + .pxs-cta__stat { border-left: 1px solid var(--hair); }
+.pxs-cta__n {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.pxs-cta__l { font-family: var(--font-ui); font-size: 13px; font-weight: 500; line-height: 1.2; color: var(--ink-2); }
+.pxs-cta__rest { flex: none; display: flex; flex-direction: column; gap: 10px; }
+.pxs-cta__rest-h {
   font-family: var(--font-ui);
   font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 10px 0 22px;
 }
-/* The primary button (base.css .px-btn values). */
+.pxs-cta__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.pxs-cta__list li { display: flex; align-items: flex-start; gap: 10px; font-family: var(--font-ui); font-size: 15px; line-height: 1.3; color: var(--ink); }
+.pxs-cta__dot { flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 999px; background: var(--dk-mark); }
+.pxs-cta__actions { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
 .pxs-cta__btn {
-  display: inline-flex; align-items: center;
-  min-height: 44px;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--paper);
-  background: var(--ink);
-  padding: 0 20px;
-  text-decoration: none;
-  border: 1px solid var(--ink);
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 18px;
   border-radius: var(--r-ctl);
+  background: var(--dk-text);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   transition: background var(--t-micro) var(--ease);
 }
-.pxs-cta__btn:hover { background: var(--ink-2, var(--ink)); }
-.pxs-cta__account {
+.pxs-cta__btn:hover { background: color-mix(in oklab, var(--dk-text) 86%, var(--ink)); color: var(--paper); }
+.pxs-cta__btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ── share ────────────────────────────────────────────────────────────────── */
+.pxs-share { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
+.pxs-share__h {
   font-family: var(--font-ui);
-  font-size: 14px;
-  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin-top: 22px;
 }
-.pxs-cta__account a { color: var(--accent-deep, var(--accent)); }
-
-/* (The dark-desk inversion of the CTA retired with Lens: every desk is on
-   the one paper, so the ink button is the same everywhere.) */
-
-/* ── progress (IG-style segments mobile · dot rail desktop) ──────────────── */
-.pxs-progress {
-  position: fixed;
-  z-index: 5;
-  pointer-events: none;
-}
-.pxs-progress[hidden] { display: none; }
-@media (max-width: 959px) {
-  .pxs-progress {
-    top: max(10px, env(safe-area-inset-top));
-    left: 14px; right: 14px;
-    display: flex; gap: 5px;
-  }
-  .pxs-progress__seg {
-    flex: 1; height: 2.5px; border-radius: var(--r-pill);
-    background: color-mix(in oklab, var(--ink) 18%, transparent);
-    overflow: hidden;
-  }
-  .pxs-progress__seg::after {
-    content: ''; display: block; height: 100%; width: 0%;
-    background: var(--accent);
-    transition: width var(--t-soft) var(--ease);
-  }
-  .pxs-progress__seg.is-done::after { width: 100%; }
-}
-@media (min-width: 960px) {
-  .pxs-progress {
-    right: 22px; top: 50%;
-    transform: translateY(-50%);
-    display: flex; flex-direction: column; gap: 10px;
-  }
-  .pxs-progress__seg {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: color-mix(in oklab, var(--ink) 22%, transparent);
-    transition: background var(--t-quick) var(--ease), transform var(--t-quick) var(--ease);
-  }
-  .pxs-progress__seg.is-done { background: var(--accent); }
-  .pxs-progress__seg.is-current { transform: scale(1.5); background: var(--accent); }
-}
-
-/* ── nav chevrons (visible 44×44, bottom-right) ──────────────────────────── */
-.pxs-nav {
-  position: fixed;
-  right: max(14px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.pxs-nav[hidden] { display: none; }
-.pxs-nav__btn {
-  width: 44px; height: 44px;
-  display: grid; place-items: center;
-  background: var(--paper-2);
-  border: 1px solid var(--hair, var(--rule));
-  border-radius: var(--r-pill);
-  color: var(--ink);
-  cursor: pointer;
-  box-shadow: var(--shadow-1);
-  transition: transform var(--t-quick) var(--ease), opacity var(--t-quick) var(--ease);
-}
-.pxs-nav__btn:hover { border-color: var(--ink); }
-.pxs-nav__btn:disabled { opacity: 0.3; cursor: default; transform: none; }
-.pxs-nav__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* ── reveal interplay: cards re-use the standard [data-reveal] contract ──── */
-/* (Reveal island observes with the viewport root; the shell IS the visual
-   viewport, so reveals fire per card as it snaps in — no extra JS.) */
-
-/* ── share (StoryShare on the CTA card) ─────────────────────────────────── */
-.pxs-share { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
-.pxs-share[hidden] { display: none; }
+.pxs-share__row { display: flex; gap: 8px; }
 .pxs-share__btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  min-height: 44px;
-  font-family: var(--font-ui); font-size: 15px; font-weight: 600; letter-spacing: 0;
-  text-transform: none; color: var(--ink);
-  background: transparent; border: 1px solid var(--ink); border-radius: var(--r-ctl);
-  padding: 0 16px; cursor: pointer;
-  transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 1px solid var(--hair-2);
+  border-radius: var(--r-ctl);
+  background: var(--paper-2);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--t-micro) var(--ease);
 }
-.pxs-share__btn:hover { background: var(--paper-3); }
-.pxs-share__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pxs-share__btn[hidden] { display: none; }
+.pxs-share__btn:hover { border-color: var(--ink); color: var(--ink); }
+.pxs-share__btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .pxs-share__ok {
-  font-family: var(--font-ui); font-size: 12px; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent-deep, var(--accent));
+  flex-basis: 100%;
+  min-height: 0;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dk-text);
+  text-align: right;
 }
-.pxs-share__ok[hidden] { display: none; }
+.pxs-share__ok:empty { display: none; }
+
+/* ── the stepper (desktop) ────────────────────────────────────────────────── */
+.pxs-step { display: none; }
+
+/* A short phone (a 667px screen) gives the hook's words the room. */
+@media (max-width: 767px) and (max-height: 720px) {
+  .pxs-hook__body { gap: 20px; }
+  .pxs-hook__mark .px-mark { width: 64px; height: 64px; }
+  .pxs-hook__title { font-size: 36px; }
+  .pxs-hook__hook { font-size: 18px; }
+}
+
+/* ============================================================================
+   DESKTOP: the row of 360 x 640 cards
+   ============================================================================ */
+@media (min-width: 768px) {
+  .pxs {
+    max-width: 1280px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding: 56px 64px 64px;
+  }
+  .pxs-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 72px;
+    margin-bottom: 40px;
+  }
+
+  .pxs-shell {
+    height: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    gap: 24px;
+    padding: 4px 4px 24px;
+    margin: -4px -4px 0;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 4px;
+    overscroll-behavior-x: contain;
+    background: transparent;
+  }
+  /* Room after the last card, so every card (the last one too) can come to
+     the row's left edge, where the stepper reads the current one. */
+  .pxs-shell::after {
+    content: '';
+    flex: 0 0 calc(100% - 360px - 32px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pxs-shell { scroll-snap-type: x proximity; }
+  }
+  .pxs-card {
+    flex: 0 0 360px;
+    width: 360px;
+    height: 640px;
+    padding: 20px 24px 20px;
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-1);
+    scroll-snap-align: start;
+  }
+  .pxs-card__top { min-height: 24px; }
+  .pxs-dots { display: none; }
+
+  .pxs-hook { border: 0; padding: 20px 24px 24px; }
+  .pxs-hook .pxs-card__count { display: inline; }
+  .pxs-hook__close { display: none; }
+  .pxs-hook__body { gap: 24px; }
+  .pxs-hook__mark .px-mark { width: 80px; height: 80px; }
+  .pxs-hook__title { font-size: 38px; }
+  .pxs-hook__hook { font-size: 18px; }
+  .pxs-hook__chev--up, .pxs-hook__hint-up { display: none; }
+  .pxs-hook__chev--side, .pxs-hook__hint-side { display: inline; }
+  @keyframes pxs-nudge { 0%, 100% { translate: 0 0; } 50% { translate: 4px 0; } }
+
+  .pxs-cta { padding-bottom: 24px; }
+
+  /* The stepper: a dot and a short name per card on a hair line. */
+  .pxs-step {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .pxs-step__nav {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin-top: -10px;
+    padding: 0;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-ctl);
+    background: var(--paper-2);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .pxs-step__nav[hidden] { display: none; }
+  .pxs-step__nav:hover:not(:disabled) { border-color: var(--ink); }
+  .pxs-step__nav:disabled { opacity: 0.35; cursor: default; }
+  .pxs-step__nav:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .pxs-step__list {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: min(760px, calc(var(--steps, 5) * 152px));
+    display: grid;
+    grid-template-columns: repeat(var(--steps, 5), minmax(0, 1fr));
+  }
+  .pxs-step__list::before {
+    content: '';
+    position: absolute;
+    left: calc(50% / var(--steps, 5));
+    right: calc(50% / var(--steps, 5));
+    top: 11px;
+    height: 2px;
+    background: var(--hair);
+  }
+  .pxs-step__item { position: relative; min-width: 0; }
+  .pxs-step__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 4px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: var(--r-ctl);
+  }
+  .pxs-step__link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .pxs-step__dot {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pxs-step__dot::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 1.5px solid var(--hair-2);
+    transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease);
+  }
+  .pxs-step__link.is-done .pxs-step__dot::after { background: var(--dk-mark); border-color: var(--dk-mark); }
+  .pxs-step__link[aria-current='step'] .pxs-step__dot::after {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    background: var(--dk-mark);
+    box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--dk-mark);
+  }
+  .pxs-step__label {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .pxs-step__link[aria-current='step'] .pxs-step__label { color: var(--ink); font-weight: 600; }
+  .pxs-step__link:hover .pxs-step__label { color: var(--ink); }
+
+  /* The figure in a 312px card: a chart drawn for the 720 measure keeps the
+     width it was drawn at and scrolls inside the card, so no label prints
+     below the size it was drawn at. The widths are the phone block's in
+     dataviz-v2.css ("the 2026-09-07 rule"); keep the two lists in step
+     until Phase 6 redraws these kinds compact. */
+  .pxs-beat__viz :is(.px-viz, [data-viz-root]) { overflow-x: auto; overscroll-behavior-x: contain; }
+  .pxs-beat__viz .px-map__svg { min-width: 800px; }
+  .pxs-beat__viz .px-eriv__svg { min-width: 760px; }
+  .pxs-beat__viz :is(.px-cloop__svg, .px-eclp__svg, .px-etrek__svg, .px-fterr__svg, .px-lagr__svg,
+    .px-mldr__svg, .px-mom__svg, .px-pflow__svg, .px-pkt__bar, .px-prdg__svg, .px-qc__svg,
+    .px-quake__svg, .px-vflow__svg, .px-xgr__svg) { min-width: 720px; }
+  .pxs-beat__viz .px-altox__svg { min-width: 668px; }
+  .pxs-beat__viz :is(.ac__svg, .adc__svg, .px-desc__svg, .px-scale__svg, .px-traj__svg) { min-width: 640px; }
+  .pxs-beat__viz .px-atmc__svg { min-width: 560px; }
+  .pxs-beat__viz .px-cval__svg { min-width: var(--vbw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pxs-step__dot::after, .pxs-share__btn, .pxs-cta__btn { transition: none; }
+}

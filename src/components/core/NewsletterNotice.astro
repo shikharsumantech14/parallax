@@ -10,18 +10,20 @@
  * In-flow bar above the masthead — it occupies no space until JS reveals it on
  * the `?newsletter=confirmed` param, so no-JS / crawlers see nothing (it's a
  * post-action nicety, never content). Dismissible; cleans the URL on show.
+ * Lens (2026-09-30): the house tint band under a hair, Instrument Sans, a
+ * 44px close.
  * Prefix: px-nnote.
  */
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
-const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
-const shelfHref = `${appUrl}/login?next=${encodeURIComponent(siteUrl + '/')}`;
+/* Same-origin since the merge (2026-09-06): a relative path follows the reader
+   to whatever host served the page. */
+const shelfHref = `/login?next=${encodeURIComponent('/')}`;
 ---
 
 <div class="px-nnote" data-newsletter-notice role="status" aria-live="polite" hidden>
   <div class="px-nnote__inner">
     <span class="px-nnote__dot" aria-hidden="true"></span>
     <span class="px-nnote__msg">You're on the dispatch.</span>
-    <a class="px-nnote__cta" href={shelfHref}>One more click: your free shelf →</a>
+    <a class="px-nnote__cta" href={shelfHref}>One more click: your free Shelf →</a>
     <button class="px-nnote__close" type="button" aria-label="Dismiss">
       <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true">
         <path d="M2 2l10 10M12 2L2 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -70,17 +72,17 @@ const shelfHref = `${appUrl}/login?next=${encodeURIComponent(siteUrl + '/')}`;
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    background: color-mix(in oklab, var(--accent) 10%, var(--bg));
-    border-bottom: 1px solid color-mix(in oklab, var(--accent) 28%, var(--rule));
-    transition: max-height 320ms var(--ease, ease), opacity 320ms var(--ease, ease);
+    background: var(--accent-tint, var(--paper-3));
+    border-bottom: 1px solid var(--hair);
+    transition: max-height var(--t-el, 420ms) var(--ease, ease), opacity var(--t-el, 420ms) var(--ease, ease);
   }
-  .px-nnote.is-in { max-height: 80px; opacity: 1; }
+  .px-nnote.is-in { max-height: 120px; opacity: 1; }
   .px-nnote[hidden] { display: none; }
 
   .px-nnote__inner {
-    max-width: var(--col-wide, 1080px);
+    max-width: 1152px;
     margin: 0 auto;
-    padding: 10px 24px;
+    padding: 4px 0;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -90,42 +92,43 @@ const shelfHref = `${appUrl}/login?next=${encodeURIComponent(siteUrl + '/')}`;
     width: 8px; height: 8px; flex: none;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
   }
   .px-nnote__msg {
-    font-family: var(--font-body);
-    font-weight: 500;
-    font-size: 14px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 15px;
     color: var(--ink);
   }
   .px-nnote__cta {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    text-decoration: none;
-    border-bottom: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
-    padding-bottom: 1px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent-deep, var(--ink));
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
   }
-  .px-nnote__cta:hover { border-bottom-color: var(--accent-deep, var(--accent)); }
+  .px-nnote__cta:hover { color: var(--ink); }
   .px-nnote__close {
     margin-left: auto;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 24px; height: 24px; flex: none;
+    width: 44px; height: 44px; flex: none;
     background: none; border: 0; padding: 0;
-    color: var(--muted); cursor: pointer;
-    border-radius: 50%;
-    transition: color var(--t-quick, 150ms) var(--ease, ease), background var(--t-quick, 150ms) var(--ease, ease);
+    color: var(--ink-2); cursor: pointer;
+    border-radius: var(--r-ctl, 4px);
+    transition: color var(--t-micro, 160ms) var(--ease, ease), background var(--t-micro, 160ms) var(--ease, ease);
   }
-  .px-nnote__close:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 8%, transparent); }
+  .px-nnote__close:hover { color: var(--ink); background: var(--paper-2); }
+  .px-nnote__close:focus-visible, .px-nnote__cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   @media (max-width: 520px) {
-    .px-nnote.is-in { max-height: 120px; }
-    .px-nnote__close { margin-left: 0; }
+    .px-nnote.is-in { max-height: 200px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .px-nnote { transition: opacity 120ms linear; }
+    .px-nnote { transition: none; }
     .px-nnote.is-in { max-height: 200px; }
   }
 </style>

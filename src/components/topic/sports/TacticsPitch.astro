@@ -6,11 +6,11 @@
  * inside a CSS-3D stage so it reads as a pitch viewed from behind a goal. The
  * global core/Tilt.astro `data-tilt` island adds a small pointer-tilt on top of
  * the base recline. Player markers (numbered disc + optional name) sit at their
- * x,y pitch coords; faint heat blobs glow under each. Markers pop in staggered
- * on scroll-in. Build-time only; the only motion is CSS.
+ * x,y pitch coords; faint heat blobs glow under each. Markers rest in place
+ * (static since Lens Phase 5; the build order arrives in Phase 6). Build-time
+ * only; the only motion is CSS.
  *
- * No-JS / reduced-motion: markers paint in their FINAL position (the hidden
- * pop-in rule sits behind `html.js`; reduced-motion resets with !important).
+ * Markers always paint in their FINAL position.
  * The pitch + every marker is in the DOM regardless of JS.
  *
  * Coords: x,y in 0..100. x = pitch WIDTH (0 = left touchline, 100 = right),
@@ -61,7 +61,7 @@ const placed = (players || []).map((p, i) => ({
 }));
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>tactics</b></div>}
 
   <div class="px-pitch px3d-stage">
@@ -199,7 +199,7 @@ const placed = (players || []).map((p, i) => ({
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    /* base/resting = final visible state (no-JS safe) */
+    /* resting = final visible state */
     opacity: 1;
     transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease-snap);
   }
@@ -255,13 +255,6 @@ const placed = (players || []).map((p, i) => ({
     font-variant-numeric: tabular-nums;
   }
 
-  /* reveal: markers pop in staggered (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-pitch__mk {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter)) scale(0.4);
-  }
-  .px-viz.is-in .px-pitch__mk { transition-delay: calc(var(--i) * 55ms); }
-
   /* mobile: shrink the recline so the pitch reads on a small viewport. Only the
      recline vars change — every marker rule reads --counter, so discs stay
      flat-facing automatically. Names are hidden at this width to avoid
@@ -272,12 +265,5 @@ const placed = (players || []).map((p, i) => ({
     .px-pitch__disc[data-role="true"] { font-size: 9.5px; }
     .px-pitch__name { display: none; }
     .px-pitch__heat { width: 48px; height: 48px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-pitch__mk {
-      opacity: 1 !important;
-      transform: translate(-50%, -50%) translateZ(var(--lift)) rotateX(var(--counter)) !important;
-    }
   }
 </style>

@@ -1,26 +1,68 @@
 ---
 /**
- * StoryHookCard — card 1: the specificity-first opener.
- * eyebrow (world · issue №) → title → the hook line → swipe affordance.
+ * StoryHookCard — card 1, the cover (Lens, 2026-09-30, Phase 4b; the Story
+ * and Story-Phone boards). On the desk's DEEP plate (LENS §8): "Parallax ·
+ * Story" and the count, the medallion in its seal cut on the plate (80px, drawn at 96
+ * on phones), the register and the issue number, the headline in Newsreader
+ * 500 (38, 44 on phones) with its one italic word in the desk mark (the lime
+ * on tech and sports), the hook, the date, reading time and source count, and
+ * the swipe hint. Words on the plate are --on-deep / --on-deep-2.
  */
+import Mark from '../core/Mark.astro';
+import type { Topic } from '../../content/config';
+import { DESK_REGISTER } from '../../lib/desks';
+import { ink, lime } from '../../lib/desk-inks';
 import { renderEmphasis } from '../../lib/text';
 
 interface Props {
-  topic: string;
-  issueNumber: string;
+  desk: Topic;
+  issueNo: string;
   title: string;
   hook: string;
+  publishedAt: Date;
+  readTime?: number;
+  sourceCount: number;
+  count: number;
+  slug: string;
 }
-const { topic, issueNumber, title, hook } = Astro.props;
+const { desk, issueNo, title, hook, publishedAt, readTime, sourceCount, count, slug } = Astro.props;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const date = `${publishedAt.getUTCDate()} ${MONTHS[publishedAt.getUTCMonth()]} ${publishedAt.getUTCFullYear()}`;
+const facts = [date, readTime ? `${readTime} min read` : undefined, `${sourceCount} sources`].filter(Boolean).join(' · ');
+const vars = `--hk-deep: ${ink(desk, 'deep')}; --hk-em: ${lime(desk) ?? ink(desk, 'mark')}`;
 ---
 
-<section class="pxs-card" id="c1" aria-label="Story cover">
-  <div class="pxs-card__inner">
-    <p class="pxs-hook__eyebrow">Parallax · {topic} desk · — {issueNumber}</p>
-    <h1 class="pxs-hook__title" set:html={renderEmphasis(title)} />
-    <p class="pxs-hook__hook">{hook}</p>
-    <svg class="pxs-hook__chevron" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M3 5.5 8 10.5l5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+<section class="pxs-card pxs-hook" id="c1" aria-label={`Story card 1 of ${count}, the cover`} style={vars}>
+  <div class="pxs-card__top">
+    <span class="pxs-card__kicker">Parallax · Story</span>
+    <span class="pxs-card__count">1 / {count}</span>
+    <a class="pxs-hook__close" href={`/issues/${slug}/`} aria-label="Close the story and open the issue">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+    </a>
+  </div>
+
+  <div class="pxs-hook__body">
+    <span class="pxs-hook__mark">
+      <Mark desk={desk} size={80} cut="seal" onDeep title={`Parallax medallion, ${desk} desk`} />
+    </span>
+    <div class="pxs-hook__text">
+      <span class="pxs-hook__eyebrow">{DESK_REGISTER[desk]}{issueNo && ` · ${issueNo}`}</span>
+      <h1 class="pxs-hook__title" set:html={renderEmphasis(title)} />
+      <p class="pxs-hook__hook">{hook}</p>
+      <span class="pxs-hook__facts">{facts}</span>
+    </div>
+  </div>
+
+  <div class="pxs-hook__foot">
+    <span class="pxs-hook__hint">
+      <svg class="pxs-hook__chev pxs-hook__chev--up" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 10.5 8 5.5l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <svg class="pxs-hook__chev pxs-hook__chev--side" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <span class="pxs-hook__hint-up">Swipe up</span>
+      <span class="pxs-hook__hint-side">Swipe</span>
+    </span>
+    <span class="pxs-dots" role="img" aria-label={`Card 1 of ${count}`}>
+      {Array.from({ length: count }).map((_, i) => <span class:list={['pxs-dots__d', { 'is-on': i === 0 }]}></span>)}
+    </span>
   </div>
 </section>

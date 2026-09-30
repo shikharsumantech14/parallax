@@ -44,6 +44,19 @@ build**:
   non-empty string (or a positive integer), `text` ≤ 240 chars; `short` ≤ 24
   chars (both below)
 - `skimCaption` applies to `kind: prose` only; other kinds ignore it
+- `cover` (Lens Phase 4, 2026-09-30, optional) — `{ section, number, label,
+  headline? }`: `section` an integer ≥ 0 (the index of the section a cover
+  draws), `number` a string of 1–12 chars written as the issue prints it
+  (`"1,330"`, `"2030"`), `label` 3–60 chars, `headline` ≤ 120 chars. The Home
+  and desk stages set `number` at 160 with `label` under it (a lower-case
+  `label` that starts with a unit reads after the number: "1,330 days since
+  City were charged"); `headline` overrides the title on the stage only.
+  `cover.section` picks the cover card's drawing when it names one of the
+  eleven drawable kinds (`src/lib/cover.ts`), else the first drawable section
+  is used. Every number must be one the issue already carries (the verifier's
+  rule). Author one on the newest issue of a desk: the Home stage shows the
+  newest issue that has one. Examples: No 17 (`section: 0`, the readout) and
+  No 14 (`section: 0`, the descent profile)
 - `source` — string or `{ label, date }`, on the section (or legacy
   `data.source`). Renders ONCE, from `core/Section.astro`, as `Source · label
   · date` with the label linked to the section's first `sourceRefs` entry: in

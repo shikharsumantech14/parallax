@@ -5,12 +5,11 @@
  * outcome node (right). Node heights are proportional to seats; ribbon widths
  * match the seats they carry, attaching at running y-offsets on both ends so
  * the bands stack flush inside each node. All geometry is computed at build
- * time; the only motion is a reveal fade/scale (gated, no-JS-safe) plus a CSS
- * hover that raises a ribbon/node's opacity.
+ * time; the only motion is a CSS hover that raises a ribbon/node opacity.
  *
- * No-JS / reduced-motion: every node + ribbon paints in its FINAL state (hidden
- * rules sit behind `html.js`; reduced-motion resets with !important). The legend
- * states each bloc's seats + vote textually.
+ * Every node + ribbon always paints in its FINAL state (static since Lens
+ * Phase 5; the build order arrives in Phase 6). The legend states each
+ * bloc's seats + vote textually.
  *
  * data: { blocs[]{ name, seats, color?, vote }, outcome?{ label, passed },
  *         caption?, source? }
@@ -138,7 +137,7 @@ const ribbonsB = catNodes.map((c) => {
 const fmt = (n: number) => n.toLocaleString();
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>vote flow</b></div>}
 
   <div class="px-vflow">
@@ -261,7 +260,7 @@ const fmt = (n: number) => n.toLocaleString();
     fill: var(--muted);
   }
 
-  /* reveal: ribbons + nodes fade/scale in (gated behind html.js) */
+  /* ribbons + nodes rest fully shown (transitions kept for the Phase 6 build) */
   .px-vflow__ribbons,
   .px-vflow__node {
     opacity: 1;
@@ -270,9 +269,6 @@ const fmt = (n: number) => n.toLocaleString();
     transform-origin: center;
     transition: opacity var(--t-slow) var(--ease), transform var(--t-slow) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-vflow__ribbons { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-vflow__node { opacity: 0; transform: scale(0.96); }
-  .px-viz.is-in .px-vflow__ribbons { transition-delay: 220ms; }
 
   /* legend — mono uppercase muted, tabular (carries seat counts) */
   .px-vflow__legend {
@@ -289,9 +285,4 @@ const fmt = (n: number) => n.toLocaleString();
   }
   .px-vflow__key { display: inline-flex; align-items: center; gap: 8px; }
   .px-vflow__key i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-vflow__ribbons,
-    .px-viz:not(.is-in) .px-vflow__node { opacity: 1 !important; transform: none !important; }
-  }
 </style>

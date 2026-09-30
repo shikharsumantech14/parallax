@@ -1,58 +1,102 @@
 ---
 /**
- * AccountEntry — the masthead's account slot (JOURNEY-SPEC fix #1).
+ * AccountEntry — the masthead's account slot (JOURNEY-SPEC fix #1; Lens pass
+ * 2026-09-30, Phase 4b).
  *
- * Static default: a mono "Sign in" link → app login with `next=` (this page)
- * — crawlers/no-JS see a harmless link. The island upgrades it: adds the
- * page's world to the login URL (desk-tinted auth plate), and when the
- * shared Supabase auth cookie is present swaps to the "Shelf" entry
- * (lens-dot glyph → dashboard), with `/api/me` as a stale-session CONFIRMER
- * only (never a gatekeeper; fails silent). No layout shift: fixed slot.
+ * Two renderings, decided by where the page is served from:
+ *
+ *   A session page (the Shelf, the moderation queue: the SSR routes, where
+ *   the middleware has put the reader on `Astro.locals.user`) gets the
+ *   ACCOUNT PILL from the Shelf board: a 44px pill on paper-2 with a hair-2
+ *   border, the reader's initial on a 32px ink disc, their first name, and a
+ *   caret. It is a native <details> menu (no JavaScript: it opens, closes and
+ *   announces itself), holding "Your shelf" and "Sign out", the same POST to
+ *   /api/auth/signout the old app bar used.
+ *
+ *   A static page (the whole prerendered publication, where no session exists
+ *   at build time) gets the link it always had: "Sign in" to /login with
+ *   `next=` this page. The island upgrades it: adds the page's desk to the
+ *   login URL, and when the shared Supabase auth cookie is present swaps to
+ *   the "Shelf" entry, with `/api/me` as a stale-session CONFIRMER only (never
+ *   a gatekeeper; fails silent). No layout shift: fixed slot.
+ *
  * Prefix: px-acct.
  */
 /* Same-origin since the merge — relative paths follow the reader to whatever
    host served the page, so no redirect can turn these cross-origin. */
 const loginHref = `/login?next=${encodeURIComponent(Astro.url.pathname)}`;
+
+/* Only set on the SSR routes (src/middleware.ts); undefined at prerender. */
+const user = Astro.locals?.user ?? null;
+const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
+const fullName =
+  typeof meta.name === 'string' && meta.name.trim()
+    ? meta.name
+    : typeof meta.full_name === 'string' && meta.full_name.trim()
+      ? meta.full_name
+      : (user?.email ?? '').split('@')[0];
+const firstName = (fullName || 'Reader').trim().split(/\s+/)[0].slice(0, 24);
+const initial = firstName.charAt(0).toUpperCase() || 'P';
 ---
 
-<div class="px-acct">
-  <a class="px-acct__link" href={loginHref} data-acct-anon>Sign in</a>
-  <a class="px-acct__link px-acct__link--shelf" href="/dashboard" data-acct-authed hidden>
-    <span class="px-acct__dot" aria-hidden="true"></span>Shelf
-  </a>
-</div>
+{user ? (
+  <details class="px-acct px-acct--pill">
+    <summary class="px-acct__pill" aria-label={`Account, ${firstName}`}>
+      <span class="px-acct__disc" aria-hidden="true">{initial}</span>
+      <span class="px-acct__name">{firstName}</span>
+      <svg class="px-acct__caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+        <path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </summary>
+    <div class="px-acct__menu">
+      <a class="px-acct__item" href="/dashboard">Your shelf</a>
+      <form method="post" action="/api/auth/signout">
+        <button class="px-acct__item" type="submit">Sign out</button>
+      </form>
+    </div>
+  </details>
+) : (
+  <div class="px-acct">
+    <a class="px-acct__link" href={loginHref} data-acct-anon>Sign in</a>
+    <a class="px-acct__link px-acct__link--shelf" href="/dashboard" data-acct-authed hidden>
+      <span class="px-acct__dot" aria-hidden="true"></span>Shelf
+    </a>
+  </div>
+)}
 
-<script is:inline>
-  (function () {
-    var root = document.currentScript.previousElementSibling;
-    while (root && !(root.classList && root.classList.contains('px-acct'))) {
-      root = root.previousElementSibling;
-    }
-    if (!root) return;
-    var anon = root.querySelector('[data-acct-anon]');
-    var shelf = root.querySelector('[data-acct-authed]');
-    var authed = /(?:^|;\s*)sb-[^=;]*-auth-token(?:\.\d+)?=/.test(document.cookie);
+{!user && (
+  <script is:inline>
+    (function () {
+      var root = document.currentScript.previousElementSibling;
+      while (root && !(root.classList && root.classList.contains('px-acct'))) {
+        root = root.previousElementSibling;
+      }
+      if (!root) return;
+      var anon = root.querySelector('[data-acct-anon]');
+      var shelf = root.querySelector('[data-acct-authed]');
+      var authed = /(?:^|;\s*)sb-[^=;]*-auth-token(?:\.\d+)?=/.test(document.cookie);
 
-    if (!authed) {
-      var topic = document.documentElement.getAttribute('data-topic');
-      if (anon && topic) anon.href += '&world=' + encodeURIComponent(topic);
-      return;
-    }
-    if (anon) anon.hidden = true;
-    if (shelf) shelf.hidden = false;
-    try {
-      fetch('/api/me', { credentials: 'include' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          if (j && j.authed === false) {
-            if (shelf) shelf.hidden = true;
-            if (anon) anon.hidden = false;
-          }
-        })
-        .catch(function () {});
-    } catch (e) { /* confirmer only — never break the masthead */ }
-  })();
-</script>
+      if (!authed) {
+        var topic = document.documentElement.getAttribute('data-topic');
+        if (anon && topic) anon.href += '&world=' + encodeURIComponent(topic);
+        return;
+      }
+      if (anon) anon.hidden = true;
+      if (shelf) shelf.hidden = false;
+      try {
+        fetch('/api/me', { credentials: 'include' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (j && j.authed === false) {
+              if (shelf) shelf.hidden = true;
+              if (anon) anon.hidden = false;
+            }
+          })
+          .catch(function () {});
+      } catch (e) { /* confirmer only — never break the masthead */ }
+    })();
+  </script>
+)}
 
 <style>
   .px-acct {
@@ -61,39 +105,106 @@ const loginHref = `/login?next=${encodeURIComponent(Astro.url.pathname)}`;
     min-width: 58px; /* fixed slot — the anon/authed swap never shifts layout */
   }
   .px-acct__link {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.17em;
-    text-transform: uppercase;
-    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 0;
+    min-height: 44px;
     white-space: nowrap;
-    border-bottom: 1px solid transparent;
-    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
   }
   /* inline-flex would override the UA [hidden] rule — restate it */
   .px-acct__link[hidden] { display: none; }
-  .px-acct__link:hover {
-    color: var(--accent-deep, var(--accent));
-    border-bottom-color: var(--accent-deep, var(--accent));
-  }
+  .px-acct__link:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; }
   .px-acct__dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    border: 1.5px solid currentColor;
-    position: relative;
-  }
-  .px-acct__dot::after {
-    content: '';
-    position: absolute; inset: 1.5px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: var(--accent);
   }
+
+  /* ── the account pill (the Shelf board) ── */
+  .px-acct--pill { position: relative; min-width: 0; }
+  .px-acct__pill {
+    list-style: none;
+    height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px 0 6px;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-chip);
+    background: var(--paper-2);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color var(--t-micro) var(--ease);
+  }
+  .px-acct__pill::-webkit-details-marker { display: none; }
+  .px-acct__pill:hover { border-color: var(--ink); }
+  .px-acct__pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-acct__disc {
+    width: 32px; height: 32px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .px-acct__name { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; }
+  .px-acct__caret { flex: none; transition: transform var(--t-micro) var(--ease); }
+  .px-acct--pill[open] .px-acct__caret { transform: rotate(180deg); }
+  .px-acct__menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 60;
+    min-width: 180px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    background: var(--paper-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-2);
+  }
+  .px-acct__menu form { display: flex; }
+  .px-acct__item {
+    flex: 1;
+    min-height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    border: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .px-acct__item:hover { background: var(--paper-3); }
+  .px-acct__item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
   @media (max-width: 720px) {
     .px-acct { min-width: 0; }
+    /* Inside the phone menu the pill's panel opens in flow, not over it. */
+    .px-acct__menu { position: static; margin-top: 8px; box-shadow: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .px-acct__caret, .px-acct__pill { transition: none; }
   }
 </style>

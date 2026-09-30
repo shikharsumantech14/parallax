@@ -16,12 +16,13 @@
  * year you are standing in, and the readout names that month's value and
  * whether it was a new high.
  *
- * TWO ANIMATIONS, TWO PROPERTIES — this is the load-bearing detail. The
- * scroll-in reveal owns `stroke-dashoffset` (each segment draws itself in
- * sequence, staggered by `--d`). The scrub owns `opacity` and nothing else, so
- * the two can never fight over a value, and neither has to know the other
- * exists. Opacity is deliberately NOT transitioned: a scrub must track the
- * finger, and a 200ms fade on 500 segments does not.
+ * TWO OWNERS, TWO PROPERTIES — this is the load-bearing detail. The build
+ * owns `stroke-dashoffset` (static since Lens Phase 5, every segment rests
+ * drawn; in Phase 6 each draws itself in sequence, staggered by `--d`). The
+ * scrub owns `opacity` and nothing else, so the two can never fight over a
+ * value, and neither has to know the other exists. Opacity is deliberately
+ * NOT transitioned: a scrub must track the finger, and a 200ms fade on 500
+ * segments does not.
  *
  * The dimming is one class move, not a loop. Segments are flat siblings, so
  * marking the first future segment `is-cut` lets a sibling combinator dim
@@ -29,11 +30,10 @@
  * event regardless of series length — a 170-year record costs the same as this
  * 4-year one.
  *
- * No-JS / reduced-motion: every segment paints fully drawn at full opacity
- * (the dash-offset hidden rule sits behind `html.js`; reduced-motion resets
- * with !important), the scrubber never renders — it ships `hidden` and the
- * island unhides it only after the payload parses — and the centre reads the
- * full span. Reduced-motion keeps the scrub working; it is comprehension.
+ * Every segment always paints fully drawn at full opacity. Without JS the
+ * scrubber never renders — it ships `hidden` and the island unhides it only
+ * after the payload parses — and the centre reads the full span.
+ * Reduced-motion keeps the scrub working; it is comprehension.
  *
  * data: { months[]{ year, month (1–12), value }, unit?, baseline?,
  *         howToRead?, caption?, source? }
@@ -348,7 +348,7 @@ const longestReadout = monthTable
     /* base/resting = fully drawn (no-JS safe) */
     stroke-dasharray: var(--len);
     stroke-dashoffset: 0;
-    /* the reveal owns stroke-dashoffset and ONLY that. The scrub owns opacity,
+    /* the build owns stroke-dashoffset and ONLY that. The scrub owns opacity,
        which is deliberately not transitioned — a scrub must track the finger. */
     transition: stroke-dashoffset 240ms linear var(--d);
   }
@@ -374,9 +374,6 @@ const longestReadout = monthTable
   }
   .px-spiral__yr--lo { font-size: 14px; fill: var(--muted); }
   .px-spiral__yr--hi { font-size: 20px; fill: var(--ink); }
-
-  /* reveal: each segment draws in chronological order (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-spiral__seg { stroke-dashoffset: var(--len); }
 
   .px-spiral__scale {
     display: flex;
@@ -410,9 +407,4 @@ const longestReadout = monthTable
     cursor: pointer;
   }
   .px-spiral__range:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-spiral__seg { stroke-dashoffset: 0 !important; }
-    /* the scrub still works — it is comprehension. Only the draw-in goes. */
-  }
 </style>

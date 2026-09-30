@@ -1,38 +1,90 @@
 ---
 /**
- * StoryCtaCard — the last card: read-full funnel + share + soft account line.
- * Fully free by design — the story IS the teaser; the metered gate lives on
- * the issue page this button leads to.
+ * StoryCtaCard — the last card (Lens, 2026-09-30, Phase 4b; the Story
+ * board's card 5). "The whole issue", "That's the short version." (or the
+ * authored `story.cta`), three numbers in a hair-ruled row (sections, sources
+ * linked, minutes), "Still in the issue" (the sections the story left out, by
+ * their short names), then the desk button "Read the whole issue", "Save to
+ * shelf" (core/SaveButton, block variant: signed out, it opens sign-in and
+ * comes back), and the share row.
+ *
+ * Fully free by design: the story IS the teaser; the metered gate lives on
+ * the issue page the button leads to.
  */
+import Mark from '../core/Mark.astro';
+import SaveButton from '../core/SaveButton.astro';
 import StoryShare from './StoryShare.astro';
+import type { Topic } from '../../content/config';
+import { DESK_REGISTER } from '../../lib/desks';
 
 interface Props {
   slug: string;
+  desk: Topic;
+  issueNo: string;
   sectionCount: number;
   sourceCount: number;
+  readTime?: number;
+  rest: string[];
   cta?: string;
   index: number;
+  count: number;
+  /** The story's share card, a same-origin path. */
+  shareImage: string;
 }
-const { slug, sectionCount, sourceCount, cta, index } = Astro.props;
+const { slug, desk, issueNo, sectionCount, sourceCount, readTime, rest, cta, index, count, shareImage } = Astro.props;
 
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
-const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
-const issueUrl = `${siteUrl}/issues/${slug}/?via=story`;
+const issueHref = `/issues/${slug}/?via=story`;
 const storyUrl = `${siteUrl}/s/${slug}/`;
+const stats = [
+  { n: sectionCount, label: 'sections' },
+  { n: sourceCount, label: 'sources, linked' },
+  ...(readTime ? [{ n: readTime, label: 'minutes' }] : []),
+];
 ---
 
-<section class="pxs-card" id={`c${index}`} aria-label="Read the full issue">
-  <div class="pxs-card__inner">
-    <h2 class="pxs-cta__lede">{cta ?? "That's the short version."}</h2>
-    <p class="pxs-cta__stats">
-      Full issue · {sectionCount} sections · {sourceCount} sources, all linked
-    </p>
-    <div>
-      <a class="pxs-cta__btn" href={issueUrl}>Read the full issue →</a>
-    </div>
-    <StoryShare storyUrl={storyUrl} />
-    <p class="pxs-cta__account">
-      Free forever · no ads · <a href={`${appUrl}/login?next=${encodeURIComponent(issueUrl)}`}>open your shelf</a>
-    </p>
+<section class="pxs-card pxs-cta" id={`c${index}`} aria-label={`Story card ${index} of ${count}, read the whole issue`}>
+  <div class="pxs-card__top">
+    <span class="pxs-card__desk">
+      <Mark desk={desk} size={24} tight ground="var(--paper-2)" />
+      <span>{DESK_REGISTER[desk]}{issueNo && ` · ${issueNo}`}</span>
+    </span>
+    <span class="pxs-card__count">{index} / {count}</span>
   </div>
+
+  <div class="pxs-beat__head">
+    <span class="pxs-beat__eyebrow">The whole issue</span>
+    <h2 class="pxs-cta__lede">{cta ?? "That's the short version."}</h2>
+  </div>
+
+  <div class="pxs-cta__stats" style={`--cols: ${stats.length}`}>
+    {stats.map((s) => (
+      <div class="pxs-cta__stat">
+        <span class="pxs-cta__n">{s.n}</span>
+        <span class="pxs-cta__l">{s.label}</span>
+      </div>
+    ))}
+  </div>
+
+  {rest.length > 0 && (
+    <div class="pxs-cta__rest">
+      <span class="pxs-cta__rest-h">Still in the issue</span>
+      <ul class="pxs-cta__list">
+        {rest.map((r) => <li><span class="pxs-cta__dot" aria-hidden="true"></span><span>{r}</span></li>)}
+      </ul>
+    </div>
+  )}
+
+  <div class="pxs-cta__actions">
+    <a class="pxs-cta__btn" href={issueHref}>
+      Read the whole issue
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M3.5 9h11M10.5 5l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </a>
+    <SaveButton issueId={slug} variant="block" />
+    <StoryShare storyUrl={storyUrl} shareImage={shareImage} slug={slug} />
+  </div>
+
+  <span class="pxs-dots" role="img" aria-label={`Card ${index} of ${count}`}>
+    {Array.from({ length: count }).map((_, i) => <span class:list={['pxs-dots__d', { 'is-on': i === index - 1 }]}></span>)}
+  </span>
 </section>

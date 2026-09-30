@@ -225,7 +225,10 @@ standing grep in `AGENTS.md` §8 stays at zero.
 - **Never below 12px rendered**, on any viewport, in HTML or in an SVG. (The
   old floor was 9.5px; Lens raises it.) A chart that cannot hold 12px at 375
   redraws its labels (≤ 3 words, §5.5) or scrolls inside its card; it never
-  shrinks the type.
+  shrinks the type. The render gate reports text under 12px as TINY (a
+  warning, while the library is redrawn in Phase 6) and under 9.5px as FLOOR
+  (blocking), measured as rendered: an SVG label at its size times the SVG's
+  scale. The phone pin's own zoom (§5.1) is taken out of that measure.
 - Caption and label grey is `--muted` and passes 4.5:1. Nothing lighter
   carries words.
 
@@ -287,10 +290,13 @@ measure with its 45px breakout are retired. The issue page's geometry is §5.
   then the headline (Newsreader 24, the italic word in the desk text) and
   "No 17 · 28 Sep · 4 min". Sizes: `card` (3-across), `tile` (the desk
   strip, a 264px panel), `row` (a 120 x 72 thumbnail inside a list row,
-  marks only). Until Phase 4's `cover` field, the mark is derived from the
-  issue's first section of eleven drawable kinds (`src/lib/cover.ts`), with
-  the desk medallion at 96 as the fallback; a graphic never appears without
-  the line that says what it shows, which on a card is its headline. **A
+  marks only). The mark draws the section the issue's `cover.section` names
+  when that is one of eleven drawable kinds, otherwise the issue's first
+  section of those kinds (`src/lib/cover.ts`), with the desk medallion at 96
+  as the fallback; a graphic never appears without the line that says what
+  it shows, which on a card is its headline and on the Home desk card is
+  `coverModel().caption` (the cover's own line, else the section caption's
+  first sentence, else a line derived from the data). **A
   cover is never blank at any size:** on a card narrower than 340px the 13px
   words hide and the marks and large numbers stay; the `row` thumbnail draws
   no words and every kind keeps a mark heavy enough to read at that scale
@@ -391,8 +397,11 @@ sections:
   inline, before the sentence it belongs to. A `data-readout` tile or a
   `timeline` event that a cue names is set as a sentence in the article and
   gets its button without a marker. A marker with no matching cue, or a cue
-  with no anchor in the figure, is a render-gate failure (Phase 5 adds the
-  check).
+  with no anchor in the figure, is a render-gate failure: `check:render`'s
+  CUES check (Phase 5) blocks on any cue button whose numeral names no
+  anchor in its section's figure (`[data-cue-n~="n"]`), any numeral the
+  figure prints that no button in the article names, and any cue button in a
+  section with no figure panel.
 - **Anchors:** every component exposes its cue anchors as `data-cue="<id>"`
   on the element a cue can name (a bar, a dot, a row, a band), ids numbered
   from 1 in data order, with an empty `.px-cue-tag` slot where the SAME
@@ -509,17 +518,71 @@ BRIEF-5 §2.)
 
 ### 6.3 One build island
 
-`build.ts` (Phase 5): an IntersectionObserver starts a component's build when
-it enters; components declare order with `data-build="1..n"`; the island runs
-counters, draws, grows and drops by the rules above. **No component animates
-itself.** The classes are one vocabulary everywhere: `.rise`, `.draw`,
-`.grow-x`, `.grow-y`, `.drop`, `.lit`, `.dim`.
+`src/scripts/build.ts` (Phase 5, built 2026-09-30): one ES module, loaded once
+by every layout (Home, Issue, Story, App), about 3 KB minified, no library.
+The markup declares a build (§6.4); the island runs it by the rules above.
+**No component animates itself**: the `[data-reveal]` / `.is-in` scroll
+reveal, `core/Reveal.astro` and `core/VizMotion.astro` (the count-up) were
+retired in the same phase, and every component's own hidden states with
+them. Section 1 of an issue, the Home stage and the intro overlay all build
+through this island; the cue lighting stays in `cues.ts` (§5.3), which waits
+for section 1's figure to finish building (`px:built`) before it plays its
+cues. The classes live in `src/styles/motion-v2.css`, one vocabulary
+everywhere: `.bx-pre` (the start state), `.bx-on` (a step running), and
+`.bx-fade`, `.bx-drop`, `.bx-rise`, `.bx-draw`, `.bx-grow-x`, `.bx-grow-y`.
 
-### 6.4 Reduced motion and no JS
+### 6.4 The build contract, and the final state
 
-`prefers-reduced-motion: reduce` paints the final state: no movement, every
-cue readable, loops become stills. No JS paints the same final state (hidden
-start states live behind `html.js`). Print does the same.
+**The markup.**
+
+| Attribute | On | Means |
+|---|---|---|
+| `data-build-scene` | the build root (a component's root, the stage, an intro scene) | a scene. Optional `data-build-delay="ms"` before its first step and `data-build-tempo="1.6"` (a multiplier on every duration; the Home stage runs at 1.6, §6.1) |
+| `data-build="n"` | an element of the scene | its step, an integer from 1. Several elements may share n: they stagger 80ms in document order (a step of more than nine compresses so its spread stays 640ms) |
+| `data-build-kind` | the same element | `counter` · `draw` · `grow-x` · `grow-y` · `drop` · `rise` · `fade` (the default) |
+| `data-to="1330"` | a counter | the value it counts to, from 0. Optional `data-format="int"` (the default) or `"1dp"` |
+| `data-build-replay` | a `<button hidden>` inside a scene | the island shows it; pressing it replays the scene |
+
+- **A counter** is an element whose text holds ONE number (text around it is
+  kept: "£1,330m"). It tweens on `requestAnimationFrame`, ease-out cubic,
+  1400ms, with en-US grouping on the way, and ends on its HTML text exactly.
+  Wrap the number in its own span when the element holds anything else.
+- **A draw** is an SVG `path`, `line`, `circle`, `polyline` or `polygon` with
+  a solid stroke; the island measures its length (a `pathLength` attribute
+  wins) and draws it by `stroke-dashoffset`, 1400ms. Anything else falls back
+  to a fade.
+- **A grow** scales from the element's `transform-origin`, which the
+  component sets (left for a bar, the floor for a column; the defaults are
+  those two). 900ms.
+- **Drop, rise, fade:** opacity with 6px down, 8px up, or nothing; 420ms.
+- Everything moves through the individual `translate` and `scale`
+  properties, never `transform`, so an element's own transform (an SVG
+  group's placement) is composed with, not replaced.
+
+**The run.** A scene starts when 35% of it, or 35% of the screen's height of
+it, is in view (IntersectionObserver). Its steps run in order, each starting
+when the previous is 70% through (§6.2). A scene another island has just shown
+(the intro overlay's stepper) asks for its build again with a bubbling
+`px:build` event on the scene. When a scene ends, every class and inline
+property the island added comes off and every counter is back on its HTML
+text: the scene takes `data-build-state="done"` and fires a bubbling
+`px:built`. Order a component's steps as **axis, then marks, then labels,
+then the figure's headline number**, and keep a scene inside 4.5s (§6.5).
+
+**The final state is the HTML.** The start state is applied by the island,
+never in the markup, so the static page IS the final state:
+
+- **No JS:** nothing is hidden, nothing moves.
+- **`prefers-reduced-motion: reduce`:** the island applies no start state;
+  every cue readable, loops become stills.
+- **Print:** the island finishes every scene on `beforeprint`.
+- **The render gate:** `check:render` dispatches `px:build-finish` (every
+  scene to its end) and, in its BUILD check, compares each scene after its
+  build, with JS and motion on, against the same page with JavaScript off:
+  each `[data-build]` element's text, box (within 1px) and opacity, and the
+  scene's size. A build that ends anywhere the static page does not show is
+  a blocking finding. So a scene must not hold an `html.js`-gated control
+  that moves its build elements: put the scene on the graphic instead.
 
 ### 6.5 The budget (carried from motion.md)
 
@@ -555,10 +618,13 @@ to the graphic, never to more text.
 ### 8.1 What it is
 
 The ONE bounded band per desk where the desk's **deep** colour is the
-ground: a hero, a cover, a WebGL scene. It is a card-radius (6px) plate
-inside the paper page, never a whole page and never a page background. The
-old dark desk grounds (space navy, tech black, sports pine) survive only
-here.
+ground: a hero, a cover, a WebGL scene. It is a bounded BAND, never a whole
+page and never a page background. The Home and desk stages
+(`core/Stage.astro`, the Home and Desk boards) run it full bleed, edge to edge
+of the viewport, 760 tall on Home and 720 on a desk page with the on-deep
+masthead across its top (auto on phones); anywhere else it is a card-radius
+(6px) plate inside the paper page. The old dark desk grounds (space navy,
+tech black, sports pine) survive only here.
 
 ### 8.2 Its rules
 
@@ -566,9 +632,19 @@ here.
 - Marks in the desk **mark**, or the lime on tech and sports.
 - The masthead, when it sits on a plate, reverses; the mark takes its on-deep
   body (§4.3).
-- **Cover scenes** (Phase 4): the Home hero is a section rendered in stage
-  mode: `cover: { section, number, label }` in the issue frontmatter picks the
-  section and the one number (160 desktop, 88 phone).
+- **Cover scenes** (Phase 4, `stage/StageScene.astro`, data in
+  `src/lib/stage.ts`): the Home hero and each desk's hero tell one issue as a
+  picture. `cover: { section, number, label, headline? }` in the issue
+  frontmatter gives the one number (160 desktop, 88 phone) and its label; the
+  scene is chosen from the issue's data, never its desk: a **spiral clock**
+  (one turn a year) when it carries a timeline with a dated `key` anchor and a
+  dated `now` a year or more later, an **orbit** (rings squeezed over a
+  planet's edge, heights not to scale) when the cover section is a
+  descent-profile, **bars** for a readout, else the issue's cover mark on a
+  tint panel beside the number. Then a ladder of at most three rows, the
+  headline (Newsreader 48, the italic word in the desk mark or lime) and the
+  paper "Read" button with Replay. Home shows the newest issue that has a
+  `cover`, at the 1.6x tempo (§6.1).
 - Contrast on the plate is checked like on paper: every word ≥ 4.5:1.
 
 ### 8.3 WebGL on the plate
@@ -635,7 +711,7 @@ library boards on the canvas (`Lib-<kind>`) are each kind's target.
 | The four-layer comprehension stack and the one-panel rule | the caption plus cues |
 | CANON's act-structure ratios as layout law | the composition floors in `docs/REGISTER-PLAN.md` §5.1 (editorial, unchanged) |
 | motion.md's named vocabulary (`reveal`, `sweep`, `settle`, `stamp`, `lensSettle`, `pageEnter` at 420ms, `--ease-snap`, `--t-page`) | the grammar in §6 |
-| The onboarding intro "The Second Angle" (removed 2026-09-30) | a three-scene intro on paper (canvas `Intro`), Phase 4 |
+| The onboarding intro "The Second Angle" (removed 2026-09-30) | a three-scene intro on paper (canvas `Intro`): `core/IntroOverlay.astro`, Phase 4, shown once per browser on Home |
 
 `plain` and `howToRead` stay in the schema until Phase 8 (the backlist
 builds unchanged) but are NOT RENDERED since Phase 3, which also deleted the

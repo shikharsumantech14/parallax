@@ -23,6 +23,11 @@
  *           two places become the sides, each row's winning cell is marked
  *           (`data-win`), and a row's note runs full width under it.
  *
+ * THE BUILD (Lens Phase 5, LENS §6.4): the root is a `data-build-scene`.
+ * Matrix and pair forms: 1 the column heads fade in, 2 the rows drop in, 80ms
+ * apart. List form: the columns drop in. src/scripts/build.ts runs it; no JS
+ * or reduced motion shows the table as written.
+ *
  * Renders NO source line: `core/Section.astro` emits it for every kind
  * (`.px-plain__src`). The old `.px-compare__source` emitter survived the
  * 2026-09-04 sweep because its class ends in `__source`, not `__src` — so it
@@ -91,7 +96,7 @@ const itemText = (it: ColumnItem) => (typeof it === 'string' ? it : it.text);
 const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === true;
 ---
 
-<div class="px-compare" data-cols={cols} data-form={isList ? 'list' : isPair ? 'pair' : 'matrix'}>
+<div class="px-compare" data-build-scene data-cols={cols} data-form={isList ? 'list' : isPair ? 'pair' : 'matrix'}>
   {isList ? (
     /* Each column is ONE block — its head and its own items together — so a
        phone can stack the blocks and every item stays under its own heading.
@@ -99,7 +104,7 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
        column count, so they must stay two grids that line up. */
     <div class="px-compare__lists">
       {columns.map((c, ci) => (
-        <section class="px-compare__col" data-cue={ci + 1}>
+        <section class="px-compare__col" data-cue={ci + 1} data-build="1" data-build-kind="drop">
           <div class="px-compare__col-head">
             <div class="px-compare__col-title"><span class="px-cue-tag" data-cue-tag={ci + 1} hidden></span><Fragment set:html={renderInline(c.label)} /></div>
           </div>
@@ -115,7 +120,7 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
     </div>
   ) : (
     <>
-      <div class="px-compare__head">
+      <div class="px-compare__head" data-build="1">
         {sides.map((s) => (
           <div class="px-compare__col-head">
             {s.label && <div class="px-compare__col-label">{s.label}</div>}
@@ -130,7 +135,7 @@ const itemStrong = (it: ColumnItem) => typeof it !== 'string' && it.strong === t
             column (list form) is `data-cue="<n>"`, numbered from 1 in data
             order; the empty tag is the numeral's slot. */}
         {rows.map((row, ri) => (
-          <div class="px-compare__row" data-cue={ri + 1}>
+          <div class="px-compare__row" data-cue={ri + 1} data-build="2" data-build-kind="drop">
             <div class="px-compare__row-label"><span class="px-cue-tag" data-cue-tag={ri + 1} hidden></span>{row.label}</div>
             {row.values.map((v, i) => (
               <div class="px-compare__cell" data-win={row.win === i ? 'true' : undefined} set:html={renderInline(v)} />

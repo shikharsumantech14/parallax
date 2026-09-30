@@ -12,8 +12,9 @@
  * Blueprint (the contract): docs/design/blueprints/space/lagrange-map.md.
  * Physics: docs/design/physics/orbital-mechanics.md §7 — Ω(x,y) and the five
  * equilibria are computed here at build time (the same closed forms live in
- * kepler.ts for unit tests). No-JS / reduced-motion: the complete map paints as
- * the composed still; the reveal + pulse are the only motion and are html.js-gated.
+ * kepler.ts for unit tests). The complete map always paints as the composed
+ * still (static since Lens Phase 5); the pulse is the only motion, and it is
+ * ambient (see below).
  *
  * data: { primary:{name,mass}, secondary:{name,mass}, separationKm?,
  *         markers?:[{at:'L1'..'L5', label}], show?:['L1'..'L5'], caption?, source? }
@@ -366,7 +367,7 @@ for (const c of axisCands) {
 }
 ---
 
-<div class="px-viz px-lagr" data-reveal>
+<div class="px-viz px-lagr">
   <!-- honesty chip renders whenever the shading does (the ramp is log in Ω);
        the caption text is the only conditional part -->
   <div class="px-viz__cap">
@@ -508,14 +509,13 @@ for (const c of axisCands) {
 <style>
   .px-lagr__svg { width: 100%; height: auto; display: block; overflow: hidden; border-radius: var(--r-tile, 10px); }
 
-  /* filled iso-bands — resting = visible (no-JS safe); reveal = fade */
+  /* filled iso-bands — resting = visible (the Phase 6 build fades them in) */
   .px-lagr__bands {
     opacity: 1;
     transition: opacity 400ms var(--ease, ease);
   }
-  html.js .px-viz:not(.is-in) .px-lagr__bands { opacity: 0; }
 
-  /* contour lines — resting = visible; reveal = staggered fade "develop" */
+  /* contour lines — resting = visible (the Phase 6 build fades them in) */
   .px-lagr__line {
     fill: none;
     stroke: var(--ink);
@@ -526,8 +526,6 @@ for (const c of axisCands) {
     opacity: 1;
     transition: opacity 300ms var(--ease, ease);
   }
-  html.js .px-viz:not(.is-in) .px-lagr__line { opacity: 0; }
-  .px-viz.is-in .px-lagr__line { transition-delay: calc(250ms + var(--lv) * 40ms); }
 
   .px-lagr__axis { stroke: var(--ink); stroke-opacity: 0.16; stroke-width: 1; stroke-dasharray: 4 5; }
   .px-lagr__axislbl {
@@ -535,24 +533,14 @@ for (const c of axisCands) {
     letter-spacing: 0.14em; text-transform: uppercase; fill: var(--muted);
   }
 
-  /* structural groups join the reveal cascade (§5 stage order) so nothing
-     paints ahead of the bands/lines/points under html.js before scroll-in */
+  /* structural groups: resting = visible, transitions kept for the Phase 6 build
+     order (§5 stage order) */
   .px-lagr__mass, .px-lagr__inset, .px-lagr__collapse {
     opacity: 1; transition: opacity 220ms var(--ease, ease);
   }
   .px-lagr__axis, .px-lagr__axislbl {
     opacity: 1; transition: opacity 300ms var(--ease, ease);
   }
-  html.js .px-viz:not(.is-in) .px-lagr__mass,
-  html.js .px-viz:not(.is-in) .px-lagr__inset,
-  html.js .px-viz:not(.is-in) .px-lagr__collapse,
-  html.js .px-viz:not(.is-in) .px-lagr__axis,
-  html.js .px-viz:not(.is-in) .px-lagr__axislbl { opacity: 0; }
-  .px-viz.is-in .px-lagr__axis,
-  .px-viz.is-in .px-lagr__axislbl { transition-delay: 250ms; }   /* with the terrain */
-  .px-viz.is-in .px-lagr__mass { transition-delay: 850ms; }       /* §5: masses reveal */
-  .px-viz.is-in .px-lagr__inset,
-  .px-viz.is-in .px-lagr__collapse { transition-delay: 1200ms; }  /* after the L-points settle */
 
   .px-lagr__disc { fill: var(--ink); fill-opacity: 0.9; }
   .px-lagr__masslbl {
@@ -560,7 +548,7 @@ for (const c of axisCands) {
     fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round;
   }
 
-  /* Lagrange points — resting = visible; reveal = settle (scale) */
+  /* Lagrange points — resting = visible (the Phase 6 build scales them in) */
   .px-lagr__ring { fill: none; stroke: var(--accent); stroke-width: 1.5; }
   .px-lagr__core { fill: var(--accent); }
   .px-lagr__x { stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; }
@@ -573,8 +561,6 @@ for (const c of axisCands) {
     opacity: 1; transform: none; transform-box: view-box; transform-origin: center;
     transition: opacity 220ms var(--ease-snap, ease), transform 220ms var(--ease-snap, ease);
   }
-  html.js .px-viz:not(.is-in) .px-lagr__pt { opacity: 0; transform: scale(1.3); }
-  .px-viz.is-in .px-lagr__pt { transition-delay: calc(1000ms + var(--i, 0) * 40ms); }
 
   /* the ONE ambient motion — the occupied point breathes */
   .px-lagr__pt--pulse .px-lagr__ring { animation: px-lagr-pulse 2.4s ease-in-out infinite; }
@@ -590,8 +576,6 @@ for (const c of axisCands) {
   .px-lagr__callouts {
     opacity: 1; transition: opacity 140ms var(--ease, ease);
   }
-  html.js .px-viz:not(.is-in) .px-lagr__callouts { opacity: 0; }
-  .px-viz.is-in .px-lagr__callouts { transition-delay: 1420ms; }
 
   /* collinear-trio magnifier inset */
   .px-lagr__insetframe { stroke: var(--rule); stroke-width: 1; fill-opacity: 0.94; }
@@ -631,15 +615,6 @@ for (const c of axisCands) {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-lagr__bands,
-    .px-viz:not(.is-in) .px-lagr__line,
-    .px-viz:not(.is-in) .px-lagr__callouts,
-    .px-viz:not(.is-in) .px-lagr__mass,
-    .px-viz:not(.is-in) .px-lagr__axis,
-    .px-viz:not(.is-in) .px-lagr__axislbl,
-    .px-viz:not(.is-in) .px-lagr__inset,
-    .px-viz:not(.is-in) .px-lagr__collapse { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-lagr__pt { opacity: 1 !important; transform: none !important; }
     .px-lagr__pt--pulse .px-lagr__ring { animation: none !important; stroke-opacity: 1 !important; }
   }
 </style>

@@ -5,7 +5,7 @@
  * by AREA ∝ how much carbon they hold; fluxes are curved arrows sized by
  * GtC/yr, thicker + faster where more carbon moves (`flowDash`); the one flux
  * that never cancels — the airborne fraction the atmosphere keeps — is drawn as
- * an `--accent-alt` residual crescent that grows in last.
+ * an `--accent-alt` residual crescent (its build order arrives in Phase 6).
  *
  * Blueprint (the contract): docs/design/blueprints/earth/carbon-loop.md.
  * Conservation is checked at BUILD (mirrors power-flow / mechanics-and-flow §4):
@@ -16,11 +16,10 @@
  * are exempt (a one-way tap can never balance). The flag is a story-residual
  * licence, NOT a blanket amnesty: an unbalanced non-accent store still throws.
  *
- * No-JS / reduced-motion: the SVG paints its complete composed still — boxes
- * sized, fluxes drawn with static directional stipple, values labelled, the
- * residual crescent + label present (hidden reveal states gated behind
- * `html.js`; keyframes never run under reduced motion). 100% build-time
- * geometry; the only client JS is the shared Reveal island.
+ * The SVG always paints its complete composed still (static since Lens Phase
+ * 5) — boxes sized, fluxes drawn with static directional stipple, values
+ * labelled, the residual crescent + label present. 100% build-time geometry;
+ * no client JS of its own.
  *
  * data: { unit, reservoirs[]{id,label,stock,x,y,role?,accent?},
  *         fluxes[]{from,to,value,note?}, imbalance?, residualLabel?,
@@ -166,7 +165,7 @@ for (const fl of fluxes) {
   // NOT the inverse). dashCycleLen = 2+6 = 8px → dur = 8/speed (0.13s…1.0s).
   const speed = Math.max(8, (60 * fl.value) / maxFlux);
   const durS = 8 / speed;
-  // sweep: a multiple of the 8px dash period ≥ the path length, so the reveal
+  // sweep: a multiple of the 8px dash period ≥ the path length, so the Phase 6 build
   // streams the dashes in from `from` and lands seamlessly at offset 0.
   const est = clen + bow;
   const sweep = Math.ceil(est / 8) * 8 + 8;
@@ -174,7 +173,7 @@ for (const fl of fluxes) {
 }
 
 /* ── the residual crescent (imbalance:'the-point'): an --accent-alt arc OUTSIDE
-      the accent box's top edge, arc-LENGTH ∝ the computed net; grows in last ── */
+      the accent box's top edge, arc-LENGTH ∝ the computed net (built last in Phase 6) ── */
 interface Residual { arc: string; lblX: number; lblY: number; }
 const residuals: Residual[] = [];
 for (const [id, net] of residualOf) {
@@ -195,7 +194,7 @@ const fmt = (v: number) => (Number.isInteger(v) ? v.toLocaleString('en-US') : v.
 const denseLegend = reservoirs.length + fluxes.length > 5;
 ---
 
-<div class="px-viz px-cloop" data-reveal>
+<div class="px-viz px-cloop">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>{unit}/yr</b></div>}
 
   {(cycle || year) && (
@@ -260,7 +259,7 @@ const denseLegend = reservoirs.length + fluxes.length > 5;
         );
       })}
 
-      <!-- the residual (accumulation): brown crescent + mono label, grows in LAST -->
+      <!-- the residual (accumulation): brown crescent + mono label (built last in Phase 6) -->
       {residuals.map((rs) => (
         <g class="px-cloop__resid">
           <path class="px-cloop__crescent" d={rs.arc} />
@@ -335,7 +334,7 @@ const denseLegend = reservoirs.length + fluxes.length > 5;
   .px-cloop__dash {
     fill: none; stroke: var(--accent-deep); stroke-opacity: 0.9; stroke-width: 1.5;
     stroke-dasharray: 2 6; stroke-dashoffset: 0;
-    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* the sweep draw */
+    transition: stroke-dashoffset 900ms var(--ease) 250ms; /* rests at 0, the draw arrives in Phase 6 */
   }
   .px-cloop__ahead {
     fill: none; stroke: var(--accent-deep); stroke-opacity: 0.9;
@@ -389,27 +388,6 @@ const denseLegend = reservoirs.length + fluxes.length > 5;
     transition: opacity 500ms var(--ease) 1250ms;
   }
 
-  /* ── reveal (§5): boxes grow → bands sweep → values + residual reveal LAST.
-        Hidden states gated behind html.js — no-JS paints the final frame. ── */
-  html.js .px-viz:not(.is-in) .px-cloop__box { transform: scale(0.55); }
-  html.js .px-viz:not(.is-in) .px-cloop__res { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-cloop__band { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-cloop__dash { stroke-dashoffset: var(--sweep, 0); }
-  html.js .px-viz:not(.is-in) .px-cloop__ahead { opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-cloop__val,
-  html.js .px-viz:not(.is-in) .px-cloop__note { opacity: 0; transform: translateY(12px); }
-  html.js .px-viz:not(.is-in) .px-cloop__crescent { transform: scaleX(0.05); opacity: 0; }
-  html.js .px-viz:not(.is-in) .px-cloop__residlbl { opacity: 0; }
-
-  /* flowDash — the card's ONE ambient motion; takes over once the sweep lands */
-  html.js .px-viz.is-in .px-cloop__dash {
-    animation: px-cloop-flow var(--dur, 0.6s) linear 1150ms infinite;
-  }
-  @keyframes px-cloop-flow {
-    from { stroke-dashoffset: 0; }
-    to { stroke-dashoffset: -8; }
-  }
-
   /* field-note legend (motif 3) — collapsed at rest, keeps at-rest text minimal */
   .px-cloop__legend { margin: 12px 6px 0; }
   .px-cloop__legend summary {
@@ -432,15 +410,5 @@ const denseLegend = reservoirs.length + fluxes.length > 5;
   @media (prefers-reduced-motion: reduce) {
     .px-cloop__box, .px-cloop__res, .px-cloop__band, .px-cloop__dash, .px-cloop__ahead,
     .px-cloop__val, .px-cloop__note, .px-cloop__crescent, .px-cloop__residlbl { transition: none !important; }
-    html.js .px-viz.is-in .px-cloop__dash { animation: none !important; }
-    .px-viz:not(.is-in) .px-cloop__box { transform: none !important; }
-    .px-viz:not(.is-in) .px-cloop__res { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-cloop__band { opacity: 0.28 !important; }
-    .px-viz:not(.is-in) .px-cloop__dash { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-cloop__ahead { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-cloop__val,
-    .px-viz:not(.is-in) .px-cloop__note { opacity: 1 !important; transform: none !important; }
-    .px-viz:not(.is-in) .px-cloop__crescent { transform: none !important; opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-cloop__residlbl { opacity: 1 !important; }
   }
 </style>

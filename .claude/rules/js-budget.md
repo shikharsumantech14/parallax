@@ -30,33 +30,37 @@ No framework, no client bundle — ever.
 
 Every component paints its **final composed state** under:
 
-- **no JS** — hidden states are gated behind an `html.js` class set by an
-  inline `<head>` guard
-- **`prefers-reduced-motion`** — count-ups tween to the value already in the
-  HTML; ambient motion freezes to a composed still
+- **no JS** — the static HTML is the final state. A build's start state is
+  applied by `build.ts`, never in the markup; controls that JS unhides stay
+  gated behind the `html.js` class the inline `<head>` guard sets
+- **`prefers-reduced-motion`** — no build runs (the island applies no start
+  state, so counters show the value already in the HTML); ambient motion
+  freezes to a composed still
 - **missing WebGL** — the mount degrades, it does not blank
 
 Any new interactivity must honour this and be justified.
 
 ## The two Lens islands (2026-09-30, `docs/design/LENS.md` §5.6)
 
-Lens adds exactly two islands. Both are **small** (about 2 KB each), both are
+Lens adds exactly two islands. Both are **small** (2 to 3 KB each), both are
 **`is:inline`-free ES modules** (a bundled module `<script>`, so Vite
 processes them, the `Viz3DRuntime` pattern, not the `is:inline` pattern the
 reader islands use), both are **loaded once per page**, and neither ships a
 library:
 
 - **`src/scripts/cues.ts`** (Lens Phase 3, LANDED 2026-09-30) — loaded by
-  `src/pages/issues/[slug].astro` only. **Measured 2,030 bytes minified,
-  1,026 gzipped** (`npx esbuild src/scripts/cues.ts --bundle --minify
-  --format=esm`); keep it under 2 KB minified. Three jobs:
+  `src/pages/issues/[slug].astro` only. **Measured 2,148 bytes minified,
+  1,074 gzipped** (`npx esbuild src/scripts/cues.ts --bundle --minify
+  --format=esm`; 2,030 in Phase 3, +118 when Phase 5 made section 1 wait for
+  its build); keep it near 2 KB. Three jobs:
   1. *Lighting.* A cue button pressed, or crossing the middle third of the
      screen, sets `data-lit="true"` on the anchors its cue names and
      `"false"` on the rest of that figure (the CSS: 1 / .35, a 2px desk-mark
      ring, 160ms), and `data-lit-n` on the section (the CSS tints the
      sentence, presses the discs and shows the panel's line for that cue).
      Pressing it again, or Show all, clears it. Section 1 plays its cues once,
-     1400ms apart, when its figure first comes into view.
+     1400ms apart, when its figure first comes into view and has finished
+     building (`px:built` from `build.ts`; at once if nothing builds).
   2. *Progress.* A band 40% down the screen picks the current section:
      `aria-current` on the rail's dot and the head card's entry, `--px-read`
      on the root for the card's bar, "k of N read".
@@ -67,21 +71,34 @@ library:
   server-rendered), the cue buttons inert, Show all not offered, each figure
   in flow above its article, the head card's links still jump. Reduced
   motion: no autoplay, no transitions.
-- **`build.ts`** (Lens Phase 5) — the one build: an IntersectionObserver
-  starts a component's build on entry, in its `data-build="1..n"` order;
-  counters on requestAnimationFrame, draws by dashoffset, grows by scale,
-  drops by opacity and 6px. **No component animates itself** once it lands.
-  Reduced motion and no JS: the final state. Not built yet; Phase 5 decides
-  whether `core/Reveal.astro` and `core/VizMotion.astro`'s count-up fold
-  into it.
+- **`src/scripts/build.ts`** (Lens Phase 5, LANDED 2026-09-30) — loaded
+  once by every layout (`HomeLayout`, `IssueLayout`, `StoryLayout`,
+  `AppLayout`) as `<script>import '../scripts/build';</script>`. **Measured
+  2,983 bytes minified, about 1.4 KB gzipped** (the same esbuild line); the
+  ceiling is **3 KB minified**, so a new feature pays for itself. The one
+  build: a scene (`data-build-scene`) starts when 35% of it is in view, its
+  `data-build="n"` steps run in order, each at 70% of the last, siblings 80ms
+  apart; counters on requestAnimationFrame (ease-out cubic, 1400ms), draws by
+  `stroke-dashoffset` (1400ms), grows by `scale` (900ms), drop / rise / fade
+  by opacity and `translate` (420ms), all through the `.bx-*` classes in
+  `src/styles/motion-v2.css`. `[data-build-replay]` (shipped `hidden`)
+  replays a scene; a `px:build` event on a scene replays it; `px:build-finish`
+  on the document (the render gate) and `beforeprint` finish every scene;
+  each scene fires `px:built` when it ends. **No component animates itself.**
+  The contract for authors is `docs/design/LENS.md` §6.4 and
+  `src/components/AGENTS.md` §11. It replaced `core/Reveal.astro` (the
+  `[data-reveal]` / `.is-in` scroll reveal) and `core/VizMotion.astro` (the
+  `[data-countup]` count-up and the unused `[data-warmth]` pointer glow),
+  both DELETED in Phase 5 along with every component's `html.js …:not(.is-in)`
+  hidden state. Section 1 of an issue, the Home stage and the intro overlay
+  use this one island; `cues.ts` stays separate.
 
 `core/ExpandModal.astro` (the ⤢ study view) and `src/styles/modal.css` were
 DELETED in Phase 3 with the how-to-read panel and the plain line.
 
 ## The island set
 
-- `core/Reveal.astro` — scroll-reveal, adds `.is-in` to `[data-reveal]`
-- `core/VizMotion.astro` — count-up + cursor-warmth
+- `src/scripts/build.ts` — the build (above), every layout
 - `core/ReadingToolbar.astro` — reading progress, Full⇄Skim, Save
 - `core/Viz3DRuntime.astro` — lazy-boots the WebGL runtime on `[data-viz3d]`
 - `core/Tilt.astro` — CSS-3D pointer-tilt + flip
@@ -134,11 +151,25 @@ that reason.
 
 ## The one exception
 
-**None at present.** The one exception was the onboarding surface ("The
-Second Angle": `/welcome`, the home first-visit overlay, `intro.css`), which
-the operator removed on 2026-09-30; the new design will bring its own intro.
-Whatever replaces it earns an exception here on its own terms and still
-honours the fallback contract.
+**The first-visit intro, `core/IntroOverlay.astro`** (Lens Phase 4,
+2026-09-30; the canvas `Intro` board). It replaced "The Second Angle"
+(`/welcome`, its overlay and `intro.css`, removed the same day). It is the
+one page-level overlay on a lean page, mounted on Home only, and it earns
+its script on these terms:
+
+- **One `is:inline` script under 3 KB** (2,984 bytes): show-once
+  (`localStorage` `px_intro_v2`; `?intro=1` replays, `?intro=0` suppresses,
+  which is what a render check should load), the 3-dot stepper, Back / Next,
+  Escape to skip, the arrow keys, and the scene-3 cue lighting. Scenes 1 and
+  2 hand on after about six seconds unless the reader has stepped; the cues
+  of scene 3 light once. No motion of its own: showing a scene dispatches
+  `px:build` on it and `build.ts` builds it.
+- **The fallback contract:** it ships `hidden`, so no JS means no overlay (a
+  dialog nobody can dismiss is worse than none), and its markup is every
+  scene's final state; without the stepper's `data-step` the three scenes
+  stack in order. Reduced motion: final states, no hand-on, no cue autoplay.
+- Skip is always visible, focus returns to where it was, the page behind
+  does not scroll while it is open.
 
 > **`/welcome` was the intro story, and nothing else.** Before the merge two
 > projects each owned a `/welcome`: this one, and the app's post-signup

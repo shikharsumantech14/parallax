@@ -31,11 +31,15 @@ time with no session — which is the failure mode to watch for here:
   could be reused; afterwards one namespace held both, the callback kept
   pointing at the old path, and every first-time reader got the intro story
   instead of setup until `cf0c0b6`.
-- **Dashboard — "The Shelf".** `/dashboard`. Rebuilt 2026-07-14 on the
-  `app.css` v2 primitives. Module order: greeting header → shelf tile
-  grid (saved issues) → reading log (3 `.stat`s) → "In the margins" (the
-  reader's own `comments` with status chips) → preferences (3 `.toggle`
-  rows) → account plate → admin tiles (admin only) → danger zone.
+- **Dashboard — "The Shelf".** `/dashboard`. Rebuilt to Lens on 2026-09-30
+  (the Shelf board; change log below). Module order: "Hello, {name}." →
+  YOUR PATH (the issues the reader opened, from `reading_events`, on a
+  joined track with progress rings) → ON THE SHELF (saved issues as
+  `CoverCard`s with a Remove control) → YOUR DESKS (follow / following,
+  `profiles.stated_interests`) → PREFERENCES (three `role="switch"`
+  buttons over `email_prefs`) → "In the margins" (the reader's own
+  `comments`) → account rows, Sign out, the moderation link (admin only) →
+  danger zone.
 - **Reader-account APIs** called by the publication's client islands:
   `/api/save/[issueId]`, `/api/reactions/[issueId]`, `/api/events`,
   `/api/annotations/[issueId]`, `/api/letters/[issueId]`,
@@ -517,6 +521,58 @@ bottom list only.
 ---
 
 ## Change log
+
+### 2026-09-30 — Lens, Phase 4b: the account pages are the publication's
+
+The design revamp (`docs/design/LENS.md`, the SignIn, CreateAccount, Shelf
+and Story boards) reached the account surfaces. **No endpoint, table, form
+field or auth flow changed**; what changed is the shell and the markup.
+
+- **`src/layouts/AppLayout.astro`** loads the publication's stylesheets
+  (tokens-v2, base, meta, type-v2, motion-v2) and then `app.css`. Two chromes:
+  `full` (the Shelf, the moderation queue) mounts `core/Masthead.astro` and
+  `core/Colophon.astro`; `focus` (sign in, welcome) has no masthead, the page
+  carries its own lockup, and closes on "No analytics · No cookies · No
+  trackers", as the boards draw them. The glass app bar, the mono brand
+  line, the LensMark and the `.reveal` bootstrap are gone.
+- **`src/styles/app.css`** keeps only the legacy primitive names the queue
+  and the auth panes still use (`.btn`, `.field`, `.notice`, `.divider`,
+  `.eyebrow`, `.dek`, `.empty`, `.app-back`) on the Lens values, every rule
+  scoped to `.app-shell` / `.app-focus` so nothing leaks into the masthead or
+  footer. `.plate`, `.tile`, `.chip`, `.toggle`, `.stat` and `.row` were
+  retired (no page used them after this pass).
+- **Sign in** keeps every id its handlers read (`pane-form`, `pane-sent`,
+  `magic-form`, `email`, `btn-magic`, `btn-google`, `btn-google-label`,
+  `notice`, `sent-email`, `btn-resend`, `btn-reset`, `notice-sent`,
+  `next-value`), the browser Supabase client, `signInWithOtp` with
+  `emailRedirectTo` and `shouldCreateUser: true`, `signInWithOAuth` for
+  Google, the `next` and `world` round-trip through `/auth/callback`, the 60s
+  resend cooldown and the carried `notice`. Copy only: the button reads "Send
+  me a magic link". The new "Now reading" panel reads the content collection
+  (the three latest published issues) at request time.
+- **`/account/welcome`** still POSTs a plain form to `/api/onboarding` with
+  `intent=save|skip`, `name`, repeated `interest`, and the hidden `next`. The
+  desks are real checkboxes inside their labels (six medallion tiles).
+- **The Shelf** reads one more table than before, `reading_events`
+  (select-own RLS, already in `20260524200000_phase_b_reading_events.sql`),
+  for the path and the unread counts, and fetches `stated_interests` in its
+  own query so a missing column cannot blank the profile. Follow / Following
+  is a form per desk posting to `/api/onboarding` (`intent=save`, the new set
+  as repeated `interest`, no `name`, `next=/dashboard#desks`). Note that the
+  handler also re-stamps `welcomed_at`, which nothing reads beyond "is it
+  NULL". Remove calls `DELETE /api/save/<id>` (JS only; the button is
+  html.js-gated). Preferences post to `/api/account/prefs` exactly as before
+  (`weekly_digest`, `issue_publish`, `reengagement` as checkbox fields), the
+  switches driving the checkboxes. Sign out, the moderation link, the margin
+  notes and the delete-account form are kept.
+- **`core/AccountEntry.astro`** renders the account pill (initial disc,
+  first name, caret, a `<details>` menu with "Your shelf" and Sign out) on a
+  session page, where `Astro.locals.user` exists; prerendered pages keep the
+  cookie-upgraded "Sign in" / "Shelf" link.
+- **SSR pages now read `astro:content`** (sign in, the Shelf, and the
+  Colophon on every full-chrome page). This is the first SSR use of the
+  content collection in the repo; `npm run build` is its proof.
+
 
 ### 2026-07-14 — Journey onboarding, "The Shelf" dashboard, funnel wiring
 

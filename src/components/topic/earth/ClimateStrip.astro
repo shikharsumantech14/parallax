@@ -2,10 +2,9 @@
 /*
   ClimateStrip — v2 warming-stripes treatment (.cs), wrapped in the elevated
   .px-viz card. One bar per time unit, coloured along a diverging palette from
-  the value range, with an anomaly line stroke-drawn over the top on scroll-in.
-  Faithful port of the publication-v2 kit <ClimateStrip>. Build-time computed,
-  zero runtime JS (reveal handled by CSS; core/Reveal.astro toggles .is-in on
-  the .px-viz shell, gated no-JS-safe).
+  the value range, with an anomaly line over the top. Faithful port of the
+  publication-v2 kit <ClimateStrip>. Build-time computed, zero runtime JS;
+  static since Lens Phase 5 (its build order, LENS §6.4, arrives in Phase 6).
 
   PRESERVES the existing prop interface (`values`, not the kit's `series`):
     values[]     — array of { year: number, value: number }
@@ -174,7 +173,7 @@ const annotPad = (pct: number) =>
     : `padding-left:${pct.toFixed(2)}%`;
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   <div class="px-viz__cap">
     <span>{caption}</span>
     {n > 0 && <b>{fmtVal(maxVal)} peak</b>}

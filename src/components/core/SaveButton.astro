@@ -14,21 +14,26 @@
  *                save flashes an "On your shelf →" microline that fades after 4s)
  *   error      → "Try again" (transient; click retries)
  *
- * Brand: matches the SkimToggle — small, monospace eyebrow, restrained.
+ * Lens (2026-09-30, Phase 4b): Instrument Sans 14/600, a 4px corner, a
+ * hair-2 border; saved takes the desk text colour. `variant="block"` is the
+ * story CTA card's "Save to shelf": a 44px full-width outline button (the
+ * Story board). The reading toolbar keeps its own compact sizing.
  * No counts, no public visibility — saving is private to the reader.
  */
 
 interface Props {
   /** Issue slug, e.g. 2026-04-24-delimitation */
   issueId: string;
+  /** toolbar (default, sized by the reading toolbar) | block (story CTA). */
+  variant?: 'toolbar' | 'block';
 }
-const { issueId } = Astro.props;
+const { issueId, variant = 'toolbar' } = Astro.props;
 
 /* Same-origin since the merge — relative paths follow the reader to whatever
    host served the page, so no redirect can turn these cross-origin. */
 ---
 
-<div class="px-save" data-issue-id={issueId}>
+<div class:list={['px-save', `px-save--${variant}`]} data-issue-id={issueId}>
   <button
     class="px-save__btn"
     type="button"
@@ -171,90 +176,84 @@ const { issueId } = Astro.props;
     align-items: center;
     position: relative;
   }
-  /* First-save microline — floats just above the button, doesn't reflow the
-     glass toolbar pill it lives in. */
+  /* First-save microline: floats just above the button, never reflows the
+     toolbar it lives in. */
   .px-save__micro {
     position: absolute;
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translate(-50%, 4px);
     white-space: nowrap;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
     color: var(--paper);
-    background: var(--accent-deep, var(--accent));
-    padding: 5px 10px;
-    border-radius: var(--r-pill, 999px);
+    background: var(--ink);
+    padding: 6px 12px;
+    border-radius: var(--r-chip, 999px);
     text-decoration: none;
     opacity: 0;
     pointer-events: none;
-    box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--ink) 60%, transparent);
-    transition: opacity 0.28s var(--ease, ease), transform 0.28s var(--ease, ease);
+    box-shadow: var(--shadow-1);
+    transition: opacity var(--t-micro) var(--ease, ease), transform var(--t-micro) var(--ease, ease);
   }
   .px-save__micro[hidden] { display: none; }
   .px-save__micro.is-in { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
   @media (prefers-reduced-motion: reduce) {
-    .px-save__micro { transition: opacity 0.12s linear; transform: translate(-50%, 0); }
+    .px-save__micro { transition: none; transform: translate(-50%, 0); }
     .px-save__btn[data-state="loading"] .px-save__icon { animation: none; opacity: 0.6; }
   }
   .px-save__btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: transparent;
-    border: 1px solid var(--rule);
-    color: var(--ink-soft);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    padding: 8px 14px;
+    background: var(--paper-2);
+    border: 1px solid var(--hair-2);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0 14px;
+    min-height: 36px;
     cursor: pointer;
-    border-radius: var(--r-card);
-    transition: color var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease), background var(--t-quick) var(--ease);
+    border-radius: var(--r-ctl);
+    transition: color var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease), background var(--t-micro) var(--ease);
     line-height: 1;
   }
-  .px-save__btn:hover:not(:disabled) {
-    color: var(--ink);
-    border-color: var(--ink);
-  }
-  .px-save__btn:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
+  .px-save__btn:hover:not(:disabled) { border-color: var(--ink); }
+  .px-save__btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .px-save__btn:disabled { cursor: default; opacity: 0.6; }
   .px-save__icon {
     display: inline-block;
     width: 10px;
-    height: 12px;
+    height: 13px;
     flex-shrink: 0;
-    /* Bookmark outline — only one rendering, fills on saved */
+    /* Bookmark outline, filled when saved */
     background: transparent;
     border: 1.5px solid currentColor;
     border-bottom: none;
     clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
-    transition: background var(--t-quick) var(--ease), border-color var(--t-quick) var(--ease);
+    transition: background var(--t-micro) var(--ease);
   }
-  .px-save__btn[data-state="saved"] {
-    color: var(--accent-deep, var(--accent));
-    border-color: var(--accent-deep, var(--accent));
-  }
-  .px-save__btn[data-state="saved"]:hover {
-    color: var(--accent-deep, var(--accent));
-    border-color: var(--accent-deep, var(--accent));
-  }
-  .px-save__btn[data-state="saved"] .px-save__icon {
-    background: currentColor;
-  }
-  .px-save__btn[data-state="signedout"] {
-    color: var(--muted);
-  }
-  .px-save__btn[data-state="loading"] .px-save__icon {
-    animation: px-save-pulse 1.2s ease-in-out infinite;
-  }
+  .px-save__btn[data-state="saved"] { color: var(--accent-deep, var(--ink)); border-color: var(--accent-deep, var(--ink)); }
+  .px-save__btn[data-state="saved"] .px-save__icon { background: currentColor; }
+  .px-save__btn[data-state="signedout"] { color: var(--ink-2); }
+  .px-save__btn[data-state="loading"] .px-save__icon { animation: px-save-pulse 1.2s ease-in-out infinite; }
   @keyframes px-save-pulse {
     0%, 100% { opacity: 0.35; }
     50%      { opacity: 1; }
   }
+
+  /* The story CTA card's "Save to shelf": 44px, full width, 1px ink border. */
+  .px-save--block { display: flex; width: 100%; }
+  .px-save--block .px-save__btn {
+    flex: 1;
+    justify-content: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 15px;
+    border-color: var(--ink);
+  }
+  .px-save--block .px-save__btn:hover:not(:disabled) { background: var(--paper-3); }
 </style>

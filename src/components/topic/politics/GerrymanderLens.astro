@@ -11,14 +11,13 @@
  * Physics: docs/design/physics/apportionment.md §4 (efficiency gap).
  *
  * Everything is build-time: the efficiency-gap arithmetic and every panel's
- * geometry are computed here, once. The only JS is the shared core/Reveal.astro
- * island (entrance) plus a ~4-line inline island that folds the verdict-ledger
+ * geometry are computed here, once. The only JS is a ~4-line inline island that folds the verdict-ledger
  * <details> once the in-SVG numbers are visible (legend-collapse, CANON §4.5) —
  * no-JS keeps the ledger permanently open.
  *
- * No-JS / reduced-motion: the three maps paint complete — cell fills, district
- * boundaries, winner pips, seat splits, EG numbers, flag chips (pre-stamped).
- * Hidden entrance states are gated behind `html.js`; reduced-motion resets them.
+ * The three maps always paint complete (static since Lens Phase 5): cell fills,
+ * district boundaries, winner pips, seat splits, EG numbers, flag chips
+ * (pre-stamped). Their build order arrives in Phase 6.
  *
  * Build FAILS (naming the offender) if a plan's district A-tallies don't re-sum
  * to the shared statewide total (the "same votes" guarantee), or a plan has
@@ -232,7 +231,6 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 
 <div
   class="px-viz px-glens"
-  data-reveal
   style={`--col-a:${colA}; --col-b:${colB}`}
 >
   {caption && (
@@ -433,9 +431,9 @@ const fmt = (n: number) => n.toLocaleString('en-US');
   }
   .px-glens__lnote .pol-annot { margin: 0; font-size: 13px; }
 
-  /* ══ reveal (§5): fills → boundary sweep → pips → numbers → FLAGGED stamp ══
-     panels animate concurrently with a 60ms left→right stagger; whole sequence
-     lands ≤1.6s. Hidden states gated behind html.js → no-JS paints the plate. */
+  /* ══ transitions on the base rules (§5): the plate paints final, and the
+     Phase 6 build order (fills → boundary sweep → pips → numbers → FLAGGED
+     stamp) arrives on these, staggered 60ms left→right by `--pi`. ══ */
   .px-glens__cells,
   .px-glens__grid,
   .px-glens__frame {
@@ -459,16 +457,6 @@ const fmt = (n: number) => n.toLocaleString('en-US');
                 transform 220ms var(--ease-snap, var(--ease)) calc(1360ms + var(--pi, 0) * 60ms);
   }
 
-  html.js .px-viz:not(.is-in) .px-glens__cells,
-  html.js .px-viz:not(.is-in) .px-glens__grid,
-  html.js .px-viz:not(.is-in) .px-glens__frame {
-    opacity: 0; transform: translateY(14px);
-  }
-  html.js .px-viz:not(.is-in) .px-glens__bounds { stroke-dashoffset: 1; }
-  html.js .px-viz:not(.is-in) .px-glens__pip { transform: scale(0); }
-  html.js .px-viz:not(.is-in) .px-glens__readout { opacity: 0; transform: translateY(10px); }
-  html.js .px-viz:not(.is-in) .px-glens__chip { opacity: 0; transform: rotate(-2deg) scale(0.6); }
-
   /* ── mobile: stack the three maps; comparison reads top-to-bottom (§4) ────── */
   @media (max-width: 640px) {
     .px-glens__row { grid-template-columns: 1fr; gap: 30px; }
@@ -484,12 +472,5 @@ const fmt = (n: number) => n.toLocaleString('en-US');
     .px-glens__bounds, .px-glens__pip, .px-glens__readout, .px-glens__chip {
       transition: none !important;
     }
-    .px-viz:not(.is-in) .px-glens__cells,
-    .px-viz:not(.is-in) .px-glens__grid,
-    .px-viz:not(.is-in) .px-glens__frame { opacity: 1 !important; transform: none !important; }
-    .px-viz:not(.is-in) .px-glens__bounds { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-glens__pip { transform: none !important; }
-    .px-viz:not(.is-in) .px-glens__readout { opacity: 1 !important; transform: none !important; }
-    .px-viz:not(.is-in) .px-glens__chip { opacity: 1 !important; transform: rotate(-2deg) !important; }
   }
 </style>

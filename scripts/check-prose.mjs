@@ -582,7 +582,10 @@ for (const slug of slugs) {
     if (prev && prev !== raw) {
       // A section's `cues` (numerals and anchor ids) and its `[[n]]` markers
       // are structure, not reader numbers (Lens Phase 3): neither is counted.
-      const bare = (d) => { const x = noCues(d); if (Array.isArray(x.sections)) x.sections = x.sections.map(({ cues, ...rest }) => rest); return x; };
+      // Nor is the issue's `cover` block (Lens schema): its `section` is an
+      // index and its `number` is copied from that section's data, which is
+      // already counted, so adding a cover would read as two new numerals.
+      const bare = (d) => { const { cover: _cover, ...x } = noCues(d); if (Array.isArray(x.sections)) x.sections = x.sections.map(({ cues, ...rest }) => rest); return x; };
       const count = (txt) => { const m = new Map(); for (const n of numerals(matter(txt).content + JSON.stringify(bare(matter(txt).data)))) m.set(n, (m.get(n) ?? 0) + 1); return m; };
       const a = count(prev), b = count(raw);
       const removed = [...a].filter(([n, c]) => (b.get(n) ?? 0) < c).map(([n]) => n);

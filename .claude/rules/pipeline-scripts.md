@@ -172,7 +172,10 @@ to answer.
   RD-15). `puppeteer-core` on the installed Chrome renders every non-draft
   issue as a signed-in reader at 1280 and 375 and fails on any element past
   the column, the honest phone overflow, clipped text, text on text, the ⤢
-  button on text or duplicate chrome; screenshots per section per width
+  button on text or duplicate chrome, and since Lens Phase 5 on a cue numeral
+  without its anchor (CUES), a build that ends off the no-JS page (BUILD,
+  two extra page loads per page with scenes) or text below 9.5px (FLOOR;
+  below 12px is the TINY warning); screenshots per section per width
   under `research/_ui/<date>/` (gitignored). Not in `prebuild` — it needs a
   browser — but **enforced at commit time**: it writes
   `research/_ui/last-run.json` with a fingerprint of the rendering tree

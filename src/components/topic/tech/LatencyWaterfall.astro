@@ -4,13 +4,14 @@
  * positioned by its `start` (x-offset %) with width proportional to `dur`, all
  * on a shared time axis (0 → max(start + dur)). Bar tint comes from a small
  * kind → color map derived from the theme accent/muted. Row label sits left,
- * the duration value right (mono). On reveal each bar grows in (scaleX from its
- * left edge) staggered down the rows, over a faint vertical gridline scale with
- * axis ticks. Flat (no 3D). Build-time geometry; zero runtime JS.
+ * the duration value right (mono), over a faint vertical gridline scale with
+ * axis ticks. Flat (no 3D). Build-time geometry; zero JS of its own.
  *
- * No-JS / reduced-motion: bars paint at their FINAL width (the scaleX(0) hidden
- * state sits behind `html.js`; reduced-motion resets with !important). Numbers
- * are plain text, always present.
+ * THE BUILD (Lens Phase 5, LENS §6.4): the card is a `data-build-scene`:
+ * 1 the axis (gridlines, ticks, span names) fades in, 2 each bar grows from
+ * its left edge, 80ms apart down the rows, 3 the durations rise
+ * (src/scripts/build.ts). No JS or reduced motion: the bars at their final
+ * width, every number in place.
  *
  * data: { spans[]{ label, start, dur, kind? }, unit?, caption?, source? }
  *
@@ -60,7 +61,7 @@ const ticks = Array.from({ length: TICKS }, (_, i) => {
 const fmt = (n: number) => n.toLocaleString();
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz" data-build-scene>
   <div class="px-viz__cap"><span>{caption}</span>{unit && <b>{unit}</b>}</div>
 
   <div
@@ -69,7 +70,7 @@ const fmt = (n: number) => n.toLocaleString();
     aria-label={caption ? `Request waterfall: ${caption}` : 'Request latency waterfall'}
   >
     <!-- gridline scale behind the rows -->
-    <div class="px-lwf__grid" aria-hidden="true">
+    <div class="px-lwf__grid" aria-hidden="true" data-build="1">
       {ticks.map((t) => (
         <span class="px-lwf__gridline" style={`left:${t.frac}%`}></span>
       ))}
@@ -78,20 +79,22 @@ const fmt = (n: number) => n.toLocaleString();
     <div class="px-lwf__rows">
       {rows.map((r) => (
         <div class="px-lwf__row" style={`--i:${r.i}`} data-cue={r.i + 1}>
-          <span class="px-lwf__label" title={r.label}><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span>{r.label}</span>
+          <span class="px-lwf__label" title={r.label} data-build="1"><span class="px-cue-tag" data-cue-tag={r.i + 1} hidden></span>{r.label}</span>
           <span class="px-lwf__track">
             <span
               class="px-lwf__bar"
-              style={`left:${r.left.toFixed(2)}%; width:${Math.max(r.width, 0.5).toFixed(2)}%; background:${r.color}; transition-delay:${r.i * 70}ms`}
+              data-build="2"
+              data-build-kind="grow-x"
+              style={`left:${r.left.toFixed(2)}%; width:${Math.max(r.width, 0.5).toFixed(2)}%; background:${r.color}`}
             ></span>
           </span>
-          <span class="px-lwf__val">{fmt(r.dur)}</span>
+          <span class="px-lwf__val" data-build="3" data-build-kind="rise">{fmt(r.dur)}</span>
         </div>
       ))}
     </div>
 
     <!-- axis tick labels -->
-    <div class="px-lwf__axis" aria-hidden="true">
+    <div class="px-lwf__axis" aria-hidden="true" data-build="1">
       {ticks.map((t) => (
         <span class="px-lwf__tick" style={`left:${t.frac}%`}>{fmt(t.val)}</span>
       ))}
@@ -162,10 +165,8 @@ const fmt = (n: number) => n.toLocaleString();
     top: 0;
     bottom: 0;
     border-radius: var(--r-pill);
-    /* base/resting = final width; grow from the left edge */
-    transform: scaleX(1);
+    /* the build grows it from its left edge (`scale`, src/scripts/build.ts) */
     transform-origin: left center;
-    transition: transform 850ms var(--ease);
   }
 
   .px-lwf__val {
@@ -200,16 +201,9 @@ const fmt = (n: number) => n.toLocaleString();
     white-space: nowrap;
   }
 
-  /* reveal: bars grow in from the left, staggered (gated behind html.js) */
-  html.js .px-viz:not(.is-in) .px-lwf__bar { transform: scaleX(0); }
-
   @media (max-width: 560px) {
     .px-lwf { --rail-l: 92px; --rail-r: 48px; --gap: 10px; }
     .px-lwf__label { font-size: 10px; }
     .px-lwf__val { font-size: 10.5px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-lwf__bar { transform: scaleX(1) !important; }
   }
 </style>

@@ -3,23 +3,38 @@
    default, so every app surface must opt out explicitly — miss one and it
    is baked at build time with no session. */
 export const prerender = false;
+import { getCollection } from 'astro:content';
 import AppLayout from '../layouts/AppLayout.astro';
 import Mark from '../components/core/Mark.astro';
+import CoverCard from '../components/core/CoverCard.astro';
+import { TOPICS, type Topic } from '../content/config';
+import { DESK_COPY, DESK_REGISTER } from '../lib/desks';
+import { ink } from '../lib/desk-inks';
+import { DIAL } from '../lib/mark';
+import { formatNo, issueNumbers } from '../lib/issue-number';
 import { safeNextPath } from '../lib/auth';
 
 /**
- * Login — the flagship reference implementation of the app design language
- * (docs/design/APP-DESIGN-SPEC.md §4; copy verbatim from JOURNEY-SPEC.md §3;
- * state machine from JOURNEY-SPEC.md §2).
+ * Sign in (Lens, 2026-09-30, Phase 4b; the SignIn board, BRIEF-3 §4).
  *
- * Two paths in — Google OAuth (primary) and a magic sign-in link (secondary).
- * Five states: idle · google-redirecting · magic-sending · link-sent (a full
- * plate swap with inbox guidance + 60s resend cooldown) · error. A `world`
- * query param (set by publication CTAs) tints the plate with that desk's
- * accent — tint only, never the full world palette.
+ * LEFT, the 480 form column: the lockup, "Sign in" in Newsreader 48 on one
+ * line, the labelled 52px email field, the ink magic-link button, an "or"
+ * rule, the Google outline button and one note. RIGHT, the paper-3 panel "Now
+ * reading on Parallax": the three latest published issues as a stack of
+ * CoverCards that advances every 4s, and under it the dial row, the six desk
+ * medallions (lettered mark cut, 40px) that print their register on hover or
+ * focus. Phones stack the two, the form first.
  *
- * Supabase flows are untouched from v1: browser client, PKCE, `next`
- * round-trip through /auth/callback. `world` rides along for /account/welcome.
+ * The auth flow is untouched from before Lens: the browser Supabase client,
+ * PKCE, Google OAuth and the magic link (`signInWithOAuth`, `signInWithOtp`),
+ * the `next` round-trip through /auth/callback with `world` riding along, the
+ * five states (idle, google-redirecting, magic-sending, link-sent with its 60s
+ * resend cooldown, error), and every element id the handlers read. Only the
+ * magic-link button's label changed ("Send me a magic link", the board's).
+ *
+ * The panel's island is `is:inline`. With no JS the first cover sits in front
+ * and the others peek behind it, the dots are hidden (html.js-gated) and the
+ * dial row reads its default line. Reduced motion never advances the stack.
  */
 
 const { user } = Astro.locals;
@@ -33,101 +48,244 @@ const next = safeNextPath(Astro.url.searchParams.get('next'), '/dashboard');
 
 const WORLDS = ['politics', 'space', 'earth', 'tech', 'travel', 'sports'] as const;
 const worldRaw = (Astro.url.searchParams.get('world') ?? '').toLowerCase();
-const world = (WORLDS as readonly string[]).includes(worldRaw) ? worldRaw : null;
+const world = (WORLDS as readonly string[]).includes(worldRaw) ? (worldRaw as Topic) : null;
 
 // Friendly error carried back from /auth/callback (expired/used links etc.)
 const noticeParam = Astro.url.searchParams.get('notice');
+
+/* The three latest published issues, newest first (ties on a date broken by
+   slug, as the home page breaks them). */
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const latest = [...published]
+  .sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug))
+  .slice(0, 3);
+const numbers = await issueNumbers();
+const dotLabel = (slug: string, i: number) => {
+  const n = numbers.get(slug);
+  return `Show ${n ? formatNo(n) : `issue ${i + 1}`}`;
+};
 ---
 
 <AppLayout title="Sign in" description="Sign in to your Parallax reader account.">
-  <div class="login">
-    <div class="login__mark" aria-hidden="true">
-      <Mark size={56} />
-    </div>
+  <div class="signin">
+    <div class="signin__col">
+      <a class="app-lockup" href="/" aria-label="Parallax, home">
+        <Mark size={34} ring={9} tight />
+        <span class="app-lockup__name">Parallax</span>
+      </a>
 
-    <div class="plate login__plate" data-world={world ?? undefined}>
-      {/* ── state: idle / sending ─────────────────────────────────────── */}
-      <div id="pane-form">
-        <p class="eyebrow">Sign in</p>
-        <h1 class="login__h1">Open your <em>shelf</em>.</h1>
-        <p class="dek login__dek">
-          One sign-in to save issues, follow the worlds you care about, and
-          pick up reading where you left off.
-        </p>
-        {world && (
-          <p class="login__world" aria-label={`Returning you to the ${world} desk`}>
-            RETURNING YOU TO THE {world.toUpperCase()} DESK →
-          </p>
-        )}
-
-        <button id="btn-google" class="btn btn--block login__google" type="button">
-          <svg class="btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-            <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
-            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
-          </svg>
-          <span id="btn-google-label">Continue with Google</span>
-        </button>
-
-        <div class="divider">or use your email</div>
-
-        <form id="magic-form" novalidate>
-          <div class="field">
-            <label for="email">Your email</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              autocomplete="email"
-              inputmode="email"
-              required
-            />
+      <div class="signin__plate" data-world={world ?? undefined}>
+        {/* ── state: idle / sending ─────────────────────────────────────── */}
+        <div id="pane-form" class="signin__pane">
+          <div class="signin__head">
+            <h1 class="signin__h1">Sign in</h1>
+            <p class="signin__sub">We email you a link. No password.</p>
+            {world && (
+              <p class="signin__world" style={`color: ${ink(world, 'text')}`}>
+                Returning you to the {DESK_COPY[world].name} desk
+              </p>
+            )}
           </div>
-          <button id="btn-magic" class="btn btn--ghost btn--block" type="submit">
-            Send me a sign-in link
-          </button>
-          <p class="login__assure">No password. The link signs you in instantly.</p>
-        </form>
 
-        <div id="notice" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
-      </div>
+          <form id="magic-form" class="signin__form" novalidate>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                inputmode="email"
+                required
+              />
+            </div>
+            <button id="btn-magic" class="btn btn--block btn--tall signin__magic" type="submit">Send me a magic link</button>
+          </form>
 
-      {/* ── state: link-sent (full plate swap) ────────────────────────── */}
-      <div id="pane-sent" hidden>
-        <div class="login__envelope" aria-hidden="true">
-          <svg viewBox="0 0 48 36" width="44" height="33">
-            <rect x="1.5" y="1.5" width="45" height="33" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <div class="divider" role="separator" aria-label="or">or</div>
+
+          <div class="signin__alt">
+            <button id="btn-google" class="btn btn--ghost btn--block btn--tall" type="button">
+              <svg class="signin__g" viewBox="0 0 18 18" width="18" height="18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+              </svg>
+              <span id="btn-google-label">Continue with Google</span>
+            </button>
+            <p class="signin__note">New here? The same link makes your account.</p>
+          </div>
+
+          <div id="notice" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
+        </div>
+
+        {/* ── state: link-sent (full plate swap) ────────────────────────── */}
+        <div id="pane-sent" class="signin__pane" hidden>
+          <svg class="signin__envelope" viewBox="0 0 48 36" width="44" height="33" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="45" height="33" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
             <path d="M2 4 L24 20 L46 4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-            <circle cx="38" cy="26" r="6.5" fill="var(--paper)" stroke="#b8341f" stroke-width="1.5"/>
-            <circle cx="38" cy="26" r="2.4" fill="#b8341f"/>
+            <circle cx="38" cy="26" r="6.5" fill="var(--paper)" stroke="var(--pol-mark)" stroke-width="1.5"/>
+            <circle cx="38" cy="26" r="2.4" fill="var(--pol-mark)"/>
           </svg>
+          <div class="signin__head">
+            <h2 class="signin__h1">Check your inbox.</h2>
+            <p class="signin__sub">
+              We sent a sign-in link to <b id="sent-email" class="signin__email"></b>.
+              It signs you in at once and expires in 60 minutes.
+            </p>
+          </div>
+          <div class="signin__inbox">
+            <a class="btn btn--ghost" href="https://mail.google.com" target="_blank" rel="noopener">Open Gmail</a>
+            <a class="btn btn--ghost" href="https://outlook.live.com" target="_blank" rel="noopener">Open Outlook</a>
+          </div>
+          <div class="signin__sent-foot">
+            <button id="btn-resend" class="btn btn--ghost" type="button">Resend link</button>
+            <button id="btn-reset" class="signin__reset" type="button">Wrong address? Use a different email</button>
+          </div>
+          <div id="notice-sent" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
         </div>
-        <h2 class="login__h1 login__h1--sent">Check your inbox.</h2>
-        <p class="dek login__dek">
-          We sent a sign-in link to <b id="sent-email" class="login__email"></b>.
-          It signs you in instantly and expires in 60 minutes.
-        </p>
-        <div class="login__inbox-row">
-          <a class="btn btn--ghost" href="https://mail.google.com" target="_blank" rel="noopener">Open Gmail</a>
-          <a class="btn btn--ghost" href="https://outlook.live.com" target="_blank" rel="noopener">Open Outlook</a>
-        </div>
-        <div class="login__sent-foot">
-          <button id="btn-resend" class="btn btn--ghost" type="button">Resend link</button>
-          <button id="btn-reset" class="login__reset" type="button">Wrong address? Use a different email</button>
-        </div>
-        <div id="notice-sent" class="notice notice--info" style="display: none;" role="status" aria-live="polite"></div>
       </div>
     </div>
 
-    <a class="app-back login__back" href={import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com'}>
-      ← Back to the publication
-    </a>
+    <aside class="signin__panel" aria-labelledby="now-reading" data-signin-panel>
+      <div class="signin__panel-head">
+        <h2 id="now-reading" class="px-meta">Now reading on Parallax</h2>
+        {latest.length > 1 && (
+          <div class="signin__dots" role="group" aria-label="The latest issues">
+            {latest.map((e, i) => (
+              <button type="button" class="signin__dot" data-go={i} aria-pressed={i === 0 ? 'true' : 'false'} aria-label={dotLabel(e.slug, i)}>
+                <span aria-hidden="true"></span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {latest.length > 0 && (
+        <div class="signin__stack" data-stack>
+          {latest.map((e, i) => (
+            <div class="signin__slot" data-slot={i} data-pos={i} aria-hidden={i === 0 ? undefined : 'true'} inert={i === 0 ? undefined : ''}>
+              <CoverCard issue={e} size="card" number={numbers.get(e.slug)} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div class="signin__dial" data-dial data-lit="0">
+        <div class="signin__dial-row" role="group" aria-label="The six desks, one dial position each">
+          {TOPICS.map((t) => (
+            <button
+              type="button"
+              class="signin__desk"
+              aria-pressed="false"
+              aria-label={`${DESK_COPY[t].name}, ${DESK_REGISTER[t]}, ${DIAL[t]} degrees`}
+              data-desk={t}
+              data-name={DESK_COPY[t].name}
+              data-reg={DESK_REGISTER[t]}
+              data-deg={DIAL[t]}
+              data-ink={ink(t, 'text')}
+              style={`--dk-mark: ${ink(t, 'mark')}`}
+            >
+              <Mark desk={t} size={40} tight ground="var(--paper-3)" />
+              <span class="signin__desk-u" aria-hidden="true"></span>
+            </button>
+          ))}
+        </div>
+        <p class="signin__say" aria-live="polite">
+          <span class="signin__say-text" data-dial-text>One dial position per desk</span>
+          <span class="signin__say-deg" data-dial-deg>60° apart</span>
+        </p>
+      </div>
+    </aside>
   </div>
 
   <span id="next-value" data-next={next} data-world={world ?? ''} data-notice={noticeParam ?? ''} hidden></span>
 </AppLayout>
+
+<script is:inline>
+  /* The "Now reading" panel. The cover stack advances every 4s; a dot press
+     jumps and stops it, focus or a press inside the stack stops it, hover
+     pauses it, and reduced motion never starts it. The dial row lights a desk
+     on hover or focus and prints its register; a press pins it. */
+  (function () {
+    var root = document.querySelector('[data-signin-panel]');
+    if (!root) return;
+
+    var slots = Array.prototype.slice.call(root.querySelectorAll('[data-slot]'));
+    var dots = Array.prototype.slice.call(root.querySelectorAll('[data-go]'));
+    var stack = root.querySelector('[data-stack]');
+    var n = slots.length;
+    var index = 0;
+    var timer = 0;
+    var stopped = false;
+    var paused = false;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function paint() {
+      slots.forEach(function (s, i) {
+        var p = (i - index + n) % n;
+        s.setAttribute('data-pos', String(p));
+        if (p === 0) { s.removeAttribute('aria-hidden'); s.removeAttribute('inert'); }
+        else { s.setAttribute('aria-hidden', 'true'); s.setAttribute('inert', ''); }
+      });
+      dots.forEach(function (d, i) { d.setAttribute('aria-pressed', i === index ? 'true' : 'false'); });
+    }
+    function stop() { stopped = true; window.clearInterval(timer); }
+
+    if (n > 1 && !reduce) {
+      timer = window.setInterval(function () {
+        if (stopped || paused || document.hidden) return;
+        index = (index + 1) % n;
+        paint();
+      }, 4000);
+    }
+    dots.forEach(function (d, i) {
+      d.addEventListener('click', function () { stop(); index = i; paint(); });
+    });
+    if (stack) {
+      stack.addEventListener('pointerenter', function () { paused = true; });
+      stack.addEventListener('pointerleave', function () { paused = false; });
+      stack.addEventListener('focusin', stop);
+      stack.addEventListener('pointerdown', stop);
+    }
+
+    var dial = root.querySelector('[data-dial]');
+    var desks = Array.prototype.slice.call(root.querySelectorAll('[data-desk]'));
+    var say = root.querySelector('[data-dial-text]');
+    var deg = root.querySelector('[data-dial-deg]');
+    var lit = -1;
+    var pin = -1;
+    function paintDial() {
+      var l = lit >= 0 ? lit : pin;
+      if (dial) dial.setAttribute('data-lit', l >= 0 ? '1' : '0');
+      desks.forEach(function (b, i) {
+        b.classList.toggle('is-lit', i === l);
+        b.setAttribute('aria-pressed', i === pin ? 'true' : 'false');
+      });
+      if (!say || !deg) return;
+      if (l < 0) {
+        say.textContent = 'One dial position per desk';
+        say.style.color = '';
+        deg.textContent = '60° apart';
+      } else {
+        var b = desks[l];
+        say.textContent = b.getAttribute('data-name') + ' · ' + b.getAttribute('data-reg');
+        say.style.color = b.getAttribute('data-ink') || '';
+        deg.textContent = b.getAttribute('data-deg') + '°';
+      }
+    }
+    desks.forEach(function (b, i) {
+      b.addEventListener('mouseenter', function () { lit = i; paintDial(); });
+      b.addEventListener('focus', function () { lit = i; paintDial(); });
+      b.addEventListener('blur', function () { lit = -1; paintDial(); });
+      b.addEventListener('click', function () { pin = pin === i ? -1 : i; lit = i; paintDial(); });
+    });
+    var row = root.querySelector('.signin__dial-row');
+    if (row) row.addEventListener('mouseleave', function () { lit = -1; paintDial(); });
+  })();
+</script>
 
 <script>
   // Bundled by Astro/Vite at build time. PUBLIC_* env vars are inlined.
@@ -190,7 +348,7 @@ const noticeParam = Astro.url.searchParams.get('notice');
     if (paneForm) paneForm.hidden = false;
     setBusy(false);
     const btn = $('btn-magic') as HTMLButtonElement | null;
-    if (btn) btn.textContent = 'Send me a sign-in link';
+    if (btn) btn.textContent = 'Send me a magic link';
     notice('notice', '', 'info');
     const email = $('email') as HTMLInputElement | null;
     email?.focus();
@@ -224,7 +382,7 @@ const noticeParam = Astro.url.searchParams.get('notice');
     });
     if (error) {
       const msg = /rate/i.test(error.message)
-        ? 'Too many links too quickly — give it a minute, then try again.'
+        ? 'Too many links too quickly. Give it a minute, then try again.'
         : 'Something broke on our side. Try again in a moment.';
       notice(noticeId, msg, 'err');
       return false;
@@ -254,7 +412,7 @@ const noticeParam = Astro.url.searchParams.get('notice');
     const emailInput = $('email') as HTMLInputElement | null;
     const email = emailInput?.value.trim() ?? '';
     if (!email || !emailInput?.checkValidity()) {
-      notice('notice', 'That doesn’t look like an email address — check it and try again.', 'err');
+      notice('notice', 'That doesn’t look like an email address. Check it and try again.', 'err');
       emailInput?.focus();
       return;
     }
@@ -266,7 +424,7 @@ const noticeParam = Astro.url.searchParams.get('notice');
     if (ok) showSent();
     else {
       setBusy(false);
-      if (btn) btn.textContent = 'Send me a sign-in link';
+      if (btn) btn.textContent = 'Send me a magic link';
     }
   });
 
@@ -288,80 +446,236 @@ const noticeParam = Astro.url.searchParams.get('notice');
 </script>
 
 <style>
-  .login {
+  /* The SignIn board: a 480 form column and a 440 panel, 112 apart, centred. */
+  .signin {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 112px;
+  }
+  .signin__col {
+    width: 480px;
+    flex: none;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding-top: 4vh;
+    gap: 32px;
   }
-  @media (min-height: 720px) {
-    .login { padding-top: 10vh; }
-  }
-  .login__mark { margin-bottom: 22px; color: var(--ink); }
-
-  .login__plate {
-    width: 100%;
-    max-width: 440px;
-    border-top: 3px solid var(--w-accent-deep, var(--accent-deep));
-  }
-  .login__h1 {
+  .signin__pane { display: flex; flex-direction: column; gap: 32px; }
+  .signin__pane[hidden] { display: none; }
+  .signin__head { display: flex; flex-direction: column; gap: 12px; }
+  .signin .signin__h1 {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: 34px;
-    line-height: 1.12;
-    font-weight: 600;
-    margin: 6px 0 10px;
+    font-weight: 500;
+    font-size: 48px;
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    color: var(--ink);
   }
-  .login__h1 em {
-    font-style: italic;
-    color: var(--w-accent-deep, var(--accent-deep));
+  .signin__sub {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink-2);
   }
-  .login__h1--sent { margin-top: 14px; }
-  .login__dek { margin-bottom: 20px; }
-
-  .login__world {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    color: var(--w-accent-deep, var(--accent-deep));
-    margin: -8px 0 20px;
-  }
-
-  .login__google { gap: 10px; }
-  .login__assure {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
+  .signin__world {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .signin__form { display: flex; flex-direction: column; gap: 24px; }
+  /* The board's arrow after the label. A pseudo-element, not an <svg> child:
+     the handlers set the button's textContent in every state. */
+  .signin__magic::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    flex: none;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10M9 4l4 4-4 4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h10M9 4l4 4-4 4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat;
+  }
+  .signin__magic:disabled::after { display: none; }
+  .signin__alt { display: flex; flex-direction: column; gap: 16px; }
+  .signin__alt .btn { gap: 12px; }
+  .signin__g { flex: none; }
+  .signin__note {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
     color: var(--muted);
-    margin: 10px 0 0;
-    text-align: center;
   }
 
-  .login__envelope { color: var(--ink-soft); }
-  .login__email { font-family: var(--font-mono); font-weight: 600; font-size: 0.92em; }
-  .login__inbox-row { display: flex; gap: 10px; margin: 18px 0 6px; }
-  .login__inbox-row .btn { flex: 1; }
-  .login__sent-foot {
+  /* link-sent */
+  .signin__envelope { color: var(--ink-2); }
+  .signin__email { font-family: var(--font-ui); font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+  .signin__inbox { display: flex; gap: 12px; }
+  .signin__inbox .btn { flex: 1; }
+  .signin__sent-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 12px;
-    margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--hair);
   }
-  .login__reset {
+  .signin__reset {
+    min-height: 44px;
+    padding: 0 4px;
     background: none;
-    border: none;
-    padding: 0;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.04em;
-    color: var(--muted);
+    border: 0;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
   }
-  .login__reset:hover { color: var(--ink); }
+  .signin__reset:hover { color: var(--ink); }
 
-  .login__back { margin-top: 26px; }
+  /* ── the panel ── */
+  .signin__panel {
+    width: 440px;
+    flex: none;
+    box-sizing: border-box;
+    padding: 20px 32px 24px;
+    background: var(--paper-3);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .signin__panel-head {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .signin__panel-head .px-meta { margin: 0; }
+  .signin__dots { display: none; align-items: center; }
+  :global(html.js) .signin__dots { display: flex; }
+  .signin__dot {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--r-ctl);
+  }
+  .signin__dot span {
+    width: 8px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--muted);
+    transition: width var(--t-el) var(--ease), background-color var(--t-el) var(--ease);
+  }
+  .signin__dot[aria-pressed='true'] span { width: 24px; background: var(--ink); }
+
+  /* The stack: three cards in one grid cell, the front one whole, the two
+     behind it raised 12 and 24px and scaled, so their tops peek. */
+  .signin__stack {
+    display: grid;
+    padding-top: 24px;
+  }
+  .signin__slot {
+    grid-area: 1 / 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    transform-origin: 50% 0%;
+    transition: transform var(--t-el) var(--ease-move), opacity var(--t-el) var(--ease-move);
+  }
+  .signin__slot > :global(.px-cover) { flex: 1; }
+  .signin__slot[data-pos='0'] { z-index: 3; transform: none; opacity: 1; }
+  .signin__slot[data-pos='1'] { z-index: 2; transform: translateY(-12px) scale(0.95); opacity: 0.75; pointer-events: none; }
+  .signin__slot[data-pos='2'] { z-index: 1; transform: translateY(-24px) scale(0.9); opacity: 0.45; pointer-events: none; }
+
+  /* The dial row */
+  .signin__dial {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hair-2);
+  }
+  .signin__dial-row { display: flex; align-items: center; justify-content: space-between; }
+  .signin__desk {
+    width: 56px;
+    height: 60px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity var(--t-el) var(--ease);
+  }
+  .signin__desk:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .signin__desk-u {
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: transparent;
+    transition: background-color var(--t-el) var(--ease);
+  }
+  .signin__dial[data-lit='1'] .signin__desk:not(.is-lit) { opacity: 0.3; }
+  .signin__desk.is-lit .signin__desk-u { background: var(--dk-mark); }
+  .signin__say {
+    margin: 0;
+    min-height: 20px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .signin__say-text {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    transition: color var(--t-el) var(--ease);
+  }
+  .signin__say-deg {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Below the two columns' width the panel drops under the form. */
+  @media (max-width: 1100px) {
+    .signin { flex-direction: column; align-items: center; gap: 56px; padding-bottom: 32px; }
+  }
+  @media (max-width: 560px) {
+    .signin__col, .signin__panel { width: 100%; }
+    .signin__panel { padding: 16px 20px 20px; }
+    .signin .signin__h1 { font-size: 40px; }
+    .signin__desk { width: 44px; }
+    .signin__inbox { flex-direction: column; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .signin__slot, .signin__dot span, .signin__desk, .signin__desk-u, .signin__say-text { transition: none; }
+  }
 </style>

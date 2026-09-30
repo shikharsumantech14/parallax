@@ -1,10 +1,9 @@
 ---
 /*
   LeagueTable — v2 sports standings table (.lt) inside the elevated .px-viz
-  card. Rows stagger in left→right on scroll; qualify/relegation bands paint
-  as a left inset rule; form pills colour by result. Faithful port of the kit's
-  <LeagueTable>. Build-time, zero runtime JS (reveal handled by CSS via
-  core/Reveal.astro toggling .is-in on the .px-viz).
+  card. Qualify/relegation bands paint as a left inset rule; form pills colour
+  by result. Faithful port of the kit's <LeagueTable>. Build-time, zero
+  runtime JS; static since Lens Phase 5 (the row stagger retired).
 
   Use for: football/cricket league standings, tournament
   points tables, series results.
@@ -69,7 +68,7 @@ const badgeColor = (b?: string): string => {
 };
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span></div>}
   <table class="lt">
     <thead>

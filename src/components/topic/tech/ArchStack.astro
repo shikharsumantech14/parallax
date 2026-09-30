@@ -4,13 +4,13 @@
  * 3D perspective (top slab = frontend/app, bottom = infra) on the shared
  * `.px3d-stage` + `.px3d-tilt` (global core/Tilt.astro `data-tilt` island gives
  * the stack pointer-tilt). Each slab carries a label + optional sublabel and an
- * optional per-layer color. On reveal the slabs "explode" apart from a collapsed
- * (flush) state — staggered translateY/translateZ + opacity. Hovering a slab
- * lifts it toward the reader. Build-time geometry; zero runtime JS.
+ * optional per-layer color. The slabs rest in their exploded layout (static
+ * since Lens Phase 5; the Phase 6 build explodes them from a collapsed, flush
+ * state). Hovering a slab lifts it toward the reader. Build-time geometry;
+ * zero runtime JS.
  *
- * No-JS / reduced-motion: slabs paint in their FINAL exploded, separated layout
- * (the collapsed hidden state sits behind `html.js`; reduced-motion resets with
- * !important). Labels are plain text, always present.
+ * The slabs always paint in their FINAL exploded, separated layout. Labels are
+ * plain text, always present.
  *
  * data: { layers[]{ label, sublabel?, color? }, caption?, source? }
  */
@@ -44,7 +44,7 @@ const slabs = layers.map((l, i) => {
 });
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>architecture</b></div>}
 
   <div class="px-arch px3d-stage">
@@ -154,14 +154,6 @@ const slabs = layers.map((l, i) => {
       0 26px 52px -24px color-mix(in oklab, var(--ink) 60%, transparent);
   }
 
-  /* reveal: slabs start collapsed (flush, no depth) + faded, then explode apart
-     (gated behind html.js so no-JS renders the final exploded layout) */
-  html.js .px-viz:not(.is-in) .px-arch__slab {
-    transform: translateZ(0) translateY(0);
-    opacity: 0;
-  }
-  .px-viz.is-in .px-arch__slab { transition-delay: calc(var(--i) * 90ms); }
-
   /* mobile: tighten the slab's inner spacing, never the stage's SIDE padding.
      This block used to set `padding: 12px 14px`, claiming it stopped the
      perspective-magnified stack overflowing — it did the opposite. The 22px
@@ -174,12 +166,5 @@ const slabs = layers.map((l, i) => {
     .px-arch { padding-block: 12px; }
     .px-arch__face { padding: 13px 15px; }
     .px-arch__label { font-size: 13px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-arch__slab {
-      transform: translateZ(var(--z)) translateY(var(--y)) !important;
-      opacity: 1 !important;
-    }
   }
 </style>

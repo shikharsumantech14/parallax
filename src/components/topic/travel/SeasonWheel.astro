@@ -179,7 +179,7 @@ const payload = JSON.stringify({
 const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', price: 'PRICE' };
 ---
 
-<div class="px-swheel" data-viz-root data-reveal>
+<div class="px-swheel" data-viz-root>
   {caption && (
     <div class="px-swheel__cap">
       <span class="px-swheel__cap-text" set:html={renderInline(caption)} />
@@ -545,30 +545,18 @@ const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', p
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
 
-  /* ── entrance (html.js-gated): guides hold, wedges grow, arc sweeps ──────────
-     wedges scale up from the wheel centre, staggered Jan→Dec (travel's slow
-     sweep); labels + BEST fade; the scallop draws. No-JS = final state. */
-  html.js .px-swheel:not(.is-in) .px-swheel__wedge { transform: scale(0.28); opacity: 0; }
-  html.js .px-swheel:not(.is-in) .px-swheel__lab,
-  html.js .px-swheel:not(.is-in) .px-swheel__best { opacity: 0; }
-  html.js .px-swheel:not(.is-in) .px-swheel__scallop { stroke-dashoffset: 900; }
-
   .px-swheel__wedge {
     opacity: 1;
     transition: transform 600ms var(--ease), opacity 400ms var(--ease);
   }
   .px-swheel .px-swheel__sector { }
-  .px-swheel.is-in .px-swheel__sector .px-swheel__wedge { transition-delay: calc(var(--m) * 70ms); }
   .px-swheel__lab, .px-swheel__best {
     transition: opacity 400ms var(--ease);
   }
-  .px-swheel.is-in .px-swheel__lab { transition-delay: 900ms; }
-  .px-swheel.is-in .px-swheel__best { transition-delay: 1300ms; }
   .px-swheel__scallop {
     stroke-dasharray: 900; stroke-dashoffset: 0;
     transition: stroke-dashoffset 700ms var(--ease);
   }
-  .px-swheel.is-in .px-swheel__scallop { transition-delay: 1050ms; }
 
   /* ── 375px: smaller tilt (less foreshortening), key above the wheel ──────── */
   @media (max-width: 640px) {
@@ -580,7 +568,7 @@ const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', p
     .px-swheel__ro-place { font-size: 15px; }
   }
 
-  /* ── reduced motion: flatten the disc, no parallax, no entrance ───────────── */
+  /* ── reduced motion: flatten the disc, no parallax, no transitions ───────── */
   @media (prefers-reduced-motion: reduce) {
     .px-swheel__disc {
       --tilt: 0deg; --twist: 0deg;
@@ -589,9 +577,5 @@ const ringMeta: Record<Metric, string> = { climate: 'CLIMATE', crowd: 'CROWD', p
     .px-swheel__lab, .px-swheel__best { transform: translate(-50%, -50%) !important; }
     .px-swheel__wedge, .px-swheel__scallop, .px-swheel__lab, .px-swheel__best,
     .px-swheel__sector { transition: none !important; }
-    html.js .px-swheel:not(.is-in) .px-swheel__wedge { transform: scale(1) !important; opacity: 1 !important; }
-    html.js .px-swheel:not(.is-in) .px-swheel__lab,
-    html.js .px-swheel:not(.is-in) .px-swheel__best { opacity: 1 !important; }
-    html.js .px-swheel:not(.is-in) .px-swheel__scallop { stroke-dashoffset: 0 !important; }
   }
 </style>

@@ -13,11 +13,11 @@ Components split into:
   picking up colour/font tokens automatically. Includes the Masthead, Banner,
   Hero, Primer, Section, Quote, Prose, Comparison, DataReadout, Gauge,
   Sources, Colophon, and the ReadingToolbar (the floating reading-progress +
-  Full/Skim + Save pill that replaced the old SkimToggle). The scroll-reveal
-  and count-up/cursor-warmth behaviours ship as two tiny vanilla
-  progressive-enhancement islands — `core/Reveal.astro` and
-  `core/VizMotion.astro` — discussed in §"v2 data-viz + chrome class
-  exception" below.
+  Full/Skim + Save pill that replaced the old SkimToggle). Motion is not a
+  component's: every build runs through the one island
+  `src/scripts/build.ts` from attributes the component declares (§11, Lens
+  Phase 5). `core/Reveal.astro` and `core/VizMotion.astro` were DELETED in
+  Phase 5.
 
   **`core/VizCard.astro`** (RD-01a, 2026-08) is the shared shell the revamp-wave
   kinds render inside — and, since Phase 6.2 (2026-09-04), `scaling-plot`,
@@ -131,7 +131,7 @@ SectionBody**, not SectionRenderer.
 | `power-matrix` | `topic/politics/PowerMatrix.astro` | politics |
 | `orbit-trace` | `topic/space/OrbitTrace.astro` | space |
 | `launch-stats` | `topic/space/LaunchStats.astro` | space |
-| `region-map` | `topic/earth/RegionMap.astro` | earth |
+| `region-map` | `topic/earth/RegionMap.astro` (projection fitted to its zones and markers since 2026-09-22, world framing past 150° of longitude; every label 12px Instrument Sans and the legend sized to its content since 2026-09-30) | earth |
 | `climate-strip` | `topic/earth/ClimateStrip.astro` (v2 kit `.cs`, inside `.px-viz`) | earth |
 | `gauge` | `core/Gauge.astro` (was `carbon-gauge`; `swing-dial` and `throughput-dial` fold in as its lean and capacity variants) | universal |
 | `commit-grid` | `topic/tech/CommitGrid.astro` | tech |
@@ -203,7 +203,7 @@ SVG/HTML fallback by default.
 | `arch-stack` | `topic/tech/ArchStack.astro` | tech | CSS-3D |
 | `latency-waterfall` | `topic/tech/LatencyWaterfall.astro` | tech | SVG |
 | `version-graph` | `topic/tech/VersionGraph.astro` | tech | SVG |
-| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Carries the measurements for the still-owed Phase-5 mobile font bump and why a plain bump fails |
+| `scaling-plot` | `topic/tech/ScalingPlot.astro` | tech | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); LOG/LINEAR axis toggle via `px-inst__chip` (`aria-pressed`), both projections precomputed in frontmatter, no scale math on the client. Point labels 12px with a collision-aware placement pass (above, below, right, left, the corners, one line further out; the least important label drops) and a y gutter measured from its tick labels and title lines (2026-09-30) |
 | `neural-flow` | `topic/tech/NeuralFlow.astro` | tech | **WebGL** (FLAGSHIP — instanced forward-pass activation wave; shared math `scripts/viz3d/neural.ts`) |
 | `packet-trace` | `topic/tech/PacketTrace.astro` | tech | **WebGL** globe + SVG latency budget (light floor vs measured RTT; shared math `scripts/viz3d/packet.ts`) |
 | `queue-cliff` | `topic/tech/QueueCliff.astro` | tech | SVG interactive (M/M/1 utilization cliff, 1/(1−ρ)) |
@@ -218,7 +218,7 @@ SVG/HTML fallback by default.
 | `season-wheel` | `topic/travel/SeasonWheel.astro` | travel | SVG (radial climate year) |
 | `fare-terrain` | `topic/travel/FareTerrain.astro` | travel | SVG (fare/price ridgeline across dates or routes) |
 | `tactics-pitch` | `topic/sports/TacticsPitch.astro` | sports | CSS-3D/SVG |
-| `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG |
+| `shot-map` | `topic/sports/ShotMap.astro` | sports | SVG (the miss ✕ is two drawn strokes, not a glyph, since 2026-09-30) |
 | `xg-race` | `topic/sports/XgRace.astro` | sports | SVG — re-routed through `core/VizCard.astro` 2026-09-04 (Phase 6.2); minute scrub (`<input type=range>`, ships hidden, island unhides once the payload parses; per-minute tables precomputed at build; clipPath id derived from a payload hash) |
 | `momentum-wave` | `topic/sports/MomentumWave.astro` | sports | SVG |
 | `player-card` | `topic/sports/PlayerCard.astro` | sports | CSS-3D flip |
@@ -356,7 +356,7 @@ Known reservations (still-live `px-` prefixes):
 
 | Prefix | Owner | Notes |
 |---|---|---|
-| `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; `data-reveal` root; the ⤢ `.px-vexp` button is a hover corner square on desktop and an in-flow "Study this figure ⤢" row under the graphic on touch and phones (2026-09-23, `modal.css`) |
+| `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; VizCard's root is a `data-build-scene` (§11); the ⤢ `.px-vexp` button is a hover corner square on desktop and an in-flow "Study this figure ⤢" row under the graphic on touch and phones (2026-09-23, `modal.css`) |
 | `px-ns` | `number-sense` | core · `NumberSense.astro` |
 | `px-3s` | `three-steps` | core · `ThreeSteps.astro` |
 | `px-yt` | `you-think` | core · `YouThink.astro` |
@@ -378,7 +378,7 @@ Known reservations (still-live `px-` prefixes):
 | `px-prose-full` / `px-skim-caption-block` | skim-mode wrappers (now emitted by `SectionRenderer.astro`) | |
 | `px-plain` | the "In plain terms" line (`core/Section.astro`; CSS in `viz-type.css`) | `.px-plain__src` is its second line — `Source · …` (real text, 9px/600/.14em mono), rendered by Section for EVERY kind from `section.source ?? data.source` (`{label, date}` joined with ` · `). The one source emitter in the codebase since 2026-09-04; components must not add their own |
 | `px-act` | ActBreak chapter divider (scoped in `core/ActBreak.astro`) | |
-| `px-acct` | AccountEntry masthead slot (scoped in `core/AccountEntry.astro`) | |
+| `px-acct` | AccountEntry masthead slot (scoped in `core/AccountEntry.astro`) | Lens 2026-09-30: on an SSR page with `Astro.locals.user` it renders the account pill (initial disc, first name, caret) as a `<details>` menu with "Your shelf" and Sign out; prerendered pages keep the "Sign in" / "Shelf" link and its cookie island |
 | `px-hlens` | home hero (scoped in `home/HeroLens.astro`) — carries the ONE sanctioned cursor-parallax (HOME-SPEC §2) | |
 | `px-wire` | home wire strip (scoped in `home/WireStrip.astro`) | |
 | `px-fplate` | home featured plate (scoped in `home/FeaturedPlate.astro`) | |
@@ -386,9 +386,14 @@ Known reservations (still-live `px-` prefixes):
 | `px-nnote` | NewsletterNotice home ribbon (scoped in `core/NewsletterNotice.astro`) | mounted above `<Masthead>` in `index.astro`; fires on `/?newsletter=confirmed` |
 | `px-mark` | the Parallax medallion (scoped in `core/Mark.astro`, RD-10 step 2) | inline SVG; `desk` picks the fixed dial station, `size` drives ring 7/10/14 AND the glyph tier, `cut` is mark/seal/reversed (auto-reversed below 24px unless `cut` is passed), `tight` trims the box to the ring, `ring` pins the stroke. `ground` (Lens Phase 2) is the surface colour the offset disc takes, so the crescent is cut from the real ground (the footer's paper-3, a chip's paper-2, a cover's tint); `onDeep` draws the on-deep body for a stage (ground = the desk deep, ring and P = `--on-deep`). The P is an OUTLINE from `src/lib/mark-glyph.ts`, never live text. Mounted by the masthead, the footer, the cover cards, About and the account pages |
 | `px-cover` | `core/CoverCard.astro` (Lens Phase 2) | the graphic-dominant issue card: `size` card (3-across, 216px tint panel) / tile (the desk strip, 264px panel) / row (the 120 x 72 thumbnail inside a list row, not a link). One `<a>` on `.px-card` for card and tile |
-| `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic, DERIVED from the issue's first section of eleven kinds until Phase 4's `cover` field (`src/lib/cover.ts`); falls back to the desk medallion. In-SVG text in the literal Instrument Sans stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
+| `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic: the section the issue's `cover.section` names when it is one of eleven drawable kinds, else the first such section (`src/lib/cover.ts`, which also returns the one-line `caption` a Home desk card prints under it); falls back to the desk medallion. In-SVG text in the literal Instrument Sans stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
+| `px-stage` | `core/Stage.astro` (Lens Phase 4) | the deep plate, full bleed: the desk's `--deep` edge to edge (a negative margin to the frame edge, a `border-image` outset past it, which paints without horizontal scroll), `<Masthead variant="stage">` across its top, 760 on Home and 720 on a desk page, auto below 1024px. Local tokens `--st-deep`, `--st-mark`, `--st-hi` (the lime on tech and sports), `--st-h`. The slot is the scene. No JS |
+| `px-scn` | `stage/StageScene.astro` (Lens Phase 4) | one issue told as a picture on the plate, from `src/lib/stage.ts` (pure): the number at 160 (88 on phones), a spiral clock, an orbit, readout bars or the cover mark on a tint panel, a ladder of at most three rungs, the headline and the paper "Read" button with Replay. Its root is the `data-build-scene` (`data-build-tempo="1.6"` on Home); the desktop and phone drawings are two SVGs, one shown by a media query, so every label prints at 12px or more at 1280 and 375 |
+| `px-intro` | `core/IntroOverlay.astro` (Lens Phase 4) | the first-visit intro on Home: three scenes on paper, shown once per browser (`px_intro_v2`), `?intro=1` / `?intro=0`. Ships `hidden`; its is:inline script (under 3 KB) is the show-once, the stepper and the scene-3 cue lighting; each scene is a `data-build-scene` that it asks to build with `px:build` |
+| `px-prom` / `px-prom-card` | `core/PromiseStrip.astro` (Lens Phase 4) | "Independent · Sourced · Slow" with their stroke icons: the 56px strip (Home, Subscribe) or three cards (About) |
+| `px-dcard` | the Home desk cards (scoped in `src/pages/index.astro`) | medallion 40, register, name, count chip, tagline, the latest issue's cover mark on the desk tint with its caption |
 | `px-arch` | `/archive` head, search and desk chips (in `meta.css`) | rows reuse `.px-archive__*`, so home and `/archive` share ONE row implementation; the filter island reveals the controls, which ship `hidden` |
-| `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | `story/StoryCard.astro` composes `SectionBody` **except** for `kind: 'prose'`, which it skips entirely and renders as a pure-text card (`.pxs-card--text`) |
+| `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | Lens 2026-09-30 (the Story boards): `StoryShell` (the desktop head, the horizontal row of 360 x 640 cards snapping on x, the labelled dot stepper whose dots are `#cN` links, prev / next and the arrow keys; phones: one card per screen, vertical snap, each card with its own `.pxs-dots`), `StoryHookCard` (the desk DEEP plate, the medallion in its SEAL cut `onDeep`, the italic word in the desk mark or the lime), `StoryCard` (the beat: header, eyebrow + title, `SectionBody` in `bare` mode, the beat text clipped to 40 words, the source line; `kind: 'prose'` skips `SectionBody` and renders `.pxs-card--text`), `StoryCtaCard` (stats row, "Still in the issue", the desk button, `SaveButton variant="block"`, `StoryShare`'s four 44px icon controls). The beats still come from `src/lib/story.ts`, unchanged |
 | `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
 
 Retired prefixes (the v2 data-viz port replaced these with the kit's generic
@@ -578,24 +583,26 @@ These render directly in templates, not via the dispatcher:
 |---|---|
 | `core/IssueHead.astro` | inline in `src/pages/issues/[slug].astro` — the meta strip (← desk register · № · date), eyebrow, `.px-h1`, the hook as `.px-lede`, the primer on a 4px accent rule. Replaced `core/Hero.astro`, `core/Banner.astro` and `core/Primer.astro` (all deleted 2026-09-08). `px-ihead`. |
 | `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` — since 2026-09-08 a PINNED flat strip on the paper with a 2px ink rule on top: progress hairline, `NN% · N min left`, the square Full ⇄ Skim toggle, Save; slides up after the first scroll; sits above the phone home bar (`env(safe-area-inset-bottom)`). JS-only (`html.js`). |
-| `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`** — not mounted on the issue page directly. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
+| `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`**, and (Lens 2026-09-30) on the story CTA card as `variant="block"`, the board's 44px full-width "Save to shelf". Instrument Sans 14/600, a 4px corner, hair-2 border; saved in the desk text colour. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
 | `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
 | `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) — the **single** source every mount embeds (SubscribeStrip / Colophon / Footer / BeatJoin), so a change here covers all of them. POSTs to the app's `/api/join` (repointed from `/api/subscribe` on 2026-07-14) and handles the degraded `{ok:true, account:false}` response. **No-JS-gated:** the form is hidden behind `html:not(.js)` with an "Enable JavaScript to subscribe." line, because a no-JS submit used to do a native GET that put the reader's email in the URL, history and server logs. |
 | `core/Masthead.astro` | in `IssueLayout.astro` and on each house page (index, archive, about, subscribe, desks). Lens Phase 2: the lockup (34px tight disc, ring 9, Newsreader 500 24, the register on a desk page), the nav, the live badge, the account slot as a "Sign in" link, the ink Subscribe; `variant="stage"` + `desk` (+ `register`) is the on-deep version for a stage (Phase 4). Below 768px a `<details>` menu with 44px rows beside a compact Subscribe |
 | `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
-| `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre glass toast fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
+| `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre toast (Lens 2026-09-30: paper-2, hair, shadow-2, a 44px close; the glass is gone) fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
 | `core/NewsletterNotice.astro` | inline in `index.astro`, **above `<Masthead>`** — in-flow ribbon fired by `/?newsletter=confirmed`. Occupies no space until revealed, so no-JS / crawlers see nothing. Dismissible; cleans the URL. `px-nnote`. |
 | `core/Sources.astro` | inline in `src/pages/issues/[slug].astro`, footer |
 | `core/Colophon.astro` | in both layouts. Lens Phase 2: on `--paper-3`, the lockup at 28px (house cut), the promise, the six desks as link chips (20px medallions, the MARK cut), three link columns (Read · Parallax · Account), the colophon line with Privacy and Terms. Same on every page: `desk` is accepted and ignored |
-| `core/Reveal.astro` | both layouts, after content — scroll-reveal island (adds `.is-in` to `[data-reveal]`) |
-| `core/VizMotion.astro` | both layouts, after content — count-up + cursor-warmth island (`[data-countup]` / `[data-warmth]`) |
+| `src/scripts/build.ts` | every layout (Home, Issue, Story, App), once, as a bundled module `<script>` — the one build island (§11). Replaced `core/Reveal.astro` and `core/VizMotion.astro`, deleted in Lens Phase 5 |
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
 | `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. The ⤢ button (`.px-vexp`) has two shapes: on a hover-capable screen wider than 768px, a hover-revealed 30px square at the card's top-right (`.px-viz__cap` keeps a 44px reserve for it); under `(hover: none), (pointer: coarse), (max-width: 768px)` it is `position: static`, the card's LAST row, right-aligned, 44px tall, labelled "Study this figure ⤢" (2026-09-23). The corner shape covered captions, first timeline events and readout captions on 16 issues at 375; appended last and in flow, it cannot cover anything. **Do not put it back in the corner on phones, and do not add per-component corner reserves** — the in-flow row is the fix. Because the source line renders from `core/Section.astro` rather than inside the card, **the modal shows no source** — ruled as-is on 2026-09-04, not a bug. The modal keeps its glass; it is the only surface that does. |
 | `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Newsreader 24, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
-| `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). `px-desk__`. |
+| `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). Lens Phase 4: the desk's stage (its masthead included, with the register), its issues as `CoverCard size="tile"` three across, the "New here? Start with No N" path (the three earliest as a dot strip), the other five desks as tiles with their medallion and a row thumbnail. `px-desk__`. |
+| `core/Stage.astro` + `stage/StageScene.astro` | Home (`index.astro`, the newest issue with a `cover`) and every desk page (the desk's newest issue). The stage replaces the page's `<Masthead>`: it renders the on-deep one itself |
+| `core/IntroOverlay.astro` | `index.astro`, after the page content, with the Home cover issue (scene 3 is built from its readout, timeline and latency-waterfall by `introFigure()` in `src/lib/stage.ts`, or shows its cover mark) |
+| `core/PromiseStrip.astro` | Home and `/subscribe` (strip), `/about` (cards) |
 
 ---
 
@@ -760,29 +767,23 @@ flat `.px-viz` card — radius 0, no shadow, 3px `--viz-edge` top rule since 202
 | LeagueTable | `.lt` |
 | PlayerRadar | `.pr` |
 
-Charts wrap in the shared `.px-viz` card tagged `data-reveal`; the vote bar
-(`.vb`), timeline (`.tl`), and telemetry (`.tel`) are standalone `data-reveal`
-roots.
+Charts wrap in the shared `.px-viz` card; the vote bar (`.vb`), timeline
+(`.tl`), and telemetry (`.tel`) are standalone roots. Since Lens Phase 5 the
+cards that build are `data-build-scene` roots (§11).
 
-**Components kept on their `px-` classes** (light-touch port — only gained a
-card-level `data-reveal` scroll-in): SeatChart (`.px-seats`), BillBreakdown
+**Components kept on their `px-` classes** (light-touch port; the card-level
+scroll-in they gained was retired in Lens Phase 5): SeatChart (`.px-seats`), BillBreakdown
 (`.px-bills`), BrothersAnalogy (`.px-analogy`), CarbonGauge (now Gauge's
 budget variant, `.px-cgauge`), RegionMap (free-standing cartographic SVG),
 CommitGrid, JourneyMap, MatchStatLine (`.px-msl`).
 
-**The reveal + motion contract (no-JS / print safe)**
-
-- Scroll reveals are driven by `core/Reveal.astro` (an `is:inline` island
-  that adds `.is-in` to every `[data-reveal]` via IntersectionObserver).
-- **Every reveal-hidden state is gated behind an `html.js` class** set by a
-  one-line inline `<head>` guard. No JS ⇒ no `.js` class ⇒ content paints in
-  its final revealed state. Print does the same. Matching
-  `prefers-reduced-motion` resets live in `dataviz-v2.css` (and
-  `motion-v2.css` for chrome).
-- Count-up + cursor-warmth ship as `core/VizMotion.astro`: `[data-countup]`
-  tweens to the final value **already present in the HTML** (so no-JS shows
-  the real number), and `[data-warmth]` tracks the pointer for the warmth
-  radial.
+**The motion contract (no-JS / print safe)** is the build of §11 since Lens
+Phase 5. The reveal contract that stood here (`core/Reveal.astro` adding
+`.is-in` to `[data-reveal]`, every hidden state behind `html.js`, a
+reduced-motion reset per kind, and `core/VizMotion.astro`'s `[data-countup]`
+and `[data-warmth]`) was RETIRED, files, attributes and CSS together: every
+component now paints its final state as written, and moves only through the
+attributes of §11.
 
 **Inert dead-CSS follow-up.** The old per-component viz CSS in the theme
 files (`.px-vote*`, `.px-appr*`, `.px-pwm*`, `.px-paradox*`, `.px-timeline*`,
@@ -800,8 +801,7 @@ The 59 v2 interactive kinds (§2 block) split into implementation families.
 All honour one shared no-JS / `prefers-reduced-motion` contract: **every
 component renders a static SVG/HTML fallback by default, and interactivity is
 layered on top only when JS runs and motion is allowed.** This is the same
-contract as `core/Reveal.astro` / `core/VizMotion.astro` and the v2 data-viz
-(§9).
+contract as the build island (§11) and the v2 data-viz (§9).
 
 ### Family A — lazy WebGL scenes (Three.js): 10 kinds
 
@@ -885,14 +885,14 @@ plus the SVG/CSS-3D hybrids (`trajectory-arc`, `delta-v-ladder`,
 
 ### Family C — animated SVG / canvas: the largest family
 
-Reveal-on-scroll line draws, bars, dials, contour fields and area fills — the
-default for the breadth pass, which was SVG-first (`lagrange-map`,
+Line draws, bars, dials, contour fields and area fills — the default for the
+breadth pass, which was SVG-first (`lagrange-map`,
 `atmosphere-column`, `carbon-loop`, `moore-ladder`, `city-grid`,
 `altitude-oxygen`, `season-wheel`, `fare-terrain`, `elo-river`, `court-value`,
 `pace-ridge`, `gerrymander-lens`, alongside the older
-`latency-waterfall`, `climate-spiral`, `momentum-wave`, `xg-race`). These
-follow the §9 reveal contract: hidden states are **`html.js`-gated** (no JS ⇒
-final painted state) and reduced-motion resets to the final frame.
+`latency-waterfall`, `climate-spiral`, `momentum-wave`, `xg-race`). Their
+scroll-in reveals were retired in Lens Phase 5: each paints its final state
+until its Phase 6 wave declares a build (§11).
 
 ### Family D — HTML-interactive (new 2026-07-14)
 
@@ -927,7 +927,9 @@ is two label sets: the authored sizes for desktop and a phone set sized to
 print at ≥ 9.5px on a 335px plate, one or the other shown by a media query
 (`StormTrack`, `ConstellationSwarm`, `PlateMotion`, `TerrainRelief`,
 `NeuralFlow`, `PacketTrace`, `TerminatorGlobe`'s HTML labels). Either way
-the floor is **9.5px rendered**, and `check:render` reports TINY below it.
+the floor was **9.5px rendered**. Lens raises it to 12px (LENS §3.4):
+`check:render` reports TINY (a warning) below 12px and FLOOR (blocking)
+below 9.5px since Phase 5.
 The showcase sweep of 2026-09-24 brought every kind on the six showcases to
 zero findings at 375; a new kind picks one of the two rules in its first
 commit.
@@ -954,7 +956,106 @@ for `status !== 'draft'`). Data shapes for every kind are in
 
 ---
 
+## 11. The build contract (Lens Phase 5, 2026-09-30)
+
+**A component never animates itself.** It declares a build in its markup and
+the one island, `src/scripts/build.ts`, runs it (the law: `docs/design/LENS.md`
+§6.4; the classes: `src/styles/motion-v2.css`). The static HTML is the FINAL
+state: no JS, reduced motion, print and the render gate all see it, because
+the start state is applied by the island, never in the markup. So never write
+a hidden state in CSS, `html.js`-gated or not, for anything that builds.
+
+| Attribute | Put it on | Means |
+|---|---|---|
+| `data-build-scene` | the component's root (or the graphic, see below) | a scene; optional `data-build-delay="ms"`, `data-build-tempo="1.6"` |
+| `data-build="n"` | each element that builds | its step, an integer from 1; shared n staggers 80ms in document order |
+| `data-build-kind` | the same element | `counter` · `draw` · `grow-x` · `grow-y` · `drop` · `rise` · `fade` (default) |
+| `data-to` (+ `data-format="1dp"`) | a counter | the value it counts to; its text must hold ONE number |
+| `data-build-replay` | a `<button hidden>` in the scene | shown and wired by the island |
+
+**Order a build as axis, then marks, then labels, then the figure's headline
+number,** inside 4.5s. The island moves `opacity`, the individual
+`translate` and `scale` properties and `stroke-dashoffset`; it never
+touches `transform`, so an SVG group's placement or a label's centring
+survives. A `grow` needs a `transform-origin` in your CSS (a bar: its left
+edge; a column: its floor; those are also the defaults). A `draw` goes on
+the SVG geometry element itself with a solid stroke. A counter's number sits
+in its own span when the element holds anything else (a cue tag, a unit).
+Numerals grouped the Indian way are not counters (the tween is en-US).
+VizCard's root is already a scene, so a VizCard kind only puts `data-build`
+on its parts. Nested scenes each run their own elements.
+
+**Two things break the gate.** `check:render`'s BUILD check compares every
+scene after its build (JS and motion on) with the page with JavaScript off:
+each build element's text, box (within 1px) and opacity. So (1) nothing may
+end anywhere the static page does not show it, and (2) a scene must not hold
+an `html.js`-gated control that moves its build elements (put the scene on
+the graphic, not the card). And an element that is a cue anchor
+(`data-cue`) may also build: the start state outranks the lighting, and
+section 1's cues wait for its build (`px:built`).
+
+**Wired in Phase 5:** the nine cue-wired kinds (`data-readout` tiles drop,
+then count; `you-think` belief, record, figure; `timeline` rows;
+`benchmark-chart` axis, bars, values, notes; `latency-waterfall` axis, bars,
+durations; `margin-ladder` names, bars, margins; `power-matrix` axes, rows of
+cells, legend; `jargon-buster` terms; `comparison` heads, rows) plus the
+old count-ups (`vote-result`'s numbers, `transfer-window`'s days,
+`gauge`'s capacity value). Every other kind is static until its Phase 6
+wave gives it a build order. `coalition-calculus` lost its count-up for good:
+its own island rewrites the verdict number.
+
+---
+
 ## Change log
+
+### 2026-09-30 — Lens Phase 4a: the stage, the pages, the intro, the cover field
+
+New: **`core/Stage.astro`** (`px-stage`, the full-bleed deep plate with the
+on-deep masthead), **`stage/StageScene.astro`** (`px-scn`, an issue as a
+picture: the spiral clock on Home from No 17's timeline, the orbit on the
+space desk from No 14's descent profile, readout bars, or the cover mark on
+a tint panel; data in `src/lib/stage.ts`, pure), **`core/IntroOverlay.astro`**
+(`px-intro`, the three-scene first-visit intro on Home) and
+**`core/PromiseStrip.astro`** (`px-prom`). Rebuilt to their boards:
+`src/pages/index.astro`, `desk/DeskIndex.astro` (and its route),
+`src/pages/about.astro`, `src/pages/archive.astro` (the chips now filter
+cover cards by month; the search box is gone, as on the board) and
+`src/pages/subscribe.astro`. The issue schema gained `cover` (see
+`src/content/issues/_AGENTS.md`); `coverModel()` reads `cover.section` and
+returns a `caption`. The stage and the intro build through Phase 5's
+`build.ts` (`data-build-scene`, `data-build`, `data-build-kind`, the counter's
+`data-to`, `[data-build-replay]` shipped `hidden`, `px:build`). The share
+cards (`scripts/story/og-card.ts`) now draw the seal-cut medallion, the
+italic word in the desk hi and the issue's cover mark on the right 45%.
+`DARK_DESKS` left `src/lib/desks.ts` with the dark page grounds.
+
+### 2026-09-30 — Lens Phase 5: one build island
+
+`core/Reveal.astro` and `core/VizMotion.astro` are DELETED, with every
+`data-reveal` attribute, every `data-countup`, and every CSS rule whose
+selector named `.is-in` (the `html.js …:not(.is-in)` hidden states, the
+`.is-in` staggers and delays, and their reduced-motion resets) in 75
+components, `dataviz-v2.css` and `base.css`. Four keyframes that only those
+rules used went too (`telSweep`, `px-cloop-flow`, `px-pflow-flow`,
+`descRide`). Components paint their final state; motion is §11.
+
+### 2026-09-30 — Lens Phase 4b: story cards and the account islands
+
+- **Story mode** is rebuilt to the Story and Story-Phone boards (§4 `pxs-`
+  row). `StoryCard`, `StoryHookCard` and `StoryCtaCard` take `count`, `desk`
+  and `issueNo` now; `StoryShell` takes `labels`, `desk`, `eyebrow` and
+  `slug`, and sets the desk inks (`--dk-text`, `--dk-mark`, `--dk-tint`,
+  `--dk-deep`) on its root. The beat figure is `SectionBody bare`; a chart
+  drawn for the 720 measure keeps its width and scrolls inside the 312px
+  card on desktop, from a copy of `dataviz-v2.css`'s min-width list in
+  `story.css` (keep the two in step until Phase 6). No `data-reveal` on the
+  beat: the build island owns motion (Phase 5). The fixed chevrons and the
+  fixed progress segments are gone; nothing floats on touch.
+- **`SaveButton`** gained `variant` (`toolbar` | `block`) and the Lens values.
+- **`AccountEntry`** renders the account pill on session pages (§4).
+- **`WelcomeBack`** and **`NewsletterNotice`** lost the glass and the dark-desk
+  variant, gained 44px close buttons; the notice's link is relative
+  (`/login?next=/`).
 
 ### 2026-09-30 — Lens Phase 2: the shell
 

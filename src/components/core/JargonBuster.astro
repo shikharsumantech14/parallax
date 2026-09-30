@@ -11,9 +11,10 @@
  * it once. Never emit a `__cap` / `__src` element (story.css hides those).
  *
  * Geometry: a hairline grid in the `.px-cells` manner — one column, two from
- * 640px, an odd tail spanning both. Static HTML, zero JS; the root is a
- * `[data-reveal]` target, so motion-v2.css's generic contract handles the
- * scroll-in (visible without JS, still under reduced motion).
+ * 640px, an odd tail spanning both. Static HTML, zero JS of its own. THE
+ * BUILD (Lens Phase 5, LENS §6.4): the root is a `data-build-scene` and the
+ * terms rise in, 80ms apart (src/scripts/build.ts); visible as written
+ * without JS and under reduced motion.
  *
  * data: { terms: [{ term, meaning, hindi? }] }  · 2–4 entries · prefix px-jb
  */
@@ -46,12 +47,12 @@ const cells = items.map((t, i) => {
 ---
 
 {n > 0 && (
-  <div class="px-jb" data-reveal>
+  <div class="px-jb" data-build-scene>
     <dl class="px-jb__grid">
       {/* Cue anchors (LENS §5.2): each term is `data-cue="<n>"` in data order.
           A narrative kind has no figure panel, so no cue names these today. */}
       {cells.map((c, i) => (
-        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom} data-cue={i + 1}>
+        <div class="px-jb__cell" data-span={c.span} data-r={c.right} data-b={c.bottom} data-cue={i + 1} data-build="1" data-build-kind="rise">
           <dt class="px-jb__term"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span>{c.term}</dt>
           <dd class="px-jb__m" set:html={renderInline(c.meaning)} />
           {c.hindi && <dd class="px-jb__h">{c.hindi}</dd>}

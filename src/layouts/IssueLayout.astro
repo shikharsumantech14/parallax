@@ -20,8 +20,6 @@ import '../styles/components-3d.css';
 
 import Masthead from '../components/core/Masthead.astro';
 import Colophon from '../components/core/Colophon.astro';
-import Reveal from '../components/core/Reveal.astro';
-import VizMotion from '../components/core/VizMotion.astro';
 import Viz3DRuntime from '../components/core/Viz3DRuntime.astro';
 import Tilt from '../components/core/Tilt.astro';
 
@@ -82,8 +80,9 @@ const ogImage = slug ? `${siteUrl}/og/story/${slug}.png` : undefined;
       </main>
       <Colophon desk={topic} />
     </div>
-    <Reveal />
-    <VizMotion />
+    {/* The one build island (Lens Phase 5, src/scripts/build.ts). The cue
+        lighting is src/scripts/cues.ts, loaded by the issue page. */}
+    <script>import '../scripts/build';</script>
     <Viz3DRuntime />
     <Tilt />
   </body>

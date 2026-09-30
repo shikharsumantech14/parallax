@@ -1,25 +1,48 @@
 ---
 /**
- * StoryShare — share the story link (STORY-MODE-SPEC §5 share mechanics).
- * navigator.share where available → clipboard fallback + an inline
- * "Link copied" confirmation (role=status, fades after 2s). JS-gated:
- * hidden without JS (the URL bar is the no-JS share path). Prefix pxs-.
+ * StoryShare — the CTA card's share row (Lens, 2026-09-30, Phase 4b; the
+ * Story board): "Share", then four 44px icon controls. Share (the system
+ * sheet where there is one, else a copy), Copy link (with an inline "Link
+ * copied" status), Email (a mailto link) and the story's share card (a
+ * download link to /og/story/<slug>.png). The two that need JavaScript ship
+ * hidden and the island shows them; Email and the card are plain links, so the
+ * row is never empty without JS. Prefix pxs-.
  */
 interface Props {
   storyUrl: string;
+  shareImage: string;
+  slug: string;
 }
-const { storyUrl } = Astro.props;
+const { storyUrl, shareImage, slug } = Astro.props;
+const mailto = `mailto:?subject=${encodeURIComponent('A Parallax story')}&body=${encodeURIComponent(storyUrl)}`;
 ---
 
-<div class="pxs-share" data-story-url={storyUrl} hidden>
-  <button class="pxs-share__btn" type="button" data-share-btn>
-    <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
-      <path d="M14 6.5a2.5 2.5 0 1 0-2.45-3M6 10.5a2.5 2.5 0 1 0 0-1M14 16.5a2.5 2.5 0 1 0-2.45-3M8.1 9.2l3.8-2.4M8.1 11.8l3.8 2.4"
-        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    Share this story
-  </button>
-  <span class="pxs-share__ok" role="status" aria-live="polite" hidden>Link copied</span>
+<div class="pxs-share" data-story-url={storyUrl}>
+  <span class="pxs-share__h">Share</span>
+  <div class="pxs-share__row">
+    <button class="pxs-share__btn" type="button" data-share-btn aria-label="Share this story" hidden>
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M14 6.5a2.5 2.5 0 1 0-2.45-3M6 10.5a2.5 2.5 0 1 0 0-1M14 16.5a2.5 2.5 0 1 0-2.45-3M8.1 9.2l3.8-2.4M8.1 11.8l3.8 2.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </button>
+    <button class="pxs-share__btn" type="button" data-copy-btn aria-label="Copy the story link" hidden>
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-1 1M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l1-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </button>
+    <a class="pxs-share__btn" href={mailto} aria-label="Send the story by email">
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+        <rect x="3" y="5" width="14" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M3.5 5.8 10 10.6l6.5-4.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+      </svg>
+    </a>
+    <a class="pxs-share__btn" href={shareImage} download={`parallax-${slug}.png`} aria-label="Download the share card">
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M10 3.5v9M6.5 9l3.5 3.5L13.5 9M4 16h12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
+  </div>
+  <span class="pxs-share__ok" role="status" aria-live="polite"></span>
 </div>
 
 <script is:inline>
@@ -29,26 +52,32 @@ const { storyUrl } = Astro.props;
       root = root.previousElementSibling;
     }
     if (!root) return;
-    root.hidden = false;
     var url = root.dataset.storyUrl || location.href;
-    var btn = root.querySelector('[data-share-btn]');
+    var shareBtn = root.querySelector('[data-share-btn]');
+    var copyBtn = root.querySelector('[data-copy-btn]');
     var ok = root.querySelector('.pxs-share__ok');
     var okTimer = 0;
-    function confirmCopied() {
+    function say(text) {
       if (!ok) return;
-      ok.hidden = false;
+      ok.textContent = text;
       if (okTimer) clearTimeout(okTimer);
-      okTimer = setTimeout(function () { ok.hidden = true; }, 2000);
+      okTimer = setTimeout(function () { ok.textContent = ''; }, 2000);
     }
-    btn && btn.addEventListener('click', function () {
-      var title = document.title || 'Parallax';
-      if (navigator.share) {
-        navigator.share({ title: title, url: url }).catch(function () {});
-      } else if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(confirmCopied).catch(function () {});
-      } else {
-        confirmCopied();
+    function copy() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { say('Link copied'); }).catch(function () {});
       }
-    });
+    }
+    if (copyBtn && navigator.clipboard) {
+      copyBtn.hidden = false;
+      copyBtn.addEventListener('click', copy);
+    }
+    if (shareBtn && (navigator.share || navigator.clipboard)) {
+      shareBtn.hidden = false;
+      shareBtn.addEventListener('click', function () {
+        if (navigator.share) navigator.share({ title: document.title || 'Parallax', url: url }).catch(function () {});
+        else copy();
+      });
+    }
   })();
 </script>

@@ -1,10 +1,9 @@
 ---
 /**
  * LaunchStats — v2 grouped launch-count bars (.ls) inside the elevated .px-viz
- * card. One column per year, one bar per operator; bars grow from the baseline
- * on scroll-in with a staggered delay (gated no-JS-safe via .px-viz.is-in in
- * dataviz-v2.css). Faithful port of publication-v2 <LaunchStats>. Build-time,
- * zero runtime JS.
+ * card. One column per year, one bar per operator. Faithful port of
+ * publication-v2 <LaunchStats>. Build-time, zero runtime JS. Static since
+ * Lens Phase 5; its build order (LENS §6.4) arrives in Phase 6.
  *
  * props (unchanged — see SectionRenderer 'launch-stats'):
  *   years[] — { year: number, bars: { label, value, color? }[] }
@@ -35,7 +34,7 @@ const legend = years.length
   : [];
 ---
 
-<div class="px-viz" data-reveal role="img"
+<div class="px-viz" role="img"
   aria-label={caption ?? 'Orbital launches per year'}>
   <div class="px-viz__cap"><span>{caption}</span><b>launches / yr</b></div>
   <div class="ls__chart">

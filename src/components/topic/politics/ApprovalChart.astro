@@ -1,10 +1,10 @@
 ---
 /**
  * ApprovalChart — v2 dual-line approval/disapproval chart (.ac), wrapped in the
- * elevated .px-viz card. Lines stroke-draw left→right on scroll-in, the area
- * fades in behind, end dots pop. Faithful port of publication-v2 DataViz1.jsx
- * <ApprovalChart>. Build-time SVG, zero runtime JS (reveal handled by CSS;
- * core/Reveal.astro toggles .is-in on the .px-viz, gated no-JS-safe).
+ * .px-viz card: two lines, the area behind, end dots. Faithful port of
+ * publication-v2 DataViz1.jsx <ApprovalChart>. Build-time SVG, zero runtime
+ * JS. Since Lens Phase 5 (2026-09-30) it paints its final state; its build
+ * order (LENS §6.4) arrives in Phase 6.
  *
  * props: points[] { date, approve, disapprove } · subject · caption · source
  *        · annotations[] (docs/design/blueprints/_ANNOTATIONS.md)
@@ -110,7 +110,7 @@ for (const a of annotations) {
 }
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   <div class="px-viz__cap"><span>{capText}</span><b>approve / disapprove</b></div>
   <div class="ac__plot">
     <svg class="ac__svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"

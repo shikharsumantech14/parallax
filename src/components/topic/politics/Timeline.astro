@@ -1,9 +1,11 @@
 ---
 /**
- * Timeline — v2 vertical rail (.tl): a hairline rail, state-coloured nodes
- * (default / key / fail / now), and rows that fade + rise in a stagger on
- * scroll. Faithful port of publication-v2 Components.jsx <Timeline>. The rail
- * and node are pure CSS (.tl__row::before); the .tl root carries data-reveal.
+ * Timeline — v2 vertical rail (.tl): a hairline rail and state-coloured nodes
+ * (default / key / fail / now). Faithful port of publication-v2
+ * Components.jsx <Timeline>. The rail and node are pure CSS
+ * (.tl__row::before). THE BUILD (Lens Phase 5, LENS §6.4): the .tl root is a
+ * `data-build-scene` and its rows drop in, in date order, 80ms apart
+ * (src/scripts/build.ts). No JS or reduced motion: every row in place.
  */
 import { renderInline } from '../../../lib/text';
 
@@ -52,9 +54,9 @@ for (const a of annotations ?? []) {   // `annotations:` with no items parses as
 {/* Cue anchors (LENS §5.2): each row is `data-cue="<n>"`, numbered from 1 in
     data order; the empty `.px-cue-tag` is the numeral's slot, filled by
     core/Section.astro when a cue names the row. */}
-<div class="tl" data-reveal data-compact={compact ? 'true' : undefined}>
+<div class="tl" data-build-scene data-compact={compact ? 'true' : undefined}>
   {events.map((e, i) => (
-    <div class="tl__row" data-state={e.state ?? 'default'} data-cue={i + 1}>
+    <div class="tl__row" data-state={e.state ?? 'default'} data-cue={i + 1} data-build="1" data-build-kind="drop">
       <div class="tl__date">{e.date}</div>
       <div>
         <div class="tl__label"><span class="px-cue-tag" data-cue-tag={i + 1} hidden></span><Fragment set:html={renderInline(e.label)} /></div>

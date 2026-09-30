@@ -1,0 +1,88 @@
+---
+/**
+ * Stage — the deep plate (Lens Phase 4, LENS §8; the Home and Desk boards).
+ *
+ * The ONE band on a page where a desk's DEEP colour is the ground: full
+ * bleed, edge to edge of the viewport, with the on-deep masthead
+ * (`<Masthead variant="stage">`) across its top and a 1152 content column
+ * inside the frame's 64px margins (20 on phones). 760px tall on Home, 720 on
+ * a desk page (the boards), auto on phones. Text on it is `--on-deep` /
+ * `--on-deep-2`, rules `--on-deep-hair`, marks the desk MARK or, on tech and
+ * sports, the desk lime (`--st-hi`).
+ *
+ * THE BLEED. The stage steps out of the frame's padding to the frame edge
+ * with a negative margin, and past the frame to the viewport edge with a
+ * `border-image` outset: the outset paints (ink overflow) without adding
+ * scrollable overflow, so no phone ever scrolls sideways (AGENTS §8's honest
+ * test). The same gradient carries the masthead's hair to both edges.
+ *
+ * THE SCENE. The slot is the scene (`stage/StageScene.astro`), whose root
+ * is the build scene (`[data-build-scene]`, LENS §6.4) that Phase 5's build
+ * island runs. Nothing in here animates, and nothing is hidden without JS:
+ * the markup IS the final state.
+ *
+ * Prefix: px-stage. No JS.
+ */
+import Masthead from './Masthead.astro';
+import { ink, lime } from '../../lib/desk-inks';
+import type { Topic } from '../../content/config';
+
+type Current = 'home' | 'desks' | 'archive' | 'about' | 'subscribe';
+interface Props {
+  /** The plate's desk: its deep, mark and lime. */
+  desk: Topic;
+  /** Desktop height, masthead included (the Home board 760, the Desk board 720). */
+  height?: number;
+  /** The region's accessible name ("Latest issue", "Latest from Mission control"). */
+  label: string;
+  /** Print the desk register after the wordmark (a desk page's stage). */
+  register?: boolean;
+  current?: Current;
+}
+const { desk, height = 720, label, register = false, current } = Astro.props;
+
+const vars = [
+  `--st-deep: ${ink(desk, 'deep')}`,
+  `--st-mark: ${ink(desk, 'mark')}`,
+  `--st-hi: ${lime(desk) ?? ink(desk, 'mark')}`,
+  `--st-h: ${height}px`,
+].join('; ');
+---
+
+<section class="px-stage" data-desk={desk} style={vars} aria-label={label}>
+  <Masthead variant="stage" desk={desk} register={register} current={current} />
+  <div class="px-stage__body">
+    <slot />
+  </div>
+</section>
+
+<style>
+  .px-stage {
+    --st-hair: color-mix(in srgb, var(--on-deep) 18%, var(--st-deep));
+    position: relative;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    margin-inline: calc(-1 * var(--wrap-pad, 64px));
+    padding-inline: var(--wrap-pad, 64px);
+    min-height: var(--st-h);
+    background: var(--st-deep);
+    color: var(--on-deep);
+    /* Full bleed without horizontal scroll: the outset is ink overflow. The
+       1px band at 63px is the masthead's hair, carried past the frame. */
+    border-image: linear-gradient(to bottom, var(--st-deep) 0 63px, var(--st-hair) 63px 64px, var(--st-deep) 64px) fill 0 / 0 / 0 100vw;
+    /* Figures may reach under the masthead and past the frame's left edge
+       (the orbit's planet); the plate clips them top and bottom only. */
+    overflow: visible clip;
+  }
+  .px-stage :global(.mh) { position: relative; z-index: 2; }
+  .px-stage__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  @media (max-width: 1023px) {
+    .px-stage { min-height: 0; }
+  }
+</style>

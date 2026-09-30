@@ -25,8 +25,10 @@
   The budget variant carries its caption in `.px-cgauge__caption`; the other
   two in `.px-viz__cap`, both spellings the shell's :has() rule can see.
 
-  Build-time SVG; the only motion is CSS (the needle's rotate, the capacity
-  arc's dash draw), reveal-gated behind html.js and reset under reduced motion.
+  Build-time SVG, painted in its final state (static since Lens Phase 5): the
+  needle rests at its final angle and the capacity arc at its full dash. Only
+  the capacity value counts up, through build.ts; the rest of the build order
+  arrives in Phase 6.
 */
 type Variant = 'budget' | 'lean' | 'capacity';
 interface Marker { at: number; label: string; }
@@ -221,7 +223,7 @@ const C = (() => {
 ---
 
 {variant === 'budget' && (
-  <div class="px-cgauge" data-viz-root data-reveal data-gauge="budget">
+  <div class="px-cgauge" data-viz-root data-gauge="budget">
     {caption && <div class="px-cgauge__caption">{caption}</div>}
 
     <svg viewBox={`0 0 ${B.W} ${B.H}`} class="px-cgauge__svg" role="img"
@@ -271,7 +273,7 @@ const C = (() => {
 )}
 
 {variant === 'lean' && (
-  <div class="px-viz" data-reveal data-gauge="lean">
+  <div class="px-viz" data-gauge="lean">
     {caption && <div class="px-viz__cap"><span>{caption}</span><b>swing meter</b></div>}
 
     <div class="px-swdial px3d-stage">
@@ -326,7 +328,7 @@ const C = (() => {
 )}
 
 {variant === 'capacity' && (
-  <div class="px-viz" data-reveal data-gauge="capacity">
+  <div class="px-viz" data-gauge="capacity" data-build-scene>
     {caption && <div class="px-viz__cap"><span>{caption}</span><b>{C.unit}</b></div>}
 
     <div class="px-tdial px3d-stage">
@@ -356,7 +358,7 @@ const C = (() => {
         </svg>
 
         <div class="px-tdial__readout">
-          <span class="px-tdial__val" data-countup={C.val}>{C.valText}</span>
+          <span class="px-tdial__val" data-build="1" data-build-kind="counter" data-to={C.val} data-format={Number.isInteger(C.val) ? undefined : '1dp'}>{C.valText}</span>
           <span class="px-tdial__unit">{C.unit}</span>
           {C.label && <span class="px-tdial__label">{C.label}</span>}
         </div>
@@ -456,7 +458,6 @@ const C = (() => {
   .px-swdial__needle-tri { fill: var(--accent-deep, var(--accent)); }
   .px-swdial__hub { fill: var(--ink); }
   .px-swdial__hub-dot { fill: var(--paper); }
-  html.js .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(0deg); }
   .px-swdial__readout {
     display: flex;
     align-items: baseline;
@@ -578,10 +579,4 @@ const C = (() => {
   }
   .px-tdial__key { display: inline-flex; align-items: center; gap: 7px; }
   .px-tdial__key i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-  html.js .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: var(--len); }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-swdial__needle { transform: rotate(var(--swing)) !important; }
-    .px-viz:not(.is-in) .px-tdial__fill { stroke-dashoffset: 0 !important; }
-  }
 </style>

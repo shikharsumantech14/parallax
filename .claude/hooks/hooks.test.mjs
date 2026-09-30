@@ -15,6 +15,7 @@
 import { decide as gitDecide } from './guard-git.mjs';
 import { decide as genDecide } from './guard-generated.mjs';
 import { decide as renderDecide, commitPlan, pendingPaths } from './guard-render.mjs';
+import { cueNotes, compareBuild } from '../../scripts/lib/render-checks.mjs';
 
 let pass = 0;
 const failures = [];
@@ -154,6 +155,34 @@ same('absolute Git Bash path',       pp('git add /d/SideProjects/parallax/AGENTS
 same('quoted author is not a path',  pp('git commit --author="A B <a@b>" -m "x"'), []);
 /* No commit segment → no plan, so the entry never touches git or the disk. */
 check('render: add alone has no plan', commitPlan('git add -A'), false);
+
+/* ── the render gate's CUES and BUILD decisions (scripts/lib/render-checks.mjs,
+   Lens Phase 5). Not hooks, but the probe runs them only in a browser, so
+   this is where they are tested without one. ───────────────────────────── */
+const cues = (name, data, shouldFail) => check(`cues: ${name}`, cueNotes(data).length ? 'x' : null, shouldFail);
+cues('buttons each name an anchor',   { buttons: ['1', '2'], named: ['1', '2'], tags: ['1', '2'], anchors: 6 }, false);
+cues('one anchor named twice',        { buttons: ['1', '2'], named: ['1', '2'], tags: ['1', '2', '2'], anchors: 2 }, false);
+cues('no cues at all',                { buttons: [], named: [], tags: [], anchors: 6 }, false);
+cues('a button with no anchor',       { buttons: ['1', '2', '3'], named: ['1', '2'], tags: ['1', '2'], anchors: 4 }, true);
+cues('a figure numeral, no button',   { buttons: ['1'], named: ['1', '2'], tags: ['1', '2'], anchors: 4 }, true);
+cues('a printed tag, no button',      { buttons: ['1'], named: ['1'], tags: ['1', '4'], anchors: 4 }, true);
+cues('a button, no figure panel',     { buttons: ['1'], named: [], tags: [], hasStage: false }, true);
+
+const el = (o) => ({ d: 'div.x', x: 0, y: 0, w: 100, h: 20, o: 1, t: '', bx: '', ...o });
+const scene = (els, o) => ({ i: 0, nn: '01', kind: 'data-readout', scene: 'div.tel', w: 520, h: 300, els, ...o });
+const build = (name, live, still, shouldFail) => check(`build: ${name}`, compareBuild(live, still, 1).findings.length ? 'x' : null, shouldFail);
+build('ends on the static page',      [scene([el({ t: '1,330' })])], [scene([el({ t: '1,330' })])], false);
+build('within the 1px tolerance',     [scene([el({ x: 0.8, w: 100.6 })])], [scene([el()])], false);
+build('no build elements, skipped',   [scene([], { h: 340 })], [scene([], { h: 300 })], false);
+build('a counter ends off its text',  [scene([el({ t: '1,329' })])], [scene([el({ t: '1,330' })])], true);
+build('a bar ends 3px short',         [scene([el({ w: 97 })])], [scene([el()])], true);
+build('a mark left invisible',        [scene([el({ o: 0 })])], [scene([el()])], true);
+build('a class left behind',          [scene([el({ bx: 'bx-pre bx-drop' })])], [scene([el()])], true);
+build('the scene grew',               [scene([el()], { h: 320 })], [scene([el()])], true);
+build('hidden statically (overlay)', [scene([el()], { w: 900, h: 600 })], [scene([el({ w: 0, h: 0 })], { w: 0, h: 0, shown: false })], false);
+check('build: hidden scene is counted', compareBuild([scene([el()])], [scene([el({ w: 0, h: 0 })], { w: 0, h: 0, shown: false })], 1).notShown === 1 ? null : 'x', false);
+build('hidden, but holds a section', [scene([el()])], [scene([el({ w: 0, h: 0 })], { w: 0, h: 0, shown: false, hasSection: true })], true);
+build('a scene only with JS',         [scene([el()]), scene([el()], { i: 1 })], [scene([el()])], true);
 
 /* ── report ────────────────────────────────────────────────────────────── */
 if (failures.length) {

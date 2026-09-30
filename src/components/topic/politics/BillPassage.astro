@@ -3,12 +3,12 @@
  * BillPassage (politics) — a horizontal sequence of legislative-stage cards on
  * a shallow 3D plane. The connecting track runs behind a row of stage cards;
  * each card carries a status treatment (passed / current / failed / pending)
- * and staggers in on scroll-in. Build-time only; the global core/Tilt.astro
- * `data-tilt` island supplies the pointer-tilt, everything else is CSS.
+ * and rests in its final place (static since Lens Phase 5; the build order
+ * arrives in Phase 6). Build-time only; the global core/Tilt.astro `data-tilt`
+ * island supplies the pointer-tilt, everything else is CSS.
  *
- * No-JS / reduced-motion: cards paint in their FINAL position (hidden offsets
- * sit behind `html.js`; reduced-motion resets with !important). The status
- * dot + glyph + text label carry the meaning without animation.
+ * The cards always paint in their FINAL position. The status dot + glyph +
+ * text label carry the meaning without animation.
  *
  * data: { stages[]{ label, status, date?, note? }, caption?, source? }
  */
@@ -25,7 +25,7 @@ const glyph: Record<Status, string> = {
 };
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>passage</b></div>}
 
   <div class="px-billp px3d-stage">
@@ -162,13 +162,6 @@ const glyph: Record<Status, string> = {
   .px-billp__stage[data-status="pending"] .px-billp__card { opacity: 0.62; }
   .px-billp__stage[data-status="pending"] .px-billp__label { color: var(--ink-soft); }
 
-  /* ── reveal: stagger cards in (gated behind html.js) ─────────────────── */
-  html.js .px-viz:not(.is-in) .px-billp__stage {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  .px-viz.is-in .px-billp__stage { transition-delay: calc(var(--i) * 110ms); }
-
   /* ── narrow box: stack to a vertical list with a left rail ─────────────── */
   @container (max-width: 640px) {
     .px-billp__row {
@@ -196,9 +189,5 @@ const glyph: Record<Status, string> = {
        overflow (width:100% as a flex-basis + the dot would exceed 100%) */
     .px-billp__dot { flex: 0 0 auto; }
     .px-billp__card { flex: 1 1 auto; width: auto; min-width: 0; text-align: left; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-billp__stage { opacity: 1 !important; transform: none !important; }
   }
 </style>

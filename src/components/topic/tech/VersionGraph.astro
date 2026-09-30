@@ -7,12 +7,12 @@
  * lane defaults to 0, giving a linear history when omitted. Edges run from each
  * node down to its parents — straight when both share a lane, curved S-bends
  * when lanes differ. Node dots are colored by lane, each with a label + optional
- * tag chip. On reveal the edges stroke-draw and the dots pop in staggered. Flat
- * SVG. Build-time geometry; zero runtime JS.
+ * tag chip. Edges rest fully drawn and dots fully shown (static since Lens
+ * Phase 5; their build arrives in Phase 6). Flat SVG. Build-time geometry;
+ * zero runtime JS.
  *
- * No-JS / reduced-motion: edges paint fully drawn + dots fully shown (hidden
- * states sit behind `html.js`; reduced-motion resets with !important). Labels
- * are HTML beside the SVG and always present.
+ * Edges always paint fully drawn + dots fully shown. Labels are HTML beside
+ * the SVG and always present.
  *
  * data: { nodes[]{ id, parents?, label?, tag?, lane? }, caption?, source? }
  */
@@ -75,7 +75,7 @@ const edges = geo.flatMap((child) =>
 );
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>history</b></div>}
 
   <div class="px-vgraph">
@@ -226,20 +226,8 @@ const edges = geo.flatMap((child) =>
     margin-left: auto;     /* pin to the right edge when the label is short */
   }
 
-  /* reveal: edges stroke-draw, dots pop, legend rows fade in (behind html.js) */
-  html.js .px-viz:not(.is-in) .px-vgraph__edge { stroke-dashoffset: var(--len); }
-  html.js .px-viz:not(.is-in) .px-vgraph__dot { opacity: 0; transform: scale(0.1); }
-  html.js .px-viz:not(.is-in) .px-vgraph__item { opacity: 0; transform: translateX(8px); }
-  .px-viz.is-in .px-vgraph__item { transition-delay: calc(500ms + var(--i) * 70ms); }
-
   @media (max-width: 480px) {
     .px-vgraph__item { gap: 7px; }
     .px-vgraph__label { display: none; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-vgraph__edge { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-vgraph__dot { opacity: 1 !important; transform: scale(1) !important; }
-    .px-viz:not(.is-in) .px-vgraph__item { opacity: 1 !important; transform: none !important; }
   }
 </style>

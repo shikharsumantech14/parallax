@@ -1,9 +1,18 @@
 ---
 /**
  * /s/<slug>/ — story mode: the shareable short version of an issue.
- * Spec: docs/design/STORY-MODE-SPEC.md. Fully static, fully free (the CTA
- * card funnels to the metered issue page). `status !== 'draft'` so branch
- * previews can show review-stage stories while drafts stay unbuilt.
+ * Spec: docs/design/STORY-MODE-SPEC.md; Lens (2026-09-30, Phase 4b): the
+ * Story and Story-Phone boards (BRIEF-5 §4 "Story cards").
+ *
+ * A hook card on the desk's deep plate, three to six beat cards on paper (the
+ * section's compact figure through SectionBody's `bare` mode, its beat text),
+ * and a CTA card. Desktop lays the 360 x 640 cards in a horizontal snap
+ * scroller under a dot stepper; phones make each card the screen and snap
+ * vertically ("Swipe up"). The beats come from src/lib/story.ts unchanged.
+ *
+ * Fully static, fully free (the CTA card funnels to the metered issue page).
+ * `status !== 'draft'` so branch previews can show review-stage stories while
+ * drafts stay unbuilt.
  */
 import { getCollection, type CollectionEntry } from 'astro:content';
 import StoryLayout from '../../layouts/StoryLayout.astro';
@@ -12,6 +21,9 @@ import StoryHookCard from '../../components/story/StoryHookCard.astro';
 import StoryCard from '../../components/story/StoryCard.astro';
 import StoryCtaCard from '../../components/story/StoryCtaCard.astro';
 import { selectStoryCards } from '../../lib/story';
+import { formatNo, issueNumbers } from '../../lib/issue-number';
+import { shortLabel } from '../../lib/text';
+import { DESK_REGISTER } from '../../lib/desks';
 
 export async function getStaticPaths() {
   const issues = await getCollection('issues', ({ data }) => data.status !== 'draft');
@@ -24,10 +36,9 @@ interface Props {
 const { issue } = Astro.props;
 const { data } = issue;
 
-// Same numbering scheme as the issue page (position in the dated order).
-const allIssues = await getCollection('issues');
-const sorted = allIssues.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
-const issueNumber = String(sorted.findIndex((i) => i.slug === issue.slug) + 1).padStart(2, '0');
+// The one numbering (src/lib/issue-number.ts), as the cover cards print it.
+const n = (await issueNumbers()).get(issue.slug);
+const issueNo = n ? formatNo(n) : '';
 
 const story = selectStoryCards({
   hook: data.hook,
@@ -36,9 +47,25 @@ const story = selectStoryCards({
 });
 
 const cardCount = story.beats.length + 2; // hook + beats + cta
+const labels = [
+  'Cover',
+  ...story.beats.map((b, i) => shortLabel(data.sections[b.index] ?? {}, `Card ${i + 2}`)),
+  'Read on',
+];
+
+/* "Still in the issue": the sections the story left out, by their short
+   names, the narrative dividers skipped. */
+const used = new Set(story.beats.map((b) => b.index));
+const rest = data.sections
+  .map((s, i) => ({ s, i }))
+  .filter(({ s, i }) => !used.has(i) && s.kind !== 'act-break' && (s.title || s.eyebrow || s.short))
+  .slice(0, 4)
+  .map(({ s }) => shortLabel(s, ''))
+  .filter(Boolean);
 
 const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
 const ogImage = `${siteUrl}/og/story/${issue.slug}.png`;
+const register = DESK_REGISTER[data.topic];
 ---
 
 <StoryLayout
@@ -48,22 +75,47 @@ const ogImage = `${siteUrl}/og/story/${issue.slug}.png`;
   slug={issue.slug}
   ogImage={ogImage}
 >
-  <StoryShell cardCount={cardCount}>
+  <StoryShell
+    cardCount={cardCount}
+    labels={labels}
+    desk={data.topic}
+    eyebrow={`Story · ${register}${issueNo ? ` · ${issueNo}` : ''}`}
+    slug={issue.slug}
+  >
     <StoryHookCard
-      topic={data.topic}
-      issueNumber={issueNumber}
+      desk={data.topic}
+      issueNo={issueNo}
       title={data.title}
       hook={story.hook}
+      publishedAt={data.publishedAt}
+      readTime={data.readTimeMinutes}
+      sourceCount={data.sources.length}
+      count={cardCount}
+      slug={issue.slug}
     />
     {story.beats.map((beat, i) => (
-      <StoryCard section={beat.section} text={beat.text} kicker={beat.kicker} index={i + 2} />
+      <StoryCard
+        section={beat.section}
+        text={beat.text}
+        kicker={beat.kicker}
+        index={i + 2}
+        count={cardCount}
+        desk={data.topic}
+        issueNo={issueNo}
+      />
     ))}
     <StoryCtaCard
       slug={issue.slug}
+      desk={data.topic}
+      issueNo={issueNo}
       sectionCount={data.sections.length}
       sourceCount={data.sources.length}
+      readTime={data.readTimeMinutes}
+      rest={rest}
       cta={story.cta}
       index={cardCount}
+      count={cardCount}
+      shareImage={`/og/story/${issue.slug}.png`}
     />
   </StoryShell>
 </StoryLayout>

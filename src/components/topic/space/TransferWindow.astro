@@ -150,7 +150,7 @@ const payload = JSON.stringify({
 });
 ---
 
-<div class="px-viz px-xwin" data-reveal>
+<div class="px-viz px-xwin" data-build-scene>
   {caption && (
     <div class="px-viz__cap">
       <span>{caption}</span>
@@ -222,11 +222,11 @@ const payload = JSON.stringify({
         <div class="px-xwin__u">km/s · Δv</div>
       </div>
       <div class="px-xwin__tile">
-        <div class="px-xwin__n" data-countup={Math.round(tTransferDays)}>{tStr}</div>
+        <div class="px-xwin__n" data-build="1" data-build-kind="counter" data-to={Math.round(tTransferDays)}>{tStr}</div>
         <div class="px-xwin__u">days · transfer</div>
       </div>
       <div class="px-xwin__tile">
-        <div class="px-xwin__n" data-countup={Math.round(synodic)}>{synStr}</div>
+        <div class="px-xwin__n" data-build="1" data-build-kind="counter" data-to={Math.round(synodic)}>{synStr}</div>
         <div class="px-xwin__u">days · window cadence</div>
       </div>
     </aside>
@@ -555,18 +555,10 @@ const payload = JSON.stringify({
   }
   .px-xwin__sub { color: var(--muted); font-size: 10.5px; }
 
-  /* entrance reveal (html.js-gated; composed still is the default paint) */
+  /* transfer arc dash = its full pathLength, so it paints whole; the composed still
+     is the default paint, and the fades below wait for the Phase 6 build (only
+     the telemetry counters build today, through build.ts) */
   html.js .px-xwin__transfer { stroke-dasharray: 100; }
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__transfer { stroke-dashoffset: 100; }
-  html.js .px-viz.px-xwin.is-in .px-xwin__transfer {
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 900ms var(--ease, cubic-bezier(.2,.7,.3,1)) 150ms;
-  }
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__ghost,
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dep,
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dest,
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__wedge,
-  html.js .px-viz.px-xwin:not(.is-in) .px-xwin__dphi { opacity: 0; }
   .px-xwin__ghost, .px-xwin__dep, .px-xwin__dest, .px-xwin__wedge, .px-xwin__dphi {
     transition: opacity 500ms var(--ease, ease) 700ms;
   }

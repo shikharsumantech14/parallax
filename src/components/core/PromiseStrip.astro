@@ -1,0 +1,108 @@
+---
+/**
+ * PromiseStrip — "Independent · Sourced · Slow", the publication's three
+ * promises with their inline stroke icons (Lens Phase 4; the Home and
+ * Subscribe boards' strip, the About board's three cards).
+ *
+ *   strip  one 56px row of three cells between two hairs, icon at 20
+ *   cards  three paper-2 cards: the icon at 40, the number, the word in
+ *          Newsreader 32 and the promise in Newsreader 19
+ *
+ * The copy is the publication's standing editorial line. The icons are
+ * drawn here, ink strokes on a 40 box, never an icon font.
+ *
+ * Prefix: px-prom. No JS.
+ */
+interface Props {
+  variant?: 'strip' | 'cards';
+  class?: string;
+}
+const { variant = 'strip', class: extra } = Astro.props;
+
+const promises = [
+  {
+    n: '01', title: 'Independent', body: 'Not for profit. No investors. No advertisers.',
+    icon: '<circle cx="20" cy="20" r="14" stroke-dasharray="76 12" transform="rotate(-50 20 20)"/><circle cx="20" cy="20" r="5"/>',
+  },
+  {
+    n: '02', title: 'Sourced', body: 'Every claim cites a primary source. Every dataset linked.',
+    icon: '<path d="M11 5 H25 L30 10 V35 H11 Z"/><path d="M25 5 V10 H30"/><path d="M15.5 22 L19 25.5 L25.5 17"/>',
+  },
+  {
+    n: '03', title: 'Slow', body: 'Read in six minutes. Argued in sixty days.',
+    icon: '<circle cx="20" cy="20" r="14"/><path d="M20 11 V20 L26 23"/>',
+  },
+];
+---
+
+{variant === 'strip' ? (
+  <ul class:list={['px-prom', extra]} aria-label="How Parallax works">
+    {promises.map((p) => (
+      <li class="px-prom__cell">
+        <svg class="px-prom__icon" width="20" height="20" viewBox="0 0 40 40" aria-hidden="true" focusable="false"><Fragment set:html={p.icon} /></svg>
+        <span class="px-prom__word">{p.title}</span>
+      </li>
+    ))}
+  </ul>
+) : (
+  <ul class:list={['px-prom-cards', extra]}>
+    {promises.map((p) => (
+      <li class="px-prom-card">
+        <span class="px-prom-card__top">
+          <svg class="px-prom__icon px-prom__icon--lg" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" focusable="false"><Fragment set:html={p.icon} /></svg>
+          <span class="px-prom-card__n">{p.n}</span>
+        </span>
+        <span class="px-prom-card__body">
+          <h3 class="px-prom-card__t">{p.title}</h3>
+          <p class="px-prom-card__b">{p.body}</p>
+        </span>
+      </li>
+    ))}
+  </ul>
+)}
+
+<style>
+  .px-prom {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--hair);
+    border-bottom: 1px solid var(--hair);
+  }
+  .px-prom__cell {
+    min-height: 56px; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 0 24px;
+    font-family: var(--font-ui); font-size: 15px; font-weight: 500; color: var(--ink);
+  }
+  .px-prom__cell + .px-prom__cell { border-left: 1px solid var(--hair); }
+  .px-prom__icon {
+    display: block; flex: 0 0 auto;
+    fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .px-prom__icon--lg { stroke-width: 2.4; }
+
+  .px-prom-cards {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;
+  }
+  .px-prom-card {
+    display: flex; flex-direction: column; gap: 24px;
+    padding: 28px;
+    background: var(--paper-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+  }
+  .px-prom-card__top { display: flex; align-items: center; justify-content: space-between; }
+  .px-prom-card__n { font: 600 13px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-prom-card__body { display: flex; flex-direction: column; gap: 8px; }
+  .px-prom-card__t { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 32px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); }
+  .px-prom-card__b { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.5; color: var(--ink-2); }
+
+  @media (max-width: 768px) {
+    .px-prom__cell { padding: 0 8px; gap: 8px; font-size: 14px; }
+    .px-prom-cards { grid-template-columns: 1fr; gap: 16px; }
+    .px-prom-card { padding: 20px; gap: 16px; }
+    .px-prom-card__t { font-size: 28px; }
+    .px-prom-card__b { font-size: 18px; }
+  }
+</style>

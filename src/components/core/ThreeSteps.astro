@@ -8,8 +8,8 @@
  * accepted so an authored section may carry one (core/Section.astro is the one
  * emitter, below the graphic) and is deliberately ignored here.
  *
- * No-JS / reduced-motion: the steps rest in their FINAL state; the `--i`
- * stagger is gated behind `html.js` and reset under prefers-reduced-motion.
+ * The steps always paint in their FINAL state (static since Lens Phase 5; the
+ * `--i` index stays on each step for the Phase 6 build order).
  * The arrows are CSS `::after` glyphs — `→` in a row, `↓` stacked — so the
  * still frame carries the order with no JS and no SVG.
  *
@@ -24,7 +24,7 @@ const { steps = [] } = Astro.props;
 ---
 
 {steps.length > 0 && (
-  <div class="px-3s" data-reveal>
+  <div class="px-3s">
     <div class="px-3s__row" style={`--cols:${steps.length}`}>
       {steps.map((s, i) => (
         <div class="px-3s__step" style={`--i:${i}`}>
@@ -90,12 +90,5 @@ const { steps = [] } = Astro.props;
       transform: translate(50%, -50%);
       padding: 6px 0;
     }
-  }
-
-  /* Stagger (blueprint §5, the kit's CSS-only `--i`), gated on html.js. */
-  html.js .px-3s:not(.is-in) .px-3s__step { opacity: 0; transform: translateY(12px); }
-  .px-3s.is-in .px-3s__step { transition-delay: calc(var(--i) * 90ms); }
-  @media (prefers-reduced-motion: reduce) {
-    html.js .px-3s:not(.is-in) .px-3s__step { opacity: 1 !important; transform: none !important; }
   }
 </style>

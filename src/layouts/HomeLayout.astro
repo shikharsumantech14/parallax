@@ -19,8 +19,6 @@ import '../styles/dataviz-v2.css';
 import '../styles/viz-type.css';
 
 import Colophon from '../components/core/Colophon.astro';
-import Reveal from '../components/core/Reveal.astro';
-import VizMotion from '../components/core/VizMotion.astro';
 
 interface Props {
   title: string;
@@ -65,7 +63,8 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
       </main>
       <Colophon newsletter={footerNewsletter} desk={topic} />
     </div>
-    <Reveal />
-    <VizMotion />
+    {/* The one build island (Lens Phase 5, src/scripts/build.ts): the home
+        stage, the intro overlay and every component build on this page. */}
+    <script>import '../scripts/build';</script>
   </body>
 </html>

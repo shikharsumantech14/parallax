@@ -5,12 +5,11 @@
  * path traces the terrain, a translucent area fills underneath, waypoint pins
  * mark labelled points, and the min/max elevation get their own markers. The
  * plot sits on a shallow 3D plane (core/Tilt.astro `data-tilt`) so the terrain
- * reads as a receding ground plane. On scroll-in the path stroke-draws and the
- * area fades up (CSS, reveal-gated). Axis labels are mono.
+ * reads as a receding ground plane. The path rests fully drawn and the area at
+ * full opacity (static since Lens Phase 5; the Phase 6 build brings them in).
+ * Axis labels are mono.
  *
- * No-JS / reduced-motion: the path paints fully drawn and the area at full
- * opacity (the hidden offsets sit behind `html.js`; reduced-motion resets with
- * !important). The numeric min/max + waypoint labels carry the meaning.
+ * The numeric min/max + waypoint labels carry the meaning.
  *
  * data: { points[]{ km, elevM, label? }, unit?, caption?, source? }
  */
@@ -155,7 +154,7 @@ const fmtKm = (km: number) => (Number.isInteger(km) ? `${km}` : km.toFixed(1));
 const fmtE = (e: number) => Math.round(e).toLocaleString();
 ---
 
-<div class="px-viz" data-reveal>
+<div class="px-viz">
   {caption && <div class="px-viz__cap"><span>{caption}</span><b>elevation</b></div>}
 
   {hasData ? (
@@ -174,7 +173,7 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
           <!-- filled terrain area -->
           <path class="px-etrek__area" d={areaPath} />
 
-          <!-- terrain stroke (stroke-draws on reveal) -->
+          <!-- terrain stroke (rests fully drawn) -->
           <path
             class="px-etrek__line"
             d={linePath}
@@ -248,7 +247,6 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
     opacity: 1;
     transition: opacity var(--t-slow) var(--ease) 650ms;
   }
-  html.js .px-viz:not(.is-in) .px-etrek__area { opacity: 0; }
 
   .px-etrek__line {
     fill: none;
@@ -261,7 +259,6 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 1600ms var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-etrek__line { stroke-dashoffset: var(--len); }
 
   /* extrema markers — display serif value, ink; paper halo so it reads over the area fill */
   .px-etrek__ext circle { fill: var(--paper); stroke: var(--accent-deep, var(--accent)); stroke-width: 2; }
@@ -275,7 +272,6 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
     opacity: 1;
     transition: opacity var(--t-soft) var(--ease) 1100ms;
   }
-  html.js .px-viz:not(.is-in) .px-etrek__ext { opacity: 0; }
 
   /* waypoint pins */
   .px-etrek__wp line { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 3; }
@@ -291,8 +287,6 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
     transform-box: view-box; transform-origin: center bottom;
     transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-etrek__wp { opacity: 0; transform: translateY(6px); }
-  .px-viz.is-in .px-etrek__wp { transition-delay: calc(900ms + var(--i) * 90ms); }
 
   /* x-axis distance ticks — system axis role: mono muted tabular ~9.5px */
   .px-etrek__xtick {
@@ -324,12 +318,5 @@ const fmtE = (e: number) => Math.round(e).toLocaleString();
   @media (max-width: 560px) {
     .px-etrek__readout { gap: 18px; }
     .px-etrek__stat b { font-size: 22px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-etrek__area { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-etrek__line { stroke-dashoffset: 0 !important; }
-    .px-viz:not(.is-in) .px-etrek__ext { opacity: 1 !important; }
-    .px-viz:not(.is-in) .px-etrek__wp { opacity: 1 !important; transform: none !important; }
   }
 </style>

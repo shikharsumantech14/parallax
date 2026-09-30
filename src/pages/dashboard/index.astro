@@ -3,29 +3,60 @@
    default, so every app surface must opt out explicitly — miss one and it
    is baked at build time with no session. */
 export const prerender = false;
+import { getCollection, type CollectionEntry } from 'astro:content';
 import AppLayout from '../../layouts/AppLayout.astro';
+import Mark from '../../components/core/Mark.astro';
+import CoverCard from '../../components/core/CoverCard.astro';
+import CoverMark from '../../components/core/CoverMark.astro';
+import { TOPICS, type Topic } from '../../content/config';
+import { DESK_COPY } from '../../lib/desks';
+import { ink } from '../../lib/desk-inks';
+import { renderEmphasis, stripEmphasis } from '../../lib/text';
+import { formatNo, issueNumbers, shortDay } from '../../lib/issue-number';
 import { requireUser } from '../../lib/auth';
 import { isAdmin } from '../../lib/admin';
 
 /**
- * "The Shelf" — the reader dashboard (APP-DESIGN-SPEC §4).
+ * The Shelf — the reader's page (Lens, 2026-09-30, Phase 4b; the Shelf and
+ * Shelf-Phone boards, BRIEF-3 §4).
  *
- * The reading room of the same building: calm beige/ink, the shared trio, the
- * `.plate` / `.tile` / `.stat` / `.toggle` / `.chip` primitives from app.css v2.
- * Module order: greeting → shelf tile grid → reading log → in the margins →
- * preferences → account → admin → danger. Every module `.reveal`-staggered.
+ * The publication's masthead (its account slot is the pill: initial disc,
+ * name, caret, with Sign out inside) and footer, then, in order:
  *
- * Data comes only from tables this app already owns and queries elsewhere
- * (profiles, saved_issues, comments) so the shapes match the working APIs.
- * Richer modules (per-issue reading-progress hairlines from reading_events,
- * topic-affinity bars, and real issue titles/deks via an issues manifest) are
- * a follow-up — they need the reading_events mapping + a cross-project metadata
- * bridge, verified against the live DB.
+ *   Hello, {name}.   Newsreader 56 (40 on phones)
+ *   YOUR PATH        the one paper-3 field: the issues this reader has opened,
+ *                    from reading_events, as small covers on a joined track,
+ *                    each with a progress ring in its desk mark; the latest
+ *                    one larger, with "Continue". Phones turn the track
+ *                    vertical, the rings down the left.
+ *   ON THE SHELF     saved issues (saved_issues) as CoverCard size="card",
+ *                    each with a Remove control (DELETE /api/save/<id>).
+ *   YOUR DESKS       "Follow a desk to get its issues first." Six tiles: the
+ *                    medallion, the name, the tagline, the unread count (its
+ *                    published issues this reader has not opened) and a
+ *                    Follow / Following button. Following is
+ *                    profiles.stated_interests, the set /account/welcome
+ *                    writes, and the button is a plain form POST to the same
+ *                    handler (/api/onboarding, intent=save, the new set as
+ *                    repeated `interest`, next=/dashboard#desks). No JS needed.
+ *   PREFERENCES      three role="switch" buttons bound to profiles.email_prefs
+ *                    (weekly_digest, issue_publish, reengagement), posted to
+ *                    /api/account/prefs as before. Without JS the switches
+ *                    give way to the native checkboxes they drive.
+ *
+ * and below them, carried from the previous Shelf so nothing a reader could
+ * reach goes missing: their margin notes (comments), the account rows, the
+ * moderation link for editors, and the delete-account zone.
+ *
+ * Data: profiles, saved_issues, comments and reading_events (select-own RLS,
+ * 20260524200000_phase_b_reading_events.sql). `stated_interests` is fetched
+ * on its own so a database without the onboarding migration still renders
+ * the rest. Issue metadata comes from the content collection, so a saved or
+ * opened id that is no longer published falls back to a plain link.
  */
 const user = requireUser(Astro);
 const { supabase } = Astro.locals;
 const userIsAdmin = isAdmin(user);
-const SITE = import.meta.env.PUBLIC_SITE_URL ?? 'https://parallaxlens.com';
 
 const { data: profile, error: profileError } = await supabase
   .from('profiles')
@@ -33,6 +64,13 @@ const { data: profile, error: profileError } = await supabase
   .eq('id', user.id)
   .maybeSingle();
 if (profileError) console.error('[shelf] profile fetch failed:', profileError.message);
+
+const { data: interestRow, error: interestError } = await supabase
+  .from('profiles')
+  .select('stated_interests')
+  .eq('id', user.id)
+  .maybeSingle();
+if (interestError) console.error('[shelf] stated_interests fetch failed:', interestError.message);
 
 const { data: savedIssues, error: savedError } = await supabase
   .from('saved_issues')
@@ -57,6 +95,15 @@ const { count: notesTotal } = await supabase
   .select('id', { count: 'exact', head: true })
   .eq('user_id', user.id);
 
+// The path: what this reader has opened, from their own reading events.
+const { data: events, error: eventsError } = await supabase
+  .from('reading_events')
+  .select('issue_id, event_kind, created_at')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
+  .limit(500);
+if (eventsError) console.error('[shelf] reading_events fetch failed:', eventsError.message);
+
 const displayName =
   profile?.display_name ||
   (user.user_metadata?.name as string | undefined) ||
@@ -65,12 +112,9 @@ const displayName =
 const firstName = displayName ? displayName.split(' ')[0] : null;
 
 const memberSince = profile?.created_at ? new Date(profile.created_at) : new Date(user.created_at);
-const memberSinceLabel = memberSince.toLocaleDateString('en-US', {
-  year: 'numeric', month: 'short', day: '2-digit',
+const memberSinceLabel = memberSince.toLocaleDateString('en-GB', {
+  year: 'numeric', month: 'short', day: '2-digit', timeZone: 'UTC',
 });
-const daysReader = Math.max(1, Math.floor((Date.now() - memberSince.getTime()) / 86_400_000));
-
-const savedCount = savedIssues?.length ?? 0;
 
 const emailPrefs = (profile?.email_prefs as Record<string, boolean> | null) ?? {
   weekly_digest: true, issue_publish: true, reengagement: true,
@@ -79,338 +123,775 @@ const emailPrefs = (profile?.email_prefs as Record<string, boolean> | null) ?? {
 const noticeParam = Astro.url.searchParams.get('notice');
 const noticeKind = Astro.url.searchParams.get('kind') ?? 'info';
 
-/** Prettify an issue id ("2026-06-04-asteroid-2024-yr4") into a card title +
- * date label, with a link back to the published issue. No issue-metadata
- * bridge yet, so the slug carries the title (title-cased). */
+/* ── the published collection, the one source of titles and covers ── */
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const bySlug = new Map(published.map((e) => [e.slug, e]));
+const numbers = await issueNumbers();
+const metaLine = (e: CollectionEntry<'issues'>) =>
+  [
+    numbers.get(e.slug) ? formatNo(numbers.get(e.slug)!) : undefined,
+    shortDay(e.data.publishedAt),
+    e.data.readTimeMinutes ? `${e.data.readTimeMinutes} min` : undefined,
+  ].filter(Boolean).join(' · ');
+
+/** A saved or opened id that is not in the published collection: the slug
+ *  carries the title (title-cased), as the Shelf always did. */
 function prettify(issueId: string) {
   const m = issueId.match(/^(\d{4})-(\d{2})-(\d{2})-(.+)$/);
   const slug = m ? m[4] : issueId;
   const title = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  let dateLabel = '';
-  if (m) {
-    dateLabel = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`)
-      .toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      .toUpperCase();
-  }
-  return { title, dateLabel, href: `${SITE}/issues/${issueId}/` };
+  return { title, href: `/issues/${issueId}/` };
 }
+
+/* ── the path ── */
+const PCT: Record<string, number> = { open: 10, scroll_25: 25, scroll_75: 75, finish: 100 };
+const reads = new Map<string, { pct: number; last: number }>();
+for (const ev of events ?? []) {
+  const pct = PCT[ev.event_kind as string];
+  if (pct === undefined) continue;
+  const t = new Date(ev.created_at as string).getTime();
+  const cur = reads.get(ev.issue_id as string);
+  if (!cur) reads.set(ev.issue_id as string, { pct, last: t });
+  else reads.set(ev.issue_id as string, { pct: Math.max(cur.pct, pct), last: Math.max(cur.last, t) });
+}
+const opened = [...reads.entries()]
+  .filter(([id]) => bySlug.has(id))
+  .sort((a, b) => b[1].last - a[1].last)
+  .map(([id, r]) => ({ entry: bySlug.get(id)!, pct: r.pct }));
+const current = opened[0];
+const trail = opened.slice(1, 4).reverse(); // oldest first, the current one last
+const latestIssue = [...published].sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug),
+)[0];
+
+/** A progress ring in the desk mark: the full ring and a tick at 100%, an
+ *  arc and the percentage below it. */
+function ring(pct: number, size: 40 | 56) {
+  const sw = size === 56 ? 4 : 3;
+  const c = size / 2;
+  const r = c - sw / 2 - (size === 56 ? 1 : 0.5);
+  const len = 2 * Math.PI * r;
+  return { size, c, r, sw, len: +len.toFixed(1), dash: +((len * pct) / 100).toFixed(1), done: pct >= 100, fs: size === 56 ? 14 : 12 };
+}
+const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+
+/* ── the shelf ── */
+const saved = (savedIssues ?? []).map((s) => ({ id: s.issue_id as string, entry: bySlug.get(s.issue_id as string) }));
+const savedCount = saved.length;
+
+/* ── the desks ── */
+const following = new Set<string>(
+  Array.isArray(interestRow?.stated_interests)
+    ? (interestRow!.stated_interests as unknown[]).filter((x): x is string => typeof x === 'string')
+    : [],
+);
+const desks = TOPICS.map((t) => {
+  const inDesk = published.filter((e) => e.data.topic === t);
+  const unread = inDesk.filter((e) => !reads.has(e.slug)).length;
+  const on = following.has(t);
+  const nextSet = TOPICS.filter((x) => (x === t ? !on : following.has(x)));
+  return { t, on, unread, total: inDesk.length, nextSet };
+});
+
 const NOTE_STATUS: Record<string, string> = {
-  approved: 'published', pending: 'in review', rejected: 'not shown',
+  approved: 'Published', pending: 'In review', rejected: 'Not shown',
 };
+
+const PREFS: { key: 'weekly_digest' | 'issue_publish' | 'reengagement'; label: string }[] = [
+  { key: 'weekly_digest', label: 'Weekly letter' },
+  { key: 'issue_publish', label: 'New-issue alerts' },
+  { key: 'reengagement', label: 'Streak reminders' },
+];
+
+const deskVars = (t: Topic) =>
+  `--dk-text: ${ink(t, 'text')}; --dk-mark: ${ink(t, 'mark')}; --dk-tint: ${ink(t, 'tint')}`;
 ---
 
 <AppLayout title="Your Shelf" description="Your reading, on Parallax." width="shelf">
-  {/* ── Greeting ──────────────────────────────────────────────────────── */}
-  <header class="hero reveal">
-    <p class="eyebrow">Your Shelf</p>
-    <h1>{firstName ? `Hello, ${firstName}.` : 'Welcome back.'}</h1>
-    <p class="dek">Everything you're reading, keeping, and marking up — on one quiet page.</p>
-  </header>
-
-  {noticeParam && (
-    <div class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'} reveal`}>
-      {noticeParam}
-    </div>
-  )}
-
-  {/* ── The shelf ─────────────────────────────────────────────────────── */}
-  <section class="mod reveal" style="transition-delay: 40ms">
-    <h2 class="mod__title">The shelf {savedCount > 0 && <span class="mod__count">— {savedCount}</span>}</h2>
-    {savedCount === 0 ? (
-      <div class="plate empty">
-        <p>Your shelf is empty.</p>
-        <p class="empty__sub">Save an issue while you read and it lands here to finish later.</p>
-        <a class="btn" href={`${SITE}/`}>Browse the desks →</a>
-      </div>
-    ) : (
-      <div class="shelf-grid">
-        {savedIssues!.map((s) => {
-          const it = prettify(s.issue_id);
-          return (
-            <article class="tile">
-              <p class="tile__meta">{it.dateLabel || 'SAVED'}</p>
-              <h3 class="tile__title">{it.title}</h3>
-              <a class="tile__link" href={it.href}>Read again <span aria-hidden="true">→</span></a>
-            </article>
-          );
-        })}
-      </div>
-    )}
-  </section>
-
-  {/* ── Reading log ───────────────────────────────────────────────────── */}
-  <section class="mod reveal" style="transition-delay: 80ms">
-    <h2 class="mod__title">Reading log</h2>
-    <div class="stat-row plate">
-      <div class="stat">
-        <span class="stat__label">On the shelf</span>
-        <span class="stat__value">{savedCount}</span>
-        <p class="stat__note">{savedCount === 1 ? 'issue kept' : 'issues kept'}</p>
-      </div>
-      <div class="stat">
-        <span class="stat__label">Notes written</span>
-        <span class="stat__value">{notesTotal ?? 0}</span>
-        <p class="stat__note">margins marked up</p>
-      </div>
-      <div class="stat">
-        <span class="stat__label">A reader for</span>
-        <span class="stat__value">{daysReader}</span>
-        <p class="stat__note">since {memberSinceLabel}</p>
-      </div>
-    </div>
-  </section>
-
-  {/* ── In the margins ────────────────────────────────────────────────── */}
-  {notes && notes.length > 0 && (
-    <section class="mod reveal" style="transition-delay: 120ms">
-      <h2 class="mod__title">In the margins</h2>
-      <div class="plate marg-list">
-        {notes.map((n) => {
-          const it = prettify(n.issue_id);
-          return (
-            <div class="marg">
-              <p class="marg__quote">{n.body_md}</p>
-              <div class="marg__foot">
-                <span class="chip marg__status">{NOTE_STATUS[n.status] ?? n.status}</span>
-                <a class="marg__issue" href={it.href}>{it.title} <span aria-hidden="true">→</span></a>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  )}
-
-  {/* ── Preferences ───────────────────────────────────────────────────── */}
-  <section class="mod reveal" style="transition-delay: 160ms">
-    <h2 class="mod__title">Preferences</h2>
-    <form id="prefs-form" class="plate prefs" method="post" action="/api/account/prefs">
-      <label class="toggle prefs__row">
-        <input type="checkbox" name="weekly_digest" checked={emailPrefs.weekly_digest} />
-        <span class="toggle__track" aria-hidden="true"></span>
-        <span class="toggle__label"><b>Weekly digest</b> — one quiet letter when a new issue is worth keeping</span>
-      </label>
-      <label class="toggle prefs__row">
-        <input type="checkbox" name="issue_publish" checked={emailPrefs.issue_publish} />
-        <span class="toggle__track" aria-hidden="true"></span>
-        <span class="toggle__label"><b>New-issue alerts</b> — a note the moment an issue publishes</span>
-      </label>
-      <label class="toggle prefs__row">
-        <input type="checkbox" name="reengagement" checked={emailPrefs.reengagement} />
-        <span class="toggle__track" aria-hidden="true"></span>
-        <span class="toggle__label"><b>Reading-streak reminders</b> — the occasional nudge to pick up where you left off</span>
-      </label>
-      <div class="prefs__actions">
-        <button class="btn" type="submit">Save preferences</button>
-        <span class="prefs__status" role="status" aria-live="polite" data-prefs-status></span>
-      </div>
-    </form>
-  </section>
-
-  {/* ── Account ───────────────────────────────────────────────────────── */}
-  <section class="mod reveal" style="transition-delay: 200ms">
-    <h2 class="mod__title">Account</h2>
-    <div class="plate acct">
-      <div class="acct__row"><span class="acct__k">Name</span><span class="acct__v">{displayName ?? '—'}</span></div>
-      <div class="acct__row"><span class="acct__k">Email</span><span class="acct__v">{user.email}</span></div>
-      <div class="acct__row"><span class="acct__k">Reader since</span><span class="acct__v">{memberSinceLabel}</span></div>
-    </div>
-  </section>
-
-  {/* ── Admin ─────────────────────────────────────────────────────────── */}
-  {userIsAdmin && (
-    <section class="mod reveal" style="transition-delay: 240ms">
-      <h2 class="mod__title">Editor</h2>
-      <div class="admin-grid">
-        <a class="tile admin-tile" href="/admin/comments">
-          <p class="tile__meta">MODERATION</p>
-          <h3 class="tile__title">The comment queue</h3>
-          <span class="tile__link">Open <span aria-hidden="true">→</span></span>
-        </a>
-      </div>
-    </section>
-  )}
-
-  {/* ── Danger zone ───────────────────────────────────────────────────── */}
-  <section class="mod reveal" style="transition-delay: 280ms">
-    <details class="danger">
-      <summary class="danger__summary">Delete account permanently</summary>
-      <p class="danger__body">
-        This removes your profile, saved issues, reactions, reading events, and
-        unsubscribes any newsletter address linked to your account. Hard-deleted
-        within 30 days; some data persists briefly in encrypted backups, which
-        expire automatically. This cannot be undone.
+  <div class="shelf">
+    {noticeParam && (
+      <p class={`notice notice--${noticeKind === 'ok' ? 'ok' : noticeKind === 'err' ? 'err' : 'info'}`} role="status">
+        {noticeParam}
       </p>
-      <form method="post" action="/api/account/delete"
-        onsubmit="return confirm('Delete your Parallax account permanently? This cannot be undone.');">
-        <button type="submit" class="btn btn--danger">I understand — delete my account</button>
+    )}
+
+    {/* ── Hello, and the path ─────────────────────────────────────────── */}
+    <section class="shelf__sec shelf__sec--path" aria-labelledby="path-h">
+      <h1 class="shelf__h1">{firstName ? `Hello, ${firstName}.` : 'Welcome back.'}</h1>
+      <div class="shelf__group">
+        <h2 id="path-h" class="px-meta">Your path</h2>
+        {current ? (
+          <ol class="path" role="list">
+            {trail.map((s, i) => {
+              const rg = ring(s.pct, 40);
+              const n = numbers.get(s.entry.slug);
+              return (
+                <li class="path__step" style={deskVars(s.entry.data.topic)}>
+                  <a class="px-card path__cover" href={`/issues/${s.entry.slug}/`} aria-label={`${n ? formatNo(n) : stripEmphasis(s.entry.data.title)}, ${s.pct}% read`}>
+                    <span class="path__panel"><CoverMark issue={s.entry} labels={false} /></span>
+                    <span class="path__no"><span class="path__dot" aria-hidden="true"></span>{n ? formatNo(n) : stripEmphasis(s.entry.data.title)}</span>
+                  </a>
+                  <span class="path__track">
+                    <span class:list={['path__line', { 'path__line--none': i === 0 }]} aria-hidden="true"></span>
+                    <svg class="path__ring" width={rg.size} height={rg.size} viewBox={`0 0 ${rg.size} ${rg.size}`} role="img" aria-label={`${s.pct}% read`}>
+                      <circle cx={rg.c} cy={rg.c} r={rg.c - 0.5} fill="var(--paper-3)" />
+                      <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--hair-2)" stroke-width={rg.sw} />
+                      {rg.done ? (
+                        <>
+                          <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--dk-mark)" stroke-width={rg.sw} />
+                          <path d="M14 20 l4.5 4.5 l8 -9" fill="none" stroke="var(--dk-text)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--dk-mark)" stroke-width={rg.sw} stroke-linecap="round" stroke-dasharray={`${rg.dash} ${rg.len}`} transform={`rotate(-90 ${rg.c} ${rg.c})`} />
+                          <text x={rg.c} y={rg.c + 4} text-anchor="middle" fill="var(--ink)" style={`${SANS};font-size:${rg.fs}px;font-weight:600;font-variant-numeric:tabular-nums`}>{s.pct}%</text>
+                        </>
+                      )}
+                    </svg>
+                    <span class="path__line" aria-hidden="true"></span>
+                  </span>
+                </li>
+              );
+            })}
+            {(() => {
+              const s = current;
+              const rg = ring(s.pct, 56);
+              const n = numbers.get(s.entry.slug);
+              const href = `/issues/${s.entry.slug}/`;
+              return (
+                <li class="path__step path__step--now" style={deskVars(s.entry.data.topic)}>
+                  <article class="px-card path__now">
+                    <a class="path__now-panel" href={href} tabindex="-1" aria-hidden="true">
+                      <CoverMark issue={s.entry} />
+                    </a>
+                    <div class="path__now-body">
+                      <div class="path__now-text">
+                        <span class="path__meta"><span class="path__dot" aria-hidden="true"></span>{metaLine(s.entry)}</span>
+                        <h3 class="path__now-hl"><a href={href} set:html={renderEmphasis(s.entry.data.title)} /></h3>
+                      </div>
+                      <a class="px-btn path__go" href={href}>
+                        {s.pct >= 100 ? 'Read again' : 'Continue'}
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      </a>
+                    </div>
+                  </article>
+                  <span class="path__track">
+                    <span class:list={['path__line', { 'path__line--none': trail.length === 0 }]} aria-hidden="true"></span>
+                    <svg class="path__ring" width={rg.size} height={rg.size} viewBox={`0 0 ${rg.size} ${rg.size}`} role="img" aria-label={`${s.pct}% read`}>
+                      <circle cx={rg.c} cy={rg.c} r={rg.c - 0.5} fill="var(--paper-3)" />
+                      <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--hair-2)" stroke-width={rg.sw} />
+                      {rg.done ? (
+                        <>
+                          <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--dk-mark)" stroke-width={rg.sw} />
+                          <path d="M19 28 l6.5 6.5 l11.5 -13" fill="none" stroke="var(--dk-text)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx={rg.c} cy={rg.c} r={rg.r} fill="none" stroke="var(--dk-mark)" stroke-width={rg.sw} stroke-linecap="round" stroke-dasharray={`${rg.dash} ${rg.len}`} transform={`rotate(-90 ${rg.c} ${rg.c})`} />
+                          <text x={rg.c} y={rg.c + 5} text-anchor="middle" fill="var(--ink)" style={`${SANS};font-size:${rg.fs}px;font-weight:600;font-variant-numeric:tabular-nums`}>{s.pct}%</text>
+                        </>
+                      )}
+                    </svg>
+                    <span class="path__line path__line--none" aria-hidden="true"></span>
+                  </span>
+                </li>
+              );
+            })()}
+          </ol>
+        ) : (
+          <div class="path path--empty">
+            <p class="shelf__empty">Your path starts with the first issue you open.</p>
+            {latestIssue && <a class="px-btn" href={`/issues/${latestIssue.slug}/`}>Read the latest issue</a>}
+          </div>
+        )}
+      </div>
+    </section>
+
+    {/* ── On the shelf ──────────────────────────────────────────────────── */}
+    <section class="shelf__sec" aria-labelledby="shelf-h" data-shelf>
+      <h2 id="shelf-h" class="px-meta">On the shelf <span class="shelf__count" data-shelf-count>{savedCount > 0 ? `· ${savedCount}` : ''}</span></h2>
+      <div class="shelf__empty-wrap" data-shelf-empty hidden={savedCount > 0}>
+        <p class="shelf__empty">Your shelf is empty. Save an issue while you read and it lands here to finish later.</p>
+        <a class="px-btn px-btn--ghost" href="/archive/">Browse the archive</a>
+      </div>
+      {savedCount > 0 && (
+        <ul class="shelf__grid" role="list">
+          {saved.map((s) => {
+            const title = s.entry ? stripEmphasis(s.entry.data.title) : prettify(s.id).title;
+            return (
+              <li class="shelf__item" data-shelf-item={s.id} style={s.entry ? deskVars(s.entry.data.topic) : undefined}>
+                {s.entry ? (
+                  <CoverCard issue={s.entry} size="card" number={numbers.get(s.id)} />
+                ) : (
+                  <a class="px-card shelf__plain" href={prettify(s.id).href}>
+                    <span class="shelf__plain-hl">{title}</span>
+                    <span class="px-meta">Saved</span>
+                  </a>
+                )}
+                <button type="button" class="shelf__remove" data-remove={s.id} aria-label={`Remove ${title} from the shelf`}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 3h10v14l-5-3.6L5 17z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p class="shelf__status" role="status" aria-live="polite" data-shelf-status></p>
+    </section>
+
+    {/* ── Your desks ────────────────────────────────────────────────────── */}
+    <section class="shelf__sec" id="desks" aria-labelledby="desks-h">
+      <div class="shelf__group shelf__group--tight">
+        <h2 id="desks-h" class="px-meta">Your desks</h2>
+        <p class="shelf__lede">Follow a desk to get its issues first.</p>
+      </div>
+      <ul class="desks" role="list">
+        {desks.map((d) => (
+          <li class:list={['desk', { 'desk--on': d.on }]} style={deskVars(d.t)}>
+            <a class="desk__mark" href={`/topics/${d.t}/`} aria-label={`${DESK_COPY[d.t].name} desk`}>
+              <Mark desk={d.t} size={48} tight ground="var(--paper-2)" />
+            </a>
+            <div class="desk__body">
+              <div class="desk__text">
+                <div class="desk__row">
+                  <h3 class="desk__name"><a href={`/topics/${d.t}/`}>{DESK_COPY[d.t].name}</a></h3>
+                  {d.total > 0 && (
+                    <span class="desk__count">{d.unread > 0 ? `${d.unread} unread` : 'Up to date'}</span>
+                  )}
+                </div>
+                <p class="desk__tag">{DESK_COPY[d.t].tag}</p>
+              </div>
+              <form method="post" action="/api/onboarding" class="desk__form">
+                <input type="hidden" name="intent" value="save" />
+                <input type="hidden" name="next" value="/dashboard#desks" />
+                {d.nextSet.map((x) => <input type="hidden" name="interest" value={x} />)}
+                <button
+                  type="submit"
+                  class="desk__follow"
+                  aria-pressed={d.on ? 'true' : 'false'}
+                  aria-label={d.on ? `Following ${DESK_COPY[d.t].name}. Press to stop following` : `Follow ${DESK_COPY[d.t].name}`}
+                >
+                  {d.on ? (
+                    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M3 7.2l2.6 2.6L11 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M7 2.5v9M2.5 7h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+                  )}
+                  <span>{d.on ? 'Following' : 'Follow'}</span>
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {/* ── Preferences ───────────────────────────────────────────────────── */}
+    <section class="shelf__sec" aria-labelledby="prefs-h">
+      <h2 id="prefs-h" class="px-meta">Preferences</h2>
+      <form id="prefs-form" class="prefs" method="post" action="/api/account/prefs">
+        {PREFS.map((p) => (
+          <div class="prefs__cell">
+            <label class="prefs__label" for={`pref-${p.key}`}>{p.label}</label>
+            <input class="prefs__native" type="checkbox" name={p.key} id={`native-${p.key}`} checked={emailPrefs[p.key]} aria-label={p.label} />
+            <button type="button" class="prefs__switch" id={`pref-${p.key}`} role="switch" aria-checked={emailPrefs[p.key] ? 'true' : 'false'} data-for={`native-${p.key}`}>
+              <span class="prefs__track" aria-hidden="true"><span class="prefs__knob"></span></span>
+            </button>
+          </div>
+        ))}
+        <div class="prefs__actions">
+          <span class="prefs__status" role="status" aria-live="polite" data-prefs-status></span>
+          <button class="px-btn prefs__save" type="submit">Save preferences</button>
+        </div>
       </form>
-    </details>
-  </section>
+    </section>
+
+    {/* ── In the margins ────────────────────────────────────────────────── */}
+    {notes && notes.length > 0 && (
+      <section class="shelf__sec" aria-labelledby="margins-h">
+        <h2 id="margins-h" class="px-meta">In the margins</h2>
+        <ul class="margins" role="list">
+          {notes.map((n) => {
+            const e = bySlug.get(n.issue_id as string);
+            const it = e ? { title: stripEmphasis(e.data.title), href: `/issues/${e.slug}/` } : prettify(n.issue_id as string);
+            return (
+              <li class="margins__row">
+                <p class="margins__quote">{n.body_md}</p>
+                <div class="margins__foot">
+                  <span class="px-chip px-chip--neutral">{NOTE_STATUS[n.status as string] ?? n.status}</span>
+                  <a class="margins__issue" href={it.href}>{it.title}</a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {/* ── Account ───────────────────────────────────────────────────────── */}
+    <section class="shelf__sec" aria-labelledby="acct-h">
+      <h2 id="acct-h" class="px-meta">Account</h2>
+      <div class="acct">
+        <dl class="acct__rows">
+          <div class="acct__row"><dt>Name</dt><dd>{displayName ?? 'Not set'}</dd></div>
+          <div class="acct__row"><dt>Email</dt><dd>{user.email}</dd></div>
+          <div class="acct__row"><dt>Reader since</dt><dd>{memberSinceLabel}</dd></div>
+          <div class="acct__row"><dt>Notes written</dt><dd>{notesTotal ?? 0}</dd></div>
+        </dl>
+        <div class="acct__side">
+          <form method="post" action="/api/auth/signout">
+            <button type="submit" class="px-btn px-btn--ghost">Sign out</button>
+          </form>
+          {userIsAdmin && <a class="px-btn px-btn--ghost" href="/admin/comments">The moderation queue</a>}
+        </div>
+      </div>
+
+      <details class="danger">
+        <summary class="danger__summary">Delete account permanently</summary>
+        <p class="danger__body">
+          This removes your profile, saved issues, reactions, reading events, and
+          unsubscribes any newsletter address linked to your account. Hard-deleted
+          within 30 days. Some data persists briefly in encrypted backups, which
+          expire automatically. This cannot be undone.
+        </p>
+        <form method="post" action="/api/account/delete"
+          onsubmit="return confirm('Delete your Parallax account permanently? This cannot be undone.');">
+          <button type="submit" class="btn btn--danger">I understand. Delete my account</button>
+        </form>
+      </details>
+    </section>
+  </div>
 </AppLayout>
 
 <script is:inline>
-  // Save preferences without leaving the shelf (progressive enhancement — the
-  // form still POSTs and redirects with a ?notice under no-JS).
   (function () {
+    /* Preferences: the switches drive the native checkboxes the form posts,
+       and the form saves without leaving the Shelf (the native POST, which
+       redirects back with a notice, is the no-JS path). */
     var form = document.getElementById('prefs-form');
-    if (!form) return;
-    var status = form.querySelector('[data-prefs-status]');
-    var btn = form.querySelector('button[type="submit"]');
-    form.addEventListener('submit', function (e) {
-      if (!window.fetch) return; // let the native POST handle it
-      e.preventDefault();
-      var label = btn.textContent;
-      btn.disabled = true; btn.textContent = 'Saving…';
-      if (status) status.textContent = '';
-      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } })
-        .then(function (r) { return r.ok; })
-        .then(function (ok) { if (status) status.textContent = ok ? 'Saved.' : 'Could not save — try again.'; })
-        .catch(function () { if (status) status.textContent = 'Could not save — try again.'; })
-        .then(function () { btn.disabled = false; btn.textContent = label; });
+    if (form) {
+      Array.prototype.forEach.call(form.querySelectorAll('[role="switch"]'), function (sw) {
+        var box = document.getElementById(sw.getAttribute('data-for'));
+        sw.addEventListener('click', function () {
+          var on = sw.getAttribute('aria-checked') !== 'true';
+          sw.setAttribute('aria-checked', on ? 'true' : 'false');
+          if (box) box.checked = on;
+        });
+      });
+      var status = form.querySelector('[data-prefs-status]');
+      var btn = form.querySelector('button[type="submit"]');
+      form.addEventListener('submit', function (e) {
+        if (!window.fetch) return; // let the native POST handle it
+        e.preventDefault();
+        var label = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Saving…';
+        if (status) status.textContent = '';
+        fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'Accept': 'application/json' } })
+          .then(function (r) { return r.ok; })
+          .then(function (ok) { if (status) status.textContent = ok ? 'Saved.' : 'Could not save. Try again.'; })
+          .catch(function () { if (status) status.textContent = 'Could not save. Try again.'; })
+          .then(function () { btn.disabled = false; btn.textContent = label; });
+      });
+    }
+
+    /* Remove from the shelf: DELETE /api/save/<id>, then the card leaves. */
+    var shelf = document.querySelector('[data-shelf]');
+    if (!shelf || !window.fetch) return;
+    var say = shelf.querySelector('[data-shelf-status]');
+    var count = shelf.querySelector('[data-shelf-count]');
+    var empty = shelf.querySelector('[data-shelf-empty]');
+    Array.prototype.forEach.call(shelf.querySelectorAll('[data-remove]'), function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-remove');
+        b.disabled = true;
+        fetch('/api/save/' + encodeURIComponent(id), { method: 'DELETE', credentials: 'include' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (!j || !j.ok) throw new Error('remove failed');
+            var item = b.closest('[data-shelf-item]');
+            if (item) item.remove();
+            var left = shelf.querySelectorAll('[data-shelf-item]').length;
+            if (count) count.textContent = left > 0 ? '· ' + left : '';
+            if (left === 0 && empty) empty.hidden = false;
+            if (say) say.textContent = 'Removed from the shelf.';
+          })
+          .catch(function () {
+            b.disabled = false;
+            if (say) say.textContent = 'Could not remove it. Try again.';
+          });
+      });
     });
   })();
 </script>
 
 <style>
-  .hero { margin-bottom: 8px; }
-  .hero .dek { max-width: 46ch; }
-
-  /* Module rhythm */
-  .mod { margin-top: 40px; }
-  .mod__title {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 700;
-    margin: 0 0 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--rule);
-  }
-  .mod__count { color: var(--accent-deep, var(--accent)); letter-spacing: 0.1em; }
-
-  /* Shelf tile grid */
-  .shelf-grid,
-  .admin-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-  }
-  .tile { display: flex; flex-direction: column; gap: 8px; }
-  .tile__meta {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--muted);
+  .shelf { display: flex; flex-direction: column; gap: 80px; }
+  .shelf > .notice { margin-bottom: -48px; }
+  .shelf__sec { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .shelf__sec--path { gap: 32px; }
+  .shelf__sec .px-meta { margin: 0; }
+  .shelf__group { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .shelf__group--tight { gap: 8px; }
+  .shelf .shelf__h1 {
     margin: 0;
-  }
-  .tile__title {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: 20px;
-    line-height: 1.2;
+    font-size: 56px;
+    line-height: 1.04;
+    letter-spacing: -0.01em;
     color: var(--ink);
+  }
+  .shelf__lede { margin: 0; font-family: var(--font-ui); font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+  .shelf__count { color: var(--ink-2); }
+  .shelf__empty { margin: 0; font-family: var(--font-display); font-size: 19px; line-height: 1.5; color: var(--ink-2); max-width: 56ch; }
+  .shelf__empty-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .shelf__empty-wrap[hidden] { display: none; }
+  .shelf__status { margin: 0; min-height: 0; font-family: var(--font-ui); font-size: 14px; color: var(--muted); }
+  .shelf__status:empty { display: none; }
+
+  /* ── the path: the one paper-3 field ── */
+  .path {
+    list-style: none;
     margin: 0;
+    box-sizing: border-box;
+    padding: 32px 20px 20px;
+    background: var(--paper-3);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+  }
+  .path--empty { flex-direction: column; align-items: flex-start; gap: 16px; padding: 32px; }
+  .path__step { flex: 0 0 188px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .path__step--now { flex: 1 1 auto; }
+  .path__cover, .path__now { margin: 0 12px; padding: 0; gap: 0; overflow: hidden; }
+  .path__cover { height: 244px; }
+  .path__panel {
+    height: 194px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    box-sizing: border-box;
+    background: var(--dk-tint);
+    container-type: inline-size;
+  }
+  .path__no {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+  }
+  .path__dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--dk-mark); }
+  .path__now { height: 244px; flex-direction: row; }
+  .path__now-panel {
+    width: 248px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    box-sizing: border-box;
+    background: var(--dk-tint);
+    container-type: inline-size;
+  }
+  .path__now-body {
+    flex: 1;
+    min-width: 0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .path__now-text { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .path__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .path__now-hl {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 28px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .tile__link {
-    margin-top: auto;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent-deep, var(--accent));
-    text-decoration: none;
-  }
-  a.tile { text-decoration: none; }
-  a.tile:hover .tile__link { color: var(--accent); }
+  .path__now-hl a { color: var(--ink); text-decoration: none; }
+  .path__now-hl a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .path__now-hl :global(em) { font-style: italic; color: var(--dk-text); }
+  .path__go { align-self: flex-start; }
+  .path__track { height: 56px; display: flex; align-items: center; }
+  .path__line { flex: 1; height: 2px; background: var(--muted); }
+  .path__line--none { background: transparent; }
+  .path__ring { display: block; flex: none; }
 
-  /* Reading log */
-  .stat-row {
+  /* ── on the shelf ── */
+  .shelf__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
   }
-  @media (max-width: 560px) { .stat-row { grid-template-columns: 1fr; gap: 20px; } }
+  .shelf__item { position: relative; display: flex; min-width: 0; }
+  .shelf__item > :global(.px-card) { flex: 1; }
+  /* The meta row gives the Remove control its own 44px corner, so the button
+     sits beside the words, never over them. */
+  .shelf__item :global(.px-cover__meta) { padding-right: 36px; }
+  .shelf__remove {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    color: var(--ink);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  :global(html.js) .shelf__remove { display: flex; }
+  .shelf__remove:hover { color: var(--danger); background: var(--paper-3); }
+  .shelf__remove:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .shelf__remove:disabled { opacity: 0.4; cursor: default; }
+  .shelf__plain { justify-content: space-between; min-height: 160px; }
+  .shelf__plain-hl { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.2; color: var(--ink); }
 
-  /* In the margins */
-  .marg-list { display: flex; flex-direction: column; gap: 0; padding: 8px 32px; }
-  .marg { padding: 18px 0; border-bottom: 1px solid var(--rule); }
-  .marg:last-child { border-bottom: 0; }
-  .marg__quote {
+  /* ── the desks ── */
+  .desks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .desk {
+    box-sizing: border-box;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--paper-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-1);
+    min-width: 0;
+  }
+  .desk--on { padding: 19px; border: 2px solid var(--dk-mark); }
+  .desk__mark { flex: none; display: flex; border-radius: 50%; }
+  .desk__body {
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .desk__text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .desk__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .desk__name { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.1; letter-spacing: -0.01em; }
+  .desk__name a { color: var(--ink); text-decoration: none; }
+  .desk__name a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .desk__count {
+    height: 28px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border-radius: var(--r-chip);
+    background: var(--dk-tint);
+    color: var(--dk-text);
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .desk__tag { margin: 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+  .desk__form { display: flex; }
+  .desk__follow {
+    height: 44px;
+    box-sizing: border-box;
+    padding: 0 16px;
+    border: 1px solid var(--ink);
+    border-radius: var(--r-ctl);
+    background: transparent;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
+  }
+  .desk__follow:hover { background: var(--paper-3); }
+  .desk__follow[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .desk__follow[aria-pressed='true']:hover { background: var(--ink-2); }
+  .desk__follow:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ── preferences ── */
+  .prefs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+    align-items: center;
+  }
+  .prefs__cell {
+    min-height: 64px;
+    box-sizing: border-box;
+    padding: 0 8px 0 20px;
+    background: var(--paper-2);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .prefs__label { font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--ink); cursor: pointer; }
+  /* With JS the switch drives the checkbox; without it the checkbox is the control. */
+  .prefs__native { width: 22px; height: 22px; margin: 0 12px 0 0; accent-color: var(--ink); flex: none; }
+  /* display: none still submits: a checkbox posts by its state, not its box. */
+  :global(html.js) .prefs__native { display: none; }
+  .prefs__switch {
+    width: 56px;
+    height: 44px;
+    flex: none;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-ctl);
+    background: transparent;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  :global(html.js) .prefs__switch { display: flex; }
+  .prefs__switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .prefs__track {
+    width: 44px;
+    height: 26px;
+    box-sizing: border-box;
+    padding: 3px;
+    border: 1px solid var(--hair-2);
+    border-radius: var(--r-chip);
+    background: var(--paper-3);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    transition: background var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease);
+  }
+  .prefs__knob { width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform var(--t-micro) var(--ease), background var(--t-micro) var(--ease); }
+  .prefs__switch[aria-checked='true'] .prefs__track { background: var(--ink); border-color: var(--ink); }
+  .prefs__switch[aria-checked='true'] .prefs__knob { background: var(--paper); transform: translateX(18px); }
+  .prefs__actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+  .prefs__status { font-family: var(--font-ui); font-size: 14px; color: var(--muted); }
+  .prefs__save { min-height: 48px; padding: 0 24px; }
+
+  /* ── margins, account, danger ── */
+  .margins { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hair); }
+  .margins__row { padding: 16px 0; border-bottom: 1px solid var(--hair); display: flex; flex-direction: column; gap: 10px; }
+  .margins__quote {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.5;
     color: var(--ink);
-    margin: 0 0 10px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .marg__foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .marg__status { padding: 4px 10px; min-height: 0; font-size: 10px; }
-  .marg__issue {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--muted);
-    text-decoration: none;
-  }
-  .marg__issue:hover { color: var(--ink); }
+  .margins__foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .margins__issue { font-family: var(--font-ui); font-size: 14px; font-weight: 500; color: var(--ink); }
+  .margins__issue:hover { color: var(--accent-deep); }
 
-  /* Preferences */
-  .prefs { display: flex; flex-direction: column; gap: 4px; }
-  .prefs__row { align-items: flex-start; padding: 12px 0; min-height: 0; }
-  .prefs__row .toggle__track { margin-top: 2px; }
-  .toggle__label { font-size: 14px; line-height: 1.5; color: var(--ink-soft, var(--ink)); }
-  .toggle__label b { color: var(--ink); font-weight: 600; }
-  .prefs__actions { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
-  .prefs__status { font-size: 13px; color: var(--muted); }
+  .acct { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .acct__rows { margin: 0; flex: 1 1 420px; max-width: 620px; border-top: 1px solid var(--hair); }
+  .acct__row { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+  .acct__row dt { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .acct__row dd { margin: 0; font-family: var(--font-ui); font-size: 15px; color: var(--ink); text-align: right; overflow-wrap: anywhere; min-width: 0; }
+  .acct__side { display: flex; flex-wrap: wrap; gap: 12px; }
 
-  /* Account */
-  .acct { display: flex; flex-direction: column; }
-  .acct__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 20px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--rule);
-  }
-  .acct__row:last-child { border-bottom: 0; }
-  .acct__k {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .acct__v { font-size: 15px; color: var(--ink); }
-
-  /* Empty shelf */
-  .empty { text-align: left; }
-  .empty p { margin: 0 0 8px; font-size: 16px; color: var(--ink); }
-  .empty__sub { color: var(--muted) !important; font-size: 14px !important; }
-  .empty .btn { margin-top: 12px; }
-
-  /* Danger zone */
-  .danger { margin-top: 8px; }
+  .danger { margin-top: 24px; }
   .danger__summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
     color: var(--muted);
   }
-  .danger__summary:hover { color: var(--danger, var(--accent)); }
-  .danger__body { font-size: 14px; line-height: 1.6; color: var(--ink-soft, var(--ink)); max-width: 60ch; margin: 14px 0; }
+  .danger__summary:hover { color: var(--danger); }
+  .danger__summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .danger__body { font-family: var(--font-ui); font-size: 14px; line-height: 1.6; color: var(--ink-2); max-width: 60ch; margin: 8px 0 16px; }
+
+  /* ── narrower screens ── */
+  @media (max-width: 1100px) {
+    .desks, .shelf__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .prefs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .prefs__actions { grid-column: 1 / -1; }
+    .path__step { flex-basis: 150px; }
+  }
+  /* The Shelf-Phone board: the path turns vertical, the rings down a 56px
+     rail on the left and each cover a row thumbnail beside it; the current
+     issue stacks its panel over its words. */
+  @media (max-width: 860px) {
+    .shelf { gap: 56px; }
+    .shelf > .notice { margin-bottom: -32px; }
+    .shelf .shelf__h1 { font-size: 40px; line-height: 1.06; }
+    .shelf__sec--path { gap: 24px; }
+    .path { flex-direction: column; align-items: stretch; padding: 8px 12px 8px 4px; }
+    .path__step, .path__step--now { flex: none; flex-direction: row; align-items: stretch; gap: 10px; }
+    .path__track { order: -1; width: 56px; height: auto; flex: none; flex-direction: column; }
+    .path__line { width: 2px; height: auto; flex: 1; min-height: 12px; }
+    .path__cover, .path__now { margin: 8px 0; flex: 1; min-width: 0; }
+    .path__cover { height: auto; flex-direction: row; }
+    .path__panel { width: 164px; height: 86px; padding: 6px 10px; }
+    .path__no { padding: 0 14px; }
+    .path__now { height: auto; flex-direction: column; }
+    .path__now-panel { width: auto; height: 132px; }
+    .path__now-body { padding: 16px; gap: 12px; }
+    .path__now-hl { font-size: 22px; line-height: 1.18; }
+    .desks, .shelf__grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .desks { gap: 12px; }
+    .prefs { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .prefs__actions { justify-content: flex-start; flex-direction: row-reverse; }
+  }
+  @media (max-width: 420px) {
+    .path__panel { width: 120px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prefs__track, .prefs__knob, .desk__follow { transition: none; }
+  }
 </style>

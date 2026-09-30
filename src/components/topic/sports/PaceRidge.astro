@@ -8,9 +8,9 @@
   just more consistent, or with a long tail. "The stat, shown as a shape."
 
   All maths (Silverman-bandwidth Gaussian KDE + ridgeline layout + medians) runs
-  ONCE here at build time. Zero runtime compute. The only motion is the CSS
-  clip-path sweep + opacity reveals, gated behind `html.js` via core/Reveal.astro
-  toggling `.is-in` — so no-JS / reduced-motion paints the final ridge stack.
+  ONCE here at build time. Zero runtime compute. Since Lens Phase 5 the
+  scroll reveal is retired and the ridge stack paints final; its build order
+  (LENS §6.4) arrives in Phase 6.
 
   Use for: a measurable quantity with a SAMPLE for the subject and >=1 comparison
   group (>=~15 obs each) where the SHAPE of the difference (shift vs spread vs
@@ -155,7 +155,7 @@ const ridges = model.map((m, g) => {
   return {
     g, yb, area, edge, cx, cyTop, val, c: m.c, label: m.label, n: m.n,
     subject: m.subject, gx,
-    // stagger: bottom (array end) paints first -> delay 0, rising up
+    // build order (Phase 6): bottom (array end) first -> delay 0, rising up
     delay: (G - 1 - g) * 40,
   };
 });
@@ -201,7 +201,7 @@ const aria = subj && field
 const chip = `kernel density`;
 ---
 
-<div class="px-viz px-prdg" data-reveal>
+<div class="px-viz px-prdg">
   <div class="px-viz__cap">{caption && <span>{caption}</span>}<b>{chip}</b></div>
 
   <div class="px-prdg__stage">
@@ -335,46 +335,28 @@ const chip = `kernel density`;
   }
   .px-prdg__prov--kd { color: var(--accent-deep); }
 
-  /* ══ MOTION (all gated behind html.js; resting state = final painted plate) ══ */
-  /* ridge sweep: reveal left->right via clip-path; bottom->top stagger (inline delay) */
+  /* ══ TRANSITIONS (resting state = final painted plate; the build order arrives in Phase 6) ══ */
+  /* ridge clip-path: rests fully open; the Phase 6 build sweeps left->right, bottom->top (inline delay) */
   .px-prdg__sweep {
-    clip-path: inset(-10px -10px -10px -10px);      /* resting = fully visible (no-JS safe) */
+    clip-path: inset(-10px -10px -10px -10px);      /* resting = fully visible */
     transition: clip-path 900ms var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-prdg__sweep { clip-path: inset(-10px 100% -10px -10px); }
 
-  /* central ticks + stat labels + gutter labels fade in */
+  /* central ticks + stat labels + gutter labels rest fully shown */
   .px-prdg__tick, .px-prdg__stat, .px-prdg__glabel, .px-prdg__gmeta, .px-prdg__guide {
     opacity: 1; transition: opacity var(--t-soft, 400ms) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-prdg__tick,
-  html.js .px-viz:not(.is-in) .px-prdg__stat,
-  html.js .px-viz:not(.is-in) .px-prdg__glabel,
-  html.js .px-viz:not(.is-in) .px-prdg__gmeta { opacity: 0; }
 
-  /* subject guideline drops (grows down) after the subject ridge's own sweep */
+  /* subject guideline rests full length (the Phase 6 build drops it after the subject ridge) */
   .px-prdg__guide {
     transform: scaleY(1); transform-origin: center top;
     transition: transform 400ms var(--ease), opacity var(--t-soft, 400ms) var(--ease);
   }
-  html.js .px-viz:not(.is-in) .px-prdg__guide { transform: scaleY(0); opacity: 0; }
 
-  /* subject gutter tag stamps LAST */
+  /* subject gutter tag rests in place (stamped last in the Phase 6 build) */
   .px-prdg__ridge[data-subject] .px-prdg__glabel {
     transform: scale(1); transform-box: fill-box; transform-origin: right center;
     transition: opacity var(--t-soft, 400ms) var(--ease), transform 220ms var(--ease-snap, var(--ease));
-  }
-  html.js .px-viz:not(.is-in) .px-prdg__ridge[data-subject] .px-prdg__glabel {
-    opacity: 0; transform: scale(0.82);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .px-viz:not(.is-in) .px-prdg__sweep { clip-path: inset(-10px -10px -10px -10px) !important; }
-    .px-viz:not(.is-in) .px-prdg__tick,
-    .px-viz:not(.is-in) .px-prdg__stat,
-    .px-viz:not(.is-in) .px-prdg__glabel,
-    .px-viz:not(.is-in) .px-prdg__gmeta,
-    .px-viz:not(.is-in) .px-prdg__guide { opacity: 1 !important; transform: none !important; }
   }
 
   /* mobile: the SVG scales down with its viewBox, so in-unit type shrinks with

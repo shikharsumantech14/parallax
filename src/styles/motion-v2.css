@@ -1,41 +1,83 @@
 /* ============================================================================
-   PARALLAX V2 — SCROLL-REVEAL MECHANISM (no-JS safe)
+   PARALLAX — THE BUILD (Lens Phase 5, 2026-09-30; docs/design/LENS.md §6)
    ----------------------------------------------------------------------------
-   Base state is VISIBLE: with JS disabled (or print / headless), every
-   [data-reveal] element paints in its FINAL state. The hidden resting state is
-   gated behind `html.js` (set by a one-line inline guard in the layouts), so it
-   only applies when JS is present to add `.is-in` via core/Reveal.astro.
+   The classes src/scripts/build.ts puts on a scene's `[data-build]` elements.
+   The island applies them; the HTML never carries them, so the static page
+   is the FINAL state (no JS, reduced motion, print, the render gate).
 
-   This deliberately fixes the design-export bug where reveal targets used a bare
-   `:not(.is-in)` hidden rule and stayed invisible whenever JS never ran.
+     .bx-pre            the start state, applied at once (no transition)
+     .bx-on             the step has started: the element transitions back to
+                        its own static values over `--bx-d` (set per element
+                        by the island: 420 / 900 / 1400ms, times the scene's
+                        tempo) on --ease
+     .bx-<kind>         which properties move: fade (opacity), drop (opacity,
+                        6px down), rise (opacity, 8px up), draw
+                        (stroke-dashoffset over the measured `--bx-len`),
+                        grow-x / grow-y (`scale` from the element's own
+                        transform-origin)
+     .bx-fading         on the scene during a replay: 200ms to the start state
 
-   Per-component reveal rules (chart line-draws, bar grows, staggered rows) are
-   added in their component styles in later phases, each likewise gated behind
-   `html.js …:not(.is-in)`, with matching resets in the reduced-motion block.
-   Lens (2026-09-30): the tokens are the motion grammar of BRIEF-4 §1, set in
+   Everything moves through the individual `translate` and `scale`
+   properties, never `transform`, so a component's own transform (an SVG
+   group's placement, a label's centring) is composed with, not replaced.
+   The start-state rules carry !important: the cue lighting
+   (dataviz-v2.css) and a component's own opacity must not show an element
+   before its step. The whole class set comes off when the scene ends.
+
+   The tokens are the motion grammar of BRIEF-4 §1, set in
    shared/design/tokens.css: --ease (entrances) and --ease-move (travel),
    --t-micro 160 · --t-el 420 · --t-build 900 · --t-draw 1400 · --t-scene
    4500, --stagger 80. The old names (--t-quick, --t-slow, --t-page …) are
-   aliases onto that ladder until Phase 5 moves every build to build.ts.
+   aliases onto that ladder.
+
+   RETIRED here (Phase 5): the `[data-reveal]` / `html.js …:not(.is-in)`
+   scroll-reveal contract and core/Reveal.astro + core/VizMotion.astro.
    ============================================================================ */
 
-/* Generic reveal: visible by default; JS hides then reveals on scroll-in. */
-[data-reveal] {
-  transition: opacity var(--t-el) var(--ease), transform var(--t-el) var(--ease);
-}
-html.js [data-reveal]:not(.is-in) {
-  opacity: 0;
-  transform: translateY(8px);   /* Lens: things arrive rising 8px over 420ms (BRIEF-4 §1) */
+/* The start state. */
+.bx-pre { transition: none !important; }
+.bx-pre.bx-fade { opacity: 0 !important; }
+.bx-pre.bx-drop { opacity: 0 !important; translate: 0 -6px !important; }
+.bx-pre.bx-rise { opacity: 0 !important; translate: 0 8px !important; }
+.bx-pre.bx-grow-x { scale: 0 1 !important; }
+.bx-pre.bx-grow-y { scale: 1 0 !important; }
+.bx-draw { stroke-dasharray: var(--bx-len) !important; }
+.bx-pre.bx-draw { stroke-dashoffset: var(--bx-len) !important; }
+
+/* A step running: back to the element's own values. The shorthand also
+   zeroes any transition-delay the component carries. */
+.bx-on {
+  transition:
+    opacity var(--bx-d, 420ms) var(--ease),
+    translate var(--bx-d, 420ms) var(--ease),
+    scale var(--bx-d, 900ms) var(--ease),
+    stroke-dashoffset var(--bx-d, 1400ms) var(--ease) !important;
 }
 
-/* Reduced motion: never hide, never animate — paint the final state. */
+/* A replay fades everything to its start state over 200ms, then builds. */
+.bx-fading .bx-pre {
+  transition:
+    opacity 200ms var(--ease),
+    translate 200ms var(--ease),
+    scale 200ms var(--ease),
+    stroke-dashoffset 200ms var(--ease) !important;
+}
+
+/* Where a grow element names no origin of its own: bars grow from the left
+   and columns from the floor. Zero specificity, so the component's wins. An
+   SVG element grows about its own box. */
+:where(.bx-grow-x) { transform-origin: 0 50%; }
+:where(.bx-grow-y) { transform-origin: 50% 100%; }
+:where(svg .bx-grow-x, svg .bx-grow-y) { transform-box: fill-box; }
+
+/* The replay button ships `hidden`; the island shows it. */
+[data-build-replay][hidden] { display: none !important; }
+
+/* Reduced motion: never animate. The island does nothing under it, so no
+   start state is ever applied and the page is the final state. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition: none !important;
     animation: none !important;
-  }
-  html.js [data-reveal]:not(.is-in) {
-    opacity: 1 !important;
-    transform: none !important;
   }
 }

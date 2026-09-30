@@ -176,7 +176,7 @@ const payload = JSON.stringify({
 const arrow = '→';
 ---
 
-<div class="px-viz px-pkt" data-reveal>
+<div class="px-viz px-pkt">
   {/* honesty core (blueprint §3): the floor/measured chip is ALWAYS present —
      it does not depend on an authored caption; the vacuum chip rides with it. */}
   <div class="px-viz__cap">
@@ -436,13 +436,6 @@ const arrow = '→';
   .px-pkt__seg:focus-visible .px-pkt__hit {
     stroke: var(--accent-deep); stroke-width: 1.5; stroke-dasharray: 3 3;
   }
-
-  /* html.js-gated reveal: floor portions grow first (scaleX 0→1), then the
-     overhead portions stack on (delayed), then the floor line + labels fade. */
-  html.js .px-viz:not(.is-in) .px-pkt__floor,
-  html.js .px-viz:not(.is-in) .px-pkt__over { transform: scaleX(0); }
-  html.js .px-viz:not(.is-in) .px-pkt__floorline,
-  html.js .px-viz:not(.is-in) .px-pkt__floorlbl { opacity: 0; }
   .px-pkt__floor { transition-delay: var(--d, 0ms); }
   .px-pkt__over { transition-delay: var(--d, 0ms); }
   .px-pkt__floorline, .px-pkt__floorlbl { transition: opacity 300ms var(--ease) 720ms; }
@@ -482,11 +475,6 @@ const arrow = '→';
   }
 
   @media (prefers-reduced-motion: reduce) {
-    /* composed still: bar fully painted, no grow/reveal transitions */
-    .px-viz:not(.is-in) .px-pkt__floor,
-    .px-viz:not(.is-in) .px-pkt__over { transform: scaleX(1) !important; }
-    .px-viz:not(.is-in) .px-pkt__floorline,
-    .px-viz:not(.is-in) .px-pkt__floorlbl { opacity: 1 !important; }
     .px-pkt__floor, .px-pkt__over, .px-pkt__floorline, .px-pkt__floorlbl { transition: none !important; }
   }
 </style>

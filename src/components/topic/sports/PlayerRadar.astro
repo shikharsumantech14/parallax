@@ -1,10 +1,9 @@
 ---
 /*
   PlayerRadar — v2 hexagonal radar (.pr) inside the elevated .px-viz card.
-  The data polygon scale-pops from the centre on scroll-in; the stat bars
-  below grow left→right with a staggered delay. Faithful port of the kit's
-  <PlayerRadar>. SVG, build-time, zero runtime JS (reveal handled by CSS via
-  core/Reveal.astro toggling .is-in on the .px-viz).
+  The data polygon over the axes, the stat bars below. Faithful port of the
+  kit's <PlayerRadar>. SVG, build-time, zero runtime JS; static since Lens
+  Phase 5 (its build order arrives in Phase 6).
 
   Use for: player ratings, team strengths, product feature
   comparisons, any N-dimensional comparison.
@@ -54,7 +53,7 @@ const labels = stats.map((s, i) => {
 });
 ---
 
-<div class="px-viz pr" data-reveal>
+<div class="px-viz pr">
   <div class="pr__stage">
     <svg class="pr__svg" viewBox={`0 0 ${C} ${C}`} role="img"
       aria-label={player ? `Radar chart: ${player}` : 'Radar chart'}>
