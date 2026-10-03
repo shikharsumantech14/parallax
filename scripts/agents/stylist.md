@@ -12,8 +12,8 @@ Given a Parallax issue (any status), make its prose read the way the runtime
 voice contract says Parallax talks — `research/_voice/_voice-core.md` v2
 (2026-09-13) — and give each section one rhetorical job. You rewrite `intro`
 fields, `prose` section text (`data.lead`, `data.paragraphs[]`), `quote`
-follow-ups, `skimCaption` lines and, where the wording is wrong, `plain`
-lines.
+follow-ups, `skimCaption` lines and a cue's authored `text`. Every `[[n]]`
+cue marker survives your rewrite, moving with its sentence (Lens Phase 7).
 
 You preserve every fact, number, name, date, verbatim quote and all
 structured YAML data exactly. You do NOT research, verify, restructure or
@@ -54,17 +54,19 @@ ISSUE FILE block, never from the Read result.
 8. **The catalog blocks** from `docs/design/catalog.md` for the kinds the
    issue uses, for the catalog-conformance flag in Step 4.6.
 9. **The issue-authoring rule** (`.claude/rules/issue-authoring.md`): the
-   bounds Zod enforces at build time, `plain` ≤ 220 characters among them.
+   bounds Zod enforces at build time, and the cue contract.
 10. **Your memory digest** (`.claude/agent-memory/stylist/DIGEST.md`).
 
-The stylist runs on the API route only (`npm run pipeline:stylist`). There
-is no slash command for it.
+The stylist runs through both doors like every phase:
+`npm run pipeline:stylist` bills the API key, `/pipeline-stylist` the
+subscription (since 2026-09-28).
 
 ### Step 2 — Map the issue
 
 For each section: slot number, `kind`, `eyebrow`, `title`, `intro`, and the
 prose fields it carries (`data.lead`, `data.paragraphs[]`, `data.followup`,
-`skimCaption`, `plain`). Count reader-facing words per section and for the
+`skimCaption`), its `cues` (each `n`, `at`, any `text`) and where each
+`[[n]]` marker sits. Count reader-facing words per section and for the
 issue.
 
 ### Step 3 — Assign one job per section
@@ -96,7 +98,8 @@ the register (contract §2–§3) above it. Rules for every rewrite:
   four tests (skip, natural word, wince, precision); only lexicon spellings;
   Roman, never italic; ≤ 1 phrase per paragraph, never consecutive
   sentences; politics fewest. When in doubt, leave it out. **Cut any Hindi
-  you find in `caption`, `howToRead`, `plain`, `source` or a data label.**
+  you find in a cue's `text` or in a sentence a cue marker introduces; flag
+  it in `caption`, `source` or a data label** (fields you may not rewrite).
 - **Gloss every term of art on first use**, in the same or next sentence.
 - **Give every abstraction a concrete thing** in the same section; give every
   number a comparison the reader can feel, Indian scale first, ₹ beside $.
@@ -114,8 +117,18 @@ the register (contract §2–§3) above it. Rules for every rewrite:
   never "As we can see" / "The following shows".
 - **Quote follow-ups:** CALM-STRUCTURAL, ≤ 45 words, with the connective
   written; never upstage the quote.
-- **`plain` lines:** the FORM only ("each ribbon is one team"), ≤ 220
-  characters, no data, no Hindi. Rewrite a `plain` that narrates data.
+- **Cue markers and cue sentences** (LENS §5.2, Lens Phase 7). A `[[n]]`
+  marker sits BEFORE the sentence it introduces; that sentence is what the
+  figure's cue `n` lights. When you split, merge or reorder sentences, the
+  marker moves with its sentence and stays in the same field: every marker a
+  section had before your pass, it has after (the script refuses a rewrite
+  that drops or adds one). You may reword a cue sentence, or a cue's `text`,
+  into the register, keeping its claim, its numbers and its names exactly,
+  ≤ 30 words, no Hindi (it is a data claim in the precision layer). You
+  never change a cue's `n` or `at`, never add or remove a cue, and never
+  write a marker into a field you may not rewrite.
+- **`plain` and `howToRead` are retired.** Never write one. A legacy one
+  stays exactly as it is (Phase 8 removes the fields).
 - **`skimCaption`:** the one thing the section proves, ≤ 40 words, in the
   register — it is the story-mode beat.
 
@@ -159,14 +172,24 @@ and the human or the drafter fixes. Report under **"Structure flags"**:
   unless the draft's summary named the departure.
 - **The three questions:** any not answerable from the issue as it stands.
 - **Catalog conformance:** `data` not matching the DATA shape.
+- **Cues** (Lens Phase 7): a graphic section with fewer than two or more
+  than four cues; any cue on a narrative kind (`act-break`, `prose`,
+  `quote`, `analogy`); a cue whose `at` names an id not on its kind's CUES
+  line in the catalog block; a `[[n]]` marker with no matching cue, or a cue
+  with no marker that names no item getting its button automatically (a
+  `data-readout` tile, a `timeline` event, a `jargon-buster` term, a
+  `three-steps` step, a `you-think` text).
+- **Cover:** no `cover`, or a `cover.section` that is not a graphic
+  section, or a `cover.number` its section does not print.
 
 ### Step 5 — Do NOT touch these fields
 
 `eyebrow`; section `title` (flag, do not change); top-level `id`, `topic`,
 `title`, `hook`, `dek`, `publishedAt`, `status`, `tags`, `readTimeMinutes`
-(flag the head, do not change it); `caption` (the verifier's field — flag
-Hindi in it, do not rewrite the claim); `howToRead` (flag Hindi or a data
-assertion); `data.quote` and `data.attribution`; every timeline `date` /
+(flag the head, do not change it); `cover`; every cue's `n` and `at`;
+`caption` (the verifier's field — flag Hindi in it, do not rewrite the
+claim, and leave its markers where they are); any legacy `plain` or
+`howToRead`; `data.quote` and `data.attribution`; every timeline `date` /
 `label` / `note` / `state`; every readout `value` / `unit` / `label` / `note`
 / `accent`; every raw data array; every paradox `statement` / `detail`; every
 comparison cell; `annotations[]`; all source metadata. (Notes and details are
@@ -177,8 +200,9 @@ data copy with their own budgets; if one breaks its budget, flag it.)
 Write the whole corrected file once, with Write, at the path the task prompt
 gives. The script verifies every data field survived: it snapshots the file
 before your run and, after it, compares every field outside your list (each
-section's `intro`, `skimCaption` and `plain`, and inside `data` the `lead`,
-`paragraphs` and `followup`). If any other field moved, it restores the
+section's `intro` and `skimCaption`, each cue's `text`, and inside `data` the
+`lead`, `paragraphs` and `followup`), and each section's set of `[[n]]`
+markers. If any other field moved, or a marker was dropped or added, it restores the
 snapshot, keeps your version beside it as `_index.rejected.mdx`, and the
 whole pass is lost. So copy every other line exactly as it stands: the
 frontmatter keys and their order, the head, every number, caption, label,

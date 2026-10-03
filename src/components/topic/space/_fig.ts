@@ -32,9 +32,11 @@ export const dpOf = (n: number) => {
   return i < 0 ? 0 : Math.min(3, s.length - i - 1);
 };
 
-/** A cue numeral's slot inside an SVG, centred on (cx, cy). Room for two numerals. */
+/** A cue numeral's slot inside an SVG, centred on (cx, cy). The box is the one
+ *  disc, so a lit anchor's ring hugs its label; a second numeral overflows it
+ *  visibly to the right. */
 export const svgTag = (id: string | number, cx: number, cy: number) =>
-  `<foreignObject x="${(cx - 10).toFixed(1)}" y="${(cy - 10).toFixed(1)}" width="52" height="20" style="overflow:visible">` +
+  `<foreignObject x="${(cx - 10).toFixed(1)}" y="${(cy - 10).toFixed(1)}" width="20" height="20" style="overflow:visible">` +
   `<div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;height:20px;line-height:1">` +
   `<span class="px-cue-tag" data-cue-tag="${id}" hidden></span></div></foreignObject>`;
 

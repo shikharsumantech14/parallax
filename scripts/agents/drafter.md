@@ -56,10 +56,12 @@ exists and this session has not read it, Read that file once and Write again.
 8. **`src/content/issues/_template/index.mdx`**, the frontmatter structure.
    `hero` is a dead kind: never author one.
 9. **The catalog blocks** from `docs/design/catalog.md` for EVERY kind the
-   storyboard names: USE WHEN, DON'T USE, the exact DATA shape, PLAIN.
+   storyboard names: USE WHEN, DON'T USE, the exact DATA shape and the CUES
+   line (the anchor ids a cue's `at` may name).
 10. **The issue-authoring rule** (`.claude/rules/issue-authoring.md`): the
     bounds Zod enforces at build time.
-11. **Your memory digest** (`.claude/agent-memory/drafter/DIGEST.md`).
+11. **`docs/design/LENS.md` §5.2 and §8.2**: the cue contract and the cover.
+12. **Your memory digest** (`.claude/agent-memory/drafter/DIGEST.md`).
 
 The check round (Step 7) continues this conversation: its message carries the
 GATE FLAGS alone, because every input above and your first draft (your own
@@ -73,9 +75,10 @@ the same script since 2026-09-28).
 ### Step 2 — Plan from the storyboard
 
 The storyboard's §3 table is the plan: one row per section, in order, with
-the kind, the hero, the word budget, the analogy, the plain-line sketch and
-the dossier rows each renders. Its §4 is the head; §5 the Indian ground; §6
-the three questions the issue must teach; §7 the names it may carry.
+the kind, the hero, the word budget, the analogy, the cues and the dossier
+rows each renders. Its §2 names the hero and the cover; §4 is the head; §5
+the Indian ground; §6 the three questions the issue must teach; §7 the names
+it may carry.
 
 Cross-check every kind against `SECTION_KINDS` in `config.ts`. If a
 storyboard kind's DATA cannot be filled from the dossier rows it cites — a
@@ -118,9 +121,8 @@ Floors (`docs/REGISTER-PLAN.md` §5.1):
 
 Ceilings (CANON §2–3): one hero visual; ≤ 3 loud sections (WebGL,
 full-width animated); never two WebGL kinds adjacent; after a loud section
-the next is quiet. `layout` is `default`, `wide` or `breath` — `split`,
-`split-flip` and `bleed` are aliases of `wide` on the floor plan since
-2026-09-23 and must not be authored.
+the next is quiet. `layout` is `default` or `wide`: every other value
+renders as `default` since Lens Phase 3 and must not be authored.
 
 ### Step 3 — The head
 
@@ -143,6 +145,15 @@ Frontmatter rules: `id` = `"YYYY-MM-DD-slug"` (today's date, the dossier's
 slug); `topic`; `publishedAt` today; **`status: draft` — always**; `tags`
 4–6 lowercase hyphenated; **never `author`**; `sources` per Step 6.
 
+**`cover`** (LENS §8.2), from the storyboard's §2, after `primer`:
+`cover: { section: 0, number: "1,330", label: "days since City were charged" }`.
+`section` is the 0-based index of the cover section in your `sections` list,
+act-breaks counted (the storyboard names its §3 row: count your sections to
+it). `number` is a string of 1–12 characters written exactly as that section
+prints it; `label` 3–60 characters, lower-case when it starts with a unit;
+`headline` (≤ 120) only when the storyboard gives one. The number must be one
+the cover section already carries: the verifier flags COVER-DRIFT.
+
 ### Step 4 — Write each section
 
 Per storyboard row, in order:
@@ -153,9 +164,10 @@ Per storyboard row, in order:
 **Title:** ≤ 8 words, states what this section shows. One `*accent*` word
 allowed.
 
-**Intro:** ≤ 45 words, in the register. Frames the graphic without narrating
-its data. One question allowed as its first sentence. Never "As we can see",
-"The following shows".
+**Intro:** ≤ 45 words, in the register. Frames the graphic; it does not walk
+through its data, except that a sentence a cue's `[[n]]` marker introduces
+states the one thing that cue lights. One question allowed as its first
+sentence. Never "As we can see", "The following shows".
 
 **Act dividers:** an `act-break` is never bare. It carries `data: { act: "II" }`
 for the divider that opens Act II and `act: "III"` for Act III (the page prints
@@ -166,21 +178,50 @@ on 2026-09-28). Its catalog block is always inlined for you.
 every note, detail and cell; the in-graphic callout (`annotations`) where the
 kind supports one, ≤ 12 words, stating the finding on the mark that shows it.
 
-**`plain`:** every visual section gets one sentence on the FORM ("each block
-is one seat"), ≤ 220 characters, from the storyboard's sketch. Never the
-data. Omit only when `EXPLAIN[kind].what` already fits. Narrative kinds take
-none. **No Hindi here** — the precision layer is English only.
+**`cues`** (LENS §5.2): every graphic section carries the storyboard's cues,
+two to four, as `cues: [{ n, at, text? }]` right after the section's
+`title`, one per line:
 
-**`howToRead`:** author one for every instrument (any kind with a control)
-and for any form that can be misread; 40–360 characters; the static reading
-leads, the control clause trails. Never a restatement of `plain` at greater
-length. Since 2026-09-13 the per-kind default renders only for the
-`NEEDS_HOW` kinds, so a timeline shows none unless you author one — and you
-usually should not. **No Hindi.**
+```yaml
+    cues:
+      - { n: 1, at: "2 6" }   # lights anchors 2 and 6
+      - { n: 2, at: "3" }
+```
 
-**`caption`:** the DATA claim, one sentence, traceable to a dossier row — the
-one comprehension field the verifier traces. Never a scale word that a
-control could make false. **No Hindi.**
+`n` is the numeral (1–4, in reading order). `at` names anchor ids from the
+kind's CUES line in its catalog block, spelled exactly (numbered ids count
+from 1 in DATA order, before any sort; several ids separated by spaces). A
+narrative section (`act-break`, `prose`, `quote`, `analogy`) carries no
+cues and no markers.
+
+Then place each cue's **`[[n]]` marker** in the article, BEFORE the sentence
+that states what the cue shows: in `intro` (a blank line starts a new
+paragraph) or in `caption`, and for the kinds that carry their own sentences
+inside a `you-think`'s `think.text` / `actually.text` or a timeline event's
+`note`. Every marker has its cue and every cue its marker, with one
+exception: a `data-readout` tile, a `timeline` event, a `jargon-buster` term,
+a `three-steps` step and a `you-think` text (anchors `1`, `2`) are set as
+sentences in the article and get their button automatically when a cue
+names them, so those cues need no marker. The City issue
+(`2026-09-28-verdict-arrived-sentence-didnt`) shows both forms: markers in a
+caption (`"[[1]] Forest's case, appeal included, took 113 days. [[2]] City's
+first stage has run 1,330 days and has not stopped."`) and markerless cues
+on readout tiles and timeline events.
+
+**Each cue sentence is a DATA claim**, traceable to a dossier row exactly
+like a caption, ≤ 30 words, in the precision layer (**no Hindi**). It says
+what the lit part of the figure shows, never how to read the figure: "Forest
+lost 4 points after 63 days", not "the bars show each club". Author `text`
+only when the lit line must differ from the marked sentence (≤ 240
+characters). Never name a scale a control can change.
+
+**`plain` and `howToRead` are RETIRED** (they stopped rendering in Lens
+Phase 3, and Phase 8 removes them from the schema). Never author either: the
+cues and the caption do their work.
+
+**`caption`:** the DATA claim, one sentence, traceable to a dossier row. It
+renders once, at the end of the article column, and may carry `[[n]]`
+markers. Never a scale word that a control could make false. **No Hindi.**
 
 **`skimCaption`:** on every `prose` section (Skim mode shows it in place of
 the paragraphs), ≤ 40 words, in the register. Optional on other kinds, and
@@ -193,8 +234,9 @@ normal page.
 no section.
 
 **`layout`:** default unless the storyboard says otherwise; `wide` for a
-figure that earns the full column; `breath` for air. Never `split`,
-`split-flip` or `bleed` (aliases of `wide` since 2026-09-23).
+figure that earns the wider panel. Author `default` or `wide` only: since
+Lens Phase 3 `split`, `split-flip`, `bleed` and `breath` render as
+`default`.
 
 **Restate after the graphic:** the NEXT section's intro opens by saying, in
 the reader's words, what the graphic before it just showed; or this
@@ -283,9 +325,15 @@ sections).
       before the first graphic
 - [ ] Title states the finding; hook has a number, a "you", the twist; primer
       is three sentences
-- [ ] Every visual section: `plain` (form, ≤ 220), `caption` (data),
-      `skimCaption`, `source`; instruments have `howToRead`
-- [ ] No Hindi in `caption` / `howToRead` / `plain` / `source` / data labels;
+- [ ] Every graphic section: two to four `cues` whose `at` ids are on its
+      kind's CUES line, each with its `[[n]]` marker before its sentence
+      (or an item that gets its button automatically), each cue sentence a
+      traceable data claim ≤ 30 words; `caption` (data), `source`. No cues
+      and no markers on `act-break` / `prose` / `quote` / `analogy`
+- [ ] No `plain` and no `howToRead` anywhere (retired)
+- [ ] `cover` from the storyboard's §2: `section` indexes a graphic section
+      (0-based, act-breaks counted), `number` is printed by that section
+- [ ] No Hindi in `caption` / a cue sentence / `source` / data labels;
       every Hindi word elsewhere passes the four tests and is in the lexicon
 - [ ] Every term of art glossed on first use; every number with a comparison;
       every abstraction with a concrete thing
@@ -329,6 +377,8 @@ short summary message:
 - Title and hook
 - Section count, the spine (kinds in order), reader-facing word count, read
   time
+- The cover (section index, number, label) and the cue count per graphic
+  section
 - Any departure from the storyboard and why
 - Any [UNVERIFIED] dossier items omitted or flagged
 - Only if the run taught you a durable pattern: one line headed "For the

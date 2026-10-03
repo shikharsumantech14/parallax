@@ -14,12 +14,17 @@ tags:
   - ai-spend
   - claude-code
 readTimeMinutes: 4
+cover: { section: 5, number: "$1,500", label: "a month, per engineer, per tool" }
 primer: "A token is the unit AI bills by: a piece of a word. Its price keeps falling, but coding tools now burn millions of tokens per task. Here is where the money went."
 
 sections:
   - kind: you-think
     eyebrow: "THE ARITHMETIC"
     title: "Cheaper tokens, bigger bills"
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "3" }
     caption: "Uber exhausted its entire 2026 AI budget in four months and capped each engineer."
     source:
       label: "Bloomberg (Natalie Lung) via Simon Willison's Weblog"
@@ -27,16 +32,20 @@ sections:
     sourceRefs: ["src-01", "src-04"]
     data:
       think:
-        text: "AI gets cheaper every year, so a company's AI bill in 2026 should be smaller than its bill in 2025."
+        text: "[[1]] AI gets cheaper every year, so a company's AI bill in 2026 should be smaller than its bill in 2025."
       actually:
         value: "4"
         unit: "months"
-        text: "Uber set aside a whole year of AI money for 2026 and ran through all of it by April, then capped every engineer's spending."
+        text: "[[2]] Uber set aside a whole year of AI money for 2026. [[3]] It ran through all of it by April, then capped every engineer's spending."
       note: "Cheaper per unit, many more units per job. That hisaab only goes one way."
 
   - kind: jargon-buster
     eyebrow: "THREE WORDS"
     title: "Only one of these is your bill"
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "3" }
     intro: "Look at your electricity bill. There is a rate per unit, and there are units used."
     source:
       label: "Simon Willison's Weblog"
@@ -54,9 +63,11 @@ sections:
   - kind: scaling-plot
     eyebrow: "TOKENS PER TASK"
     title: "One job, over a million tokens"
-    intro: "So how many of those pieces does one job use? A chat reply is a few thousand of them. One measured coding job used over a million."
-    howToRead: "Each step up the side is ten times the step below it, so a small-looking gap on this chart is a large one. Read the height of each dot. Press Linear for the evenly spaced view."
-    plain: "Each dot is one kind of task, placed by the number of tokens it used."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2 head" }
+      - { n: 3, at: "axis" }
+    intro: "So how many of those pieces does one job use? [[1]] A chat reply is a few thousand of them. [[2]] One measured coding job used over a million. [[3]] On this chart, each step up the side is ten times the one below it."
     caption: "One measured coding task used 1,363,250 tokens. A chat reply uses a few thousand."
     source:
       label: "Simon Willison's Weblog, llm-pricing. Lower point illustrative, not measured"
@@ -67,7 +78,7 @@ sections:
       yLabel: "tokens consumed (one task)"
       logY: true
       points:
-        - { x: 1, y: 5000, label: "one chat reply*" }
+        - { x: 1, y: 5000, label: "one chat reply*", illustrative: true }
         - { x: 2, y: 1363250, label: "GPT-5 Codex task (measured)" }
       annotations:
         - at: "GPT-5 Codex task (measured)"
@@ -76,6 +87,10 @@ sections:
   - kind: three-steps
     eyebrow: "WHAT CHANGED"
     title: "The software changed *jobs*"
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "3" }
     intro: "In November 2025 the software stopped answering questions and started doing whole jobs. A job is a loop."
     source:
       label: "Simon Willison's Weblog"
@@ -93,9 +108,12 @@ sections:
   - kind: benchmark-chart
     eyebrow: "INSIDE ONE TASK"
     title: "Most of it was *re-reading*"
+    cues:
+      - { n: 1, at: "1 top" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "3" }
     intro: "So the loop re-sends everything it already has, on every step. Here is one real coding task, split three ways. Cached means the pieces the agent had already sent once."
-    plain: "Each bar is one slice of a single task's token bill, longest first."
-    caption: "One measured task used 1,363,250 tokens. Of those, 1,176,320 were cached and 17,112 were new code."
+    caption: "One measured task used 1,363,250 tokens. [[1]] Of those, 1,176,320 were cached. [[2]] Fresh input was a far smaller slice. [[3]] Only 17,112 were new code."
     layout: wide
     source:
       label: "Simon Willison's Weblog, llm-pricing"
@@ -115,6 +133,11 @@ sections:
   - kind: timeline
     eyebrow: "HOW IT HAPPENED"
     title: "Billing changed, prices rose, budget *gone*"
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2 3" }
+      - { n: 3, at: "4" }
+      - { n: 4, at: "5 6" }
     intro: "Almost all of that task was context the agent re-sent. Now watch what the billing did next. Frontier means the newest and most capable model on sale."
     source:
       label: "Simon Willison's Weblog"
@@ -152,8 +175,12 @@ sections:
   - kind: number-sense
     eyebrow: "THE CAP"
     title: "One engineer, one tool, one *month*"
-    intro: "So the cap arrived on 2 June. It covers only the tools that write and run code on their own."
-    caption: "The cap covers agent tools like Cursor and Claude Code, not chat assistants."
+    cues:
+      - { n: 1, at: "value" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "note" }
+    intro: "[[1]] So the cap arrived on 2 June, one limit for each engineer on each tool. It covers only the tools that write and run code on their own."
+    caption: "The cap covers agent tools like Cursor and Claude Code, not chat assistants. [[2]] Over a year on two tools, the cap adds up to tens of thousands of dollars. [[3]] The pay beside it is an outside estimate, not Uber's own number."
     source:
       label: "Bloomberg (Natalie Lung) via Simon Willison's Weblog. Levels.fyi for the pay estimate. Converted at about ₹95 to the dollar, September 2026"
       date: "3 June 2026"
@@ -171,6 +198,11 @@ sections:
   - kind: data-readout
     eyebrow: "THE BILL ELSEWHERE"
     title: "Where else the money *moved*"
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+      - { n: 3, at: "3" }
+      - { n: 4, at: "4" }
     intro: "So one engineer with two tools can spend $36,000 a year. Here are four more readings, taken off other meters."
     source:
       label: "Simon Willison's Weblog. Levels.fyi for the pay estimate"

@@ -12,7 +12,10 @@
  * Drawn for the figure panel: a 460-unit viewBox, text at 12 and 13 units, so
  * it prints at size in the 472 panel; on a phone the figure keeps its 460px
  * and scrolls inside its card (dataviz-v2.css, the card-scroll rule). The cue
- * numerals are an HTML layer over the drawing, placed in percent.
+ * numerals are an HTML layer over the drawing, placed in percent, and laid
+ * out WITH the labels: a numeral never covers a label, a dot, the line, a
+ * leader or another numeral. When no spot around a dot is free, the point's
+ * label moves to the column and its numeral prints beside it there.
  *
  * Cue anchors:
  *   1…n     each point, in authored order (its dot and its name)
@@ -68,25 +71,50 @@ const short = (s?: string) => (s ? s.split(/\s+[·—–]\s+|\s+-\s+/)[0].trim()
 type Box = { l: number; r: number; t: number; b: number };
 const hit = (a: Box, b: Box) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 
-/* Lay the chart out for a plot whose right edge is PR. Returns null when a
-   name cannot be placed without the right-hand column. */
-function layout(PR: number, allowColumn: boolean) {
+/* Lay the chart out for a plot whose right edge is PR, with the points in
+   `demote` labelled in the right-hand column. Every cue numeral is placed
+   HERE, with the labels, so a numeral never covers a label, a dot, the line,
+   a leader or another numeral: a point's numeral looks for a free spot
+   around its dot (three rings of eight directions); when none is free, its
+   LABEL moves to the column (the caller retries with it demoted) and the
+   numeral prints beside the column label, where its room is reserved. */
+type Tag = { id: string; x: number; y: number };
+function layout(PR: number, allowColumn: boolean, demote: Set<number>) {
   const sx = (km: number) => PL + ((km - kmLo) / (kmHi - kmLo)) * (PR - PL);
   const sy = (e: number) => PT + (1 - (e - eLo) / (eHi - eLo)) * (PB - PT);
   const xy = byKm.map((p) => ({ ...p, x: sx(p.km), y: sy(p.elevM), name: short(p.label) }));
-  // the line as samples, for the collision test
+  // the line as samples, for the collision tests
   const samples: { x: number; y: number }[] = [];
-  for (let k = 0; k < xy.length - 1; k++) {
-    const a = xy[k], b = xy[k + 1];
-    const n = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 3));
-    for (let j = 0; j <= n; j++) samples.push({ x: a.x + ((b.x - a.x) * j) / n, y: a.y + ((b.y - a.y) * j) / n });
+  const sampleSeg = (ax: number, ay: number, bx: number, by: number) => {
+    const n = Math.max(2, Math.ceil(Math.hypot(bx - ax, by - ay) / 3));
+    for (let j = 0; j <= n; j++) samples.push({ x: ax + ((bx - ax) * j) / n, y: ay + ((by - ay) * j) / n });
+  };
+  for (let k = 0; k < xy.length - 1; k++) sampleSeg(xy[k].x, xy[k].y, xy[k + 1].x, xy[k + 1].y);
+  const peakI = xy.reduce((m, p) => (p.elevM > m.elevM ? p : m), xy[0]).i;
+  const placed: Box[] = xy.map((p) => {
+    const r = p.i === peakI ? 11 : 5;          // the peak carries its ring
+    return { l: p.x - r, r: p.x + r, t: p.y - r, b: p.y + r };
+  });
+  // the axis labels are occupied too
+  for (const e of yTicks) {
+    const w = fmt(e).length * CH;
+    placed.push({ l: PL - 8 - w, r: PL - 6, t: sy(e) - 6, b: sy(e) + 6 });
   }
-  const placed: Box[] = xy.map((p) => ({ l: p.x - 5, r: p.x + 5, t: p.y - 5, b: p.y + 5 }));
+  xTicks.forEach((k, j) => {
+    const t = `${fmt(k)}${j === xTicks.length - 1 ? ' km' : ''}`;
+    const w = t.length * CH;
+    const end = j === xTicks.length - 1 && sx(k) > PR - 24;
+    const l = end ? sx(k) - w : sx(k) - w / 2;
+    placed.push({ l, r: l + w, t: H - 21, b: H - 6 });
+  });
+  const lineHits = (b: Box) => samples.some((q) => q.x > b.l - 1 && q.x < b.r + 1 && q.y > b.t - 1 && q.y < b.b + 1);
+
   const inline: Record<number, { x: number; y: number; anchor: string }> = {};
   const callouts: typeof xy = [];
   const maxR = allowColumn ? PR - 2 : W - 2;
   for (const p of xy) {
     if (!p.name) continue;
+    if (demote.has(p.i)) { callouts.push(p); continue; }
     const w = p.name.length * CH;
     const cands = [
       { x: p.x + 8, y: p.y + 17, anchor: 'start', box: { l: p.x + 7, r: p.x + 9 + w, t: p.y + 6, b: p.y + 20 } },
@@ -96,14 +124,15 @@ function layout(PR: number, allowColumn: boolean) {
     ];
     const ok = cands.find((c) =>
       c.box.l >= PL + 2 && c.box.r <= maxR && c.box.t >= 0 && c.box.b <= PB - 1 &&
-      !placed.some((q) => hit(q, c.box)) &&
-      !samples.some((s) => s.x > c.box.l - 1 && s.x < c.box.r + 1 && s.y > c.box.t - 1 && s.y < c.box.b + 1),
+      !placed.some((q) => hit(q, c.box)) && !lineHits(c.box),
     );
     if (ok) { inline[p.i] = { x: ok.x, y: ok.y, anchor: ok.anchor }; placed.push(ok.box); }
     else if (allowColumn) callouts.push(p);
     else return null;
   }
-  // the column: stacked in height order, each name + height (30 units a block)
+
+  // the column: stacked in height order, each block a name over its height;
+  // the point's numeral prints after the height, the shorter line
   const colX = PR + 14;
   const BLOCK = 32;
   const cs = [...callouts].sort((a, b) => a.y - b.y).map((p) => ({ p, y: Math.max(12, p.y - 6) }));
@@ -114,16 +143,81 @@ function layout(PR: number, allowColumn: boolean) {
   }
   const colChars = Math.max(4, Math.floor((W - colX - 2) / 7.3));
   const callout: Record<number, { y: number; x: number; name: string }> = {};
+  const tags: Tag[] = [];
   for (const c of cs) {
     const nm = c.p.name.length > colChars ? c.p.name.slice(0, colChars - 1).trimEnd() + '…' : c.p.name;
     callout[c.p.i] = { y: c.y, x: colX, name: nm };
+    placed.push({ l: colX - 2, r: W, t: c.y - 12, b: c.y + 18 });
+    // the leader, as samples (numerals keep off it)
+    sampleSeg(c.p.x + 6, c.p.y, colX - 12, c.y - 4);
+    sampleSeg(colX - 12, c.y - 4, colX - 4, c.y - 4);
+    tags.push({ id: String(c.p.i + 1), x: Math.min(W - 11, colX + `${fmt(c.p.elevM)} ${unit}`.length * CH + 14), y: c.y + 12 });
   }
-  // the callout blocks and leaders are occupied too
-  for (const c of cs) placed.push({ l: colX - 2, r: W, t: c.y - 12, b: c.y + 18 });
-  return { PR, sx, sy, xy, inline, callout, placed, samples };
+
+  // a free 22-unit box for a numeral near (cx, cy)
+  const DIRS: [number, number][] = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [-1, 0], [1, 0], [0, 1]];
+  const freeAt = (x: number, y: number) => {
+    const box = { l: x - 11, r: x + 11, t: y - 11, b: y + 11 };
+    const ok = box.l >= 1 && box.r <= W - 1 && box.t >= 0 && box.b <= H - 1 &&
+      !placed.some((q) => hit(q, box)) && !lineHits(box);
+    return ok ? box : null;
+  };
+  const near = (cx: number, cy: number, radii = [16, 24, 32]) => {
+    for (const r of radii) for (const [dx, dy] of DIRS) {
+      const k = dx && dy ? 0.75 : 1;
+      const x = cx + dx * r * k, y = cy + dy * r * k;
+      const box = freeAt(x, y);
+      if (box) return { x, y, box };
+    }
+    return null;
+  };
+
+  // each inline-labelled (or unlabelled) point's numeral beside its dot
+  const lost: number[] = [];
+  for (const p of xy) {
+    if (callout[p.i]) continue;
+    const at = near(p.x, p.y);
+    if (at) { placed.push(at.box); tags.push({ id: String(p.i + 1), x: at.x, y: at.y }); }
+    else if (p.name) lost.push(p.i);
+  }
+  if (lost.length) return { retry: lost };
+
+  // the line's numeral: perpendicular to a segment, as early on the line as
+  // it fits; the axis numeral in a gap of the height labels
+  let lineTag: Tag | null = null;
+  for (let k = 0; k < xy.length - 1 && !lineTag; k++) {
+    const a = xy[k], b = xy[k + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;   // the side under the line
+    for (const t of [0.5, 0.33, 0.67]) for (const d of [20, -20, 28, -28]) {
+      const x = a.x + (b.x - a.x) * t + nx * d, y = a.y + (b.y - a.y) * t + ny * d;
+      const box = freeAt(x, y);
+      if (box) { placed.push(box); lineTag = { id: 'line', x, y }; break; }
+    }
+  }
+  if (lineTag) tags.push(lineTag);
+  const gaps = yTicks.slice(0, -1).map((e, k) => (sy(e) + sy(yTicks[k + 1])) / 2);
+  for (const y of [...gaps].reverse()) {
+    const box = freeAt(PL - 22, y);
+    if (box) { placed.push(box); tags.push({ id: 'axis', x: PL - 22, y }); break; }
+  }
+  return { PR, sx, sy, xy, inline, callout, tags };
+}
+type Lay = Exclude<ReturnType<typeof layout>, null | { retry: number[] }>;
+function solve(): Lay | null {
+  const flat = layout(W - 4, false, new Set());
+  if (flat && !('retry' in flat)) return flat;
+  const demote = new Set<number>();
+  for (let k = 0; k <= byKm.length; k++) {
+    const r = layout(W - 108, true, demote);
+    if (r && !('retry' in r)) return r;
+    if (!r) return null;
+    r.retry.forEach((i) => demote.add(i));
+  }
+  return null;
 }
 
-const L = hasData ? (layout(W - 4, false) ?? layout(W - 108, true)!) : null;
+const L = hasData ? solve() : null;
 
 const peak = hasData ? byKm.reduce((m, p) => (p.elevM > m.elevM ? p : m), byKm[0]) : null;
 const peakName = short(peak?.label);
@@ -135,29 +229,9 @@ if (L) {
   areaPath = `${linePath}L${last.x.toFixed(1)} ${PB}L${first.x.toFixed(1)} ${PB}Z`;
 }
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
-const clampX = (x: number) => Math.min(W - 12, Math.max(12, x));
-const clampY = (y: number) => Math.min(H - 12, Math.max(10, y));
 
-/* where each anchor's numeral prints (viewBox units) */
-const tagPos: { id: string; x: number; y: number }[] = [];
-if (L) {
-  // each point's numeral beside its dot, on a side clear of every name, the
-  // line and the numerals already placed
-  const taken: Box[] = [...L.placed];
-  const OFF: [number, number][] = [[-15, -15], [15, -15], [-15, 15], [15, 15], [0, -20], [-20, 0], [20, 0], [0, 20]];
-  for (const p of L.xy) {
-    const at = OFF.map(([dx, dy]) => ({ x: clampX(p.x + dx), y: clampY(p.y + dy) }))
-      .map((c) => ({ ...c, box: { l: c.x - 11, r: c.x + 11, t: c.y - 11, b: c.y + 11 } }));
-    const ok = at.find((c) => !taken.some((q) => hit(q, c.box)) &&
-      !L.samples.some((s) => s.x > c.box.l && s.x < c.box.r && s.y > c.box.t && s.y < c.box.b)) ?? at[0];
-    taken.push(ok.box);
-    tagPos.push({ id: String(p.i + 1), x: ok.x, y: ok.y });
-  }
-  const mid = L.xy[Math.max(0, Math.floor((L.xy.length - 1) / 3))];
-  const nxt = L.xy[Math.min(L.xy.length - 1, Math.floor((L.xy.length - 1) / 3) + 1)];
-  tagPos.push({ id: 'line', x: clampX((mid.x + nxt.x) / 2), y: clampY(Math.max(mid.y, nxt.y) + 22) });
-  tagPos.push({ id: 'axis', x: 14, y: clampY(PT + 4) });
-}
+/* where each anchor's numeral prints (viewBox units): placed by layout() */
+const tagPos: Tag[] = L ? L.tags : [];
 ---
 
 {hasData && L ? (

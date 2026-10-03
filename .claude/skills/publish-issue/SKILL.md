@@ -23,9 +23,16 @@ read it. If either is missing, stop and say so.
 ## 2. Schema bounds — Zod fails the build, it does not warn
 
 - `primer` 80–420 chars
-- `plain` ≤ 220 chars — the **form** of the graphic, never the data
-- `howToRead` 40–360 chars
-- `caption` — the **data** claim; the only comprehension field the verifier traces
+- `plain` ≤ 220 chars and `howToRead` 40–360 chars: **retired** (not
+  rendered since Lens Phase 3, not authored since Phase 7), still bounded by
+  Zod until Phase 8 removes them
+- `caption` — the **data** claim; the verifier traces it, and each cue
+  sentence like it (CUE-UNTRACED)
+- `cues` — at most four per section (Zod), and two to four on every graphic
+  section, none on `act-break` / `prose` / `quote` / `analogy`
+  (`check:prose` CUES); each `at` an id from the kind's catalog CUES line
+- `cover` — `{ section, number, label, headline? }` (`check:prose`
+  NO-COVER; the verifier's COVER-DRIFT)
 - `sources[].url` — a real URL; mock URLs break the build
 - every `sourceRefs[]` resolves to an existing `source.id`
 
@@ -36,8 +43,8 @@ content for the first time in `37a6f7d` (21 backfilled).
 
 **Missing captions are not automatically a defect.** 22 sections deliberately
 carry none: their `intro` already states the finding, and adding a caption
-would trip the verifier's `REDUNDANT-HOWTO` / `CAPTION-FORM` flags. Check
-whether the intro already says it before "fixing" one.
+only repeat it. Check whether the intro already says it before "fixing"
+one.
 
 ## 4. Voice
 

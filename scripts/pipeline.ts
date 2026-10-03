@@ -27,7 +27,8 @@
  *   --focus "<subject>"  discovery: every candidate an angle on one subject
  *                        (exactly --count of them, 5 when --count is absent)
  *   --dry-run            assemble the prompt, print what it inlines and its size in
- *                        tokens, and exit without calling the model (bills nothing)
+ *                        tokens, save it to <os tmpdir>/parallax-dry-run/, and exit
+ *                        without calling the model (bills nothing)
  *
  * The passes after research (check, storyboard, draft, panel, stylist, verify)
  * are single-shot since 2026-09-28 (docs/COST-PLAN.md CP-03): every input is
@@ -147,7 +148,8 @@ function printUsage(): void {
                         login so ANTHROPIC_API_KEY is its only credential. subscription:
                         the login stays and the CLI bills the operator's Claude plan.
     --verbose           print tool results as they stream
-    --dry-run           assemble the prompt, print what it inlines and its size, send nothing
+    --dry-run           assemble the prompt, print what it inlines and its size, save it to
+                        <os tmpdir>/parallax-dry-run/<phase>-<desk>-<slug>.prompt.txt, send nothing
                         (bills nothing; panel and verify also accept a non-draft issue with --slug)
 
   Examples:
@@ -507,7 +509,8 @@ async function main(): Promise<void> {
   // The prompt as it would be sent, measured, and nothing else: no model is
   // called and no ledger row is written.
   if (dryRun) {
-    printDryRun(`${phase} · ${category}${targetSlug ? ` · ${targetSlug}` : ''} · ${agentName} on ${model}`, built ?? assembled([prompt]));
+    printDryRun(`${phase} · ${category}${targetSlug ? ` · ${targetSlug}` : ''} · ${agentName} on ${model}`, built ?? assembled([prompt]),
+      `${phase}-${category}${targetSlug ? `-${targetSlug}` : ''}`);
     if (built?.out?.length) console.log(`  writes: ${built.out.join(', ')}`);
     if (checkPlan) {
       console.log(`  then:   the script applies the report's §6 corrections to ${checkPlan.dossierRel} and appends \`## §${nextDossierSection(checkPlan.snapshot)} Check pass, ${todayIST()}\`, behind the dossier guard`);

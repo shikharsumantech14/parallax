@@ -99,7 +99,7 @@ const lead = (anchor: string, html: string, raw?: string): string => {
   if (!ns || hasCues(raw)) return html;
   return ns.map((k) => cueButton(k)).join(' ') + ' ' + cueSentence(ns[0], html);
 };
-const sentenceEnd = (s: string) => (/[.!?…]$/.test(s.trim()) ? s.trim() : s.trim() + '.');
+const sentenceEnd = (s: string) => (/[.!?…]["'”’)\]]*$/.test(s.trim()) ? s.trim() : s.trim() + '.');
 const bareBold = (s: string) => s.trim().replace(/^\*\*(.+)\*\*$/, '$1');
 
 /* An item's plain sentence, before any cue button, for the figure's cue line. */

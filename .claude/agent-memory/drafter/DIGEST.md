@@ -5,10 +5,10 @@ Digest of the memory as of 2026-09-28. Read-only during a run. Updates happen in
 - `at` must match exactly or the callout silently drops: `timeline` event `date`, `benchmark-chart` item `label`, `adoption-curve` plotted year.
 - Build fails: rising `bill-funnel` counts, a `power-flow` unknown node id or unbalanced middle node, `margin-bullets` outside 0 < required <= max or value > max.
 - `region-map`: zone `value` 0 to 1, unclamped (categories 1 and 0.35), `id` a quoted ISO numeric code ("096"), provinces in `markers`.
-- `bill-passage` status means that stage was cleared or not, so say so in `plain`. A stage never held is `failed` plus a note.
+- `bill-passage` status means that stage was cleared or not, so say so in a cue sentence or the caption. A stage never held is `failed` plus a note.
 - `power-matrix`: author only non-`none` cells, a `color` on every party, column heads that can hold control.
 - `number-sense` prints `note` above `equals`, so it must stand alone.
-- Default copy fits only the home use, so author `plain` on `benchmark-chart` (inverted metric), `gauge` (was `throughput-dial`), `power-flow`, `margin-bullets`, `arch-stack`, `core-sample`, schematic `shot-map`, and `howToRead` on `core-sample` and count-free `orbit-trace`.
+- A form a reader can misread (an inverted metric on `benchmark-chart`, a `gauge` read as capacity, a schematic `shot-map`, a count-free `orbit-trace`) states its reading in the caption or a cue sentence, as data. `plain` and `howToRead` are retired since Lens Phase 7: never author them.
 
 ## How check:prose counts
 - The 1,100 bills eyebrows, titles, source labels, data strings of 2+ words. Free: `value`, `unit`, `date`, `at`, `status`, `role`, `id`, one-word strings, a `{label, date}` source's date.

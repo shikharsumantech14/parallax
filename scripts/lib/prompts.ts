@@ -19,6 +19,7 @@ import {
   issueSchemaBlock,
   issueTemplate,
   jargon,
+  lensSections,
   lexicon,
   memoryDigestBlock,
   modeLibrary,
@@ -290,13 +291,16 @@ export function buildStoryboardPrompt(category: string, dossierFile: string): As
     template('storyboard'),
     sectionKindsBlock(),
     canonSections([2, 3]),
+    // The cue contract and the cover (Lens Phase 7): the storyboard names each
+    // row's cues from its kind's CUES line and the issue's cover.
+    lensSections(['5.2', '8.2']),
     neverPublishedLedger(),
     recentStoryboardLedgers(slug, 30),
     memoryDigestBlock('composer'),
   ];
   const head = `Write the storyboard for the dossier inlined below (${dossierRel}).
 
-Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. The slug \`${slug}\` matches the dossier's. Follow the STORYBOARD TEMPLATE block exactly, with \`Status: draft\`, and fill every section, §9 the kind ledger included. Check the §9 floors before you write: drawn graphics on at least 40% of rows with at least three distinct graphic kinds, the four plain-language cards (you-think, number-sense, jargon-buster, three-steps) at most once each and at most three in total, and at least two graphic kinds new to the publication. "New" means on the NEVER-PUBLISHED LEDGER and not marked (NEW) by another storyboard in the OTHER STORYBOARDS block. The other floors and the ceilings are in your definition, Step 3. A storyboard that misses one goes back to Step 3, not to the operator.
+Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. The slug \`${slug}\` matches the dossier's. Follow the STORYBOARD TEMPLATE block exactly, with \`Status: draft\`, and fill every section, §9 the kind ledger included. §2 names the cover (the section, its one number with a label of at most six words, and a headline if it differs from the title). The §3 beats table's Cues column gives every graphic row two to four cues, each naming an anchor id from that kind's CUES line in the CATALOG block, and no cues on a narrative row (\`act-break\`, \`prose\`, \`quote\`, \`analogy\`). Check the §9 floors before you write: drawn graphics on at least 40% of rows with at least three distinct graphic kinds, the four plain-language cards (you-think, number-sense, jargon-buster, three-steps) at most once each and at most three in total, and at least two graphic kinds new to the publication. "New" means on the NEVER-PUBLISHED LEDGER and not marked (NEW) by another storyboard in the OTHER STORYBOARDS block. The other floors and the ceilings are in your definition, Step 3. A storyboard that misses one goes back to Step 3, not to the operator.
 
 If a CHECK REPORT block is present, it binds you: never build a graphic on a number it marks contested, unreproduced or unsourced, treat its corrected values as the dossier's, and say in §8 how each of its blocks and flags was worked around (a different data shape, a hedge in the copy, a kind left out).
 
@@ -373,6 +377,9 @@ export function buildDraftPrompt(category: string, dossierFile: string, storyboa
     // printed "ACT I" twice on the 2026-09-28 trial issue).
     catalogBlocks([...new Set([...kinds, 'act-break'])]),
     issueAuthoringRule(),
+    // The cue contract and the cover (Lens Phase 7): the drafter writes
+    // `cover` and every graphic section's `cues` with their [[n]] markers.
+    lensSections(['5.2', '8.2']),
     memoryDigestBlock('drafter'),
     round && block('YOUR FIRST DRAFT', round.firstDraft),
     round && gateFlagsBlock(round.flags),
@@ -386,7 +393,7 @@ export function buildDraftPrompt(category: string, dossierFile: string, storyboa
 ${ROUND_RULES}: \`${absPath(outRel)}\`. ${ROUND_JUDGEMENT}`
     : `Write a complete draft issue from the dossier inlined below (${dossierRel}), executing the approved storyboard inlined after it (${storyboardRel}). The storyboard fixes the kinds, the order, the hero, the word budgets and the head.
 
-Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. Its frontmatter carries \`id: "${id}"\`, \`topic: ${category}\`, \`publishedAt: ${today}\` and \`status: draft\`, and the standard empty body follows it.
+Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. Its frontmatter carries \`id: "${id}"\`, \`topic: ${category}\`, \`publishedAt: ${today}\`, \`status: draft\` and the storyboard's \`cover\`, and the standard empty body follows it. Every graphic section carries the storyboard's \`cues\` (two to four, each \`at\` an anchor id from its kind's CUES line) with each \`[[n]]\` marker placed before the sentence that states what the cue shows; a narrative section (\`act-break\`, \`prose\`, \`quote\`, \`analogy\`) carries none. Do not author \`plain\` or \`howToRead\`: both are retired.
 
 After you write, the script runs \`check:prose\` and the schema check on your file. If either flags something you get one more request carrying the flags, so go through your definition's Step 7 list before you write, not after.`;
   const head = `${task}
@@ -464,7 +471,7 @@ export function buildStylistPrompt(category: string, issueSlug: string, panelFil
     : 'No reader-panel report exists yet for this issue.';
   const head = `Bring the Parallax issue inlined below (${issueRel}) into the runtime voice contract and assign one rhetorical job per section.
 
-Today is ${today} (IST). You rewrite prose fields only: each section's \`intro\`, \`skimCaption\` and \`plain\` (the last only where its wording is wrong), and inside \`data\` the \`lead\`, \`paragraphs\` and \`followup\`. Every other field stays exactly as it is: the frontmatter keys and their order, the head (title, hook, dek, primer), every \`caption\`, \`howToRead\`, section title, eyebrow, number, label, note, data value, annotation and source, the order and the kinds of the sections, and the body below the frontmatter.
+Today is ${today} (IST). You rewrite prose fields only: each section's \`intro\` and \`skimCaption\`, a cue's \`text\` where one is authored, and inside \`data\` the \`lead\`, \`paragraphs\` and \`followup\`. Every \`[[n]]\` cue marker survives your rewrite: it moves with its sentence and stays in the same field, and the section keeps exactly the markers it had. Every other field stays exactly as it is: the frontmatter keys and their order, the head (title, hook, dek, primer), the \`cover\`, every cue's \`n\` and \`at\`, every \`caption\`, section title, eyebrow, number, label, note, data value, annotation and source, any legacy \`plain\` or \`howToRead\` (retired: never write a new one), the order and the kinds of the sections, and the body below the frontmatter.
 
 Then Write the WHOLE corrected file, once, with the Write tool, to \`${absPath(issueRel)}\`. The script snapshots the file before your run and compares every field outside your list afterwards. If any of them moved, it restores the snapshot, keeps your version aside as \`_index.rejected.mdx\`, and the whole pass is lost. Copy every line you do not rewrite exactly as it stands, its quoting included.
 

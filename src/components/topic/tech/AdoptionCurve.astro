@@ -392,4 +392,11 @@ const fmtYear = (yr: number) => String(yr);
   @media (max-width: 640px) {
     .adc__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
   }
+  /* Phones: the drawing keeps its 460 units and the card scrolls (the
+     min-width rule in dataviz-v2.css). The min-width sits on this box, not
+     only on the SVG, so the HTML numeral layer, placed by % of this box,
+     stays on the drawing it labels. */
+  @media (max-width: 900px) {
+    .adc__plot { min-width: 460px; }
+  }
 </style>

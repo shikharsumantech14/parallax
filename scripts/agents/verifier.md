@@ -69,26 +69,32 @@ Go section by section through the draft's frontmatter. For every:
 
 List each claim with its location in the draft (section kind + field).
 
-**Also audit the comprehension fields.** Since 2026-08-27 a viz section can
-carry THREE, and they have different contracts. Getting them mixed up is the
-most common authoring error, so check each explicitly:
+**Also audit the comprehension fields and the cues** (Lens, `docs/design/LENS.md`
+§5.2; rules since Lens Phase 7, 2026-10-01). A graphic section is its
+article beside a pinned figure. Two fields carry claims, and both are traced:
 
 | Field | Carries | Renders | Traceable claim? |
 |---|---|---|---|
-| `howToRead` | the FORM, at paragraph length | ABOVE the graphic | no |
-| `plain` | the FORM, one sentence | BELOW the graphic | no |
-| `caption` | the DATA — the finding | with the figure | **YES — trace it** |
+| `caption` | the DATA, the finding | once, at the end of the article column | **YES, trace it** |
+| each cue sentence | the DATA one cue lights | the sentence its `[[n]]` marker introduces (or the cue's `text`, or, for a cued `data-readout` tile, `timeline` event, `jargon-buster` term, `three-steps` step or `you-think` text, that item's own sentence); the figure panel shows it while the cue is lit | **YES, trace it like a caption** |
 
-- A `plain` or `howToRead` that states a finding ("Leicester won", "the budget
-  is exhausted") is a defect — flag **⚠️ PLAIN-CLAIM**. The form belongs in
-  those two; the data belongs in the caption.
-- A `caption` is the opposite: it SHOULD assert data, so trace it to the
-  dossier like any other claim. A caption that only describes the shape of the
-  graphic is a wasted line — flag **⚠️ CAPTION-FORM**.
-- `howToRead` and `plain` must not be near-duplicates of each other. If the
-  paragraph just restates the sentence at greater length, flag
-  **⚠️ REDUNDANT-HOWTO**; the paragraph should name what a mark IS and what the
-  axes mean, which the one-liner has no room for.
+- Trace every cue sentence to the dossier exactly like a caption. A cue
+  sentence whose claim the dossier does not back is **❌ CUE-UNTRACED**; one
+  that is roughly right but differs is ⚠️ IMPRECISE like any other claim.
+  List each cue sentence as its own row in the claim table, located as
+  `section N · cue n`.
+- **⚠️ CUE-COUNT**: a graphic section with fewer than two or more than four
+  cues; any cue or `[[n]]` marker on a narrative kind (`act-break`, `prose`,
+  `quote`, `analogy`); a marker with no matching cue, or a cue with no
+  marker that names no item getting its button automatically.
+- **⚠️ COVER-DRIFT**: the issue's `cover.number` differs from what the
+  section at `cover.section` (0-based, act-breaks counted) prints, or that
+  section is not a graphic one. Trace the cover's number and label to the
+  dossier like any other claim. An issue with no `cover` is a NO-COVER
+  line under Optional improvements, not a flag.
+- `plain` and `howToRead` are retired (Lens Phase 3 stopped rendering them;
+  Phase 8 removes them). A draft that still carries one: note it under
+  Optional improvements ("delete it"), and trace nothing in it.
 
 ### Step 3 — Trace each claim to the dossier
 
@@ -154,7 +160,7 @@ Flags added 2026-09-13. Check every prose field against the contract:
 - **❌ HINDI-LOAD-BEARING** — a sentence whose meaning is lost when its Hindi
   words are removed (read it as Karthik, contract §1, who has no Hindi).
   Blocks publish: it is the rule that makes the Hindi layer safe.
-- **❌ HINDI-FIELD** — any Hindi word in `caption`, `howToRead`, `plain`,
+- **❌ HINDI-FIELD** — any Hindi word in `caption`, a cue sentence,
   `source` or a data label. Blocks publish.
 - **⚠️ HINDI-SPELLING / HINDI-DENSE** — a spelling not in the lexicon; Hindi
   in two consecutive sentences; more than one phrase in a paragraph;
@@ -233,6 +239,9 @@ Confirm:
 - [ ] Source `kind` values are only `primary`, `secondary`, or `analysis`
 - [ ] At least 8 sources, from at least 5 distinct publishers, none behind
       more than 40% of them except an official record (Step 4b, 2026-09-28)
+- [ ] `cover` present, and its `section` indexes a graphic section
+- [ ] Every graphic section carries two to four `cues`; no narrative section
+      carries any (the CUE-COUNT rule in Step 2)
 
 ### Step 6 — Write the verification report
 
@@ -255,8 +264,8 @@ Write it once, with Write, at the path the task prompt gives:
 
 One paragraph. APPROVED = ready for editor final read + publish.
 NEEDS REVISION = specific fixes required, listed below.
-BLOCKED = one or more ❌ UNTRACED or ❌ ADVOCACY claims that cannot
-be published without resolving.
+BLOCKED = one or more ❌ UNTRACED, ❌ CUE-UNTRACED or ❌ ADVOCACY claims
+that cannot be published without resolving.
 
 ---
 
@@ -296,7 +305,19 @@ be published without resolving.
 | publishedAt valid | ✅/❌ | |
 | Source URLs https:// | ✅/❌ | |
 | Source kinds valid | ✅/❌ | |
-| ≥6 sources | ✅/❌ | |
+| ≥8 sources | ✅/❌ | |
+| cover present, on a graphic section | ✅/⚠️ | |
+| 2–4 cues per graphic section, none on narrative | ✅/⚠️ | |
+
+---
+
+## Cues and cover
+
+| Flag | Location | Severity | Note |
+|---|---|---|---|
+
+(CUE-UNTRACED · CUE-COUNT · COVER-DRIFT. The cue sentences themselves are
+rows in the claim table above. Empty table = clean.)
 
 ---
 
@@ -317,7 +338,8 @@ Suggestions the editor may choose to act on — not blockers.
 - **Never rewrite the draft.** Report only — no edits.
 - **Verbatim comparison for quotes.** A single missing word is a flag.
 - **❌ UNTRACED claims block publish.** The editor must either find
-  a dossier source or remove the claim.
+  a dossier source or remove the claim. **❌ CUE-UNTRACED** is the same
+  rule for a cue sentence, and blocks publish the same way.
 - **❌ NON-QUOTABLE SOURCE blocks publish.** A verbatim quote backed only by a
   `metadata`-class (closed, paywalled, non-commercial) source, a snippet or a
   paraphrase must be re-sourced to a legally-accessible original or cut.

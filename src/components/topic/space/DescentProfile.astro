@@ -12,8 +12,9 @@
  * Time carries no unit in the data (seconds on one issue, months on another),
  * so the x-axis prints its ticks only and the caption names the unit.
  *
- * Cue anchors: `1`…`n` — each event in authored order (its point, label and
- * numeral); `start` — the craft at the first point, and the headline number
+ * Cue anchors: `1`…`n` — each event in authored order (its point, and its
+ * label with the numeral, two anchors so a lit ring hugs each and never spans
+ * the leader between them); `start` — the craft at the first point, and the headline number
  * that reports its altitude; `line` — the profile; `axis`.
  *
  * THE BUILD (LENS §6.4): 1 the axes fade, 2 the area fades and the line
@@ -83,6 +84,8 @@ yt.forEach((v) => placed.push(tbox(L - 8, Y(v) + 4, textW(nf(v), 12), 'end', 12)
 placed.push(tbox(0, 12, textW('Altitude (km)', 12), 'start', 12));
 const craft = nodes[0];
 if (craft) placed.push({ x0: craft.x - 16, y0: craft.y - 8, x1: craft.x + 16, y1: craft.y + 8 });
+// every event's point is an obstacle too (its own lit ring included)
+for (const e of evs) { const ex = X(e.t), ey = Y(altAt(e.t)); placed.push({ x0: ex - 5, y0: ey - 5, x1: ex + 5, y1: ey + 5 }); }
 const flags = evs.map((e) => {
   const x = X(e.t), a = altAt(e.t), y = Y(a);
   const alt = `${fmtAlt(a)} km`;
@@ -93,9 +96,11 @@ const flags = evs.map((e) => {
   const nameLines = single ? [e.label] : wrap(e.label, Math.max(12, Math.floor(((R - L) * 0.5) / 8)));
   const w = single ? oneW : Math.max(...nameLines.map((l) => textW(l, FS, true)), textW(alt, FS)) + 24;
   const nl = single ? 1 : nameLines.length + 1;
+  // the label as it renders: the numeral disc (20 tall, centred 4 above the
+  // baseline) and the glyphs, so the 16 units of air below hold for the lit ring
   const boxAt = (lx: number, ly: number, anchor: 'start' | 'end'): Box => {
     const b = tbox(lx, ly, w, anchor, FS);
-    return { ...b, y1: b.y1 + (nl - 1) * 16 };
+    return { ...b, y0: Math.min(b.y0, ly - 14), y1: Math.max(b.y1, ly + 6) + (nl - 1) * 16 };
   };
   // every spot in the plot, nearest the point first; the first clear one wins
   const cands: { lx: number; ly: number; anchor: 'start' | 'end'; d: number }[] = [];
@@ -111,7 +116,8 @@ const flags = evs.map((e) => {
   let pick: { lx: number; ly: number; anchor: 'start' | 'end'; box: Box } | null = null;
   for (const c of cands) {
     const box = boxAt(c.lx, c.ly, c.anchor);
-    if (!placed.some((q) => hit(box, q, 3))) { pick = { lx: c.lx, ly: c.ly, anchor: c.anchor, box }; break; }
+    // 16 units of air: two lit rings (2px each, 3px out) never touch, with room
+    if (!placed.some((q) => hit(box, q, 16))) { pick = { lx: c.lx, ly: c.ly, anchor: c.anchor, box }; break; }
   }
   if (!pick) {
     const c = cands[0] ?? { lx: x + 8, ly: Math.max(T + 2, y - 10), anchor: 'start' as const };
@@ -177,9 +183,10 @@ const aria = caption ? `Altitude profile: ${caption}` : `Altitude profile${craft
       )}
 
       {flags.map((f) => (
-        <g class="px-desc__flag" data-cue={f.id} data-build="3" data-build-kind="drop">
+        <g class="px-desc__flag" data-build="3" data-build-kind="drop">
           {f.lead && <line class="px-desc__lead" x1={f.x.toFixed(1)} y1={f.y.toFixed(1)} x2={f.lx.toFixed(1)} y2={(f.ly - 4).toFixed(1)} />}
-          <circle class="px-desc__ev" cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r="4.5" />
+          <circle class="px-desc__ev" data-cue={f.id} cx={f.x.toFixed(1)} cy={f.y.toFixed(1)} r="4.5" />
+          <g data-cue={f.id}>
           <text class="px-sfig__t" x={f.textX.toFixed(1)} y={f.ly.toFixed(1)} text-anchor={f.anchor} style={SANS}>
             {f.single ? (
               <><tspan class="px-sfig__b">{f.label}</tspan><tspan class="px-sfig__m"> · {f.alt}</tspan></>
@@ -191,6 +198,7 @@ const aria = caption ? `Altitude profile: ${caption}` : `Altitude profile${craft
             )}
           </text>
           <Fragment set:html={svgTag(f.id, f.tagCx, f.ly - 4)} />
+          </g>
         </g>
       ))}
     </svg>

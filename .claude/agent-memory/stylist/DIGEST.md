@@ -28,7 +28,7 @@ Digest of the memory as of 2026-09-28. Read-only during a run. Updates happen in
 - A term locked in a title, eyebrow, label, note or quote is glossed in prose the reader meets before it. A quoted acronym is expanded in the framing sentence.
 - A caption fix can often go in its section's intro. If that repeats the caption, flag the old copy for deletion.
 - A fact lands only in a section whose `sourceRefs` back it. At an unsourced closer, restate an earlier drawn point.
-- The intro carries what the numbers need to be read right, such as their base, or that two units of one quantity never convert. A drawing choice goes in `plain`, without numerals. Above the graphic it reads as a hedge.
+- The intro carries what the numbers need to be read right, such as their base, or that two units of one quantity never convert. A drawing choice (a compressed scale, an exaggerated axis) belongs in the caption, where LENS §5.5 puts honesty: flag it, since you may not rewrite the caption (`plain` is retired). Above the graphic it reads as a hedge.
 - Panel seam fixes usually arrive unapplied and are yours. A fix naming a figure the draft lacks, or its unsourced half, is a flag.
 - On harm done to the issue's people, name the victim as an object and give the penalty its unit.
 - Keep each numeral's count, a passing year included. Fund additions from duplicates, never from glosses.

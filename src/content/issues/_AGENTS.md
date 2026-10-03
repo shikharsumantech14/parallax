@@ -13,7 +13,8 @@
 > article beside a pinned figure, joined by `cues` and inline `[[n]]`
 > markers (§16). (3) `plain` and `howToRead` are DEPRECATED and NO LONGER
 > RENDERED: still accepted (bounds and all) until Phase 8; the pipeline
-> stops authoring them in Phase 7.
+> stopped authoring them in Phase 7 (2026-10-01), and authors `cues` and
+> `cover` instead.
 
 ---
 
@@ -83,13 +84,13 @@ Every section conforms to:
                               // ≤4, ZOD-ENFORCED (text ≤240). Lens Phase 3: the
                               // numerals that join the article to the figure
                               // (§16). None on a narrative kind.
-  plain?: string;             // ≤220 chars, ZOD-ENFORCED. DEPRECATED and NOT
-                              // RENDERED since Lens Phase 3 (2026-09-30); it
-                              // was the "In plain terms" line on the FORM.
-  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED. DEPRECATED and NOT
-                              // RENDERED since Lens Phase 3; it was the
-                              // how-to-read panel above the graphic. Cues and
-                              // the caption do its work.
+  plain?: string;             // ≤220 chars, ZOD-ENFORCED. RETIRED: NOT
+                              // RENDERED since Lens Phase 3 (2026-09-30), NOT
+                              // AUTHORED since Phase 7; it was the "In plain
+                              // terms" line on the FORM. Never write one.
+  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED. RETIRED like
+                              // `plain`; it was the how-to-read panel above
+                              // the graphic. Cues and the caption do its work.
   caption?: string;           // TOP-LEVEL since 2026-08-27 — the DATA claim,
                               // one sentence, traceable ("214 bills went in and
                               // 47 came out"). The ONE comprehension field that
@@ -457,16 +458,16 @@ have no story page.** They are viz reference, not story reference.
 | Field | Carries | Renders | Length | Verifier |
 |---|---|---|---|---|
 | `cues[].text` (or the marked sentence) | a DATA claim, one per numeral | in the figure panel's foot while its cue is lit; the marked sentence itself sits in the article | ≤240 | **traced to the dossier**, like the caption |
-| `caption` | **the DATA — the finding** | once, at the end of the article column, `core/Section.astro` (`.px-rs__caption`). The component in the figure gets no caption (SectionBody `bare`), and the panel hides any caption row a component still prints | one sentence | **traced to the dossier**; flags form-only captions (CAPTION-FORM) |
+| `caption` | **the DATA — the finding** | once, at the end of the article column, `core/Section.astro` (`.px-rs__caption`). The component in the figure gets no caption (SectionBody `bare`), and the panel hides any caption row a component still prints | one sentence | **traced to the dossier** |
 | `source` | the citation | once: the figure panel's foot on a desktop graphic section, under the caption on phones and on narrative sections; the label links to the first `sourceRefs` entry | free | CANON §7: no source, no section |
 | `howToRead` | (retired) | **nowhere** since Lens Phase 3 | 40–360 | none in the render; still bounded by Zod |
 | `plain` | (retired) | **nowhere** since Lens Phase 3 | ≤220 | none in the render; still bounded by Zod |
 
 **Instrumented kinds (`scaling-plot` LOG/LINEAR toggle, `xg-race` minute scrub,
 `climate-spiral` month scrub — 2026-09-04).** The controls are `html.js`-gated.
-The `caption` must not name a projection the reader can flip — the published
-token-bill caption dropped its trailing "· log scale" for exactly that
-CAPTION-FORM reason. The `data` shapes in §11 are unchanged: the toggle and
+The `caption` and the cue sentences must not name a projection the reader
+can flip — the published token-bill caption dropped its trailing "· log
+scale" for exactly that reason. The `data` shapes in §11 are unchanged: the toggle and
 scrubs are derived at build, never authored.
 
 Issues may also carry an optional top-level `voice:` — the DOMINANT rhetorical
@@ -474,8 +475,8 @@ mode (one of the eight, e.g. `FORENSIC`), authored by the stylist for the fact
 grid's fourth cell. Omit rather than guess; the grid drops to three cells.
 
 Do NOT add captions to `paradox`/`timeline` sections whose `intro` already
-states the finding — that duplication is exactly what REDUNDANT flags exist to
-catch (ruled 2026-08-28; see REVAMP-PLAN §0).
+states the finding: the caption would repeat it (ruled 2026-08-28; see
+REVAMP-PLAN §0).
 
 ## 15. The plain-language kinds and the annotation slot (2026-09-13, REGISTER-PLAN RG-09 / RG-20)
 
@@ -488,7 +489,8 @@ blueprints in `docs/design/blueprints/core/`. Word caps are the gate's
   `source`. The brand reframe as a component: what most people think on the
   left, what the data shows on the right, the settling figure large. One per
   issue, early. Story priority 60.
-- **`jargon-buster`** (narrative — no plain, no how-to-read, no card) —
+- **`jargon-buster`** (cards in the figure panel with cues since Lens Phase
+  6; no VizCard) —
   `{ terms: [{term, meaning ≤ 25 words, hindi? ≤ 10 words}] }`, 2–4 terms;
   story mode trims to 4. `hindi` is Roman script and renders roman, never
   italic. The glosses come from `research/_voice/jargon.md`.
@@ -528,8 +530,10 @@ The design law is `docs/design/LENS.md` §5; the geometry is
 article (up to 620) and the pinned figure panel (520; 620 with `layout:
 wide`). Below 1024px the figure comes first and pins at the top while the
 article scrolls under it, when it fits 40% of the screen. A NARRATIVE kind
-(`prose`, `quote`, `analogy`, `jargon-buster`, `three-steps`) is the article
-column alone. The article holds, in order: "01 · EYEBROW", the title, the
+(`act-break`, `prose`, `quote`, `analogy`: the kinds whose catalog CUES line
+says none) is the article column alone. `jargon-buster` and `three-steps`
+left that set in Lens Phase 6: the article carries each term's meaning and
+each step's text as sentences, the panel carries the cards. The article holds, in order: "01 · EYEBROW", the title, the
 intro, the kind's own sentences, the caption, the source (phones). Three kinds
 move their sentences into the article, and their figure keeps the rest:
 
@@ -563,12 +567,21 @@ nothing (the render gate learns to flag both in Phase 5).
 and an empty `<span class="px-cue-tag" data-cue-tag="<id>" hidden></span>`
 where its numeral should print. `core/Section.astro` fills and shows the
 numerals from `cues` (so they are in the HTML without JS) and adds
-`data-cue-n`; the island sets `data-lit="true"` / `"false"`. Wired in Phase 3
-(the City issue's kinds): `data-readout` tiles, `you-think` ("1" belief, "2"
-record, "3" the record's figure), `timeline` events, `benchmark-chart` bars,
-`latency-waterfall` spans, `margin-ladder` rungs, `power-matrix` institution
-rows, `jargon-buster` terms, `comparison` rows (columns in the list form).
-Phase 6 wires the rest.
+`data-cue-n`; the island sets `data-lit="true"` / `"false"`. Phase 3 wired
+the City issue's kinds and Phase 6 the rest: **every kind's anchor ids are
+on the `CUES:` line of its block in `docs/design/catalog.md`** (Phase 7),
+exactly as its component's `Cue anchors:` header lists them, and `npm run
+check:catalog` (check 7) asserts every id on each line is a `data-cue` in
+its component. Author `at` from that line, never from memory.
+
+**Who authors cues (Lens Phase 7, 2026-10-01).** The composer's storyboard
+names two to four cues per graphic row (its §3 Cues column) and the cover
+(its §2); the drafter writes them; the stylist keeps every marker with its
+sentence; the verifier traces each cue sentence like a caption. `npm run
+check:prose` flags **CUES** (fewer than two or more than four on a graphic
+section, any on a narrative kind, a marker with no cue, a cue with no marker
+that names no automatic item) and **NO-COVER**; on a published issue a
+section with no cues at all, and a missing cover, report ℹ until Phase 8.
 
 **The worked example** is `2026-09-28-verdict-arrived-sentence-didnt`,
 sections 1 to 4: readout tiles "1"–"4" on cues 1–4; you-think "1", "2", "3"
@@ -577,6 +590,19 @@ with markers in both texts; timeline cue 1 at "2 6" (the charge and today),
 spans) and 2 at "3" (City), with the markers in the caption.
 
 ## Change log
+
+### 2026-10-01 — Lens Phase 7: the pipeline authors cues and covers
+The catalog gained a `CUES:` and a `BUILD:` line per block (the anchor ids and
+the build order, from each component's header) and lost its PLAIN lines;
+`check:catalog` check 7 asserts every CUES id is a `data-cue` in its
+component. The composer names the cover and two to four cues per graphic row,
+the drafter writes `cover` and `cues` with their `[[n]]` markers, the stylist
+keeps every marker (the stylist guard refuses a rewrite that drops or adds
+one), and the verifier traces cue sentences (CUE-UNTRACED, CUE-COUNT,
+COVER-DRIFT; PLAIN-CLAIM, CAPTION-FORM and REDUNDANT-HOWTO struck).
+`check:prose` gained CUES and NO-COVER. No agent authors `plain` or
+`howToRead` any more (§2, §14, §16). The template shows `cover` and a cued
+section.
 
 ### 2026-09-30 — Lens Phase 4: the `cover` field
 `cover: { section, number, label, headline? }` joined the issue schema (§1).

@@ -26,14 +26,16 @@ build**:
 
 - `primer` — 80–420 chars
 - `plain` — max 220 chars, and `howToRead` — 40–360 chars. **Both are
-  deprecated and no longer rendered** (Lens Phase 3, 2026-09-30): the cues and
-  the one caption do their work. The bounds still hold because the fields stay
-  in the schema until Phase 8, so an over-long one still fails the build. Do
-  not author new ones
+  retired**: no longer rendered since Lens Phase 3 (2026-09-30), no longer
+  authored by the pipeline since Lens Phase 7 (2026-10-01); the cues and the
+  one caption do their work. The bounds still hold because the fields stay in
+  the schema until Phase 8 removes them, so an over-long legacy one still
+  fails the build. Never author a new one
 - `caption` — the DATA claim; the only comprehension field the verifier traces
   (with the cue sentences, below). It renders ONCE, at the end of the article
-  column, in Newsreader italic. Never a scale or axis word ("· log scale" is
-  FORM, CAPTION-FORM)
+  column, in Newsreader italic, and may carry `[[n]]` markers. Never a scale
+  or axis word a control could make false ("· log scale" on a toggle-able
+  axis)
 - `sources[].url` — must be a real URL; mock URLs break the build
 - every `sourceRefs[]` entry must resolve to an existing `source.id`
 - `layout` ∈ `default | wide | bleed | split | split-flip | breath`. Since
@@ -74,8 +76,10 @@ build**:
 ## Lens: the reading system (Phase 3, 2026-09-30, `docs/design/LENS.md` §5)
 
 A graphic section is the article (620) beside a pinned figure panel (520);
-a narrative section (`prose`, `quote`, `analogy`, `jargon-buster`,
-`three-steps`) is the article alone. The article carries the eyebrow, the
+a narrative section (`act-break`, `prose`, `quote`, `analogy`: the kinds
+whose catalog CUES line says none) is the article alone. `jargon-buster` and
+`three-steps` left the narrative set in Lens Phase 6: their cards sit in the
+figure panel and take cues. The article carries the eyebrow, the
 title, the intro, **the kind's own sentences** (a `timeline`'s events, a
 `data-readout`'s tiles as "**Label: value.** note", a `you-think`'s two
 texts), the caption and, on phones, the source. The figure's compact form
@@ -86,32 +90,42 @@ drops what the article already says.
   component exposes: an id, or several separated by spaces ("2 6" lights two
   timeline events). `text` is the sentence the panel shows while the cue is
   lit; leave it out and the panel shows the sentence the marker introduces
-  (or the item's own sentence). A cue sentence is a data claim, traced like a
-  caption.
+  (or the item's own sentence). A cue sentence is a data claim, ≤ 30 words,
+  English only, traced like a caption (the verifier's CUE-UNTRACED).
 - **`[[n]]`** — the inline marker, placed BEFORE the sentence it belongs to,
   in `intro` (a blank line starts a paragraph), `caption`, a prose kind's
   `data.paragraphs`, the `you-think` `think.text` / `actually.text`, a
   timeline event's `note`. It renders as the cue button (a real `<button>`,
-  the 20px disc) and tints the sentence while lit. A `data-readout` tile or a
-  `timeline` event named by a cue gets its button automatically, before its
-  sentence; no marker needed. Story cards, meta tags and `check:prose` strip
-  every marker.
+  the 20px disc) and tints the sentence while lit. A `data-readout` tile, a
+  `timeline` event, a `jargon-buster` term, a `three-steps` step and a
+  `you-think` text (anchors `1`, `2`) named by a cue get their button
+  automatically, before their sentence; no marker needed. Every other cue
+  needs its marker, and every marker its cue (`check:prose` flags CUES).
+  Story cards, meta tags and `check:prose`'s word counts strip every marker.
 - **Anchors** — a component exposes `data-cue="<id>"` on the element a cue can
   name, ids numbered from 1 in DATA order (before any sort), plus an empty
   `<span class="px-cue-tag" data-cue-tag="<id>" hidden>` where the numeral
-  should sit; `core/Section.astro` fills the numerals from `cues`. Wired so far
-  (the City issue's kinds): `data-readout` (each tile), `you-think` ("1" the
-  belief, "2" the record, "3" the record's figure), `timeline` (each event),
-  `benchmark-chart` (each bar, authored order), `latency-waterfall` (each
-  span), `margin-ladder` (each rung, authored order), `power-matrix` (each
-  institution row), `jargon-buster` (each term), `comparison` (each row; each
-  column in the list form). The other kinds get theirs in Phase 6; until then
-  a cue naming one of them lights nothing.
+  should sit; `core/Section.astro` fills the numerals from `cues`. Every kind
+  is wired (Lens Phase 6): **each kind's anchor ids are on the `CUES:` line of
+  its block in `docs/design/catalog.md`**, exactly as the component's `Cue
+  anchors:` header lists them, and `npm run check:catalog` (check 7) asserts
+  every id on it is a `data-cue` in the component. An `at` naming an id that
+  is not on the line lights nothing, and the render gate blocks the page.
 - **`short`** — the section's name in the "In this issue" card and the rail,
   ≤ 3 words (≤ 24 chars). Absent, it is derived from the eyebrow.
 - An issue with no cues renders the two columns with no numerals, and reads.
 - **Photography is rejected** (LENS §1): there is no `plate` kind; a cover is
-  a section drawn in stage mode (`cover:` arrives in Phase 4).
+  a section drawn in stage mode (`cover`, above).
+
+## What the pipeline authors (Lens Phase 7, 2026-10-01)
+
+The composer's storyboard names the cover (its §2) and two to four cues per
+graphic row (its §3 Cues column, each an anchor from the kind's CUES line);
+the drafter writes `cover` and every graphic section's `cues` with their
+`[[n]]` markers; the stylist keeps every marker with its sentence and may
+reword a cue sentence; the verifier traces each cue sentence (CUE-UNTRACED)
+and checks the counts (CUE-COUNT) and the cover (COVER-DRIFT). `check:prose`
+flags CUES and NO-COVER. Nobody authors `plain` or `howToRead` any more.
 
 ## Status
 

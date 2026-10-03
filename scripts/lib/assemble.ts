@@ -27,6 +27,7 @@ const CATALOG      = 'docs/design/catalog.md';
 const CONFIG_TS    = 'src/content/config.ts';
 const VOICE_CORE   = 'research/_voice/_voice-core.md';
 const CANON        = 'docs/design/CANON.md';
+const LENS         = 'docs/design/LENS.md';
 const GRAPH        = 'docs/generated/PROJECT-GRAPH.md';
 const RULE         = '.claude/rules/issue-authoring.md';
 const ISSUES_DIR   = 'src/content/issues';
@@ -270,7 +271,7 @@ function catalogIndex(): Map<string, string> {
   let cur: string | null = null;
   let buf: string[] = [];
   const flush = () => { if (cur) map.set(cur, buf.join('\n').replace(/\s+$/, '')); };
-  for (const l of readRepo(CATALOG).split('\n')) {
+  for (const l of catalogForPrompt().split('\n')) {
     const m = /^## (\S+)\s*$/.exec(l);
     if (m) { flush(); cur = m[1]; buf = [l]; continue; }
     if (cur) buf.push(l);
@@ -289,9 +290,18 @@ export function catalogBlocks(kinds: string[]): Block {
   return textBlock('CATALOG BLOCKS', `${CATALOG}: ${wanted.join(', ')}`, parts.join('\n\n'));
 }
 
-/** The whole catalog, every kind. */
+/** The catalog as a pass reads it: every block without its BUILD line.
+ *  BUILD (Lens Phase 7) is the order the build island animates a figure in,
+ *  which a component author needs and no writing pass acts on: about 13k
+ *  characters across 87 blocks. CUES stays, because the composer and the
+ *  drafter author `at` from it. */
+function catalogForPrompt(): string {
+  return readRepo(CATALOG).split('\n').filter(l => !l.startsWith('- **BUILD:**')).join('\n');
+}
+
+/** The whole catalog, every kind (its BUILD lines left out). */
 export function catalogFull(): Block {
-  return block('CATALOG (all kinds)', CATALOG);
+  return textBlock('CATALOG (all kinds)', `${CATALOG}, BUILD lines left out`, catalogForPrompt());
 }
 
 export function catalogShapes(): Block {
@@ -350,6 +360,16 @@ export function canonSections(nums: number[] = [2, 3]): Block {
   const text = readRepo(CANON);
   const parts = nums.map(n => numberedSection(text, n) ?? `(§${n} not found in ${CANON})`);
   return textBlock(`CANON §${nums.join(' AND §')}`, `${CANON} §${nums.join(', §')}`, parts.join('\n\n'));
+}
+
+/** Numbered subsections of docs/design/LENS.md, e.g. ['5.2', '8.2']: the cue
+ *  contract and the cover (Lens Phase 7). A single-shot pass cannot open the
+ *  file, and the catalog's CUES lines name anchors without saying how a cue
+ *  is authored. */
+export function lensSections(nums: string[]): Block {
+  const text = readRepo(LENS);
+  const parts = nums.map(n => mdSection(text, h => h.startsWith(`${n} `), 3) ?? `(§${n} not found in ${LENS})`);
+  return textBlock(`LENS §${nums.join(' AND §')}`, `${LENS} §${nums.join(', §')}`, parts.join('\n\n'));
 }
 
 /** The kind ledger: PROJECT-GRAPH.md's "Never in a published issue" section. */

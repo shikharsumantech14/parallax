@@ -56,11 +56,13 @@ research/
                                     The script applies its corrections to the dossier behind the
                                     dossier guard, and the composer reads the report. BLOCKED:
                                     /pipeline-research <cat> --topup --slug <slug>, then check again
-5. /pipeline-storyboard <cat>   → research/<cat>/<date>-<slug>-storyboard.md (Status: draft)
+5. /pipeline-storyboard <cat>   → research/<cat>/<date>-<slug>-storyboard.md (Status: draft): the kinds,
+                                    the hero and the COVER (§2), two to four CUES per graphic row (§3)
 6. YOU APPROVE THE STORYBOARD    ← two minutes: move a row, swap a kind, flip Status: approved
                                     (the gate is GATES.storyboard in scripts/pipeline.config.ts:
                                     'required' now; 'auto' later — REGISTER-PLAN RG-07)
-7. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft), then the check
+7. /pipeline-draft <cat>        → src/content/issues/<slug>/index.mdx (status: draft, with `cover` and
+                                    every graphic section's `cues` and [[n]] markers), then the check
                                     round: check:prose and the schema check, and one more request on
                                     the resumed session when either flags
 8. /pipeline-panel <cat>        → research/<cat>/<date>-<slug>-panel.md (first pass: PASS/REVISE/BLOCK),
@@ -90,16 +92,21 @@ panel and scores every claim against the dossier before the verifier reads
 it. It is a pre-pass that is never a gate, and a missing `JEV_API_KEY` skips
 it with a warning while the phase runs on.**
 
-> **Component palette.** The publication ships **101 section kinds** — the
-> editorial kinds plus a deep physics / data / geography-grounded interactive +
-> 3D library (each world's flagships and its breadth: WebGL globes, CSS-3D
-> cards, animated SVG). The canonical catalog is **`docs/design/catalog.md`**:
-> one `## <kind>` block per kind giving **USE WHEN**, **DON'T USE** (with the
-> right alternative), the exact **DATA** shape, the **PLAIN** one-liner, and —
-> on the data-hungry kinds — a **RESEARCHER MUST CAPTURE** note.
+> **Component palette.** The publication ships **87 section kinds** (the Lens
+> verdict, 2026-09-30) — the editorial kinds plus a deep physics / data /
+> geography-grounded library (each world's flagships and its breadth: WebGL
+> scenes on the desk's deep plate, drawn SVG and HTML figures). The canonical
+> catalog is **`docs/design/catalog.md`**: one `## <kind>` block per kind
+> giving **USE WHEN**, **DON'T USE** (with the right alternative), the exact
+> **DATA** shape, the **CUES** line (the anchor ids a cue may name, `none` on
+> the four narrative kinds), the **BUILD** order, and — on the data-hungry
+> kinds — a **RESEARCHER MUST CAPTURE** note. The PLAIN lines went in Lens
+> Phase 7 (2026-10-01): the plain line and the how-to-read panel are retired,
+> and the pipeline authors cues and a cover instead.
 > `npm run check:catalog` verifies that the catalog and `SECTION_KINDS` in
-> `src/content/config.ts` stay 1:1 and in the same order (101 ↔ 101 today)
-> and runs in `prebuild`, so a half-wired kind fails the build.
+> `src/content/config.ts` stay 1:1 and in the same order (87 ↔ 87 today),
+> that every CUES id is an anchor in its component, and runs in `prebuild`,
+> so a half-wired kind fails the build.
 > The drafter chooses kinds that fit the data; discovery should suggest them.
 > The six `2026-06-03-<world>-showcase` **draft** issues exercise the library
 > with real data — the canonical worked examples.
@@ -243,9 +250,13 @@ etc.), plus two component checks added by the P8 wiring (§12):
   counts, orbital elements, Euler poles, ratings, xG values, transistor counts,
   lat/lon, measured physical quantities — trace to the dossier exactly like body
   text does.
-- **⚠️ PLAIN-CLAIM.** A section's `plain` line must describe the FORM of the
-  graphic, never assert the data. A `plain` that states a finding ("Leicester
-  won") is flagged; the data belongs in the caption.
+- **Cue sentences are claims** (Lens Phase 7, 2026-10-01). Each sentence a
+  `[[n]]` marker introduces (or a cue's `text`) is traced like a caption:
+  **❌ CUE-UNTRACED** when the dossier does not back it, **⚠️ CUE-COUNT** for
+  fewer than two or more than four cues on a graphic section or any on a
+  narrative kind, **⚠️ COVER-DRIFT** when `cover.number` is not what its
+  section prints. (PLAIN-CLAIM, CAPTION-FORM and REDUNDANT-HOWTO are struck:
+  `plain` and `howToRead` are retired.)
 
 **`NEEDS REVISION` is the most common verdict.** Apply the fixes directly
 to the draft (or re-run a phase), then re-verify or proceed at your
@@ -378,24 +389,29 @@ Uncommitted at the time of writing, like the rest of the 2026-07-14 work.
   form)", pointing at `docs/design/catalog.md` as the single source of truth for
   choosing *and* shaping a component: pick by what the data genuinely is, never
   by what looks impressive. This replaced a stale inline list of 30 kinds. The
-  drafter also authors three per-section fields it previously didn't:
-  `plain` (the FORM of the graphic, ≤ 220 chars — the Zod cap; omit it when the
-  per-kind default in `src/lib/explainers.ts` already fits, and narrative kinds
-  take none), `skimCaption` (the one thing the section proves), and `layout`
-  (`default` unless there's a reason — `wide`, `split` for the issue's single
-  hero metaphor, `bleed` at most once per act, `breath`). It works to the
+  drafter also authors, per section, `skimCaption` (the one thing the section
+  proves) and `layout` (`default` or `wide` since Lens Phase 3), and since
+  Lens Phase 7 (2026-10-01) the issue's `cover` and every graphic section's
+  `cues` with their `[[n]]` markers, each anchor taken from the kind's CUES
+  line. It no longer authors `plain` (the P8 wiring added it; it is retired).
+  It works to the
   `docs/design/CANON.md` §3 rhythm — one hero visual, no more than ~3 loud
   sections, acts separated by `act-break`, every act carrying a quiet section —
   and its end-of-run self-check covers all of it.
-- **`stylist.md`** — new **Step 4.6, structure + plain-layer audit**. As the last
-  editorial pass before the verifier it checks the issue against the CANON §3
-  structure rules and the plain-layer contract, reporting under a "Structure
-  flags" heading. It *flags* rather than fixes (it does not restructure the issue
-  or change section kinds); the one thing it may rewrite is a `plain` line, since
-  that wording is prose within its remit.
-- **`verifier.md`** — Step 2 now extracts component `data` values as claims to
-  trace, and audits `plain` lines, flagging **⚠️ PLAIN-CLAIM** where one asserts
-  data instead of describing form. See §6.
+- **`stylist.md`** — **Step 4.6, the structure audit**. As the last editorial
+  pass before the verifier it checks the issue against the CANON §3 structure
+  rules and, since Lens Phase 7, the cue counts and the cover, reporting under
+  a "Structure flags" heading. It *flags* rather than fixes (it does not
+  restructure the issue or change section kinds). It keeps every `[[n]]` marker
+  with its sentence and may reword a cue's sentence; the stylist guard refuses
+  a rewrite that drops or adds a marker. (It once rewrote `plain` lines; that
+  field is retired.)
+- **`verifier.md`** — Step 2 extracts component `data` values as claims to
+  trace, and since Lens Phase 7 traces every cue sentence like a caption
+  (CUE-UNTRACED, CUE-COUNT, COVER-DRIFT). See §6.
+- **`composer.md`** (2026-09-13, cues since Lens Phase 7) — reads every
+  block's CUES line and writes two to four cues per graphic row, plus the
+  cover, into the storyboard.
 
 **Demonstrated since.** The retrofit this paragraph once waited on (two
 published issues re-drawn with the new components, plus one fresh draft run)
@@ -410,6 +426,14 @@ blocks reach them inlined by `scripts/lib/assemble.ts`, not by a Read.
 ---
 
 ## Change log
+
+### 2026-10-01 — Lens Phase 7: cues and covers in the pipeline
+
+The catalog's blocks carry CUES and BUILD lines and no PLAIN line; the
+composer names the cover and the cues, the drafter writes them, the stylist
+keeps the markers, the verifier traces the cue sentences, and `check:prose`
+flags CUES and NO-COVER. `plain` and `howToRead` are no longer authored.
+Updated §2 (the diagram and the palette note), §6 and §12.
 
 ### 2026-07-14 — P8: the agents read the component catalog
 

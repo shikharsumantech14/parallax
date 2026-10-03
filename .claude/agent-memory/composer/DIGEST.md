@@ -23,7 +23,7 @@ Digest of the memory as of 2026-09-28. Read-only during a run. Updates happen in
 - timeline, bill-breakdown, bill-passage and power-matrix score as drawn graphics. data-readout is a card outside the cap of three.
 - Size the spine from the visual beats: 4 allow at most six rows, 5 at most eight. Fix a miss by cutting a text row, never adding one.
 - A dossier's spine can miss its key beat and miscount floors. Rebuild it.
-- The 1,100 also counts every eyebrow, title and source label (about 15 words a row), plus authored plain, how-to-read and data labels.
+- The 1,100 also counts every eyebrow, title and source label (about 15 words a row), plus every cue sentence and data label (`plain` and how-to-read are retired, Lens Phase 7).
 - Words before the first graphic include row 1's eyebrow and title: head at most 69, no intro on row 1.
 - Budget about 25 words of authored copy for a graphic off its home desk or axis. Defaults for gauge (was throughput-dial), benchmark-chart, scaling-plot and power-flow often mislead.
 - Names in chart labels and sublabels escape the name count, but readers still meet them.

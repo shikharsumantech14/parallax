@@ -6,13 +6,20 @@
 > near enough, the only kinds ever published). Every one of the 87 registered
 > kinds appears exactly once below, grouped by the SHAPE of the data it needs.
 > Pick by shape first, then open the kind's `## <kind>` block in `catalog.md`
-> for USE WHEN / DON'T USE / DATA / PLAIN. This file is a separate document
+> for USE WHEN / DON'T USE / DATA / CUES / BUILD. This file is a separate document
 > rather than a section of `catalog.md` because `check-catalog.mjs` treats
 > every `## heading` there as a kind.
 >
 > **[3D]** = WebGL scene (lazy `three`, never adjacent to another 3D kind).
-> **[i]** = has a control, so it authors a `howToRead` and shows the panel by
-> default (`NEEDS_HOW`). Descriptions are trimmed from the catalog's USE WHEN.
+> **[i]** = an instrument: it has a control the reader works (a scrub, a
+> toggle, a chip set, a slider), so its caption and its cue sentences never
+> name a state the reader can change. Lens Phase 6 retired the controls of
+> several kinds (the flip, the pickers, the chips); the cues point instead.
+> Descriptions are trimmed from the catalog's USE WHEN.
+>
+> **Cues** (Lens Phase 7): every kind outside the narrative four (`act-break`,
+> `prose`, `quote`, `analogy`) takes two to four cues per section, naming
+> anchor ids from its catalog block's CUES line.
 >
 > **The Lens verdict (2026-09-30, `docs/design/LENS.md` §9)** took the library
 > from 101 kinds to 87: ten dropped, four folded into a host, two renamed. The
@@ -32,7 +39,12 @@
    at least one kind from outside the six workhorses (`prose`, `data-readout`,
    `timeline`, `paradox`, `quote`, `comparison`) per issue.
 
-## G1 · Narrative — no data shape (6)
+## G1 · Narrative and the explaining cards — no data shape (6)
+
+`act-break`, `prose`, `quote` and `analogy` are narrative: the article
+column alone, no figure panel, no cues. `jargon-buster` and `three-steps`
+left the narrative set in Lens Phase 6: their cards sit in the figure panel
+and take cues.
 
 | Kind | One line |
 |---|---|
@@ -51,10 +63,10 @@
 |---|---|
 | `you-think` | what most people think / what the data shows, with the one figure that settles it |
 | `comparison` | two or three entities compared row by row; the read-across matters (two places with a winner per row: the pair form) |
-| `paradox` | two facts both true, pulling opposite ways — two blocks of prose, no mark; ≤ 1 per issue |
+| `paradox` | two facts both true, pulling opposite ways: two plates and a drawn tension mark, optionally the one number between them; ≤ 1 per issue |
 | `match-stat-line` | one match, home vs away stat rows |
 | `player-radar` | one player across 5–8 axes as a shape; optional comparison shape |
-| `player-card` [i] | one player as a flip rating card |
+| `player-card` | one player as a profile card: the rating large, the attributes as bars |
 
 ## G3 · One number against a threshold, or a few headline numbers (5)
 
@@ -64,7 +76,7 @@
 | `data-readout` | 3–6 headline numbers as instrument tiles, one accented |
 | `vote-result` | one decisive vote against the threshold it needed |
 | `gauge` | one value on an arc: a budget used, a lean between two blocs, or a load against capacity |
-| `margin-bullets` [i] | 4–8 measurements each against its own requirement, in mixed units |
+| `margin-bullets` | 4–8 measurements each against its own requirement, in mixed units |
 
 ## G4 · Time series and dated sequence (16)
 
@@ -76,14 +88,14 @@
 | `adoption-curve` | percent adoption over years tracing an S-curve, milestones marked |
 | `launch-stats` | events counted per year, optionally split by operator |
 | `moore-ladder` | a dated count series over three or more orders of magnitude, on a doubling ladder |
-| `elo-river` | 3–10 teams' dated ratings as a braid; crossovers are the story |
+| `elo-river` | 3–10 teams' dated ratings as lines on one axis; the subject's overtakes are the story |
 | `climate-spiral` [i] | a monthly series spiralling by year: season plus drift |
 | `commit-grid` | activity intensity over weeks, contribution-graph density |
 | `descent-profile` | altitude against time with named event markers |
 | `latency-waterfall` | timed spans laid end to end: where the milliseconds go |
 | `state-timeline` [i] | several entities' health lanes plus an incident clock |
 | `climate-calendar` | monthly temperature and rainfall for a when-to-go call |
-| `season-wheel` [i] | one destination's year as a radial dial: weather, crowds, price |
+| `season-wheel` | one destination's year as a radial dial: weather, crowds, price |
 | `xg-race` [i] | cumulative expected goals for two teams, minute by minute |
 | `momentum-wave` | match momentum swinging over the minutes, with event markers |
 
@@ -103,10 +115,10 @@
 | `bill-breakdown` | a bill's provisions as cards, one of them the key payload |
 | `chamber` [3D] | the seat-by-party composition of a whole chamber, plus a division walk |
 | `coalition-calculus` [i] | build a coalition against the majority line |
-| `age-pyramid` [i] | composition by age band with a binary split; counts or shares |
-| `attrition-waffle` [i] | a rate out of exactly 100 as countable squares |
-| `channel-ternary` [i] | entities split across three shares that sum to 100 |
-| `chip-die` [i] | a die floorplan where each block's area equals its real share |
+| `age-pyramid` | composition by age band with a binary split; counts and the share column |
+| `attrition-waffle` | a rate out of exactly 100 as countable squares |
+| `channel-ternary` | entities split across three shares that sum to 100 |
+| `chip-die` | a die floorplan where each block's area equals its real share |
 | `delta-v-ladder` | an energy budget broken into named segments |
 | `core-sample` | a vertical core by depth; layers with labels and values |
 | `arch-stack` | a layered system: what sits on what |
@@ -134,7 +146,7 @@
 | `storm-track` [3D] | a cyclone's best-track fixes, strength-coloured |
 | `packet-trace` [3D] | hop-by-hop round-trip time against the great-circle light floor |
 | `terminator-globe` [3D] | the day-night line plus a flight arc: jet-lag geometry |
-| `gerrymander-lens` [i] | the same votes under three district plans, with the efficiency gap |
+| `gerrymander-lens` | the same votes under three district plans, with the efficiency gap |
 | `city-grid` | street-orientation polar histograms: grid against tangle |
 | `timezone-arc` | city offsets against a reference, with overlap and sun position |
 
@@ -161,7 +173,7 @@
 |---|---|
 | `scaling-plot` [i] | an x/y scaling relationship, optional log axes and a fit |
 | `pace-ridge` | a quantity's distribution shape per group: shift, spread, tail |
-| `finish-interval` [i] | projected position plus a 90% interval; overlaps mean undecided |
+| `finish-interval` | projected position plus a 90% interval; overlaps mean undecided |
 | `queue-cliff` [i] | the M/M/1 utilisation cliff: the latency wall near full load |
 | `fare-terrain` | per-route fare over days before departure as a ridgeline; the booking sweet spot |
 | `quake-depth` | seismic events on a depth × time scatter |
@@ -177,7 +189,7 @@
 
 | Kind | One line |
 |---|---|
-| `tactics-pitch` [i] | player positions and formation: the spatial set-up |
+| `tactics-pitch` | player positions and formation: the spatial set-up |
 | `shot-map` | shots by location and expected goals, with outcomes |
 | `court-value` | a model-scored value surface over pitch or court space |
 
@@ -189,9 +201,9 @@ them by job. Blueprints: `docs/design/blueprints/core/`.
 | Kind | Group | One line |
 |---|---|---|
 | `you-think` | G2 | what most people think / what the data shows, with the one figure that settles it — the brand reframe as a component |
-| `jargon-buster` | G1 (narrative) | 2–4 terms of art with a one-line meaning each, in the register; optional Roman-script Hindi gloss |
+| `jargon-buster` | G1 (cards, with cues) | 2–4 terms of art with a one-line meaning each, in the register; optional Roman-script Hindi gloss |
 | `number-sense` | G3 | one big number and the everyday things it equals, so the size is felt |
-| `three-steps` | G1 (narrative) | a mechanism in three numbered cards, one idea each |
+| `three-steps` | G1 (cards, with cues) | a mechanism in three numbered cards, one idea each |
 | `analogy` (generalised) | G1 (narrative) | a universal this ↔ that mapping in hairline rows; the legacy joint-family shape still renders |
 
 The annotation layer (`data.annotations[]`, `docs/design/blueprints/_ANNOTATIONS.md`)

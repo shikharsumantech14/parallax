@@ -113,14 +113,51 @@ const readoutFor = (r: (number | string)[]) =>
   `${MONTH_LBL[(r[3] as number) - 1]} ${r[2]} · ${fmtVal(r[4] as number)}${r[5] ? ' · warmest month yet' : ''}`;
 const longestReadout = monthTable.map(readoutFor).concat(restReadout).reduce((a, b) => (b.length > a.length ? b : a), '');
 
+/* ── the cue numerals: placed clear of every month letter, ring label, the
+   centre year and each other. A numeral is a 20px disc, about 12 units at
+   the widest the plot is drawn (it prints at real size, the drawing
+   scales). Each tries its preferred side first, then turns round its
+   anchor and steps further out, and takes the first spot that touches
+   nothing and stays inside the viewBox. ── */
+type TBox = { x0: number; y0: number; x1: number; y1: number };
+const R_TAG = 12;
+const tHit = (a: TBox, b: TBox) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+const ringLabel = (v: number) => `${fmt(v, 2)}${unit ? ` ${unit}` : ''}`;
+const blocked: TBox[] = [
+  ...monthLabels.map((l) => ({ x0: l.x - 8, y0: l.y - 15, x1: l.x + 8, y1: l.y + 3 })),
+  ...rings.map((v) => {
+    const x = cx + radiusFor(v) * 0.707 + 3, y = cy - radiusFor(v) * 0.707 - 4;
+    return { x0: x - 2, y0: y - 14, x1: x + ringLabel(v).length * 14.5 * 0.6 + 2, y1: y + 4 };
+  }),
+  { x0: cx - 22, y0: cy - 12, x1: cx + 22, y1: cy + 10 },
+];
+const placeTag = (id: string | number, ax: number, ay: number, prefer: number) => {
+  const turns = [0, 0.785, -0.785, 1.571, -1.571, 2.356, -2.356, 3.142];
+  for (const d of [14, 20, 28, 36]) {
+    for (const t of turns) {
+      const x = ax + Math.cos(prefer + t) * d, y = ay + Math.sin(prefer + t) * d;
+      const box = { x0: x - R_TAG, y0: y - R_TAG, x1: x + R_TAG, y1: y + R_TAG };
+      if (box.x0 < -PAD || box.y0 < -PAD || box.x1 > SIZE + PAD || box.y1 > SIZE + PAD) continue;
+      if (blocked.some((q) => tHit(box, q))) continue;
+      blocked.push(box);
+      return { id, x, y };
+    }
+  }
+  return { id, x: ax, y: ay };
+};
+const outward = (x: number, y: number) => Math.atan2(y - cy, x - cx);
 const tags = [
+  ...(peak ? [placeTag('peak', xy[peakI].x, xy[peakI].y, outward(xy[peakI].x, xy[peakI].y) - Math.PI / 2)] : []),
+  ...rings.map((v, k) => {
+    const x = cx + radiusFor(v) * 0.707 + 3 + ringLabel(v).length * 14.5 * 0.6, y = cy - radiusFor(v) * 0.707 - 9;
+    return placeTag(`ring${k + 1}`, x, y, -Math.PI / 2);
+  }),
+  ...monthLabels.map((l) => placeTag(l.id, l.x, l.y - 6, outward(l.x, l.y) + Math.PI / 2)),
   ...years.map((y) => {
     const last = pts.map((p, i) => ({ p, i })).filter((o) => o.p.year === y).pop()!;
-    return { id: y, x: xy[last.i].x, y: xy[last.i].y };
+    const px = xy[last.i].x, py = xy[last.i].y;
+    return placeTag(y, px, py, outward(px, py) + Math.PI);
   }),
-  ...monthLabels.map((l) => ({ id: l.id, x: l.x + (l.x > cx + 2 ? 14 : l.x < cx - 2 ? -14 : 14), y: l.y - 4.5 })),
-  ...rings.map((v, k) => ({ id: `ring${k + 1}`, x: Math.min(SIZE + PAD - 12, cx + radiusFor(v) * 0.707 + 3 + `${fmt(v, 2)}${unit ? ` ${unit}` : ''}`.length * 14.5 * 0.58 + 12), y: cy - radiusFor(v) * 0.707 - 24 })),
-  ...(peak ? [{ id: 'peak', x: xy[peakI].x - 14, y: xy[peakI].y - 12 }] : []),
 ];
 const headLabel = peak ? `${unit ? unit + ', ' : ''}${MONTH_LBL[peak.month - 1]} ${peak.year}` : undefined;
 ---

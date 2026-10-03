@@ -158,11 +158,22 @@ to answer.
 ## Gates live here
 
 - `check-catalog.mjs` — SECTION_KINDS ↔ catalog.md 1:1 and in order, plus
-  EXPLAIN and KIND_PRIORITY coverage, plus (2026-09-15) **every field in a
-  catalog DATA line has a reader** in its component / dispatch arm / direct
-  imports / WebGL scene. Reports every failure in one run. A field with no
-  reader fails the build: render it, strike it from the DATA line, or add it
-  to `ACCEPTED_UNREAD` in the script with a reason.
+  KIND_PRIORITY coverage, plus (2026-09-15) **every field in a catalog DATA
+  line has a reader** in its component / dispatch arm / direct imports /
+  WebGL scene, plus the alias map, plus (Lens Phase 7, 2026-10-01) **every
+  block has a CUES line and every anchor id on it is a `data-cue` in its
+  component** (`none` on a narrative kind, whose component exposes none).
+  The EXPLAIN coverage assertion went in Phase 7: `src/lib/explainers.ts` fed
+  the retired plain line and panel, nothing imports it, and Phase 8 deletes
+  it. Reports every failure in one run. A field with no reader fails the
+  build: render it, strike it from the DATA line, or add it to
+  `ACCEPTED_UNREAD` in the script with a reason.
+- `check-prose.mjs` — the register and composition report; since Lens Phase
+  7 also **CUES** (two to four cues per graphic section, every `[[n]]` marker
+  matched by a cue and every cue by a marker or an item that gets its button
+  automatically, none on a narrative kind) and **NO-COVER**. The narrative
+  set is read from the catalog's `CUES: none` lines. On a published issue a
+  section with no cues, and a missing cover, report ℹ until Phase 8.
 - `design-sync.mjs --check` — 30 mirrors + 6 in-world deeps + 18 record tokens.
 - `wire-kind.mjs` — wires six of the nine registry places from one config;
   idempotent, handles per-file line endings.
@@ -188,6 +199,20 @@ to answer.
 `prebuild` runs the gates **before** `story/og.ts` writes anything. Keep that
 order: a gate that runs after a writer has already rewritten tracked files is
 not a gate. Iterate with `npx astro build` to skip the hook.
+
+## What the agents author (Lens Phase 7, 2026-10-01)
+
+The composer names the cover and two to four cues per graphic row from each
+kind's catalog CUES line; the drafter writes `cover`, `cues` and the `[[n]]`
+markers; the stylist keeps every marker (the stylist guard in
+`scripts/lib/single-shot.ts` refuses a rewrite that drops or adds one, and a
+cue's `text` is on its editable list, `plain` no longer is); the verifier
+traces each cue sentence (CUE-UNTRACED, CUE-COUNT, COVER-DRIFT). The
+composer and the drafter receive LENS §5.2 and §8.2 inlined
+(`lensSections` in `scripts/lib/assemble.ts`), and every pass that reads
+the catalog gets it without its BUILD lines (`catalogForPrompt`: the build
+order is a component author's, about 13k characters no pass acts on). No agent authors `plain` or
+`howToRead`.
 
 ## Windows (CD-08)
 

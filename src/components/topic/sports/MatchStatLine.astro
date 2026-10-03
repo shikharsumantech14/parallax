@@ -1,9 +1,10 @@
 ---
 /**
  * MatchStatLine — one match told through its stat rows (Lens Phase 6,
- * 2026-09-30; the board is Lib-match-stat-line). The scoreline on top: each
- * side's badge disc and name, the score between them at 48 (the figure's one
- * large number). Under it, one row per stat: the label centred, the two values
+ * 2026-09-30; the board is Lib-match-stat-line). The scoreline on top: the
+ * score on its own row at 96 (72 on phones; smaller when an authored score
+ * such as "1 (4)" would not fit its box), the figure's one large number, then
+ * each side's badge disc and name. Under it, one row per stat: the label centred, the two values
  * at the ends and a butterfly of two bars meeting in the middle, the larger
  * side filling its half and the smaller drawn to scale against it. The home
  * side is drawn in the desk mark, the away side in ink-2.
@@ -61,6 +62,12 @@ const counter = (s?: string) => (s != null && /^\d+$/.test(String(s).trim()) ? S
 const hs = home.score ?? '0';
 const as = away.score ?? '0';
 const meta = [venue, date].filter(Boolean).join(' · ');
+/* The score's width in em at Instrument Sans 600 tabular, measured (a digit
+   .58, a bracket .33, a space .22, the colon .26), with 8% to spare, so the
+   CSS can size ANY authored score to its cell: 96 (72 on phones) when it
+   fits, smaller when it would not ("1 (4) : 1 (3)" on a phone). */
+const emOf = (t: string) => [...t].reduce((w, c) => w + (/\d/.test(c) ? 0.58 : /[()[\]]/.test(c) ? 0.33 : c === ' ' ? 0.22 : 0.62), 0);
+const scoreEm = ((emOf(String(hs)) + emOf(String(as)) + 0.26) * 1.08).toFixed(2);
 const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpperCase();
 ---
 
@@ -74,7 +81,7 @@ const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpp
     </div>
     <div class="px-msl__score">
       <span class="px-cue-tag" data-cue-tag="score" hidden></span>
-      <span class="px-msl__num">
+      <span class="px-msl__num" style={`--em:${scoreEm}`}>
         <span data-build="4" data-build-kind={counter(hs) ? 'counter' : undefined} data-to={counter(hs) ?? undefined}>{hs}</span>
         <span class="px-msl__sep" aria-label="to">:</span>
         <span data-build="4" data-build-kind={counter(as) ? 'counter' : undefined} data-to={counter(as) ?? undefined}>{as}</span>
@@ -158,8 +165,11 @@ const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpp
   .px-msl__disc--away { background: var(--ink-2); }
   .px-msl__score { display: flex; align-items: center; justify-content: center; }
   .px-msl__score .px-cue-tag { margin-right: 10px; }
+  /* 96 when the score fits, otherwise the size that fits the box: the box
+     less the cue numeral (30), the colon's padding (12) and air, over the score's
+     width in em. The scoreline is in the .px-msl size container. */
   .px-msl__num {
-    font-size: 96px;
+    font-size: min(96px, calc((100cqi - 56px) / var(--em, 3)));
     font-weight: 600;
     line-height: 0.92;
     letter-spacing: -0.02em;
@@ -225,12 +235,10 @@ const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpp
     color: var(--ink-2);
     text-align: center;
   }
-  /* The score at 96 takes its own row above the two sides once the box is
-     too narrow to hold all three on one line. */
-  @container (max-width: 560px) {
-    .px-msl__scoreline { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 12px; }
-    .px-msl__score { grid-column: 1 / -1; order: -1; }
-  }
+  /* The score at 96 takes its own row above the two sides, at every width,
+     so its size can be reckoned against the whole box. */
+  .px-msl__scoreline { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 12px; }
+  .px-msl__score { grid-column: 1 / -1; order: -1; min-width: 0; }
   @container (max-width: 380px) {
     .px-msl__side { flex-direction: column; align-items: flex-start; gap: 6px; font-size: 13px; }
     .px-msl__side--away { flex-direction: column-reverse; align-items: flex-end; }
@@ -238,5 +246,5 @@ const initials = (s: Side) => (s.badge ?? s.name ?? '').trim().slice(0, 3).toUpp
     .px-msl__v { font-size: 17px; }
   }
   /* LENS §7: the pinned figure headline is 96, 72 on phones. */
-  @media (max-width: 767px) { .px-msl__num { font-size: 72px; } }
+  @media (max-width: 767px) { .px-msl__num { font-size: min(72px, calc((100cqi - 56px) / var(--em, 3))); } }
 </style>

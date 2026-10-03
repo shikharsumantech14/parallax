@@ -33,8 +33,17 @@ English, ≤ 30 words). This is what the issue exists to make a reader get.
 
 One component carries the argument (CANON §2). Name it, name its data shape,
 and say which dossier §4 facts it renders. Give it `layout: wide` if its
-figure earns the full column. Never `split` or `bleed` (aliases of `wide` on
-the floor plan since 2026-09-23).
+figure earns the wider panel. Author `default` or `wide` only (every other
+layout value renders as `default` since Lens Phase 3).
+
+**The cover** (LENS §8.2; the drafter writes it as `cover: { section,
+number, label, headline? }`). The Home and desk stages and the cover card
+draw one section with one number set large.
+
+- **Section (its §3 row #, a graphic row):**
+- **Number (exactly as that section prints it):**
+- **Label (≤ 6 words, lower-case when it starts with a unit):**
+- **Headline (only if the stage should not say the title; ≤ 120 chars):**
 
 ## 3. The beats
 
@@ -48,15 +57,25 @@ not graphics), ≥ 3 distinct graphic kinds, the four plain-language cards at
 most once each and ≤ 3 in total, ≥ 2 graphic kinds new to the publication —
 tallied in §9.
 
-| # | The reader must get (one line, register) | Data shape (G1–G12) | Kind | Hero? | Words around it | Analogy / example | Plain-line sketch | Dossier §4 rows it renders |
+| # | The reader must get (one line, register) | Data shape (G1–G12) | Kind | Hero? | Words around it | Analogy / example | Cues (n → anchor: what the reader gets) | Dossier §4 rows it renders |
 |---|---|---|---|---|---|---|---|---|
 | 1 | | | | | | | | |
 | 2 | | | | | | | | |
 
+**Cues** (LENS §5.2, since Lens Phase 7): two to four per graphic row, none
+on a narrative row (`act-break`, `prose`, `quote`, `analogy`). Each is
+`n → anchor: what the reader gets`, where the anchor is an id from that
+kind's CUES line in `docs/design/catalog.md` (several ids separated by
+spaces light together) and "what the reader gets" is a data claim from the
+dossier row, which the drafter writes as the sentence the cue's `[[n]]`
+marker introduces. Example: `1 → 2 6: the charge and today, 1,330 days
+apart; 2 → 3: Everton lost 10 points in 2023`. The plain line and the
+how-to-read panel are retired: there is no column for them.
+
 Word budgets (from `_voice-core.md` §3 and REGISTER-PLAN §3.3): intro ≤ 45;
 prose section ≤ 200; timeline note ≤ 20; tile note ≤ 15; paradox detail ≤ 45;
-annotation ≤ 12; whole issue ≤ 1,100 reader-facing words; ≤ 80 words before
-the first graphic.
+annotation ≤ 12; cue sentence ≤ 30; whole issue ≤ 1,100 reader-facing words;
+≤ 80 words before the first graphic.
 
 ## 4. The head
 

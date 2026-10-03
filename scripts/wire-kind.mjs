@@ -41,8 +41,13 @@
  * line is `.px-plain__src`, rendered once by core/Section.astro below the
  * graphic for every kind. Config extras: `world: 'core'` for a universal kind
  * (imports from ./core/), `vizcard: false` for a narrative kind (a bare arm,
- * no chrome props). Narrative kinds also need the NARRATIVE set in
- * scripts/check-catalog.mjs and the header comment in explainers.ts by hand.
+ * no chrome props). A narrative kind's catalog block says `- **CUES:** none`
+ * (check-catalog's NARRATIVE set went in Lens Phase 7, 2026-10-01); every
+ * other block needs a CUES line whose ids are `data-cue` anchors in the
+ * component, and a BUILD line (check 7). NOTE (2026-10-01): the arm this
+ * emits still passes `howToReadFor(...)`, which SectionBody no longer
+ * imports since Lens Phase 3, and step 3 still writes the dead
+ * src/lib/explainers.ts; both are Phase 8's to retire with that file.
 
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -102,9 +107,8 @@ else {
   console.log('  + SectionBody');
 }
 
-// 3 ── EXPLAIN (skipped for narrative kinds: they render no plain line and no
-// how-to-read; add them to NARRATIVE in check-catalog.mjs and to the header
-// list in explainers.ts by hand instead)
+// 3 ── EXPLAIN (skipped for narrative kinds). Dead since Lens Phase 3 and no
+// longer asserted by check-catalog (Phase 7); Phase 8 deletes explainers.ts.
 s = rd('src/lib/explainers.ts');
 if (cfg.narrative) console.log('  - EXPLAIN skipped (narrative kind)');
 else if (s.includes(`'${kind}':`)) console.log('  = EXPLAIN');

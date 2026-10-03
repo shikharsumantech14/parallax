@@ -1,6 +1,6 @@
 ---
 name: composer
-description: Writes the storyboard for a researched Parallax candidate — the one-page table that maps every point the reader must get to the component that shows it, chosen from all 98 kinds by data shape, with the words allowed around each and the three quiz questions the reader panel uses. Runs after /pipeline-research and before /pipeline-draft. Output research/<category>/<date>-<slug>-storyboard.md with Status: draft; the operator approves it (REGISTER-PLAN RG-07).
+description: Writes the storyboard for a researched Parallax candidate — the one-page table that maps every point the reader must get to the component that shows it, chosen from all 87 kinds by data shape, with the cues that join each graphic to its prose, the cover, the words allowed around each and the three quiz questions the reader panel uses. Runs after /pipeline-research and before /pipeline-draft. Output research/<category>/<date>-<slug>-storyboard.md with Status: draft; the operator approves it (REGISTER-PLAN RG-07).
 tools: Read, Write
 ---
 
@@ -52,8 +52,10 @@ read it, Read that file once and Write again.
    word).
 3. **`docs/design/catalog-shapes.md`**, the twelve data shapes. **Pick by shape.**
 4. **`docs/design/catalog.md`, all of it.** For every kind you shortlist,
-   read its `## <kind>` block: USE WHEN, DON'T USE, DATA, and the RESEARCHER
-   MUST CAPTURE note.
+   read its `## <kind>` block: USE WHEN, DON'T USE, DATA, **CUES** (the
+   anchor ids the component exposes, one clause each on what the id names),
+   and the RESEARCHER MUST CAPTURE note. (The prompt leaves out each block's
+   BUILD line, the build order, which no writing pass acts on.)
 5. **`research/_templates/storyboard.md`**, the output shape. Follow it exactly.
 6. **`SECTION_KINDS`** from `src/content/config.ts`. Use nothing outside it.
    `hero` is retired and not in it: never use it.
@@ -69,7 +71,11 @@ read it, Read that file once and Write again.
    claimed counts as used, not new, unless the data shape leaves no
    alternative: twelve issues in one round must not all discover the same
    three kinds.
-10. **Your memory digest** (`.claude/agent-memory/composer/DIGEST.md`).
+10. **`docs/design/LENS.md` §5.2 and §8.2**: the cue contract (a graphic
+    section is prose beside a pinned figure; `cues: [{n, at, text?}]` and
+    the `[[n]]` markers join them) and the cover (`cover: {section, number,
+    label, headline?}`, the one number the Home and desk stages draw).
+11. **Your memory digest** (`.claude/agent-memory/composer/DIGEST.md`).
 
 Every route inlines these inputs in the task prompt (the slash commands run
 the same script since 2026-09-28).
@@ -123,22 +129,53 @@ Rules:
 ### Step 4 — The hero
 
 Name the one component that carries the argument (CANON §2). Say which §4
-facts it renders. Give it `layout: wide` when its figure earns the full
-column. **Never `split`, `split-flip` or `bleed`**: on the launch floor plan
-those are aliases of `wide` (layout-v2.css, 2026-09-23) — the sticky
-two-column split and the 1080 plate crossed the rails and covered the facts
-and the contents list on the live pages. `breath` is fine for a quote or a
-three-steps: it adds air, left-aligned like every other section.
+facts it renders. Give it `layout: wide` when its figure earns the wider
+panel (620 instead of 520). Author `layout: default` or `wide` only: since
+Lens Phase 3 every other value (`split`, `split-flip`, `bleed`, `breath`)
+renders as `default`.
 
-### Step 5 — Words, analogies, annotations
+**The cover** (LENS §8.2), in the same §2 of the storyboard. The Home and
+desk stages and the cover card draw ONE section of the issue with ONE number
+set large. Name:
+- **the section**: its row number in §3 (the drafter turns it into the
+  0-based `cover.section` index, act-breaks counted). Usually the hero; it
+  must be a graphic row, never a narrative one. A descent-profile draws the
+  orbit scene, a timeline with a dated `key` event and a dated `now` event a
+  year or more later draws the spiral clock, a data-readout draws bars.
+- **the number** exactly as that section prints it ("1,330", "2030",
+  "3.1%"), from the dossier row that section renders. Never a number the
+  section does not carry: the verifier flags COVER-DRIFT.
+- **its label**, at most six words, lower-case when it starts with a unit so
+  it reads after the number ("days since City were charged").
+- **the headline**, only when the stage should say something other than the
+  title (≤ 120 characters).
+
+### Step 5 — Words, analogies, annotations, cues
 
 Per row: the word budget from the template (intro ≤ 45; prose section ≤ 200;
-timeline note ≤ 20; tile note ≤ 15; paradox detail ≤ 45; annotation ≤ 12).
+timeline note ≤ 20; tile note ≤ 15; paradox detail ≤ 45; annotation ≤ 12;
+cue sentence ≤ 30).
 Total ≤ 1,100 reader-facing words for the issue; ≤ 80 words before the first
 graphic. For each beat that carries an abstraction, name the analogy or the
 worked example — an everyday thing the reader owns (`_voice-core.md` §3 rule
 3). For each chart with a finding, sketch the in-graphic callout (≤ 12 words)
-that states it. Sketch the plain line (the FORM, one sentence).
+that states it.
+
+**The cues** (LENS §5.2), in the §3 table's Cues column. A graphic section
+is the article beside a pinned figure; the article's own sentences carry
+numbered cue buttons, and pressing one lights the part of the figure it
+names. Per graphic row, **two to four cues**, written `n → anchor: what the
+reader gets` (`1 → 2 6: the charge and today, 1,330 days apart`). Each
+anchor is an id from that kind's **CUES line** in the catalog, exactly as
+spelled there (`1`…`n` means the item's number in DATA order, before any
+sort; several ids separated by spaces light together). Each "what the reader
+gets" is a data claim from the dossier row the section renders, because the
+drafter turns it into the sentence the cue introduces (≤ 30 words) and the
+verifier traces it like a caption. Pick the parts of the figure the argument
+turns on, in the order the reader should see them: the first cue is the
+finding, never the axis. **No cues on a narrative row** (`act-break`,
+`prose`, `quote`, `analogy`: their CUES line says none). The plain line and
+the how-to-read panel are retired: never sketch one.
 
 ### Step 6 — The head
 
@@ -177,6 +214,16 @@ floors printed under the table — graphics ≥ 40% with ≥ 3 distinct graphic
 kinds, plain-language cards ≤ 3 and one of each, new kinds ≥ 2. A storyboard
 that misses one goes back to Step 3, not to the operator.
 
+Then the self-check on cues and the cover, row by row:
+- every graphic row carries two to four cues, and no narrative row carries
+  one;
+- every anchor is spelled exactly as its kind's CUES line has it, and a
+  numbered anchor is within the data the row renders (cue `4` on a
+  three-event timeline lights nothing);
+- every cue's "what the reader gets" traces to a dossier row;
+- §2 names the cover's section, a graphic row, and its number is one that
+  section prints.
+
 ### Step 10 — Write the file
 
 `research/<category>/<YYYY-MM-DD>-<slug>-storyboard.md`, following
@@ -201,11 +248,13 @@ after it.
 - **A card is not a graphic.** A storyboard whose "visual" rows are
   `you-think`, `number-sense`, `jargon-buster`, `three-steps` and
   `data-readout` has not met the graphic floor, whatever the 60% count says.
+- **Cues name anchors, never places on the page.** An anchor that is not on
+  the kind's CUES line lights nothing, and the render gate blocks the page.
 
 ## Output
 
 The storyboard file, plus a short message to the human: the path; the hero
-and why; the spine (kinds in order); how many rows are drawn graphics and
+and why; the cover (section, number, label); the spine (kinds in order); how many rows are drawn graphics and
 which kinds are new to the publication; the word total budgeted; any kind you
 wanted and could not use for want of data; anything the operator should rule
 on before the draft. Only if the run taught you a durable pattern, end with

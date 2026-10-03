@@ -42,7 +42,10 @@
  */
 import VizCard from '../../core/VizCard.astro';
 
-interface Point { x: number; y: number; label?: string; }
+/* `illustrative`: a point that stands for a class of thing rather than a
+   measurement. It is drawn hollow, and the chart then states no ratio
+   between its extremes (a ratio to an illustrative value is not a finding). */
+interface Point { x: number; y: number; label?: string; illustrative?: boolean; }
 interface Annotation {
   at: string | number;
   text: string;
@@ -76,7 +79,13 @@ const {
 
 /* The panel's coordinate system. W is the width the chart is drawn for; the
    y title sits on its own line(s) above the plot, so padT grows with it. */
-const W = 460, padR = 14, padB = 44;
+/* Everything below that depends on the drawing's width is one function of
+   it, run twice: 460 units for the panel (and tablets), 290 for a phone,
+   where a 460 drawing would have to scroll (Lens Phase 6 follow-up: the
+   numerals and the far labels sat off-screen). Same data, same placement
+   passes, each at its own width. */
+function geom(W: number) {
+const padR = 14, padB = 44;
 const PLOT_H = 236;          // the plot's own height, gridline to gridline
 
 // Domain in transformed space, padded so points don't sit on the frame.
@@ -268,24 +277,6 @@ function project(lgX: boolean, lgY: boolean) {
     }
   }
 
-  /* The cue numeral's spot: a corner of the dot its label left free. */
-  const tagTaken: LblBox[] = [];
-  const tagBox = ([x, y]: [number, number]): LblBox => ({ l: x - TAG_R, r: x + TAG_R, t: y - TAG_R, b: y + TAG_R });
-  for (const q of plotted) {
-    const spots: Array<[number, number]> = [
-      [q.cx + TAG_OFF, q.cy + TAG_OFF], [q.cx + TAG_OFF, q.cy - TAG_OFF],
-      [q.cx - TAG_OFF, q.cy + TAG_OFF], [q.cx - TAG_OFF, q.cy - TAG_OFF],
-    ];
-    const ok = spots.find((sp) => {
-      const b = tagBox(sp);
-      return b.l >= padL && b.r <= W && b.t >= 0 && b.b <= padT + ih + 6 &&
-        !taken.some((t) => boxesHit(b, t, 1)) && !tagTaken.some((t) => boxesHit(b, t, 1)) &&
-        !dots.some((d, di) => di !== q.i && boxesHit(b, d));
-    }) ?? spots[0];
-    q.tx = ok[0]; q.ty = ok[1];
-    tagTaken.push(tagBox(ok));
-  }
-
   const xAt = tickAt(xD.lo, xD.hi, lgX);
   const yAt = tickAt(yD.lo, yD.hi, lgY);
   const xLbls = fmtTicks(xAt, lgX);
@@ -317,28 +308,7 @@ function project(lgX: boolean, lgY: boolean) {
     }
   }
 
-  // The fit line's numeral: beside the line, on the first spot along it
-  // (from the middle outwards, either side) that clears labels, dots and
-  // the points' numerals.
-  let fitTag: [number, number] | null = null;
-  if (fitLine) {
-    const { x1, y1, x2, y2 } = fitLine;
-    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
-    const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
-    outer: for (const t of [0.55, 0.45, 0.65, 0.35, 0.75, 0.25, 0.85]) {
-      for (const sgn of [1, -1]) {
-        const x = x1 + (x2 - x1) * t + nx * 16 * sgn, y = y1 + (y2 - y1) * t + ny * 16 * sgn;
-        const b = tagBox([x, y]);
-        if (b.l < padL || b.r > W || b.t < padT - 4 || b.b > padT + ih) continue;
-        if (taken.some((o) => boxesHit(b, o, 1)) || tagTaken.some((o) => boxesHit(b, o, 1)) || dots.some((d) => boxesHit(b, d))) continue;
-        fitTag = [x, y];
-        break outer;
-      }
-    }
-    if (!fitTag) fitTag = [x1 + (x2 - x1) * 0.5, y1 + (y2 - y1) * 0.5 - 16];
-  }
-
-  return { plotted, xTicks, yTicks, fitLine, fitTag };
+  return { plotted, xTicks, yTicks, fitLine, fitTag: null as [number, number] | null };
 }
 
 // A = the authored projection (what no-JS and first paint show).
@@ -379,11 +349,20 @@ const F_L = padL + 2, F_R = W - 4, F_T = padT - 10, F_B = padT + ih - 2;
 const aEst = (s: string) => 0.52 * A_FS * s.length;
 // Two lines once the estimate passes 40% of the viewBox, split at the nearest
 // space past the midpoint.
+// Lines of at most ~45% of the width (three at most), so a note fits the
+// narrow phone drawing too; one line when it already fits.
 const aWrap = (s: string): string[] => {
-  if (aEst(s) <= W * 0.4) return [s];
-  const past = s.indexOf(' ', Math.floor(s.length / 2));
-  const cut = past >= 0 ? past : s.lastIndexOf(' ');
-  return cut < 0 ? [s] : [s.slice(0, cut), s.slice(cut + 1)];
+  const max = Math.max(12, Math.floor((W * 0.45) / (0.52 * A_FS)));
+  if (s.length <= max) return [s];
+  const out: string[] = [];
+  let cur = '';
+  for (const w of s.split(' ')) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length > max && cur) { out.push(cur); cur = w; } else cur = next;
+  }
+  if (cur) out.push(cur);
+  if (out.length > 3) return [out[0], out[1], out.slice(2).join(' ')];
+  return out;
 };
 
 type Side = 'above' | 'below' | 'left' | 'right';
@@ -482,13 +461,16 @@ function placeAnnot(
     !textObstacles.some((o) => boxesHit(c.box, o, A_CLEAR)) &&
     !leadObstacles.some((o) => segHits(c.x1, c.y1, c.x2, c.y2, o));
   cands.sort((a, b) => a.cost - b.cost);
-  const best =
+  let best =
     cands.find(clean) ??
     cands
       .filter((c) => inFrame(c.box))
       .map((c) => ({ c, o: textObstacles.reduce((s, o) => s + overlapArea(c.box, o, A_CLEAR), 0) }))
       .sort((a, b) => a.o - b.o || a.c.cost - b.c.cost)[0]?.c ??
     cands[0];
+  // Never outside the drawing: a note with no in-frame spot is slid back in.
+  const shift = best.box.l < F_L ? F_L - best.box.l : best.box.r > F_R ? F_R - best.box.r : 0;
+  if (shift) best = { ...best, tx: best.tx + shift, box: { ...best.box, l: best.box.l + shift, r: best.box.r + shift } };
   const { cost: _cost, ...placed } = best;
   return placed;
 }
@@ -515,8 +497,66 @@ const annotLayers = layers.map(({ p, k }) => {
     done.push(placed.box);
     return placed;
   });
+  // A note outranks a point's name: where no clean spot was left (a narrow
+  // drawing), a label the note would print over yields, its dot keeps the
+  // name as a <title>.
+  for (const q of p.plotted) {
+    if (!q.showLabel || annotAt.some((a) => a.i === q.i)) continue;
+    if (items.some((it) => boxesHit(lblBoxOf(q), it.box, 1))) q.showLabel = false;
+  }
   return { k, items };
 });
+
+/* ── The cue numerals (authored projection only; the linear view hides them).
+   Placed LAST, after the labels and the notes, so a numeral is never printed
+   on a word: each tries eight spots round its dot, close first, and takes
+   the one with the least overlap with any label, note, dot or numeral
+   already placed (a spot outside the plot is never taken). The fit line's
+   numeral walks along the line from the middle out, either side. */
+{
+  const lab = A.plotted.filter((q) => q.label && q.showLabel).map(lblBoxOf);
+  const notes = (annotLayers.find((l) => l.k === 'a')?.items ?? []).map((n) => n.box);
+  const dotsA = A.plotted.map((q) => dotBox(q.cx, q.cy));
+  const placedTags: LblBox[] = [];
+  const tagBox = ([x, y]: [number, number]): LblBox => ({ l: x - TAG_R, r: x + TAG_R, t: y - TAG_R, b: y + TAG_R });
+  const area = (a: LblBox, c: LblBox) =>
+    Math.max(0, Math.min(a.r, c.r + 5) - Math.max(a.l, c.l - 5)) * Math.max(0, Math.min(a.b, c.b + 3) - Math.max(a.t, c.t - 3));
+  const cost = (bx: LblBox, own = -1) => {
+    if (bx.l < padL - 4 || bx.r > W || bx.t < padT - 12 || bx.b > padT + ih + 8) return Infinity;
+    return 10 * [...lab, ...notes, ...placedTags].reduce((acc, o) => acc + area(bx, o), 0) +
+      4 * dotsA.reduce((acc, o, di) => acc + (di === own ? 0 : area(bx, o)), 0);
+  };
+  const DIRS: Array<[number, number]> = [[1, 1], [1, -1], [-1, 1], [-1, -1], [1, 0], [-1, 0], [0, -1], [0, 1]];
+  for (const q of A.plotted) {
+    let best: [number, number] = [q.cx + TAG_OFF, q.cy + TAG_OFF];
+    let bestC = Infinity;
+    for (const rad of [TAG_OFF, TAG_OFF + 8]) {
+      DIRS.forEach(([dx, dy], k) => {
+        const f = dx && dy ? 0.75 : 1;
+        const sp: [number, number] = [q.cx + dx * rad * f, q.cy + dy * rad * f];
+        const c = cost(tagBox(sp), q.i) + k * 0.5 + (rad > TAG_OFF ? 6 : 0);
+        if (c < bestC) { bestC = c; best = sp; }
+      });
+    }
+    q.tx = best[0]; q.ty = best[1];
+    placedTags.push(tagBox(best));
+  }
+  if (A.fitLine) {
+    const { x1, y1, x2, y2 } = A.fitLine;
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+    let best: [number, number] = [(x1 + x2) / 2, (y1 + y2) / 2 - 16];
+    let bestC = Infinity;
+    [0.55, 0.45, 0.65, 0.35, 0.75, 0.25, 0.85].forEach((t, k) => {
+      for (const off of [15, 24]) for (const sgn of [1, -1]) {
+        const sp: [number, number] = [x1 + (x2 - x1) * t + nx * off * sgn, y1 + (y2 - y1) * t + ny * off * sgn];
+        const c = cost(tagBox(sp)) + k * 0.5 + (off > 15 ? 4 : 0);
+        if (c < bestC) { bestC = c; best = sp; }
+      }
+    });
+    A.fitTag = best;
+  }
+}
 
 /* ── The readout (px-inst contract part 05) ───────────────────────────────
    Derived from the data, never authored beside the chart: a readout that can
@@ -546,9 +586,10 @@ function compressionPct(): number | null {
 }
 const comp = compressionPct();
 
+const anyIllustrative = points.some((p) => p.illustrative);
 const readLog =
   `Log ${logAxisWord} · equal steps are equal multiples` +
-  (ratio ? `. Top value is ${fmtRatio(ratio)}× the bottom.` : '.');
+  (ratio && !anyIllustrative ? `. Top value is ${fmtRatio(ratio)}× the bottom.` : '.');
 const readLinear = comp
   ? `Linear ${logAxisWord} · the other ${nPts - 1} points share ${comp}% of it. That compression is what the log scale was holding open.`
   : `Linear ${logAxisWord} · true proportions, no scale compression.`;
@@ -608,7 +649,23 @@ const truncateAxisTitle = (s: string, max: number): string =>
   s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1)).replace(/\s+$/, '')}…`;
 
 const xTitleLogText = truncateAxisTitle(xTitleLog, xTitleChars);
+/* The axis numeral sits on the axis words: just left of the x title, or, with
+   no title, at the start of the x tick row. */
+const axisTag: [number, number] = xLabel
+  ? [Math.max(12, padL + iw / 2 - (xTitleLogText.length * 12 * 0.74) / 2 - 18), H - 10]
+  : [Math.max(12, padL - 14), padT + ih + 14];
 const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
+
+return {
+  W, H, padL, padR, padT, ih, iw, A, B, layers, annotLayers, annotAt, A_LH, AXT_LINE,
+  xTitleLogText, xTitleLinText, yTitleLogLines, yTitleLinLines, axisTag,
+  headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, longestReadout, isLogged,
+};
+}
+const G = geom(460);
+const M = geom(290);
+const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, longestReadout, isLogged, annotAt } = G;
+
 ---
 
 <VizCard
@@ -636,29 +693,30 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
         </div>
       )}
 
-      <div class="px-scale__plot">
+      {[G, M].map((g, gi) => (
+      <div class={`px-scale__plot px-scale__plot--${gi ? 'm' : 'd'}`} data-build-scene>
         <svg
           class="px-scale__svg"
-          viewBox={`0 0 ${W} ${H}`}
+          viewBox={`0 0 ${g.W} ${g.H}`}
           preserveAspectRatio="xMidYMid meet"
           role="img"
           aria-label={caption ? `Scaling plot: ${caption}` : 'Scaling scatter plot'}
         >
           {/* gridlines + axis ticks — one layer per projection, cross-faded */}
-          {layers.map(({ p, k }) => (
+          {g.layers.map(({ p, k }) => (
             <g class:list={['px-scale__grid', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-cue={k === 'a' ? 'axis' : undefined} data-build="1">
               {p.yTicks.map((t) => (
                 <g>
-                  <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} />
-                  <text class="px-scale__tick" x={padL - 8} y={t.y + 4} text-anchor="end" style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif">{t.label}</text>
+                  <line x1={g.padL} y1={t.y} x2={g.W - g.padR} y2={t.y} />
+                  <text class="px-scale__tick" x={g.padL - 8} y={t.y + 4} text-anchor="end" style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif">{t.label}</text>
                 </g>
               ))}
               {p.xTicks.map((t) => (
                 <g>
-                  <line x1={t.x} y1={padT} x2={t.x} y2={padT + ih} opacity="0.55" />
+                  <line x1={t.x} y1={g.padT} x2={t.x} y2={g.padT + g.ih} opacity="0.55" />
                   <text
-                    class="px-scale__tick" x={t.x} y={padT + ih + 18}
-                    text-anchor={t.x - padL < 16 ? 'start' : W - t.x < 22 ? 'end' : 'middle'}
+                    class="px-scale__tick" x={t.x} y={g.padT + g.ih + 18}
+                    text-anchor={t.x - g.padL < 16 ? 'start' : g.W - t.x < 22 ? 'end' : 'middle'}
                     style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
                   >{t.label}</text>
                 </g>
@@ -667,7 +725,7 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
           ))}
 
           {/* fit line (under the points) — refitted per projection */}
-          {layers.map(({ p, k }) => (
+          {g.layers.map(({ p, k }) => (
             p.fitLine && (
               <line
                 class:list={['px-scale__fit', 'px-scale__lyr', `px-scale__lyr--${k}`]}
@@ -682,12 +740,13 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
           {/* points — ONE set, translated between projections. That motion is
               the argument the toggle exists to make, so never a cross-fade. */}
           <g class="px-scale__pts">
-            {A.plotted.map((p) => (
+            {g.A.plotted.map((p) => (
               <g
                 class="px-scale__pt"
                 data-cue={p.i + 1}
                 data-hl={p.i === headIdx ? 'true' : undefined}
-                style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(B ? B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(B ? B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
+                data-ill={p.illustrative ? 'true' : undefined}
+                style={`--x:${p.cx.toFixed(1)}px; --y:${p.cy.toFixed(1)}px; --x2:${(g.B ? g.B.plotted[p.i].cx : p.cx).toFixed(1)}px; --y2:${(g.B ? g.B.plotted[p.i].cy : p.cy).toFixed(1)}px`}
               >
                 <g class="px-scale__pop" data-build="3" data-build-kind="drop">
                   <circle cx="0" cy="0" r={p.i === headIdx ? 7 : 5.5}>{p.label && <title>{p.label}</title>}</circle>
@@ -697,7 +756,7 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
           </g>
 
           {/* point labels — own layer per projection */}
-          {layers.map(({ p, k }) => (
+          {g.layers.map(({ p, k }) => (
             <g class:list={['px-scale__lbls', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="4">
               {p.plotted.map((q) => (
                 q.label && q.showLabel && (
@@ -717,20 +776,20 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
           {xLabel && (
             <text
               class="px-scale__axis-title"
-              x={padL + iw / 2} y={H - 6} text-anchor="middle"
+              x={g.padL + g.iw / 2} y={g.H - 6} text-anchor="middle"
               style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
-              data-axt data-axt-log={xTitleLogText} data-axt-linear={xTitleLinText}
+              data-axt data-axt-log={g.xTitleLogText} data-axt-linear={g.xTitleLinText}
               data-build="1"
-            >{xTitleLogText}</text>
+            >{g.xTitleLogText}</text>
           )}
-          {yLabel && layers.map(({ k }) => {
-            const lines = k === 'a' ? yTitleLogLines : yTitleLinLines;
+          {yLabel && g.layers.map(({ k }) => {
+            const lines = k === 'a' ? g.yTitleLogLines : g.yTitleLinLines;
             return (
               <g class:list={['px-scale__ytitle', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="1">
                 {lines.map((ln, li) => (
                   <text
                     class="px-scale__axis-title"
-                    x="0" y={14 + li * AXT_LINE} text-anchor="start"
+                    x="0" y={14 + li * g.AXT_LINE} text-anchor="start"
                     style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
                   >{ln}</text>
                 ))}
@@ -740,7 +799,7 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
 
           {/* annotations — one set per projection, inside the layer groups
               the toggle already cross-fades */}
-          {annotAt.length > 0 && annotLayers.map(({ k, items }) => (
+          {annotAt.length > 0 && g.annotLayers.map(({ k, items }) => (
             <g class:list={['px-scale__annots', 'px-scale__lyr', `px-scale__lyr--${k}`]} data-build="4">
               {items.map((a) => (
                 <g class="px-scale__annot">
@@ -748,7 +807,7 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
                   <text
                     class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
                     style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
-                  >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : A_LH}>{ln}</tspan>)}</text>
+                  >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : g.A_LH}>{ln}</tspan>)}</text>
                 </g>
               ))}
             </g>
@@ -759,21 +818,22 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
             projection's spots (a numeral is never a hole in SVG text). They
             follow the authored projection only: the linear view hides them. */}
         <div class="px-scale__tags" aria-hidden="true">
-          {A.plotted.map((p) => (
-            <span class="px-scale__tag" style={`left:${((p.tx / W) * 100).toFixed(2)}%;top:${((p.ty / H) * 100).toFixed(2)}%`}>
+          {g.A.plotted.map((p) => (
+            <span class="px-scale__tag" style={`left:${((p.tx / g.W) * 100).toFixed(2)}%;top:${((p.ty / g.H) * 100).toFixed(2)}%`}>
               <span class="px-cue-tag" data-cue-tag={p.i + 1} hidden></span>
             </span>
           ))}
-          {A.fitTag && (
-            <span class="px-scale__tag" style={`left:${((A.fitTag[0] / W) * 100).toFixed(2)}%;top:${((A.fitTag[1] / H) * 100).toFixed(2)}%`}>
+          {g.A.fitTag && (
+            <span class="px-scale__tag" style={`left:${((g.A.fitTag[0] / g.W) * 100).toFixed(2)}%;top:${((g.A.fitTag[1] / g.H) * 100).toFixed(2)}%`}>
               <span class="px-cue-tag" data-cue-tag="fit" hidden></span>
             </span>
           )}
-          <span class="px-scale__tag" style={`left:${((padL / 2 / W) * 100).toFixed(2)}%;top:${(((padT + ih + 30) / H) * 100).toFixed(2)}%`}>
+          <span class="px-scale__tag" style={`left:${((g.axisTag[0] / g.W) * 100).toFixed(2)}%;top:${((g.axisTag[1] / g.H) * 100).toFixed(2)}%`}>
             <span class="px-cue-tag" data-cue-tag="axis" hidden></span>
           </span>
         </div>
       </div>
+      ))}
     </div>
 
     {isLogged && (
@@ -904,6 +964,7 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
     stroke-width: 1.5;
   }
   .px-scale__pt[data-hl] circle { fill: var(--accent-deep); }
+  .px-scale__pt[data-ill] circle { fill: var(--paper-2); stroke: var(--accent-deep); stroke-width: 2; stroke-dasharray: 2 2; }
   .px-scale__plabel {
     /* 12px, and it must equal LBL_FS: the placement pass sizes every box by it */
     font-size: 12px;
@@ -954,5 +1015,18 @@ const xTitleLinText = truncateAxisTitle(xTitleLin, xTitleChars);
   }
   @media (max-width: 640px) {
     .px-scale__big { font-size: min(72px, calc((100cqi - 28px) / var(--ch, 4) / 0.62)); }
+  }
+  /* Phones: the drawing keeps its 460 units and the card scrolls (the
+     min-width rule in dataviz-v2.css). The min-width sits on this box, not
+     only on the SVG, so the HTML numeral layer, placed by % of this box,
+     stays on the drawing it labels. */
+  .px-scale__plot--m { display: none; }
+  @media (max-width: 900px) {
+    .px-scale__plot--d { min-width: 460px; }
+  }
+  /* Phones: the 290-unit drawing, which fits the card at its authored size. */
+  @media (max-width: 520px) {
+    .px-scale__plot--d { display: none; }
+    .px-scale__plot--m { display: block; }
   }
 </style>

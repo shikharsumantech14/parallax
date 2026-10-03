@@ -19,7 +19,8 @@
  * when Jev is configured. The guards and the gates are local and free.
  */
 import { spawnSync } from 'child_process';
-import { existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { basename, dirname, join } from 'path';
 import { pathToFileURL } from 'url';
 import matter from 'gray-matter';
@@ -34,11 +35,20 @@ const msg = (e: unknown): string => (e instanceof Error ? e.message.split('\n')[
 // ── --dry-run ─────────────────────────────────────────────────────────────────
 
 /** The inventory and the size of an assembled prompt. Sends nothing. */
-export function printDryRun(title: string, a: Assembled): void {
+export function printDryRun(title: string, a: Assembled, saveAs?: string): void {
   const over = a.estTokens > 100_000;
   console.log(`\n  \x1b[1mdry run: ${title}\x1b[0m (assembled, not sent: nothing bills)`);
   console.log(formatInventory(a));
   console.log(`  prompt: ${a.chars.toLocaleString('en-US')} characters, about ${a.estTokens.toLocaleString('en-US')} tokens at ${CHARS_PER_TOKEN} characters per token${over ? '  \x1b[31mOVER 100k\x1b[0m' : ''}`);
+  // The prompt itself, so it can be read (Lens Phase 7): outside the repo, in
+  // the OS temp directory, overwritten by the next dry run of the same name.
+  if (saveAs) {
+    const dir = join(tmpdir(), 'parallax-dry-run');
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, `${saveAs.replace(/[^a-z0-9.-]+/gi, '-')}.prompt.txt`);
+    writeFileSync(file, a.text);
+    console.log(`  saved:  ${file}`);
+  }
 }
 
 // ── Outputs that already exist ────────────────────────────────────────────────
@@ -245,10 +255,28 @@ function parseIssue(text: string): { data: unknown; body: string } {
 /** The fields the stylist may rewrite (stylist.md Step 6). Everything else is
  *  compared with the snapshot and must not move. */
 export const STYLIST_EDITABLE: RegExp[] = [
-  /^sections\.\d+\.(intro|skimCaption|plain)$/,
+  // `plain` left this list in Lens Phase 7 (2026-10-01): it is retired, and a
+  // legacy one is copied, never rewritten. A cue's `text` joined it: the
+  // stylist may reword a cue's sentence in the register, never its `n` or `at`.
+  /^sections\.\d+\.(intro|skimCaption)$/,
+  /^sections\.\d+\.cues\.\d+\.text$/,
   /^sections\.\d+\.data\.(lead|followup)$/,
   /^sections\.\d+\.data\.paragraphs$/,
 ];
+
+/** Each section's `[[n]]` cue markers, as a sorted list, outside `cues`
+ *  itself. A rewrite may move a marker with its sentence, inside the fields
+ *  it may rewrite; it may never drop one or add one (Lens Phase 7). */
+function sectionMarkers(data: unknown): string[] {
+  const secs = isPlainObject(data) && Array.isArray((data as Record<string, unknown>).sections)
+    ? ((data as Record<string, unknown>).sections as unknown[])
+    : [];
+  return secs.map(s => {
+    if (!isPlainObject(s)) return '';
+    const { cues: _cues, ...rest } = s as Record<string, unknown>;
+    return [...JSON.stringify(rest).matchAll(/\[\[([1-4])\]\]/g)].map(m => m[1]).sort().join(' ');
+  });
+}
 
 export interface GuardResult {
   ok: boolean;
@@ -272,6 +300,11 @@ export function stylistGuard(beforeText: string, afterText: string): GuardResult
   diffPaths(before.data, after.data, '', changed, p => /^sections\.\d+\.data\.paragraphs$/.test(p));
   if (before.body !== after.body) changed.push('(the MDX body below the frontmatter)');
   const moved = changed.filter(p => !STYLIST_EDITABLE.some(re => re.test(p)));
+  const mb = sectionMarkers(before.data);
+  const ma = sectionMarkers(after.data);
+  for (let i = 0; i < Math.max(mb.length, ma.length); i++) {
+    if ((mb[i] ?? '') !== (ma[i] ?? '')) moved.push(`sections.${i} cue markers ([[n]] ${mb[i] || 'none'} before, ${ma[i] || 'none'} after)`);
+  }
   return { ok: moved.length === 0, changed, moved };
 }
 

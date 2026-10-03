@@ -85,6 +85,15 @@ const edges = geo.flatMap((child) =>
     }),
 );
 const lanes = Array.from({ length: maxLane + 1 }, (_, l) => cx(l));
+/* A label breaks only between words, never inside one ("GPT-" / "5.5"): each
+   word is an unbreakable unit, and a separator (·, |, /) stays on the word
+   before it, so a two-line label breaks at the separator. */
+const words = (s: string): string[] =>
+  String(s).split(/\s+/).filter(Boolean).reduce<string[]>((acc, w) => {
+    if (acc.length && /^[·|/–—-]$/.test(w)) acc[acc.length - 1] += '\u00a0' + w;
+    else acc.push(w);
+    return acc;
+  }, []);
 ---
 
 <div class="px-viz px-vgraph" data-build-scene style={`--row:${ROW}px`}>
@@ -135,7 +144,7 @@ const lanes = Array.from({ length: maxLane + 1 }, (_, l) => cx(l));
     <ol class="px-vgraph__rows">
       {geo.map((nd) => (
         <li class="px-vgraph__row" data-cue={nd.i + 1} data-off={nd.off ? 'true' : undefined} data-build="4" data-build-kind="rise">
-          <span class="px-vgraph__label"><span class="px-cue-tag" data-cue-tag={nd.i + 1} hidden></span>{nd.label ?? nd.id}</span>
+          <span class="px-vgraph__label"><span class="px-cue-tag" data-cue-tag={nd.i + 1} hidden></span>{words(nd.label ?? nd.id).map((w, wi) => <>{wi > 0 && ' '}<span class="px-vgraph__w">{w}</span></>)}</span>
           {nd.tag && <span class="px-vgraph__tag">{nd.tag}</span>}
         </li>
       ))}
@@ -226,6 +235,7 @@ const lanes = Array.from({ length: maxLane + 1 }, (_, l) => cx(l));
     color: var(--accent-deep);
     font-variant-numeric: tabular-nums;
   }
+  .px-vgraph__w { white-space: nowrap; }
   .px-vgraph__row[data-off] .px-vgraph__label,
   .px-vgraph__row[data-off] .px-vgraph__tag { color: var(--muted); }
   @media (max-width: 640px) {

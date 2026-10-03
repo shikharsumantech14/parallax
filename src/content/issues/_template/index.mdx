@@ -9,17 +9,53 @@ status: draft
 tags: []
 readTimeMinutes: 5
 primer: "Three short sentences. What happened. Why it matters to you. What you are about to see. Replace this placeholder; the schema requires 80 to 420 characters."
+# The cover (LENS §8.2): the 0-based index of the section the Home and desk
+# stages draw (act-breaks counted), its ONE number exactly as that section
+# prints it, and a label of at most six words. `headline` only if the stage
+# should not say the title.
+cover: { section: 1, number: "42", label: "units this number counts" }
 sections:
+  # A cued item that the article sets as a sentence (a readout tile, a
+  # timeline event, a jargon-buster term, a three-steps step, a you-think
+  # text) gets its cue button automatically: no [[n]] marker needed.
   - kind: data-readout
     eyebrow: "EYEBROW LABEL"
     title: "Section title that states the finding."
-    intro: "One or two sentences that frame the graphic without narrating its data."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+    intro: "One or two sentences that frame the graphic."
     caption: "The data claim, in one sentence, traceable to a source."
     source: { label: "Publisher, document" }
     data:
       tiles:
         - value: "0"
           label: "What this number is"
+          note: "The sentence cue 1 lights."
+        - value: "42"
+          label: "The second number"
+          note: "The sentence cue 2 lights."
+  # Any other graphic kind: two to four cues, each `at` an anchor id from
+  # the kind's CUES line in docs/design/catalog.md, and each cue's [[n]]
+  # marker BEFORE the sentence that states what it lights (in `intro` or
+  # `caption`). Each cue sentence is a data claim, traced like the caption.
+  # Never author `plain` or `howToRead`: both are retired.
+  - kind: benchmark-chart
+    eyebrow: "SECOND LABEL"
+    title: "Another section title that states the finding."
+    cues:
+      - { n: 1, at: "1" }
+      - { n: 2, at: "2" }
+    intro: "One sentence that frames the bars. [[1]] The first item is 42 units, the largest here."
+    caption: "[[2]] The second item is 10 units, less than a quarter of the first."
+    source: { label: "Publisher, document" }
+    data:
+      unit: "units"
+      items:
+        - label: "First item"
+          value: 42
+        - label: "Second item"
+          value: 10
 sources:
   - id: "src-01"
     title: "Source title"

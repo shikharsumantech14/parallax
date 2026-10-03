@@ -59,7 +59,7 @@ where it fits — a Hindi word.
 
 | Level | What it is | Where |
 |---|---|---|
-| **L1 · plain Indian English** | No Hindi. Short sentences, Indian examples, ₹ / lakh / crore. | **The default for every field.** The only level allowed in the precision layer: `caption`, `howToRead`, `plain`, `source`, data labels, legal and technical terms, all UI chrome. |
+| **L1 · plain Indian English** | No Hindi. Short sentences, Indian examples, ₹ / lakh / crore. | **The default for every field.** The only level allowed in the precision layer: `caption`, cue sentences (`cues[].text` and the sentence a `[[n]]` marker introduces), `source`, data labels, legal and technical terms, all UI chrome. |
 | **L2 · a Hindi word where it is the natural word** | English carries the meaning; the Hindi carries warmth. | Allowed in prose fields only: `hook`, `dek`, `primer`, titles, `intro`, `prose`, `skimCaption`, quote follow-ups, story beats. |
 | **L3 · Hindi-dominant** | Hindi carries clauses. | Story hooks and any future social surface only, and only when a format contract asks for it. No surface asks today: the social format contract was archived on 2026-09-27 (`docs/archive/_voice-social.md`). **Never on the reading page.** |
 
@@ -73,8 +73,8 @@ where it fits — a Hindi word.
    "brand Hinglish" and YouTube-intro Hindi are out.
 4. **The precision test.** It never modifies, hedges or counts a number, a
    unit or a term of art — *lagbhag 15,000*, *das lakh*, *shayad* — and it
-   never appears in a caption, a how-to-read, a plain line, a source line or
-   a data label. A possessive or a connective standing beside a figure
+   never appears in a caption, a cue sentence, a source line or a data
+   label. A possessive or a connective standing beside a figure
    (*Everest ka ticket: $15,000*) is allowed: the figure itself stays exactly
    as sourced. (Worded this way on 2026-09-13, when the queue storyboard found
    the earlier "nowhere near a number" contradicting §9's signed example.)
@@ -105,8 +105,8 @@ the reader panel test these; until then, the writer does.
    rest safe.
 2. **Every term of art is explained the moment it appears**, in the same
    sentence or the next — *"xG, matlab how many goals those chances usually
-   turn into."* Not in a footnote, not in a later section, not in the
-   how-to-read panel.
+   turn into."* Not in a footnote, not in a later section, not left to
+   the figure.
 3. **Every abstraction gets a concrete thing in the same section** — an
    analogy or a worked example the reader can picture. "The scarce good being
    priced" never stands alone; "the mountain is selling the wait itself" can.

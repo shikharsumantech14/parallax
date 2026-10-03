@@ -98,7 +98,7 @@ then this is the list.
 | shayad, lagbhag | they hedge; a sourced claim is never hedged in Hindi |
 | jhoot, chor, ghotala | accusation words; the verifier blocks advocacy |
 | any word in Devanagari | the typeface has none |
-| any Hindi word in a caption, how-to-read, plain line, source line or data label | the precision layer is English only |
+| any Hindi word in a caption, a cue sentence, a source line or a data label | the precision layer is English only |
 
 ## Per desk
 

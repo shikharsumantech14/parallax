@@ -145,7 +145,7 @@ const aria = caption ? `Delta-v budget: ${caption}` : 'Delta-v budget';
             {l.lines.map((ln, i) => <tspan x={(c.x + barW + 8).toFixed(1)} dy={i ? 16 : 0}>{ln}</tspan>)}
           </text>
           <text class="px-sfig__t px-sfig__m" x={(c.x + barW + 8).toFixed(1)} y={(l.top + 11 + l.lines.length * 16).toFixed(1)} style={SANS}>+{nf(l.dv)}</text>
-          <Fragment set:html={`<foreignObject x="${(c.x + barW / 2 - 10).toFixed(1)}" y="${(c.bands.find((b) => b.id === l.id)!.mid - 10).toFixed(1)}" width="52" height="20" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;height:20px;line-height:1"><span class="px-cue-tag" data-cue-tag="${l.id}" hidden></span></div></foreignObject>`} />
+          <Fragment set:html={`<foreignObject x="${(c.x + barW / 2 - 10).toFixed(1)}" y="${(c.bands.find((b) => b.id === l.id)!.mid - 10).toFixed(1)}" width="20" height="20" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;height:20px;line-height:1"><span class="px-cue-tag" data-cue-tag="${l.id}" hidden></span></div></foreignObject>`} />
         </g>
       )))}
 

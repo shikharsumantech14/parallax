@@ -20,7 +20,8 @@
  * cropped to the depth the shots use (24 m at the least).
  *
  * Cue anchors:
- *   goals   the headline count and every goal circle
+ *   goals   the headline count and every goal circle (the circles alone
+ *           when `illustrative`, which prints no headline)
  *   box     the penalty box
  *   1..n    each shot, in authored order
  *
@@ -29,8 +30,13 @@
  */
 type Outcome = 'goal' | 'saved' | 'miss' | 'blocked';
 interface Shot { x: number; y: number; xg: number; outcome: Outcome; }
-interface Props { shots: Shot[]; caption?: string; source?: string; }
-const { shots = [] } = Astro.props;
+/* `illustrative`: the marks are drawn, not tracked (schematic positions and
+   values standing for a real total stated in the caption). The component
+   then prints no computed headline, no computed xG and no xG key, because a
+   sum of schematic marks is not a fact; the marks and the outcome legend
+   stay, and the `goals` anchor is the goal circles alone. */
+interface Props { shots: Shot[]; illustrative?: boolean; caption?: string; source?: string; }
+const { shots = [], illustrative = false } = Astro.props;
 
 /* The third: 68 m across and 35 m deep (y = 100). The drawing is cropped
    to the depth the shots use, 24 m at the least, so a cluster in the box is
@@ -78,14 +84,14 @@ const goalShots = placed.filter((s) => s.outcome === 'goal').sort((a, b) => b.r 
 ---
 
 <div class="px-viz px-shot" data-build-scene>
-  <div class="px-shot__head" data-cue="goals">
+  {!illustrative && (<div class="px-shot__head" data-cue="goals">
     <span class="px-shot__big" data-build="4" data-build-kind="counter" data-to={goals}>{goals}</span>
     <span class="px-shot__big-l"><span class="px-cue-tag" data-cue-tag="goals" hidden></span>{goals === 1 ? 'goal' : 'goals'} from {placed.length} shots · {totXg.toFixed(2)} xG</span>
-  </div>
+  </div>)}
 
   <div class="px-shot__fig">
     <svg class="px-shot__svg" viewBox={`0 0 ${W} ${f(H)}`} role="img"
-      aria-label={`Shot map: ${placed.length} shots, ${goals} ${goals === 1 ? 'goal' : 'goals'}, ${totXg.toFixed(2)} expected goals`}>
+      aria-label={illustrative ? `Shot map, illustrative: ${placed.length} schematic marks` : `Shot map: ${placed.length} shots, ${goals} ${goals === 1 ? 'goal' : 'goals'}, ${totXg.toFixed(2)} expected goals`}>
       <g data-build="1">
         <rect x={M} y={TOP} width={PW} height={f(PD)} fill="var(--paper)" stroke="var(--hair-2)" stroke-width="1.5" />
         <polyline points={`${f(six.x1)},${TOP} ${f(six.x1)},${f(six.y)} ${f(six.x2)},${f(six.y)} ${f(six.x2)},${TOP}`} fill="none" stroke="var(--hair-2)" stroke-width="1.5" />
@@ -113,6 +119,9 @@ const goalShots = placed.filter((s) => s.outcome === 'goal').sort((a, b) => b.r 
     <div class="px-shot__layer" aria-hidden="true">
       <span class="px-shot__w" data-build="1" style={`left:${pc(goal.x2 + 8, W)};top:${pc(TOP - 6, H)}`}>Goal</span>
       <span class="px-shot__w" data-build="1" style={`left:${pc(box.x1 + 6, W)};top:${pc(box.y + 12, H)}`}><span class="px-cue-tag" data-cue-tag="box" hidden></span>Penalty box</span>
+      {illustrative && goalShots.length > 0 && (
+        <span class="px-shot__tag" style={`left:${pc(goalShots[0].x - goalShots[0].r - 24, W)};top:${pc(goalShots[0].y + 10, H)}`}><span class="px-cue-tag" data-cue-tag="goals" hidden></span></span>
+      )}
       {placed.map((s) => (
         <span class="px-shot__tag" style={`left:${pc(s.x + s.r * 0.7, W)};top:${pc(s.y - s.r * 0.7, H)}`}><span class="px-cue-tag" data-cue-tag={s.i + 1} hidden></span></span>
       ))}
@@ -123,7 +132,7 @@ const goalShots = placed.filter((s) => s.outcome === 'goal').sort((a, b) => b.r 
     {OUTS.filter((o) => count(o.key) > 0).map((o) => (
       <span class="px-shot__key" data-out={o.key}><i></i>{o.label} · {count(o.key)}</span>
     ))}
-    <span class="px-shot__key">Size shows xG</span>
+    {illustrative ? <span class="px-shot__key">Drawn, not tracked</span> : <span class="px-shot__key">Size shows xG</span>}
   </div>
   {/* No source line and no caption: core/Section.astro prints both. */}
 </div>

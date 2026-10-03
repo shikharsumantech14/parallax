@@ -24,7 +24,7 @@ they disagree. This rule carries only what is violated most often.
   would actually say it there; a Lallantop sub-editor would not wince; it is
   nowhere near a number, a source, a caption or a technical term. Roman, set
   roman; lexicon spellings (`research/_voice/hinglish-lexicon.md`); ≤ 1
-  phrase per paragraph; none in `caption` / `howToRead` / `plain` / `source` /
+  phrase per paragraph; none in `caption` / a cue sentence / `source` /
   data labels. When in doubt, leave it out.
 - **Names rationed** (≤ 12 per issue, each with a role). **Titles state the
   finding** (never "The ‹Noun› That ‹Verb›s"). **Hook** ≤ 25 words with a
@@ -76,14 +76,18 @@ job does not excuse a tell; being plain does not either.**
 | Three sentences under eight words in a row · a name used once | Join two with a connective; cut or describe the name |
 | "Toh dosto" · *yaar/bhai* on politics or earth · italicised or Devanagari Hindi · literal idioms · "samjhe?" | Cut |
 
-## The three comprehension fields — distinct roles
+## The comprehension fields (Lens, since Phase 7, 2026-10-01)
 
-Confusing these trips the verifier's `PLAIN-CLAIM`, `CAPTION-FORM` and
-`REDUNDANT-HOWTO` flags:
-
-- **`plain`** — the FORM of the graphic ("each block is one seat"). Never data.
-- **`caption`** — the DATA claim. The only one the verifier traces to a source.
-- **`howToRead`** — how to use it; renders above the graphic.
+- **`caption`** — the DATA claim, the finding, printed once at the end of the
+  article column. The verifier traces it to the dossier.
+- **Cue sentences** — each `[[n]]` marker introduces the sentence that states
+  what cue `n` lights on the figure (or the cue's own `text`): a DATA claim,
+  ≤ 30 words, English only, traced like the caption (the verifier's
+  `CUE-UNTRACED`, `CUE-COUNT`). Two to four per graphic section, none on
+  `act-break` / `prose` / `quote` / `analogy`.
+- **`plain` and `howToRead`** are retired: they stopped rendering in Lens
+  Phase 3, the pipeline stopped authoring them in Phase 7, and Phase 8 removes
+  them from the schema. Never write one.
 
 ## Sourcing
 

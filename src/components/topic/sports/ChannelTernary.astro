@@ -146,6 +146,7 @@ const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
   {/* The identity layer: the plot names only a few dots, because eight names
       inside a small triangle cannot be placed without collision. */}
+  <div class="px-trn__tw">
   <table class="px-trn__table">
     <thead>
       <tr>
@@ -162,6 +163,7 @@ const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
       ))}
     </tbody>
   </table>
+  </div>
   {rows.some((r) => r.note) && (
     <ul class="px-trn__notes" data-build="3">
       {rows.filter((r) => r.note).map((r) => <li><b>{r.name}</b> {r.note}</li>)}
@@ -199,7 +201,11 @@ const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
   .px-trn__table td { padding: 6px 0 6px 8px; border-top: 1px solid var(--hair); text-align: right; font-weight: 400; color: var(--ink); }
   .px-trn__table thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
   .px-trn__table th:first-child { padding-left: 0; text-align: left; }
-  .px-trn__table tbody th { overflow-wrap: anywhere; }
+  /* Names wrap at word boundaries only. When the corner words and the names
+     need more than the box (three long corner labels on a phone), the table
+     keeps its columns whole and scrolls inside its own wrapper. */
+  .px-trn__table tbody th { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+  .px-trn__tw { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
   .px-trn__table tr[data-named] th { font-weight: 600; color: var(--accent-deep); }
   .px-trn__table td[data-hi] { font-weight: 600; color: var(--accent-deep); }
   .px-trn__notes { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-ui); font-size: 13px; line-height: 1.4; color: var(--ink-2); }

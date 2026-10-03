@@ -21,7 +21,14 @@
  *   ❌ blocking  HINDI-SCRIPT · HINDI-FIELD · NUMBER-DRIFT
  *   ⚠️ warning   everything else — see FLAGS below, including the four
  *                diversity floors added 2026-09-16 (REGISTER-PLAN §5.1):
- *                FEW-GRAPHICS · CARD-HEAVY · NO-NEW-KIND · SOURCE-NARROW
+ *                FEW-GRAPHICS · CARD-HEAVY · NO-NEW-KIND · SOURCE-NARROW,
+ *                and the two Lens flags added 2026-10-01 (Phase 7):
+ *                CUES (two to four cues per graphic section, every [[n]]
+ *                marker matched by a cue and every cue by a marker or an
+ *                item that gets its button automatically, none on a
+ *                narrative kind) · NO-COVER (no `cover` block). A published
+ *                issue's section with no cues at all, and a published issue
+ *                with no cover, report ℹ until Phase 8 authors them
  * Report mode never fails; --gate fails on ❌ only, so a warning never breaks
  * a deploy until the operator promotes it.
  *
@@ -90,6 +97,33 @@ const WORKHORSES = new Set(['prose', 'data-readout', 'timeline', 'paradox', 'quo
 const CARD_KINDS  = new Set(['you-think', 'number-sense', 'data-readout']);
 const PLAIN_CARDS = new Set(['you-think', 'number-sense', 'jargon-buster', 'three-steps']);
 const isGraphic   = (k) => !TEXT_ONLY.has(k) && !CARD_KINDS.has(k);
+// The cue contract (LENS §5.2, Lens Phase 7): the kinds that carry NO cues are
+// the ones whose catalog block reads `- **CUES:** none` (the narrative kinds,
+// which run in the article column with no figure panel). Read from the catalog
+// so this list cannot drift from it; a different question from TEXT_ONLY,
+// which counts graphics for the composition floors.
+const NO_CUES = (() => {
+  const out = new Set();
+  const cat = join(root, 'docs', 'design', 'catalog.md');
+  if (!existsSync(cat)) return new Set(['act-break', 'prose', 'quote', 'analogy']);
+  let cur = null;
+  for (const ln of readFileSync(cat, 'utf-8').split(/\r?\n/)) {
+    const h = ln.match(/^## ([a-z0-9-]+)\s*$/);
+    if (h) { cur = h[1]; continue; }
+    if (cur && /^- \*\*CUES:\*\*\s*none\b/.test(ln)) out.add(cur);
+  }
+  return out;
+})();
+// Items the article sets as sentences and gives their cue button without a
+// marker when a cue names them by number (core/Section.astro, `lead`).
+const AUTO_BUTTON = {
+  'data-readout': (d) => arrLen(d?.tiles),
+  timeline: (d) => arrLen(d?.events),
+  'jargon-buster': (d) => arrLen(d?.terms),
+  'three-steps': (d) => arrLen(d?.steps),
+  'you-think': () => 2, // "1" the belief, "2" the record ("3", the figure, gets none)
+};
+const arrLen = (v) => (Array.isArray(v) ? v.length : 0);
 // The precision layer: English only (contract §2, precision test).
 const PRECISION_FIELDS = new Set(['caption', 'howToRead', 'plain', 'source', 'label', 'unit', 'attribution']);
 // Data keys that are never prose.
@@ -348,6 +382,9 @@ for (const slug of slugs) {
       if (s[k]) strings.push({ sec: i, kind: s.kind, field: k, key: k, text: String(s[k]), precision: PRECISION_FIELDS.has(k), body: k === 'intro' || k === 'skimCaption' });
     }
     if (s.source) strings.push({ sec: i, kind: s.kind, field: 'source', key: 'source', text: typeof s.source === 'string' ? s.source : String(s.source.label ?? ''), precision: true, body: false });
+    // A cue's own `text` is the line the figure panel shows while it is lit: a
+    // data claim in the precision layer, like the caption (Lens Phase 7).
+    arr(s.cues).forEach((c, k) => { if (c && typeof c.text === 'string' && c.text.trim()) strings.push({ sec: i, kind: s.kind, field: `cues[${k}].text`, key: 'cue', text: c.text, precision: true, body: false }); });
     const dataStrings = [];
     collectData(s.data ?? {}, 'data', dataStrings);
     for (const d of dataStrings) {
@@ -389,6 +426,49 @@ for (const slug of slugs) {
   const srcs = Array.isArray(fm.sources) ? fm.sources : [];
   const spread = sourceSpread(srcs, allowlist(fm.topic));
   if (spread.narrow) flag('⚠️', 'SOURCE-NARROW', 'sources', `${spread.line}. Floor ${T.sourcesMin} sources from ${T.sourceHosts} publishers, none above ${pct(T.sourceTopShare)}, and an official record (T0 on the ${fm.topic ? `${fm.topic} ` : ''}allowlist) may pass ${pct(T.sourceTopShare)} when ${T.sourceHosts} other publishers are cited`);
+
+  // — Cues and the cover (LENS §5.2 and §8.2; Lens Phase 7, 2026-10-01) —
+  // Read from the RAW frontmatter: `fm` has had its [[n]] markers stripped.
+  {
+    const rawSecs = (() => { const d = matter(raw).data; return Array.isArray(d.sections) ? d.sections : []; })();
+    rawSecs.forEach((s, i) => {
+      if (!s || !s.kind) return;
+      const kind = canonicalKind(s.kind);
+      const w = `section ${i + 1} (${kind})`;
+      const cues = arr(s.cues);
+      const { cues: _cues, ...rest } = s;
+      const markers = [...JSON.stringify(rest).matchAll(/\[\[([1-4])\]\]/g)].map((m) => Number(m[1]));
+      if (NO_CUES.has(kind)) {
+        if (cues.length || markers.length) flag('⚠️', 'CUES', w, `a narrative kind carries no cues (${cues.length} cue(s), ${markers.length} [[n]] marker(s)): it has no figure panel to light`);
+        return;
+      }
+      if (!cues.length) {
+        flag(status === 'published' ? 'ℹ' : '⚠️', 'CUES', w, `no cues${markers.length ? `, but ${markers.length} [[n]] marker(s)` : ''}: a graphic section takes two to four, naming the anchors on the kind's CUES line in docs/design/catalog.md`);
+        return;
+      }
+      if (cues.length < 2 || cues.length > 4) flag('⚠️', 'CUES', w, `${cues.length} cue(s); a graphic section takes two to four`);
+      const ns = cues.map((c) => Number(c?.n));
+      const dup = [...new Set(ns.filter((n, k) => ns.indexOf(n) !== k))];
+      if (dup.length) flag('⚠️', 'CUES', w, `cue numeral repeated: ${dup.join(', ')}`);
+      for (const m of new Set(markers)) if (!ns.includes(m)) flag('⚠️', 'CUES', w, `[[${m}]] marker with no matching cue: a button that lights nothing`);
+      const autoN = AUTO_BUTTON[kind] ? AUTO_BUTTON[kind](s.data) : 0;
+      for (const c of cues) {
+        const n = Number(c?.n);
+        if (markers.includes(n)) continue;
+        const ids = String(c?.at ?? '').split(/[\s,]+/).filter(Boolean);
+        if (ids.some((id) => /^\d+$/.test(id) && Number(id) >= 1 && Number(id) <= autoN)) continue;
+        flag('⚠️', 'CUES', w, `cue ${n} (at "${c?.at ?? ''}") has no [[${n}]] marker, and names no item that gets its button automatically: the figure prints a numeral no button in the article names`);
+      }
+    });
+    if (!fm.cover) {
+      flag(status === 'published' ? 'ℹ' : '⚠️', 'NO-COVER', 'head', 'no `cover: { section, number, label }`: the stage and the cover card fall back to a generic scene (LENS §8.2)');
+    } else {
+      const cs = Number(fm.cover.section);
+      const target = rawSecs[cs];
+      if (!Number.isInteger(cs) || !target) flag('⚠️', 'NO-COVER', 'head', `cover.section ${fm.cover.section} names no section (0-based, act-breaks counted; the issue has ${rawSecs.length})`);
+      else if (NO_CUES.has(canonicalKind(target.kind))) flag('⚠️', 'NO-COVER', 'head', `cover.section ${cs} is a ${canonicalKind(target.kind)}, a narrative kind with no figure to draw`);
+    }
+  }
 
   // words before the first graphic: head + everything up to and including the first visual section's intro
   let before = wc(head.title) + wc(head.dek) + wc(head.hook) + wc(head.primer);

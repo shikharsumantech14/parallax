@@ -143,14 +143,23 @@ rows.forEach((r) => {
 });
 const w = worstIdx >= 0 ? rows[worstIdx] : null;
 const shortBy = w ? w.required - w.value : 0;
+/* The headline reads as ONE sentence from the data: the shortfall, its unit,
+   "short of the mark" ("8 kg short of the mark", "8 of the 11 bills passed
+   short of the mark"), with the row's label on its own line below. A unit
+   that binds to the number (%, °) stays on the number. */
+const wUnit = w ? w.unit.trim() : '';
+const wBind = /^[%°′″]/.test(wUnit) ? wUnit[0] : '';
+const wRest = (wBind ? wUnit.slice(1) : wUnit).trim();
+const wDp = w ? Math.min(1, w.dp) : 0;
 const aria = caption ? `Margins against their requirements: ${caption}` : 'Margins against their requirements';
 ---
 
 <VizCard prefix="px-mgb">
   {w && (
     <div class="px-mgb__head" data-cue={w.i + 1}>
-      <span class="px-mgb__num" data-build="4" data-build-kind="counter" data-to={+shortBy.toFixed(Math.min(1, w.dp))} data-format={w.dp ? '1dp' : undefined}>{shortBy.toFixed(Math.min(1, w.dp))}</span>
-      <span class="px-mgb__hl"><span class="px-cue-tag" data-cue-tag={w.i + 1} hidden></span>{w.unit.trim()} short, {w.label}</span>
+      <span class="px-mgb__num" data-build="4" data-build-kind="counter" data-to={+shortBy.toFixed(wDp)} data-format={wDp ? '1dp' : undefined}>{shortBy.toFixed(wDp)}{wBind}</span>
+      <span class="px-mgb__hl"><span class="px-cue-tag" data-cue-tag={w.i + 1} hidden></span>{wRest ? `${wRest} short of the mark` : 'Short of the mark'}</span>
+      <span class="px-mgb__hrow">{w.label}</span>
     </div>
   )}
   <ol class="px-mgb__rows" role="list" aria-label={aria}>
@@ -176,6 +185,7 @@ const aria = caption ? `Margins against their requirements: ${caption}` : 'Margi
 
 <style>
   .px-mgb__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 16px; }
+  .px-mgb__hrow { margin-top: -4px; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--muted); }
   .px-mgb__num {
     font-family: var(--font-ui); font-size: 96px; line-height: 0.92; font-weight: 600;
     font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep);
@@ -198,4 +208,10 @@ const aria = caption ? `Margins against their requirements: ${caption}` : 'Margi
   .px-mgb__foot { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-ui); font-size: 13px; line-height: 1.3; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .px-mgb__foot > span:last-child { color: var(--muted); text-align: right; }
   .px-mgb__sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* On a phone the verdict takes its own line under the label, so neither is
+     squeezed into a column a word wide. */
+  @media (max-width: 480px) {
+    .px-mgb__top { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .px-mgb__ver { max-width: none; text-align: left; }
+  }
 </style>

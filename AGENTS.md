@@ -60,7 +60,7 @@ auto-deploys on push to `main`.
 | Agent SDK    | `@anthropic-ai/claude-agent-sdk` 0.3.x (for pipeline CLI; upgraded from 0.2.126 on 2026-09-28, COST-PLAN CP-02) |
 | Data viz     | `d3-geo` + `topojson-client` + `world-atlas` (build-time maps only) |
 | 3D / WebGL   | `three` (self-hosted; lazy-loaded only by the **10** WebGL section kinds (14 until the Lens verdict of 2026-09-30 dropped the four generic globes), one code-split chunk **per scene** — registry: `src/scripts/viz3d/scenes/index.ts`) |
-| Section library | **87 kinds** in `SECTION_KINDS` (`src/content/config.ts`; 101 until the Lens verdict of 2026-09-30, LENS §9), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. Six retired names build as **aliases** of their host (`KIND_ALIASES`: `carbon-gauge` / `swing-dial` / `throughput-dial` → `gauge`, `route-card` / `itinerary-reel` → `itinerary`, `city-compare` → `comparison`); author the host. `npm run check:catalog` asserts the pairing **plus** EXPLAIN + KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15) **plus** the alias map (check 6, 2026-09-30), and runs in `prebuild` — so a half-wired kind fails the build. |
+| Section library | **87 kinds** in `SECTION_KINDS` (`src/content/config.ts`; 101 until the Lens verdict of 2026-09-30, LENS §9), 1:1 with the `## <kind>` blocks in `docs/design/catalog.md`, same order. Six retired names build as **aliases** of their host (`KIND_ALIASES`: `carbon-gauge` / `swing-dial` / `throughput-dial` → `gauge`, `route-card` / `itinerary-reel` → `itinerary`, `city-compare` → `comparison`); author the host. `npm run check:catalog` asserts the pairing **plus** KIND_PRIORITY coverage **plus** a reader for every field in every `DATA:` line (check 5, 2026-09-15) **plus** the alias map (check 6, 2026-09-30) **plus** a `data-cue` anchor for every id on every block's `CUES:` line (check 7, Lens Phase 7, 2026-10-01; the EXPLAIN assertion went then), and runs in `prebuild` — so a half-wired kind fails the build. |
 
 **Commands** (from `package.json`):
 
@@ -393,8 +393,9 @@ holds two control gates; agents do everything else.
 **Since 2026-09-13 (`docs/REGISTER-PLAN.md`) the diagram above has three more
 stops.** Between 4.5 and 5: `/pipeline-storyboard` writes
 `research/<cat>/<date>-<slug>-storyboard.md` (every point the reader must
-get → the kind that shows it, from all 101 by data shape, the hero, the word
-budgets, the head, the three quiz questions) and **you approve it**. The
+get → the kind that shows it, from all 87 by data shape, the hero and the
+cover, two to four cues per graphic row, the word budgets, the head, the
+three quiz questions) and **you approve it**. The
 gate is `GATES.storyboard` in `scripts/pipeline.config.ts`, `'required'` for
 the first ten issues, `'auto'` after. After 5 and again after 7:
 `/pipeline-panel`, where four Indian reader personas read the draft cold,
@@ -552,20 +553,24 @@ with the canon in `_voice-core.md` §6.
 ### Schema rules — Zod fails the BUILD, it does not warn
 
 - `primer` 80–420 chars · `plain` ≤220 · `howToRead` 40–360
-- **Lens (2026-09-30):** `plain` and `howToRead` are **deprecated** — still
-  accepted and rendered until Phase 8, still authored by the pipeline until
-  Phase 7 teaches it cues. The `cues: [{n, at, text}]` field and the `[[n]]`
-  prose markers arrive in Phase 3 (LENS §5.2); the schema has neither yet.
+- **Lens:** `plain` and `howToRead` are **retired**: not rendered since
+  Phase 3 (2026-09-30), not authored by the pipeline since Phase 7
+  (2026-10-01), removed from the schema in Phase 8; until then they are
+  still accepted, bounds and all. The pipeline authors `cues: [{n, at,
+  text?}]` with `[[n]]` prose markers (LENS §5.2) and the issue's `cover`
+  (LENS §8.2) instead.
 - `kind` is one of the 87 in `SECTION_KINDS` or one of the six aliases in
   `KIND_ALIASES` (resolved to the host on parse). A dropped kind fails the
   build.
-- `plain` = the **form** of the graphic; `caption` = the **data** claim (the
-  only one the verifier traces); `howToRead` = how to use it. Confusing these
-  trips PLAIN-CLAIM / CAPTION-FORM / REDUNDANT-HOWTO.
-- Instrument `howToRead` (any kind with a chip / scrub / toggle): the static
-  reading leads, the control clause trails — controls are `html.js`-gated, the
-  paragraph is not, so a no-JS reader must get a complete sentence before the
-  clause about a control they cannot see.
+- `caption` = the **data** claim, the finding; each **cue sentence** (the one
+  its `[[n]]` marker introduces, or the cue's `text`) = the data that cue
+  lights. The verifier traces both (CUE-UNTRACED); two to four cues per
+  graphic section, none on `act-break` / `prose` / `quote` / `analogy`
+  (CUE-COUNT, and `check:prose` CUES). Each cue's `at` names an id from its
+  kind's `CUES:` line in `docs/design/catalog.md`.
+- Instrument kinds (any kind with a chip / scrub / toggle): neither the
+  caption nor a cue sentence names a state the reader can change, because
+  the control is `html.js`-gated and a no-JS reader cannot change it.
 
 - `sources[].url` must be a real URL; every `sourceRefs[]` must resolve.
 - `layout` in `default | wide | bleed | split | split-flip | breath`.
@@ -617,12 +622,13 @@ because the page still shows it.
   figure they name (`cues: [{n, at, text}]`, anchors `data-cue` on the
   component's elements); one caption, the source line in the panel. Two to
   four cues per graphic section, none on the narrative kinds. The schema and
-  the `cues.ts` island land in Phase 3. *Replaces* the how-to-read panel, the
-  plain line, the ⤢ expand modal and the canvas's beat rail. **Until Phase
-  8** the old chrome still renders once, from `core/Section.astro` (the panel
-  above via `howToReadFor()`, the plain line with `Source · …` below;
-  `plain` and `howToRead` are deprecated but accepted): add no second
-  emitter, and never reintroduce `.px-viz__src`.
+  the `cues.ts` island landed in Phase 3, every kind's anchors in Phase 6,
+  and each kind's anchor ids are on its catalog block's `CUES:` line since
+  Phase 7, when the pipeline started authoring cues. *Replaces* the
+  how-to-read panel, the plain line, the ⤢ expand modal and the canvas's
+  beat rail, none of which has rendered since Phase 3 (`plain` and
+  `howToRead` stay accepted by the schema until Phase 8): never
+  reintroduce them, a second source emitter, or `.px-viz__src`.
 - **A component's contract, enforced by `check:render` (2026-09-22/23), plus
   Lens:** a text cell wraps or truncates, never `nowrap` in a fixed width; an
   outward SVG label wraps or is budgeted in characters against its gutter and
@@ -755,7 +761,7 @@ only until Phase 8 removes them in one deploy.
 
 ```bash
 npm run build         # 44+ pages; prebuild runs all four gates first
-npm run check:catalog # SECTION_KINDS <-> catalog, order, EXPLAIN + KIND_PRIORITY
+npm run check:catalog # SECTION_KINDS <-> catalog, order, KIND_PRIORITY, DATA readers, aliases, CUES anchors
 npm run check:prose   # the register + composition report (2026-09-13); the
                       # gate form joins prebuild once the backlist passes
 npm run design:check  # 30 mirrors + 6 in-world deeps + 18 record tokens
@@ -848,6 +854,31 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-10-01 — Lens, Phase 7: the pipeline authors cues and covers
+
+- **The catalog** (`docs/design/catalog.md`): every block gained a `CUES:`
+  line (its anchor ids, exactly as the component's `Cue anchors:` header
+  lists them, `none` on `act-break` / `prose` / `quote` / `analogy`) and a
+  `BUILD:` line (the build order and the counter), and lost its PLAIN line.
+  The NOTES of the kinds Phase 6 redrew now describe the new drawing.
+  `check:catalog` check 7 asserts every CUES id is a `data-cue` in its
+  component; the EXPLAIN assertion is gone (`src/lib/explainers.ts` is dead
+  code, and Phase 8 deletes it).
+- **The agents**: the composer names the cover (§2) and two to four cues per
+  graphic row (§3's Cues column, which replaced the plain-line sketch); the
+  drafter writes `cover`, `cues` and the `[[n]]` markers; the stylist keeps
+  every marker with its sentence and may reword a cue sentence (the stylist
+  guard refuses a dropped or added marker, and `plain` left its editable
+  list); the verifier traces each cue sentence (❌ CUE-UNTRACED, ⚠️
+  CUE-COUNT, ⚠️ COVER-DRIFT) and no longer flags PLAIN-CLAIM, CAPTION-FORM
+  or REDUNDANT-HOWTO. The composer and drafter prompts inline LENS §5.2 and
+  §8.2.
+- **`check:prose`** gained CUES and NO-COVER (ℹ on a published issue until
+  Phase 8 authors the backlist). NUMBER-DRIFT still skips `cues` and
+  `cover`.
+- **Standing rule:** no agent and no author writes `plain` or `howToRead`.
+  A cue's `at` comes from the kind's CUES line, never from memory.
 
 ### 2026-09-30 — Lens, Phase 0: the design law, and the verdict on the library
 

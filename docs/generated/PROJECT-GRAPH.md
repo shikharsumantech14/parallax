@@ -173,7 +173,7 @@ only see citations. Treat a zero as a question, never as a verdict.
 | **TD-03** | 31 files | 2 |
 | **TD-04** | 8 files | 7 |
 | **TD-05** | 5 files | 3 |
-| **TD-06** | 15 files | 2 |
+| **TD-06** | 14 files | 2 |
 | **TD-07** | 2 files | 0 — _dangling_ |
 | **TD-08** | 2 files | 0 — _dangling_ |
 | **TD-09** | 13 files | 10 |
