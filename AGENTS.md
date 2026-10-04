@@ -868,6 +868,28 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 
 ## 10. Change log for this file
 
+### 2026-10-04 — The intro walkthrough, the Shelf's reads, the canvas in Literata
+
+- **The first-visit intro is the five-scene walkthrough** the operator
+  approved on the canvas (round 8): a native dialog over the blurred Home
+  page, autoplay with Pause / Back / Next / five dots / Escape, every scene a
+  `data-build-scene` run by the one island, no JS keeps it closed, reduced
+  motion opens it final. `core/IntroOverlay.astro`, key `px_intro_v3`,
+  `?intro=1` reopens, `?intro=0` suppresses; the island budget is 3 KB
+  minified and the js-budget rule says how it is measured. The board's
+  "Answer three questions" step became "Tell us how it landed": the three
+  questions belong to the reader panel, and the page ends with the reaction
+  bar. **Standing rule:** the intro names only features a reader can reach.
+- **The Shelf** (`dashboard/index.astro`) reads Supabase in one `Promise.all`
+  instead of six sequential awaits; the interests read stays separate so a
+  database without the onboarding migration still renders the rest.
+  **Standing rule:** a server-rendered page issues its independent reads in
+  parallel; the Vercel function pays a round trip per sequential await.
+- **The design canvas is in Literata too** (version 35): every board swept by
+  script and fixed by hand; `Foundations` is two boards because the canvas
+  clamps a frame at 8000px. The canvas and the repo agree on type again.
+- Open items from today are in `docs/STATE-OF-PLAY.md` §5 (items 8 to 12).
+
 ### 2026-10-04 — One face again: Literata (the Type-Compare ruling)
 
 The operator compared Lens's two faces with the launch design's one on the

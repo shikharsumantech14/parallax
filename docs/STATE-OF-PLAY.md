@@ -5,7 +5,7 @@
 > *design law*; `docs/PROJECT.md` is the *history*; this file tells you **what
 > is true right now, how each part of it was verified, and what is open**.
 >
-> **Last updated: 2026-10-04**, at the end of the Lens revamp (Phase 8, the
+> **Last updated: 2026-10-04**, at the close of the Lens revamp session (Phase 8, the type ruling, the intro, the
 > switch). Rewritten, not appended: the September snapshot it replaces
 > described the launch design, which no longer renders. Older narrative lives
 > in `AGENTS.md` §10 (the change log), `docs/PROJECT.md` and git history.
@@ -50,6 +50,14 @@ Literata files from the googlefonts/literata repo; the Newsreader and
 Instrument Sans TTFs are deleted). Verified by the fast gates and a scoped
 `check:render` (the City issue, the ISS issue, the politics showcase and
 Home at 1280 and 375); the full render run belongs to the commit.
+
+**2026-10-04, the Shelf.** `/dashboard` opened slower than a prerendered desk
+page because it waited on seven sequential hops to Supabase from the Vercel
+function (the middleware's `getUser()`, then six reads one after another).
+The six reads run in one `Promise.all` now (`b2be29e`); the interests read
+stays its own query so a database without the onboarding migration still
+renders the rest. What remains is Vercel's cold start on any server-rendered
+page (measured live: a desk page 0.13s warm, sign-in 0.38s warm, 1.4s cold).
 
 **2026-10-04, the intro walkthrough.** The first-visit intro on Home
 (`core/IntroOverlay.astro`) is rebuilt to the approved `Intro`,
@@ -158,8 +166,8 @@ reading); the medallion mark (RD-10, unchanged by Lens).
 
 | What | How | Result |
 |---|---|---|
-| The rendered product, Phases 0 to 8A | `npm run check:render`, full run, every published issue plus Home, signed in, 1280 and 375, in headless Chrome; the commit hook refuses a rendering commit without a current clean stamp | last run 2026-10-03 23:23 UTC on the Part A tree: **0 blocking, 0 warnings** (`research/_ui/last-run.json`, report under `research/_ui/2026-10-04/`) |
-| Each phase commit | the orchestrator's acceptance gates (`npm run build` with its prebuild, `check:render` at both widths, the two standing greps, the screenshots read), then `guard-render.mjs` at commit time | committed, `789f275` … `280b5c5` |
+| The rendered product, Phases 0 to 8A | `npm run check:render`, full run, every published issue plus Home, signed in, 1280 and 375, in headless Chrome; the commit hook refuses a rendering commit without a current clean stamp | last full run 2026-10-04 on the tree of `9bd588a` (the intro): **0 blocking, 0 warnings** at both widths on all 17 published issues and Home (`research/_ui/last-run.json`, report under `research/_ui/2026-10-04/`); the six showcase drafts measured the same on the Phase 6 tree |
+| Each phase commit | the orchestrator's acceptance gates (`npm run build` with its prebuild, `check:render` at both widths, the two standing greps, the screenshots read), then `guard-render.mjs` at commit time | committed, `789f275` … `280b5c5`, then `8a30214` (8B), `b2be29e` (the Shelf), `2aaf620` (the type ruling), `9bd588a` (the intro) |
 | Part B (this change) | `check:catalog`, `design:check`, `graph:check`, `hooks:test`, `check:prose` on all 30 issues, both standing greps, a TypeScript pass over `src/` and `scripts/` | all green; `check:prose` 0 ❌, and no CUES or NO-COVER on any published issue |
 | Part B in a browser | dev server on its own port, headless Chrome, an issue (ISS), a showcase (earth), Home, a desk (space), the archive and story mode, each at 1280 and 375 | all 200, no console errors, no horizontal scroll, no retired chrome in the DOM, cue buttons and numerals present (21 / 35 on the ISS issue) |
 | The schema guard | a stray `plain` and a stray `howToRead` added to a test draft on the dev server, then removed | the page fails with ``  `howToRead` was removed in Lens Phase 8 … `` |
@@ -246,19 +254,33 @@ scope a check to `src/` and `scripts/`.
    in their own commit. Four published sections have no source at all, all
    `jargon-buster` glossaries (El Niño, Arsenal, eleven bills, open models):
    decide whether a glossary needs one before the field becomes required.
-6. **The render gate's own selectors** (`scripts/ui-probe.mjs`, the
-   orchestrator's) still list `.px-plain`, `.px-viz__how` and
-   `.px-section__num` among the chrome it counts. They match nothing now and
-   cost nothing; tidy them with the next change to the probe.
-7. **Per-kind blueprints** (`docs/design/blueprints/<world>/`) still
+
+6. **Per-kind blueprints** (`docs/design/blueprints/<world>/`) still
    describe EXPLAIN strings, a how-to-read paragraph and pre-Phase 6
    drawings. The catalog's NOTES and CUES lines win, and the template and
    the add-section-kind skill say so; rewrite a blueprint when its kind is
    next touched, not as a sweep.
-8. **Topic memory files under `.claude/agent-memory/`** (not the DIGESTs,
+7. **Topic memory files under `.claude/agent-memory/`** (not the DIGESTs,
    which are inlined into prompts and are current) still cite EXPLAIN
    defaults and `NEEDS_HOW`. They are notes, not instructions an agent
    receives; prune them in the next digest pass.
+
+8. **The intro's "Your path" progress arcs are a sample** (read, read,
+   60%, 38%), the board's illustration, not a reader's data. Either draw a
+   real anonymous shape or label it as an example before launch.
+9. **The promise strip says "Read in six minutes"** (`core/PromiseStrip.astro`)
+   while every published issue lists 4 or 5 minutes and the intro says so.
+   Pick one.
+10. **The sign-in page shows a Vite module error on the dev server only**
+    (`cookie` served unbundled through `@supabase/ssr`); the production chunk
+    bundles the parser and the import predates Lens. Harmless; the fix is a
+    `vite.optimizeDeps.include` entry if it ever matters.
+11. **The canvas's `Type-Compare` board still ticks Lens by default.** The
+    ruling is the unticked state; flip its defaults when the board is next
+    touched. The rest of the canvas is in Literata (version 35).
+12. **The intro's board copy.** The approved `Intro` board's third card still
+    says "Answer three questions"; the build says "Tell us how it landed".
+    Redraw the card when the board is next touched.
 
 ### 5.4 Deliberate, do not "discover"
 
