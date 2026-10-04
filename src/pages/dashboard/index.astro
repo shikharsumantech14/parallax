@@ -58,50 +58,59 @@ const user = requireUser(Astro);
 const { supabase } = Astro.locals;
 const userIsAdmin = isAdmin(user);
 
-const { data: profile, error: profileError } = await supabase
-  .from('profiles')
-  .select('display_name, email, email_prefs, created_at')
-  .eq('id', user.id)
-  .maybeSingle();
+// Six reads, ONE round trip's worth of waiting. They used to run one after
+// another (seven sequential hops to Supabase from the Vercel function, the
+// middleware's getUser() included), which is why the Shelf opened slower than
+// a prerendered desk page. `stated_interests` stays its own query on purpose:
+// a database without the onboarding migration still renders the rest.
+const [
+  { data: profile, error: profileError },
+  { data: interestRow, error: interestError },
+  { data: savedIssues, error: savedError },
+  { data: notes, error: notesError },
+  { count: notesTotal },
+  { data: events, error: eventsError },
+] = await Promise.all([
+  supabase
+    .from('profiles')
+    .select('display_name, email, email_prefs, created_at')
+    .eq('id', user.id)
+    .maybeSingle(),
+  supabase
+    .from('profiles')
+    .select('stated_interests')
+    .eq('id', user.id)
+    .maybeSingle(),
+  supabase
+    .from('saved_issues')
+    .select('issue_id, saved_at')
+    .order('saved_at', { ascending: false })
+    .limit(24),
+  // The reader's own margin notes across issues, newest first (any status —
+  // this is their private view; the same RLS that powers the annotation island
+  // already allows select-own at any status).
+  supabase
+    .from('comments')
+    .select('id, body_md, status, created_at, issue_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(6),
+  supabase
+    .from('comments')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id),
+  // The path: what this reader has opened, from their own reading events.
+  supabase
+    .from('reading_events')
+    .select('issue_id, event_kind, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(500),
+]);
 if (profileError) console.error('[shelf] profile fetch failed:', profileError.message);
-
-const { data: interestRow, error: interestError } = await supabase
-  .from('profiles')
-  .select('stated_interests')
-  .eq('id', user.id)
-  .maybeSingle();
 if (interestError) console.error('[shelf] stated_interests fetch failed:', interestError.message);
-
-const { data: savedIssues, error: savedError } = await supabase
-  .from('saved_issues')
-  .select('issue_id, saved_at')
-  .order('saved_at', { ascending: false })
-  .limit(24);
 if (savedError) console.error('[shelf] saved_issues fetch failed:', savedError.message);
-
-// The reader's own margin notes across issues, newest first (any status —
-// this is their private view; the same RLS that powers the annotation island
-// already allows select-own at any status).
-const { data: notes, error: notesError } = await supabase
-  .from('comments')
-  .select('id, body_md, status, created_at, issue_id')
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false })
-  .limit(6);
 if (notesError) console.error('[shelf] comments fetch failed:', notesError.message);
-
-const { count: notesTotal } = await supabase
-  .from('comments')
-  .select('id', { count: 'exact', head: true })
-  .eq('user_id', user.id);
-
-// The path: what this reader has opened, from their own reading events.
-const { data: events, error: eventsError } = await supabase
-  .from('reading_events')
-  .select('issue_id, event_kind, created_at')
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false })
-  .limit(500);
 if (eventsError) console.error('[shelf] reading_events fetch failed:', eventsError.message);
 
 const displayName =
