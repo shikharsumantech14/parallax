@@ -6,7 +6,7 @@
 > is true right now, how each part of it was verified, and what is open**.
 >
 > **Last updated: 2026-10-04**, at the close of the Lens revamp session (Phase 8, the type ruling, the intro, the
-> switch). Rewritten, not appended: the September snapshot it replaces
+> switch, then the push and the live check, which found and fixed one phone defect). Rewritten, not appended: the September snapshot it replaces
 > described the launch design, which no longer renders. Older narrative lives
 > in `AGENTS.md` §10 (the change log), `docs/PROJECT.md` and git history.
 > Derived facts below are generated and gated: if one looks wrong, run
@@ -78,6 +78,24 @@ boards, a build-versus-final-state comparison of all five scenes, and
 checks the five dots, Skip and Escape). The full render run belongs to the
 commit.
 
+**2026-10-04, pushed and checked live.** The operator pushed everything
+through `9bd588a` and the live site was read at parallaxlens.com: every page
+type 200, Literata loaded, the intro plays and closes, cue presses light
+their anchors, the only console error the expected signed-out 401 on
+`/api/save/<slug>`. One defect, on the phone only: the intro opened but its
+first scene stayed blank for its whole eight-second hold, because the build
+island's module finished loading about six seconds after the intro's
+inline script had dispatched `px:build` for scene 1, so the event had no
+listener. Fixed in `695d922`: the intro marks the scene it shows
+(`data-build-wants`) before the event, and `build.ts` builds any marked
+scene when it initialises, so the order the two islands load in no longer
+matters. Reproduced against the built output with the island's response
+held back three seconds, then measured live after the operator's second
+push on a throttled phone profile (slow mobile network, a quarter of the
+CPU, headless Chrome): the dialog open by 2.8s, scene 1 drawn by 5.9s, the
+clock stepping to scene 2 at 10s. Both islands stay under 3 KB (`build.ts`
+3,023 bytes minified, the intro 2,467).
+
 ---
 
 ## 2. Repo state
@@ -109,7 +127,8 @@ whose CUES line names no anchors.
 
 | Fact | Attested | On |
 |---|---|---|
-| Deployed | the trial issue (`a66cb33`) is **live on Vercel**, read by the operator. Nothing after it is attested here: the Lens commits (`789f275` onward) and their deploys are the operator's to confirm | 2026-09-29 |
+| Deployed | the trial issue (`a66cb33`) is **live on Vercel**, read by the operator | 2026-09-29 |
+| Deployed | **the Lens revamp through `695d922` is live** at parallaxlens.com: the operator pushed `9bd588a` and then `695d922` on 2026-10-04, and each deploy was read live in a browser (every page type 200; the intro at 375 measured on a throttled phone profile after the second push) | 2026-10-04 |
 | Migration | `20260705000000_journey_onboarding.sql` **applied** | 2026-08-28 |
 | Migration | `20260927000000_retire_content_engine.sql` **applied**, the `social-cards` bucket deleted from the dashboard | 2026-09-27 |
 | Live smoke | signup → `/welcome` → Shelf (the app's post-signup plate, `/account/welcome` since the merge), `/api/join`, app favicon 200, published og:image 200, draft og:image absent | 2026-08-28 |
@@ -166,8 +185,8 @@ reading); the medallion mark (RD-10, unchanged by Lens).
 
 | What | How | Result |
 |---|---|---|
-| The rendered product, Phases 0 to 8A | `npm run check:render`, full run, every published issue plus Home, signed in, 1280 and 375, in headless Chrome; the commit hook refuses a rendering commit without a current clean stamp | last full run 2026-10-04 on the tree of `9bd588a` (the intro): **0 blocking, 0 warnings** at both widths on all 17 published issues and Home (`research/_ui/last-run.json`, report under `research/_ui/2026-10-04/`); the six showcase drafts measured the same on the Phase 6 tree |
-| Each phase commit | the orchestrator's acceptance gates (`npm run build` with its prebuild, `check:render` at both widths, the two standing greps, the screenshots read), then `guard-render.mjs` at commit time | committed, `789f275` … `280b5c5`, then `8a30214` (8B), `b2be29e` (the Shelf), `2aaf620` (the type ruling), `9bd588a` (the intro) |
+| The rendered product, Phases 0 to 8A | `npm run check:render`, full run, every published issue plus Home, signed in, 1280 and 375, in headless Chrome; the commit hook refuses a rendering commit without a current clean stamp | last full run 2026-10-04 on the tree of `695d922` (the intro's race fix): **0 blocking, 0 warnings** at both widths on all 17 published issues and Home (`research/_ui/last-run.json`, report under `research/_ui/2026-10-04/`); the six showcase drafts measured the same on the Phase 6 tree |
+| Each phase commit | the orchestrator's acceptance gates (`npm run build` with its prebuild, `check:render` at both widths, the two standing greps, the screenshots read), then `guard-render.mjs` at commit time | committed, `789f275` … `280b5c5`, then `8a30214` (8B), `b2be29e` (the Shelf), `2aaf620` (the type ruling), `9bd588a` (the intro), `695d922` (the intro's phone race, found live) |
 | Part B (this change) | `check:catalog`, `design:check`, `graph:check`, `hooks:test`, `check:prose` on all 30 issues, both standing greps, a TypeScript pass over `src/` and `scripts/` | all green; `check:prose` 0 ❌, and no CUES or NO-COVER on any published issue |
 | Part B in a browser | dev server on its own port, headless Chrome, an issue (ISS), a showcase (earth), Home, a desk (space), the archive and story mode, each at 1280 and 375 | all 200, no console errors, no horizontal scroll, no retired chrome in the DOM, cue buttons and numerals present (21 / 35 on the ISS issue) |
 | The schema guard | a stray `plain` and a stray `howToRead` added to a test draft on the dev server, then removed | the page fails with ``  `howToRead` was removed in Lens Phase 8 … `` |
@@ -343,7 +362,17 @@ scope a check to `src/` and `scripts/`.
 - **The preview pane reports false page overflow** and
   `prefers-reduced-motion: reduce`: the honest test is `scrollTo(9999, y)`
   then `scrollX === 0` with a real viewport, and the real test is
-  `check:render`.
+  `check:render`. **A hidden preview pane also freezes CSS transitions at
+  their start value and runs a CSS-animation clock late** (no frames are
+  painted), so a sample read through it can show a built scene at opacity 0
+  under the step that should show it; a screenshot forces the paint and the
+  reading changes (2026-10-04). Measure timing in headless Chrome.
+- **Two islands that talk by DOM event race on a slow page.** The intro's
+  inline script fires `px:build` at parse time; the build island is a
+  deferred module that arrived six seconds later on a phone, and the event
+  was gone (2026-10-04). An island that asks another island for something
+  leaves a mark in the DOM as well as the event, and the other island reads
+  the mark on init.
 - A subagent once wiped uncommitted work with `git checkout`: **commits
   only, never checkout / reset / stash / restore to undo.**
 

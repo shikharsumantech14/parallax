@@ -806,7 +806,12 @@ then `scrollX === 0`. The preview browser reports FALSE overflow: hidden, its
 viewport. Do not "fix" overflow you have not proven this way. **`check:render`
 runs this test, and the rest, in a real headless Chrome** — a probe written in
 the preview pane against a scaled viewport, signed out, is not verification
-(2026-09-23, §10).
+(2026-09-23, §10). **A HIDDEN preview pane paints no frames**: CSS
+transitions sit at their start value and a CSS-animation clock runs late, so
+a timing or opacity read through it is an artefact until the pane is shown
+or a screenshot forces a paint (2026-10-04). Measure timing in headless
+Chrome (`puppeteer-core` is a dev dependency, and `scripts/ui-probe.mjs`
+shows how it launches the installed Chrome).
 
 → The full checklist, the per-component checks, and the nine registry places:
   **`/verify-done`** and **`/add-section-kind`** skills.
@@ -867,6 +872,27 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-10-04 — Pushed, read live, one phone defect fixed
+
+The operator pushed the Lens revamp (`789f275` … `9bd588a`) and it was read
+live at parallaxlens.com: every page type 200, Literata loaded, the intro
+plays and closes, cue presses light their anchors. On the phone the intro's
+first scene stayed blank for its whole hold: the build island's module
+finished loading about six seconds after the intro's inline script had
+dispatched `px:build` for scene 1, so the event had no listener. `695d922`
+makes the handshake order-independent: the intro marks the scene it shows
+(`data-build-wants`) before the event, and `build.ts` builds any marked
+scene when it initialises. Reproduced with the island's response held back
+three seconds, then measured live on a throttled phone profile after the
+second push (scene 1 drawn by 5.9s, the clock stepping at 10s). The budget
+rule, the component guide's build table and LENS §6.4 record the mark.
+
+**Standing rules from today:** an island that asks another island for
+something leaves a mark in the DOM as well as dispatching the event, and the
+other island reads the mark on init, because a deferred module can arrive
+seconds after an inline script on a phone. And a hidden preview pane is not
+an instrument for timing (§8).
 
 ### 2026-10-04 — The intro walkthrough, the Shelf's reads, the canvas in Literata
 
