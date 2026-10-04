@@ -63,7 +63,7 @@ const {
   caption,
 } = Astro.props;
 
-const FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const FONT = "font-family:'Literata',Georgia,serif";
 const W = 460, H = 260, padL = 34, padR = 16, padT = 14, padB = 30;
 const iw = W - padL - padR, ih = H - padT - padB;
 const n = points.length;
@@ -95,7 +95,7 @@ const tickEvery = (() => {
 // `at` is the x value: a point's `year` (number, or the numeric string a YAML
 // author may quote) or a milestone's `label`, resolved to that milestone's
 // year. Anything that matches no point is a silent no-op (spec §2).
-const FS   = 13;   // SVG units, Newsreader italic
+const FS   = 13;   // SVG units, Literata roman (no italic sentence, 2026-10-04)
 const LEAD = 18;   // leader length in units (spec: 14–22)
 const LH   = FS + 3;
 const estW = (s: string) => 0.5 * FS * s.length;
@@ -265,7 +265,7 @@ const fmtYear = (yr: number) => String(yr);
           <line x1={a.lead.x1} y1={a.lead.y1} x2={a.lead.x2} y2={a.lead.y2} />
           <text
             x={a.tx} y={a.ty} text-anchor={a.anchor}
-            style={`font-family:'Newsreader',Georgia,'Times New Roman',serif;font-size:${FS}px;font-style:italic`}
+            style={`font-family:'Literata',Georgia,serif;font-size:${FS}px`}
           >{a.lines.map((ln, k) => <tspan x={a.tx} dy={k === 0 ? 0 : LH}>{ln}</tspan>)}</text>
         </g>
       ))}
@@ -327,19 +327,22 @@ const fmtYear = (yr: number) => String(yr);
   .adc__big {
     font-family: var(--font-ui);
     font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
-    font-weight: 600;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: var(--accent-deep);
+    padding-bottom: 0.12em;
   }
   .adc__biglab {
     min-width: 0;
     font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1.35;
     color: var(--ink-2);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .adc__plot { position: relative; }

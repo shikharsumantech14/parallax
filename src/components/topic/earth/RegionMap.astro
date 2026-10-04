@@ -10,7 +10,7 @@
   the paper's well, a zone shaded from the desk tint (value 0) to the desk
   mark (value 1), hair-white borders. Markers are paper dots ringed in ink
   (an `event` marker is solid ink). Zone names in 600 capitals, marker names
-  in 500, both 12px Instrument Sans on a paper halo. The legend is HTML under
+  in 500, both 12px Literata on a paper halo. The legend is HTML under
   the map: two swatches when the zones carry at most three values, else the
   ramp with its two ends; `legend.none` adds the no-data swatch. `palette`
   names what the fill measures when no legend title is authored (the hue is
@@ -206,7 +206,7 @@ const legNone = legend?.none ?? '';
 const hasLegend = zones.length > 0;
 
 /* ── Label placement (2026-09-22; 12px and Lens faces 2026-09-30) ────────────
-   Labels are authored at 12px, LENS's floor (§3), in Instrument Sans: zone
+   Labels are authored at 12px, LENS's floor (§3), in Literata: zone
    names in 600 capitals, marker names in 500. The SVG keeps its 800-unit
    width in the figure panel and on a phone (the card scrolls, dataviz-v2.css),
    so 12 authored is 12 rendered. They were 9.5px in Fraunces and JetBrains
@@ -232,7 +232,7 @@ const hasLegend = zones.length > 0;
        no label can land under the legend or bleed outside the SVG.
 */
 /* Width model, MEASURED off rendered SVG text in Chrome rather than guessed
-   (the first pass guessed and let MADAGASCAR sit on ANGOLA). Instrument Sans
+   (the first pass guessed and let MADAGASCAR sit on ANGOLA). Literata
    capitals at 12px and 0.06em tracking run 0.64 to 0.74em a character, the
    mixed-case marker names 0.46 to 0.49em. The per-character figures below
    are rounded up to the worst case, and every label carries a halo stroke
@@ -243,7 +243,7 @@ const LABEL_H = 16;                // one 12px line with its halo
 const ZONE_CH = 12 * 0.76, ZONE_HALO = 4;   // 600 capitals, .06em tracking
 const MARK_CH = 12 * 0.53, MARK_HALO = 4;   // 500 mixed case, .02em tracking
 const EDGE = 6;
-const LABEL_FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const LABEL_FONT = "font-family:'Literata',Georgia,serif";
 
 type Box = { x0: number; x1: number; y0: number; y1: number };
 const occupied: Box[] = [];
@@ -451,7 +451,7 @@ const tags = [
     paint-order: stroke; stroke: var(--paper-2); stroke-width: 3.5px; stroke-linejoin: round;
   }
   .px-map__key { margin-top: 12px; font-family: var(--font-ui); font-size: 12px; line-height: 1.4; color: var(--muted); }
-  .px-map__kt { margin: 0 0 6px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; }
+  .px-map__kt { margin: 0 0 6px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; display: flex; align-items: center; }
   .px-map__kr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
   .px-map__kr > span { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2, var(--ink-soft)); }
   .px-map__kr i { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 2px; }

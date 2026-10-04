@@ -17,8 +17,8 @@
 /** The panel body at 1280 (`.px-fig__body`, 470px measured 2026-09-30). */
 export const W = 470;
 
-export const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-variant-numeric:tabular-nums";
-export const SERIF = "font-family:'Newsreader',Georgia,'Times New Roman',serif";
+export const SANS = "font-family:'Literata',Georgia,serif;font-variant-numeric:tabular-nums";
+export const SERIF = "font-family:'Literata',Georgia,serif";
 
 /** en-US grouping: the build island's counter tweens en-US, so the static text matches it. */
 export const nf = (n: number, dp = 0) =>
@@ -69,7 +69,7 @@ export function smooth(ps: { x: number; y: number }[]): string {
   return d;
 }
 
-/** Text width estimate for Instrument Sans at `fs` (wide on purpose). */
+/** Text width estimate for Literata at `fs` (wide on purpose). */
 export const textW = (s: string, fs = 13, bold = false) => {
   let u = 0;
   for (const ch of String(s)) u += /[A-Z0-9#%&@MW]/.test(ch) ? 0.68 : /[ .,:;'|!il()]/.test(ch) ? 0.3 : /[mw]/.test(ch) ? 0.82 : 0.56;

@@ -33,7 +33,7 @@ build**:
   their work
 - `caption` — the DATA claim; the only comprehension field the verifier traces
   (with the cue sentences, below). It renders ONCE, at the end of the article
-  column, in Newsreader italic, and may carry `[[n]]` markers. Never a scale
+  column, in Literata 500 roman (no italic sentence, 2026-10-04), and may carry `[[n]]` markers. Never a scale
   or axis word a control could make false ("· log scale" on a toggle-able
   axis)
 - `sources[].url` — must be a real URL; mock URLs break the build

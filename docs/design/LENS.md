@@ -16,11 +16,11 @@
 > conflicts with the canvas, the canvas wins and this file is corrected in the
 > same change.
 >
-> **What renders today.** This file is the target; the code reaches it phase by
-> phase (§11). Until a phase lands, the launch design still renders: Literata,
-> square corners, the 720 measure, the how-to-read panel. Do not patch the old
-> shell toward Lens piecemeal outside the plan, and do not "restore" an old rule
-> because the page still shows it.
+> **What renders today.** All nine phases are built (§11, Phase 8 on
+> 2026-10-04): what renders is Lens. One amendment since: the type went back to
+> one face, Literata, at the launch design's weights, case and tracking, with
+> no italic sentence (the operator's ruling of 2026-10-04, §3.1). Do not
+> "restore" a rule this file retires.
 
 ---
 
@@ -71,9 +71,11 @@ These were correctness rulings, not taste, and they bind under Lens:
 | **The line-art doctrine for WebGL** (CANON §4: basic materials only, no runtime lights, no bloom, baked shading at most; the silhouette test) | §8.3 |
 | **Touch is sacred** (CANON §9): `touch-action: pan-y`, no gesture hijacking, everything readable without interacting | §5.3 and §4.2 |
 
-Everything else in CANON (Literata and the trio, zero radius, flat surfaces,
+Everything else in CANON (the trio, zero radius, flat surfaces,
 `--viz-edge`, the four-layer comprehension stack, the one-panel rule, the ⤢
 study view, the act-structure ratios, the per-world type) is retired (§10).
+Literata, CANON's one face, was retired with it on 2026-09-30 and restored
+by the operator's ruling of 2026-10-04 (§3.1).
 
 ---
 
@@ -166,48 +168,65 @@ desktop section gap. Card padding 24 desktop, 20 phone.
 
 ## 3. Type
 
-### 3.1 Two faces
+### 3.1 One face: Literata (the operator's ruling of 2026-10-04)
 
-- **Newsreader** (serif) for display and the article: headlines, section
-  titles, prose, captions, the italic emphasis word. Weights 400 / 500 / 600,
-  italic 400 / 500, optical sizes 6–72.
-- **Instrument Sans** (sans) for UI and every number: navigation, buttons,
-  labels, chips, axes, values, the source line. Weights 400 / 500 / 600,
-  italic 400.
+**Literata everywhere**: display, prose, captions, labels AND numbers. The
+operator ticked it on the canvas board `Type-Compare` (2026-10-04), comparing
+Lens's two faces with the launch design's one, and ruled: the type system goes
+back to Literata at the launch design's weights, case and tracking; **no
+italic sentences anywhere** (the section caption, the figure caption, the lit
+cue's line, the skim caption and every other whole-sentence italic are set
+roman); the ONE italic emphasis word in a title or headline stays. The Lens
+layout, inks, cards, cues, builds and number tiers all stay; only type
+changed. Newsreader and Instrument Sans (2026-09-30 to 2026-10-04) are
+retired.
+
+Literata is an optical-size family (opsz 7–72); `font-optical-sizing: auto`
+lets the browser take the display cut at 68 and the text cut at 12. Weights
+300 / 400 / 500 / 600 / 700, italic 400.
 
 ```css
---font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
---font-ui:      'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+--font-display, --font-body, --font-ui, --font-mono: 'Literata', Georgia, serif;
 ```
 
 Loaded from Google Fonts:
-`https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap`.
-The share-card renderer (satori/resvg) cannot load Google Fonts: it renders on
-static files of both faces fetched by `scripts/fetch-fonts.mjs` (Phase 1).
+`https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,400&display=swap`.
+The share-card renderer (resvg) cannot load Google Fonts, and Google serves
+Literata only as a variable font, which resvg cannot parse: it renders on
+three static files from the googlefonts/literata repository fetched by
+`scripts/fetch-fonts.mjs` (Literata 72pt Bold for the headline, Literata 72pt
+Italic for the emphasised word, Literata SemiBold for the labels).
 
-The role tokens map as: `--font-display` and `--font-body` → Newsreader,
-`--font-ui` and the legacy `--font-mono` (labels, numerals) → Instrument
-Sans. The P inside the medallion
-is an OUTLINE traced from Literata (`src/lib/mark-glyph.ts`), a drawing, not
-live text: retiring Literata as a face does not touch the mark.
+The four role tokens survive so every kind keeps compiling; all resolve to the
+one face. Roles differ by size, weight, case and tracking only. The P inside
+the medallion is an OUTLINE traced from Literata (`src/lib/mark-glyph.ts`), a
+drawing, not live text.
 
-### 3.2 The scale
+### 3.2 The scale (the Type-Compare board, `sys-lit`)
 
-| Role | Face and setting |
+| Role | Setting |
 |---|---|
-| H1 | Newsreader 500, 64/1.02, −0.01em; phone 40/1.06. The issue head is 72/1.02 (§5.4) |
-| H2 | Newsreader 500, 40/1.08 |
-| H3 | Newsreader 500, 28/1.15 |
-| Section title | Newsreader 500, 30/1.12 |
-| Prose | Newsreader 400, 19/1.6 on a standalone page (measure ≤ 68ch, 720 max); 18/1.6 in the reading system's 620 column and on phones. Ink. |
-| Hook / lede | Newsreader 400, 22 |
-| Caption (the finding) | Newsreader 17, italic, ink |
-| Emphasis | Newsreader italic 500, the one authored `*word*` of a headline, in the desk **text** colour. One per title |
-| UI | Instrument Sans 400, 15/1.5 |
-| Label / eyebrow | Instrument Sans 500, 12–13, UPPERCASE, letter-spacing .06em, `--muted` or the desk **text** colour |
-| Button | Instrument Sans 600, 15 |
-| Numbers | Instrument Sans 600, `font-variant-numeric: tabular-nums`, the tiers in §7 |
-| Source line | Instrument Sans 13, `--muted`: `Source · <label> · <date>`, the label a link |
+| Issue headline | 700, 68/1.0, −0.032em; phone 40/1.0 (`core/IssueHead`, `.px-h1`) |
+| H2 / H3 | 700, 40/1.05 −0.028em · 700, 28/1.1 −0.024em |
+| Hook / lede | 300, 21/1.45 (17 on phones), `--ink-2` |
+| Primer | 400, 17/1.7 |
+| Section title | 700, 34/1.05, −0.028em; phone 28 |
+| Prose and cue sentences | 400, 18/1.72, ink; `strong` 700 |
+| The section caption (the finding) | 500, 15.5/1.3, −0.005em, ROMAN, `--ink-2` |
+| The lit cue's line | 500, 15.5/1.3, roman, ink; phone 14/1.4 |
+| Skim caption | 400, 14/1.65, roman, `--muted` |
+| Emphasis | italic 400, the one authored `*word*` of a headline, in the desk **text** colour (`--accent-deep`). One per title |
+| UI body | 400, 15/1.55 |
+| Eyebrow | 600, 12, capitals, .18em, the desk text colour |
+| Label / meta | 600, 12, capitals, .16em, `--muted` or `--ink-2` |
+| Chip | 600, 12, capitals, .14em |
+| Button | 600, 12, capitals, .17em |
+| Source line | 600, 12, capitals, .14em, `--muted`: `Source · <label> · <date>`, the label a link |
+| Numbers | 700, tabular, line-height 1, at the tiers in §7, −0.02em (−0.03em at 160); the 160 and 96 tiers carry .12em of bottom room so Literata's comma clears the label |
+| Label under a number | 600, 12, capitals, .16em, `--ink-2`, 8px below |
+| Cover headline | 700, 21/1.18, −0.02em; cover meta 12 capitals .16em |
+| Desk name | 700, 30/1.0, −0.028em; desk tagline 400, 14/1.5 |
+| Stage headline | 700, 48/1.0, −0.032em (40 on phones); stage labels 12 capitals .17em |
 
 Numerals are tabular everywhere. Headlines are set ragged (no justification).
 
@@ -215,10 +234,10 @@ Numerals are tabular everywhere. Headlines are set ragged (no justification).
 
 In-SVG `<text>` takes a **literal** font stack in a `style` attribute, never
 `var()` and never a presentation attribute:
-`style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"`
-(Newsreader for an in-figure editorial callout). A presentation attribute loses
-to any stylesheet rule, and satori/resvg do no `var()` substitution. The
-standing grep in `AGENTS.md` §8 stays at zero.
+`style="font-family:'Literata',Georgia,serif"`. Labels at 500 or 600, numbers
+at 600 or 700, at the drawing's own sizes; never italic. A presentation
+attribute loses to any stylesheet rule, and resvg does no `var()` substitution.
+The standing grep in `AGENTS.md` §8 stays at zero.
 
 ### 3.4 The floor
 
@@ -254,7 +273,7 @@ measure with its 45px breakout are retired. The issue page's geometry is §5.
 - **Card:** `--paper-2` fill, 1px `--hair` border, `--r-card`,
   `--shadow-1`. Hover: border `--ink`, `--shadow-2`, over 160ms. A card
   never translates or scales. Padding 24 / 20.
-- **Buttons:** 44px tall, `--r-ctl`, Instrument Sans 15/600.
+- **Buttons:** 44px tall, `--r-ctl`, Literata 600 12px capitals at .17em.
   Primary: ink fill, paper text. Secondary: 1px ink border on paper. Desk:
   the desk **text** colour as the fill, paper text. Disabled: `--hair` fill,
   `--muted` text.
@@ -271,8 +290,8 @@ measure with its 45px breakout are retired. The issue page's geometry is §5.
 - **Stat tile:** a label, one number at 48 (§7), one note line, the source
   line.
 - **Masthead:** 64px, paper, a 1px hair rule under it. Left the lockup
-  (§4.3); right the nav Home · Desks · Archive · About in Instrument Sans
-  14/500, a "Sign in" text link and a primary "Subscribe". On a desk page the
+  (§4.3); right the nav Home · Desks · Archive · About in Literata
+  600 12px capitals at .17em, a "Sign in" link in the same voice and a primary "Subscribe". On a desk page the
   register follows the wordmark. On a deep plate the masthead reverses to
   `--on-deep`.
 - **Footer:** on `--paper-3` under a hair: the same lockup at 28px (the house
@@ -287,7 +306,7 @@ measure with its 45px breakout are retired. The issue page's geometry is §5.
 - **The cover card** (Phase 2, `core/CoverCard.astro`): the graphic-dominant
   issue card on Home, Desk, Archive, the Shelf and Subscribe. A 216px panel
   on the desk tint draws the issue's cover mark (`core/CoverMark.astro`),
-  then the headline (Newsreader 24, the italic word in the desk text) and
+  then the headline (Literata 700 21, the italic word at 400 in the desk text) and
   "No 17 · 28 Sep · 4 min". Sizes: `card` (3-across), `tile` (the desk
   strip, a 264px panel), `row` (a 120 x 72 thumbnail inside a list row,
   marks only). The mark draws the section the issue's `cover.section` names
@@ -332,7 +351,7 @@ the politics station in the oxide accent.
   `ground`, `onDeep`) over `src/lib/mark.ts`. Never paste SVG bodies.**
 
 **The lockup.** The mark TIGHT (viewBox trimmed to the ring) at a **34px
-disc with ring 9**, a **12px gap**, then "Parallax" in **Newsreader 500
+disc with ring 9**, a **12px gap**, then "Parallax" in **Literata 700
 24px** with its cap centre on the disc centre; on a desk page the register
 ("Mission control") in 13px capitals in the desk **text** colour. The footer
 uses the same lockup at 28px. A standalone mark (About, icons, the intro)
@@ -358,7 +377,7 @@ joined by cues.** Built in Lens Phase 3.
   the left gutter, 56px, its names beside the dots from 1440px (narrower, on
   hover or focus). LEFT, the section's full text in the Parallax voice
   (eyebrow, title, intro, the kind's own sentences, the caption as the
-  finding in Newsreader 17 italic), prose 18/1.6. RIGHT, the **pinned figure
+  finding in Literata 500 15.5/1.3, roman, ink-2), prose 18/1.72. RIGHT, the **pinned figure
   panel**: `--paper-2`, 1px hair, 6px radius, `--shadow-1`, padding 20 / 24,
   `position: sticky; top: 24px` while its section is in view. The panel
   carries a small header ("Figure 3 · 4 cues", a "Show all" control), the
@@ -414,7 +433,7 @@ sections:
   kind's anchors on a `CUES:` line (Phase 7).
 - **Two to four cues per graphic section.** None on the narrative kinds.
 - **The cue button:** a real `<button>`, a 20px disc, desk **mark** fill,
-  paper numeral in Instrument Sans 600 12, `aria-pressed`, `aria-label="Cue
+  paper numeral in Literata 600 12, `aria-pressed`, `aria-label="Cue
   n: light it on the graphic"`.
 
 ### 5.3 Lighting
@@ -433,8 +452,8 @@ sections:
 ### 5.4 The issue head (BRIEF-5 §3)
 
 Full 1152 width. Row 1, columns 8 / 4: LEFT the eyebrow ("MATCH PROGRAMME ·
-No 17"), the headline at Newsreader 72/1.02 (the italic word in the desk text
-colour), the hook at 22px, then the facts as one hairline row of four cells
+No 17"), the headline in Literata 700 68/1.0 (the italic word at 400 in the desk text
+colour), the hook in Literata 300 21/1.45, then the facts as one hairline row of four cells
 (Published · Reading time · Sources · Sections). RIGHT a `--paper-2` card "In
 this issue": the sections as a numbered list (01–09, the section name, 15px),
 the current one marked with the desk dot, a 3px progress bar and a "Start
@@ -610,8 +629,10 @@ never in the markup, so the static page IS the final state:
 | Stat tiles, the Shelf's rings | **48** |
 | Tiers for everything else | 20 / 32 / 48 / 96 / 160 |
 
-Instrument Sans 600, tabular. A number's line-height is 0.92 and its label
-(13–14px) sits 8px below it. Where a number shrinks, the space it leaves goes
+Literata 700, tabular (the ruling of 2026-10-04; Instrument Sans 600 at
+line-height .92 before it). A number's line-height is 1, the 160 and 96 tiers
+carry .12em of bottom room for Literata's comma, and its label (12px
+capitals, 600, .16em) sits 8px below it. Phones: 88 / 72 / 40. Where a number shrinks, the space it leaves goes
 to the graphic, never to more text.
 
 ---
@@ -645,7 +666,7 @@ tech black, sports pine) survive only here.
   planet's edge, heights not to scale) when the cover section is a
   descent-profile, **bars** for a readout, else the issue's cover mark on a
   tint panel beside the number. Then a ladder of at most three rows, the
-  headline (Newsreader 48, the italic word in the desk mark or lime) and the
+  headline (Literata 700 48, the italic word at 400 in the desk mark or lime) and the
   paper "Read" button with Replay. Home shows the newest issue that has a
   `cover`, at the 1.6x tempo (§6.1).
 - Contrast on the plate is checked like on paper: every word ≥ 4.5:1.
@@ -701,7 +722,7 @@ library boards on the canvas (`Lib-<kind>`) are each kind's target.
 
 | Retired | Replaced by |
 |---|---|
-| Literata as the one face; the trio before it; per-world faces | Newsreader + Instrument Sans (§3). Literata survives only as the source outline of the mark's P |
+| ~~Literata as the one face~~ (restored by the operator's ruling of 2026-10-04, §3.1); the trio before it; per-world faces | One face again: Literata (§3). Newsreader + Instrument Sans, Lens's two faces of 2026-09-30, are retired in their turn |
 | Zero radius (`--r-card`, `--r-tile`, `--r-pill` at 0) | 6 / 4 / pill (§2.4) |
 | Flat surfaces with no shadow (RD-05) | clickable cards on `--shadow-1` / `--shadow-2` (§4.2) |
 | The 1280 frame with no side padding; the 170 / 1fr / 250 floor plan; the 720 measure and the `wide` breakout | the 1152 column in 64px margins (§4.1); 620 + 520 in the reading system (§5.1) |

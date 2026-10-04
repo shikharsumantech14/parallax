@@ -24,25 +24,26 @@
    ============================================================================ */
 
 /* ── SHARED SHELL CAPTION / SOURCE (the .px-viz card lives in base.css) ──── */
-/* Caption — the FINDING, stated once: Newsreader italic 17 in ink (Lens), with
-   the unit chip as a 12px label in the desk text colour. */
+/* Caption — the FINDING, stated once: Literata 500 15.5/1.3 ROMAN in ink-2
+   (the Type-Compare ruling, 2026-10-04: no italic sentence), with the unit
+   chip as a 12px capitals label in the desk text colour. */
 .px-viz__cap {
   display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
   margin-bottom: 22px;
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  font-size: var(--viz-fs-caption, 17px);
-  line-height: 1.5;
-  letter-spacing: 0;
-  color: var(--ink);
+  font-style: normal;
+  font-weight: 500;
+  font-size: var(--viz-fs-caption, 15.5px);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
 }
 .px-viz__cap > span { min-width: 0; }
 .px-viz__cap b {
   flex: 0 1 auto; align-self: center;
   font-family: var(--font-ui);
   font-style: normal;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 12px;
   line-height: 1.45;
   letter-spacing: var(--viz-ls-mono);
@@ -347,7 +348,7 @@ html:not(.js) .px-cue { cursor: default; }
   justify-content: center;
   width: 20px;
   height: 20px;
-  margin-top: 3px;
+  margin-top: 0;
   border-radius: 999px;
   background: var(--accent-deep);
   color: var(--paper);
@@ -360,15 +361,16 @@ html:not(.js) .px-cue { cursor: default; }
 .px-fig__cue-t {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 17px;
-  font-style: italic;
-  font-weight: 400;
-  line-height: 1.45;
+  font-size: 15.5px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
   color: var(--ink);
 }
 @media (max-width: 1023px) {
   .px-fig__cue-n { margin-top: 0; }
-  .px-fig__cue-t { font-family: var(--font-ui); font-size: 14px; font-style: normal; font-weight: 500; line-height: 1.4; }
+  .px-fig__cue-t { font-size: 14px; line-height: 1.4; letter-spacing: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .px-cue, .px-cue-s, .px-cue-tag, .px-rs > .px-fig [data-cue] { transition: none; }
@@ -390,13 +392,15 @@ html:not(.js) .px-cue { cursor: default; }
    8px below it. */
 .px-sfig__head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 16px; }
 .px-sfig__num {
-  font-family: var(--font-ui); font-size: 96px; line-height: 0.92; font-weight: 600;
+  font-family: var(--font-ui); font-size: 96px; line-height: 1; font-weight: 700;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--accent-deep);
+  padding-bottom: 0.12em;
 }
 @media (max-width: 599px) { .px-sfig__num { font-size: 72px; } }
 .px-sfig__lbl {
   display: inline-flex; align-items: center; min-width: 0;
-  font-family: var(--font-ui); font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--ink-2);
+  font-family: var(--font-ui); font-size: 12px; line-height: 1.35; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
 }
 .px-sfig__plot { position: relative; }
 .px-sfig__svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -456,8 +460,8 @@ html:not(.js) .px-cue { cursor: default; }
 .tel { max-width: 760px; position: relative; }
 .tel__cap {
   padding: 0 0 12px;
-  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep);
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-deep);
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
 }
 .tel__cap-status { display: inline-flex; align-items: center; gap: 8px; color: var(--accent-deep); }
@@ -486,11 +490,11 @@ html:not(.js) .px-cue { cursor: default; }
 
 .tel__val { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
 .tel__n {
-  font-family: var(--font-ui); font-weight: 600;
+  font-family: var(--font-ui); font-weight: 700;
   font-size: 48px;
   font-size: clamp(22px, calc(((100cqi - (var(--tel-cols, 3) - 1) * var(--tel-gap, 12px)) / var(--tel-cols, 3) - 2 * var(--tel-padx, 14px) - 2px) / var(--tel-em, 1)), 48px);
   color: var(--ink);
-  letter-spacing: -0.01em; line-height: 0.92;
+  letter-spacing: -0.02em; line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -503,7 +507,7 @@ html:not(.js) .px-cue { cursor: default; }
 @media (max-width: 1023px) {
   .tel__tile[data-hero] .tel__n { font-size: clamp(32px, calc((100cqi - 30px) / var(--tel-hero-em, 1)), 72px); }
 }
-.tel__u { font-family: var(--font-ui); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+.tel__u { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.16em; color: var(--muted); text-transform: uppercase; }
 /* A zero, drawn: a dashed hollow ring the height of the numeral's cap. */
 .tel__zero {
   flex: none;
@@ -517,14 +521,16 @@ html:not(.js) .px-cue { cursor: default; }
    LENS's 12px floor to fit. */
 .tel__l {
   display: flex; align-items: flex-start;
-  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2);
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
   line-height: 1.4; min-width: 0; overflow-wrap: anywhere; hyphens: auto;
 }
-/* In a row tile the numeral sits in the tile's top corner (the board), so
-   the label keeps the tile's whole width; the hero keeps it inline. */
-.tel__tile:not([data-hero]) .tel__l { padding-right: 24px; }
-.tel__tile:not([data-hero]) .tel__l .px-cue-tag { position: absolute; top: 12px; right: 10px; margin: 0; }
+/* In a row tile the cue numeral leads the label inline, so the label keeps
+   the tile's whole width: a 12px capitals word at .16em (Literata, since
+   2026-10-04) needs it ("PUNISHMENTS" is 111px in a 120px tile). A word that
+   does not fit beside the numeral takes the next line. */
+.tel__tile:not([data-hero]) .tel__l { display: block; }
+.tel__tile:not([data-hero]) .tel__l .px-cue-tag { margin: 0 6px 0 0; }
 .tel__tile[data-hero] .tel__l .px-cue-tag { margin-top: -2px; }
 .tel__tile[data-emphasis="key"] .tel__l { color: var(--accent-deep); }
 .tel__note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); line-height: 1.5; }
@@ -630,7 +636,7 @@ html:not(.js) .px-cue { cursor: default; }
    (markers placed first, zone labels offset vertically or dropped) so the
    larger type cannot collide. The min-width below already gives this SVG
    scale 1 on a phone, so 9.5px authored is 9.5px rendered there. RAISED to
-   12px on 2026-09-30 (LENS §3), in Instrument Sans, with the legend rebuilt
+   12px on 2026-09-30 (LENS §3), in Literata, with the legend rebuilt
    to hold its words inside its box.
    ========================================================================== */
 @media (max-width: 900px) {

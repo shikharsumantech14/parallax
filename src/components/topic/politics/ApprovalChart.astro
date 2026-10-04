@@ -86,7 +86,14 @@ const xLabels = points.map((p, i) => {
   const prev = i > 0 ? part(points[i - 1].date).yr : '';
   const show = i % every === 0 || i === n - 1;
   return { i, m, yr: yr && (i === 0 || yr !== prev) ? yr : '', show: show || (yr && i > 0 && yr !== prev) };
-}).filter((l) => l.show);
+}).filter((l) => l.show)
+  /* the last month is always shown, so the one before it can land a single
+     step away: drop that one (unless it carries a year) when the two would
+     sit closer than a three-letter month in Literata 12 needs, with air. */
+  .filter((l, k, all) => {
+    const next = all[k + 1];
+    return !next || next.i !== n - 1 || l.yr || x(next.i) - x(l.i) >= 34;
+  });
 
 const last = points[n - 1];
 /* end labels: keep them 18 units apart */
@@ -112,7 +119,7 @@ const notes = (annotations ?? [])
   .filter((a): a is NonNullable<typeof a> => !!a);
 
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(2)}%`;
-const svgStack = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const svgStack = "font-family:'Literata',Georgia,serif";
 ---
 
 <div class="ac" data-viz-root data-build-scene>
@@ -192,9 +199,9 @@ const svgStack = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-seri
     margin: 0;
     font-family: var(--font-ui);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.4;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
   }
@@ -235,7 +242,7 @@ const svgStack = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-seri
   .ac__nt-k { translate: -50% 0; }
   .ac__nt-k b { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--accent-deep); line-height: 1; }
   .ac__notes { margin: 0; padding: 10px 0 0; list-style: none; border-top: 1px solid var(--hair); display: flex; flex-direction: column; gap: 6px; }
-  .ac__notes li { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 15px; font-style: italic; line-height: 1.4; color: var(--ink); }
+  .ac__notes li { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 15px; font-style: normal; line-height: 1.4; color: var(--ink); }
   .ac__notes li b { font-family: var(--font-ui); font-style: normal; font-size: 12px; font-weight: 600; color: var(--accent-deep); }
   .ac__notes .px-cue-tag { align-self: center; margin-right: 0; }
 

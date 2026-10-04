@@ -12,9 +12,9 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   background: var(--bg);
   color: var(--ink);
-  /* Lens: the page speaks in the UI sans (Instrument Sans 15/1.5); prose,
-     headlines and the finding opt into the serif through --font-body and
-     --font-display. Tabular figures everywhere, so a readout never jitters. */
+  /* One face (2026-10-04): the page speaks in Literata 15/1.55; prose,
+     headlines and labels differ by size, weight, case and tracking only.
+     Tabular figures everywhere, so a readout never jitters. */
   font-family: var(--font-ui);
   font-size: var(--fs-ui, 15px);
   line-height: var(--lh-ui, 1.5);
@@ -42,12 +42,12 @@ body {
    MASTHEAD — the Lens lockup (2026-09-30, LENS §4.2 / §4.3, Phase 2).
    64px, paper, a 1px hair below running to the frame edge. Left the LOCKUP:
    the medallion tight at a 34px disc with ring 9 (Mark `tight`), a 12px gap,
-   "Parallax" in Newsreader 500 24px with its cap centre on the disc centre
-   (the Home board's -1px nudge), and on a desk page the register in 13px
+   "Parallax" in Literata 700 24px with its cap centre on the disc centre
+   (the Home board's -1px nudge), and on a desk page the register in 12px
    capitals in the desk TEXT colour. Right: Home · Desks · Archive · About in
-   Instrument Sans 14/500 (ink-2, the current one ink with a 2px underline in
-   the desk mark), the live badge, a hair, "Sign in" as a text link and the
-   primary ink Subscribe. `.mh--stage` is the on-deep version for a stage.
+   Literata 12/600 capitals at .17em (the launch nav; ink-2, the current one
+   ink with a 2px underline in the desk mark), the live badge, a hair, "Sign
+   in" in the same voice and the primary ink Subscribe. `.mh--stage` is the on-deep version for a stage.
    Below 768px the nav folds into a native <details> menu (zero JS, 44px rows)
    beside a compact Subscribe.
    ────────────────────────────────────────────────────────────────────────── */
@@ -76,19 +76,19 @@ body {
 .mh--stage a:focus-visible, .mh--stage summary:focus-visible { outline-color: var(--on-deep); }
 .mh__name {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: inherit;
   position: relative; top: -1px;   /* cap centre on the disc centre (the Home board's nudge) */
   white-space: nowrap;
 }
 .mh__desk {
   font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   line-height: 1;
   color: var(--accent-deep);
@@ -98,8 +98,10 @@ body {
 .mh__links { display: inline-flex; align-items: center; gap: 28px; }
 .mh__links a {
   font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
   line-height: 1;
   color: var(--ink-2);
   text-decoration: none;
@@ -117,7 +119,7 @@ body {
 .mh__status {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-ui);
-  font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -131,11 +133,11 @@ body {
 @keyframes mhPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 @media (prefers-reduced-motion: reduce) { .mh__status-dot { animation: none; } }
 
-/* The account slot (core/AccountEntry.astro, `px-acct`) reads as the board's
-   "Sign in" text link here: 14/500 ink, not the slot's own small capitals. */
+/* The account slot (core/AccountEntry.astro, `px-acct`) reads as the nav
+   here: 12/600 capitals at .17em in ink. */
 .mh .px-acct .px-acct__link {
   font-family: var(--font-ui);
-  font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
   line-height: 1;
   color: var(--ink);
   padding: 0;
@@ -146,14 +148,14 @@ body {
 .mh .px-acct .px-acct__link:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; }
 
 /* Subscribe is the primary button (.px-btn's values): ink fill, paper text,
-   44px, 4px corners, 15/600. */
+   44px, 4px corners, 12/600 capitals at .17em. */
 .mh__cta {
   display: inline-flex; align-items: center; justify-content: center;
   box-sizing: border-box;
   min-height: 44px;
   padding: 0 18px;
   font-family: var(--font-ui);
-  font-size: 15px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
   line-height: 1;
   color: var(--paper);
   background: var(--ink);
@@ -212,7 +214,7 @@ body {
     display: inline-flex;
     position: absolute; top: 10px; right: 60px;   /* 12 edge + 44 button + 4 gap */
     padding: 0 14px;
-    font-size: 14px;
+    font-size: 12px;
   }
   .mh__menu { display: block; flex: 1 0 100%; }
   .mh__menu-btn {
@@ -254,12 +256,12 @@ body {
     min-height: 44px;
     padding: 0 2px;
     border-bottom: 1px solid var(--hair);
-    font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--muted);
   }
   .mh__menu-acct { display: flex; align-items: center; min-height: 44px; padding: 0 2px; }
   .mh__menu-acct .px-acct { justify-content: flex-start; min-width: 0; }
-  .mh .mh__menu-acct .px-acct .px-acct__link { min-height: 44px; font-size: 15px; }
+  .mh .mh__menu-acct .px-acct .px-acct__link { min-height: 44px; font-size: 12px; }
 
   .mh--stage .mh__menu-panel,
   .mh--stage .mh__menu-panel > a,
@@ -267,14 +269,15 @@ body {
   .mh--stage .mh__menu-status { color: var(--on-deep-2); }
 }
 
-/* THE EYEBROW — the Lens label: Instrument Sans 12 / 500 / .06em capitals in
-   the desk TEXT colour (never the mark, which is not a text colour). */
+/* THE EYEBROW — Literata 12 / 600 / .18em capitals (the launch eyebrow at
+   the 12px floor) in the desk TEXT colour (never the mark, which is not a
+   text colour). */
 .px-eyebrow {
   font-family: var(--font-ui);
   font-size: var(--fs-label, 12px);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
-  letter-spacing: var(--ls-label, 0.06em);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--accent-deep, var(--accent));
   margin-bottom: 16px;
@@ -294,33 +297,33 @@ body {
   font-size: 14px;
   line-height: 1.65;
   color: var(--muted);
-  font-style: italic;
+  font-style: normal;   /* no italic sentence (2026-10-04) */
 }
 #px-article[data-mode="skim"] .px-prose-full { display: none; }
 #px-article[data-mode="skim"] .px-skim-caption-block { display: block; }
 
-/* SECTION — the eyebrow, the
-   section title (Newsreader 500 30/1.12) and the intro in the prose register
-   (Newsreader 19/1.6, 18 on phones). Lens type; the geometry is Phase 3's. */
+/* SECTION — the eyebrow, the section title (Literata 700 34/1.05, -.028em;
+   28 on phones) and the intro in the prose register (Literata 400 18/1.72).
+   The launch type on the Lens geometry (Phase 3). */
 .px-section { margin-bottom: 56px; }
 .px-section .px-eyebrow { margin-bottom: 12px; }
 .px-section__title {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--fs-section, 30px);
-  line-height: var(--lh-section, 1.12);
-  letter-spacing: var(--ls-display, -0.01em);
+  font-weight: 700;
+  font-size: var(--fs-section, 34px);
+  line-height: var(--lh-section, 1.05);
+  letter-spacing: -0.028em;
   margin-bottom: 14px;
   color: var(--ink);
   max-width: 24ch;
   text-wrap: balance;
 }
-.px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: inherit; }
+.px-section__title em { color: var(--accent-deep); font-style: italic; font-weight: 400; }
 .px-section__intro {
   font-family: var(--font-body);
   font-weight: 400;
-  font-size: var(--fs-prose, 19px);
-  line-height: var(--lh-prose, 1.6);
+  font-size: var(--fs-prose, 18px);
+  line-height: var(--lh-prose, 1.72);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
@@ -331,16 +334,16 @@ body {
   .px-section__intro { font-size: var(--fs-prose-sm, 18px); }
 }
 
-/* PROSE — Newsreader 400 at 19/1.6 (18 on phones), ink, RAGGED. Lens retired
+/* PROSE — Literata 400 at 18/1.72, strong 700, ink, RAGGED. Lens retired
    the justified-with-hyphenation ruling of 2026-09-08: every paragraph in the
    product sets ragged-right. Section intros share this register exactly, so a
    prose section and a figure section read as one body. */
 .px-prose { max-width: var(--col-prose); }
 .px-prose__lead {
   font-family: var(--font-body);
-  font-size: var(--fs-prose, 19px);
+  font-size: var(--fs-prose, 18px);
   font-weight: 500;
-  line-height: var(--lh-prose, 1.6);
+  line-height: var(--lh-prose, 1.72);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
@@ -348,19 +351,19 @@ body {
 .px-prose__p,
 .px-followup {
   font-family: var(--font-body);
-  font-size: var(--fs-prose, 19px);
-  line-height: var(--lh-prose, 1.6);
+  font-size: var(--fs-prose, 18px);
+  line-height: var(--lh-prose, 1.72);
   color: var(--ink);
   margin-bottom: 18px;
   text-wrap: pretty;
 }
 .px-followup { margin-top: 24px; max-width: 680px; }
 .px-prose__p:last-child { margin-bottom: 0; }
-.px-prose strong { color: var(--ink); font-weight: 600; }
+.px-prose strong { color: var(--ink); font-weight: 700; }
 @media (max-width: 768px) {
   .px-prose__lead, .px-prose__p, .px-followup { font-size: var(--fs-prose-sm, 18px); }
 }
-.px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; }
+.px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; font-weight: 400; }
 
 /* ============================================================================
    V2 ADDITIONS — viz card shell, view transitions
@@ -403,7 +406,8 @@ body {
    (2026-09-08) so no page changes; the values are Lens: the frame gives a
    1152 column, a band is a vertical rhythm split by a hair, buttons are 44px
    with 4px corners, chips are pills, cards are paper-2 with a hair and
-   shadow-1, labels are Instrument Sans 12 capitals at .06em.
+   shadow-1. Type is Literata at the launch values (2026-10-04): labels 12
+   capitals 600 at .16em, eyebrows .18em, chips .14em, buttons .17em.
    ════════════════════════════════════════════════════════════════════════════ */
 
 /* BANDS — 96px between sections (64 on phones): 48 above and below each
@@ -413,60 +417,61 @@ body {
 .px-band--flush { padding: 0; }
 .px-band--last { border-bottom: 0; }
 
-/* H1 — Newsreader 500, 64/1.02, -0.01em (phone 40/1.06); the one authored
-   italic word in the desk text colour. */
+/* H1 — Literata 700, 68/1, -0.032em (phone 40/1); the one authored italic
+   word at 400 in the desk text colour. */
 .px-h1 {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--fs-h1, 64px);
-  line-height: var(--lh-h1, 1.02);
-  letter-spacing: var(--ls-display, -0.01em);
+  font-weight: 700;
+  font-size: var(--fs-h1, 68px);
+  line-height: var(--lh-h1, 1);
+  letter-spacing: -0.032em;
   color: var(--ink);
   text-wrap: balance;
   max-width: 18ch;
   margin: 0 0 20px;
 }
-.px-h1 em { font-style: italic; font-weight: inherit; color: var(--accent-deep); }
+.px-h1 em { font-style: italic; color: var(--accent-deep); font-weight: 400; }
 /* H2 / H3 — for the page sections that need them (Phase 2 and 4 pages). */
 .px-h2 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: var(--fs-h2, 40px);
-  line-height: var(--lh-h2, 1.08);
-  letter-spacing: var(--ls-display, -0.01em);
+  line-height: var(--lh-h2, 1.05);
+  letter-spacing: -0.028em;
   color: var(--ink);
   margin: 0;
 }
 .px-h3 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: var(--fs-h3, 28px);
-  line-height: var(--lh-h3, 1.15);
-  letter-spacing: var(--ls-display, -0.01em);
+  line-height: var(--lh-h3, 1.1);
+  letter-spacing: -0.024em;
   color: var(--ink);
   margin: 0;
 }
-.px-h2 em, .px-h3 em { font-style: italic; font-weight: inherit; color: var(--accent-deep); }
+.px-h2 em, .px-h3 em { font-style: italic; color: var(--accent-deep); font-weight: 400; }
 
-/* LEDE — the prose register at the top of a page: Newsreader 400, 19/1.6. */
+/* LEDE — the hook register at the top of a page: Literata 300, 21/1.45
+   (17 on phones), the launch lede. */
 .px-lede {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: var(--fs-prose, 19px);
-  line-height: var(--lh-prose, 1.6);
+  font-weight: 300;
+  font-size: 21px;
+  line-height: 1.45;
   color: var(--ink);
   max-width: var(--measure, 68ch);
   text-wrap: pretty;
   margin: 0;
 }
 
-/* META — the label voice: Instrument Sans 12 / 500 / .06em capitals, muted. */
+/* META — the label voice: Literata 12 / 600 / .16em capitals, muted. */
 .px-meta {
   font-family: var(--font-ui);
   font-size: var(--fs-label, 12px);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
-  letter-spacing: var(--ls-label, 0.06em);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -478,7 +483,7 @@ body {
   flex: 0 0 auto;
 }
 
-/* BUTTONS — 44px, 15/600 Instrument Sans, 4px corners.
+/* BUTTONS — 44px, Literata 12/600 capitals at .17em, 4px corners.
      .px-btn            primary: ink fill, paper text
      .px-btn--ghost     secondary: 1px ink border, ink text
      .px-btn--outline   secondary, same values (kept for its call sites)
@@ -491,7 +496,7 @@ body {
   min-height: 44px;
   padding: 0 20px;
   font-family: var(--font-ui);
-  font-size: var(--fs-ui, 15px); font-weight: 600; letter-spacing: 0; text-transform: none;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
   line-height: 1.2;
   border: 1px solid var(--ink);
   border-radius: var(--r-ctl);
@@ -522,11 +527,11 @@ body {
 .px-cells--open { border-inline: 0; }
 
 /* CHIPS — the label chip is 28px, a pill, the desk tint with the desk text
-   (Instrument Sans 12 / 500 / .06em capitals). `--neutral` is the paper-3
+   (Literata 12 / 600 / .14em capitals). `--neutral` is the paper-3
    chip. A chip that is a CONTROL (a link or a button, the archive's desk
    filters) takes the filter-chip values from the Archive board instead: 44px
-   for the touch floor, paper-2 with a hair-2 border, 14/500 ink, and ink fill
-   when pressed. */
+   for the touch floor, paper-2 with a hair-2 border, 12/600 capitals at
+   .14em in ink, and ink fill when pressed. */
 .px-chip {
   display: inline-flex; align-items: center; gap: 7px;
   box-sizing: border-box;
@@ -535,7 +540,7 @@ body {
   height: 28px;
   padding: 0 12px;
   font-family: var(--font-ui);
-  font-size: var(--fs-label, 12px); font-weight: 500; letter-spacing: var(--ls-label, 0.06em); text-transform: uppercase;
+  font-size: var(--fs-label, 12px); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
   line-height: 1;
   white-space: nowrap;
   border: 0;
@@ -549,7 +554,7 @@ a.px-chip, button.px-chip {
   height: auto;
   min-height: 44px;
   padding: 0 16px;
-  font-size: 14px; font-weight: 500; letter-spacing: 0; text-transform: none;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
   border: 1px solid var(--hair-2, var(--rule));
   background: var(--paper-2);
   color: var(--ink);
@@ -562,9 +567,10 @@ a.px-chip:focus-visible, button.px-chip:focus-visible { outline: 2px solid var(-
   border-color: var(--ink); background: var(--ink); color: var(--paper); font-weight: 600;
 }
 
-/* INPUTS — 52px, paper-2, a 1px hair-2 border, 4px corners, Instrument Sans
-   16 (16, not 15: an input under 16px zooms the page on iOS). Focus is a 2px
-   ink outline 2px off the edge. The label sits above at 14px (`.px-label`). */
+/* INPUTS — 52px, paper-2, a 1px hair-2 border, 4px corners, Literata 16
+   (16, not 15: an input under 16px zooms the page on iOS). Focus is a 2px
+   ink outline 2px off the edge. The label sits above it (`.px-label`), 12
+   capitals at .16em. */
 .px-input {
   width: 100%;
   box-sizing: border-box;
@@ -586,9 +592,11 @@ a.px-chip:focus-visible, button.px-chip:focus-visible { outline: 2px solid var(-
   display: block;
   margin: 0 0 8px;
   font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   color: var(--ink-2);
 }
 
@@ -614,9 +622,9 @@ a.px-card:focus-visible, .px-card--link:focus-visible { outline: 2px solid var(-
   .px-band { padding: 32px 0; }
   .px-band--head { padding: 32px 0 6px; }
   .px-band--flush { padding: 0; }
-  .px-h1 { font-size: var(--fs-h1-sm, 40px); line-height: var(--lh-h1-sm, 1.06); }
+  .px-h1 { font-size: var(--fs-h1-sm, 40px); line-height: var(--lh-h1-sm, 1); }
   .px-h2 { font-size: 32px; }
-  .px-lede { font-size: var(--fs-prose-sm, 18px); }
+  .px-lede { font-size: 17px; }
   .px-card { padding: 20px; }
 }
 

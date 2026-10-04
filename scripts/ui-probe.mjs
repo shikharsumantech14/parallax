@@ -669,7 +669,7 @@ function measure(cfg) {
   out.meta.innerHeight = window.innerHeight;
   out.meta.dpr = window.devicePixelRatio;
   out.meta.docHeight = document.documentElement.scrollHeight;
-  out.meta.faces = ['Newsreader', 'Instrument Sans'].filter((fam) => Array.from(document.fonts).some((f) => f.family.replace(/["']/g, '') === fam && f.status === 'loaded')).length;
+  out.meta.faces = ['Literata'].filter((fam) => Array.from(document.fonts).some((f) => f.family.replace(/["']/g, '') === fam && f.status === 'loaded')).length;
   out.meta.gate = { present: !!document.querySelector('.px-gate'), hidden: document.querySelectorAll('.px-gate-hidden').length };
   out.meta.scenes = document.querySelectorAll('[data-build-scene]').length;
 
@@ -1336,7 +1336,7 @@ async function probe(browser, job, opts) {
     if (m.meta.innerWidth !== job.width) {
       res.findings.push({ type: 'HARNESS', nn: '--', kind: 'page', layout: '', desc: `layout viewport is ${m.meta.innerWidth}px, expected ${job.width}px (meta viewport?)`, px: null });
     }
-    if (m.meta.faces < 2) res.meta.fontWarning = 'Newsreader or Instrument Sans not loaded — measured on a fallback face';
+    if (m.meta.faces < 1) res.meta.fontWarning = 'Literata not loaded — measured on a fallback face';
 
     if (opts.shots) await shoot(page, job, res, opts);
     res.ok = true;

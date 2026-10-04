@@ -99,7 +99,7 @@ const safeMinMax = (arr: number[]) => {
 // inside project(): every candidate spot is a box estimated from the label's
 // width, and a spot that leaves the frame is never taken.
 const LBL_FS = 12;           // matches .px-scale__plabel font-size
-// Per-character advance of a point label, in em (Instrument Sans 400 runs
+// Per-character advance of a point label, in em (Literata 400 runs
 // 0.43 to 0.54 em a character, measured 2026-09-30); rounded up.
 const LBL_CW = 0.55;
 const lblW = (s?: string) => LBL_CW * LBL_FS * String(s ?? '').length;
@@ -166,7 +166,7 @@ const fmtTicks = (vTs: number[], isLog: boolean) => vTs.map((v) => compact(isLog
 /* ── The y title and the y gutter, measured ───────────────────────────────
    The y title is a horizontal line above the plot (up to two lines, budgeted
    in characters against the full width); the gutter holds only the tick
-   labels. Widths are Instrument Sans at 12px: ticks 0.55em a character
+   labels. Widths are Literata at 12px: ticks 0.55em a character
    (tabular figures), axis titles 0.62em (500, capitals, 0.06em tracking). */
 const TICK_CH = 12 * 0.55;
 const AXT_CH = 12 * 0.62;
@@ -705,7 +705,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
               {p.yTicks.map((t) => (
                 <g>
                   <line x1={g.padL} y1={t.y} x2={g.W - g.padR} y2={t.y} />
-                  <text class="px-scale__tick" x={g.padL - 8} y={t.y + 4} text-anchor="end" style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif">{t.label}</text>
+                  <text class="px-scale__tick" x={g.padL - 8} y={t.y + 4} text-anchor="end" style="font-family:'Literata',Georgia,serif">{t.label}</text>
                 </g>
               ))}
               {p.xTicks.map((t) => (
@@ -714,7 +714,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
                   <text
                     class="px-scale__tick" x={t.x} y={g.padT + g.ih + 18}
                     text-anchor={t.x - g.padL < 16 ? 'start' : g.W - t.x < 22 ? 'end' : 'middle'}
-                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                    style="font-family:'Literata',Georgia,serif"
                   >{t.label}</text>
                 </g>
               ))}
@@ -760,7 +760,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
                   <text
                     class="px-scale__plabel" data-hl={q.i === headIdx ? 'true' : undefined}
                     x={q.lx.toFixed(1)} y={q.ly.toFixed(1)} text-anchor={q.anchor}
-                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                    style="font-family:'Literata',Georgia,serif"
                   >{q.label}</text>
                 )
               ))}
@@ -774,7 +774,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
             <text
               class="px-scale__axis-title"
               x={g.padL + g.iw / 2} y={g.H - 6} text-anchor="middle"
-              style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+              style="font-family:'Literata',Georgia,serif"
               data-axt data-axt-log={g.xTitleLogText} data-axt-linear={g.xTitleLinText}
               data-build="1"
             >{g.xTitleLogText}</text>
@@ -787,7 +787,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
                   <text
                     class="px-scale__axis-title"
                     x="0" y={14 + li * g.AXT_LINE} text-anchor="start"
-                    style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"
+                    style="font-family:'Literata',Georgia,serif"
                   >{ln}</text>
                 ))}
               </g>
@@ -803,7 +803,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
                   <line class="px-scale__annot-lead" x1={a.x1.toFixed(1)} y1={a.y1.toFixed(1)} x2={a.x2.toFixed(1)} y2={a.y2.toFixed(1)} />
                   <text
                     class="px-scale__annot-t" x={a.tx.toFixed(1)} y={a.ty.toFixed(1)} text-anchor={a.anchor}
-                    style="font-family:'Newsreader',Georgia,'Times New Roman',serif"
+                    style="font-family:'Literata',Georgia,serif"
                   >{a.lines.map((ln, li) => <tspan x={a.tx.toFixed(1)} dy={li === 0 ? 0 : g.A_LH}>{ln}</tspan>)}</text>
                 </g>
               ))}
@@ -909,19 +909,22 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
   .px-scale__big {
     font-family: var(--font-ui);
     font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
-    font-weight: 600;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: var(--accent-deep);
+    padding-bottom: 0.12em;
   }
   .px-scale__biglab {
     min-width: 0;
     font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1.35;
     color: var(--ink-2);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .px-scale__plot { position: relative; }
@@ -935,8 +938,8 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
   }
   .px-scale__axis-title {
     font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     fill: var(--ink-2);
   }
@@ -978,7 +981,7 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
   .px-scale__annot-lead { stroke: var(--hair-2); stroke-width: 1; }
   .px-scale__annot-t {
     font-size: 13px;
-    font-style: italic;
+    font-style: normal;
     fill: var(--ink);
     paint-order: stroke;
     stroke: var(--paper-2);

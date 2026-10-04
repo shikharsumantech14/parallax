@@ -9,7 +9,7 @@ paths:
 
 **The law is `docs/design/LENS.md` §2 (tokens) and §3 (type).** This rule is
 the working summary for anyone touching CSS. The launch design's token law
-(Literata only, the RD-05 zero-radius override, `--viz-edge`, the two-role
+(the RD-05 zero-radius override, `--viz-edge`, the two-role
 `--accent-deep`, derived `--muted`) is retired; see "Retired" at the foot.
 
 `shared/design/{tokens,worlds}.css` is the **canonical source**. Edit there,
@@ -67,19 +67,24 @@ anything, because the 87 kinds still compile against the legacy names.
 
 ## Type
 
-Two faces (LENS §3): **Newsreader** for display, prose and captions,
-**Instrument Sans** for UI, labels and every number (600, tabular).
-`--font-display` / `--font-body` → Newsreader, `--font-ui` / `--font-mono` →
-Instrument Sans. Worlds differ by **ink only**, never by face or treatment.
-Single lever: `src/styles/type-v2.css`, imported last. **Nothing below 12px
-rendered.** The share cards render on static files of both faces
-(`scripts/fetch-fonts.mjs`).
+**One face, Literata** (the operator's ruling of 2026-10-04, LENS §3):
+display, prose, captions, labels and every number, at the launch design's
+weights, case and tracking. Headlines 700 tight; prose 400 18/1.72; labels
+600 capitals at 12px (eyebrow .18em, meta .16em, chip .14em, button .17em);
+numbers 700 tabular, line-height 1. **No italic sentence**: captions and the
+lit cue line are 500 15.5/1.3 roman; only the one authored emphasis word of a
+title is italic (400, desk text colour). All four role tokens
+(`--font-display`, `--font-body`, `--font-ui`, `--font-mono`) → Literata.
+Worlds differ by **ink only**, never by face or treatment. Single lever:
+`src/styles/type-v2.css`, imported last. **Nothing below 12px rendered.**
+The share cards render on static Literata files (`scripts/fetch-fonts.mjs`).
+Newsreader and Instrument Sans (Lens, 2026-09-30) are retired.
 
 ## In-SVG text (RD-01b, carried)
 
 Use a **literal font stack** in a `style` attribute, never `var()` inside an
 SVG presentation attribute:
-`style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif"`.
+`style="font-family:'Literata',Georgia,serif"`.
 Presentation attributes lose to any stylesheet rule, and satori/resvg (the OG
 card renderer) perform no `var()` substitution. Standing grep, must be zero:
 
@@ -105,7 +110,7 @@ rules. So are `px-plain` (the retired plain line), `px-primer`,
 ## Retired 2026-09-30 by the Lens revamp
 
 Do not restore any of these; LENS §10 and TD-09 give the reason for each.
-**Literata as the one face** · **zero radius** and the `base.css` `:root`
+~~Literata as the one face~~ (restored 2026-10-04, see Type) · **zero radius** and the `base.css` `:root`
 override that set `--r-card` / `--r-tile` / `--r-pill` to 0 (TD-08) ·
 **flat, shadowless surfaces** (RD-05) · **six page grounds** and the
 dark-desk worlds · **`--viz-edge`**, the 3px top rule (TD-07; a hair,

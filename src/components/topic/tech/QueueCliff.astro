@@ -64,7 +64,7 @@ const {
 } = Astro.props;
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-const FONT = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const FONT = "font-family:'Literata',Georgia,serif";
 
 // Service rate μ (req/s). serviceMs wins if both are given (per schema).
 const hasSvcMs = typeof serviceMs === 'number' && serviceMs > 0;
@@ -410,18 +410,21 @@ const curveTag = (() => {
   .px-qc__big {
     font-family: var(--font-ui);
     font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
-    font-weight: 600;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: var(--accent-deep);
+    padding-bottom: 0.12em;
   }
   .px-qc__biglab {
     font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1.35;
     color: var(--ink-2);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
   /* the honesty chip for the clipped axis */
   .px-qc__ycap {
@@ -436,8 +439,8 @@ const curveTag = (() => {
     background: var(--paper-3);
     font-family: var(--font-ui);
     font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--ink-2);
   }
@@ -451,8 +454,8 @@ const curveTag = (() => {
   .px-qc__tick { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
   .px-qc__axis-title {
     font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     fill: var(--ink-2);
   }
@@ -505,14 +508,14 @@ const curveTag = (() => {
   .px-qc__readout b { font-weight: 600; color: var(--accent-deep); }
   .px-qc__ro-rho { color: var(--ink); font-weight: 600; }
   .px-qc__sep { color: var(--hair-2); }
-  .px-qc__ro-snap { color: var(--ink); font-style: italic; }
+  .px-qc__ro-snap { color: var(--ink); font-style: normal; }
 
   .px-qc__control { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
   .px-qc__control-lbl {
     font-family: var(--font-ui);
     font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
     flex: 0 0 auto;
@@ -568,9 +571,9 @@ const curveTag = (() => {
   }
   .px-qc__table th {
     text-align: left;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 12px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
     padding: 4px 8px 6px 0;

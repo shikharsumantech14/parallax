@@ -22,8 +22,8 @@ Parallax is a visual explainer publication: one Astro 4 project in
 `output: 'hybrid'` (the publication prerenders, the reader-account routes
 render on demand, Supabase-backed), deployed on Vercel from `main`. **Its
 design is Lens** (`docs/design/LENS.md`, approved on the canvas 2026-09-29/30):
-one paper under every desk and six desk inks, Newsreader and Instrument Sans,
-a 1152 column, 6 / 4 / pill corners, and a reading system in which every
+one paper under every desk and six desk inks, one face (Literata, since the
+ruling below), a 1152 column, 6 / 4 / pill corners, and a reading system in which every
 graphic section is the article (620) beside a pinned figure panel (520),
 joined by numbered **cues** the reader presses in the prose. **All nine
 phases are built**, 0 to 7 and Part A of 8 committed (`789f275` … `280b5c5`)
@@ -38,6 +38,18 @@ plan's (`docs/COST-PLAN.md`, 2026-09-28): two doors, one config, a dossier
 check pass, Jev as a pre-pass, a ledger priced at list. The register plan
 (`docs/REGISTER-PLAN.md`) governs the voice: plain Indian English,
 component-first issues.
+
+**2026-10-04, the type ruling.** On the canvas board `Type-Compare` the
+operator chose the launch design's type over Lens's two faces: **Literata
+everywhere** (display, prose, captions, labels and numbers) at the launch
+weights, case and tracking, **no italic sentence anywhere**, the one italic
+emphasis word of a title kept (LENS §3, rewritten). Built the same day:
+`src/styles/type-v2.css` and every role rule under `src/`, the 24 literal
+in-SVG stacks, the four layouts' font link, and the share cards (static
+Literata files from the googlefonts/literata repo; the Newsreader and
+Instrument Sans TTFs are deleted). Verified by the fast gates and a scoped
+`check:render` (the City issue, the ISS issue, the politics showcase and
+Home at 1280 and 375); the full render run belongs to the commit.
 
 ---
 

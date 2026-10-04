@@ -10,7 +10,7 @@
      .app-shell   the full-chrome column (the Shelf, the queue)
      .app-focus   the focus chrome (sign in, welcome): no masthead, one line
      .app-lockup  the lockup a focus page carries itself (the boards' 34 / 12
-                  / Newsreader 24 lockup, as core/Masthead.astro draws it)
+                  / Literata 700 24 lockup, as core/Masthead.astro draws it)
      .btn .field .notice .divider .eyebrow .dek .empty .app-back
                   the legacy primitive names the queue and the auth panes still
                   use, restyled to the Lens parts (LENS §4.2)
@@ -69,7 +69,7 @@
 }
 
 /* The lockup a focus page carries: the medallion tight at 34 (ring 9), a 12px
-   gap, "Parallax" in Newsreader 500 24 with its cap centre on the disc centre
+   gap, "Parallax" in Literata 700 24 with its cap centre on the disc centre
    (the boards' +2px baseline nudge). */
 .app-lockup {
   display: inline-flex;
@@ -82,10 +82,10 @@
 }
 .app-lockup__name {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   position: relative;
   top: 2px;
 }
@@ -94,20 +94,20 @@
 /* ── Type, scoped ─────────────────────────────────────────────────────────── */
 .app-shell h1, .app-focus h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 48px;
-  line-height: 1.04;
-  letter-spacing: -0.01em;
+  line-height: 1;
+  letter-spacing: -0.032em;
   color: var(--ink);
   margin: 0 0 var(--gap-sm);
   text-wrap: balance;
 }
-.app-shell h1 em, .app-focus h1 em { font-style: italic; color: var(--accent-deep); }
+.app-shell h1 em, .app-focus h1 em { font-style: italic; color: var(--accent-deep); font-weight: 400; }
 .app-shell .eyebrow, .app-focus .eyebrow {
   font-family: var(--font-ui);
   font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
   margin: 0 0 12px;
@@ -126,7 +126,7 @@
   outline-offset: 2px;
 }
 @media (max-width: 768px) {
-  .app-shell h1, .app-focus h1 { font-size: 40px; line-height: 1.06; }
+  .app-shell h1, .app-focus h1 { font-size: 40px; line-height: 1; }
 }
 
 /* ── Buttons (the legacy names on the Lens values, LENS §4.2) ────────────── */
@@ -139,8 +139,10 @@
   min-height: 44px;
   padding: 0 20px;
   font-family: var(--font-ui);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
   line-height: 1.2;
   border: 1px solid var(--ink);
   border-radius: var(--r-ctl);
@@ -159,14 +161,16 @@
 .app-shell .btn--danger, .app-focus .btn--danger { background: transparent; color: var(--danger); border-color: var(--danger); }
 .app-shell .btn--danger:hover, .app-focus .btn--danger:hover { background: var(--danger); color: var(--paper); border-color: var(--danger); }
 .app-shell .btn--block, .app-focus .btn--block { display: flex; width: 100%; }
-.app-shell .btn--tall, .app-focus .btn--tall { min-height: 52px; font-size: 16px; }
+.app-shell .btn--tall, .app-focus .btn--tall { min-height: 52px; font-size: 12px; }
 
 /* ── Fields ──────────────────────────────────────────────────────────────── */
 .app-shell .field, .app-focus .field { display: flex; flex-direction: column; gap: 8px; }
 .app-shell .field label, .app-focus .field label {
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   line-height: 1.4;
   color: var(--ink);
 }
@@ -212,8 +216,8 @@
   gap: 16px;
   font-family: var(--font-ui);
   font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
 }

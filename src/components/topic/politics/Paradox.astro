@@ -2,7 +2,7 @@
 /**
  * Paradox — two true things pulling apart. Lens Phase 6 (2026-09-30), to the
  * Lib-paradox board: two plates facing each other on the desk tint, each with
- * its label and its statement in Newsreader italic at 28, and between them a
+ * its label and its statement in Literata roman at 28, and between them a
  * drawn tension mark (a dashed spine and two arrows pulling away from it).
  * Each plate's `detail` prints under its statement at 14px: the board dropped
  * it, but nothing else on the page carries it.
@@ -126,9 +126,9 @@ const intLike = fig ? Number.isInteger(fig.value) : true;
     align-items: center;
     font-family: var(--font-ui);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 20px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--accent-deep);
   }
@@ -136,12 +136,13 @@ const intLike = fig ? Number.isInteger(fig.value) : true;
     margin: 0;
     font-family: var(--font-display);
     font-size: 28px;
-    font-style: italic;
+    font-style: normal;
     font-weight: 400;
     line-height: 1.12;
     color: var(--ink);
   }
-  .px2__claim :global(em) { font-style: italic; }
+  /* A statement is authored whole inside *…*: set roman, never an italic sentence (2026-10-04). */
+  .px2__claim :global(em) { font-style: normal; font-weight: inherit; }
   .px2__detail { margin: 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.5; color: var(--ink-2); }
   .px2__detail :global(strong) { color: var(--ink); }
 
@@ -156,16 +157,17 @@ const intLike = fig ? Number.isInteger(fig.value) : true;
   .px2__big {
     font-family: var(--font-ui);
     font-size: 96px;
-    line-height: 0.92;
-    font-weight: 600;
+    line-height: 1;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
     color: var(--accent-deep);
+    padding-bottom: 0.12em;
   }
   .px2__fig-l { margin: 0 0 6px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-ui); font-size: 13px; line-height: 1.35; color: var(--muted); }
   .px2__fig-l b { display: flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--ink); }
   .px2__bars { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 14px; }
-  .px2__bk { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px2__bk { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
   .px2__track { position: relative; height: 12px; }
   .px2__bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); transform-origin: left center; }
   .px2__bar--was { background: var(--hair-2); }

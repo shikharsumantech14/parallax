@@ -4,17 +4,17 @@
  * public/og/story/<slug>.png, the og:image every issue and story page points
  * at, so a shared link previews as a Parallax card on WhatsApp, X, Slack.
  *
- * Raw SVG → PNG via resvg, the brand mark from src/lib/mark.ts, Newsreader
- * and Instrument Sans from assets/fonts (static TTFs, fetched by
- * scripts/fetch-fonts.mjs). Themed per desk (the palettes below — mirrored by
+ * Raw SVG → PNG via resvg, the brand mark from src/lib/mark.ts, Literata from
+ * assets/fonts (static TTFs, fetched by scripts/fetch-fonts.mjs; one face
+ * since the operator's ruling of 2026-10-04). Themed per desk (the palettes below — mirrored by
  * `npm run design:check`, so an ink change here must match the tokens).
  *
  * Lens (2026-09-30): a share card is a COVER, so it is the one place a desk's
  * deep plate fills the frame (BRIEF.md principle 1; the Brand-ShareCards
  * board). Text on it is the on-deep paper. Phase 4 (2026-09-30) drew the
  * board's anatomy: the SEAL-cut medallion top-left at the desk's station, the
- * register beside it, the headline in Newsreader 500 with its authored
- * `*word*` in italic in the desk's hi (the lime on tech and sports, the mark
+ * register beside it, the headline in Literata 700 with its authored
+ * `*word*` in italic 400 in the desk's hi (the lime on tech and sports, the mark
  * elsewhere), "No 17 · 4 min · parallaxlens.com" at the foot, and on the
  * right 45%, behind a hair, the issue's cover mark drawn from
  * `coverModel()` (src/lib/cover.ts, pure) in on-deep colours.
@@ -78,18 +78,17 @@ function findFont(label: string, match: (f: string) => boolean): string {
   return hit;
 }
 
-/* The site's two families (Lens): Newsreader 500 for the display role (the
-   opsz-72 static instance, whose family name is "Newsreader 72pt"), its
-   italic for the emphasised word, and Instrument Sans 500 / 600 for labels
-   and numbers. resvg matches them by family + weight + style. */
+/* One face, as on the site: Literata 700 for the headline (the opsz-72
+   static instance, whose family name is "Literata 72pt"), its italic 400 for
+   the emphasised word, and Literata 600 for the capitals labels and the meta
+   (family "Literata"). resvg matches them by family + weight + style. */
 const FONT_FILES = [
-  findFont('Newsreader Medium', (f) => /^newsreader-medium\.ttf$/i.test(f)),
-  findFont('Newsreader Medium Italic', (f) => /^newsreader-mediumitalic\.ttf$/i.test(f)),
-  findFont('Instrument Sans Medium', (f) => /^instrumentsans-medium\.ttf$/i.test(f)),
-  findFont('Instrument Sans SemiBold', (f) => /^instrumentsans-semibold\.ttf$/i.test(f)),
+  findFont('Literata 72pt Bold', (f) => /^literata72pt-bold\.ttf$/i.test(f)),
+  findFont('Literata 72pt Italic', (f) => /^literata72pt-italic\.ttf$/i.test(f)),
+  findFont('Literata SemiBold', (f) => /^literata-semibold\.ttf$/i.test(f)),
 ];
-const SERIF = "'Newsreader 72pt', Newsreader";
-const SANS = "'Instrument Sans'";
+const SERIF = "'Literata 72pt', Literata";
+const SANS = 'Literata';
 
 // ── geometry ───────────────────────────────────────────────────────────────
 const W = 1200;
@@ -98,7 +97,7 @@ const H = 630; // the link-preview size every platform accepts
 // ── text helpers ─────────────────────────────────────────────────────────────
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const label = (t: string, x: number, y: number, size: number, color: string, ls = 1.4, anchor = 'start') =>
-  `<text x="${x}" y="${y}" font-family="${SANS}" font-weight="500" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
+  `<text x="${x}" y="${y}" font-family="${SANS}" font-weight="600" font-size="${size}" letter-spacing="${ls}" fill="${color}" text-anchor="${anchor}">${esc(t)}</text>`;
 
 /* A title with its authored `*word*` emphasis, as words that remember which
    are emphasised, wrapped into lines of about `maxChars`. */
@@ -174,7 +173,7 @@ function coverArt(t: Theme, topic: Topic, d: OgData, x0: number, y0: number, k: 
       + (c.stroke ? ` stroke="${onDeep(c.stroke, t)}" stroke-width="${c.sw ?? 1}"` : '') + `/>`);
   }
   for (const x of m.texts) {
-    g.push(`<text x="${x.x}" y="${x.y}" font-family="${SANS}" font-size="${x.fs}" font-weight="${x.w && x.w >= 600 ? 600 : 500}"`
+    g.push(`<text x="${x.x}" y="${x.y}" font-family="${SANS}" font-size="${x.fs}" font-weight="600"`
       + (x.caps ? ' letter-spacing="0.8"' : '')
       + ` fill="${onDeep(x.fill, t)}" text-anchor="${x.anchor ?? 'start'}">${esc(x.t)}</text>`);
   }
@@ -200,14 +199,16 @@ export function ogCard(d: OgData, topic: Topic): string {
   const LEFT = 660; // the words take 55%, the cover 45% (the Brand-ShareCards board)
 
   let size = 76;
-  let lines = wrap(words(d.title), 15);
-  if (lines.length > 4) { size = 60; lines = wrap(words(d.title), 19); }
+  // Literata 700 runs about .53em a character at the display cut: 13
+  // characters at 76 and 17 at 60 keep a line inside the 590px words column.
+  let lines = wrap(words(d.title), 13);
+  if (lines.length > 4) { size = 60; lines = wrap(words(d.title), 17); }
   if (lines.length > 5) lines = lines.slice(0, 5);
   const lh = Math.round(size * 1.04);
   const top = Math.round((H - lines.length * lh) / 2 + size * 0.8);
   const title = lines.map((ln, i) =>
-    `<text x="52" y="${top + i * lh}" font-family="${SERIF}" font-weight="500" font-size="${size}" letter-spacing="${(-0.01 * size).toFixed(2)}" fill="${t.ink}">`
-    + ln.map((w, j) => `<tspan${w.em ? ` font-style="italic" fill="${t.hi}"` : ''}>${j ? ' ' : ''}${esc(w.w)}</tspan>`).join('')
+    `<text x="52" y="${top + i * lh}" font-family="${SERIF}" font-weight="700" font-size="${size}" letter-spacing="${(-0.028 * size).toFixed(2)}" fill="${t.ink}">`
+    + ln.map((w, j) => `<tspan${w.em ? ` font-style="italic" font-weight="400" fill="${t.hi}"` : ''}>${j ? ' ' : ''}${esc(w.w)}</tspan>`).join('')
     + `</text>`).join('');
 
   const k = 460 / COVER_W;
@@ -217,9 +218,9 @@ export function ogCard(d: OgData, topic: Topic): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
     `<rect width="${W}" height="${H}" fill="${t.plate}"/>` +
     mark(t, topic, 52, 44, 80) +
-    label(d.eyebrow.toUpperCase(), 156, 94, 24, soft, 1.9) +
+    label(d.eyebrow.toUpperCase(), 156, 94, 22, soft, 3.5) +
     title +
-    label(d.meta, 52, H - 48, 24, soft, 0) +
+    label(d.meta.toUpperCase(), 52, H - 48, 22, soft, 3.5) +
     `<line x1="${LEFT}" y1="0" x2="${LEFT}" y2="${H}" stroke="${hair}" stroke-width="2"/>` +
     art +
     `</svg>`
@@ -233,7 +234,7 @@ export function toPng(svg: string): Buffer {
     font: {
       fontFiles: FONT_FILES.map((f) => join(fontDir, f)),
       loadSystemFonts: false,
-      defaultFontFamily: 'Instrument Sans',
+      defaultFontFamily: 'Literata',
     },
   }).render().asPng());
 }

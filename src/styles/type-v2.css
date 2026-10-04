@@ -1,31 +1,35 @@
 /* ============================================================================
-   PARALLAX — THE TYPE SYSTEM (Lens, 2026-09-30)
+   PARALLAX — THE TYPE SYSTEM (one face: Literata, the operator's ruling of
+   2026-10-04 on the canvas board Type-Compare)
    ----------------------------------------------------------------------------
-   Two families: a serif to read, a sans to count (the Foundations board).
+   Literata everywhere: display, prose, captions, labels AND numbers, at the
+   launch design's weights, case and tracking (LENS §3). The Lens layout,
+   inks, cards, cues, builds and number tiers are unchanged; only type moved.
 
-     Newsreader        display and prose. Headlines 500 tight (-0.01em),
-                       prose 400 at 19/1.6 (18 on phones), the one authored
-                       italic word in the desk text colour.
-     Instrument Sans   UI and data. Body UI 15/1.5, labels 12–13 / 500 /
-                       .06em capitals, numbers 600 tabular in five tiers.
+     headlines     700, tight (-.02 to -.032em)
+     prose         400 at 18/1.72, strong 700
+     the finding   500 15.5/1.3 ROMAN in ink-2 (no italic sentence anywhere)
+     labels        600 capitals at 12px: eyebrow .18em, meta .16em,
+                   chip .14em, button .17em
+     numbers       700 tabular, line-height 1, at the Lens tiers
+     emphasis      the ONE authored italic word, 400, desk text colour
 
-   The role tokens survive so every kind keeps compiling:
-     --font-display, --font-body   → Newsreader
-     --font-ui, --font-mono        → Instrument Sans (the mono role was the
-                                     label-and-number role; it is the sans now)
+   The role tokens survive so every kind keeps compiling; all four resolve to
+   the one face:
+     --font-display, --font-body, --font-ui, --font-mono → Literata
 
-   Loaded by every layout's Google Fonts link (Newsreader ital,opsz,wght
-   400–600 + Instrument Sans 400–600). Imported LAST (after the six theme
-   files) so this wins the :root[data-topic] specificity contest without
-   !important. Literata, and the trio before it, are retired: do not
-   reintroduce a per-desk face.
+   Loaded by every layout's Google Fonts link (Literata ital,opsz,wght:
+   300–700 roman, 400 italic). Imported LAST (after the six theme files) so
+   this wins the :root[data-topic] specificity contest without !important.
+   Newsreader and Instrument Sans (Lens, 2026-09-30 to 2026-10-04) are
+   retired: do not reintroduce a second face.
    ============================================================================ */
 
 :root {
-  --face-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --face-sans:  'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --face-serif: 'Literata', Georgia, serif;
+  --face-sans:  'Literata', Georgia, serif;   /* legacy name: there is no sans */
 
-  /* Legacy per-desk face names: one serif for every desk. */
+  /* Legacy per-desk face names: one face for every desk. */
   --face-meta:     var(--face-serif);
   --face-politics: var(--face-serif);
   --face-space:    var(--face-serif);
@@ -34,31 +38,35 @@
   --face-travel:   var(--face-serif);
   --face-sports:   var(--face-serif);
 
-  /* ── The scale (BRIEF.md "Type", the Foundations board) ─────────────── */
-  --fs-h1: 64px;       --lh-h1: 1.02;   /* phone 40 / 1.06 */
-  --fs-h1-sm: 40px;    --lh-h1-sm: 1.06;
-  --fs-h2: 40px;       --lh-h2: 1.08;
-  --fs-h3: 28px;       --lh-h3: 1.15;
-  --fs-section: 30px;  --lh-section: 1.12;
-  --fs-prose: 19px;    --lh-prose: 1.6;  /* phone 18 / 1.6 */
+  /* ── The scale (the Type-Compare board, the launch values) ──────────── */
+  --fs-h1: 68px;       --lh-h1: 1;      /* phone 40 / 1 */
+  --fs-h1-sm: 40px;    --lh-h1-sm: 1;
+  --fs-h2: 40px;       --lh-h2: 1.05;
+  --fs-h3: 28px;       --lh-h3: 1.1;
+  --fs-section: 34px;  --lh-section: 1.05;   /* phone 28 */
+  --fs-prose: 18px;    --lh-prose: 1.72;
   --fs-prose-sm: 18px;
-  --fs-caption: 17px;                    /* the finding: Newsreader italic */
-  --fs-ui: 15px;       --lh-ui: 1.5;
-  --fs-small: 13px;                      /* source lines, notes */
-  --fs-label: 12px;    --ls-label: 0.06em;
-  --fs-label-lg: 13px;
-  --ls-display: -0.01em;
+  --fs-caption: 15.5px; --lh-caption: 1.3;   /* the finding: 500 roman, ink-2 */
+  --fs-ui: 15px;       --lh-ui: 1.55;
+  --fs-small: 14px;                      /* notes */
+  --fs-label: 12px;    --ls-label: 0.16em;   /* 600 capitals */
+  --ls-eyebrow: 0.18em;
+  --ls-chip: 0.14em;
+  --ls-btn: 0.17em;
+  --fs-label-lg: 12px;
+  --ls-display: -0.028em;
   --measure: 68ch;
 
-  /* Number tiers (BRIEF-4 §2): Instrument Sans 600, tabular, line-height .92,
-     the label 13–14px sitting 8px below. */
+  /* Number tiers (LENS §7): Literata 700, tabular, line-height 1, the label
+     12px capitals 8px below. The two big tiers carry .12em of bottom room:
+     Literata's comma drops well under the baseline. */
   --fs-num-1: 20px;
   --fs-num-2: 32px;
   --fs-num-3: 48px;    /* secondary figures, stat tiles, Shelf rings */
-  --fs-num-4: 96px;    /* the pinned figure's headline number */
+  --fs-num-4: 96px;    /* the pinned figure's headline number (phone 72) */
   --fs-num-5: 160px;   /* the stage counter (phone 88) */
   --fs-num-card: 40px; /* cover and desk cards */
-  --lh-num: 0.92;
+  --lh-num: 1;
 }
 
 :root,
@@ -68,10 +76,10 @@
 :root[data-topic="tech"],
 :root[data-topic="travel"],
 :root[data-topic="sports"] {
-  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --font-body: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Literata', Georgia, serif;
+  --font-body: 'Literata', Georgia, serif;
+  --font-ui: 'Literata', Georgia, serif;
+  --font-mono: 'Literata', Georgia, serif;
 }
 
 :root { --issue-face: var(--face-meta); }
@@ -82,24 +90,26 @@
 :root[data-topic="travel"]   { --issue-face: var(--face-travel); }
 :root[data-topic="sports"]   { --issue-face: var(--face-sports); }
 
-/* Newsreader is an optical-size family: let the browser pick the cut for the
-   size (the headline cut at 64, the text cut at 19). */
+/* Literata is an optical-size family (opsz 7..72): let the browser pick the
+   cut for the size, the display cut at 68, the text cut at 18, the caption
+   cut at 12. */
 body { font-optical-sizing: auto; }
 
-/* The number role: every figure that uses it is tabular sans, never the
-   serif, so a readout never jitters and a column of figures aligns. */
+/* The number role: Literata 700, tabular, so a readout never jitters and a
+   column of figures aligns. */
 .px-num {
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: var(--lh-num);
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 .px-num--1 { font-size: var(--fs-num-1); }
 .px-num--2 { font-size: var(--fs-num-2); }
 .px-num--3 { font-size: var(--fs-num-3); }
-.px-num--4 { font-size: var(--fs-num-4); }
-.px-num--5 { font-size: var(--fs-num-5); }
+.px-num--4 { font-size: var(--fs-num-4); padding-bottom: 0.12em; }
+.px-num--5 { font-size: var(--fs-num-5); letter-spacing: -0.03em; padding-bottom: 0.12em; }
 @media (max-width: 768px) {
+  .px-num--4 { font-size: 72px; }
   .px-num--5 { font-size: 88px; }
 }

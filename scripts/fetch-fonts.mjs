@@ -5,22 +5,22 @@
  *
  *   node scripts/fetch-fonts.mjs
  *
- * Lens (2026-09-30): the cards set in the site's two families.
- *   - Newsreader-Medium.ttf          Newsreader 500, opsz 72  (display)
- *   - Newsreader-MediumItalic.ttf    Newsreader 500 italic, opsz 72 (the emphasised word)
- *   - InstrumentSans-Medium.ttf      Instrument Sans 500 (labels)
- *   - InstrumentSans-SemiBold.ttf    Instrument Sans 600 (numbers)
+ * One face (the operator's ruling of 2026-10-04): the cards set in Literata,
+ * as the site does.
+ *   - Literata72pt-Bold.ttf      Literata 700, the opsz-72 cut (the headline)
+ *   - Literata72pt-Italic.ttf    Literata 400 italic, opsz 72 (the emphasised word)
+ *   - Literata-SemiBold.ttf      Literata 600 (the capitals labels and the meta)
  *
- * How: the Google Fonts CSS2 API, asked for ONE weight (and one optical size)
- * per request, with a plain non-browser User-Agent. Google then serves a
- * STATIC instanced TTF (no `fvar` table) instead of WOFF2 or the variable
- * font — resvg/satori cannot parse WOFF2, and variable fonts crash them. The
- * script checks for `fvar` and refuses a variable file rather than letting
- * the card renderer fail at build time.
+ * Where: STATIC instances from the googlefonts/literata repository. Google's
+ * CSS2 endpoint serves Literata as a VARIABLE font, which resvg cannot use
+ * (the launch design learned this in 2026-09), so the repository is the
+ * source. The script checks for an `fvar` table and refuses a variable file
+ * rather than letting the card renderer fail at build time.
  *
- * Best-effort: if the network is blocked, download the four static TTFs by
- * hand and drop them in assets/fonts/ under the names above. Committing them
- * is fine and makes CI deterministic (no network fetch at build time).
+ * Best-effort: if the network is blocked, download the three static TTFs by
+ * hand from github.com/googlefonts/literata (fonts/ttf/) and drop them in
+ * assets/fonts/ under the names above. Committing them is fine and makes CI
+ * deterministic (no network fetch at build time).
  */
 import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,46 +28,20 @@ import { join } from 'node:path';
 const OUT = join(process.cwd(), 'assets', 'fonts');
 mkdirSync(OUT, { recursive: true });
 
-// A non-browser UA: Google answers it with `format('truetype')` URLs.
-const UA = 'Wget/1.21';
-const CSS = 'https://fonts.googleapis.com/css2?family=';
+const REPO = 'https://raw.githubusercontent.com/googlefonts/literata/main/fonts/ttf/';
 
 // `satisfied` must match the way scripts/story/og-card.ts LOOKS UP each font
 // (a regex over assets/fonts), not only the filename written here.
 const TARGETS = [
-  {
-    file: 'Newsreader-Medium.ttf',
-    satisfied: (f) => /^newsreader-medium\.ttf$/i.test(f),
-    css: `${CSS}Newsreader:ital,opsz,wght@0,72,500`,
-  },
-  {
-    file: 'Newsreader-MediumItalic.ttf',
-    satisfied: (f) => /^newsreader-mediumitalic\.ttf$/i.test(f),
-    css: `${CSS}Newsreader:ital,opsz,wght@1,72,500`,
-  },
-  {
-    file: 'InstrumentSans-Medium.ttf',
-    satisfied: (f) => /^instrumentsans-medium\.ttf$/i.test(f),
-    css: `${CSS}Instrument+Sans:wght@500`,
-  },
-  {
-    file: 'InstrumentSans-SemiBold.ttf',
-    satisfied: (f) => /^instrumentsans-semibold\.ttf$/i.test(f),
-    css: `${CSS}Instrument+Sans:wght@600`,
-  },
+  { file: 'Literata72pt-Bold.ttf', satisfied: (f) => /^literata72pt-bold\.ttf$/i.test(f) },
+  { file: 'Literata72pt-Italic.ttf', satisfied: (f) => /^literata72pt-italic\.ttf$/i.test(f) },
+  { file: 'Literata-SemiBold.ttf', satisfied: (f) => /^literata-semibold\.ttf$/i.test(f) },
 ];
 
 async function download(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
-}
-
-async function ttfUrlFrom(cssUrl) {
-  const res = await fetch(cssUrl, { headers: { 'User-Agent': UA } });
-  if (!res.ok) throw new Error(`CSS HTTP ${res.status}`);
-  const css = await res.text();
-  return css.match(/src:\s*url\((https:[^)]+?\.ttf)\)/i)?.[1] ?? null;
 }
 
 /** The sfnt table directory: a variable font carries an `fvar` table. */
@@ -87,10 +61,8 @@ for (const t of TARGETS) {
   const already = onDisk.find(t.satisfied);
   if (already) { console.log(`✓ ${t.file} (on disk)`); ok++; continue; }
   try {
-    const url = await ttfUrlFrom(t.css);
-    if (!url) throw new Error('no TTF url in the CSS response');
-    const buf = await download(url);
-    if (isVariable(buf)) throw new Error('Google served a VARIABLE font (fvar); resvg needs a static instance');
+    const buf = await download(REPO + t.file);
+    if (isVariable(buf)) throw new Error('the repository served a VARIABLE font (fvar); resvg needs a static instance');
     writeFileSync(dest, buf);
     console.log(`✓ ${t.file}  (${(buf.length / 1024).toFixed(0)} KB)`);
     ok++;
@@ -99,4 +71,4 @@ for (const t of TARGETS) {
   }
 }
 console.log(`\n${ok}/${TARGETS.length} fonts in ${OUT}.`);
-if (ok < TARGETS.length) process.exit(1); // the card renderer needs all four
+if (ok < TARGETS.length) process.exit(1); // the card renderer needs all three

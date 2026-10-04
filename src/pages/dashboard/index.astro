@@ -23,7 +23,7 @@ import { isAdmin } from '../../lib/admin';
  * The publication's masthead (its account slot is the pill: initial disc,
  * name, caret, with Sign out inside) and footer, then, in order:
  *
- *   Hello, {name}.   Newsreader 56 (40 on phones)
+ *   Hello, {name}.   Literata 700 56 (40 on phones)
  *   YOUR PATH        the one paper-3 field: the issues this reader has opened,
  *                    from reading_events, as small covers on a joined track,
  *                    each with a progress ring in its desk mark; the latest
@@ -182,7 +182,7 @@ function ring(pct: number, size: 40 | 56) {
   const len = 2 * Math.PI * r;
   return { size, c, r, sw, len: +len.toFixed(1), dash: +((len * pct) / 100).toFixed(1), done: pct >= 100, fs: size === 56 ? 14 : 12 };
 }
-const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const SANS = "font-family:'Literata',Georgia,serif";
 
 /* ── the shelf ── */
 const saved = (savedIssues ?? []).map((s) => ({ id: s.issue_id as string, entry: bySlug.get(s.issue_id as string) }));
@@ -543,10 +543,10 @@ const deskVars = (t: Topic) =>
   .shelf .shelf__h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 500;
+    font-weight: 700;
     font-size: 56px;
     line-height: 1.04;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.028em;
     color: var(--ink);
   }
   .shelf__lede { margin: 0; font-family: var(--font-ui); font-size: 16px; line-height: 1.5; color: var(--ink-2); }
@@ -634,10 +634,10 @@ const deskVars = (t: Topic) =>
   .path__now-hl {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 500;
+    font-weight: 700;
     font-size: 28px;
     line-height: 1.15;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-wrap: pretty;
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -646,7 +646,7 @@ const deskVars = (t: Topic) =>
   }
   .path__now-hl a { color: var(--ink); text-decoration: none; }
   .path__now-hl a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-  .path__now-hl :global(em) { font-style: italic; color: var(--dk-text); }
+  .path__now-hl :global(em) { font-style: italic; color: var(--dk-text); font-weight: 400; }
   .path__go { align-self: flex-start; }
   .path__track { height: 56px; display: flex; align-items: center; }
   .path__line { flex: 1; height: 2px; background: var(--muted); }
@@ -688,7 +688,7 @@ const deskVars = (t: Topic) =>
   .shelf__remove:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .shelf__remove:disabled { opacity: 0.4; cursor: default; }
   .shelf__plain { justify-content: space-between; min-height: 160px; }
-  .shelf__plain-hl { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.2; color: var(--ink); }
+  .shelf__plain-hl { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.2; color: var(--ink); }
 
   /* ── the desks ── */
   .desks {
@@ -724,7 +724,7 @@ const deskVars = (t: Topic) =>
   }
   .desk__text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .desk__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .desk__name { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.1; letter-spacing: -0.01em; }
+  .desk__name { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.1; letter-spacing: -0.02em; }
   .desk__name a { color: var(--ink); text-decoration: none; }
   .desk__name a:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
   .desk__count {
@@ -846,7 +846,7 @@ const deskVars = (t: Topic) =>
   .acct { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
   .acct__rows { margin: 0; flex: 1 1 420px; max-width: 620px; border-top: 1px solid var(--hair); }
   .acct__row { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
-  .acct__row dt { font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .acct__row dt { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
   .acct__row dd { margin: 0; font-family: var(--font-ui); font-size: 15px; color: var(--ink); text-align: right; overflow-wrap: anywhere; min-width: 0; }
   .acct__side { display: flex; flex-wrap: wrap; gap: 12px; }
 

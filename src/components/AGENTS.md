@@ -51,17 +51,18 @@ Components split into:
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
-**Lens (2026-09-30) retires the paragraph below:** two faces, Newsreader for
-display and prose and Instrument Sans for UI and every number, swapped in by
-Phase 1 (`docs/design/LENS.md` §3). A component still names only the role
-tokens, never a family, so the swap reaches it without an edit; in-SVG text
-keeps a literal stack (LENS §3.3), which is where a component DOES name the
-face, and those stacks move to Instrument Sans in its Phase 6 wave.
-
-**One typeface — Literata — since the launch design (2026-09-08).** The role
-tokens (`--font-display` / `--font-body` / `--font-mono`) all resolve to it; a
-component differentiates roles by size, weight, case and tracking, never by
-family. The paragraph below is the 2026-06-21 history of the trio it replaced.
+**One typeface — Literata (the operator's ruling of 2026-10-04, `docs/design/LENS.md` §3).**
+All four role tokens (`--font-display` / `--font-body` / `--font-ui` /
+`--font-mono`) resolve to it; a component differentiates roles by size,
+weight, case and tracking, never by family, at the launch values: headlines
+700 tight, prose 400 18/1.72, labels 600 capitals at 12px (.16em; eyebrow
+.18em, chip .14em, button .17em), numbers 700 tabular at line-height 1, the
+label under a number 12 capitals .16em. **No whole sentence in italic**, ever
+(captions, notes, annotations, the lit cue line: roman); only the one authored
+emphasis word of a title is italic, 400, in the desk text colour. In-SVG text
+keeps a literal stack (LENS §3.3): `'Literata',Georgia,serif`. Lens's two
+faces (Newsreader and Instrument Sans, 2026-09-30 to 2026-10-04) are retired;
+the paragraph below is the 2026-06-21 history of the trio before Literata.
 
 **One 3-font type system (2026-06-21, supersedes per-topic display fonts).**
 The product now uses a single trio everywhere — **Fraunces** (serif: headlines,
@@ -123,7 +124,7 @@ SectionBody**, not SectionRenderer.
 |---|---|---|
 | ~~`hero`~~ | **retired 2026-09-13** (REGISTER-PLAN RG-09) — it had rendered nothing since the launch design deleted `core/Hero.astro`; removed from `SECTION_KINDS`, the catalog, the template and the one draft that carried it | — |
 | `act-break` | `core/ActBreak.astro` — chapter divider on the well: rulers, the numeral at 160, double side rules (Lens Phase 6); consumes no section number, no cues | universal |
-| `prose` | `core/Prose.astro` — paragraphs, a drop cap on the first (Lens Phase 6); narrative, no cues | universal |
+| `prose` | `core/Prose.astro` — paragraphs, no drop cap (retired 2026-09-08, re-added in Phase 6 by mistake, removed 2026-10-04); narrative, no cues | universal |
 | `quote` | `core/Quote.astro` (`px-qt`) — the mark, the words at up to 32, a rule and the attribution (Lens Phase 6); narrative, no cues | universal |
 | `comparison` | `core/Comparison.astro` (`px-cmp`, Lens Phase 6: side plates, then per row a label and one cell per side; a pair row's winner gets a drawn check). Cues: rows `1..n` (columns in the list form), plates `s1..sN` | universal |
 | `data-readout` | `core/DataReadout.astro` (`.tel`, Lens Phase 6: tiles as cards, the key tile across the row at up to 96, the rest at up to 48, a zero drawn as a dashed ring). Cues: tiles `1..n` | universal |
@@ -409,7 +410,7 @@ Known reservations (still-live `px-` prefixes):
 | `px-nnote` | NewsletterNotice home ribbon (scoped in `core/NewsletterNotice.astro`) | mounted above `<Masthead>` in `index.astro`; fires on `/?newsletter=confirmed` |
 | `px-mark` | the Parallax medallion (scoped in `core/Mark.astro`, RD-10 step 2) | inline SVG; `desk` picks the fixed dial station, `size` drives ring 7/10/14 AND the glyph tier, `cut` is mark/seal/reversed (auto-reversed below 24px unless `cut` is passed), `tight` trims the box to the ring, `ring` pins the stroke. `ground` (Lens Phase 2) is the surface colour the offset disc takes, so the crescent is cut from the real ground (the footer's paper-3, a chip's paper-2, a cover's tint); `onDeep` draws the on-deep body for a stage (ground = the desk deep, ring and P = `--on-deep`). The P is an OUTLINE from `src/lib/mark-glyph.ts`, never live text. Mounted by the masthead, the footer, the cover cards, About and the account pages |
 | `px-cover` | `core/CoverCard.astro` (Lens Phase 2) | the graphic-dominant issue card: `size` card (3-across, 216px tint panel) / tile (the desk strip, 264px panel) / row (the 120 x 72 thumbnail inside a list row, not a link). One `<a>` on `.px-card` for card and tile |
-| `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic: the section the issue's `cover.section` names when it is one of eleven drawable kinds, else the first such section (`src/lib/cover.ts`, which also returns the one-line `caption` a Home desk card prints under it); falls back to the desk medallion. In-SVG text in the literal Instrument Sans stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
+| `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic: the section the issue's `cover.section` names when it is one of eleven drawable kinds, else the first such section (`src/lib/cover.ts`, which also returns the one-line `caption` a Home desk card prints under it); falls back to the desk medallion. In-SVG text in the literal Literata stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
 | `px-stage` | `core/Stage.astro` (Lens Phase 4) | the deep plate, full bleed: the desk's `--deep` edge to edge (a negative margin to the frame edge, a `border-image` outset past it, which paints without horizontal scroll), `<Masthead variant="stage">` across its top, 760 on Home and 720 on a desk page, auto below 1024px. Local tokens `--st-deep`, `--st-mark`, `--st-hi` (the lime on tech and sports), `--st-h`. The slot is the scene. No JS |
 | `px-scn` | `stage/StageScene.astro` (Lens Phase 4) | one issue told as a picture on the plate, from `src/lib/stage.ts` (pure): the number at 160 (88 on phones), a spiral clock, an orbit, readout bars or the cover mark on a tint panel, a ladder of at most three rungs, the headline and the paper "Read" button with Replay. Its root is the `data-build-scene` (`data-build-tempo="1.6"` on Home); the desktop and phone drawings are two SVGs, one shown by a media query, so every label prints at 12px or more at 1280 and 375 |
 | `px-intro` | `core/IntroOverlay.astro` (Lens Phase 4) | the first-visit intro on Home: three scenes on paper, shown once per browser (`px_intro_v2`), `?intro=1` / `?intro=0`. Ships `hidden`; its is:inline script (under 3 KB) is the show-once, the stepper and the scene-3 cue lighting; each scene is a `data-build-scene` that it asks to build with `px:build` |
@@ -516,7 +517,7 @@ Any component that emits inline SVG must follow these:
   `filter: drop-shadow(...)`), then fill group with borders. Creates
   raised-land depth without SVG-filter complexity.
 - **SVG text fonts.** Use
-  `style="font-family:'Fraunces',Georgia,serif"` — *not* the
+  `style="font-family:'Literata',Georgia,serif"` (the one face since 2026-10-04) — *not* the
   `font-family="..."` presentation attribute.
 
   **Corrected 2026-08-27.** This rule used to say "CSS variables do not work in
@@ -606,12 +607,12 @@ These render directly in templates, not via the dispatcher:
 |---|---|
 | `core/IssueHead.astro` | inline in `src/pages/issues/[slug].astro` — the meta strip (← desk register · № · date), eyebrow, `.px-h1`, the hook as `.px-lede`, the primer on a 4px accent rule. Replaced `core/Hero.astro`, `core/Banner.astro` and `core/Primer.astro` (all deleted 2026-09-08). `px-ihead`. |
 | `core/ReadingToolbar.astro` | inline at the bottom of `[slug].astro` — since 2026-09-08 a PINNED flat strip on the paper with a 2px ink rule on top: progress hairline, `NN% · N min left`, the square Full ⇄ Skim toggle, Save; slides up after the first scroll; sits above the phone home bar (`env(safe-area-inset-bottom)`). JS-only (`html.js`). |
-| `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`**, and (Lens 2026-09-30) on the story CTA card as `variant="block"`, the board's 44px full-width "Save to shelf". Instrument Sans 14/600, a 4px corner, hair-2 border; saved in the desk text colour. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
+| `core/SaveButton.astro` | **inside `core/ReadingToolbar.astro`**, and (Lens 2026-09-30) on the story CTA card as `variant="block"`, the board's 44px full-width "Save to shelf". Literata 12/600 capitals, a 4px corner, hair-2 border; saved in the desk text colour. Signed-out label is "Save to your shelf" and the signed-out click carries `&world=<data-topic>` into the login URL (world-tinted auth plate); a first-save "On your shelf →" microline flashes once and fades after 4s; the loading pulse is reduced-motion-gated. |
 | `core/ReadingTracker.astro` | inline in `[slug].astro`, invisible sentinel |
 | `core/ReactionsBar.astro` | inline in `[slug].astro`, after AnnotationLayer |
 | `core/LettersBlock.astro` | inline in `[slug].astro`, after ReactionsBar |
 | `core/NewsletterForm.astro` | rendered by `core/Colophon.astro` (and by `home/SubscribeStrip.astro` on the home page) — the **single** source every mount embeds (SubscribeStrip / Colophon / Footer / BeatJoin), so a change here covers all of them. POSTs to the app's `/api/join` (repointed from `/api/subscribe` on 2026-07-14) and handles the degraded `{ok:true, account:false}` response. **No-JS-gated:** the form is hidden behind `html:not(.js)` with an "Enable JavaScript to subscribe." line, because a no-JS submit used to do a native GET that put the reader's email in the URL, history and server logs. |
-| `core/Masthead.astro` | in `IssueLayout.astro` and on each house page (index, archive, about, subscribe, desks). Lens Phase 2: the lockup (34px tight disc, ring 9, Newsreader 500 24, the register on a desk page), the nav, the live badge, the account slot as a "Sign in" link, the ink Subscribe; `variant="stage"` + `desk` (+ `register`) is the on-deep version for a stage (Phase 4). Below 768px a `<details>` menu with 44px rows beside a compact Subscribe |
+| `core/Masthead.astro` | in `IssueLayout.astro` and on each house page (index, archive, about, subscribe, desks). Lens Phase 2: the lockup (34px tight disc, ring 9, Literata 700 24, the register on a desk page), the nav, the live badge, the account slot as a "Sign in" link, the ink Subscribe; `variant="stage"` + `desk` (+ `register`) is the on-deep version for a stage (Phase 4). Below 768px a `<details>` menu with 44px rows beside a compact Subscribe |
 | `core/ReadingGate.astro` | inline in `[slug].astro` — metered soft signup wall. Anonymous readers get primer + first 2 sections, then a per-topic-themed "Create a free account to finish" wall hiding the rest; signed-in (cookie heuristic) ⇒ full issue. No-JS / crawlers ⇒ gate hidden, full article renders (SEO-safe). `px-gate`. |
 | `core/WelcomeBack.astro` | inline at the end of `[slug].astro`, after `ReadingToolbar` — top-centre toast (Lens 2026-09-30: paper-2, hair, shadow-2, a 44px close; the glass is gone) fired by `?welcome=1` (the return leg from the app's `/welcome`). Reads sessionStorage `px_resume` (written by `ReadingGate`) and offers "Continue where you left off ↓"; strips the param via `history.replaceState`; 8s auto-dismiss that **pauses on hover/focus** so keyboard/AT users don't lose the resume control. `[hidden]` by default ⇒ no-JS shows nothing. `px-wb`. |
 | `core/NewsletterNotice.astro` | inline in `index.astro`, **above `<Masthead>`** — in-flow ribbon fired by `/?newsletter=confirmed`. Occupies no space until revealed, so no-JS / crawlers see nothing. Dismissible; cleans the URL. `px-nnote`. |
@@ -620,7 +621,7 @@ These render directly in templates, not via the dispatcher:
 | `src/scripts/build.ts` | every layout (Home, Issue, Story, App), once, as a bundled module `<script>` — the one build island (§11). Replaced `core/Reveal.astro` and `core/VizMotion.astro`, deleted in Lens Phase 5 |
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
-| `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Newsreader 24, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
+| `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Literata 700 21, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
 | `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). Lens Phase 4: the desk's stage (its masthead included, with the register), its issues as `CoverCard size="tile"` three across, the "New here? Start with No N" path (the three earliest as a dot strip), the other five desks as tiles with their medallion and a row thumbnail. `px-desk__`. |
 | `core/Stage.astro` + `stage/StageScene.astro` | Home (`index.astro`, the newest issue with a `cover`) and every desk page (the desk's newest issue). The stage replaces the page's `<Masthead>`: it renders the on-deep one itself |
 | `core/IntroOverlay.astro` | `index.astro`, after the page content, with the Home cover issue (scene 3 is built from its readout, timeline and latency-waterfall by `introFigure()` in `src/lib/stage.ts`, or shows its cover mark) |
@@ -1188,7 +1189,7 @@ plates and read-across rows (`px-cmp`), **`quote`** the mark and the words at
 up to 32 (`px-qt`), **`data-readout`** tiles as cards with a 96 hero,
 **`you-think`** one card cut by a slash with the belief struck,
 **`number-sense`** the figure at up to 96 over equivalence cards,
-**`act-break`** a ruled band with the numeral at 160, **`prose`** a drop cap.
+**`act-break`** a ruled band with the numeral at 160, **`prose`** plain paragraphs (the drop cap stays retired).
 **`jargon-buster` and `three-steps` are figure kinds now:**
 `core/Section.astro` dropped them from its narrative set and writes each
 term's meaning or step's text into the article as a cue sentence; the panel

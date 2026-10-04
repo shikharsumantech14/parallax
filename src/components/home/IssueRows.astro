@@ -4,7 +4,7 @@
  *
  * Home's latest dispatches, the archive and every desk page list issues as
  * hairline rows: the desk dot and "No 17" in the first column; the headline
- * in Newsreader 24 (the authored `*word*` italic in the desk text colour),
+ * in Literata 700 21 (the authored `*word*` italic 400 in the desk text colour),
  * the hook in 15 muted and "28 Sep 2026 · 4 min" in the body; the issue's
  * cover mark as a 120 x 72 thumbnail on the right (`core/CoverCard`
  * size="row", marks only). The whole row is one link. Hover lays a paper-2
@@ -109,7 +109,8 @@ const fmt = (d: Date) =>
     display: inline-flex; align-items: center; gap: 8px;
     padding-top: 6px;
     font-family: var(--font-ui);
-    font-size: 13px; font-weight: 600;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase;
     line-height: 1.4;
     color: var(--ink-2);
     font-variant-numeric: tabular-nums;
@@ -125,16 +126,16 @@ const fmt = (d: Date) =>
   .px-rows__body { grid-area: body; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .px-rows__t {
     font-family: var(--font-display);
-    font-size: 24px; font-weight: 500;
+    font-size: 21px; font-weight: 700;
     line-height: 1.18;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     color: var(--ink);
     text-wrap: pretty;
     text-decoration-thickness: 1px;
     text-underline-offset: 5px;
   }
   .px-rows__row:hover .px-rows__t { text-decoration-line: underline; }
-  .px-rows__t :global(em) { font-style: italic; color: var(--rw-text); }
+  .px-rows__t :global(em) { font-style: italic; color: var(--rw-text); font-weight: 400; }
   .px-rows__hook {
     font-family: var(--font-ui);
     font-size: 15px; line-height: 1.5;
@@ -143,7 +144,8 @@ const fmt = (d: Date) =>
   }
   .px-rows__meta {
     font-family: var(--font-ui);
-    font-size: 13px; font-weight: 500;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase;
     line-height: 1.4;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
@@ -166,7 +168,6 @@ const fmt = (d: Date) =>
       padding: 20px 0;
     }
     .px-rows__no { padding-top: 0; }
-    .px-rows__t { font-size: 22px; }
     .px-rows__row > :global(.px-rows__thumb) { width: 96px; height: 58px; flex-basis: 96px; }
     .px-rows__row > :global(.px-rows__thumb) :global(.px-cover__panel) { height: 58px; flex-basis: 58px; }
   }

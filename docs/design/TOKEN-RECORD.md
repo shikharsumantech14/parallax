@@ -316,9 +316,10 @@ The old names stay as aliases until Phase 5: `--t-instant`, `--t-quick`,
 `--t-soft` → micro; `--t-slow`, `--t-page` → element; `--ease-snap` → `--ease`.
 (This also settles the open `--t-page` retime listed below: 420ms.)
 
-**Type** lives in `src/styles/type-v2.css`, not here: Newsreader for display
-and prose, Instrument Sans for UI and data (`--font-ui` added; `--font-mono`
-now means the sans). The scale and the five number tiers (20 / 32 / 48 / 96 /
+**Type** lives in `src/styles/type-v2.css`, not here: at Phase 1, Newsreader
+for display and prose, Instrument Sans for UI and data (`--font-ui` added;
+`--font-mono` then meant the sans). Since the operator's ruling of 2026-10-04
+all four role tokens resolve to one face, Literata (LENS §3). The scale and the five number tiers (20 / 32 / 48 / 96 /
 160) are tokens there.
 
 **Gated.** `design-sync --check` asserts: the 24 ink mirrors (theme headers,

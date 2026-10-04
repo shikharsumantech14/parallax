@@ -13,7 +13,7 @@
  * and a hard offset shadow, compute in the desk mark, the primary block in
  * the desk text ink, the other groups in the neutral inks, one key row. The
  * figure's one large number is the primary block's area. Labels are 12px
- * Instrument Sans and print only where measured to fit (per width tier);
+ * Literata and print only where measured to fit (per width tier);
  * elsewhere a dot marks the tile, and "All n blocks" lists every one.
  *
  * Cue anchors:
@@ -155,7 +155,7 @@ const rects = squarify(cells);
 // gets `data-fit` = the narrowest tier whose box holds its name (wrapped at
 // spaces, the count inline) and its area line; below that tier the label
 // hides and a dot marks the tile (the block list carries every block).
-// Instrument Sans 600 runs ~0.56em a character, estimated at 0.6em.
+// Literata 600 runs ~0.56em a character, estimated at 0.6em.
 const TIERS = [
   { key: 'm', scale: 0.53, name: 12, area: 12 },   // ≤ 640px: board ≈ 300px
   { key: 'd', scale: 0.82, name: 12, area: 12 },   // the 1280 panel, board ≈ 460px
@@ -302,18 +302,22 @@ const headLabel = `mm² · ${primary.label}${primary.count ? ` ×${primary.count
   .px-die__big {
     font-family: var(--font-ui);
     font-size: min(96px, calc((100cqi - 28px) / var(--ch, 4) / 0.62));
-    font-weight: 600;
-    line-height: 0.92;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: var(--accent-deep);
+    padding-bottom: 0.12em;
   }
   .px-die__biglab {
     min-width: 0;
     font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--ink-2);
+    line-height: 1.35;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .px-die__key {

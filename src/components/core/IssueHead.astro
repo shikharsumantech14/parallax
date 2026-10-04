@@ -4,8 +4,9 @@
  * docs/design/LENS.md §5.4).
  *
  * Row 1, 8 / 4 across the 1152 column. LEFT: the eyebrow (the desk register
- * and the issue number), the headline at Newsreader 72/1.02 with its one
- * italic word in the desk text colour, the hook at 22, and the facts as one
+ * and the issue number), the headline in Literata 700 68/1 (-.032em) with its
+ * one italic word at 400 in the desk text colour, the hook in Literata 300
+ * 21/1.45, and the facts as one
  * hairline row of four cells (Published · Reading time · Sources · Sections).
  * RIGHT: the "In this issue" card: the sections by their short names, the
  * current one on the desk dot, "0 of N read" over a 3px bar, and a desk
@@ -141,19 +142,20 @@ const plural = total === 1 ? 'section' : 'sections';
   .px-ihead__h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 72px;
-    line-height: 1.02;
-    letter-spacing: -0.012em;
+    font-weight: 700;
+    font-size: 68px;
+    line-height: 1;
+    letter-spacing: -0.032em;
     color: var(--ink);
     text-wrap: balance;
   }
-  .px-ihead__h1 :global(em) { font-style: italic; color: var(--accent-deep); white-space: nowrap; }
+  .px-ihead__h1 :global(em) { font-style: italic; color: var(--accent-deep); white-space: nowrap; font-weight: 400; }
   .px-ihead__hook {
     margin: 0;
     max-width: 700px;
     font-family: var(--font-display);
-    font-size: 22px;
+    font-weight: 300;
+    font-size: 21px;
     line-height: 1.45;
     color: var(--ink-2);
     text-wrap: pretty;
@@ -170,12 +172,12 @@ const plural = total === 1 ? 'section' : 'sections';
   .px-ihead__fact:first-child { padding-left: 0; }
   .px-ihead__fact + .px-ihead__fact { border-left: 1px solid var(--hair); }
   .px-ihead__fact dt {
-    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.2;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600; line-height: 1.2;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
   }
   .px-ihead__fact dd {
     margin: 0;
-    font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1.3;
+    font-family: var(--font-ui); font-size: 14px; font-weight: 500; line-height: 1.3;
     color: var(--ink); font-variant-numeric: tabular-nums;
   }
   .px-ihead__fact a {
@@ -188,10 +190,13 @@ const plural = total === 1 ? 'section' : 'sections';
   .px-ihead__toc { gap: 16px; padding: 22px 24px 24px; min-width: 0; }
   .px-ihead__toc-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .px-ihead__toc-k {
-    font-family: var(--font-ui); font-size: 12px; font-weight: 500;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink);
   }
-  .px-ihead__toc-n { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--muted); }
+  .px-ihead__toc-n {
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
   .px-ihead__list { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--hair); }
   .px-ihead__list li { border-top: 1px solid var(--hair); }
   .px-ihead__item {
@@ -204,7 +209,7 @@ const plural = total === 1 ? 'section' : 'sections';
     color: var(--ink-2);
   }
   .px-ihead__no {
-    font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
     color: var(--muted); font-variant-numeric: tabular-nums;
   }
   .px-ihead__dot {
@@ -239,7 +244,8 @@ const plural = total === 1 ? 'section' : 'sections';
   }
   .px-ihead__read {
     display: flex; justify-content: space-between; gap: 12px;
-    font-family: var(--font-ui); font-size: 13px; font-weight: 500; line-height: 1;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600; line-height: 1;
+    letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--muted); font-variant-numeric: tabular-nums;
   }
   .px-ihead__start {
@@ -247,7 +253,8 @@ const plural = total === 1 ? 'section' : 'sections';
     height: 44px; padding: 0 18px;
     border-radius: var(--r-ctl);
     background: var(--accent-deep); color: var(--paper);
-    font-family: var(--font-ui); font-size: 15px; font-weight: 600; line-height: 1;
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600; line-height: 1;
+    letter-spacing: 0.17em; text-transform: uppercase;
     text-decoration: none;
     transition: box-shadow var(--t-micro, 160ms) var(--ease), filter var(--t-micro, 160ms) var(--ease);
   }
@@ -270,12 +277,12 @@ const plural = total === 1 ? 'section' : 'sections';
   .px-ihead__primer-k {
     display: flex; align-items: center; gap: 10px;
     margin: 0; padding-top: 6px;
-    font-family: var(--font-ui); font-size: 12px; font-weight: 500; line-height: 1.2;
-    letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep);
+    font-family: var(--font-ui); font-size: 12px; font-weight: 600; line-height: 1.2;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-deep);
   }
   .px-ihead__primer-t {
     margin: 0;
-    font-family: var(--font-display); font-size: 19px; line-height: 1.6;
+    font-family: var(--font-display); font-size: 17px; line-height: 1.7;
     color: var(--ink);
     text-wrap: pretty;
   }
@@ -285,9 +292,9 @@ const plural = total === 1 ? 'section' : 'sections';
     .px-ihead__row { grid-template-columns: minmax(0, 1fr); gap: 18px; }
     .px-ihead__main { gap: 18px; }
     .px-ihead__top { gap: 18px; }
-    .px-ihead__h1 { font-size: 40px; line-height: 1.06; letter-spacing: -0.01em; }
+    .px-ihead__h1 { font-size: 40px; line-height: 1; letter-spacing: -0.032em; }
     .px-ihead__h1 :global(em) { white-space: normal; }
-    .px-ihead__hook { font-size: 19px; }
+    .px-ihead__hook { font-size: 17px; }
     .px-ihead__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
     .px-ihead__fact, .px-ihead__fact:first-child { padding: 12px 12px 12px 0; }
     .px-ihead__fact + .px-ihead__fact { border-left: 0; }
@@ -325,7 +332,6 @@ const plural = total === 1 ? 'section' : 'sections';
       padding: 18px 20px 20px 18px;
     }
     .px-ihead__primer-k { padding-top: 0; gap: 8px; }
-    .px-ihead__primer-t { font-size: 17px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .px-ihead__fill, .px-ihead__dot, .px-ihead__start { transition: none; }

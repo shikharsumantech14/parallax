@@ -51,7 +51,7 @@ const desk = d.topic;
 const fig = introFigure({ topic: desk, title: d.title, sections: d.sections as any, cover: d.cover });
 const no = number ? formatNo(number) : '';
 const href = `/issues/${issue.slug}/`;
-const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const SANS = "font-family:'Literata',Georgia,serif";
 
 /* Scene 1: the house medallion, one element per part so each can build. */
 const parts = markBody({
@@ -284,7 +284,7 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
 
   .px-intro__top { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
   .px-intro__brand { display: flex; align-items: center; gap: 10px; }
-  .px-intro__name { font: 500 20px/1 var(--font-display); letter-spacing: -0.01em; position: relative; top: -1px; }
+  .px-intro__name { font: 700 20px/1 var(--font-display); letter-spacing: -0.02em; position: relative; top: -1px; }
   .px-intro__skip, .px-intro__back {
     height: 44px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px;
     border: 1px solid var(--hair-2); border-radius: var(--r-ctl); background: transparent;
@@ -309,9 +309,9 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
 
   .px-intro__medal { display: block; overflow: visible; }
   .px-intro__lines { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .px-intro__line { margin: 0; font: 500 32px/1.2 var(--font-display); letter-spacing: -0.01em; text-align: center; text-wrap: balance; }
+  .px-intro__line { margin: 0; font: 700 32px/1.2 var(--font-display); letter-spacing: -0.02em; text-align: center; text-wrap: balance; }
   .px-intro__line--sm { font-size: 28px; }
-  .px-intro__sub { margin: 0; font: italic 400 18px/1.5 var(--font-display); color: var(--muted); text-align: center; }
+  .px-intro__sub { margin: 0; font: 400 18px/1.5 var(--font-display); color: var(--muted); text-align: center; }
 
   .px-intro__s2 { gap: 56px; }
   .px-intro__desks {
@@ -321,14 +321,14 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
   }
   .px-intro__desk { display: flex; flex-direction: column; align-items: center; gap: 18px; min-width: 0; }
   .px-intro__dname { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-  .px-intro__dn { font: 500 24px/1.1 var(--font-display); letter-spacing: -0.01em; }
-  .px-intro__dr { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; }
+  .px-intro__dn { font: 700 24px/1.1 var(--font-display); letter-spacing: -0.02em; }
+  .px-intro__dr { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; }
 
   .px-intro__s3 { gap: 36px; }
   .px-intro__read { display: grid; grid-template-columns: 300px 420px; gap: 48px; align-items: center; }
   .px-intro__read:has(> :only-child) { grid-template-columns: 420px; }
   .px-intro__prose { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .px-intro__eyebrow { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--in-text); }
+  .px-intro__eyebrow { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--in-text); }
   .px-intro__cuep { margin: 0; font: 400 18px/1.6 var(--font-display); }
   .px-intro__cuep strong { font-weight: 600; }
   .px-intro__cue {
@@ -358,7 +358,7 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
   .px-intro__roi { grid-area: 1 / 1; display: flex; align-items: baseline; gap: 10px; transition: opacity 160ms var(--ease); }
   .px-intro__roi[data-ro='2'], .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='1'] { opacity: 0; visibility: hidden; }
   .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='2'] { opacity: 1; visibility: inherit; }
-  .px-intro__rov { font: 600 48px/0.92 var(--font-ui); letter-spacing: -0.02em; color: var(--in-text); font-variant-numeric: tabular-nums; }
+  .px-intro__rov { font: 700 48px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--in-text); font-variant-numeric: tabular-nums; }
   .px-intro__rou { font: 500 14px/1.3 var(--font-ui); color: var(--ink-2); }
   .px-intro__bars { display: block; width: 100%; max-width: 372px; height: auto; overflow: visible; }
   .px-intro__t { font-size: 13px; font-weight: 500; }
@@ -370,7 +370,7 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
   .px-intro__fig[data-lit='1'] [data-lite='1'] .px-intro__ring, .px-intro__fig[data-lit='2'] [data-lite='2'] .px-intro__ring { opacity: 1; }
   .px-intro__cover { display: flex; justify-content: center; padding: 12px; border-radius: var(--r-ctl); background: var(--in-tint); container-type: inline-size; }
   .px-intro__cap { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--hair); }
-  .px-intro__capt { font: italic 400 16px/1.4 var(--font-display); }
+  .px-intro__capt { font: 500 15.5px/1.3 var(--font-display); color: var(--ink-2); }
   .px-intro__src { font: 400 13px/1.4 var(--font-ui); color: var(--muted); }
 
   .px-intro__end { display: flex; flex-direction: column; align-items: center; gap: 24px; }
@@ -385,7 +385,7 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
   .px-intro__browse:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 
   .px-intro__foot { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; padding: 0 32px; }
-  .px-intro__label { font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-intro__label { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
   .px-intro__dots { display: flex; align-items: center; gap: 4px; }
   .px-intro__dot { width: 44px; height: 44px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
   .px-intro__dot span { width: 10px; height: 10px; border-radius: 999px; border: 1.5px solid var(--muted); box-sizing: border-box; transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease); }

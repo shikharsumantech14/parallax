@@ -14,7 +14,7 @@
  * retired: the cues point now.
  *
  * Drawn for the panel AND the phone: a 292-unit viewBox with 12-unit labels
- * in the literal Instrument Sans stack, shown at up to 360px, so it prints at
+ * in the literal Literata stack, shown at up to 360px, so it prints at
  * 12px or more on a 293px phone body. No JS of its own.
  *
  * Cue anchors:
@@ -76,7 +76,7 @@ const named = rows.map((r) => r.i === lopsided || !!r.note);
 
 /* A name tries the right of its dot, then the left, then above, then below,
    and takes the first place that stays inside the plot and clears every
-   name already placed and every named dot (Instrument Sans 600 at 12, about
+   name already placed and every named dot (Literata 600 at 12, about
    .58em a character). Its numeral sits on the far side of the dot. */
 type Place = { x: number; y: number; anchor: 'start' | 'end' | 'middle'; tx: number; ty: number };
 const boxes: { l: number; r: number; t: number; b: number }[] = [];
@@ -112,7 +112,7 @@ for (const g of [0.25, 0.5, 0.75]) {
     [pt(rest, 0, g), pt(0, rest, g)],
   ]) grid.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
 }
-const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const UI = "font-family:'Literata',Georgia,serif";
 ---
 
 <VizCard prefix="px-trn" caption={caption} source={source}>
@@ -174,7 +174,7 @@ const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
   .px-trn__svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; overflow: visible; }
   .px-trn__svg foreignObject { overflow: visible; }
   .px-trn__svg .px-cue-tag { margin: 1px; }
-  .px-trn__corner { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ink-2); }
+  .px-trn__corner { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; fill: var(--ink-2); }
   .px-trn__dot { fill: var(--ink-2); fill-opacity: 0.7; stroke: var(--paper-2); stroke-width: 1.5; }
   [data-named] > .px-trn__dot { fill: var(--accent-deep); fill-opacity: 1; }
   .px-trn__name {
@@ -198,7 +198,7 @@ const UI = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
   }
   .px-trn__table th,
   .px-trn__table td { padding: 6px 0 6px 8px; border-top: 1px solid var(--hair); text-align: right; font-weight: 400; color: var(--ink); }
-  .px-trn__table thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .px-trn__table thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
   .px-trn__table th:first-child { padding-left: 0; text-align: left; }
   /* Names wrap at word boundaries only. When the corner words and the names
      need more than the box (three long corner labels on a phone), the table

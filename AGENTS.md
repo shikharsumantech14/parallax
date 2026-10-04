@@ -53,7 +53,7 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts — **two families under Lens (2026-09-30, `docs/design/LENS.md` §3): Newsreader** (display, prose, captions; 400/500/600 and italic) **and Instrument Sans** (UI, labels and every number, 600 tabular). The role tokens map `--font-display` / `--font-body` → Newsreader and `--font-mono` → Instrument Sans; nothing below 12px rendered. The share cards need static files of both (`scripts/fetch-fonts.mjs`). Phase 1 swapped them in (`src/styles/type-v2.css` is the lever). Literata (2026-09-08), the trio before it (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces are retired as faces; the medallion's P stays an outline traced from Literata. |
+| Fonts        | Google Fonts — **ONE face, Literata** (the operator's ruling of 2026-10-04 on the canvas board `Type-Compare`, `docs/design/LENS.md` §3): display, prose, captions, labels AND numbers, at the launch design's weights, case and tracking (300–700, italic 400 for the one emphasis word only). All four role tokens (`--font-display`, `--font-body`, `--font-ui`, `--font-mono`) → Literata; `src/styles/type-v2.css` is the lever; nothing below 12px rendered. The share cards render on three static Literata files from the googlefonts/literata repo (`scripts/fetch-fonts.mjs`; Google serves Literata only as a variable font). Newsreader + Instrument Sans (Lens, 2026-09-30 to 2026-10-04), the trio before them (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces are retired. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
@@ -589,13 +589,17 @@ the reference for every value. All nine phases are built (LENS §11; Phase 8,
 the switch, on 2026-10-04): what renders is Lens, and nothing of the launch
 shell is left to restore.
 
-- **Two faces: Newsreader and Instrument Sans.** Newsreader (500 display,
-  400 prose, italic for the one emphasis word) for headlines, section titles,
-  the article and captions; Instrument Sans for UI, labels and every number
-  (600, tabular). Worlds differ by ink, **never by face**. Labels 12–13px
-  capitals at .06em; **nothing below 12px rendered**. The scale is LENS §3;
-  the lever is `src/styles/type-v2.css` (Phase 1). *Replaces* "one typeface,
-  Literata" (2026-09-08). The P in the medallion stays a Literata outline.
+- **One face: Literata** (the operator's ruling of 2026-10-04, LENS §3).
+  Headlines 700 tight (issue 68/1.0 −.032em, section 34/1.05 −.028em), prose
+  and cue sentences 400 18/1.72 (strong 700), the hook 300 21/1.45, labels
+  600 capitals at 12px (eyebrow .18em, meta .16em, chip .14em, button
+  .17em), the source line 12 capitals .14em, numbers 700 tabular at
+  line-height 1. **No italic sentence anywhere**: the section caption and the
+  lit cue line are 500 15.5/1.3 ROMAN (the caption in `--ink-2`), the skim
+  caption roman; only the ONE authored emphasis word of a title is italic
+  (400, the desk text colour). Worlds differ by ink, **never by face**;
+  **nothing below 12px rendered**. The lever is `src/styles/type-v2.css`.
+  *Replaces* Lens's two faces, Newsreader and Instrument Sans (2026-09-30).
 - **One paper, six inks.** Every desk sits on `--paper` (`#F5F2EB`). A desk's
   colour lives only in its marks, chips, rules, tints and ONE bounded deep
   plate (a hero, a cover, a WebGL scene; LENS §8). Each desk has four inks:
@@ -651,11 +655,13 @@ shell is left to restore.
   `[data-reveal]` / `.is-in` reveal are retired (Phase 5, 2026-09-30).**
 - **The number scale** (LENS §7): stage counter 160 (88 on phones), pinned
   figure headline 96, secondary figures and stat tiles 48, card numbers 40;
-  line-height 0.92, the label 8px below.
+  Literata 700 tabular, line-height 1, .12em bottom room on the 160 and 96
+  tiers (the comma), the label (12 capitals .16em) 8px below; phones 88 / 72
+  / 40.
 - **The mark is the phase medallion (RD-10), unchanged.** Lens re-sizes only
   its lockup: the tight mark at a 34px disc with ring 9, a 12px gap, "Parallax"
-  in Newsreader 500 24px on the disc's centre line, the desk register after it
-  in 13px capitals; 28px in the footer. Every desk mark ≥ 24px shows the P;
+  in Literata 700 24px on the disc's centre line, the desk register after it
+  in 12px capitals; 28px in the footer. Every desk mark ≥ 24px shows the P;
   below 24px the reversed cut. Use `core/Mark.astro` / `src/lib/mark.ts`,
   never pasted SVG. The misuse list is LENS §4.3.
 - **In-SVG `<text>` uses a literal font stack, never `var()`** (RD-01b,
@@ -681,8 +687,10 @@ shell is left to restore.
   errored on the collection shape. Verify before re-adding.
 
 **Retired 2026-09-30 by the Lens revamp** (the canvas and LENS §10 are the
-reason; do not restore any of them): **Literata as the one face** (and the
-trio before it) · **zero radius** (`--r-card`, `--r-tile`, `--r-pill` at 0)
+reason; do not restore any of them): ~~**Literata as the one face**~~
+(restored by the operator's ruling of 2026-10-04, with the launch weights,
+case and tracking and no italic sentence; Newsreader and Instrument Sans are
+retired in their turn) · the trio of faces before Literata · **zero radius** (`--r-card`, `--r-tile`, `--r-pill` at 0)
 and the flat, shadowless surfaces of RD-05 · **the 1280 frame with no side
 padding** · **six page grounds** (the dark space, tech and sports pages) ·
 **`--viz-edge`**, the 3px top rule on every figure · **the how-to-read panel**
@@ -856,6 +864,33 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-10-04 — One face again: Literata (the Type-Compare ruling)
+
+The operator compared Lens's two faces with the launch design's one on the
+canvas board `Type-Compare` and ruled: **Literata everywhere** (display,
+prose, captions, labels and numbers) at the launch design's weights, case and
+tracking; **no italic sentences anywhere**; the one italic emphasis word in a
+title stays. The layout, inks, cards, cues, builds and number tiers are
+Lens's, unchanged. What moved:
+
+- `src/styles/type-v2.css`: all four role tokens and `--face-*` → Literata,
+  the scale tokens to the board's values, `.px-num` to 700 tabular lh 1.
+- Every rule under `src/` by role: headlines 500 → 700 with the launch
+  tracking; caps labels 500 / .06em → 600 / .16em (eyebrows .18em, chips
+  .14em, buttons and the nav .17em), any caps label at 13–14px or below 12
+  to 12px; numbers 600 / lh .92 → 700 / lh 1 with .12em bottom room on the
+  96 and 160 tiers; the label under a figure number to 12 capitals; every
+  whole-sentence italic set roman, every `em` rule italic 400.
+- The 24 component files with literal in-SVG stacks → `'Literata',Georgia,serif`.
+- The four layouts load Literata `ital,opsz,wght` 300–700 + italic 400.
+- The share cards (`scripts/story/og-card.ts`) draw on Literata 72pt Bold /
+  72pt Italic / SemiBold from the googlefonts/literata repo (Google serves
+  only the variable font); the Newsreader and Instrument Sans TTFs are gone.
+- `scripts/ui-probe.mjs` checks that Literata loaded.
+
+**Standing rule from today:** one face. A component never sets a whole
+sentence in italic, and never names a second family.
 
 ### 2026-10-04 — Lens, Phase 8: the backlist and the switch
 

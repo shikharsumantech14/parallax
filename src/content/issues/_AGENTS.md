@@ -94,7 +94,7 @@ Every section conforms to:
                               // 47 came out"). The ONE comprehension field that
                               // SHOULD assert data; the verifier traces it.
                               // Renders ONCE, at the end of the article column
-                              // (Newsreader italic); accepts `[[n]]` markers.
+                              // (Literata 500, roman); accepts `[[n]]` markers.
                               // Legacy data.caption still works.
   source?: string | { label: string; date?: string };
                               // TOP-LEVEL since 2026-08-27. CANON §7: no

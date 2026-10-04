@@ -134,7 +134,7 @@
 - **DATA:** `{ sides: [{label, statement (*italic* ok), detail}], figure?: {value, label, was?} }` — the first two sides are drawn; `figure` (Lens Phase 6) sets the one number that divides them at 96, and with `was` a before / now pair of bars on one scale
 - **CUES:** `1`, `2` the two plates, in data order · `gap` the tension mark between them · `figure` the number and its bars (only when `figure` is authored)
 - **BUILD:** the plates fade in, then the spine draws, then the arrows fade in, then the bars grow, then the number counts up.
-- **NOTES:** politics-styled but used across worlds; one per issue is usually enough. Lens Phase 6 (board Lib-paradox): two plates facing each other on the desk tint, each statement in Newsreader italic at 28 with its `detail` under it at 14, and between them a drawn tension mark (a dashed spine, two arrows pulling apart). Counts as text-only for the composition floors.
+- **NOTES:** politics-styled but used across worlds; one per issue is usually enough. Lens Phase 6 (board Lib-paradox): two plates facing each other on the desk tint, each statement in Literata roman at 28 (no italic sentence, 2026-10-04) with its `detail` under it at 14, and between them a drawn tension mark (a dashed spine, two arrows pulling apart). Counts as text-only for the composition floors.
 
 
 ## you-think
@@ -161,7 +161,7 @@
 - **DATA:** `{ quote, attribution, followup }`
 - **CUES:** none (a narrative kind: it runs in the article column with no figure panel, so it carries no cues)
 - **BUILD:** the quote mark fades in, then the words rise, then the rule draws and the attribution rises. No counter.
-- **NOTES:** quiet section (act rhythm); verbatim only. Narrative: the article column, no figure panel, no cues. Lens Phase 6 (board Lib-quote): the opening mark at 120 in the desk mark, the words in Newsreader up to 32 (22 on a phone), a short rule and the attribution.
+- **NOTES:** quiet section (act rhythm); verbatim only. Narrative: the article column, no figure panel, no cues. Lens Phase 6 (board Lib-quote): the opening mark at 120 in the desk mark, the words in Literata up to 32 (22 on a phone), a short rule and the attribution.
 
 ## jargon-buster
 - **World/Tier:** universal · HTML cards in the figure panel · `src/components/core/JargonBuster.astro`
@@ -179,7 +179,7 @@
 - **DATA:** `{ steps: [{title ≤ 6 words, text ≤ 25 words}] }` — 2–4, three is the shape; story mode trims to 4
 - **CUES:** `1`…`n` each step's card, in data order (the article carries each step's text as a sentence, and a cued step gets its button automatically)
 - **BUILD:** the cards drop in, 80ms apart, then the arrows draw, then the step numbers rise. No counter.
-- **NOTES:** NOT narrative since Lens Phase 6 (board Lib-three-steps): a graphic section with a figure panel and cues. The panel draws the steps as a chain of cards (the number at 48 beside "STEP n", the title in Newsreader, a drawn arrow to the next); the article carries each step's text. Still a plain-language card for the composition floors (not a drawn graphic). BLUEPRINT: `docs/design/blueprints/core/three-steps.md`. Worked example in `2026-06-03-earth-showcase`.
+- **NOTES:** NOT narrative since Lens Phase 6 (board Lib-three-steps): a graphic section with a figure panel and cues. The panel draws the steps as a chain of cards (the number at 48 beside "STEP n", the title in Literata 700, a drawn arrow to the next); the article carries each step's text. Still a plain-language card for the composition floors (not a drawn graphic). BLUEPRINT: `docs/design/blueprints/core/three-steps.md`. Worked example in `2026-06-03-earth-showcase`.
 ## prose
 - **World/Tier:** universal · core · `src/components/core/Prose.astro`
 - **USE WHEN:** the argument itself — connective narrative between structural sections; the issue's voice lives here.

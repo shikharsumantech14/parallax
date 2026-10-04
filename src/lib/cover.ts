@@ -117,7 +117,7 @@ export function clipWords(input: unknown, max = 3): string {
 /**
  * Words that fit `maxPx` at `fs` px, dropping whole words from the end (never
  * mid-word, never below one word). The width is an estimate in em per
- * character: Instrument Sans runs about 0.56em lower-case, 0.72em in the
+ * character: Literata runs about 0.56em lower-case, 0.72em in the
  * capitals the labels use once their .06em tracking is added.
  */
 export function fitWords(text: string, maxPx: number, fs: number, caps = false): string {

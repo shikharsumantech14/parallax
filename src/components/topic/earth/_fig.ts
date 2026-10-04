@@ -7,10 +7,10 @@
 export { wrapWords } from '../../../lib/cover';
 
 /** The literal font stack for in-SVG text (RD-01b, LENS §3.3: never var()). */
-export const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
-export const SERIF = "font-family:'Newsreader',Georgia,'Times New Roman',serif";
+export const SANS = "font-family:'Literata',Georgia,serif";
+export const SERIF = "font-family:'Literata',Georgia,serif";
 
-/** Width estimate of a string at `fs` px in Instrument Sans (0.56em a char,
+/** Width estimate of a string at `fs` px in Literata (0.56em a char,
  *  0.62 at 600 weight), the same estimate src/lib/cover.ts uses. */
 export const textW = (s: string, fs: number, bold = false) => s.length * fs * (bold ? 0.6 : 0.56);
 

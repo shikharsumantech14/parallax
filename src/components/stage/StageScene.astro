@@ -6,7 +6,7 @@
  *
  * The composition is the same for every scene: the eyebrow and the number at
  * 160 top-left (88 on phones), the figure in the middle, a ladder of at most
- * three rows on the right, then the headline (Newsreader 48, the authored
+ * three rows on the right, then the headline (Literata 700 48, the authored
  * italic word in the desk hi) with the paper "Read …" button and Replay.
  * Which figure: `spiral` (a running clock), `orbit` (a descent), `bars` (a
  * readout) or `cover` (the issue's cover mark on a tint panel, 520 wide).
@@ -24,7 +24,7 @@
  * draw is a path with `pathLength="1000"`. Replay is a `<button hidden
  * data-build-replay>`, shown by the island.
  *
- * In-SVG text takes the literal Instrument Sans stack (RD-01b, LENS §3.3);
+ * In-SVG text takes the literal Literata stack (RD-01b, LENS §3.3);
  * nothing prints below 12px at 1280 or 375 (LENS §3.4).
  *
  * Prefix: px-scn. No JS.
@@ -50,7 +50,7 @@ const d = issue.data;
 const m = stageModel({ topic: d.topic, title: d.title, sections: d.sections as any, cover: d.cover });
 const href = `/issues/${issue.slug}/`;
 const scale = variant === 'home' ? 1.6 : 1;
-const SANS = "font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+const SANS = "font-family:'Literata',Georgia,serif";
 const sp = m.spiral;
 const ob = m.orbit;
 const n = m.ladder.length;
@@ -243,23 +243,24 @@ const tint = ink(d.topic, 'tint');
   .px-scn__eyebrow {
     margin: 0 0 8px;
     font-family: var(--font-ui);
-    font-size: 13px; font-weight: 500; line-height: 16px;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; line-height: 16px;
+    letter-spacing: 0.17em; text-transform: uppercase;
     color: var(--on-deep-2);
     font-variant-numeric: tabular-nums;
   }
   .px-scn__count { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-left: -4px; }
   .px-scn__num {
     font-family: var(--font-ui);
-    font-size: 160px; font-weight: 600; line-height: 0.92; letter-spacing: -0.04em;
+    font-size: 160px; font-weight: 700; line-height: 1; letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
     color: var(--st-hi);
+    padding-bottom: 0.12em;
   }
   .px-scn__numlabel {
     padding-left: 6px;
     font-family: var(--font-ui);
-    font-size: 13px; font-weight: 500; line-height: 1.2;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; line-height: 1.2;
+    letter-spacing: 0.17em; text-transform: uppercase;
     color: var(--on-deep-2);
   }
 
@@ -273,8 +274,8 @@ const tint = ink(d.topic, 'tint');
     position: absolute; left: 0; bottom: 26px;
     margin: 0;
     font-family: var(--font-ui);
-    font-size: 12px; font-weight: 500; line-height: 16px;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; line-height: 16px;
+    letter-spacing: 0.17em; text-transform: uppercase;
     color: var(--on-deep-2);
   }
 
@@ -287,8 +288,8 @@ const tint = ink(d.topic, 'tint');
   /* The readout drawn as bars (on-deep tracks, the key in the hi). */
   .px-scn__bars { list-style: none; margin: 40px 0 0; padding: 0; display: flex; flex-direction: column; gap: 20px; max-width: 520px; }
   .px-scn__bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; column-gap: 16px; }
-  .px-scn__barlabel { font: 500 13px/1.3 var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-deep-2); }
-  .px-scn__barval { font: 600 20px/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--on-deep); }
+  .px-scn__barlabel { font: 600 12px/1.3 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase; color: var(--on-deep-2); }
+  .px-scn__barval { font: 700 20px/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--on-deep); }
   .px-scn__bar--key .px-scn__barval { color: var(--st-hi); }
   .px-scn__bartrack { grid-column: 1 / -1; height: 16px; border-radius: 2px; background: var(--on-deep-hair); overflow: hidden; }
   .px-scn__barfill { display: block; height: 100%; background: var(--on-deep-2); transform-origin: 0 50%; }
@@ -317,7 +318,7 @@ const tint = ink(d.topic, 'tint');
   /* No cover number: the headline takes the number's place, larger, set
      against the middle of the panel. */
   .px-scn--cover.px-scn--nocount .px-scn__head { align-self: center; margin: 0 0 40px; }
-  .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 56px; line-height: 1.04; }
+  .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 56px; line-height: 1; }
 
   /* ── The ladder: at most three rungs on a 2px rail. Evenly spaced on the
      clock (a 192 span, rungs 44 tall), by altitude on the orbit (260). ── */
@@ -352,7 +353,7 @@ const tint = ink(d.topic, 'tint');
   .px-scn__val {
     flex: 0 0 190px; width: 190px;
     font-family: var(--font-ui);
-    font-size: 32px; font-weight: 600; line-height: 1; letter-spacing: -0.01em;
+    font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: var(--on-deep);
     white-space: nowrap;
@@ -364,8 +365,8 @@ const tint = ink(d.topic, 'tint');
     min-width: 0;
     display: flex; flex-direction: column; gap: 3px;
     font-family: var(--font-ui);
-    font-size: 13px; font-weight: 500; line-height: 1.2;
-    letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: 12px; font-weight: 600; line-height: 1.2;
+    letter-spacing: 0.17em; text-transform: uppercase;
   }
   .px-scn__name { color: var(--on-deep); }
   .px-scn__note { color: var(--on-deep-2); }
@@ -382,18 +383,18 @@ const tint = ink(d.topic, 'tint');
   .px-scn__h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 500; font-size: 48px; line-height: 1.06; letter-spacing: -0.01em;
+    font-weight: 700; font-size: 48px; line-height: 1; letter-spacing: -0.032em;
     color: var(--on-deep);
     text-wrap: balance;
   }
-  .px-scn__h1 :global(em) { font-style: italic; color: var(--st-hi); }
+  .px-scn__h1 :global(em) { font-style: italic; color: var(--st-hi); font-weight: 400; }
   .px-scn__ctarow { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; }
   .px-scn__cta {
     display: inline-flex; align-items: center; gap: 10px;
     height: 44px; box-sizing: border-box; padding: 0 20px;
     border-radius: var(--r-ctl);
     background: var(--paper); color: var(--ink);
-    font: 600 15px/1 var(--font-ui);
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase;
     text-decoration: none;
     transition: background var(--t-micro, 160ms) var(--ease);
   }
@@ -406,7 +407,7 @@ const tint = ink(d.topic, 'tint');
     border: 1px solid color-mix(in srgb, var(--on-deep) 50%, transparent);
     border-radius: var(--r-ctl);
     background: transparent; color: var(--on-deep);
-    font: 600 15px/1 var(--font-ui);
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase;
     cursor: pointer;
     transition: border-color var(--t-micro, 160ms) var(--ease);
   }
@@ -444,7 +445,7 @@ const tint = ink(d.topic, 'tint');
     .px-scn--cover .px-scn__right { display: flex; }
     .px-scn--cover .px-scn__panel { align-self: stretch; }
     .px-scn--cover .px-scn__head, .px-scn--cover.px-scn--nocount .px-scn__head { margin: 24px 0 0; }
-    .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 40px; line-height: 1.06; }
+    .px-scn--cover.px-scn--nocount .px-scn__h1 { font-size: 40px; line-height: 1; }
 
     .px-scn__ladder { height: auto; margin: 18px 0 0; }
     .px-scn__rungs { display: flex; flex-direction: column; gap: 4px; }
