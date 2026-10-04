@@ -484,7 +484,9 @@ const CHECK = '<svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true
     all('[data-scene]', function (s) {
       var on = s.getAttribute('data-scene') == n;
       s.inert = !on;
-      if (on) s.dispatchEvent(new Event('px:build', { bubbles: true }));
+      // The mark lets a build island that loads after this build the scene.
+      if (on) { s.setAttribute('data-build-wants', ''); s.dispatchEvent(new Event('px:build', { bubbles: true })); }
+      else s.removeAttribute('data-build-wants');
     });
     all('[data-intro-go]', function (b) { b.setAttribute('aria-current', b.getAttribute('data-intro-go') == n ? 'step' : 'false'); });
     all('[data-intro-n]', function (s) { s.textContent = n; });

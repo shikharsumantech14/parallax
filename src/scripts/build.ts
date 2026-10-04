@@ -184,7 +184,11 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const s: Scene = { el, t: [], raf: [] };
     scenes.set(el, s);
     arm(s);
-    io.observe(el);
+    // A scene another island asked for before this one loaded (the intro
+    // overlay marks the scene it shows) builds now; the event it sent
+    // earlier had no listener yet.
+    if (el.hasAttribute('data-build-wants')) run(s);
+    else io.observe(el);
     for (const b of el.querySelectorAll<HTMLElement>('[data-build-replay]')) {
       b.hidden = false;
       b.addEventListener('click', () => {

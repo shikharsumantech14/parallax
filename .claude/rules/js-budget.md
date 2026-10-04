@@ -74,15 +74,21 @@ library:
 - **`src/scripts/build.ts`** (Lens Phase 5, LANDED 2026-09-30) — loaded
   once by every layout (`HomeLayout`, `IssueLayout`, `StoryLayout`,
   `AppLayout`) as `<script>import '../scripts/build';</script>`. **Measured
-  2,983 bytes minified, about 1.4 KB gzipped** (the same esbuild line); the
-  ceiling is **3 KB minified**, so a new feature pays for itself. The one
+  3,023 bytes minified, 1,412 gzipped** (the same esbuild line; 2,983 before
+  the `data-build-wants` mark of 2026-10-04); the ceiling is **3 KB
+  minified** (3,072 bytes), so a new feature pays for itself. The one
   build: a scene (`data-build-scene`) starts when 35% of it is in view, its
   `data-build="n"` steps run in order, each at 70% of the last, siblings 80ms
   apart; counters on requestAnimationFrame (ease-out cubic, 1400ms), draws by
   `stroke-dashoffset` (1400ms), grows by `scale` (900ms), drop / rise / fade
   by opacity and `translate` (420ms), all through the `.bx-*` classes in
   `src/styles/motion-v2.css`. `[data-build-replay]` (shipped `hidden`)
-  replays a scene; a `px:build` event on a scene replays it; `px:build-finish`
+  replays a scene; a `px:build` event on a scene replays it; a scene carrying
+  `data-build-wants` when the island initialises is built at once (the intro
+  overlay sets it on the scene it shows, so an island that loads AFTER the
+  intro's event still builds the scene: on a phone the island's module
+  finished loading six seconds after the intro opened, 2026-10-04, and the
+  first scene stayed in its start state for its whole hold); `px:build-finish`
   on the document (the render gate) and `beforeprint` finish every scene;
   each scene fires `px:built` when it ends. **No component animates itself.**
   The contract for authors is `docs/design/LENS.md` §6.4 and
@@ -161,15 +167,16 @@ Second Angle" (`/welcome`, its overlay and `intro.css`, removed 2026-09-30).
 It is the one page-level overlay on a lean page, mounted on Home only, and
 it earns its script on these terms:
 
-- **One `is:inline` script, at most 3 KB minified**: **2,390 bytes
-  minified, 1,033 gzipped** (`npx esbuild <the script> --minify`, the
-  measure `build.ts` uses; 3,223 bytes as written, which is what ships,
+- **One `is:inline` script, at most 3 KB minified**: **2,467 bytes
+  minified, 1,038 gzipped** (`npx esbuild <the script> --minify`, the
+  measure `build.ts` uses; 3,328 bytes as written, which is what ships,
   because Astro does not minify an is:inline script). It is the show-once
   (`localStorage` `px_intro_v3`, set when it opens; `?intro=1` reopens,
   `?intro=0` suppresses), `showModal()` and the close, the 5-dot stepper,
   Back / Next, the arrow keys, Escape (the dialog's `cancel`), Pause, and
   scene 2's two cue lightings. No motion of its own: showing a scene
-  dispatches `px:build` on it and `build.ts` builds it; the entrance, the
+  marks it `data-build-wants` and dispatches `px:build` on it, and `build.ts`
+  builds it whichever of the two islands loaded first; the entrance, the
   exit and the clock are CSS. **The clock is a CSS animation**: the current
   stepper pill fills over the scene's hold and its `animationend` steps on,
   so hover (fine pointers), keyboard focus on a control and Pause stop it

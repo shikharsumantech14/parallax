@@ -585,7 +585,10 @@ everywhere: `.bx-pre` (the start state), `.bx-on` (a step running), and
 it, is in view (IntersectionObserver). Its steps run in order, each starting
 when the previous is 70% through (§6.2). A scene another island has just shown
 (the intro overlay's stepper) asks for its build again with a bubbling
-`px:build` event on the scene. When a scene ends, every class and inline
+`px:build` event on the scene, and marks it `data-build-wants` first, so
+that if the build island has not loaded yet it builds the scene when it
+initialises (on a phone the island's module arrived six seconds after the
+intro opened, 2026-10-04, and the event had no listener). When a scene ends, every class and inline
 property the island added comes off and every counter is back on its HTML
 text: the scene takes `data-build-state="done"` and fires a bubbling
 `px:built`. Order a component's steps as **axis, then marks, then labels,
