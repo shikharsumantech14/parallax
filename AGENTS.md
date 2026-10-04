@@ -179,7 +179,10 @@ src/
 │   ├── index.astro            ← home (Lens Phase 4): the stage (core/Stage
 │   │                            + stage/StageScene) · six desk cards ·
 │   │                            the six latest covers · the promise strip ·
-│   │                            the letter · core/IntroOverlay (first visit)
+│   │                            the letter · core/IntroOverlay (the
+│   │                            first-visit walkthrough: a <dialog> over
+│   │                            the blurred page, five scenes on a CSS
+│   │                            clock, once per browser, `px_intro_v3`)
 │   ├── about.astro            (the /welcome intro story was removed on
 │   │                            2026-09-30; the new intro is
 │   │                            core/IntroOverlay, on Home)

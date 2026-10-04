@@ -155,24 +155,33 @@ that reason.
 ## The one exception
 
 **The first-visit intro, `core/IntroOverlay.astro`** (Lens Phase 4,
-2026-09-30; the canvas `Intro` board). It replaced "The Second Angle"
-(`/welcome`, its overlay and `intro.css`, removed the same day). It is the
-one page-level overlay on a lean page, mounted on Home only, and it earns
-its script on these terms:
+2026-09-30, rebuilt on 2026-10-04 as the five-scene walkthrough of the
+canvas `Intro`, `Intro-Phone` and `Intro-Entry` boards). It replaced "The
+Second Angle" (`/welcome`, its overlay and `intro.css`, removed 2026-09-30).
+It is the one page-level overlay on a lean page, mounted on Home only, and
+it earns its script on these terms:
 
-- **One `is:inline` script under 3 KB** (2,984 bytes): show-once
-  (`localStorage` `px_intro_v2`; `?intro=1` replays, `?intro=0` suppresses,
-  which is what a render check should load), the 3-dot stepper, Back / Next,
-  Escape to skip, the arrow keys, and the scene-3 cue lighting. Scenes 1 and
-  2 hand on after about six seconds unless the reader has stepped; the cues
-  of scene 3 light once. No motion of its own: showing a scene dispatches
-  `px:build` on it and `build.ts` builds it.
-- **The fallback contract:** it ships `hidden`, so no JS means no overlay (a
-  dialog nobody can dismiss is worse than none), and its markup is every
-  scene's final state; without the stepper's `data-step` the three scenes
-  stack in order. Reduced motion: final states, no hand-on, no cue autoplay.
-- Skip is always visible, focus returns to where it was, the page behind
-  does not scroll while it is open.
+- **One `is:inline` script, at most 3 KB minified**: **2,390 bytes
+  minified, 1,033 gzipped** (`npx esbuild <the script> --minify`, the
+  measure `build.ts` uses; 3,223 bytes as written, which is what ships,
+  because Astro does not minify an is:inline script). It is the show-once
+  (`localStorage` `px_intro_v3`, set when it opens; `?intro=1` reopens,
+  `?intro=0` suppresses), `showModal()` and the close, the 5-dot stepper,
+  Back / Next, the arrow keys, Escape (the dialog's `cancel`), Pause, and
+  scene 2's two cue lightings. No motion of its own: showing a scene
+  dispatches `px:build` on it and `build.ts` builds it; the entrance, the
+  exit and the clock are CSS. **The clock is a CSS animation**: the current
+  stepper pill fills over the scene's hold and its `animationend` steps on,
+  so hover (fine pointers), keyboard focus on a control and Pause stop it
+  with `animation-play-state` and no timer arithmetic. Holds: 8, 11, 9 and
+  9.5s, then scene 5 waits for a choice (about 39s untouched).
+- **The fallback contract:** a native `<dialog>`, closed in the HTML, so no
+  JS means no overlay (a dialog nobody can dismiss is worse than none), and
+  its markup is every scene's final state. Reduced motion: it opens at once
+  with every scene final, no clock, no cue autoplay; Back, Next and the dots
+  still step. Print: nothing.
+- Skip is always visible, the page behind is inert (`showModal`) and does
+  not scroll while it is open, and focus returns to where it was.
 
 > **`/welcome` was the intro story, and nothing else.** Before the merge two
 > projects each owned a `/welcome`: this one, and the app's post-signup

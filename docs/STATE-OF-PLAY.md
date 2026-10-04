@@ -51,6 +51,25 @@ Instrument Sans TTFs are deleted). Verified by the fast gates and a scoped
 `check:render` (the City issue, the ISS issue, the politics showcase and
 Home at 1280 and 375); the full render run belongs to the commit.
 
+**2026-10-04, the intro walkthrough.** The first-visit intro on Home
+(`core/IntroOverlay.astro`) is rebuilt to the approved `Intro`,
+`Intro-Phone` and `Intro-Entry` boards (BRIEF-8): a native dialog rises over
+the drawn page, which blurs under a paper scrim, and five scenes play
+themselves in about 39 seconds (what Parallax is, what you can do, what to
+do first, what members get, where to start), each built by `build.ts`, the
+clock a CSS animation that hover, focus or Pause stops. It ends on the six
+desks and three choices: Start browsing (`/#desks`), Sign in or become a
+member (`/login`), Continue to the home page. Every number comes from the
+collection. The key is now `px_intro_v3`, so readers who saw the
+three-scene intro see this one once. The board's third step ("Answer three
+questions") was corrected in the build to "Tell us how it landed", the
+ReactionsBar cells, because no reader-facing quiz exists. Verified by the
+fast gates, screenshots of every scene at 1280 and 375 read against the
+boards, a build-versus-final-state comparison of all five scenes, and
+`check:render` on Home at both widths (0 blocking; its intro pass now also
+checks the five dots, Skip and Escape). The full render run belongs to the
+commit.
+
 ---
 
 ## 2. Repo state

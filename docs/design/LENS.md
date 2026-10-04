@@ -735,7 +735,7 @@ library boards on the canvas (`Lib-<kind>`) are each kind's target.
 | The four-layer comprehension stack and the one-panel rule | the caption plus cues |
 | CANON's act-structure ratios as layout law | the composition floors in `docs/REGISTER-PLAN.md` §5.1 (editorial, unchanged) |
 | motion.md's named vocabulary (`reveal`, `sweep`, `settle`, `stamp`, `lensSettle`, `pageEnter` at 420ms, `--ease-snap`, `--t-page`) | the grammar in §6 |
-| The onboarding intro "The Second Angle" (removed 2026-09-30) | a three-scene intro on paper (canvas `Intro`): `core/IntroOverlay.astro`, Phase 4, shown once per browser on Home |
+| The onboarding intro "The Second Angle" (removed 2026-09-30) | a first-visit walkthrough over Home (canvas `Intro`, `Intro-Phone`, `Intro-Entry`): `core/IntroOverlay.astro`, a dialog over the blurred page, five scenes on a CSS clock, built by `build.ts`, shown once per browser (Phase 4; the three-scene version of 2026-09-30 was rebuilt as five on 2026-10-04) |
 
 **All of it is removed as of Phase 8 (2026-10-04).** Phase 3 stopped
 rendering the panel and the plain line and deleted the expand modal; Phase 7

@@ -413,7 +413,7 @@ Known reservations (still-live `px-` prefixes):
 | `px-cmark` | `core/CoverMark.astro` (Lens Phase 2) | the cover graphic: the section the issue's `cover.section` names when it is one of eleven drawable kinds, else the first such section (`src/lib/cover.ts`, which also returns the one-line `caption` a Home desk card prints under it); falls back to the desk medallion. In-SVG text in the literal Literata stack; the small words hide below a 340px panel (`@container`) so nothing prints under 12px, the marks and 20px+ numbers stay. The `row` thumbnail uses the model's `compact` mode: no words, heavier strokes and dots, a readout as bars or one bar beside the medallion. Never blank at any size |
 | `px-stage` | `core/Stage.astro` (Lens Phase 4) | the deep plate, full bleed: the desk's `--deep` edge to edge (a negative margin to the frame edge, a `border-image` outset past it, which paints without horizontal scroll), `<Masthead variant="stage">` across its top, 760 on Home and 720 on a desk page, auto below 1024px. Local tokens `--st-deep`, `--st-mark`, `--st-hi` (the lime on tech and sports), `--st-h`. The slot is the scene. No JS |
 | `px-scn` | `stage/StageScene.astro` (Lens Phase 4) | one issue told as a picture on the plate, from `src/lib/stage.ts` (pure): the number at 160 (88 on phones), a spiral clock, an orbit, readout bars or the cover mark on a tint panel, a ladder of at most three rungs, the headline and the paper "Read" button with Replay. Its root is the `data-build-scene` (`data-build-tempo="1.6"` on Home); the desktop and phone drawings are two SVGs, one shown by a media query, so every label prints at 12px or more at 1280 and 375 |
-| `px-intro` | `core/IntroOverlay.astro` (Lens Phase 4) | the first-visit intro on Home: three scenes on paper, shown once per browser (`px_intro_v2`), `?intro=1` / `?intro=0`. Ships `hidden`; its is:inline script (under 3 KB) is the show-once, the stepper and the scene-3 cue lighting; each scene is a `data-build-scene` that it asks to build with `px:build` |
+| `px-intro` | `core/IntroOverlay.astro` (the five-scene walkthrough, 2026-10-04; the Intro, Intro-Phone and Intro-Entry boards) | the first-visit walkthrough on Home: a native `<dialog>` (880 x 600, phones full width with 16px gutters) over the page, which blurs 14px under a paper scrim at 55% (its `::backdrop`); five scenes (what Parallax is, what you can do, what to do first, what members get, where to start) that autoplay on a CSS clock (the current stepper pill fills; its `animationend` steps on; hover, keyboard focus on a control or Pause stop it). Shown once per browser (`px_intro_v3`), `?intro=1` / `?intro=0`. Closed in the HTML, so no JS means no dialog; one is:inline island (2,390 bytes minified); each scene is a `data-build-scene` it asks to build with `px:build` |
 | `px-prom` / `px-prom-card` | `core/PromiseStrip.astro` (Lens Phase 4) | "Independent · Sourced · Slow" with their stroke icons: the 56px strip (Home, Subscribe) or three cards (About) |
 | `px-dcard` | the Home desk cards (scoped in `src/pages/index.astro`) | medallion 40, register, name, count chip, tagline, the latest issue's cover mark on the desk tint with its caption |
 | `px-arch` | `/archive` head, search and desk chips (in `meta.css`) | rows reuse `.px-archive__*`, so home and `/archive` share ONE row implementation; the filter island reveals the controls, which ship `hidden` |
@@ -624,7 +624,7 @@ These render directly in templates, not via the dispatcher:
 | `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Literata 700 21, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
 | `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). Lens Phase 4: the desk's stage (its masthead included, with the register), its issues as `CoverCard size="tile"` three across, the "New here? Start with No N" path (the three earliest as a dot strip), the other five desks as tiles with their medallion and a row thumbnail. `px-desk__`. |
 | `core/Stage.astro` + `stage/StageScene.astro` | Home (`index.astro`, the newest issue with a `cover`) and every desk page (the desk's newest issue). The stage replaces the page's `<Masthead>`: it renders the on-deep one itself |
-| `core/IntroOverlay.astro` | `index.astro`, after the page content, with the Home cover issue (scene 3 is built from its readout, timeline and latency-waterfall by `introFigure()` in `src/lib/stage.ts`, or shows its cover mark) |
+| `core/IntroOverlay.astro` | `index.astro`, after the page content, with the Home cover issue and its number. It reads the collection itself (`getCollection`): scene 2 is the cover issue's figure from `introFigure()` in `src/lib/stage.ts` (its cover mark when the issue lacks that shape), scenes 3 and 4 the cover numbers and labels of the newest issues, scene 5 the desk, issue and source counts; the reactions come from `src/lib/reactions.ts`, shared with `ReactionsBar` |
 | `core/PromiseStrip.astro` | Home and `/subscribe` (strip), `/about` (cards) |
 
 ---
@@ -1032,6 +1032,31 @@ its own island rewrites the verdict number.
 ---
 
 ## Change log
+
+### 2026-10-04 — The intro becomes a five-scene walkthrough
+
+`core/IntroOverlay.astro` is rebuilt to the approved Intro, Intro-Phone and
+Intro-Entry boards (BRIEF-8): a native `<dialog>` that rises over Home (300ms,
+opacity on `--ease`, scale .92 to 1 on `--ease-move`) while the page behind
+blurs 14px under a 55% paper scrim (the dialog's `::backdrop`, coloured with
+the paper's literal because a backdrop may not inherit custom properties).
+Five scenes, each a `data-build-scene` built by `build.ts`: the medallion
+from its parts with the two eyes; the reading system in miniature (cue 1,
+the counter, cue 2) and the six desks; three step cards on the path rail;
+the Shelf in miniature and the four beta facts; the six desks as links and
+three choices. Two patterns worth reusing: **an autoplay clock in CSS** (the
+current pill's fill is an animation, its `animationend` steps on, and
+`animation-play-state: paused` under hover, focus-visible or `[data-held]`
+pauses it with no timer arithmetic; the pause rules need `!important`
+because the `animation` shorthand resets the play state), and **two
+drawings where an SVG cannot reflow** (scene 1's wide and narrow SVGs, one
+shown by a media query; the hidden one is 0 x 0, so the build ignores it).
+The third step card says "Tell us how it landed" and draws the four
+ReactionsBar cells, one picked: no reader-facing quiz exists, so the board's
+"Answer three questions" was corrected in the build. New
+`src/lib/reactions.ts` holds the four reactions for both components. The key
+is `px_intro_v3` (v2 was the three-scene intro), and `scripts/ui-probe.mjs`
+now also checks the five dots, the Skip control and that Escape closes it.
 
 ### 2026-10-04 — Lens Phase 8, the switch
 

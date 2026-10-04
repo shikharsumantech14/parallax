@@ -1,36 +1,50 @@
 ---
 /**
- * IntroOverlay — the first-visit intro on Home (Lens Phase 4; the Intro and
- * Intro-Phone boards, BRIEF-7 §4). Three quiet scenes on paper that teach the
- * reading system:
+ * IntroOverlay — the first-visit walkthrough on Home (the Intro, Intro-Phone
+ * and Intro-Entry boards, BRIEF-8). A dialog rises over the drawn page, the
+ * page behind blurs under a paper scrim, and five scenes play themselves:
  *
- *   1 Two angles             the house medallion assembled from its parts
- *   2 Six desks              the six lettered marks at their stations
- *   3 Read with the picture  two cue sentences from the cover issue beside
- *                            the figure they point at (No 17's two clocks);
- *                            when the issue lacks that shape, its cover mark
+ *   1 What Parallax is      the house medallion built from its parts, two
+ *                           eyes and their sightlines, the promise
+ *   2 What you can do here  the reading system in miniature (the cover
+ *                           issue's two cue sentences beside the figure they
+ *                           light, the 1,330 counter), then the six desks
+ *   3 What to do first      three step cards on the path rail: read an
+ *                           issue, save it, tell us how it landed
+ *   4 What members get      the Shelf in miniature and the four beta facts
+ *   5 Where to start        the six desks as links and the three choices
  *
- * Shown once per browser (`localStorage` key `px_intro_v2`); `?intro=1`
- * replays it, `?intro=0` suppresses it (for render checks). Skip is always
- * visible; a 3-dot stepper of buttons, Back and Next; Escape skips; the
- * arrow keys step. Scenes 1 and 2 hand on by themselves after about six
- * seconds (never under reduced motion, and never after a manual step).
+ * Every number is the repo's own: the cover issue's figure (`introFigure()`
+ * in src/lib/stage.ts) and its title, number and read time; each shelf tile is
+ * an issue's `cover` number and label; the desk counts, the issue count and
+ * the source count from the published collection; the names and registers
+ * are DESK_COPY's and DESK_REGISTER's; the reactions are ReactionsBar's
+ * (src/lib/reactions.ts); the beta facts are the Subscribe page's. The path's
+ * progress (two read, 60%, 38%) is the board's sample of a member's shelf.
  *
- * FALLBACK. The overlay ships `hidden`, so a reader without JS never meets
- * a dialog they cannot dismiss. Every scene's markup is its final state; the
- * stepper shows one at a time only once the script sets `data-step`, and
- * without it the three stack in order. Reduced motion: final states, no
- * auto-advance, no cue autoplay.
+ * SHOWN ONCE per browser: `localStorage` `px_intro_v3` (v2 was the three-scene
+ * intro of 2026-09-30; the bump shows this one once to readers who saw that),
+ * set when it opens. `?intro=1` reopens it, `?intro=0` suppresses it.
  *
- * THE BUILD (Phase 5's `src/scripts/build.ts`, LENS §6.4). Each scene is a
- * `[data-build-scene]` with `data-build` / `data-build-kind` on its parts.
- * Showing a scene dispatches a bubbling `px:build` event on it, and the
- * island replays that scene; nothing here animates.
+ * THE CLOCK. Each scene holds for HOLD ms (its build plus time to read) while
+ * its stepper dot, a pill, fills; the fill is a CSS animation and its end
+ * advances the scene, so hover inside the dialog (fine pointers), keyboard
+ * focus on one of its controls, or Pause stops the clock in CSS alone, and it
+ * resumes where it stopped. Scene 5 waits for a choice. Escape closes, the
+ * arrow keys step, any dot jumps. Scene 2 lights cue 1 and then cue 2 once.
  *
- * Script: inline, show-once, stepper and cue lighting only (under 3 KB).
+ * FALLBACK. A native <dialog>, closed in the HTML: no JS, no overlay, the page
+ * is the page. Each scene's markup is its final state; showing a scene
+ * dispatches `px:build` on it and the one build island (src/scripts/build.ts,
+ * LENS §6.4) builds it. Reduced motion: the dialog opens with every scene
+ * final, no clock, no cue autoplay; Back, Next and the dots still step.
+ * Print: nothing.
+ *
+ * Script: one is:inline island, no library (size in .claude/rules/js-budget.md).
  * Prefix: px-intro.
  */
 import type { CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
 import Mark from './Mark.astro';
 import CoverMark from './CoverMark.astro';
 import { TOPICS } from '../../content/config';
@@ -39,7 +53,9 @@ import { ink } from '../../lib/desk-inks';
 import { markBody, viewBoxFor } from '../../lib/mark';
 import { introFigure } from '../../lib/stage';
 import { coverModel } from '../../lib/cover';
-import { formatNo } from '../../lib/issue-number';
+import { formatNo, issueNumbers } from '../../lib/issue-number';
+import { renderEmphasis } from '../../lib/text';
+import { REACTION_KINDS } from '../../lib/reactions';
 
 interface Props {
   issue: CollectionEntry<'issues'>;
@@ -48,288 +64,575 @@ interface Props {
 const { issue, number } = Astro.props;
 const d = issue.data;
 const desk = d.topic;
+const SERIF = "font-family:'Literata',Georgia,serif";
+
+const published = await getCollection('issues', (e) => e.data.status !== 'draft');
+const numbers = await issueNumbers();
+const newestFirst = [...published].sort(
+  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime() || b.slug.localeCompare(a.slug)
+);
+const noOf = (i: CollectionEntry<'issues'>) => {
+  const n = i.slug === issue.slug ? number : numbers.get(i.slug);
+  return n ? formatNo(n) : '';
+};
+const no = noOf(issue);
+
+/* The autoplay holds, ms (the board's table): build plus a hold to read.
+   Scene 5 waits for a choice. */
+const HOLD = [8000, 11000, 9000, 9500, 0];
+const NAMES = ['What Parallax is', 'What you can do here', 'What to do first', 'What members get', 'Where to start'];
+
+/* ── Scene 1: the house medallion, one element per part so each builds. ── */
+const medal = (size: number) =>
+  (markBody({
+    desk: 'politics', size, cut: 'mark',
+    colors: { accent: ink('politics', 'mark'), ground: 'var(--paper-2)', ink: 'var(--ink)', paper: 'var(--paper-2)' },
+  }).match(/<(circle|path)[^>]*\/>/g) ?? [])
+    .map((p, i) => p.replace(/\/>$/, ` data-build="${i + 1}" data-build-kind="${['fade', 'drop', 'fade', 'rise'][i]}"/>`))
+    .join('');
+const EYE = (x: number, y: number, pupil: string) =>
+  `<path d="M${x - 20} ${y} Q${x} ${y - 15} ${x + 20} ${y} Q${x} ${y + 15} ${x - 20} ${y} Z" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><circle cx="${x}" cy="${y}" r="5" fill="${pupil}"/>`;
+/* Desktop (784 x 312) and phone (318 x 352) drawings, the boards' geometry. */
+const S1 = {
+  wide: { w: 784, h: 312, mx: 308, my: 48, ms: 168, ey: 260, ex: [150, 634], ly: 298, dot: 'M178 260 H606', s1: 'M171.2 248.8 L310.7 175.0', s2: 'M612.8 248.8 L473.3 175.0' },
+  narrow: { w: 318, h: 352, mx: 81, my: 50, ms: 156, ey: 296, ex: [44, 274], ly: 334, dot: 'M72 296 H246', s1: 'M57.6 276.2 L110.4 199.0', s2: 'M260.4 276.2 L207.6 199.0' },
+};
+
+/* ── Scene 2: the reading system, from the cover issue's own figure. ── */
 const fig = introFigure({ topic: desk, title: d.title, sections: d.sections as any, cover: d.cover });
-const no = number ? formatNo(number) : '';
-const href = `/issues/${issue.slug}/`;
-const SANS = "font-family:'Literata',Georgia,serif";
-
-/* Scene 1: the house medallion, one element per part so each can build. */
-const parts = markBody({
-  desk: 'politics', size: 168, cut: 'mark',
-  colors: { accent: 'var(--topic-politics)', ground: 'var(--paper)', ink: 'var(--ink)', paper: 'var(--paper)' },
-}).match(/<(circle|path)[^>]*\/>/g) ?? [];
-const fx = ['fade', 'drop', 'fade', 'rise'];
-const medal = parts.map((p, i) => p.replace(/\/>$/, ` data-build="${i + 1}" data-build-kind="${fx[i]}"/>`)).join('');
-
-/* Scene 3: the two-clock bars, scaled to the open clock. */
-const W = 330;
-const k = fig ? W / fig.open.days : 0;
-const widths = fig ? fig.closed.spans.map((s) => +(s * k).toFixed(1)) : [];
-const endX = widths.reduce((s, w) => s + w + 1.5, 0);
-const MARK = ink(desk, 'mark');
-const TEXT = ink(desk, 'text');
-const TINT = ink(desk, 'tint');
+const open = fig?.open.days ?? 1;
+const segs = fig ? fig.closed.spans.map((s) => +(s / open).toFixed(4)) : [];
+const toNum = (v: string) => Number(String(v).replace(/[^\d.]/g, ''));
+const counterOk = fig ? /^\d{1,3}(,\d{3})*$/.test(fig.cues[0].value) : false;
 const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { cover: d.cover }).caption;
+const inks = `--in-mark: ${ink(desk, 'mark')}; --in-text: ${ink(desk, 'text')}; --in-tint: ${ink(desk, 'tint')}`;
+
+/* ── Scene 3: the first issue's card, the shelf, the reactions. ── */
+const reads = published.map((i) => i.data.readTimeMinutes).filter((n): n is number => typeof n === 'number' && n > 0);
+const rMin = reads.length ? Math.min(...reads) : 0;
+const rMax = reads.length ? Math.max(...reads) : 0;
+const readLine = !rMin ? 'A few minutes each' : rMin === rMax ? `Most take ${rMin} minutes` : rMax - rMin === 1 ? `Most take ${rMin} or ${rMax} minutes` : `Most take ${rMin} to ${rMax} minutes`;
+const readMin = d.readTimeMinutes ?? rMin;
+
+/* The sample shelf: the cover issue and two more, each by its own `cover`
+   number and label; the path is the four newest after the cover. */
+const others = newestFirst.filter((i) => i.slug !== issue.slug && i.data.cover?.number);
+const keepN = Math.min(2, others.length);
+const kept = others.slice(Math.max(0, Math.min(6, others.length) - keepN), Math.min(6, others.length)).reverse();
+const tile = (i: CollectionEntry<'issues'>) => ({
+  no: noOf(i),
+  value: String(i.data.cover?.number ?? ''),
+  label: String(i.data.cover?.label ?? ''),
+  text: ink(i.data.topic, 'text'), mark: ink(i.data.topic, 'mark'), tint: ink(i.data.topic, 'tint'),
+});
+const shelf = [
+  { ...tile(issue), value: String(d.cover?.number ?? fig?.cues[0].value ?? ''), label: String(d.cover?.label ?? fig?.cues[0].unit ?? '') },
+  ...kept.map(tile),
+].filter((t) => t.value);
+const PROGRESS = [1, 1, 0.6, 0.38];
+const trail = others.slice(0, Math.min(4, Math.max(0, others.length - keepN))).map((i, k) => ({
+  no: noOf(i), mark: ink(i.data.topic, 'mark'), tint: ink(i.data.topic, 'tint'), p: PROGRESS[k],
+}));
+const arc = (p: number) => {
+  const a = p * 2 * Math.PI;
+  const x = (12 + 11 * Math.sin(a)).toFixed(2);
+  const y = (12 - 11 * Math.cos(a)).toFixed(2);
+  return `M12 1 A11 11 0 ${p > 0.5 ? 1 : 0} 1 ${x} ${y}`;
+};
+const pct = (p: number) => `${Math.round(p * 100)} percent`;
+
+/* ── Scene 4: the Subscribe page's facts. ── */
+const FACTS = [
+  { v: '₹0', was: '₹149', l: 'a month, free in beta', short: 'a month in beta', key: true },
+  { v: '0', l: 'analytics scripts' },
+  { v: '0', l: 'trackers' },
+  { v: '1', l: 'letter a week' },
+];
+
+/* ── Scene 5: the desks, counted. ── */
+const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+const sources = published.reduce((s, i) => s + (i.data.sources?.length ?? 0), 0);
+const desks = TOPICS.map((t) => {
+  const n = published.filter((i) => i.data.topic === t).length;
+  return { t, name: DESK_COPY[t].name, reg: DESK_REGISTER[t], n: `${n} ${n === 1 ? 'issue' : 'issues'}`, text: ink(t, 'text') };
+});
+const tally = `${WORDS[TOPICS.length] ?? TOPICS.length} desks, ${published.length} ${published.length === 1 ? 'issue' : 'issues'}, ${sources} sources so far.`;
+
+const ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const BOOK = '<svg width="12" height="15" viewBox="0 0 12 15" aria-hidden="true" focusable="false"><path d="M1 1h10v13l-5-3.6L1 14z" fill="var(--ink)"/></svg>';
+const CHECK = '<svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="10" fill="var(--pol-text)"/><path d="M5.5 10.2l3 3 6-6.4" fill="none" stroke="var(--paper)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 ---
 
-<div class="px-intro" id="px-intro" role="dialog" aria-modal="true" aria-label="Welcome to Parallax" tabindex="-1" hidden style={`--in-mark: ${MARK}; --in-text: ${TEXT}; --in-tint: ${TINT}`}>
+<dialog class="px-intro" id="px-intro" aria-label="Welcome to Parallax" tabindex="-1" style={inks}>
   <header class="px-intro__top">
     <span class="px-intro__brand">
-      <Mark size={28} tight />
+      <Mark size={28} tight ground="var(--paper-2)" />
       <span class="px-intro__name">Parallax</span>
     </span>
-    <button class="px-intro__skip" type="button" data-intro-skip>
-      <span>Skip<span class="px-intro__long"> intro</span></span>
+    <span class="px-intro__status px-intro__status--top">
+      <button class="px-intro__hold" type="button" data-intro-hold aria-pressed="false" aria-label="Pause the intro">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><g class="px-intro__ipause"><rect x="3" y="2.5" width="2.6" height="9" rx="1" /><rect x="8.4" y="2.5" width="2.6" height="9" rx="1" /></g><path class="px-intro__iplay" d="M4 2.4l7.6 4.6L4 11.6z" /></svg>
+      </button>
+      <span class="px-intro__count" aria-live="polite"><span data-intro-n>1</span> / 5<span class="px-intro__paused">Paused</span></span>
+    </span>
+    <button class="px-intro__skip" type="button" data-intro-skip>Skip
       <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 2l8 8M10 2l-8 8" /></svg>
     </button>
   </header>
 
   <div class="px-intro__scenes">
-    <section class="px-intro__scene px-intro__s1" data-scene="1" data-build-scene aria-label="Scene 1 of 3, Two angles">
-      <svg class="px-intro__medal" viewBox={viewBoxFor(7, true)} width="168" height="168" role="img" aria-label="The Parallax medallion: an oxide disc, a paper disc shifted along the dial to leave a crescent, a ring, and the letter P" focusable="false">
-        <Fragment set:html={medal} />
-      </svg>
-      <div class="px-intro__lines">
-        <p class="px-intro__line" data-build="5" data-build-kind="rise">A star's distance is measured by looking at it twice.</p>
-        <p class="px-intro__sub" data-build="6" data-build-kind="rise">So is a story.</p>
+    {/* ── 1 · What Parallax is ─────────────────────────────────────────── */}
+    <section class="px-intro__scene px-intro__s1" data-scene="1" data-build-scene data-build-delay="100" aria-labelledby="px-intro-h1">
+      <div class="px-intro__head">
+        <p class="px-intro__eyebrow" data-build="7" data-build-kind="rise">{NAMES[0]}</p>
+        <h2 class="px-intro__h" id="px-intro-h1" data-build="7" data-build-kind="rise">Stories you think you <em>already</em> understand.</h2>
+        <p class="px-intro__sub" data-build="8" data-build-kind="rise">Two eyes, one object, a second angle.</p>
+      </div>
+      {(['wide', 'narrow'] as const).map((k) => {
+        const g = S1[k];
+        return (
+          <svg class={`px-intro__eyes px-intro__eyes--${k}`} width={g.w} height={g.h} viewBox={`0 0 ${g.w} ${g.h}`} role="img" focusable="false"
+            aria-label="The Parallax medallion built from its parts: an oxide disc, a paper disc shifted along the dial to leave a crescent, a ring and the letter P. Two eyes look at it from two places, a first look and a second angle.">
+            <path d={g.dot} fill="none" stroke="var(--hair-2)" stroke-width="1.5" stroke-dasharray="2 6" data-build="5" data-build-kind="fade" />
+            <path d={g.s1} pathLength="1" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round" data-build="6" data-build-kind="draw" />
+            <path d={g.s2} pathLength="1" fill="none" stroke={ink('politics', 'mark')} stroke-width="1.5" stroke-linecap="round" data-build="6" data-build-kind="draw" />
+            <svg x={g.mx} y={g.my} width={g.ms} height={g.ms} viewBox={viewBoxFor(7, true)} overflow="visible"><Fragment set:html={medal(g.ms)} /></svg>
+            <g data-build="5" data-build-kind="rise"><Fragment set:html={EYE(g.ex[0], g.ey, 'var(--ink)')} /></g>
+            <g data-build="5" data-build-kind="rise"><Fragment set:html={EYE(g.ex[1], g.ey, ink('politics', 'mark'))} /></g>
+            <text x={g.ex[0]} y={g.ly} text-anchor="middle" font-size="13" font-weight="500" fill="var(--ink-2)" style={SERIF} data-build="7" data-build-kind="rise">First look</text>
+            <text x={g.ex[1]} y={g.ly} text-anchor="middle" font-size="13" font-weight="600" fill={ink('politics', 'text')} style={SERIF} data-build="7" data-build-kind="rise">Second angle</text>
+          </svg>
+        );
+      })}
+    </section>
+
+    {/* ── 2 · What you can do here ─────────────────────────────────────── */}
+    <section class="px-intro__scene px-intro__s2" data-scene="2" data-build-scene aria-labelledby="px-intro-h2">
+      <div class="px-intro__head">
+        <p class="px-intro__eyebrow" data-build="6" data-build-kind="rise">{NAMES[1]}</p>
+        <h2 class="px-intro__h" id="px-intro-h2" data-build="6" data-build-kind="rise">Six desks, one way of <em>reading</em>.</h2>
+        <p class="px-intro__sub" data-build="7" data-build-kind="rise">Every sentence with a number points at its mark. Read, or look. Both work.</p>
+      </div>
+      <div class="px-intro__s2body">
+        <div class="px-intro__read" data-lit="">
+          {fig && (
+            <article class="px-intro__prose" data-build="1" data-build-kind="rise">
+              <span class="px-intro__kick">{[no, fig.eyebrow].filter(Boolean).join(' · ')}</span>
+              {fig.cues.map((c) => (
+                <p class="px-intro__cuep" data-cue-p={c.n}>
+                  <button class="px-intro__cue" type="button" data-intro-cue={c.n} aria-pressed="false" aria-label={`Cue ${c.n}: light it on the figure`}>{c.n}</button>{' '}
+                  <span class="px-intro__hl"><strong>{c.lead}</strong> {c.rest}</span>
+                </p>
+              ))}
+            </article>
+          )}
+          <figure class="px-intro__fig" data-build="1" data-build-kind="rise">
+            {fig ? (
+              <>
+                <div class="px-intro__ro" aria-live="polite">
+                  {fig.cues.map((c, i) => (
+                    <div class="px-intro__roi" data-ro={c.n}>
+                      {i === 0 && counterOk
+                        ? <span class="px-intro__rov" data-build="2" data-build-kind="counter" data-to={toNum(c.value)}>{c.value}</span>
+                        : <span class="px-intro__rov">{c.value}</span>}
+                      <span class="px-intro__rou">{c.unit}</span>
+                    </div>
+                  ))}
+                </div>
+                <div class="px-intro__rows" role="img"
+                  aria-label={`Days each case has run. 1: ${fig.open.label}, ${fig.open.days.toLocaleString('en-US')} and still open. 2: ${fig.closed.label}, ${fig.closed.total} and closed.`}>
+                  <div class="px-intro__row" data-lite="1">
+                    <span class="px-intro__rn"><span class="px-intro__disc">1</span>{fig.open.label}</span>
+                    <span class="px-intro__track">
+                      <span class="px-intro__bar" data-build="2" data-build-kind="grow-x"></span>
+                      <svg class="px-intro__more" width="28" height="12" viewBox="0 0 28 12" aria-hidden="true" focusable="false" data-build="3" data-build-kind="fade"><path d="M0 6H18" stroke-dasharray="3 3" /><path d="M20 0.5l6 5.5-6 5.5" /></svg>
+                    </span>
+                  </div>
+                  <div class="px-intro__row" data-lite="2">
+                    <span class="px-intro__rn"><span class="px-intro__disc">2</span>{fig.closed.label}</span>
+                    <span class="px-intro__track">
+                      {segs.map((s, i) => <span class:list={['px-intro__seg', { 'px-intro__seg--2': i > 0 }]} style={`--f: ${s}`} data-build="2" data-build-kind="grow-x"></span>)}
+                      <span class="px-intro__closed" data-build="3" data-build-kind="fade">{fig.closed.total} days, closed</span>
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <span class="px-intro__cover"><CoverMark issue={issue} /></span>
+                {caption && <figcaption class="px-intro__capt">{caption}</figcaption>}
+              </>
+            )}
+          </figure>
+        </div>
+        <ul class="px-intro__desks" aria-label="The six desks">
+          {TOPICS.map((t) => (
+            <li class="px-intro__desk" data-build="4" data-build-kind="drop">
+              <Mark desk={t} size={40} tight ground="var(--paper-2)" title={`${DESK_COPY[t].name} medallion`} class="px-intro__dmark" />
+              <span class="px-intro__dnames" data-build="5" data-build-kind="rise">
+                <span class="px-intro__dn">{DESK_COPY[t].name}</span>
+                <span class="px-intro__dr" style={`color: ${ink(t, 'text')}`}>{DESK_REGISTER[t]}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
 
-    <section class="px-intro__scene px-intro__s2" data-scene="2" data-build-scene aria-label="Scene 2 of 3, Six desks">
-      <ul class="px-intro__desks">
-        {TOPICS.map((t, i) => (
-          <li class="px-intro__desk" data-build="1" data-build-kind="drop" data-stagger={i}>
-            <Mark desk={t} size={96} tight title={`${DESK_COPY[t].name} medallion`} class="px-intro__dmark" />
-            <span class="px-intro__dname" data-build="4" data-build-kind="rise">
-              <span class="px-intro__dn">{DESK_COPY[t].name}</span>
-              <span class="px-intro__dr" style={`color: ${ink(t, 'text')}`}>{DESK_REGISTER[t]}</span>
-            </span>
+    {/* ── 3 · What to do first ─────────────────────────────────────────── */}
+    <section class="px-intro__scene px-intro__s3" data-scene="3" data-build-scene aria-labelledby="px-intro-h3">
+      <div class="px-intro__head">
+        <p class="px-intro__eyebrow" data-build="5" data-build-kind="rise">{NAMES[2]}</p>
+        <h2 class="px-intro__h" id="px-intro-h3" data-build="5" data-build-kind="rise">Three steps for your <em>first</em> issue.</h2>
+        <p class="px-intro__sub" data-build="6" data-build-kind="rise">Read it, save it if it is worth keeping, then tell us how it landed.</p>
+      </div>
+      <div class="px-intro__path" data-build="1" data-build-kind="rise">
+        <ol class="px-intro__steps">
+          <li class="px-intro__step" data-build="2" data-build-kind="rise">
+            <span class="px-intro__num" data-build="4" data-build-kind="fade">1</span>
+            <div class="px-intro__card">
+              <div class="px-intro__cfig px-intro__cfig--read">
+                <span class="px-intro__ring">
+                  <svg viewBox="0 0 76 76" aria-hidden="true" focusable="false"><circle cx="38" cy="38" r="30" fill="none" stroke="var(--paper-2)" stroke-width="7" /><path d="M38 8 A30 30 0 1 1 37.99 8" pathLength="1" fill="none" stroke="var(--in-mark)" stroke-width="7" stroke-linecap="round" data-build="3" data-build-kind="draw" /></svg>
+                  <span class="px-intro__ringt">{readMin} min</span>
+                </span>
+                <span class="px-intro__cmeta" data-build="3" data-build-kind="rise">
+                  {no && <span class="px-intro__cno">{no}</span>}
+                  <span class="px-intro__ctitle" set:html={renderEmphasis(d.title)} />
+                </span>
+              </div>
+              <div class="px-intro__ctext"><span class="px-intro__ct">Read an issue</span><span class="px-intro__cs">{readLine}</span></div>
+            </div>
           </li>
-        ))}
-      </ul>
-      <p class="px-intro__line" data-build="5" data-build-kind="rise">Six desks. One way of reading.</p>
-    </section>
-
-    <section class="px-intro__scene px-intro__s3" data-scene="3" data-build-scene aria-label="Scene 3 of 3, Read with the picture">
-      <div class="px-intro__read">
-        {fig ? (
-          <article class="px-intro__prose" data-build="1" data-build-kind="rise">
-            <span class="px-intro__eyebrow">{[no, fig.eyebrow].filter(Boolean).join(' · ')}</span>
-            {fig.cues.map((c) => (
-              <p class="px-intro__cuep" data-cue-p={c.n}>
-                <button class="px-intro__cue" type="button" data-intro-cue={c.n} aria-pressed="false" aria-label={`Cue ${c.n}: light it on the figure`}>{c.n}</button>{' '}
-                <span class="px-intro__hl"><strong>{c.lead}</strong> {c.rest}</span>
-              </p>
-            ))}
-          </article>
-        ) : null}
-        <figure class="px-intro__fig" data-build="1" data-build-kind="rise">
-          {fig ? (
-            <>
-              <div class="px-intro__ro" aria-live="polite">
-                {fig.cues.map((c) => (
-                  <div class="px-intro__roi" data-ro={c.n}>
-                    <span class="px-intro__rov">{c.value}</span>
-                    <span class="px-intro__rou">{c.unit}</span>
-                  </div>
+          <li class="px-intro__step" data-build="2" data-build-kind="rise">
+            <span class="px-intro__num" data-build="4" data-build-kind="fade">2</span>
+            <div class="px-intro__card">
+              <div class="px-intro__cfig px-intro__cfig--save">
+                {shelf.map((s) => (
+                  <span class="px-intro__mini" style={`--t-text: ${s.text}; --t-mark: ${s.mark}; --t-tint: ${s.tint}`} data-build="3" data-build-kind="drop">
+                    <span class="px-intro__miniv">{s.value}</span>
+                    <span class="px-intro__minino">{s.no}</span>
+                    <span class="px-intro__book" data-build="4" data-build-kind="drop"><Fragment set:html={BOOK} /></span>
+                  </span>
                 ))}
               </div>
-              <svg class="px-intro__bars" viewBox="0 0 372 112" width="372" height="112" role="img" focusable="false"
-                aria-label={`Days each case has run. 1: ${fig.open.label}, ${fig.open.days.toLocaleString('en-US')} and still open. 2: ${fig.closed.label}, ${fig.closed.total} and closed.`}>
-                <g class="px-intro__lite" data-lite="1">
-                  <circle class="px-intro__ring" cx="10" cy="14" r="14" fill="none" stroke={MARK} stroke-width="2" />
-                  <circle cx="10" cy="14" r="10" fill={MARK} />
-                  <text class="px-intro__t px-intro__t--n" x="10" y="18.2" text-anchor="middle" fill="var(--paper)" style={SANS}>1</text>
-                  <text class="px-intro__t" x="32" y="19" fill="var(--ink-2)" style={SANS}>{fig.open.label}</text>
-                  <rect x="0" y="32" width={W} height="16" rx="2" fill={MARK} data-build="2" data-build-kind="grow-x" />
-                  <g data-build="2" data-build-kind="rise">
-                    <line x1="334" y1="40" x2="354" y2="40" stroke={MARK} stroke-width="2" stroke-dasharray="3 3" />
-                    <path d="M356 34l7 6-7 6" fill="none" stroke={MARK} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </g>
-                </g>
-                <g class="px-intro__lite" data-lite="2">
-                  <circle class="px-intro__ring" cx="10" cy="72" r="14" fill="none" stroke={MARK} stroke-width="2" />
-                  <circle cx="10" cy="72" r="10" fill={MARK} />
-                  <text class="px-intro__t px-intro__t--n" x="10" y="76.2" text-anchor="middle" fill="var(--paper)" style={SANS}>2</text>
-                  <text class="px-intro__t" x="32" y="77" fill="var(--ink-2)" style={SANS}>{fig.closed.label}</text>
-                  {widths.map((w, i) => {
-                    const x = widths.slice(0, i).reduce((s, v) => s + v + 1.5, 0);
-                    return <rect x={x.toFixed(1)} y="90" width={w} height="16" rx="2" fill="var(--ink-2)" fill-opacity={i === 0 ? undefined : '.45'} data-build="2" data-build-kind="grow-x" />;
-                  })}
-                  <text class="px-intro__t px-intro__t--b" x={(endX + 9).toFixed(1)} y="103" fill="var(--ink)" style={SANS} data-build="2" data-build-kind="rise">{fig.closed.total} days, closed</text>
-                </g>
-              </svg>
-            </>
-          ) : (
-            <span class="px-intro__cover"><CoverMark issue={issue} /></span>
-          )}
-          <figcaption class="px-intro__cap">
-            {caption && <span class="px-intro__capt">{caption}</span>}
-            {fig?.source && <span class="px-intro__src">Source · {fig.source.label}{fig.source.date ? ` · ${fig.source.date}` : ''}</span>}
-          </figcaption>
-        </figure>
+              <div class="px-intro__ctext"><span class="px-intro__ct">Save the ones worth keeping</span><span class="px-intro__cs">They wait on your shelf</span></div>
+            </div>
+          </li>
+          <li class="px-intro__step" data-build="2" data-build-kind="rise">
+            <span class="px-intro__num" data-build="4" data-build-kind="fade">3</span>
+            <div class="px-intro__card">
+              <div class="px-intro__cfig px-intro__cfig--land">
+                {REACTION_KINDS.map((r, i) => (
+                  <span class:list={['px-intro__react', { 'is-picked': i === 0 }]} data-build="3" data-build-kind="rise">
+                    <span class="px-intro__box">{i === 0 && <span class="px-intro__tick" data-build="4" data-build-kind="fade"><Fragment set:html={CHECK} /></span>}</span>
+                    <span class="px-intro__rl">{r.label}</span>
+                    <span class="px-intro__rb" aria-hidden="true"></span>
+                  </span>
+                ))}
+              </div>
+              <div class="px-intro__ctext"><span class="px-intro__ct">Tell us how it landed</span><span class="px-intro__cs">At the end of every issue</span></div>
+            </div>
+          </li>
+        </ol>
+        <span class="px-intro__rail px-intro__rail--x" data-build="3" data-build-kind="grow-x"></span>
+        <span class="px-intro__rail px-intro__rail--y" data-build="3" data-build-kind="grow-y"></span>
       </div>
-      <div class="px-intro__end">
-        <p class="px-intro__line px-intro__line--sm" data-build="3" data-build-kind="rise">Every sentence with a number points at its mark. Read, or look. Both work.</p>
+    </section>
+
+    {/* ── 4 · What members get ─────────────────────────────────────────── */}
+    <section class="px-intro__scene px-intro__s4" data-scene="4" data-build-scene aria-labelledby="px-intro-h4">
+      <div class="px-intro__head">
+        <p class="px-intro__eyebrow" data-build="5" data-build-kind="rise">{NAMES[3]}</p>
+        <h2 class="px-intro__h" id="px-intro-h4" data-build="5" data-build-kind="rise">Join free, and the shelf is <em>yours</em>.</h2>
+        <p class="px-intro__sub" data-build="6" data-build-kind="rise">Free while we test. No analytics, no trackers. One letter a week.</p>
+      </div>
+      <div class="px-intro__s4body">
+        <div class="px-intro__shelf" data-build="1" data-build-kind="rise">
+          <span class="px-intro__lab">On the shelf</span>
+          <ul class="px-intro__saved">
+            {shelf.map((s) => (
+              <li class="px-intro__tile" style={`--t-text: ${s.text}; --t-tint: ${s.tint}`} data-build="2" data-build-kind="drop">
+                <span class="px-intro__tv">{s.value}</span>
+                <span class="px-intro__tl">{s.label}</span>
+                <span class="px-intro__tno">{s.no}</span>
+                <span class="px-intro__tb"><Fragment set:html={BOOK} /></span>
+              </li>
+            ))}
+          </ul>
+          {trail.length > 0 && (
+            <>
+              <span class="px-intro__lab">Your path</span>
+              <ol class="px-intro__trail" aria-label={`Your path across the desks: ${trail.map((t) => `${t.no} ${t.p >= 1 ? 'read' : `at ${pct(t.p)}`}`).join(', ')}.`}>
+                <span class="px-intro__tline" data-build="3" data-build-kind="grow-x" aria-hidden="true"></span>
+                {trail.map((t) => (
+                  <li class="px-intro__stop">
+                    <svg class="px-intro__pm" width="26" height="26" viewBox="-1 -1 26 26" aria-hidden="true" focusable="false" data-build="3" data-build-kind="fade">
+                      {t.p >= 1 ? (
+                        <>
+                          <circle cx="12" cy="12" r="11" fill="var(--paper)" stroke={t.mark} stroke-width="2.5" />
+                          <path d="M7.5 12.3l3 3 6-6.2" fill="none" stroke={t.mark} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="12" cy="12" r="11" fill="var(--paper)" stroke={t.tint} stroke-width="3" />
+                          <path d={arc(t.p)} pathLength="1" fill="none" stroke={t.mark} stroke-width="3" stroke-linecap="round" data-build="4" data-build-kind="draw" />
+                        </>
+                      )}
+                    </svg>
+                    <span class="px-intro__pn">{t.no}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          <div class="px-intro__disp" data-build="3" data-build-kind="rise">
+            <span class="px-intro__env"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1.5" y="3" width="13" height="10" rx="1.5" /><path d="M2 4l6 5 6-5" /></svg></span>
+            <span class="px-intro__dt">
+              <span class="px-intro__dh">The dispatch</span>
+              <span class="px-intro__dl">One quiet letter when an issue is worth keeping</span>
+            </span>
+            <span class="px-intro__dw">Weekly letter</span>
+            <span class="px-intro__switch" role="img" aria-label="Weekly letter: on"><span></span></span>
+          </div>
+        </div>
+        <ul class="px-intro__facts">
+          {FACTS.map((f) => (
+            <li class:list={['px-intro__fact', { 'is-key': f.key }]} data-build="4" data-build-kind="rise">
+              <span class="px-intro__fv">{f.v}</span>
+              <span class="px-intro__fls">
+                {f.was && <s class="px-intro__was">{f.was}<span class="px-intro__strike" data-build="5" data-build-kind="grow-x" aria-hidden="true"></span></s>}
+                <span class="px-intro__fl">{f.short ? <><span class="px-intro__long">{f.l}</span><span class="px-intro__short">{f.short}</span></> : f.l}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    {/* ── 5 · Where to start ───────────────────────────────────────────── */}
+    <section class="px-intro__scene px-intro__s5" data-scene="5" data-build-scene aria-labelledby="px-intro-h5">
+      <div class="px-intro__head">
+        <p class="px-intro__eyebrow" data-build="2" data-build-kind="rise">{NAMES[4]}</p>
+        <h2 class="px-intro__h" id="px-intro-h5" data-build="2" data-build-kind="rise">Where would you like to <em>begin</em>?</h2>
+        <p class="px-intro__sub" data-build="3" data-build-kind="rise">{tally}</p>
+      </div>
+      <div class="px-intro__s5body">
+        <ul class="px-intro__tiles">
+          {desks.map((k) => (
+            <li>
+              <a class="px-intro__dtile" href={`/topics/${k.t}/`} data-intro-close aria-label={`${k.name}, ${k.n}`} style={`--t-text: ${k.text}`} data-build="1" data-build-kind="drop">
+                <Mark desk={k.t} size={48} tight ground="var(--paper)" class="px-intro__tmark" />
+                <span class="px-intro__tn">{k.name}</span>
+                <span class="px-intro__tr">{k.reg}</span>
+                <span class="px-intro__tc">{k.n}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
         <div class="px-intro__ctas" data-build="4" data-build-kind="rise">
-          <a class="px-intro__go" href={href} data-intro-close>Start with {no || 'the latest'}
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
-          </a>
-          <a class="px-intro__browse" href="/#desks" data-intro-close>Browse the desks
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
-          </a>
+          <a class="px-intro__go" href="/#desks" data-intro-close>Start browsing<Fragment set:html={ARROW} /></a>
+          <a class="px-intro__member" href="/login" data-intro-close>Sign in or become a member</a>
+          <button class="px-intro__cont" type="button" data-intro-close>Continue to the home page<Fragment set:html={ARROW} /></button>
         </div>
       </div>
     </section>
   </div>
 
   <footer class="px-intro__foot">
-    <span class="px-intro__label" aria-live="polite"><span data-intro-n>01</span> / 03<span class="px-intro__lname"> · <span data-intro-label>Two angles</span></span></span>
-    <div class="px-intro__dots" role="group" aria-label="Intro scenes">
-      <button class="px-intro__dot" type="button" data-intro-go="1" aria-label="Scene 1 of 3, Two angles"><span></span></button>
-      <button class="px-intro__dot" type="button" data-intro-go="2" aria-label="Scene 2 of 3, Six desks"><span></span></button>
-      <button class="px-intro__dot" type="button" data-intro-go="3" aria-label="Scene 3 of 3, Read with the picture"><span></span></button>
-    </div>
-    <div class="px-intro__nav">
-      <button class="px-intro__back" type="button" data-intro-back>
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M12 7H2M6 3L2 7l4 4" /></svg>Back
+    <span class="px-intro__status px-intro__status--foot">
+      <button class="px-intro__hold" type="button" data-intro-hold aria-pressed="false" aria-label="Pause the intro">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><g class="px-intro__ipause"><rect x="3" y="2.5" width="2.6" height="9" rx="1" /><rect x="8.4" y="2.5" width="2.6" height="9" rx="1" /></g><path class="px-intro__iplay" d="M4 2.4l7.6 4.6L4 11.6z" /></svg>
+        <span class="px-intro__holdt"><span class="px-intro__tpause">Pause</span><span class="px-intro__tplay">Play</span></span>
       </button>
-      <button class="px-intro__next" type="button" data-intro-next>Next
-        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
+    </span>
+    <div class="px-intro__nav" role="group" aria-label="Intro scenes">
+      <button class="px-intro__arrow" type="button" data-intro-back aria-label="Previous scene" aria-disabled="true">
+        <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M12 7H2M6 3L2 7l4 4" /></svg>
       </button>
+      {NAMES.map((name, i) => (
+        <button class="px-intro__dot" type="button" data-intro-go={i + 1} aria-current={i === 0 ? 'step' : 'false'} aria-label={`Scene ${i + 1} of 5, ${name}`} style={HOLD[i] ? `--hold: ${HOLD[i]}ms` : undefined} data-last={HOLD[i] ? undefined : ''}>
+          <span class="px-intro__dotv"><span class="px-intro__fill"></span></span>
+        </button>
+      ))}
+      <button class="px-intro__arrow" type="button" data-intro-next aria-label="Next scene" aria-disabled="false">
+        <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2 7h10M8 3l4 4-4 4" /></svg>
+      </button>
+      <span class="px-intro__count px-intro__count--foot"><span data-intro-n>1</span> / 5<span class="px-intro__paused">Paused</span></span>
     </div>
+    <span></span>
   </footer>
-</div>
+</dialog>
 
 <script is:inline>
 (function () {
-  var el = document.getElementById('px-intro'), K = 'px_intro_v2', q = location.search, ls = null, seen = false;
-  if (!el) return;
-  try { ls = localStorage; seen = !!ls.getItem(K); } catch (e) {}
+  var el = document.getElementById('px-intro'), K = 'px_intro_v3', q = location.search, D = document, R = D.documentElement, ls, seen;
+  if (!el || !el.showModal) return;
+  try { ls = localStorage; seen = ls.getItem(K); } catch (e) {}
   if (/[?&]intro=0/.test(q) || (seen && !/[?&]intro=1/.test(q))) return;
-  var N = ['Two angles', 'Six desks', 'Read with the picture'];
-  var rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var R = document.documentElement, prev = document.activeElement, tm = [], cur = 0;
-  var $ = function (s) { return el.querySelector(s); }, $$ = function (s) { return el.querySelectorAll(s); };
-  var fig = $('.px-intro__fig');
+  var rm = matchMedia('(prefers-reduced-motion: reduce)').matches, prev = D.activeElement, cur = 0, tm = [];
+  var rd = el.querySelector('[data-lit]');
+  function all(s, f) { el.querySelectorAll(s).forEach(f); }
   function clear() { tm.forEach(clearTimeout); tm = []; }
   function lit(n) {
-    if (fig) fig.setAttribute('data-lit', n || '');
-    $$('[data-intro-cue]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-intro-cue') == n)); });
+    if (rd) rd.setAttribute('data-lit', n || '');
+    all('[data-intro-cue]', function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-intro-cue') == n); });
   }
-  function close() {
-    clear(); el.hidden = true; R.classList.remove('px-intro-open');
-    try { ls && ls.setItem(K, '1'); } catch (e) {}
-    document.removeEventListener('keydown', key);
-    if (prev && prev.focus) prev.focus();
-  }
-  function go(n, manual) {
-    clear(); cur = n; el.setAttribute('data-step', n);
-    $$('[data-scene]').forEach(function (s) {
+  function go(n) {
+    if (n < 1 || n > 5) return;
+    clear(); cur = n; el.setAttribute('data-step', n); lit(0);
+    all('[data-scene]', function (s) {
       var on = s.getAttribute('data-scene') == n;
       s.inert = !on;
       if (on) s.dispatchEvent(new Event('px:build', { bubbles: true }));
     });
-    $$('[data-intro-go]').forEach(function (b) { b.setAttribute('aria-current', b.getAttribute('data-intro-go') == n ? 'step' : 'false'); });
-    $('[data-intro-n]').textContent = '0' + n;
-    $('[data-intro-label]').textContent = N[n - 1];
-    $('[data-intro-back]').setAttribute('aria-disabled', String(n === 1));
-    $('[data-intro-next]').hidden = n === 3;
-    lit(0);
+    all('[data-intro-go]', function (b) { b.setAttribute('aria-current', b.getAttribute('data-intro-go') == n ? 'step' : 'false'); });
+    all('[data-intro-n]', function (s) { s.textContent = n; });
+    all('[data-intro-back]', function (b) { b.setAttribute('aria-disabled', n == 1); });
+    all('[data-intro-next]', function (b) { b.setAttribute('aria-disabled', n == 5); });
+    el.removeAttribute('data-auto'); void el.offsetWidth;
     if (rm) return;
-    if (n < 3 && !manual) tm.push(setTimeout(function () { go(n + 1); }, n === 1 ? 6200 : 6600));
-    if (n === 3) { tm.push(setTimeout(function () { lit(1); }, 924)); tm.push(setTimeout(function () { lit(2); }, 2400)); }
+    if (n < 5) el.setAttribute('data-auto', '');
+    if (n == 2) tm.push(setTimeout(lit, 920, 1), setTimeout(lit, 2420, 2));
   }
   function key(e) {
-    if (e.key === 'Escape') close();
-    else if (e.key === 'ArrowRight' && cur < 3) go(cur + 1, true);
-    else if (e.key === 'ArrowLeft' && cur > 1) go(cur - 1, true);
+    if (e.key == 'ArrowRight') go(cur + 1);
+    else if (e.key == 'ArrowLeft') go(cur - 1);
   }
+  function close() {
+    clear(); el.removeAttribute('data-auto');
+    R.classList.remove('px-intro-open');
+    D.removeEventListener('keydown', key);
+    el.classList.add('is-out');
+    setTimeout(function () { el.close(); el.classList.remove('is-out'); if (prev && prev.focus) prev.focus(); }, rm ? 0 : 420);
+  }
+  el.addEventListener('cancel', function (e) { e.preventDefault(); close(); });
+  el.addEventListener('animationend', function (e) { if (e.target.classList.contains('px-intro__fill')) go(cur + 1); });
   el.addEventListener('click', function (e) {
-    var t = e.target.closest('button,a');
+    var t = e.target.closest('a,button'), a = t && t.dataset;
     if (!t) return;
-    if (t.hasAttribute('data-intro-skip') || t.hasAttribute('data-intro-close')) return close();
-    if (t.hasAttribute('data-intro-go')) return go(+t.getAttribute('data-intro-go'), true);
-    if (t.hasAttribute('data-intro-back')) return cur > 1 && go(cur - 1, true);
-    if (t.hasAttribute('data-intro-next')) return cur < 3 && go(cur + 1, true);
-    if (t.hasAttribute('data-intro-cue')) { clear(); var n = t.getAttribute('data-intro-cue'); lit(fig && fig.getAttribute('data-lit') == n ? 0 : n); }
+    if ('introSkip' in a || 'introClose' in a) return close();
+    if (a.introGo) return go(+a.introGo);
+    if ('introBack' in a) return go(cur - 1);
+    if ('introNext' in a) return go(cur + 1);
+    if ('introHold' in a) {
+      var h = el.toggleAttribute('data-held');
+      return all('[data-intro-hold]', function (b) { b.setAttribute('aria-pressed', h); });
+    }
+    if (a.introCue) { clear(); lit(rd.getAttribute('data-lit') == a.introCue ? 0 : a.introCue); }
   });
-  document.addEventListener('keydown', key);
-  el.hidden = false; R.classList.add('px-intro-open');
-  go(1); el.focus();
+  try { ls.setItem(K, '1'); } catch (e) {}
+  el.classList.add('is-pre');
+  el.showModal(); el.focus();
+  R.classList.add('px-intro-open');
+  D.addEventListener('keydown', key);
+  void el.offsetWidth;
+  el.classList.remove('is-pre');
+  go(1);
 })();
 </script>
 
 <style>
   /* While it is open the page beneath does not scroll. */
   :global(html.px-intro-open), :global(html.px-intro-open body) { overflow: hidden; }
-  /* A first-visit surface that JS opens and closes: never shown without it. */
   :global(html:not(.js)) .px-intro { display: none !important; }
-  /* Fixed over everything, masthead and stage included, on an OPAQUE paper
-     ground in its own stacking context: nothing beneath ever shows through. */
+
+  /* ── The dialog: 880 x 600 on paper-2, rising over the blurred page. The
+     scrim is the dialog's ::backdrop: the page behind blurs 14px under a
+     paper wash at 55%. The entrance (Intro-Entry): 300ms, opacity on --ease,
+     scale .92 to 1 on --ease-move; the exit: 200ms out, the page unblurs in
+     420ms. ::backdrop may not inherit custom properties, so its colour is
+     the paper's literal. ─────────────────────────────────────────────────── */
   .px-intro {
-    position: fixed; inset: 0; z-index: 10000;
-    isolation: isolate;
-    display: grid; grid-template-rows: 76px minmax(0, 1fr) 96px;
-    background-color: #F5F2EB;
-    background-color: var(--paper, #F5F2EB);
-    color: var(--ink);
+    box-sizing: border-box;
+    width: min(880px, calc(100vw - 32px));
+    height: min(600px, calc(100dvh - 32px));
+    max-width: none; max-height: none;
+    margin: auto; padding: 0;
+    display: none;
+    flex-direction: column;
     overflow: hidden;
+    background: var(--paper-2);
+    color: var(--ink);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-2);
     outline: none;
+    font-family: var(--font-ui);
+    transition: opacity 300ms var(--ease), scale 300ms var(--ease-move);
   }
-  .px-intro[hidden] { display: none; }
+  .px-intro[open] { display: flex; }
+  .px-intro::backdrop {
+    background: rgb(245 242 235 / 0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    transition: background-color 300ms cubic-bezier(.22, 1, .36, 1), backdrop-filter 300ms cubic-bezier(.22, 1, .36, 1), -webkit-backdrop-filter 300ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .px-intro.is-pre { opacity: 0; scale: 0.92; transition: none; }
+  .px-intro.is-pre::backdrop { background: rgb(245 242 235 / 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); transition: none; }
+  .px-intro.is-out { opacity: 0; scale: 0.98; transition: opacity 200ms var(--ease), scale 200ms var(--ease); }
+  .px-intro.is-out::backdrop { background: rgb(245 242 235 / 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); transition-duration: 420ms; }
+  @media print { .px-intro, .px-intro::backdrop { display: none !important; } }
+
   .px-intro button { font-family: var(--font-ui); cursor: pointer; }
   .px-intro :is(a, button):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  .px-intro :is(button, a) svg path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .px-intro :is(.px-intro__skip, .px-intro__arrow, .px-intro__go, .px-intro__cont) svg path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-  .px-intro__top { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
-  .px-intro__brand { display: flex; align-items: center; gap: 10px; }
-  .px-intro__name { font: 700 20px/1 var(--font-display); letter-spacing: -0.02em; position: relative; top: -1px; }
-  .px-intro__skip, .px-intro__back {
-    height: 44px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px;
-    border: 1px solid var(--hair-2); border-radius: var(--r-ctl); background: transparent;
-    color: var(--ink-2); font-size: 14px; font-weight: 500;
-    transition: border-color var(--t-micro, 160ms) var(--ease);
+  /* ── The head: the lockup, the status (phones), Skip. ─────────────────── */
+  .px-intro__top {
+    height: 64px; flex: none; box-sizing: border-box;
+    padding: 0 12px 0 28px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--hair);
   }
-  .px-intro__back { font-size: 15px; font-weight: 600; }
-  .px-intro__skip:hover, .px-intro__back:hover { border-color: var(--ink); color: var(--ink); }
-  .px-intro__back[aria-disabled='true'] { opacity: 0.4; pointer-events: none; }
+  .px-intro__brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .px-intro__name { font: 700 20px/1 var(--font-display); letter-spacing: -0.02em; position: relative; top: -1px; }
+  .px-intro__skip {
+    height: 44px; padding: 0 14px; border: 0; border-radius: var(--r-ctl); background: transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink-2);
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase; white-space: nowrap;
+    transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  }
+  .px-intro__skip:hover, .px-intro__hold:hover, .px-intro__arrow:hover { background: var(--paper-3); color: var(--ink); }
 
-  /* The scenes: stacked in order until the stepper takes over. */
-  .px-intro__scenes { display: flex; flex-direction: column; gap: 64px; padding: 24px 32px; min-height: 0; overflow-y: auto; }
-  .px-intro[data-step] .px-intro__scenes { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); padding: 0 32px; gap: 0; }
-  .px-intro[data-step] .px-intro__scene {
-    grid-area: 1 / 1; opacity: 0; visibility: hidden;
+  /* ── The scenes: stacked in one cell, the current one shown. ──────────── */
+  .px-intro__scenes { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+  .px-intro__scene {
+    grid-area: 1 / 1; min-width: 0; min-height: 0;
+    box-sizing: border-box;
+    padding: 28px 48px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    overflow: clip;
+    opacity: 0; visibility: hidden;
     transition: opacity 200ms var(--ease), visibility 0s linear 200ms;
   }
   .px-intro[data-step='1'] [data-scene='1'],
   .px-intro[data-step='2'] [data-scene='2'],
-  .px-intro[data-step='3'] [data-scene='3'] { opacity: 1; visibility: inherit; transition: opacity 200ms var(--ease); }
-  .px-intro__scene { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; min-height: 0; }
+  .px-intro[data-step='3'] [data-scene='3'],
+  .px-intro[data-step='4'] [data-scene='4'],
+  .px-intro[data-step='5'] [data-scene='5'] { opacity: 1; visibility: visible; transition: opacity 200ms var(--ease) 200ms; }
 
-  .px-intro__medal { display: block; overflow: visible; }
-  .px-intro__lines { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .px-intro__line { margin: 0; font: 700 32px/1.2 var(--font-display); letter-spacing: -0.02em; text-align: center; text-wrap: balance; }
-  .px-intro__line--sm { font-size: 28px; }
-  .px-intro__sub { margin: 0; font: 400 18px/1.5 var(--font-display); color: var(--muted); text-align: center; }
-
-  .px-intro__s2 { gap: 56px; }
-  .px-intro__desks {
-    list-style: none; margin: 0; padding: 0;
-    width: min(1128px, 100%);
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px;
+  .px-intro__head { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; text-align: center; }
+  .px-intro__eyebrow {
+    margin: 0; font: 600 12px/1.25 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--pol-text);
   }
-  .px-intro__desk { display: flex; flex-direction: column; align-items: center; gap: 18px; min-width: 0; }
-  .px-intro__dname { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-  .px-intro__dn { font: 700 24px/1.1 var(--font-display); letter-spacing: -0.02em; }
-  .px-intro__dr { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; }
+  .px-intro__h { margin: 0; font: 700 32px/1.15 var(--font-display); letter-spacing: -0.028em; color: var(--ink); text-wrap: balance; }
+  .px-intro__h em { font-style: italic; font-weight: 400; color: var(--pol-text); }
+  .px-intro__sub { margin: 0; font: 400 18px/1.45 var(--font-display); color: var(--muted); text-wrap: balance; }
 
-  .px-intro__s3 { gap: 36px; }
-  .px-intro__read { display: grid; grid-template-columns: 300px 420px; gap: 48px; align-items: center; }
-  .px-intro__read:has(> :only-child) { grid-template-columns: 420px; }
-  .px-intro__prose { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .px-intro__eyebrow { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--in-text); }
-  .px-intro__cuep { margin: 0; font: 400 18px/1.6 var(--font-display); }
+  /* ── 1 · the medallion and the two eyes. ─────────────────────────────── */
+  .px-intro__eyes { display: block; overflow: visible; flex: none; }
+  .px-intro__eyes--narrow { display: none; }
+
+  /* ── 2 · the reading system, then the desks. ─────────────────────────── */
+  .px-intro__s2body { width: 784px; display: grid; grid-template-rows: 196px auto; row-gap: 16px; }
+  .px-intro__read { display: grid; grid-template-columns: 330px 414px; column-gap: 40px; align-items: center; }
+  .px-intro__read:has(> :only-child) { grid-template-columns: 414px; justify-content: center; }
+  .px-intro__prose { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .px-intro__kick { font: 600 12px/1.25 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--in-text); }
+  .px-intro__cuep { margin: 0; font: 400 16px/1.5 var(--font-display); color: var(--ink); }
   .px-intro__cuep strong { font-weight: 600; }
   .px-intro__cue {
     position: relative;
@@ -340,95 +643,355 @@ const caption = fig?.caption ?? coverModel(desk, d.sections as any, d.title, { c
     vertical-align: 2px;
     transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease);
   }
-  /* A 44px hit area around the 20px disc. */
   .px-intro__cue::after { content: ''; position: absolute; inset: -12px; }
-  .px-intro__cue[aria-pressed='true'] { background: var(--in-text); box-shadow: 0 0 0 3px var(--in-tint); }
+  .px-intro__cue:hover, .px-intro__cue[aria-pressed='true'] { background: var(--in-text); box-shadow: 0 0 0 3px var(--in-tint); }
   .px-intro__hl { padding: 1px 3px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; transition: background-color 160ms var(--ease); }
-  .px-intro__read:has([data-lit='1']) [data-cue-p='1'] .px-intro__hl,
-  .px-intro__read:has([data-lit='2']) [data-cue-p='2'] .px-intro__hl { background: var(--in-tint); }
+  .px-intro__read[data-lit='1'] [data-cue-p='1'] .px-intro__hl,
+  .px-intro__read[data-lit='2'] [data-cue-p='2'] .px-intro__hl { background: var(--in-tint); }
 
   .px-intro__fig {
     margin: 0; min-width: 0;
-    display: flex; flex-direction: column; gap: 16px;
-    padding: 20px 24px;
-    background: var(--paper-2); border: 1px solid var(--hair); border-radius: var(--r-card);
-    box-shadow: var(--shadow-1);
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card); box-shadow: var(--shadow-1);
   }
-  .px-intro__ro { height: 44px; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); align-items: end; }
-  .px-intro__roi { grid-area: 1 / 1; display: flex; align-items: baseline; gap: 10px; transition: opacity 160ms var(--ease); }
-  .px-intro__roi[data-ro='2'], .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='1'] { opacity: 0; visibility: hidden; }
-  .px-intro__fig[data-lit='2'] .px-intro__roi[data-ro='2'] { opacity: 1; visibility: inherit; }
-  .px-intro__rov { font: 700 48px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--in-text); font-variant-numeric: tabular-nums; }
-  .px-intro__rou { font: 500 14px/1.3 var(--font-ui); color: var(--ink-2); }
-  .px-intro__bars { display: block; width: 100%; max-width: 372px; height: auto; overflow: visible; }
-  .px-intro__t { font-size: 13px; font-weight: 500; }
-  .px-intro__t--n { font-size: 12px; font-weight: 600; }
-  .px-intro__t--b { font-weight: 600; }
-  .px-intro__lite { transition: opacity 160ms var(--ease); }
-  .px-intro__ring { opacity: 0; transition: opacity 160ms var(--ease); }
-  .px-intro__fig[data-lit='1'] [data-lite='2'], .px-intro__fig[data-lit='2'] [data-lite='1'] { opacity: 0.35; }
-  .px-intro__fig[data-lit='1'] [data-lite='1'] .px-intro__ring, .px-intro__fig[data-lit='2'] [data-lite='2'] .px-intro__ring { opacity: 1; }
+  .px-intro__ro { height: 40px; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); align-items: end; }
+  .px-intro__roi {
+    grid-area: 1 / 1; display: flex; align-items: baseline; gap: 10px; min-width: 0;
+    transition: opacity 420ms var(--ease), translate 420ms var(--ease), visibility 420ms;
+  }
+  .px-intro__roi[data-ro='2'],
+  .px-intro__read[data-lit='2'] .px-intro__roi[data-ro='1'] { opacity: 0; translate: 0 8px; visibility: hidden; }
+  .px-intro__read[data-lit='2'] .px-intro__roi[data-ro='2'] { opacity: 1; translate: 0 0; visibility: visible; }
+  .px-intro__rov { font: 700 40px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--in-text); font-variant-numeric: tabular-nums; }
+  .px-intro__rou { font: 500 14px/1.3 var(--font-ui); color: var(--ink-2); min-width: 0; }
+  .px-intro__rows { display: flex; flex-direction: column; gap: 10px; }
+  .px-intro__row { display: flex; flex-direction: column; gap: 6px; transition: opacity 160ms var(--ease); }
+  .px-intro__read[data-lit='1'] [data-lite='2'], .px-intro__read[data-lit='2'] [data-lite='1'] { opacity: 0.35; }
+  .px-intro__rn { display: flex; align-items: center; gap: 10px; font: 500 13px/1.2 var(--font-ui); color: var(--ink-2); }
+  .px-intro__disc {
+    width: 20px; height: 20px; flex: none; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--in-mark); color: var(--paper);
+    font: 600 12px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+    transition: box-shadow 160ms var(--ease);
+  }
+  .px-intro__read[data-lit='1'] [data-lite='1'] .px-intro__disc,
+  .px-intro__read[data-lit='2'] [data-lite='2'] .px-intro__disc { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--in-mark); }
+  .px-intro__track { display: flex; align-items: center; height: 16px; }
+  .px-intro__bar { flex: none; width: calc(100% - 42px); height: 16px; border-radius: 2px; background: var(--in-mark); transform-origin: 0 50%; }
+  .px-intro__more { flex: none; margin-left: 4px; overflow: visible; }
+  .px-intro__more path { fill: none; stroke: var(--in-mark); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .px-intro__seg { flex: none; width: calc((100% - 42px) * var(--f)); min-width: 2px; height: 16px; margin-right: 1.5px; border-radius: 2px; background: var(--ink-2); transform-origin: 0 50%; }
+  .px-intro__seg--2 { opacity: 0.45; }
+  .px-intro__closed { margin-left: 8px; font: 600 13px/1 var(--font-ui); color: var(--ink); white-space: nowrap; }
   .px-intro__cover { display: flex; justify-content: center; padding: 12px; border-radius: var(--r-ctl); background: var(--in-tint); container-type: inline-size; }
-  .px-intro__cap { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--hair); }
   .px-intro__capt { font: 500 15.5px/1.3 var(--font-display); color: var(--ink-2); }
-  .px-intro__src { font: 400 13px/1.4 var(--font-ui); color: var(--muted); }
 
-  .px-intro__end { display: flex; flex-direction: column; align-items: center; gap: 24px; }
-  .px-intro__ctas { display: flex; align-items: center; gap: 28px; }
-  .px-intro__go, .px-intro__browse {
-    height: 44px; display: inline-flex; align-items: center; gap: 10px;
-    font: 600 15px/1 var(--font-ui); text-decoration: none;
+  .px-intro__desks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 16px; }
+  .px-intro__desk { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+  .px-intro__desk :global(.px-intro__dmark) { width: 40px; height: 40px; }
+  .px-intro__dnames { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
+  .px-intro__dn { font: 700 17px/1.15 var(--font-display); letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; }
+  .px-intro__dr { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; min-height: 30px; }
+
+  /* ── 3 · three cards on the path rail. ───────────────────────────────── */
+  .px-intro__path {
+    position: relative; box-sizing: border-box;
+    width: 784px; padding: 20px 24px;
+    background: var(--paper-3); border-radius: var(--r-card);
   }
-  .px-intro__go { padding: 0 20px; border-radius: var(--r-ctl); background: var(--ink); color: var(--paper); transition: background-color 160ms var(--ease); }
-  .px-intro__go:hover { background: var(--ink-2); color: var(--paper); }
-  .px-intro__browse { color: var(--ink-2); gap: 8px; }
-  .px-intro__browse:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+  .px-intro__steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 20px; }
+  .px-intro__step { display: flex; flex-direction: column-reverse; gap: 16px; min-width: 0; }
+  .px-intro__num {
+    position: relative; z-index: 1;
+    align-self: center;
+    width: 28px; height: 28px; margin: 10px 0; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ink); color: var(--paper);
+    font: 600 13px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+  }
+  .px-intro__rail { position: absolute; display: block; background: var(--ink-2); }
+  .px-intro__rail--x { height: 2px; left: calc(24px + (100% - 88px) / 6); right: calc(24px + (100% - 88px) / 6); bottom: 43px; transform-origin: 0 50%; }
+  .px-intro__rail--y { display: none; transform-origin: 50% 0; }
+  .px-intro__card {
+    height: 204px; box-sizing: border-box;
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--paper-2); border: 1px solid var(--hair); border-radius: var(--r-card); box-shadow: var(--shadow-1);
+  }
+  .px-intro__cfig { height: 100px; flex: none; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; }
+  .px-intro__cfig--read { gap: 14px; background: var(--in-tint); }
+  .px-intro__ring { position: relative; flex: none; width: 76px; height: 76px; display: flex; align-items: center; justify-content: center; }
+  .px-intro__ring svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .px-intro__ringt { position: relative; font: 600 13px/1 var(--font-ui); color: var(--ink); white-space: nowrap; }
+  .px-intro__cmeta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .px-intro__cno { font: 600 12px/1.25 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--in-text); }
+  .px-intro__ctitle { font: 700 15px/1.25 var(--font-display); letter-spacing: -0.02em; color: var(--ink); }
+  .px-intro__ctitle :global(em) { font-style: italic; font-weight: 400; color: var(--in-text); }
+  .px-intro__cfig--save { justify-content: center; gap: 10px; background: var(--paper); }
+  .px-intro__mini {
+    position: relative; box-sizing: border-box;
+    width: 56px; height: 70px; padding: 7px 6px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border-radius: 4px; background: var(--t-tint); border-top: 3px solid var(--t-mark);
+  }
+  .px-intro__miniv { font: 700 15px/1 var(--font-ui); letter-spacing: -0.01em; color: var(--t-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .px-intro__minino { font: 600 12px/1 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--t-text); white-space: nowrap; }
+  .px-intro__book { position: absolute; right: 5px; top: -8px; display: block; }
+  .px-intro__book :global(svg) { display: block; }
+  .px-intro__cfig--land { flex-direction: column; align-items: stretch; justify-content: center; gap: 4px; background: var(--pol-tint); }
+  .px-intro__react { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .px-intro__box {
+    position: relative; flex: none; box-sizing: border-box;
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid var(--hair-2); background: var(--paper-2);
+  }
+  .is-picked .px-intro__box { border: 0; background: transparent; }
+  .px-intro__tick { position: absolute; inset: 0; display: block; }
+  .px-intro__tick :global(svg) { display: block; }
+  .px-intro__rl { font: 500 12px/16px var(--font-ui); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .is-picked .px-intro__rl { font-weight: 600; color: var(--ink); }
+  .px-intro__rb { display: none; }
+  .px-intro__ctext { padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .px-intro__ct { font: 700 19px/1.2 var(--font-display); letter-spacing: -0.02em; color: var(--ink); }
+  .px-intro__cs { font: 400 13px/1.35 var(--font-ui); color: var(--muted); }
 
-  .px-intro__foot { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; padding: 0 32px; }
-  .px-intro__label { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .px-intro__dots { display: flex; align-items: center; gap: 4px; }
+  /* ── 4 · the Shelf in miniature, the four facts. ─────────────────────── */
+  .px-intro__s4body { width: 784px; display: grid; grid-template-columns: 480px 280px; column-gap: 24px; }
+  .px-intro__shelf {
+    box-sizing: border-box; min-width: 0;
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card); box-shadow: var(--shadow-1);
+  }
+  .px-intro__lab { font: 600 12px/1.25 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .px-intro__saved { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .px-intro__tile {
+    position: relative; box-sizing: border-box; min-width: 0;
+    height: 100px; padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border-radius: var(--r-ctl); background: var(--t-tint); color: var(--t-text);
+  }
+  .px-intro__tv { font: 700 24px/1 var(--font-ui); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; padding-right: 14px; }
+  .px-intro__tl { font: 500 12px/1.25 var(--font-ui); }
+  .px-intro__tno { display: none; font: 500 12px/1.25 var(--font-ui); }
+  .px-intro__tb { position: absolute; right: 10px; top: 10px; }
+  .px-intro__tb :global(svg) { display: block; width: 10px; height: 13px; }
+  .px-intro__trail { position: relative; list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; }
+  .px-intro__tline { position: absolute; left: 24px; right: 24px; top: 12px; height: 2px; background: var(--hair-2); transform-origin: 0 50%; }
+  .px-intro__stop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px; }
+  .px-intro__pm { display: block; overflow: visible; }
+  .px-intro__pn { font: 500 12px/1.2 var(--font-ui); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .px-intro__disp {
+    box-sizing: border-box; height: 52px; padding: 0 12px;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--paper-2); border: 1px solid var(--hair); border-radius: var(--r-ctl);
+  }
+  .px-intro__env { width: 32px; height: 32px; flex: none; border-radius: 999px; background: var(--pol-tint); display: flex; align-items: center; justify-content: center; }
+  .px-intro__env svg { display: block; fill: none; stroke: var(--pol-text); stroke-width: 1.5; stroke-linejoin: round; }
+  .px-intro__dt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .px-intro__dh { font: 700 16px/1.1 var(--font-display); letter-spacing: -0.02em; color: var(--ink); }
+  .px-intro__dl { font: 400 12px/1.25 var(--font-ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .px-intro__dw { display: none; font: 500 12px/1 var(--font-ui); color: var(--ink-2); white-space: nowrap; }
+  .px-intro__switch { position: relative; width: 40px; height: 22px; flex: none; border-radius: 999px; background: var(--ink); }
+  .px-intro__switch span { position: absolute; left: 21px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: var(--paper); }
+  .px-intro__facts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .px-intro__fact {
+    box-sizing: border-box; min-width: 0; padding: 16px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+    background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card);
+  }
+  .px-intro__fv { font: 700 48px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; padding-bottom: 0.06em; }
+  .is-key .px-intro__fv { color: var(--pol-text); }
+  .px-intro__fls { display: flex; flex-direction: column; gap: 4px; }
+  .px-intro__was { position: relative; align-self: flex-start; text-decoration: none; font: 500 13px/1.2 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-intro__strike { position: absolute; left: -2px; right: -2px; top: 50%; height: 1px; background: var(--ink-2); transform-origin: 0 50%; }
+  .px-intro__fl { font: 500 13px/1.3 var(--font-ui); color: var(--ink-2); }
+  .px-intro__short { display: none; }
+
+  /* ── 5 · the six desks and the three choices. ────────────────────────── */
+  .px-intro__s5body {
+    width: 784px; flex: 1; min-height: 0; box-sizing: border-box;
+    padding-bottom: 40px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 28px;
+  }
+  .px-intro__tiles { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+  .px-intro__dtile {
+    box-sizing: border-box; height: 164px; padding: 16px 8px; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    background: var(--paper); border: 1px solid var(--hair); border-radius: var(--r-card); box-shadow: var(--shadow-1);
+    color: var(--ink); text-decoration: none; text-align: center;
+    transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  .px-intro__dtile:hover { border-color: var(--ink); box-shadow: var(--shadow-2); color: var(--ink); }
+  .px-intro__dtile :global(.px-intro__tmark) { width: 48px; height: 48px; }
+  .px-intro__tn { font: 700 20px/1.2 var(--font-display); letter-spacing: -0.02em; }
+  .px-intro__tr { min-height: 30px; display: flex; align-items: center; font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--t-text); }
+  .px-intro__tc { font: 600 12px/1.2 var(--font-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .px-intro__ctas { display: flex; align-items: center; gap: 12px; }
+  .px-intro__go, .px-intro__member, .px-intro__cont {
+    box-sizing: border-box; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase; white-space: nowrap; text-decoration: none;
+    border-radius: var(--r-ctl);
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease), box-shadow 160ms var(--ease), color 160ms var(--ease);
+  }
+  .px-intro__go { padding: 0 20px; background: var(--ink); color: var(--paper); }
+  .px-intro__go:hover { background: #000; box-shadow: var(--shadow-2); }
+  .px-intro__member { padding: 0 16px; border: 1px solid var(--ink); background: transparent; color: var(--ink); }
+  .px-intro__member:hover { background: var(--paper); }
+  .px-intro__cont { padding: 0; border: 0; background: transparent; gap: 8px; color: var(--ink-2); }
+  .px-intro__cont:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+
+  /* ── The foot: Pause, the stepper, the counter. ───────────────────────── */
+  .px-intro__foot {
+    height: 72px; flex: none; box-sizing: border-box; padding: 0 16px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center;
+    border-top: 1px solid var(--hair);
+  }
+  .px-intro__status { display: flex; align-items: center; }
+  .px-intro__status--top { display: none; }
+  .px-intro__hold {
+    height: 44px; padding: 0 12px; border: 0; border-radius: var(--r-ctl); background: transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink-2);
+    font: 600 12px/1 var(--font-ui); letter-spacing: 0.17em; text-transform: uppercase; white-space: nowrap;
+    transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  }
+  .px-intro__hold svg { display: block; fill: currentColor; }
+  .px-intro__hold svg path.px-intro__iplay { fill: currentColor; stroke: none; }
+  .px-intro__iplay, .px-intro__tplay, .px-intro[data-held] .px-intro__ipause, .px-intro[data-held] .px-intro__tpause { display: none; }
+  .px-intro[data-held] .px-intro__iplay, .px-intro[data-held] .px-intro__tplay { display: inline; }
+  .px-intro:not([data-auto]) .px-intro__hold { visibility: hidden; }
+  .px-intro__nav { display: flex; align-items: center; gap: 4px; }
+  .px-intro__arrow {
+    width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--r-ctl); background: transparent;
+    display: flex; align-items: center; justify-content: center; color: var(--ink);
+  }
+  .px-intro__arrow svg { display: block; }
+  .px-intro__arrow[aria-disabled='true'] { opacity: 0.35; pointer-events: none; }
   .px-intro__dot { width: 44px; height: 44px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
-  .px-intro__dot span { width: 10px; height: 10px; border-radius: 999px; border: 1.5px solid var(--muted); box-sizing: border-box; transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease); }
-  .px-intro__dot[aria-current='step'] span { border-color: var(--ink); background: var(--ink); box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
-  .px-intro__dot:hover span { border-color: var(--ink); }
-  .px-intro__nav { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-  .px-intro__next {
-    height: 44px; padding: 0 20px; border: 0; border-radius: var(--r-ctl);
-    background: var(--ink); color: var(--paper); font-size: 15px; font-weight: 600;
-    display: inline-flex; align-items: center; gap: 10px;
+  @media (hover: hover) and (pointer: fine) { .px-intro__dot { width: 32px; } }
+  .px-intro__dotv {
+    position: relative; display: block; overflow: hidden;
+    width: 8px; height: 8px; border-radius: 999px; background: var(--hair-2);
+    transition: width 160ms var(--ease), background-color 160ms var(--ease);
   }
-  .px-intro__next[hidden] { display: none; }
-  .px-intro__next:hover { background: var(--ink-2); }
-  /* The stepper does nothing until the script has taken over. */
-  .px-intro:not([data-step]) .px-intro__foot { display: none; }
+  .px-intro__dot:hover .px-intro__dotv { background: var(--ink-2); }
+  .px-intro__dot:has(~ .px-intro__dot[aria-current='step']) .px-intro__dotv { background: var(--ink-2); }
+  .px-intro__dot[aria-current='step'] .px-intro__dotv { width: 28px; background: var(--hair-2); }
+  .px-intro__fill { position: absolute; inset: 0; background: var(--ink); transform-origin: 0 50%; scale: 0 1; }
+  .px-intro__dot[aria-current='step'] .px-intro__fill { scale: 1 1; }
+  /* The clock: the current pill fills over its hold; its end steps on. */
+  .px-intro[data-auto] .px-intro__dot[aria-current='step']:not([data-last]) .px-intro__fill { animation: px-intro-fill var(--hold, 8000ms) linear both; }
+  .px-intro[data-held] .px-intro__fill,
+  .px-intro:has(:is(a, button):focus-visible) .px-intro__fill { animation-play-state: paused !important; }
+  @media (hover: hover) and (pointer: fine) { .px-intro:hover .px-intro__fill { animation-play-state: paused !important; } }
+  @keyframes px-intro-fill { from { scale: 0 1; } to { scale: 1 1; } }
+  .px-intro__count { display: inline-flex; align-items: baseline; gap: 6px; margin-left: 8px; font: 500 13px/1 var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .px-intro__paused { opacity: 0; transition: opacity 160ms var(--ease); }
+  .px-intro[data-auto][data-held] .px-intro__paused,
+  .px-intro[data-auto]:has(:is(a, button):focus-visible) .px-intro__paused { opacity: 1; }
+  @media (hover: hover) and (pointer: fine) { .px-intro[data-auto]:hover .px-intro__paused { opacity: 1; } }
 
-  @media (max-width: 900px) {
-    .px-intro { grid-template-rows: 60px minmax(0, 1fr) 68px; }
-    .px-intro__top, .px-intro__foot { padding: 0 20px; }
+  /* ── Desktop when the window is short: the scene scrolls inside. ──────── */
+  @media (max-height: 640px) and (min-width: 900px) {
+    .px-intro__scene { overflow-y: auto; }
+  }
+
+  /* ── Phones and narrow windows (the Intro-Phone board): full width with
+     16px gutters, the status in the head, the stepper alone at the foot,
+     each scene stacked. ─────────────────────────────────────────────────── */
+  @media (max-width: 899px) {
+    .px-intro {
+      width: min(480px, calc(100vw - 32px));
+      height: min(680px, calc(100dvh - 32px));
+    }
+    .px-intro__top { height: 56px; padding: 0 6px 0 16px; gap: 2px; }
+    .px-intro__brand { gap: 8px; }
+    .px-intro__brand :global(.px-mark) { width: 24px; height: 24px; }
+    .px-intro__name { font-size: 18px; }
+    .px-intro__status--top { display: flex; }
+    .px-intro__status--foot, .px-intro__count--foot, .px-intro__foot > span:last-child { display: none; }
+    .px-intro__status--top .px-intro__hold { padding: 0 10px; }
+    .px-intro__status--top .px-intro__count { margin-left: 0; }
+    .px-intro__skip { padding: 0 12px; }
+    .px-intro__foot { height: 64px; padding: 0 12px; display: flex; justify-content: center; }
+
+    .px-intro__scene { padding: 20px 20px 16px; gap: 16px; overflow-y: auto; overscroll-behavior: contain; }
+    .px-intro__head { gap: 6px; }
+    .px-intro__h { font-size: 26px; letter-spacing: -0.02em; }
+
+    .px-intro__eyes--wide { display: none; }
+    .px-intro__eyes--narrow { display: block; width: 100%; max-width: 318px; height: auto; }
+
+    .px-intro__s2body { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .px-intro__read { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+    .px-intro__fig { order: -1; padding: 12px 16px; }
+    .px-intro__kick { display: none; }
+    .px-intro__prose { gap: 8px; }
+    .px-intro__cuep { font-size: 15px; }
+    .px-intro__rou { font-size: 13px; }
+    .px-intro__desks { column-gap: 0; }
+    .px-intro__desk { gap: 6px; }
+    .px-intro__desk :global(.px-intro__dmark) { width: 32px; height: 32px; }
+    .px-intro__dn { font-size: 13px; letter-spacing: -0.025em; }
+    .px-intro__dr { display: none; }
+
+    .px-intro__path { width: 100%; padding: 14px 12px 14px 8px; }
+    .px-intro__steps { grid-template-columns: minmax(0, 1fr); row-gap: 12px; }
+    .px-intro__step { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 8px; align-items: center; }
+    .px-intro__num { width: 26px; height: 26px; margin: 0; grid-column: 1; grid-row: 1; justify-self: center; }
+    .px-intro__card { grid-column: 2; grid-row: 1; height: 84px; flex-direction: row; }
+    .px-intro__cfig { width: 84px; height: auto; padding: 0; justify-content: center; }
+    .px-intro__cfig--read { gap: 0; }
+    .px-intro__ring { width: 56px; height: 56px; }
+    .px-intro__ringt { font-size: 12px; }
+    .px-intro__cmeta { display: none; }
+    .px-intro__cfig--save { gap: 6px; }
+    .px-intro__mini { width: 20px; height: 52px; padding: 0; border-radius: 3px; border-top-width: 4px; }
+    .px-intro__miniv, .px-intro__minino { display: none; }
+    .px-intro__book { right: 3px; top: -10px; }
+    .px-intro__book :global(svg) { width: 10px; height: 13px; }
+    .px-intro__cfig--land { align-items: flex-start; padding-left: 14px; gap: 6px; }
+    .px-intro__react { gap: 6px; }
+    .px-intro__rl { display: none; }
+    .px-intro__rb { display: block; width: 36px; height: 3px; border-radius: 2px; background: var(--hair-2); }
+    .is-picked .px-intro__rb { background: var(--pol-mark); }
+    .px-intro__ctext { padding: 0 12px; justify-content: center; gap: 3px; min-width: 0; }
+    .px-intro__ct { font-size: 17px; }
+    .px-intro__rail--x { display: none; }
+    .px-intro__rail--y { display: block; width: 2px; left: 23px; top: 56px; bottom: 56px; }
+
+    .px-intro__s4body { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+    .px-intro__shelf { padding: 12px 14px; gap: 8px; }
+    .px-intro__saved { gap: 8px; }
+    .px-intro__tile { height: 60px; padding: 8px 10px; }
+    .px-intro__tv { font-size: 20px; }
+    .px-intro__tl { display: none; }
+    .px-intro__tno { display: block; }
+    .px-intro__tb { right: 8px; top: 8px; }
+    .px-intro__disp { height: 44px; padding: 0 10px; gap: 10px; }
+    .px-intro__env { width: 28px; height: 28px; }
+    .px-intro__dh { font-size: 15px; }
+    .px-intro__dl { display: none; }
+    .px-intro__dw { display: block; }
+    .px-intro__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto; gap: 8px; }
+    .px-intro__fact { padding: 10px 8px; justify-content: flex-start; gap: 6px; }
+    .px-intro__fv { font-size: 32px; }
+    .px-intro__was { display: none; }
+    .px-intro__fl { font-size: 12px; }
     .px-intro__long { display: none; }
-    .px-intro[data-step] .px-intro__scenes, .px-intro__scenes { padding: 4px 20px 0; }
-    .px-intro__scene { justify-content: flex-start; gap: 24px; padding-top: 24px; overflow-y: auto; }
-    .px-intro__line { font-size: 26px; }
-    .px-intro__line--sm { font-size: 22px; text-align: left; }
-    .px-intro__desks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 12px; }
-    .px-intro__desk :global(.px-intro__dmark) { width: 64px; height: 64px; }
-    .px-intro__dn { font-size: 20px; }
-    .px-intro__read { grid-template-columns: minmax(0, 1fr); gap: 18px; width: 100%; }
-    .px-intro__read:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
-    .px-intro__fig { order: -1; padding: 16px; gap: 14px; }
-    .px-intro__prose { gap: 10px; }
-    .px-intro__cuep { font-size: 17px; }
-    .px-intro__t { font-size: 15px; }
-    .px-intro__t--n { font-size: 13px; }
-    .px-intro__capt { font-size: 15px; }
-    .px-intro__src { font-size: 12px; }
-    .px-intro__s3 { gap: 18px; }
-    .px-intro__end { align-items: stretch; gap: 16px; }
-    .px-intro__ctas { gap: 20px; flex-wrap: wrap; }
-    .px-intro__foot { grid-template-columns: auto auto 1fr; }
-    .px-intro__label { order: 3; justify-self: end; }
-    .px-intro__lname { display: none; }
-    .px-intro__nav { order: -1; justify-content: flex-start; }
-    .px-intro__next { display: none; }
+    .px-intro__short { display: inline; }
+
+    .px-intro__s5body { width: 100%; padding-bottom: 0; align-items: stretch; gap: 20px; }
+    .px-intro__tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .px-intro__dtile { height: 86px; padding: 8px 4px; gap: 3px; }
+    .px-intro__dtile :global(.px-intro__tmark) { width: 32px; height: 32px; }
+    .px-intro__tn { font-size: 15px; }
+    .px-intro__tr { display: none; }
+    .px-intro__tc { color: var(--t-text); letter-spacing: 0.18em; }
+    .px-intro__ctas { flex-direction: column; align-items: stretch; gap: 12px; }
+    .px-intro__go, .px-intro__member { width: 100%; }
   }
 </style>

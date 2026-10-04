@@ -99,8 +99,9 @@ for collisions first. Reserved: `px-strip` (TopicStrip — the climate strip use
 `px-cstrip`), `px-gate`, `px-acct`, `px-wb`, `px-nnote`,
 `pxs-` (story mode), `px-wj`, `px-abt`, `px-inst`. Phase 6 (2026-09-30/10-01)
 redrew the folded kinds inside their hosts, so `px-cgauge`, `px-swdial`,
-`px-tdial` and `.rc` are free too. `px-intro` / `px-xp` (the removed intro),
-`px-plate`, `px-beats`, `px-shells`, `px-elev`, `px-co`, `px-bflow`, `px-og`,
+`px-tdial` and `.rc` are free too. `px-intro` is taken again by
+`core/IntroOverlay.astro` (the first-visit walkthrough); `px-xp` (the removed
+intro), `px-plate`, `px-beats`, `px-shells`, `px-elev`, `px-co`, `px-bflow`, `px-og`,
 `px-sig`, `px-dg`, `px-rg`, `px-ireel` and `.cc` (the dropped and folded
 kinds) are free, and Phase 8's sweep (2026-10-04) deleted their last dead
 rules. So are `px-plain` (the retired plain line), `px-primer`,

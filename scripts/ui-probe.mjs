@@ -41,10 +41,11 @@
  *    a no-op under reduced motion), `document.fonts.ready` is awaited, and the
  *    Astro dev toolbar is removed. (Until Lens Phase 5 this step forced
  *    `[data-reveal]` to `.is-in`; that contract is retired.)
- *  - The home page is loaded as a RETURNING reader (`px_intro_v2` set), so
+ *  - The home page is loaded as a RETURNING reader (`px_intro_v3` set), so
  *    the intro overlay (core/IntroOverlay.astro) never covers what is
  *    measured; one more load as a FIRST visit checks the overlay on its own:
- *    that it opens, FRAME under it, and `home/<width>/intro.png`.
+ *    that it opens, FRAME under it, its five stepper dots and its Skip, that
+ *    Escape closes it, and `home/<width>/intro.png`.
  *  - The BUILD check (below) loads the page TWICE more, one page at a time:
  *    once with JS and motion allowed, every scene left to finish its build,
  *    and once with JavaScript disabled.
@@ -1244,14 +1245,14 @@ async function openPage(browser, job, opts, res, { motion = false, js = true, fi
   // ReadingGate's isAuthed(): /sb-[^=;]*-auth-token(?:\.\d+)?=/ on document.cookie.
   await page.setCookie({ name: 'sb-probe-auth-token', value: '1', url: baseOrigin + '/' });
   // A signed-in, returning reader has seen the home intro overlay
-  // (core/IntroOverlay.astro reads `px_intro_v2`; any value means seen).
+  // (core/IntroOverlay.astro reads `px_intro_v3`; any value means seen).
   // `firstVisit` leaves it unset: the separate intro check below.
   // The browser profile is shared by every page of a worker, so localStorage
   // persists between them: a first visit REMOVES the key an earlier page set.
   await page.evaluateOnNewDocument((first) => {
     try {
-      if (first) localStorage.removeItem('px_intro_v2');
-      else localStorage.setItem('px_intro_v2', '1');
+      if (first) localStorage.removeItem('px_intro_v3');
+      else localStorage.setItem('px_intro_v3', '1');
     } catch (e) { /* storage off */ }
   }, firstVisit);
   await page.setRequestInterception(true);
@@ -1371,12 +1372,16 @@ async function probe(browser, job, opts) {
 
 /* ── INTRO: the first-visit overlay (core/IntroOverlay.astro) ────────────── */
 
-/* The measured home page is loaded as a returning reader, so the overlay
+/* The measured home page is loaded as a RETURNING reader, so the overlay
    never covers what is measured. This pass loads it as a FIRST visit (no
-   `px_intro_v2`), reduced motion as everywhere, and checks only that the
-   overlay opened, that the page does not scroll sideways under it (FRAME),
-   and takes `home/<width>/intro.png` of the viewport for the reader of the
-   screenshots. The overlay's content is not measured here. */
+   `px_intro_v3`), reduced motion as everywhere, and checks that the overlay
+   (a native <dialog>) opened, that the page does not scroll sideways under it
+   (FRAME), that it carries its five stepper dots and a Skip control, and that
+   Escape closes it and releases the scroll lock (each a HARNESS finding when
+   it fails: the walkthrough cannot be left or stepped). It takes
+   `home/<width>/intro.png` of the viewport, open, for the reader of the
+   screenshots. The scenes' content is not measured here: they are drawn only
+   by JS, so the BUILD check counts them as "not shown statically". */
 async function introCheck(browser, job, opts, res) {
   const page = await openPage(browser, job, opts, res, { firstVisit: true });
   try {
@@ -1385,17 +1390,26 @@ async function introCheck(browser, job, opts, res) {
     await sleep(600);
     const st = await page.evaluate(() => {
       const el = document.getElementById('px-intro');
-      const open = !!el && !el.hidden && el.getBoundingClientRect().width > 0;
+      const open = !!el && (el.open === true || (!el.hidden && el.getBoundingClientRect().width > 0));
       const y = window.scrollY;
       window.scrollTo(9999, y);
       const sx = window.scrollX;
       const sw = document.documentElement.scrollWidth;
       window.scrollTo(0, y);
-      return { present: !!el, open, sx, sw, vw: window.innerWidth };
+      const vis = (n) => !!n && n.getBoundingClientRect().width > 0 && getComputedStyle(n).visibility !== 'hidden';
+      const dots = el ? [...el.querySelectorAll('[data-intro-go]')].filter(vis).length : 0;
+      const skip = el ? vis(el.querySelector('[data-intro-skip]')) : false;
+      return { present: !!el, open, sx, sw, vw: window.innerWidth, dots, skip };
     });
     res.meta.intro = st.present ? (st.open ? 'opened on first visit' : 'present but did not open') : 'not on the page';
     if (st.open && (st.sx !== 0 || st.sw > st.vw)) {
       res.findings.push({ type: 'FRAME', nn: '--', kind: 'intro', layout: '', desc: `with the intro overlay open the page scrolls sideways (scrollX ${st.sx}, scrollWidth ${st.sw} > ${st.vw})`, px: st.sw - st.vw });
+    }
+    if (st.open && st.dots !== 5) {
+      res.findings.push({ type: 'HARNESS', nn: '--', kind: 'intro', layout: '', desc: `the intro overlay shows ${st.dots} stepper dots, not 5`, px: null });
+    }
+    if (st.open && !st.skip) {
+      res.findings.push({ type: 'HARNESS', nn: '--', kind: 'intro', layout: '', desc: 'the intro overlay shows no Skip control', px: null });
     }
     if (opts.shots && st.open) {
       const dir = path.join(opts.out, job.page, String(job.width));
@@ -1403,6 +1417,19 @@ async function introCheck(browser, job, opts, res) {
       const p = path.join(dir, 'intro.png');
       await page.screenshot({ path: p });
       res.screenshots.push(path.relative(opts.out, p).split(path.sep).join('/'));
+    }
+    if (st.open) {
+      await page.keyboard.press('Escape');
+      await sleep(700);
+      const after = await page.evaluate(() => {
+        const el = document.getElementById('px-intro');
+        const shown = !!el && (el.open === true || (!el.hidden && el.getBoundingClientRect().width > 0));
+        return { shown, locked: document.documentElement.classList.contains('px-intro-open') };
+      });
+      res.meta.intro += after.shown ? ', Escape did not close it' : ', Escape closed it';
+      if (after.shown || after.locked) {
+        res.findings.push({ type: 'HARNESS', nn: '--', kind: 'intro', layout: '', desc: `Escape did not close the intro overlay (${after.shown ? 'still open' : 'closed'}, scroll lock ${after.locked ? 'still on' : 'off'})`, px: null });
+      }
     }
   } finally {
     await page.close().catch(() => {});

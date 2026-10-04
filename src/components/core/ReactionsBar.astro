@@ -12,17 +12,13 @@
  * Root class stays `px-reactions`: core/ReadingGate.astro hides it by name
  * until the wall is passed. Same API as before (`/api/reactions/<id>`).
  */
+import { REACTION_KINDS as KINDS } from '../../lib/reactions';
+
 interface Props {
   issueId: string;
 }
 const { issueId } = Astro.props;
 
-const KINDS = [
-  { id: 'think',     label: 'Made me think',  help: 'This sparked thought I want to sit with.' },
-  { id: 'agree',     label: 'Resonates',      help: 'This matches how I read the issue.' },
-  { id: 'disagree',  label: 'Challenges me',  help: 'I want to push back on this.' },
-  { id: 'want_more', label: 'More like this', help: 'Send me more of this register.' },
-];
 ---
 
 <section class="px-reactions px-band" data-issue-id={issueId} aria-labelledby="px-reactions-title">
