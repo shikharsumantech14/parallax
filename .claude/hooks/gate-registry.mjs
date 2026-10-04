@@ -3,9 +3,9 @@
  * gate-registry — PostToolUse(Edit|Write) hook. Runs check:catalog the moment a
  * registry file is touched.
  *
- * Why: the registry maps fail SILENTLY. A kind with no EXPLAIN entry renders no
- * comprehension line; a kind with no KIND_PRIORITY falls to the default 30 and
- * is effectively unrankable as a story beat. Neither shows up in a build, a
+ * Why: the registry maps fail SILENTLY. A kind with no KIND_PRIORITY falls to
+ * the default 30 and is effectively unrankable as a story beat; a CUES id with
+ * no matching `data-cue` lights nothing. Neither shows up in a build, a
  * browser, or a diff — which is exactly how four WebGL flagships sat unscored.
  * check:catalog already catches this; this hook just moves the catch from
  * "next build" to "the edit that caused it", while the context is still live.
@@ -18,7 +18,6 @@ import { execFileSync } from 'node:child_process';
 
 const WATCHED = [
   'src/content/config.ts',
-  'src/lib/explainers.ts',
   'src/lib/story.ts',
   'docs/design/catalog.md',
   'src/components/SectionBody.astro',

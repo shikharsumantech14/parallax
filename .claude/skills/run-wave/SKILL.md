@@ -31,7 +31,8 @@ reference only (four contain ledger-collision bugs the blueprints correct).
 
 Component files parallelise across worlds. **The shared registry files are
 edited by the orchestrator alone** — `config.ts`, `SectionBody.astro`,
-`explainers.ts`, `story.ts`, `catalog.md` are merge-conflict magnets.
+`story.ts`, `catalog.md` are merge-conflict magnets (`explainers.ts` was one
+until Lens Phase 8 deleted it).
 
 If you delegate a component to a subagent:
 
@@ -66,11 +67,14 @@ push.
 
 ## Traps
 
-- `wire-kind.mjs` covers **six** of nine places. The component, the WebGL scene
-  and the showcase example are manual.
-- A missing `EXPLAIN` or `KIND_PRIORITY` fails **silently** — green build, no
-  visual difference, and the kind is unrankable as a story beat.
-- `config.ts` is CRLF.
+- `wire-kind.mjs` covers **five** of nine places, and refuses a catalog block
+  without CUES and BUILD lines. The component (its cue anchors and build
+  included), the WebGL scene, the showcase example and the docs rows are
+  manual (`/add-section-kind`).
+- A missing `KIND_PRIORITY` fails **silently** at runtime — green page, no
+  visual difference, and the kind is unrankable as a story beat;
+  `check:catalog` catches it, and check 7 catches a CUES id with no anchor.
+- Match each file's line endings (`\r?\n` anchors).
 - Wave 2's entry gate is `src/lib/axis.ts` (tick generation, extents, unit
   formatting) plus the shared legend. Build it first or seven components
   reinvent it seven ways.

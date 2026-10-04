@@ -27,6 +27,11 @@ anything, because the 87 kinds still compile against the legacy names.
   chip, the primer band); `--ink #16140F`, `--ink-2 #4A463D`, `--muted
   #6B665B` (captions, labels; passes 4.5:1, never lighter), `--hair #DCD7CB`,
   `--hair-2 #C9C3B4`. **No desk sets a page ground**, ever.
+- **A theme file holds the desk's inks and nothing else** (Lens Phase 8,
+  2026-10-04): `src/styles/themes/<desk>.css` is one `:root[data-topic]`
+  block of role tokens plus the neutral mirrors `design:check` gates. No
+  per-desk component rule, no texture, no motif kit, no face. A component
+  that needs the desk colour reads the role token in its own scoped style.
 - **Each desk has four inks** (`--<desk>-text / -mark / -tint / -deep`,
   values in LENS §2.2), and each has one job:
   - **text** for words in the desk colour (≥ 4.5:1 on paper), and for any
@@ -92,8 +97,10 @@ redrew the folded kinds inside their hosts, so `px-cgauge`, `px-swdial`,
 `px-tdial` and `.rc` are free too. `px-intro` / `px-xp` (the removed intro),
 `px-plate`, `px-beats`, `px-shells`, `px-elev`, `px-co`, `px-bflow`, `px-og`,
 `px-sig`, `px-dg`, `px-rg`, `px-ireel` and `.cc` (the dropped and folded
-kinds) are free; a few of their dead rules still sit in the theme files and
-`dataviz-v2.css` until Phase 8's sweep.
+kinds) are free, and Phase 8's sweep (2026-10-04) deleted their last dead
+rules. So are `px-plain` (the retired plain line), `px-primer`,
+`px-compare`, `px-quote`, `px-readout`, `px-floor` and the
+`pol-` / `ear-` / `trv-` motif kits.
 
 ## Retired 2026-09-30 by the Lens revamp
 
@@ -101,7 +108,8 @@ Do not restore any of these; LENS §10 and TD-09 give the reason for each.
 **Literata as the one face** · **zero radius** and the `base.css` `:root`
 override that set `--r-card` / `--r-tile` / `--r-pill` to 0 (TD-08) ·
 **flat, shadowless surfaces** (RD-05) · **six page grounds** and the
-dark-desk worlds · **`--viz-edge`**, the 3px top rule (TD-07; now a hair) ·
+dark-desk worlds · **`--viz-edge`**, the 3px top rule (TD-07; a hair,
+and since Phase 8 no variable at all: `.px-viz` reads `--hair`) ·
 **the two `--accent-deep` roles** (TD-05; one paper makes them one) ·
 **derived `--muted`** (one ground, one muted) · **glass** on the reading
 toolbar and the modal chrome.

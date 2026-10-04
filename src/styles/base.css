@@ -1,8 +1,9 @@
 /* ============================================================================
    PARALLAX · BASE LAYER
-   Topic-agnostic layout, spacing, and structure.
-   NEVER put colors, fonts, or theme-specific decisions here.
-   Those live in themes/{topic}.css
+   Topic-agnostic layout, spacing and the Lens primitives. Colours and faces
+   come only through the role tokens (--ink, --accent-deep, --font-display …);
+   a desk changes them by setting its inks in themes/<desk>.css, which since
+   Lens Phase 8 (2026-10-04) hold nothing else. docs/design/LENS.md is the law.
    ============================================================================ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,8 +27,7 @@ body {
    64px side gutters, 20 on phones. Every page is still a stack of bands split
    by hairlines (`.px-band`), but a band no longer carries the side padding,
    the frame does. `--wrap-pad` is exposed so a full-bleed element (the
-   masthead's hair, the issue floor plan until Phase 3 rebuilds it) can step
-   back out to the frame edge. */
+   masthead's hair, the stage) can step back out to the frame edge. */
 .px-wrap {
   --wrap-pad: var(--gutter-x, 64px);
   max-width: 1280px;
@@ -280,69 +280,6 @@ body {
   margin-bottom: 16px;
 }
 
-/* SKIM TOGGLE */
-.px-skim-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 40px;
-}
-.px-skim-btn {
-  background: none;
-  border: 1px solid var(--rule);
-  border-radius: var(--r-ctl);
-  color: var(--muted);
-  padding: 6px 14px;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: border-color 0.15s ease, color 0.15s ease;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  line-height: 1;
-}
-.px-skim-btn:hover { border-color: var(--ink-soft); color: var(--ink-soft); }
-.px-skim-btn.active { border-color: var(--accent); color: var(--accent-deep); }
-.px-skim-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
-  flex-shrink: 0;
-}
-.px-skim-sep {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* PRIMER — a 4px accent rule on the leading edge, label, 17px/1.7 text (the
-   handoff's block, verbatim geometry). Sits inside the issue head band. */
-.px-primer {
-  border-left: 4px solid var(--accent);
-  padding: 3px 0 3px 20px;
-  margin: 26px 0 0;
-  max-width: 72ch;
-}
-.px-primer__eyebrow {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 9px;
-}
-.px-primer__text {
-  font-family: var(--font-body);
-  font-size: var(--fs-prose, 19px);
-  line-height: var(--lh-prose, 1.6);
-  color: var(--ink);
-  text-wrap: pretty;
-}
-
 /* SKIM MODE */
 .px-prose-full { display: block; }
 .px-skim-caption-block {
@@ -362,22 +299,10 @@ body {
 #px-article[data-mode="skim"] .px-prose-full { display: none; }
 #px-article[data-mode="skim"] .px-skim-caption-block { display: block; }
 
-/* SECTION — the numeral (Instrument Sans 600 tabular, muted), the eyebrow, the
+/* SECTION — the eyebrow, the
    section title (Newsreader 500 30/1.12) and the intro in the prose register
    (Newsreader 19/1.6, 18 on phones). Lens type; the geometry is Phase 3's. */
 .px-section { margin-bottom: 56px; }
-.px-section__num {
-  display: block;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: var(--fs-num-1, 20px);
-  line-height: 1;
-  letter-spacing: 0;
-  color: var(--muted);
-  margin-bottom: 10px;
-  font-variant-numeric: tabular-nums;
-  transition: opacity var(--t-page) var(--ease), transform var(--t-page) var(--ease);
-}
 .px-section .px-eyebrow { margin-bottom: 12px; }
 .px-section__title {
   font-family: var(--font-display);
@@ -404,32 +329,6 @@ body {
   .px-section { margin-bottom: 44px; }
   .px-section__title { font-size: 28px; }
   .px-section__intro { font-size: var(--fs-prose-sm, 18px); }
-}
-
-/* QUOTE — Lens has no gradient washes: the accent edge on the paper, the
-   quotation in Newsreader italic. The library pass (Phase 6) redraws it. */
-.px-quote {
-  border-left: 3px solid var(--accent);
-  padding: 24px 32px;
-  margin: 36px 0;
-  background: transparent;
-  border-radius: 0;
-}
-.px-quote__q {
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 1.4;
-  font-style: italic;
-  color: var(--ink);
-  margin-bottom: 12px;
-}
-.px-quote__attr {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 /* PROSE — Newsreader 400 at 19/1.6 (18 on phones), ink, RAGGED. Lens retired
@@ -459,340 +358,33 @@ body {
 .px-prose__p:last-child { margin-bottom: 0; }
 .px-prose strong { color: var(--ink); font-weight: 600; }
 @media (max-width: 768px) {
-  .px-prose__lead, .px-prose__p, .px-followup, .px-primer__text { font-size: var(--fs-prose-sm, 18px); }
+  .px-prose__lead, .px-prose__p, .px-followup { font-size: var(--fs-prose-sm, 18px); }
 }
 .px-prose em { color: var(--accent-deep, var(--accent)); font-style: italic; }
-/* COMPARISON (shared — layout only; colors overridden per topic) */
-.px-compare {
-  background: var(--paper-2);
-  border: 1px solid var(--hair, var(--rule));
-}
-.px-compare__head {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  border-bottom: 1px solid var(--rule);
-}
-.px-compare[data-cols="2"] .px-compare__head { grid-template-columns: 1fr 1fr; }
-.px-compare[data-cols="3"] .px-compare__head { grid-template-columns: repeat(3, 1fr); }
-.px-compare__col-head {
-  padding: 22px 26px 24px;
-  border-right: 1px solid var(--rule);
-  background: var(--paper-2);
-  position: relative;
-}
-.px-compare__col-head:last-child { border-right: none; }
-.px-compare__col-label {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-deep); /* accent-deep, not accent: CANON §6 — small text on a light ground. */
-  margin-bottom: 10px;
-}
-.px-compare__col-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  line-height: 1.2;
-  font-weight: 500;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-.px-compare__col-kicker {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  margin-top: 8px;
-  text-transform: uppercase;
-}
-.px-compare__col-tag {
-  position: absolute;
-  top: 22px; right: 22px;
-  font-family: var(--font-mono);
-  font-size: 12px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  padding: 3px 6px;
-  color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */
-  border: 1px solid var(--accent);
-  text-transform: uppercase;
-}
-.px-compare__body { display: flex; flex-direction: column; }
-.px-compare__row {
-  display: grid;
-  grid-template-columns: 140px repeat(2, 1fr);
-  border-bottom: 1px dashed var(--rule);
-}
-.px-compare[data-cols="2"] .px-compare__row { grid-template-columns: 140px 1fr 1fr; }
-.px-compare[data-cols="3"] .px-compare__row { grid-template-columns: 140px repeat(3, 1fr); }
-.px-compare__row:last-child { border-bottom: none; }
-.px-compare__row-label {
-  font-family: var(--font-mono);
-  font-size: 12px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 16px 20px 16px 26px;
-  border-right: 1px solid var(--rule);
-  background: var(--paper-2);
-  display: flex;
-  align-items: center;
-}
-.px-compare__cell {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--ink);
-  padding: 16px 26px;
-  border-right: 1px solid var(--rule);
-  display: flex;
-  align-items: center;
-}
-.px-compare__cell:last-child { border-right: none; }
-.px-compare__cell strong { font-weight: 600; color: var(--ink); }
-.px-compare__cell em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
-
-/* The LIST form (`data-form="list"`): parallel columns of items that do not
-   pair up row by row, so there is no 140px label gutter and no read-across.
-   Each column is one self-contained block (head + its items), which is what
-   lets a phone stack them without an item losing its heading.
-   `.px-compare__source` used to sit here; it was the last component-rendered
-   source line, missed by the 2026-09-04 sweep because it ends `__source`
-   rather than `__src`. Section prints it now — for every kind, once. */
-.px-compare__lists {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-}
-.px-compare[data-cols="3"] .px-compare__lists { grid-template-columns: repeat(3, 1fr); }
-.px-compare__col { border-right: 1px solid var(--rule); }
-.px-compare__col:last-child { border-right: none; }
-.px-compare__col .px-compare__col-head {
-  border-right: none;
-  border-bottom: 1px solid var(--rule);
-  padding: 20px 26px;
-}
-.px-compare__list { list-style: none; margin: 0; padding: 0; }
-.px-compare__item {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--ink);
-  padding: 15px 26px;
-  border-bottom: 1px dashed var(--rule);
-}
-.px-compare__item:last-child { border-bottom: none; }
-/* `strong: true` — the payload item. An inset left rule, the same idiom the
-   league table uses for its bands; RD-05 keeps shadows to inset hairlines. */
-.px-compare__item[data-strong="true"] {
-  font-weight: 600;
-  padding-left: 24px;
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-.px-compare__item strong { font-weight: 600; color: var(--ink); }
-.px-compare__item em { font-style: italic; color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */ }
-
-/* Phones: the LIST form stacks to one column so a 15px line keeps its measure.
-   The matrix form is untouched — its head and its rows share a column count,
-   so stacking one without the other would misalign it. */
-@media (max-width: 640px) {
-  .px-compare__lists,
-  .px-compare[data-cols="3"] .px-compare__lists { grid-template-columns: 1fr; }
-  .px-compare__col { border-right: none; border-bottom: 1px solid var(--rule); }
-  .px-compare__col:last-child { border-bottom: none; }
-}
-
-/* DATA READOUT (shared — layout only; colors overridden per topic) */
-.px-readout {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-}
-.px-readout__caption {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-deep); /* accent-deep per CANON §6 — small text. */
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper);
-}
-.px-readout__grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-}
-.px-readout__tile {
-  padding: 28px 24px 26px;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper);
-  position: relative;
-}
-.px-readout__tile:nth-child(3n) { border-right: none; }
-.px-readout__tile:nth-last-child(-n+3) { border-bottom: none; }
-.px-readout__value {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.px-readout__num {
-  font-family: var(--font-ui);
-  font-size: var(--fs-num-3, 48px);
-  font-weight: 600;
-  line-height: var(--lh-num, 0.92);
-  color: var(--ink);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-.px-readout__unit {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-.px-readout__label {
-  font-family: var(--font-mono);
-  font-size: 12px; font-weight: 600;
-  letter-spacing: var(--viz-ls-mono);
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-.px-readout__note {
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.px-readout__source {
-  padding: 12px 20px;
-  border-top: 1px solid var(--rule);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-style: italic;
-  text-transform: uppercase;
-}
-
-/* HOME (issue index) */
-.px-home__title {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(44px, 6vw, 72px);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
-  margin-bottom: 20px;
-  color: var(--ink);
-}
-.px-home__title em { font-style: italic; font-weight: 400; color: var(--accent-deep); }
-.px-home__tagline {
-  font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  max-width: 640px;
-  font-weight: 300;
-  margin-bottom: 72px;
-}
-.px-home__issues { list-style: none; border-top: 2px solid var(--ink); }
-.px-home__issue {
-  display: grid;
-  grid-template-columns: 120px 1fr auto;
-  gap: 24px;
-  align-items: baseline;
-  padding: 28px 0;
-  border-bottom: 1px solid var(--rule);
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.15s ease;
-}
-.px-home__issue:hover { background: var(--paper); }
-.px-home__meta {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.px-home__issue-title {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 26px;
-  line-height: 1.15;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-.px-home__issue-title em { color: var(--accent-deep); font-style: italic; font-weight: 400; }
-.px-home__hook {
-  display: block;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--ink-soft);
-  margin-top: 8px;
-  max-width: 620px;
-  line-height: 1.5;
-}
-.px-home__topic {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-deep);
-}
-
-/* RESPONSIVE */
-@media (max-width: 720px) {
-  .px-home__issue { grid-template-columns: 1fr; gap: 6px; }
-  .px-home__topic { justify-self: start; }
-
-  /* comparison: stack columns on mobile */
-  .px-compare__head,
-  .px-compare[data-cols="2"] .px-compare__head { grid-template-columns: 1fr; }
-  .px-compare__col-head { border-right: none; border-bottom: 1px solid var(--rule); }
-  .px-compare__col-head:last-child { border-bottom: none; }
-  .px-compare__row,
-  .px-compare[data-cols="2"] .px-compare__row { grid-template-columns: 1fr; }
-  .px-compare__row-label { border-right: none; border-bottom: 1px dashed var(--rule); padding: 10px 20px; }
-  .px-compare__cell { border-right: none; border-bottom: 1px dashed var(--rule); padding: 14px 20px; }
-  .px-compare__cell:last-child { border-bottom: none; }
-
-  /* readout: 2-col on mobile instead of 3 */
-  .px-readout__grid { grid-template-columns: repeat(2, 1fr); }
-  .px-readout__tile:nth-child(3n) { border-right: 1px solid var(--rule); }
-  .px-readout__tile:nth-child(2n) { border-right: none; }
-  .px-readout__num { font-size: 32px; }
-}
 
 /* ============================================================================
    V2 ADDITIONS — viz card shell, view transitions
    Topic-agnostic structure (consumes tokens from tokens-v2.css).
    ============================================================================ */
 
-/* ── RADII AND ELEVATION (Lens, 2026-09-30) ────────────────────────────────
-   The RD-05 flip that lived here (`--r-card: 0; --r-tile: 0; --r-pill: 0`) is
-   RETIRED. Lens has three corners and two shadows, all set once in
-   shared/design/tokens.css: a card 6, a control 4, a chip a pill; shadow-1 at
-   rest and shadow-2 on hover for every clickable card. Do not restore the
-   override: it would square every card the canvas rounds. TOKEN-RECORD TD-09. */
+/* RADII AND ELEVATION live once in shared/design/tokens.css (a card 6, a
+   control 4, a chip a pill; shadow-1 at rest, shadow-2 on hover). The RD-05
+   flip that once sat here (`--r-card: 0; --r-tile: 0; --r-pill: 0`) is gone
+   for good (TOKEN-RECORD TD-09): never restore it. */
 
 /* ── VIZ CARD SHELL ─────────────────────────────────────────────────────────
-   The per-desk 3px `--viz-edge` top rule is retired with the six page grounds
-   (TD-09): `--viz-edge` is a hair on every desk, so a figure sits under a 1px
-   rule rather than a coloured bar. Phase 3 replaces the shell with the pinned
-   figure panel (paper-2, hair border, radius 6, shadow-1). */
+   The graphic's root inside the pinned figure panel (core/Section.astro wraps
+   it in the `.px-card`). A 1px hair over the graphic; `--viz-edge`, the
+   per-desk 3px top rule, was retired with the six page grounds and its
+   variable removed in Lens Phase 8. */
 .px-viz {
   position: relative;
   background: transparent;
   border: 0;
-  border-top: 1px solid var(--viz-edge, var(--hair));
+  border-top: 1px solid var(--hair);
   border-radius: 0;
   padding: 14px 0 0;
 }
-.px-viz:hover { border-top-color: var(--viz-edge, var(--hair)); }
 
 /* ── VIEW TRANSITIONS (CSS-native MPA; zero JS, graceful fallback) ────── */
 /* The one motion that answers a CLICK, so it runs at the element tier
@@ -803,13 +395,6 @@ body {
   animation-timing-function: var(--ease);
 }
 
-/* ── CORE BOXED COMPONENTS ──────────────────────────────────────────────── */
-.px-compare {
-  border-radius: var(--r-card);
-  overflow: hidden;
-  transition: border-color var(--t-micro) var(--ease);
-}
-.px-compare:hover { border-color: var(--hair-2, var(--rule)); }
 
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1035,21 +620,13 @@ a.px-card:focus-visible, .px-card--link:focus-visible { outline: 2px solid var(-
   .px-card { padding: 20px; }
 }
 
-/* ── THE ISSUE FLOOR PLAN KEEPS ITS FRAME UNTIL PHASE 3 ───────────────────────
-   The floor plan (layout-v2.css) is drawn for the full 1280 frame: its rails
-   carry their own 40px outer padding and its measure is exactly 720, the width
-   every figure is drawn for. The Lens frame's gutter would take 128px out of
-   it, so it steps back out to the frame edge. Phase 3 replaces it with the
-   620 article beside the 520 pinned figure. */
-.px-floor, .px-floor__facts-grid { margin-inline: calc(-1 * var(--wrap-pad, 0px)); }
-
 /* ── TOUCH FLOORS (launch audit, 2026-09-08) ──────────────────────────────────
    Text links that are the only control in their row — the meta strip's
    "← desk", the desk / next-issue nav, the gate's sign-in line, the footer
    columns, the subscribe page's sign-in — measured 15–23px tall on a phone.
    On a coarse pointer they get a tap band; with a mouse nothing moves. */
 @media (pointer: coarse) {
-  .px-ihead__back, .px-ihead__no, .px-inav a, .px-gate__alt, .px-subs__signin a {
+  .px-ihead__no, .px-inav a, .px-gate__alt, .px-subs__signin a {
     display: inline-flex; align-items: center; min-height: 44px;
   }
   .px-col__links a { display: inline-flex; align-items: center; min-height: 44px; }

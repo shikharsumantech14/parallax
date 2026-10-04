@@ -22,17 +22,17 @@ Components split into:
   **`core/VizCard.astro`** (RD-01a, 2026-08) is the shared shell the revamp-wave
   kinds render inside — and, since Phase 6.2 (2026-09-04), `scaling-plot`,
   `xg-race` and `climate-spiral` too, and since 2026-09-13 `you-think` and
-  `number-sense`: twelve kinds in all. It renders the caption
-  row (with an optional chip), an optional in-card how-to-read panel, and the
-  graphic slot — **not** the source line (it still accepts `source`, ignored).
-  Every other piece of explainability chrome — the how-to-read panel for the 88
-  non-VizCard kinds, the `plain` line, the inline `Source · …` — is
-  `core/Section.astro`'s, for every kind. Components render none of it. The
-  how-to-read DEFAULT is per kind since 2026-09-13 (REGISTER-PLAN RG-19): one
-  function, `howToReadFor(kind, authored)` in `src/lib/explainers.ts`, renders
-  an authored paragraph for any kind and the `EXPLAIN[kind].how` default only
-  for the kinds in `NEEDS_HOW` — instruments, WebGL scenes, counter-intuitive
-  forms. A timeline shows none unless one is authored.
+  `number-sense`. It renders the caption row (with an optional chip, shown
+  only in story mode: in the reading system SectionBody hands it no caption)
+  and the graphic slot, and its root is the `data-build-scene` — **not** the
+  source line (it still accepts `source`, ignored). Every other piece of
+  section chrome — the caption in the article column, the cue numerals, the
+  `Source · …` line in the figure panel — is `core/Section.astro`'s, for every
+  kind. Components render none of it. **Lens Phase 8 (2026-10-04) removed the
+  how-to-read panel and the plain line for good:** `src/lib/explainers.ts`
+  (`EXPLAIN`, `NEEDS_HOW`, `howToReadFor`) is deleted, VizCard has no
+  `howToRead` prop, and the schema fails the build on a `plain` or a
+  `howToRead`. A kind explains itself through its cues (LENS §5.2).
 
 - **`home/`** — meta-brand pieces used only on `/` and `/topics/*` index
   pages (TypographicChord, TopicStrip, CategoryCard, CategoryGrid,
@@ -41,11 +41,13 @@ Components split into:
   Each topic also has its own `<Topic>Index.astro` that drives
   `/topics/<topic>/`.
 - **`SectionRenderer.astro`** — the article-chrome shell. Wraps a section in
-  `core/Section.astro` (numbering, eyebrow, the how-to-read panel ABOVE the graphic — `howToReadFor(kind, section.howToRead)` — and, BELOW it, the `plain` line with `Source · …` inline after it, plus the skim caption) and
-  delegates the actual kind dispatch to `SectionBody.astro`.
+  `core/Section.astro` (the reading system: the article beside the pinned
+  figure panel, the cue numerals, the caption and the source line, plus the
+  skim caption) and delegates the actual kind dispatch to `SectionBody.astro`.
 - **`SectionBody.astro`** — **the dispatcher** (since 2026-07-05). Reads
   `section.kind`, renders the matching component, and passes through the
-  section's `data` payload (and, for the twelve `VizCard` kinds only, resolves `howToReadFor(section.kind, section.howToRead)` at the dispatch line so the card renders the how-to-read panel inside itself — SectionBody imports that helper for this). Shared with story mode, which renders bodies
+  section's `data` payload plus `caption` and `source` (which the component
+  does not render). Shared with story mode, which renders bodies
   without the article chrome — this is why the switch lives here.
   **Add new kinds to `SectionBody.astro`, never to `SectionRenderer.astro`.**
 
@@ -108,9 +110,13 @@ joined `chamber` + `solar-system`) → the 2026-07-14 **breadth pass** (+22).
 
 **Dispatcher split (2026-07-05):** the kind → component switch lives in
 `src/components/SectionBody.astro` (no wrapper — shared with story mode);
-`SectionRenderer.astro` wraps it in the article chrome (`core/Section.astro`
-number/eyebrow/title/intro + the "In plain terms" line + `data-layout` +
-the how-to-read panel ABOVE the graphic (`howToReadFor(kind, section.howToRead)` — authored always, the default only for `NEEDS_HOW` kinds; hidden by a `:has()` rule when the slotted `VizCard` renders its own) + the `plain` line with `Source · …` inline after it BELOW + the skim-caption block, which any kind may now carry; SectionRenderer passes `source` and `howToRead` through to CoreSection). **Add new kinds to
+`SectionRenderer.astro` wraps it in the article chrome (`core/Section.astro`,
+the Lens reading system since Phase 3: eyebrow / title / intro and the kind's
+sentences with their cue buttons in the article column, the graphic in the
+pinned figure panel with the lit cue's line and `Source · …`, the caption
+once, `data-layout`, plus the skim-caption block, which any kind may carry;
+SectionRenderer passes the source link through). The "In plain terms" line
+and the how-to-read panel are gone (Lens Phase 8). **Add new kinds to
 SectionBody**, not SectionRenderer.
 
 | Kind | Component | Topic-scope |
@@ -151,7 +157,7 @@ in their parent topic.
 `timeline` and `paradox` kinds were rewritten to the v2 kit's exact markup
 and animations, and now emit the kit's *generic* data-viz class names
 (`.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel`) inside the
-shared flat `.px-viz` card (`.px-viz` itself in `base.css` — radius 0, no shadow, a 3px `--viz-edge` top rule; the kit classes' CSS in `src/styles/dataviz-v2.css`). This is
+shared flat `.px-viz` card (`.px-viz` itself in `base.css` — radius 0, no shadow, a 1px `--hair` top rule since Lens Phase 8; the kit classes' CSS moved into the components in Lens Phase 6). This is
 a deliberate, documented break from the `px-` prefix convention — see the
 "v2 data-viz + chrome class exception" section below for the full list, the
 `html.js`-gated reveal contract, and which components were left on their
@@ -171,7 +177,7 @@ contract — is documented in the "3D / interactive component library" section
 (§10). Each component's per-component cosmetic CSS is a **scoped
 `<style>` in its own `.astro`** (unique `px-*` prefix — see §4); only the
 shared 3D mechanics + `.viz3d` mount live in `components-3d.css`. All take
-`caption?` + `source?` like the other viz — but since Phase 6.1 (2026-09-04) **no component renders the source line itself**: `core/Section.astro` emits it as `.px-plain__src` below the graphic for every kind, so a new component must not add one, and all render a static
+`caption?` + `source?` like the other viz — but since Phase 6.1 (2026-09-04) **no component renders the source line itself**: `core/Section.astro` emits it (`.px-fig__src` in the figure panel, `.px-rs__src` in the article on phones) for every kind, so a new component must not add one, and all render a static
 SVG/HTML fallback by default.
 
 | Kind | Component | Topic | Tech |
@@ -252,15 +258,21 @@ every breadth kind in their world.
   `carbon-loop`, `chip-die`, `moore-ladder`, `gerrymander-lens` and
   `packet-trace` also validate and throw. `power-flow`'s conservation check
   is the same pattern (§ change log 2026-07-05).
-- **`section.plain` is capped at 220 chars by Zod.** Overshooting breaks the
-  build. It explains the *form* of the viz, never the data.
+- **`section.plain` and `section.howToRead` FAIL the build** since Lens
+  Phase 8 (2026-10-04): a guard in `src/content/config.ts` names the field.
+  The form is explained by cues (LENS §5.2), the finding by the caption.
 
 ---
 
 ### Revamp-wave kinds (2026-08, docs/REVAMP-PLAN.md Phase 3) — 7 so far, 21 to go
 
-All render through `core/VizCard.astro` (the RD-01a shell seam: caption row,
-optional in-card how-to-read panel, the graphic slot — components never render caption or how-to-read themselves, and since Phase 6.1 nobody renders the source line but `core/Section.astro`, which puts it below the graphic as `.px-plain__src` for every kind; VizCard still accepts `source` but ignores it). Ten kinds render through VizCard today: the seven below plus `scaling-plot`, `xg-race` and `climate-spiral`, re-routed in Phase 6.2 (2026-09-04). For those ten, `SectionBody` resolves `howToReadFor(kind, section.howToRead)` at the dispatch line so the card carries the panel (all ten are instruments, so all ten are in `NEEDS_HOW`), and `.px-section:has(.px-viz > .px-viz__how) .px-viz__how--section { display: none }` in `dataviz-v2.css` hides Section's copy — exactly one panel per section. All ten
+These seven were built on `core/VizCard.astro` (the RD-01a shell seam:
+caption row and graphic slot; nobody renders the source line but
+`core/Section.astro`, in the figure panel; VizCard still accepts `source` but
+ignores it). Lens Phase 6 moved `attrition-waffle` and `xg-race` onto roots of
+their own. The in-card how-to-read panel, its `NEEDS_HOW` resolution and the
+`:has()` one-panel rule are gone (Lens Phase 3 stopped rendering them, Phase 8
+deleted them). The instrument kinds
 consume the `px-inst` control/readout/legend primitive in `dataviz-v2.css`. Its readout has an **opt-in** `px-inst__readout--sized` modifier: the component renders its worst-case readout string as a `visibility: hidden` `.px-inst__sizer` twin stacked in the same grid cell, so the box reserves its true height (a `min-height: 3.2em` was not enough — `xg-race` reflowed 15px mid-drag, `scaling-plot` jumped 17px on the live page). Used by `scaling-plot`, `xg-race`, `climate-spiral`. **Keep it opt-in** — `StateTimeline` mixes inline children in its readout and the grid stack would break it.
 Contract per kind: `docs/design/blueprints/<world>/<kind>.md` — **read its
 standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
@@ -277,13 +289,15 @@ standing corrections header first**. Registry wiring: `scripts/wire-kind.mjs`.
 
 ## 3. Adding a new section kind — checklist
 
-A new component touches **nine** places (2026-07-05: +explainer, +catalog;
-2026-07-14: +scene registry for WebGL, +worked showcase example — the two the
-breadth pass kept catching).
+A new component touches **nine** places (2026-07-05: +catalog; 2026-07-14:
++scene registry for WebGL, +worked showcase example — the two the breadth pass
+kept catching; Lens Phase 8, 2026-10-04: the EXPLAIN entry became the cue
+anchors and the build).
 Miss one and the build either fails, silently renders nothing, or fails
 `npm run check:catalog` — which enforces a 1:1, same-order match between
-`SECTION_KINDS` and the catalog blocks (97 ↔ 97 today) **plus** EXPLAIN and
-KIND_PRIORITY coverage. Since 2026-08-27 it runs in `prebuild`, ahead of the
+`SECTION_KINDS` and the catalog blocks (87 ↔ 87 today) **plus** KIND_PRIORITY
+coverage, a reader for every DATA field, the alias map and (check 7) a
+`data-cue` for every id on the block's CUES line. Since 2026-08-27 it runs in `prebuild`, ahead of the
 OG writer — so `npm run build` fails on a half-wired kind with a clean tree. Item 8 (the scene registry) applies to WebGL kinds only; the other
 eight apply to every kind.
 
@@ -292,15 +306,13 @@ eight apply to every kind.
 against components that each broke it once:** a text cell wraps or truncates,
 never `nowrap` inside a fixed width; an outward SVG label wraps or is budgeted
 in characters against the gutter it is drawn into, and never leaves its own
-SVG (the outer `<svg>` clips, and in a `wide` section the figure's edge is
-24px from the article rule); no control floats over content on touch — the ⤢
-study button is appended by `core/ExpandModal.astro` and becomes an in-flow
-row under the graphic below 768px, so a component never reserves a corner for
-it; no source line and no caption under a spelling the shell cannot see
+SVG (the outer `<svg>` clips); no control floats over content on touch; no
+source line and no caption under a spelling the shell cannot see
 (`__cap` / `__caption`; `core/Section.astro` prints the source); copy is
 desk-neutral (87 kinds run under six worlds); values size to their cell. The
-figure is drawn for the 720 measure (M); on phones it may scroll inside its
-card (the `min-width` block in `dataviz-v2.css`), never overflow the page.
+figure is drawn for the pinned figure panel (about 470px of content at 1280,
+293 on a 375 phone; LENS §5.1); on phones it may scroll inside its card (its
+own `min-width`, or the block in `dataviz-v2.css`), never overflow the page.
 Step 10 below is how you prove all of it.
 
 1. **Add the kind name** to `SECTION_KINDS` in `src/content/config.ts`.
@@ -311,10 +323,17 @@ Step 10 below is how you prove all of it.
    ```astro
    {section.kind === 'new-kind' && <NewComponent ...data props... />}
    ```
-4. **Add CSS** in the correct theme file (`src/styles/themes/<topic>.css`),
-   `base.css` if universal, or a scoped `<style>` (v2-library pattern).
-5. **Add the EXPLAIN entry** in `src/lib/explainers.ts` (what/how — feeds the
-   in-flow "In plain terms" line (`what`) AND the how-to-read panel above the graphic (`how` — the default whenever the section has no authored `howToRead`, rendered only if the kind is in `NEEDS_HOW`: add the kind there if it has a control, is a WebGL scene, or its form can be misread — RG-19, 2026-09-13) AND the expand modal; blueprint §9 wording. Rule for instrument kinds: the static reading leads, the control clause trails — the controls are `html.js`-gated, the paragraph is not).
+4. **Add CSS** in a scoped `<style>` in the component, reading the role
+   tokens (`--accent`, `--accent-deep`, `--accent-tint`, `--deep`, the
+   neutrals). Never in a theme file: since Lens Phase 8 the six
+   `themes/<topic>.css` hold the desk's inks and nothing else.
+5. **Declare the cue anchors and the build** in the component: a `Cue
+   anchors:` header comment, `data-cue="<id>"` on each element a cue can
+   name with its empty `.px-cue-tag` slot, and the `data-build-*` attributes
+   (§11). The same ids go on the catalog block's `CUES:` line and the order
+   on its `BUILD:` line (check 7 asserts the ids; `scripts/wire-kind.mjs`
+   refuses a block without both). There is no EXPLAIN entry any more: the
+   file was deleted in Lens Phase 8.
 6. **Add the catalog block** in `docs/design/catalog.md` (same order as
    SECTION_KINDS — `npm run check:catalog` fails otherwise).
 7. **Document it here** — add a row to §2 and any non-obvious rule. New v2
@@ -348,15 +367,17 @@ class exception" section below for full detail):
   (`core/Masthead.astro`, CSS in `base.css`).
 - The ported data-viz adopt the kit's *generic* names —
   `.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel` (plus the
-  shell hooks `.px-viz__cap` / `.px-viz__how` — `.px-viz__src` was retired 2026-09-04, the source line is now `.px-plain__src`, see §4 `px-plain`) — defined in
-  `src/styles/dataviz-v2.css`. These are intentional adoptions, **not**
+  shell hook `.px-viz__cap`; `.px-viz__how` and `.px-viz__src` are retired,
+  and the source line is Section's `.px-rs__src` / `.px-fig__src`). Lens
+  Phase 6 moved most of these into their components' scoped styles and Phase
+  8 deleted the last dead block (`.cc`). These are intentional adoptions, **not**
   collisions: the kit's animation/reveal CSS is tightly coupled to them.
 
 Known reservations (still-live `px-` prefixes):
 
 | Prefix | Owner | Notes |
 |---|---|---|
-| `px-viz` | shared **flat** data-viz card (`base.css`; radius 0, no shadow, `border-top: 3px solid var(--viz-edge, var(--ink))`, hover = border colour only — `--viz-edge` is set per theme in `themes/<world>.css`: `var(--ink)` on the light desks politics/earth/travel, `var(--accent)` on the dark space/tech/sports) | wraps every ported chart; VizCard's root is a `data-build-scene` (§11); the ⤢ `.px-vexp` button is a hover corner square on desktop and an in-flow "Study this figure ⤢" row under the graphic on touch and phones (2026-09-23, `modal.css`) |
+| `px-viz` | the graphic's root inside the pinned figure panel (`base.css`: radius 0, no shadow, a 1px `--hair` top rule; `--viz-edge` was removed in Lens Phase 8) | wraps every ported chart; VizCard's root is a `data-build-scene` (§11). The ⤢ `.px-vexp` button and `modal.css` were deleted in Lens Phase 3 |
 | `px-ns` | `number-sense` | core · `NumberSense.astro` (cues `value`, `note`, equals `1..n`) |
 | `px-3s` | `three-steps` | core · `ThreeSteps.astro` (a figure kind since Lens Phase 6: the chain of step cards in the panel, cues `1..n`) |
 | `px-yt` | `you-think` | core · `YouThink.astro` (one card cut by a slash, Lens Phase 6; cues `1` belief, `2` record, `3` figure) |
@@ -370,15 +391,15 @@ Known reservations (still-live `px-` prefixes):
 | `px-trn` | `channel-ternary` | sports · SVG ternary · `ChannelTernary.astro` |
 | `px-strip` | TopicStrip (in `meta.css`, `display: flex`) | DO NOT reuse |
 | `px-gauge` | `gauge` (`core/Gauge.astro`, all three variants since Lens Phase 6) | `px-cgauge`, `px-swdial`, `px-tdial` retired with the old markup |
-| `px-cmp` | `comparison` (`core/Comparison.astro`, Lens Phase 6) | `px-compare` retired: its rules in `base.css` and the theme files are dead |
+| `px-cmp` | `comparison` (`core/Comparison.astro`, Lens Phase 6) | `px-compare` retired; its dead rules left `base.css` and the themes in Phase 8 |
 | `px-qt` | `quote` (`core/Quote.astro`, Lens Phase 6) | `px-quote` retired the same way |
 | `px-seats` | SeatChart | kept on `px-` |
 | `px-bills` | BillBreakdown | kept on `px-` |
 | `px-analogy` | BrothersAnalogy | kept on `px-` |
 | `px-msl` | MatchStatLine | kept on `px-` |
-| `px-primer` | Primer | |
+| `px-primer` | free: Primer was deleted 2026-09-08 and its `base.css` rules in Lens Phase 8 (IssueHead styles its own primer) | |
 | `px-prose-full` / `px-skim-caption-block` | skim-mode wrappers (now emitted by `SectionRenderer.astro`) | |
-| `px-plain` | the "In plain terms" line (`core/Section.astro`; CSS in `viz-type.css`) | `.px-plain__src` is its second line — `Source · …` (real text, 9px/600/.14em mono), rendered by Section for EVERY kind from `section.source ?? data.source` (`{label, date}` joined with ` · `). The one source emitter in the codebase since 2026-09-04; components must not add their own |
+| `px-rs` / `px-fig` | the reading system (`core/Section.astro`; CSS in `layout-v2.css`) | `.px-rs__src` (the article's source line, phones and narrative sections) and `.px-fig__src` (the figure panel's foot) print `Source · …` from `section.source ?? data.source`: the one source emitter in the codebase; components must not add their own. `px-plain` (the "In plain terms" line and its `.px-plain__src`) is free: removed in Lens Phase 8 |
 | `px-act` | ActBreak chapter divider (scoped in `core/ActBreak.astro`) | |
 | `px-acct` | AccountEntry masthead slot (scoped in `core/AccountEntry.astro`) | Lens 2026-09-30: on an SSR page with `Astro.locals.user` it renders the account pill (initial disc, first name, caret) as a `<details>` menu with "Your shelf" and Sign out; prerendered pages keep the "Sign in" / "Shelf" link and its cookie island |
 | `px-hlens` | home hero (scoped in `home/HeroLens.astro`) — carries the ONE sanctioned cursor-parallax (HOME-SPEC §2) | |
@@ -396,11 +417,11 @@ Known reservations (still-live `px-` prefixes):
 | `px-dcard` | the Home desk cards (scoped in `src/pages/index.astro`) | medallion 40, register, name, count chip, tagline, the latest issue's cover mark on the desk tint with its caption |
 | `px-arch` | `/archive` head, search and desk chips (in `meta.css`) | rows reuse `.px-archive__*`, so home and `/archive` share ONE row implementation; the filter island reveals the controls, which ship `hidden` |
 | `pxs-` | story mode (`/s/` — `src/styles/story.css` + `components/story/*`) | Lens 2026-09-30 (the Story boards): `StoryShell` (the desktop head, the horizontal row of 360 x 640 cards snapping on x, the labelled dot stepper whose dots are `#cN` links, prev / next and the arrow keys; phones: one card per screen, vertical snap, each card with its own `.pxs-dots`), `StoryHookCard` (the desk DEEP plate, the medallion in its SEAL cut `onDeep`, the italic word in the desk mark or the lime), `StoryCard` (the beat: header, eyebrow + title, `SectionBody` in `bare` mode, the beat text clipped to 40 words, the source line; `kind: 'prose'` skips `SectionBody` and renders `.pxs-card--text`), `StoryCtaCard` (stats row, "Still in the issue", the desk button, `SaveButton variant="block"`, `StoryShare`'s four 44px icon controls). The beats still come from `src/lib/story.ts`, unchanged |
-| `pol-` / `ear-` / `trv-` | light-world motif kits (ends of `themes/{politics,earth,travel}.css` — review R5) | |
+| `pol-` / `ear-` / `trv-` | free: the light-world motif kits (review R5) never reached a component and left the theme files in Lens Phase 8 | |
 
 Retired prefixes (the v2 data-viz port replaced these with the kit's generic
-class above; the old per-component CSS in the theme files is now **inert dead
-code** — no element emits it — pending a future safe cleanup pass):
+class above; the old per-component CSS that stayed behind in the theme files
+was deleted with everything else in them but the inks, Lens Phase 8):
 
 | Retired prefix | Was | Now emits |
 |---|---|---|
@@ -599,7 +620,6 @@ These render directly in templates, not via the dispatcher:
 | `src/scripts/build.ts` | every layout (Home, Issue, Story, App), once, as a bundled module `<script>` — the one build island (§11). Replaced `core/Reveal.astro` and `core/VizMotion.astro`, deleted in Lens Phase 5 |
 | `core/Viz3DRuntime.astro` | `IssueLayout.astro`, once per issue — bundled module `<script>` that lazy-boots the WebGL runtime (`scripts/viz3d/`) when a `[data-viz3d]` mount scrolls in (§10) |
 | `core/Tilt.astro` | `IssueLayout.astro`, once per issue — vanilla island driving the CSS-3D `[data-tilt]` pointer-tilt + `[data-flip-btn]` flip (§10) |
-| `core/ExpandModal.astro` | `IssueLayout.astro`, once per issue — in-page lightbox. Adds a ⤢ button to every viz card (`.px-viz` / `.vb` / `.tl` / `.tel`) and **portals the live node** into a modal (placeholder holds the page slot, scroll preserved); fires `resize` so WebGL re-fits. `styles/modal.css`. The ⤢ button (`.px-vexp`) has two shapes: on a hover-capable screen wider than 768px, a hover-revealed 30px square at the card's top-right (`.px-viz__cap` keeps a 44px reserve for it); under `(hover: none), (pointer: coarse), (max-width: 768px)` it is `position: static`, the card's LAST row, right-aligned, 44px tall, labelled "Study this figure ⤢" (2026-09-23). The corner shape covered captions, first timeline events and readout captions on 16 issues at 375; appended last and in flow, it cannot cover anything. **Do not put it back in the corner on phones, and do not add per-component corner reserves** — the in-flow row is the fix. Because the source line renders from `core/Section.astro` rather than inside the card, **the modal shows no source** — ruled as-is on 2026-09-04, not a bug. The modal keeps its glass; it is the only surface that does. |
 | `home/IssueRows.astro` | home, `/archive`, every desk — the ONE list-row implementation (`variant="home"` or `"desk"`, which drops the dot); emits the `.px-archive__list/__row/__none` hooks the archive filter island reads. Lens Phase 2: desk dot + "No 17", the headline in Newsreader 24, the hook 15 muted, the date and read time, and a `core/CoverCard` size="row" thumbnail on the right; hover is a paper-2 wash and an underlined headline. `px-rows`. |
 | `desk/DeskIndex.astro` | rendered by `src/pages/topics/[topic].astro` for all six desks (the six `<Topic>Index` fronts were deleted 2026-09-08). Lens Phase 4: the desk's stage (its masthead included, with the register), its issues as `CoverCard size="tile"` three across, the "New here? Start with No N" path (the three earliest as a dot strip), the other five desks as tiles with their medallion and a row thumbnail. `px-desk__`. |
 | `core/Stage.astro` + `stage/StageScene.astro` | Home (`index.astro`, the newest issue with a `cover`) and every desk page (the desk's newest issue). The stage replaces the page's `<Masthead>`: it renders the on-deep one itself |
@@ -742,14 +762,14 @@ selectors, so renaming them would mean rewriting the whole animation layer.
   gone; their per-world microcopy now reads in `core/Banner.astro`.
 - **Data-viz:** the generic kit names
   `.vb .ac .pm .px2 .tl .ot .ls .cs .bc .adc .rc .cc .lt .pr .tel`, plus the
-  shared shell hooks `.px-viz__cap` (caption) and `.px-viz__how` (how-to-read panel). `.px-viz__src` was one of them until 2026-09-04; it is **retired** — zero emitters, zero rules — and the source
-  line). All CSS lives in the new `src/styles/dataviz-v2.css`, imported
+  shared shell hook `.px-viz__cap` (caption). `.px-viz__how` (the how-to-read
+  panel) and `.px-viz__src` are **retired**, zero emitters and zero rules. All CSS lives in the new `src/styles/dataviz-v2.css`, imported
   **last** in both `IssueLayout.astro` and `HomeLayout.astro`.
 
 **Components fully ported** (rewritten to the kit's markup + animations —
 stroke-draw lines, grow bars, scale-pop polygon, count-up tiles, the
 44-column MP-dot vote chamber, scan sweep — and wrapped in the shared
-flat `.px-viz` card — radius 0, no shadow, 3px `--viz-edge` top rule since 2026-09-04):
+flat `.px-viz` card — radius 0, no shadow; the 3px `--viz-edge` top rule of 2026-09-04 became a 1px hair under Lens and its variable left in Phase 8):
 
 | Component | Kit class |
 |---|---|
@@ -787,13 +807,14 @@ and `[data-warmth]`) was RETIRED, files, attributes and CSS together: every
 component now paints its final state as written, and moves only through the
 attributes of §11.
 
-**Inert dead-CSS follow-up.** The old per-component viz CSS in the theme
-files (`.px-vote*`, `.px-appr*`, `.px-pwm*`, `.px-paradox*`, `.px-timeline*`,
-and the old orbit/launch/climate/bench/scurve/route/citycompare/ltab/radar
-blocks) plus the `.px-skim-toggle` / `.px-skim-btn` rules in `base.css` are
-now **orphaned** — no element emits them. They are harmless (the new viz use
-new class names, so there is no override conflict) but should be removed in a
-future safe cleanup pass.
+**The dead-CSS follow-up is done (Lens Phase 8, 2026-10-04).** The old
+per-component viz CSS in the theme files (`.px-vote*`, `.px-appr*`,
+`.px-pwm*`, `.px-paradox*`, `.px-timeline*`, the orbit / launch / climate /
+bench / scurve / route / citycompare / ltab / radar blocks) went with
+everything in those files but the inks, and the `.px-skim-toggle` /
+`.px-skim-btn`, `.px-quote*`, `.px-compare*`, `.px-readout*`, `.px-primer*`,
+the old home list (`.px-home__issue*`, `__title`, `__tagline`) and `.px-section__num` rules left `base.css`. Each class was
+grepped for an emitter first.
 
 ---
 
@@ -1010,6 +1031,21 @@ its own island rewrites the verdict number.
 ---
 
 ## Change log
+
+### 2026-10-04 — Lens Phase 8, the switch
+
+`src/lib/explainers.ts` is deleted; `core/VizCard.astro` and the eleven
+components that forwarded it (`NumberSense`, `MarginBullets`, `ClimateSpiral`,
+`BillFunnel`, `AgePyramid`, `AttritionWaffle`, `ChannelTernary`,
+`FinishInterval`, `StateTimeline`, `XgRace`, `ScalingPlot`) lost the
+`howToRead` prop. The schema fails the build on `plain` / `howToRead`. The six
+theme files hold the desk's inks only, so **a component's CSS lives in its
+own scoped `<style>`, never in a theme**; §3 step 4 and step 5 say so (step 5
+is the cue anchors and the build now, not an EXPLAIN entry), and
+`scripts/wire-kind.mjs` refuses a catalog block without CUES and BUILD lines.
+`.px-viz` reads `--hair` (no `--viz-edge`). Free prefixes: `px-plain`,
+`px-primer`, `px-compare`, `px-quote`, `px-readout`, `px-floor`, `pol-`,
+`ear-`, `trv-`, `.cc`.
 
 ### 2026-09-30 — Lens Phase 6, the politics wave
 

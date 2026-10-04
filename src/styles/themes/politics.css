@@ -1,8 +1,11 @@
 /* ============================================================================
    PARALLAX · POLITICS THEME
-   Lens (2026-09-30): the desk on the one paper. This file keeps the desk's
-   inks (mark, text, tint, deep) and its component rules, all through tokens.
-   No desk sets a page ground and no desk sets a face (type-v2.css is the lever).
+   Lens (2026-09-30; reduced to this in Phase 8, 2026-10-04): the desk on the
+   one paper. This file holds the desk's INKS and nothing else: `--accent` the
+   mark, `--accent-deep` the text ink, `--accent-tint` the tint, `--deep` the
+   plate (docs/design/LENS.md §2.2), plus the neutral mirrors design:check
+   gates. No page ground, no face, no per-desk component rule, no
+   `--viz-edge`: every component styles itself through these role tokens.
    ============================================================================ */
 
 :root[data-topic="politics"] {
@@ -16,7 +19,6 @@
   --paper-warm: #ede9df;   /* TD-09: the well (was the per-desk panel surface, TD-01). */
   --paper-deep: #ede9df;   /* TD-02: alias of --paper-warm. */
   --on-accent: #f5f2eb;    /* TD-04: foreground on an accent fill, the paper. */
-  --viz-edge: var(--hair); /* TD-09: figures lose the coloured top rule, a hair remains. */
   --rule: #dcd7cb;
   --rule-soft: #ede9df;
   --hair: #dcd7cb;
@@ -31,90 +33,4 @@
   --accent-alt: #1e5a3f;    /* opposition green, 7.0:1 on the paper */
   --deep: #2a1410;         /* the plate: stages and covers only, never a page */
   --tape: #c9c3b4;
-}
-
-/* The politics kinds (timeline, bill-breakdown, vote-result, seat-chart,
-   paradox, analogy, approval-chart, power-matrix) carry their own scoped
-   styles since Lens Phase 6 (2026-09-30). The old per-kind rules that stood
-   here (`.px-timeline`, `.px-bills`, `.px-vote`, `.px-seats`, `.px-paradox`,
-   `.px-analogy`, `.px-beats`, `.px-appr`, `.px-pwm`) matched nothing or were
-   overridden, and are gone. */
-
-/* ══════════════════════════════════════════════════════════════════════════
-   POLITICS WORLD MOTIFS (2026-07-05 · docs/design/worlds/politics.md)
-   "The official record, annotated." Reusable identity classes so politics
-   reads as politics even between vizzes — division rules, inked stamps,
-   ledger rows, the red-pen annotation, gazette-plate card chrome.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-/* 1 · The division rule — section-break ornament that splits into AYES | NOES */
-.pol-division {
-  display: flex; align-items: center; gap: 14px;
-  margin: 44px auto; max-width: var(--col-prose);
-}
-.pol-division::before, .pol-division::after {
-  content: ''; flex: 1; height: 1px; background: var(--rule);
-}
-.pol-division > span {
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--muted); white-space: nowrap;
-}
-.pol-division > span b { color: var(--accent-deep); font-weight: 600; }
-
-/* 2 · The stamp — verdicts as an inked rubber stamp (extends .vb__stamp world-wide) */
-.pol-stamp {
-  display: inline-block; padding: 5px 12px 4px;
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
-  text-transform: uppercase; font-weight: 600;
-  color: var(--accent-deep); border: 1.5px solid var(--accent-deep);
-  border-radius: 2px; transform: rotate(-2deg);
-  text-shadow: 0 0 0.5px color-mix(in oklab, var(--accent-deep) 8%, transparent);
-  background: color-mix(in oklab, var(--accent) 4%, transparent);
-}
-
-/* 3 · The ledger row — data as ruled ledger lines with dot leaders */
-.pol-ledger { list-style: none; margin: 0; padding: 0; }
-.pol-ledger li {
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid var(--rule);
-  font-variant-numeric: tabular-nums;
-}
-.pol-ledger .pol-ledger__k {
-  font-family: var(--font-body); font-size: 14px; color: var(--ink);
-}
-.pol-ledger .pol-ledger__dots {
-  flex: 1; border-bottom: 1.5px dotted color-mix(in oklab, var(--muted) 55%, transparent);
-  transform: translateY(-3px);
-}
-.pol-ledger .pol-ledger__v {
-  font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft);
-  letter-spacing: 0.03em;
-}
-.pol-ledger .pol-ledger__v b { color: var(--accent-deep); font-weight: 600; }
-
-/* 4 · The annotation — Parallax's red pen ON the record */
-.pol-annot {
-  font-family: var(--font-display); font-style: italic;
-  font-size: 15.5px; line-height: 1.55; color: var(--accent-deep);
-  padding-left: 14px; border-left: 2px solid var(--accent);
-  max-width: 52ch; margin: 18px 0;
-}
-
-/* 5 · The record header — gazette-plate chrome for politics cards */
-.pol-record {
-  border-top: 3px solid var(--ink);
-  position: relative; padding-top: 10px;
-}
-.pol-record::before {
-  content: ''; position: absolute; top: 4px; left: 0; right: 0;
-  height: 1px; background: var(--ink);
-}
-.pol-record .pol-record__meta {
-  display: flex; justify-content: space-between; gap: 16px;
-  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
-}
-.pol-record .pol-record__title {
-  font-family: var(--font-display); font-weight: 600; font-size: 17px;
-  letter-spacing: 0.04em; font-variant-caps: small-caps; color: var(--ink);
 }

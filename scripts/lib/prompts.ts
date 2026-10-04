@@ -54,11 +54,16 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * Files are sorted lexicographically — YYYY-MM-DD prefixes make this chronological.
  * With `slug`, only `<date>-<slug><suffix>` files qualify — the `--slug` flag
  * (2026-09-16), so a desk carrying two issues in one round targets the right
- * dossier / storyboard instead of whichever sorts last.
+ * dossier / storyboard instead of whichever sorts last. The slug may be given
+ * bare or dated (an issue folder's name, `2026-09-21-<slug>`): a leading
+ * `YYYY-MM-DD-` is stripped before matching (2026-10-04), and a file whose
+ * name carries the date twice (`<date>-<date>-<slug>-panel.md`, written when
+ * a dated slug reached the panel) still matches.
  * Returns the filename (not full path), or null if none found.
  */
 export function findMostRecent(dir: string, suffix: string, slug?: string): string | null {
-  const exact = slug ? new RegExp(`^\\d{4}-\\d{2}-\\d{2}-${escapeRe(slug)}${escapeRe(suffix)}$`) : null;
+  const bare = slug?.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+  const exact = bare ? new RegExp(`^\\d{4}-\\d{2}-\\d{2}-(?:\\d{4}-\\d{2}-\\d{2}-)?${escapeRe(bare)}${escapeRe(suffix)}$`) : null;
   try {
     const files = readdirSync(dir)
       .filter(f => f.endsWith(suffix) && (!exact || exact.test(f)))
@@ -393,7 +398,7 @@ export function buildDraftPrompt(category: string, dossierFile: string, storyboa
 ${ROUND_RULES}: \`${absPath(outRel)}\`. ${ROUND_JUDGEMENT}`
     : `Write a complete draft issue from the dossier inlined below (${dossierRel}), executing the approved storyboard inlined after it (${storyboardRel}). The storyboard fixes the kinds, the order, the hero, the word budgets and the head.
 
-Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. Its frontmatter carries \`id: "${id}"\`, \`topic: ${category}\`, \`publishedAt: ${today}\`, \`status: draft\` and the storyboard's \`cover\`, and the standard empty body follows it. Every graphic section carries the storyboard's \`cues\` (two to four, each \`at\` an anchor id from its kind's CUES line) with each \`[[n]]\` marker placed before the sentence that states what the cue shows; a narrative section (\`act-break\`, \`prose\`, \`quote\`, \`analogy\`) carries none. Do not author \`plain\` or \`howToRead\`: both are retired.
+Today is ${today} (IST). Write one file, once, with the Write tool, to \`${absPath(outRel)}\`. Its frontmatter carries \`id: "${id}"\`, \`topic: ${category}\`, \`publishedAt: ${today}\`, \`status: draft\` and the storyboard's \`cover\`, and the standard empty body follows it. Every graphic section carries the storyboard's \`cues\` (two to four, each \`at\` an anchor id from its kind's CUES line) with each \`[[n]]\` marker placed before the sentence that states what the cue shows; a narrative section (\`act-break\`, \`prose\`, \`quote\`, \`analogy\`) carries none. Do not author \`plain\` or \`howToRead\`: the schema rejects both, and the build fails on either.
 
 After you write, the script runs \`check:prose\` and the schema check on your file. If either flags something you get one more request carrying the flags, so go through your definition's Step 7 list before you write, not after.`;
   const head = `${task}
@@ -471,7 +476,7 @@ export function buildStylistPrompt(category: string, issueSlug: string, panelFil
     : 'No reader-panel report exists yet for this issue.';
   const head = `Bring the Parallax issue inlined below (${issueRel}) into the runtime voice contract and assign one rhetorical job per section.
 
-Today is ${today} (IST). You rewrite prose fields only: each section's \`intro\` and \`skimCaption\`, a cue's \`text\` where one is authored, and inside \`data\` the \`lead\`, \`paragraphs\` and \`followup\`. Every \`[[n]]\` cue marker survives your rewrite: it moves with its sentence and stays in the same field, and the section keeps exactly the markers it had. Every other field stays exactly as it is: the frontmatter keys and their order, the head (title, hook, dek, primer), the \`cover\`, every cue's \`n\` and \`at\`, every \`caption\`, section title, eyebrow, number, label, note, data value, annotation and source, any legacy \`plain\` or \`howToRead\` (retired: never write a new one), the order and the kinds of the sections, and the body below the frontmatter.
+Today is ${today} (IST). You rewrite prose fields only: each section's \`intro\` and \`skimCaption\`, a cue's \`text\` where one is authored, and inside \`data\` the \`lead\`, \`paragraphs\` and \`followup\`. Every \`[[n]]\` cue marker survives your rewrite: it moves with its sentence and stays in the same field, and the section keeps exactly the markers it had. Every other field stays exactly as it is: the frontmatter keys and their order, the head (title, hook, dek, primer), the \`cover\`, every cue's \`n\` and \`at\`, every \`caption\`, section title, eyebrow, number, label, note, data value, annotation and source, the order and the kinds of the sections, and the body below the frontmatter.
 
 Then Write the WHOLE corrected file, once, with the Write tool, to \`${absPath(issueRel)}\`. The script snapshots the file before your run and compares every field outside your list afterwards. If any of them moved, it restores the snapshot, keeps your version aside as \`_index.rejected.mdx\`, and the whole pass is lost. Copy every line you do not rewrite exactly as it stands, its quoting included.
 

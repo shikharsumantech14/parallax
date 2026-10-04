@@ -5,11 +5,10 @@
  * felt rather than read. Blueprint: docs/design/blueprints/core/number-sense.md
  * Pure HTML/CSS, zero JS. Universal, so core/. Prefix `px-ns`.
  *
- * SHELL. `core/VizCard.astro` owns the caption row, the in-card how-to-read
- * panel AND the `data-build-scene` root (Lens Phase 5) — this component adds
- * none of the three and must not add a second scene. The plain line and the `Source · …` on
- * it are `core/Section.astro`'s, for every kind. `number-sense` is not in
- * NEEDS_HOW: an authored `howToRead` renders, the per-kind default does not.
+ * SHELL. `core/VizCard.astro` owns the caption row AND the `data-build-scene`
+ * root (Lens Phase 5) — this component adds neither and must not add a second
+ * scene. The caption and the `Source · …` line are `core/Section.astro`'s, for
+ * every kind (the how-to-read panel and the plain line are gone, LENS §10).
  *
  * THE VALUE IS NOT A COUNTER, deliberately: a build counter's in-between
  * frames are grouped en-US, and this figure is often Indian-grouped
@@ -45,12 +44,11 @@ interface Props {
   label: string;
   equals: Equal[];
   note?: string;
-  howToRead?: string;
   caption?: string;
   /** Accepted and ignored — Section renders it. Object form per §3's example. */
   source?: string | { label: string; date?: string };
 }
-const { value, unit, label, equals = [], note, howToRead, caption, source } = Astro.props;
+const { value, unit, label, equals = [], note, caption, source } = Astro.props;
 
 /* Build-time validation (§3). A big number with nothing beside it is a one-tile
    data-readout, not this kind — the comparison IS the component, so failing
@@ -66,7 +64,7 @@ for (const e of equals)
     throw new Error('[number-sense] every `equals` row needs a non-empty `text`.');
 ---
 
-<VizCard prefix="px-ns" howToRead={howToRead} caption={caption} source={source}>
+<VizCard prefix="px-ns" caption={caption} source={source}>
   <div class="px-ns__box">
     <div class="px-ns__num" data-cue="value">
       <p class="px-ns__k" data-build="2" data-build-kind="rise"><span class="px-cue-tag" data-cue-tag="value" hidden></span>{label}</p>

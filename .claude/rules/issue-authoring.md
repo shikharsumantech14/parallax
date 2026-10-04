@@ -25,12 +25,12 @@ Zod enforces these at build time — overshooting does not warn, it **fails the
 build**:
 
 - `primer` — 80–420 chars
-- `plain` — max 220 chars, and `howToRead` — 40–360 chars. **Both are
-  retired**: no longer rendered since Lens Phase 3 (2026-09-30), no longer
-  authored by the pipeline since Lens Phase 7 (2026-10-01); the cues and the
-  one caption do their work. The bounds still hold because the fields stay in
-  the schema until Phase 8 removes them, so an over-long legacy one still
-  fails the build. Never author a new one
+- `plain` and `howToRead` — **removed** (Lens Phase 8, 2026-10-04). Any
+  value FAILS the build, with a message that names the field (a guard in
+  `src/content/config.ts`; the section object is not strict, so a bare
+  removal would have stripped them silently). They had not rendered since
+  Phase 3 or been authored since Phase 7: the cues and the one caption do
+  their work
 - `caption` — the DATA claim; the only comprehension field the verifier traces
   (with the cue sentences, below). It renders ONCE, at the end of the article
   column, in Newsreader italic, and may carry `[[n]]` markers. Never a scale
@@ -77,9 +77,11 @@ build**:
 
 A graphic section is the article (620) beside a pinned figure panel (520);
 a narrative section (`act-break`, `prose`, `quote`, `analogy`: the kinds
-whose catalog CUES line says none) is the article alone. `jargon-buster` and
+whose catalog CUES line says none, the `NARRATIVE` set of
+`core/Section.astro`) is the article alone. `jargon-buster` and
 `three-steps` left the narrative set in Lens Phase 6: their cards sit in the
-figure panel and take cues. The article carries the eyebrow, the
+figure panel and they take two to four cues like any graphic (anchors
+`1`…`n`, one per term or step). The article carries the eyebrow, the
 title, the intro, **the kind's own sentences** (a `timeline`'s events, a
 `data-readout`'s tiles as "**Label: value.** note", a `you-think`'s two
 texts), the caption and, on phones, the source. The figure's compact form
@@ -125,7 +127,8 @@ the drafter writes `cover` and every graphic section's `cues` with their
 `[[n]]` markers; the stylist keeps every marker with its sentence and may
 reword a cue sentence; the verifier traces each cue sentence (CUE-UNTRACED)
 and checks the counts (CUE-COUNT) and the cover (COVER-DRIFT). `check:prose`
-flags CUES and NO-COVER. Nobody authors `plain` or `howToRead` any more.
+flags CUES and NO-COVER, as warnings on every status since Lens Phase 8.
+Nobody authors `plain` or `howToRead`: the build fails on either.
 
 ## Status
 

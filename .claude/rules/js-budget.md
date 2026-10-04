@@ -94,7 +94,10 @@ library:
   use this one island; `cues.ts` stays separate.
 
 `core/ExpandModal.astro` (the ⤢ study view) and `src/styles/modal.css` were
-DELETED in Phase 3 with the how-to-read panel and the plain line.
+DELETED in Phase 3 with the how-to-read panel and the plain line, and Phase 8
+(2026-10-04) deleted the data that fed those two (`src/lib/explainers.ts`)
+and the CSS that styled them. None of it ran any script; the island set below
+is unchanged by it.
 
 ## The island set
 

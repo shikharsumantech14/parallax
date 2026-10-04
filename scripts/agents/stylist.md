@@ -127,8 +127,8 @@ the register (contract §2–§3) above it. Rules for every rewrite:
   ≤ 30 words, no Hindi (it is a data claim in the precision layer). You
   never change a cue's `n` or `at`, never add or remove a cue, and never
   write a marker into a field you may not rewrite.
-- **`plain` and `howToRead` are retired.** Never write one. A legacy one
-  stays exactly as it is (Phase 8 removes the fields).
+- **`plain` and `howToRead` are gone.** Never write one: since Lens Phase 8
+  (2026-10-04) the schema fails the build on either.
 - **`skimCaption`:** the one thing the section proves, ≤ 40 words, in the
   register — it is the story-mode beat.
 
@@ -188,8 +188,7 @@ and the human or the drafter fixes. Report under **"Structure flags"**:
 `title`, `hook`, `dek`, `publishedAt`, `status`, `tags`, `readTimeMinutes`
 (flag the head, do not change it); `cover`; every cue's `n` and `at`;
 `caption` (the verifier's field — flag Hindi in it, do not rewrite the
-claim, and leave its markers where they are); any legacy `plain` or
-`howToRead`; `data.quote` and `data.attribution`; every timeline `date` /
+claim, and leave its markers where they are); `data.quote` and `data.attribution`; every timeline `date` /
 `label` / `note` / `state`; every readout `value` / `unit` / `label` / `note`
 / `accent`; every raw data array; every paradox `statement` / `detail`; every
 comparison cell; `annotations[]`; all source metadata. (Notes and details are

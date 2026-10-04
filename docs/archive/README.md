@@ -37,6 +37,7 @@ competing to be the entry point (CD-10).
 | `COMPONENT-AUDIT.md` | 2026-06-20 | `docs/design/catalog.md` + `npm run check:catalog` |
 | `CLAUDE-DESIGN-BRIEF.md` | 2026-05-26 | `docs/REVAMP-PLAN.md` |
 | `CONTENT-ENGINE.md` | 2026-09-27 | nothing — the three loops it describes were retired; kept as the design record for their replacements |
+| `EXPLAIN-HOW-REVIEW.md` | 2026-10-04 | the cue contract, `docs/design/LENS.md` §5.2 (the file it reviewed, `src/lib/explainers.ts`, was deleted in Lens Phase 8) |
 | `_voice-social.md` | 2026-09-27 | `research/_voice/_voice-core.md` §5 (the social format contract; no agent reads it) |
 
 Every file carries a freeze header stating its date and what replaced it.

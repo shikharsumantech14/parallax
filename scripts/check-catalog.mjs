@@ -12,9 +12,9 @@
  *   4. every kind has a KIND_PRIORITY score (src/lib/story.ts). Until Lens
  *      Phase 7 it also asserted an EXPLAIN entry (src/lib/explainers.ts) for
  *      every non-narrative kind; that copy fed the plain line and the
- *      how-to-read panel, which stopped rendering in Phase 3, nothing imports
- *      the file any more, and Phase 8 deletes it, so the assertion went
- *      (2026-10-01)
+ *      how-to-read panel, which stopped rendering in Phase 3, so the
+ *      assertion went (2026-10-01), and Phase 8 deleted the file
+ *      (2026-10-04)
  *   5. every field named in a catalog DATA line is actually read by its
  *      component (2026-09-15) — see the block at check 5 for why
  *   6. every retired kind name in KIND_ALIASES (src/content/config.ts)

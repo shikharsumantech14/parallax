@@ -59,52 +59,8 @@
 }
 .vz-num { font-variant-numeric: tabular-nums; }
 
-/* In the expand modal the scale steps up a notch so labels look deliberate at
-   size. (The modal retires with the cue system in Phase 3.) */
-.px-modal__viz {
-  --viz-fs-eyebrow: 13px;
-  --viz-fs-legend:  13px;
-  --viz-fs-axis:    13px;
-  --viz-fs-caption: 19px;
-  --viz-fs-annot:   15px;
-  --viz-fs-src:     13px;
-}
-.px-modal__viz .px-viz__cap { font-size: 19px; margin-bottom: 26px; }
-
-/* ── "In plain terms" — the in-flow comprehension line (2026-07-05) ──────────
-   One quiet sentence under every viz section explaining the FORM of the
-   graphic (core/Section.astro; text from section.plain or lib/explainers.ts).
-   Phase 3 retires it for the cue system; until then it sets in the UI sans. */
-.px-plain {
-  max-width: var(--col-prose);
-  margin: 12px 0 0;
-  padding-top: 11px;
-  border-top: 1px solid var(--hair, var(--rule));
-  font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--ink-2);
-}
-.px-plain__k {
-  font-weight: 600;
-  color: var(--ink);
-  margin-right: 6px;
-  white-space: nowrap;
-}
-.px-plain__k::after { content: ' \2014'; }
-
-/* The source line (Foundations board): 13px muted, "Source · <label> · <date>",
-   the label a link in ink-2. It runs inline after the plain sentence
-   (REGISTER-PLAN RG-19). "Source · " is real text, not ::before, so it is
-   copyable and read by AT. Rendered by core/Section.astro for every kind. */
-.px-plain__src {
-  display: inline;
-  margin-left: 10px;
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.px-plain__src a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+/* RETIRED in Lens Phase 8 (2026-10-04): the expand modal's step-up scale
+   (`.px-modal__viz`) and the "In plain terms" line with its inline source
+   (`.px-plain`, `.px-plain__k`, `.px-plain__src`). The source line is
+   `.px-rs__src` / `.px-fig__src`, printed once by core/Section.astro
+   (layout-v2.css). */

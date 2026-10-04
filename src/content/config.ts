@@ -108,7 +108,7 @@ export type SectionKind = z.infer<typeof sectionKindEnum>;
    docs/design/LENS.md §9). Two kinds were renamed and four folded into a host
    kind; the backlist and the showcase drafts still carry the old names, so the
    schema accepts them and hands the CANONICAL name on. Every consumer of
-   `section.kind` (SectionBody, Section, story mode, the explainers) therefore
+   `section.kind` (SectionBody, Section, story mode, the cover) therefore
    sees `gauge`, never `swing-dial`. The host components tell the old data
    shapes apart by their fields, so no issue has to be edited to keep building.
    Scripts that read the MDX directly (check-prose, project-graph) parse this
@@ -167,6 +167,18 @@ const cueSchema = z.object({
 });
 export type Cue = z.infer<typeof cueSchema>;
 
+/** A field the schema no longer accepts: any value fails the build with a
+ *  message that names the replacement. A refine, not `z.undefined()`: Astro's
+ *  error map rewrites an invalid_type message to "Expected type undefined",
+ *  and keeps a custom one. `.optional()` lets an absent field through first. */
+const retiredField = (name: string) =>
+  z
+    .unknown()
+    .refine(() => false, {
+      message: `\`${name}\` was removed in Lens Phase 8 (2026-10-04). Delete it: the section's cues and its caption carry that job (docs/design/LENS.md §5.2).`,
+    })
+    .optional();
+
 const sectionSchema = z.object({
   kind: sectionKindInput,
   number: z.string().optional(),
@@ -183,18 +195,14 @@ const sectionSchema = z.object({
   skimCaption: z.string().optional(),
   /* Two to four per graphic section, none on the narrative kinds. */
   cues: z.array(cueSchema).max(4).optional(),
-  // DEPRECATED by the Lens reading system (2026-09-30, docs/design/LENS.md §5)
-  // and NO LONGER RENDERED since Phase 3: the cues and the one caption do this
-  // work. Both stay in the schema, bounds and all, so the backlist builds
-  // unchanged; Phase 8 removes them, and the pipeline stops authoring them in
-  // Phase 7.
-  //
-  // `plain` was one sentence on the FORM of the viz ("each block is one
-  // seat…"), the old "In plain terms" line.
-  plain: z.string().max(220).optional(),
-  // `howToRead` was the FORM at paragraph length, the old panel above the
-  // graphic.
-  howToRead: z.string().min(40).max(360).optional(),
+  // REMOVED in Lens Phase 8 (2026-10-04). `plain` (the old "In plain terms"
+  // line) and `howToRead` (the panel above the graphic) stopped rendering in
+  // Phase 3 and the pipeline stopped authoring them in Phase 7: the cues and
+  // the one caption do their work (docs/design/LENS.md §5). This object is
+  // not strict, so deleting the keys alone would let Zod STRIP a stray one
+  // silently. These two guards fail the build instead, by name.
+  plain: retiredField('plain'),
+  howToRead: retiredField('howToRead'),
   // Promoted OUT of `data: z.any()`, where they were unvalidated and could go
   // missing silently. The handoff's floor is "never a graphic without both",
   // and CANON §7 already said "no source, no section" on the honour system.

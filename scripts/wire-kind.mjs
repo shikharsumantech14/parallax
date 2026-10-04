@@ -1,5 +1,5 @@
 /**
- * wire-kind — wires a new section kind through the six code registry places.
+ * wire-kind — wires a new section kind through five code registry places (SECTION_KINDS, the SectionBody import and arm, the catalog block, KIND_PRIORITY, the prefix table).
  *   node scripts/wire-kind.mjs <config.json>
  *
  * Built during Phase 3 of the revamp (docs/REVAMP-PLAN.md) and used for all
@@ -15,14 +15,11 @@
  *     "comment": "HTML — composition by age band and sex, counts or shares",
  *     "prefix": "px-pyr",
  *     "props": "bands={data.bands ?? []} sides={data.sides} mode={data.mode} unit={data.unit}",
- *     "explainWhat": "<=220 chars, the FORM, never the data",
- *     "explainHow": "40-360 chars, the HOW-TO-READ paragraph; renders live above the graphic (inside the card for VizCard kinds) whenever the section has no authored howToRead. Static reading first, control clause last",
- *     "catalogBlock": "## age-pyramid
-- **World/Tier:** ...",
+ *     "catalogBlock": "## age-pyramid\n- **World/Tier:** ...\n- **CUES:** ...\n- **BUILD:** ...",
  *     "priority": 66 }
  *
  * Config: { kind, world, component, file, afterKind, comment, props,
- *           explainWhat, explainHow, catalogBlock, priority, prefix }
+ *           catalogBlock, priority, prefix } plus the optional extras below.
  *
  * `afterKind` is the existing kind this one is inserted after — it anchors the
  * SECTION_KINDS entry, the dispatch arm and the catalog block, which keeps all
@@ -32,22 +29,26 @@
  * can be re-run safely. Line endings are matched per file.
 
  *
- * The dispatch arm it emits is the VizCard idiom as of RG-19 (2026-09-13):
- * `howToRead={howToReadFor(section.kind, section.howToRead)}` — an authored
- * paragraph always, the per-kind default only for the NEEDS_HOW kinds — so the
- * card carries the panel itself and Section's copy is hidden by the `:has()`
- * rule in dataviz-v2.css; SectionBody already imports howToReadFor. `source` is
- * still passed for compatibility but VizCard no longer renders it: the source
- * line is `.px-plain__src`, rendered once by core/Section.astro below the
- * graphic for every kind. Config extras: `world: 'core'` for a universal kind
+ * THE LENS SHAPE (Phase 8, 2026-10-04). The dispatch arm it emits is the one
+ * every kind uses since Lens Phase 6:
+ *   <Name ...props caption={section.caption ?? data.caption}
+ *         source={section.source ?? data.source} />
+ * core/Section.astro prints the caption (in the article) and the source (in
+ * the figure panel) once; the component renders neither, and there is no
+ * how-to-read panel and no plain line any more (src/lib/explainers.ts was
+ * deleted in Phase 8). Config extras: `world: 'core'` for a universal kind
  * (imports from ./core/), `vizcard: false` for a narrative kind (a bare arm,
- * no chrome props). A narrative kind's catalog block says `- **CUES:** none`
- * (check-catalog's NARRATIVE set went in Lens Phase 7, 2026-10-01); every
- * other block needs a CUES line whose ids are `data-cue` anchors in the
- * component, and a BUILD line (check 7). NOTE (2026-10-01): the arm this
- * emits still passes `howToReadFor(...)`, which SectionBody no longer
- * imports since Lens Phase 3, and step 3 still writes the dead
- * src/lib/explainers.ts; both are Phase 8's to retire with that file.
+ * no chrome props), `narrative: true` for a kind that runs in the article
+ * column with no figure panel (it must also join the NARRATIVE set in
+ * core/Section.astro and scripts/project-graph.mjs by hand).
+ *
+ * Step 3 REFUSES a catalog block without a CUES line and a BUILD line: a
+ * narrative kind says `- **CUES:** none`, every other kind lists the anchor
+ * ids its component exposes as `data-cue="<id>"` (under a `Cue anchors:`
+ * header comment), and check:catalog check 7 then asserts each id is in the
+ * component. The component's own contract (anchors, `.px-cue-tag` slots,
+ * `data-build-*` attributes, no motion of its own) is src/components/AGENTS.md
+ * §3 and §11; this script cannot write it for you.
 
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -61,9 +62,20 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const cfg = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const { kind, world, component, file, afterKind, comment, props,
-        explainWhat, explainHow, catalogBlock, priority, prefix } = cfg;
+        catalogBlock, priority, prefix } = cfg;
 
-if (!cfg.narrative && (explainWhat ?? '').length > 220) die(`explainWhat is ${explainWhat.length} chars, over the 220 cap`);
+if (cfg.explainWhat || cfg.explainHow) {
+  die('`explainWhat` / `explainHow` are gone with src/lib/explainers.ts (Lens Phase 8). Drop them; the kind explains itself through cues (docs/design/LENS.md §5.2).');
+}
+// 0 ── the catalog block must carry the Lens lines BEFORE anything is written
+{
+  const cues = (catalogBlock ?? '').match(/^- \*\*CUES:\*\*\s*(.+)$/m)?.[1]?.trim();
+  const build = (catalogBlock ?? '').match(/^- \*\*BUILD:\*\*\s*(.+)$/m)?.[1]?.trim();
+  if (!cues) die('catalogBlock has no `- **CUES:**` line (the anchor ids, or `none` on a narrative kind)');
+  if (!build) die('catalogBlock has no `- **BUILD:**` line (the build order, LENS §6.4)');
+  if (cfg.narrative && !/^none\b/.test(cues)) die('a narrative kind\'s CUES line must say `none`');
+  if (!cfg.narrative && /^none\b/.test(cues)) die('a figure kind needs anchor ids on its CUES line (two to four cues per section)');
+}
 
 // 1 ── SECTION_KINDS
 let s = rd('src/content/config.ts');
@@ -92,35 +104,21 @@ else {
   s = s.replace(impRe, `$1import ${component} from '${importPath}';${N}`);
   const armRe = new RegExp(`(\\{section\\.kind === '${esc(afterKind)}' && [\\s\\S]*?\\)\\}\\r?\\n)`);
   if (!armRe.test(s)) die(`dispatch arm for '${afterKind}'`);
-  // The VizCard idiom since RG-19 (2026-09-13): howToReadFor() resolves an
-  // authored paragraph for any kind and the per-kind default only for the
-  // NEEDS_HOW kinds — add the kind to NEEDS_HOW in explainers.ts by hand if it
-  // has a control or a form that can be misread. `vizcard: false` in the config
-  // emits a plain arm (narrative kinds render no card chrome).
+  // The Lens arm (Phase 6): the data props, then caption and source, which
+  // core/Section.astro prints once (the component renders neither). A
+  // `vizcard: false` config emits a bare arm (narrative kinds take no chrome).
   const arm = cfg.vizcard === false
     ? `    {section.kind === '${kind}' && (${N}      <${component} ${props} />${N}    )}${N}`
     : `    {section.kind === '${kind}' && (${N}` +
-      `      <${component} ${props} howToRead={howToReadFor(section.kind, section.howToRead)} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
+      `      <${component} ${props} caption={section.caption ?? data.caption} source={section.source ?? data.source} />${N}` +
       `    )}${N}`;
   s = s.replace(armRe, `$1${arm}`);
   wr('src/components/SectionBody.astro', s);
   console.log('  + SectionBody');
 }
 
-// 3 ── EXPLAIN (skipped for narrative kinds). Dead since Lens Phase 3 and no
-// longer asserted by check-catalog (Phase 7); Phase 8 deletes explainers.ts.
-s = rd('src/lib/explainers.ts');
-if (cfg.narrative) console.log('  - EXPLAIN skipped (narrative kind)');
-else if (s.includes(`'${kind}':`)) console.log('  = EXPLAIN');
-else {
-  const N = eol(s);
-  const re = /( *'gauge':)/;
-  if (!re.test(s)) die('explainers anchor');
-  const esc1 = (t) => t.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  s = s.replace(re, `  '${kind}': { what: '${esc1(explainWhat)}', how: '${esc1(explainHow)}' },${N}$1`);
-  wr('src/lib/explainers.ts', s);
-  console.log(`  + EXPLAIN (what=${explainWhat.length})`);
-}
+// 3 ── (the EXPLAIN step lived here until Lens Phase 8; the CUES and BUILD
+// lines it was replaced by are checked in step 0, before any write.)
 
 // 4 ── catalog block, in the SAME position as SECTION_KINDS
 s = rd('docs/design/catalog.md');
@@ -161,4 +159,4 @@ else {
   wr('src/components/AGENTS.md', s);
   console.log('  + prefix');
 }
-console.log(`  ${kind} wired.`);
+console.log(`  ${kind} wired. Now run npm run check:catalog: check 7 fails until every CUES id is a data-cue in ${file}.`);

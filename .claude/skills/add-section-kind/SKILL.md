@@ -7,16 +7,26 @@ allowed-tools: Bash(node scripts/*), Bash(npm run *), Read, Edit, Write, Glob, G
 
 # Add a section kind
 
-**Nine registry places. Six are automated — do not hand-edit those six.**
+**Nine registry places. Five are automated — do not hand-edit those five.**
+(Lens Phase 8, 2026-10-04: the EXPLAIN entry and the how-to-read default are
+gone with `src/lib/explainers.ts`. A kind explains itself through its cues.)
 
 ## Automated: `node scripts/wire-kind.mjs <config.json>`
 
 1. `SECTION_KINDS` in `src/content/config.ts`
-2. import + dispatch arm in `src/components/SectionBody.astro` — the script emits the RG-19 idiom `howToRead={howToReadFor(section.kind, section.howToRead)}` for VizCard kinds (2026-09-13), a bare arm when the config says `vizcard: false`, and a `./core/` import when `world` is `core`. **Then decide `NEEDS_HOW` by hand** in `src/lib/explainers.ts`: add the kind if it has a control, is a WebGL scene, or its form can be misread; leave it out for a form that explains itself. A narrative kind also joins the `NARRATIVE` set in `scripts/check-catalog.mjs` and the header list in `explainers.ts`.
-3. `EXPLAIN` entry in `src/lib/explainers.ts`
+2. import + dispatch arm in `src/components/SectionBody.astro` — the script
+   emits the Lens arm, `<Name …props caption={section.caption ?? data.caption}
+   source={section.source ?? data.source} />`, a bare arm when the config says
+   `vizcard: false`, and a `./core/` import when `world` is `core`. A
+   narrative kind (`narrative: true`, no figure panel) also joins the
+   `NARRATIVE` set in `core/Section.astro` and `scripts/project-graph.mjs` by
+   hand.
+3. `## <kind>` block in `docs/design/catalog.md` — **same order** as
+   SECTION_KINDS. The script REFUSES a block without a `- **CUES:**` line (the
+   anchor ids, or `none` on a narrative kind) and a `- **BUILD:**` line (the
+   build order), and a config that still carries `explainWhat` / `explainHow`.
 4. `KIND_PRIORITY` score in `src/lib/story.ts`
-5. `## <kind>` block in `docs/design/catalog.md` — **same order** as SECTION_KINDS
-6. the CSS prefix registration
+5. the CSS prefix registration in `src/components/AGENTS.md` §4
 
 Read the header of `scripts/wire-kind.mjs` for the config shape and a worked
 example. It is **idempotent** — every step skips if already applied, so a
@@ -26,17 +36,43 @@ and the catalog block so all three stay in the same order, which
 
 ## Manual: yours
 
-7. the component itself — `src/components/topic/<world>/<Name>.astro`
+6. the component itself — `src/components/topic/<world>/<Name>.astro` (or
+   `core/`), drawn for the pinned figure panel (about 470px of content at
+   1280, 293 on a 375 phone; LENS §5.1).
 
-   **Render it inside `core/VizCard.astro`** — `<VizCard prefix="px-xxx" {howToRead} {caption} chip=…>` around the graphic. VizCard is the caption row (+ optional chip), the optional in-card how-to-read, and the slot. **Nothing else.** Since shell adoption (Phase 6.1, 2026-09-04) `core/Section.astro` owns every other piece of explainability chrome for every kind: the how-to-read panel ABOVE the graphic, the plain line and the `Source · …` second line (`.px-plain__src`) BELOW it, read from the section frontmatter. A new component must **not** emit its own source line, plain line or how-to-read — `.px-viz__src` has zero emitters and zero CSS rules and must not come back; a `:has()` rule in `dataviz-v2.css` hides Section's how panel when the card carries one, which is what keeps it to exactly one per section. The card is also flat: `.px-viz` supplies the 3px `--viz-edge` top rule; add no `border-radius`, `box-shadow` or hover lift on the root.
+   **The cue contract.** A `Cue anchors:` block in the header comment;
+   `data-cue="<id>"` on every element a cue can name (ids numbered from 1 in
+   DATA order, or short names for fixed parts); an empty
+   `<span class="px-cue-tag" data-cue-tag="<id>" hidden></span>` where the
+   numeral sits (inside an SVG, in a `<foreignObject>` or an HTML layer over
+   it). `core/Section.astro` fills the numerals; `src/scripts/cues.ts` lights
+   them. The same ids go on the catalog block's CUES line, and
+   `check:catalog` check 7 fails until each is a `data-cue` in the component.
 
-   `explainHow` in the wire-kind config is live copy on the page now, not a modal cue — write it as the static reading first, with any control clause trailing (controls are `html.js`-gated, the paragraph is not).
+   **The build contract.** `data-build-scene` on the graphic, `data-build="n"`
+   and `data-build-kind` on its parts (`src/components/AGENTS.md` §11). No
+   motion of its own; the static HTML is the final state.
 
-8. `src/scripts/viz3d/scenes/index.ts` — **WebGL kinds only**
-9. a worked example in that world's showcase issue
+   **The shell.** A VizCard kind renders inside `core/VizCard.astro`
+   (`<VizCard prefix="px-xxx" {caption} chip=…>`): the caption row and the
+   slot, nothing else. `core/Section.astro` owns the rest of the section
+   chrome for every kind: the caption in the article, the `Source · …` line
+   in the figure panel. A component emits **no** source line and no caption
+   under a spelling the shell cannot see; `.px-viz__src` and the how-to-read
+   panel must not come back. `.px-viz` is a 1px `--hair` rule: add no
+   `border-radius`, `box-shadow` or hover lift on the root.
 
-Plus: theme CSS, an entry in `src/components/AGENTS.md`, and a `TRIM` cap in
-`src/lib/story.ts` if the kind needs one.
+   **The CSS** is a scoped `<style>` in the component reading the role tokens
+   (`--accent`, `--accent-deep`, `--accent-tint`, `--deep`, the neutrals).
+   **Never a theme file**: since Lens Phase 8 the six `themes/<desk>.css`
+   hold the desk's inks and nothing else.
+
+7. `src/scripts/viz3d/scenes/index.ts` — **WebGL kinds only**
+8. a worked example in that world's showcase issue, with two to four `cues`
+   and their `[[n]]` markers
+9. the kind's row in `src/components/AGENTS.md` §2, its `data` shape in
+   `src/content/issues/_AGENTS.md`, and a `TRIM` cap in `src/lib/story.ts`
+   if it needs one
 
 ## Traps that have actually bitten
 
@@ -48,15 +84,19 @@ Plus: theme CSS, an entry in `src/components/AGENTS.md`, and a `TRIM` cap in
   earlier cap of 4 was a dead no-op.
 - **Globe seed-yaw is `-((cLon + 90) * Math.PI) / 180`.** A `+180` opens on the
   limb: it renders, looks fine, shows the wrong hemisphere.
-- **`src/content/config.ts` is CRLF.** Exact-string anchors fail unless you
-  match `\r?\n`. This is the whole reason `wire-kind.mjs` exists.
+- **Match line endings per file.** Some files are CRLF; exact-string anchors
+  fail unless you match `\r?\n`. This is the whole reason `wire-kind.mjs`
+  exists.
 - **In-SVG `<text>` uses a literal font stack, never `var()`** (RD-01b) —
   presentation attributes lose to any stylesheet rule, and satori/resvg do no
   `var()` substitution.
-- **A missing EXPLAIN or KIND_PRIORITY fails silently.** No error, no visual
-  difference, green build — the kind just renders no plain line AND no how-to-read panel (since Phase 6.1 `EXPLAIN[kind].how` is the live how-to-read fallback for every kind — see `core/Section.astro`), or
-  sinks to the default 30 and never gets picked as a story beat. This is how
-  four WebGL flagships sat unscored.
+- **A missing KIND_PRIORITY fails silently** at runtime: the kind sinks to the
+  default 30 and never gets picked as a story beat (this is how four WebGL
+  flagships sat unscored); `check:catalog` catches it. **A CUES id with no
+  `data-cue`** lights nothing; check 7 catches it, and the render gate blocks
+  a page whose cue names a missing anchor.
+- **A control or a JS-only disclosure inside the build scene** breaks the
+  render gate's BUILD check: put the scene on the graphic, not the card.
 
 ## Finish
 
@@ -66,20 +106,24 @@ npm run graph
 npm run check:render -- --slug 2026-06-03-<world>-showcase
 ```
 
-`check:catalog` asserts the 1:1 pairing, the order, and EXPLAIN + KIND_PRIORITY
-coverage. `npm run graph` refreshes the derived graph — commit its output
-alongside the kind, or `prebuild` will fail on a stale graph. `check:render`
-(2026-09-23) renders the showcase that carries the worked example at 1280 and
-375 as a signed-in reader and fails on overflow, clipping, text on text, the
-⤢ button on text or duplicate chrome; open the section's screenshots at both
-widths under `research/_ui/<date>/` and read them. The commit hook refuses a
-component commit without a fresh clean run.
+`check:catalog` asserts the 1:1 pairing, the order, KIND_PRIORITY coverage, a
+reader for every DATA field, the alias map and the CUES anchors. `npm run
+graph` refreshes the derived graph — commit its output alongside the kind, or
+`prebuild` will fail on a stale graph. `check:render` (2026-09-23) renders the
+showcase that carries the worked example at 1280 and 375 as a signed-in
+reader and fails on overflow, clipping, text on text, duplicate chrome, a cue
+numeral without its anchor, a build that ends off the no-JS page, or text
+below 9.5px; open the section's screenshots at both widths under
+`research/_ui/<date>/` and read them. The commit hook refuses a component
+commit without a fresh clean run.
 
 Then run `/verify-done`.
 
 ## Before you start
 
 Read `docs/design/blueprints/<world>/$0.md` — **its corrections header first;
-that header overrides the original handoff.** The blueprint is binding;
-screenshots are reference only, and four contain real ledger-collision bugs the
-blueprints already correct.
+that header overrides the original handoff.** A blueprint written before Lens
+Phase 6 may describe a drawing, a how-to-read paragraph or an EXPLAIN string
+the catalog's NOTES line says is retired: the catalog wins. The blueprint is
+binding otherwise; screenshots are reference only, and four contain real
+ledger-collision bugs the blueprints already correct.

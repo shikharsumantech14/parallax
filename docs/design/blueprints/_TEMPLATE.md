@@ -1,5 +1,13 @@
 # Blueprint template — the component contract
 
+> **LENS (updated 2026-10-04, Phase 8).** The design law is
+> `docs/design/LENS.md`. A kind explains itself through **cues** (§5.2) and
+> one caption; the how-to-read panel, the plain line, `src/lib/explainers.ts`
+> (`EXPLAIN`, `NEEDS_HOW`) and the `--viz-edge` rule are gone, and the schema
+> fails the build on `plain` / `howToRead`. §1's Shell row, §3's `source`
+> note, §9 and §11 below are written to that. Blueprints written before Lens
+> Phase 6 may still describe the old chrome: the catalog's NOTES line wins.
+
 > **Copy this file to `docs/design/blueprints/<world>/<kind>.md` and fill every
 > section.** A blueprint is DONE only when a model with no design judgment could
 > implement the component without asking a single visual question — and a reviewer
@@ -29,7 +37,7 @@
 | Scene module (WebGL only) | `src/scripts/viz3d/scenes/<name>.ts` |
 | CSS prefix | `px-<abbrev>` (≤6 chars; verify uniqueness: grep `meta.css`, `base.css`, `src/components/`) |
 | Flagship reference | the closest already-built component to copy patterns from (e.g. `solar-system` for WebGL, `power-flow` for SVG-flow) |
-| Shell | `core/VizCard.astro` — the caption row (with optional honesty chip), the optional in-card How-to-read, and the graphic slot. Nothing else: the component never renders source, plain or its own how-to-read; `core/Section.astro` owns all three (how-to-read ABOVE the graphic, plain + `SOURCE ·` BELOW). The card is flat (radius 0, no shadow, hover = border-colour only) and wears the 3px `--viz-edge` top rule — do not re-elevate it. |
+| Shell | `core/VizCard.astro` — the caption row (with optional honesty chip, story mode only) and the graphic slot; its root is the `data-build-scene`. Nothing else: the component never renders the source or the caption; `core/Section.astro` prints the caption in the article and `Source ·` in the pinned figure panel. `.px-viz` is flat (radius 0, no shadow, a 1px hair): do not re-elevate it. |
 
 
 ## 2. What it shows / when to use
@@ -53,8 +61,8 @@ interface <Name>Data {
   // ...
   caption?: string;   // every viz kind — the DATA claim; rendered by VizCard's caption row (or `section.caption`)
   source?: string;    // every viz kind — the component does NOT render it; core/Section.astro
-                      // prints it once as the plain paragraph's second line (`.px-plain__src`),
-                      // from `section.source ?? data.source`. Never emit a `__src` element.
+                      // prints it once in the figure panel (`.px-fig__src`; `.px-rs__src` on
+                      // phones), from `section.source ?? data.source`. Never emit a `__src` element.
 }
 ```
 
@@ -128,26 +136,25 @@ apology — the print edition of the same idea:
   reserves true height and never reflows mid-drag.
 
   keyboard focus order.
-- What a keyboard/AT user gets instead (usually: the fallback legend/table + the
-  plain line carry the full content; canvas is `aria-hidden`).
+- What a keyboard/AT user gets instead (usually: the fallback legend/table +
+  the article's cue sentences and caption carry the full content; canvas is
+  `aria-hidden`).
 
 ## 9. Comprehension text
 
-- **Plain-line template** (goes into `src/lib/explainers.ts` as the kind default,
-  and the drafter's per-issue `plain` follows its shape): one sentence, explains
-  the FORM not the data. e.g. "Each ring is one orbit at its real altitude; dots
-  are satellites."
-- **`how` line** (goes into `src/lib/explainers.ts` as the kind default): the
-  **How to read this** paragraph that `core/Section.astro` renders ABOVE the
-  graphic for every kind (inside the card for VizCard kinds — one panel per
-  section, never two). Authored `section.howToRead` overrides it; the modal's
-  "Explore" line reuses it. It paints in static HTML, so **the static reading
-  leads and any control clause trails** — never "Drag to spin…" first, because
-  the control is `html.js`-gated and the paragraph is not. e.g. "Each ring is
-  an orbit drawn at its real altitude; the swarm can be spun to read it from
-  any side."
-- **`howToRead` guidance**: what the per-issue paragraph (40–360 chars) should
-  cover for this kind — usage, not data, not form.
+- **Cue anchors** (the catalog block's `CUES:` line): every element a cue can
+  name, with its id (`1`…`n` in DATA order for a list, a short name for a
+  fixed part: `head` for the headline number, `line`, `legend`, `axis`), the
+  `data-cue` it carries and where its empty `.px-cue-tag` numeral slot sits
+  (inside an SVG: a `<foreignObject>` or an HTML layer over it). Two to four
+  cues per section; the first names the finding, never the axis.
+- **Cue sentences**: what a good one says for this kind (a data claim, ≤ 30
+  words, traced like the caption), and which of the kind's own items get a
+  cue button automatically, if any (as the readout tiles and timeline events
+  do).
+- **Build order** (the `BUILD:` line, LENS §6.4): axis, then marks, then
+  labels, then the headline number, inside 4.5s; the counter if any. A
+  control or a JS-only disclosure sits outside the build scene.
 - Caption guidance: what a good caption for this kind states (the data claim).
 
 ## 10. Performance budget
@@ -166,11 +173,12 @@ WebGL scenes are their own lazy chunk via the scenes registry — no eager impor
 ## 11. Acceptance checklist
 
 8–12 binary checks. Always include the canon floor (CANON §13: silhouette test,
-375px, reduced-motion still, token grep, how-to-read + caption + plain + source
-each rendered exactly once per section with the component emitting none of them
-itself — only the caption row inside VizCard, lazy/dispose contract, payload
-validation, prefix uniqueness, flat per §14 — no radius, no shadow, no hover
-transform, the 3px `--viz-edge` rule present) plus component-specific checks,
+375px, reduced-motion still, token grep, caption + source each rendered
+exactly once per section with the component emitting neither itself, every
+CUES id a `data-cue` that lights (check:catalog check 7, the render gate's
+CUES check), the build ending on the no-JS page (BUILD), lazy/dispose
+contract, payload validation, prefix uniqueness, flat: no radius, no shadow,
+no hover transform) plus component-specific checks,
 e.g.:
 
 - [ ] Kepler positions match the physics sheet's worked example within 0.5%
@@ -183,7 +191,7 @@ e.g.:
 
 *Registry duties when implementing: add the kind to `SECTION_KINDS`
 (`src/content/config.ts`), dispatch in `src/components/SectionBody.astro`, add the
-`EXPLAIN` entry (`src/lib/explainers.ts`), add the catalog block
-(`docs/design/catalog.md` — `npm run check:catalog` must pass), document the prefix
+catalog block with its CUES and BUILD lines (`docs/design/catalog.md` — `npm
+run check:catalog` must pass; `scripts/wire-kind.mjs` does these first steps), document the prefix
 in `src/components/AGENTS.md` §4, and add a worked example to the world's
 `2026-06-03-<world>-showcase` issue.*

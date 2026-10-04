@@ -27,20 +27,20 @@
 `wired` is the six automated registry places; ✗ marks a gap `check:catalog` would fail on.
 `published` asks whether the kind has ever appeared in a non-draft issue.
 
-| kind | component | catalog | explain | priority | webgl | blueprint | used | published |
+| kind | component | catalog | cues | priority | webgl | blueprint | used | published |
 |---|---|---|---|---|---|---|---|---|
 | `act-break` | — | ✓ | · | -1 |  |  | ✓ | ✓ |
 | `timeline` | Timeline | ✓ | ✓ | 66 |  |  | ✓ | ✓ |
 | `bill-breakdown` | BillBreakdown | ✓ | ✓ | 52 |  |  | ✓ | ✓ |
 | `vote-result` | VoteResult | ✓ | ✓ | 88 |  |  | ✓ | ✓ |
 | `seat-chart` | SeatChart | ✓ | ✓ | 54 |  |  | ✓ | ✓ |
-| `comparison` | Comparison | ✓ | · | 48 |  |  | ✓ | ✓ |
+| `comparison` | Comparison | ✓ | ✓ | 48 |  |  | ✓ | ✓ |
 | `paradox` | Paradox | ✓ | ✓ | 50 |  |  | ✓ | ✓ |
 | `you-think` | YouThink | ✓ | ✓ | 60 |  | ✓ | ✓ | ✓ |
 | `analogy` | BrothersAnalogy | ✓ | · | 34 |  |  | ✓ | ✓ |
 | `quote` | Quote | ✓ | · | 40 |  |  | ✓ | ✓ |
-| `jargon-buster` | JargonBuster | ✓ | · | 30 |  | ✓ | ✓ | ✓ |
-| `three-steps` | ThreeSteps | ✓ | · | 44 |  | ✓ | ✓ | ✓ |
+| `jargon-buster` | JargonBuster | ✓ | ✓ | 30 |  | ✓ | ✓ | ✓ |
+| `three-steps` | ThreeSteps | ✓ | ✓ | 44 |  | ✓ | ✓ | ✓ |
 | `prose` | Prose | ✓ | · | 10 |  |  | ✓ | ✓ |
 | `data-readout` | DataReadout | ✓ | ✓ | 70 |  |  | ✓ | ✓ |
 | `number-sense` | NumberSense | ✓ | ✓ | 68 |  | ✓ | ✓ | ✓ |
@@ -139,44 +139,44 @@ only see citations. Treat a zero as a question, never as a verdict.
 
 | id | cited in | implemented by |
 |---|---|---|
-| **CD-01** | 6 files | 3 |
+| **CD-01** | 5 files | 3 |
 | **CD-02** | 6 files | 4 |
 | **CD-03** | 2 files | 0 — _dangling_ |
 | **CD-04** | 2 files | 0 — _dangling_ |
 | **CD-05** | 2 files | 1 |
 | **CD-06** | 1 files | 0 — _dangling_ |
-| **CD-07** | 4 files | 1 |
+| **CD-07** | 3 files | 1 |
 | **CD-08** | 4 files | 1 |
 | **CD-09** | 5 files | 2 |
 | **CD-10** | 2 files | 1 |
 | **CD-11** | 5 files | 3 |
-| **CD-12** | 12 files | 6 |
-| **RD-01** | 9 files | 3 |
-| **RD-01a** | 5 files | 3 |
+| **CD-12** | 11 files | 6 |
+| **RD-01** | 8 files | 3 |
+| **RD-01a** | 4 files | 3 |
 | **RD-01b** | 44 files | 9 |
 | **RD-02** | 4 files | 0 — _dangling_ |
-| **RD-03** | 6 files | 2 |
-| **RD-04** | 3 files | 0 — _dangling_ |
-| **RD-05** | 16 files | 6 |
+| **RD-03** | 5 files | 2 |
+| **RD-04** | 2 files | 0 — _dangling_ |
+| **RD-05** | 12 files | 3 |
 | **RD-06** | 5 files | 1 |
 | **RD-07** | 3 files | 1 |
-| **RD-08** | 6 files | 2 |
+| **RD-08** | 4 files | 1 |
 | **RD-09** | 6 files | 1 |
 | **RD-10** | 14 files | 9 |
-| **RD-11** | 5 files | 2 |
-| **RD-12** | 4 files | 1 |
-| **RD-13** | 5 files | 1 |
-| **RD-14** | 5 files | 0 — _dangling_ |
-| **RD-15** | 5 files | 0 — _dangling_ |
-| **TD-01** | 43 files | 9 |
+| **RD-11** | 4 files | 2 |
+| **RD-12** | 3 files | 1 |
+| **RD-13** | 4 files | 1 |
+| **RD-14** | 4 files | 0 — _dangling_ |
+| **RD-15** | 4 files | 0 — _dangling_ |
+| **TD-01** | 42 files | 9 |
 | **TD-02** | 36 files | 7 |
 | **TD-03** | 31 files | 2 |
 | **TD-04** | 8 files | 7 |
 | **TD-05** | 5 files | 3 |
-| **TD-06** | 14 files | 2 |
+| **TD-06** | 13 files | 2 |
 | **TD-07** | 2 files | 0 — _dangling_ |
 | **TD-08** | 2 files | 0 — _dangling_ |
-| **TD-09** | 13 files | 10 |
+| **TD-09** | 14 files | 10 |
 
 ## Issues
 

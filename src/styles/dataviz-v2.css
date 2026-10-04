@@ -436,24 +436,7 @@ html:not(.js) .px-cue { cursor: default; }
 
 /* ITINERARY (was ROUTE CARD, `.rc`): its CSS lives in topic/travel/Itinerary.astro (`px-itin`) since Lens Phase 6. */
 
-/* ──────────────────────────────────────────────────────────────────────────
-   CITY COMPARE (travel) — head-to-head metrics, winner highlight
-   ────────────────────────────────────────────────────────────────────────── */
-.cc__head { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-bottom: 8px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
-.cc__city { display: flex; flex-direction: column; gap: 4px; }
-.cc__city--b { text-align: right; align-items: flex-end; }
-.cc__city-name { font-family: var(--issue-face); font-size: 26px; color: var(--ink); font-weight: 700; line-height: 1; }
-.cc__city-sub { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); }
-.cc__vs { font-family: var(--font-mono); font-size: 12px; color: var(--accent-deep); letter-spacing: 0.06em; }
-.cc__row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--rule); opacity: 1; transform: none; transition: opacity var(--t-soft) var(--ease), transform var(--t-soft) var(--ease); }
-.cc__a, .cc__b { font-family: var(--font-ui); font-weight: 600; font-size: 17px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.cc__b { text-align: right; }
-.cc__a[data-win="true"], .cc__b[data-win="true"] { color: var(--accent-deep); font-weight: 700; }
-.cc__metric { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: var(--viz-ls-mono); text-transform: uppercase; color: var(--muted); text-align: center; }
-/* A row's footnote — why the winner wins, when the two values alone don't say.
-   Spans the row rather than sitting in the centre column, which is sized to
-   the metric label and would squeeze both values if it grew. */
-.cc__note { grid-column: 1 / -1; margin-top: 8px; font-family: var(--font-display); font-style: italic; font-size: 13px; line-height: 1.5; color: var(--ink-soft); text-align: center; }
+/* CITY COMPARE (`.cc`): folded into comparison (its pair form, `px-cmp`) in the Lens verdict; its rules went in Phase 8. */
 
 /* LEAGUE TABLE and PLAYER RADAR (sports): their styles moved into
    LeagueTable.astro (`px-lt`) and PlayerRadar.astro (`px-rdr`), scoped, in
@@ -606,8 +589,9 @@ html:not(.js) .px-cue { cursor: default; }
 
    WHAT IT COSTS: a wide chart is no longer wholly visible at a glance on a
    phone. That is a real loss and it was ruled on deliberately — an unreadable
-   axis is worse than a scrollable one, and the HTML layer (how-to-read, the
-   plain line, the data table) already carries the finding at full size.
+   axis is worse than a scrollable one, and the HTML layer (the article's cue
+   sentences, the caption, the data table) already carries the finding at
+   full size.
 
    NOT TREATED, deliberately:
      - viewBox < 560 (throughput-dial, player-radar, channel-ternary,
@@ -653,8 +637,7 @@ html:not(.js) .px-cue { cursor: default; }
   /* The CARD scrolls, so the page never does.
      `[data-viz-root]` joined the selector 2026-09-22. The rule assumed every
      figure root is `.px-viz`, but eleven kinds carry a bespoke root marked
-     with `[data-viz-root]` instead (the opt-in the retired expand modal
-     also read). region-map is one of them, and it is the only
+     with `[data-viz-root]` instead. region-map is one of them, and it is the only
      bespoke root in the min-width list below — so its 800px SVG had nothing
      to scroll inside and pushed the PAGE to 820px on a 375px phone, on both
      the earth and travel issues (measured 2026-09-22). A root with no
@@ -665,8 +648,6 @@ html:not(.js) .px-cue { cursor: default; }
     overflow-x: auto;
     overscroll-behavior-x: contain;
   }
-
-  .px-bflow__svg { min-width: 720px; }
 
   /* The earth kinds (Lens Phase 6) keep their own phone min-width in their
      component (region-map, quake-depth, carbon-loop scroll at 460 units;
@@ -695,36 +676,9 @@ html:not(.js) .px-cue { cursor: default; }
   .px-qc__svg { min-width: 460px; }
 }
 
-/* THE SAME RULE IN THE FIGURE PANEL, AT EVERY WIDTH (Lens Phase 3,
-   2026-09-30). The reading system seats every graphic in a 520px panel
-   (`.px-section__stage`, about 472px of content), so on a 1280 screen a chart
-   drawn for 720 units scaled to ~0.65 and its labels printed under the LENS
-   12px floor (FLOOR / TINY on scaling-plot, adoption-curve, descent-profile,
-   power-flow, region-map, elevation-trek). Until Phase 6 redraws each kind
-   for the panel, the 2026-09-07 ruling applies there too: the chart keeps its
-   coordinate width and the figure root scrolls sideways inside the panel.
-   The list is the one above, entry for entry, and it keeps that block's
-   exclusions (the narrow-viewBox forms, shot-map among them; the WebGL
-   fallbacks; climate-spiral; flight-of-the-ball). region-map's labels were
-   AUTHORED at 7.5 to 9.5px, which no scroll could lift; since 2026-09-30 they
-   are authored at 12 (13 for the legend title), and so is scaling-plot's
-   point label, so both print at LENS's floor here. KEEP THE TWO LISTS IN STEP.
 
-   Only a root that holds one of these charts scrolls (`:has`), so a panel
-   figure whose 3D depth or ring runs past its box is not clipped by a
-   scroller it does not need. The scrollbar is a visible hair, and there is
-   no snapping. The root's 6px padding (given back by the margin) keeps a lit
-   cue's ring inside the scroller. */
-.px-section__stage .px-fig__body > :is(.px-viz, [data-viz-root]):has(:is(
-  .px-bflow__svg
-)) {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--hair-2) transparent;
-  padding: 6px 6px 10px;
-  margin: -6px -6px -4px;
-}
-.px-section__stage .px-bflow__svg { min-width: 720px; }
-
+/* THE FIGURE-PANEL SCROLL RULE of Lens Phase 3 (a chart drawn for 720 units
+   kept its width and scrolled inside the 520 panel) went in Phase 8: Phase 6
+   redrew every kind for the panel, and its last entry, `.px-bflow__svg`,
+   belonged to a dropped kind. Each kind that still scrolls on a phone carries
+   its own min-width (its component, or the list above). */

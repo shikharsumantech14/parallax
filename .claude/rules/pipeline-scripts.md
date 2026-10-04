@@ -163,20 +163,21 @@ to answer.
   WebGL scene, plus the alias map, plus (Lens Phase 7, 2026-10-01) **every
   block has a CUES line and every anchor id on it is a `data-cue` in its
   component** (`none` on a narrative kind, whose component exposes none).
-  The EXPLAIN coverage assertion went in Phase 7: `src/lib/explainers.ts` fed
-  the retired plain line and panel, nothing imports it, and Phase 8 deletes
-  it. Reports every failure in one run. A field with no reader fails the
+  The EXPLAIN coverage assertion went in Phase 7, and Phase 8 (2026-10-04)
+  deleted `src/lib/explainers.ts`. Reports every failure in one run. A field with no reader fails the
   build: render it, strike it from the DATA line, or add it to
   `ACCEPTED_UNREAD` in the script with a reason.
 - `check-prose.mjs` — the register and composition report; since Lens Phase
   7 also **CUES** (two to four cues per graphic section, every `[[n]]` marker
   matched by a cue and every cue by a marker or an item that gets its button
   automatically, none on a narrative kind) and **NO-COVER**. The narrative
-  set is read from the catalog's `CUES: none` lines. On a published issue a
-  section with no cues, and a missing cover, report ℹ until Phase 8.
+  set is read from the catalog's `CUES: none` lines. Both warn on every
+  status since Lens Phase 8 (2026-10-04), when the backlist carried them.
 - `design-sync.mjs --check` — 30 mirrors + 6 in-world deeps + 18 record tokens.
-- `wire-kind.mjs` — wires six of the nine registry places from one config;
-  idempotent, handles per-file line endings.
+- `wire-kind.mjs` — wires five of the nine registry places from one config
+  (the EXPLAIN step went with `explainers.ts` in Lens Phase 8); refuses a
+  catalog block without CUES and BUILD lines; idempotent, handles per-file
+  line endings.
 - `project-graph.mjs` — the derived project graph (CD-09: its output in
   `docs/generated/` is never hand-edited).
 - `ui-probe.mjs` — **the render gate** (`npm run check:render`, 2026-09-23;
@@ -212,7 +213,9 @@ composer and the drafter receive LENS §5.2 and §8.2 inlined
 (`lensSections` in `scripts/lib/assemble.ts`), and every pass that reads
 the catalog gets it without its BUILD lines (`catalogForPrompt`: the build
 order is a component author's, about 13k characters no pass acts on). No agent authors `plain` or
-`howToRead`.
+`howToRead`, and since Lens Phase 8 the schema fails the build on either.
+`--slug` takes a bare or a dated slug (a leading `YYYY-MM-DD-` is stripped,
+2026-10-04).
 
 ## Windows (CD-08)
 

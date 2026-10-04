@@ -14,8 +14,8 @@
  *
  * The how-to-read panel this card used to carry is RETIRED with the plain
  * line and the expand modal (LENS §10): the cues and the one caption do that
- * work. `howToRead` is still accepted so a stray caller compiles; it renders
- * nothing. In the reading system SectionBody hands the card no caption (the
+ * work, and since Lens Phase 8 (2026-10-04) the `howToRead` prop is gone. In
+ * the reading system SectionBody hands the card no caption (the
  * article column holds the one copy), so the caption row renders only in
  * story mode, where story.css hides it anyway. `source` is accepted and never
  * rendered: core/Section.astro prints it once.
@@ -26,8 +26,6 @@ interface Props {
   /** Component prefix, e.g. `px-fnl`. Joined to the shared `px-viz` root so
    *  the kit's reveal attaches. */
   prefix: string;
-  /** Retired (Lens Phase 3). Accepted, never rendered. */
-  howToRead?: string;
   /** The DATA claim. Inline emphasis is rendered. */
   caption?: string;
   /** Either a plain string or `{ label, date }` from the section schema. */

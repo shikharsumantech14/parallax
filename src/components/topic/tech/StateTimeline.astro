@@ -44,7 +44,6 @@ interface Props {
   marks?: Mark[];
   caption?: string;
   source?: string | { label: string; date?: string };
-  howToRead?: string;
 }
 
 const {
@@ -56,7 +55,6 @@ const {
   marks = [],
   caption,
   source,
-  howToRead,
 } = Astro.props;
 
 /* ── Build-time validation (blueprint §3) ──────────────────────────────────
@@ -256,7 +254,7 @@ const lagParts = lag != null ? { h: Math.floor(Math.round(lag * 60) / 60), m: Ma
 const PALETTE = '--stl-s0:#D7E2BF;--stl-s1:#C97C22;--stl-s2:#A02D18';
 ---
 
-<VizCard prefix="px-stl" howToRead={howToRead} caption={caption} source={source} style={PALETTE}>
+<VizCard prefix="px-stl" caption={caption} source={source} style={PALETTE}>
   <div class="px-stl__fig" data-build-scene>
     {lagParts && (
       <div class="px-stl__head1" data-cue="head" style={`--ch:${lagParts ? (lagParts.h > 0 ? String(lagParts.h).length + 3.6 : 2.6) : 4}`}>

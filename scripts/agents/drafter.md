@@ -215,9 +215,9 @@ lost 4 points after 63 days", not "the bars show each club". Author `text`
 only when the lit line must differ from the marked sentence (≤ 240
 characters). Never name a scale a control can change.
 
-**`plain` and `howToRead` are RETIRED** (they stopped rendering in Lens
-Phase 3, and Phase 8 removes them from the schema). Never author either: the
-cues and the caption do their work.
+**`plain` and `howToRead` are GONE** (they stopped rendering in Lens Phase 3,
+and since Phase 8, 2026-10-04, the schema fails the build on either). Never
+author either: the cues and the caption do their work.
 
 **`caption`:** the DATA claim, one sentence, traceable to a dossier row. It
 renders once, at the end of the article column, and may carry `[[n]]`
@@ -330,7 +330,7 @@ sections).
       (or an item that gets its button automatically), each cue sentence a
       traceable data claim ≤ 30 words; `caption` (data), `source`. No cues
       and no markers on `act-break` / `prose` / `quote` / `analogy`
-- [ ] No `plain` and no `howToRead` anywhere (retired)
+- [ ] No `plain` and no `howToRead` anywhere (the build fails on either)
 - [ ] `cover` from the storyboard's §2: `section` indexes a graphic section
       (0-based, act-breaks counted), `number` is printed by that section
 - [ ] No Hindi in `caption` / a cue sentence / `source` / data labels;

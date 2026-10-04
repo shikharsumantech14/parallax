@@ -69,13 +69,11 @@ function walk(dir, out = []) {
   return out;
 }
 
-/* Narrative kinds explain themselves — they carry prose, not a graphic — so
-   they are exempt from EXPLAIN. MUST stay in sync with the identical list in
-   scripts/check-catalog.mjs and the header of src/lib/explainers.ts. */
-const NARRATIVE = new Set([
-  'act-break', 'prose', 'quote', 'analogy', 'comparison',
-  'jargon-buster', 'three-steps',
-]);
+/* Narrative kinds run in the article column with no figure panel, so they
+   carry no cues (their catalog CUES line says none). MUST stay in sync with
+   the NARRATIVE set in src/components/core/Section.astro (Lens Phase 6 took
+   jargon-buster and three-steps out of it; comparison was never in it). */
+const NARRATIVE = new Set(['act-break', 'prose', 'quote', 'analogy']);
 
 /* ── 1 · kinds and their nine registry places ──────────────────────────── */
 function buildKinds() {
@@ -85,13 +83,19 @@ function buildKinds() {
   const kinds = [...m[1].matchAll(/'([a-z0-9-]+)'/g)].map((x) => x[1]);
 
   const body = read('src/components/SectionBody.astro');
-  const explain = read('src/lib/explainers.ts');
   const story = read('src/lib/story.ts');
   const catalog = read('docs/design/catalog.md');
   const scenes = has('src/scripts/viz3d/scenes/index.ts') ? read('src/scripts/viz3d/scenes/index.ts') : '';
 
   const catalogBlocks = new Set([...catalog.matchAll(/^## ([a-z0-9-]+)\s*$/gm)].map((x) => x[1]));
-  const explainKeys = new Set([...explain.matchAll(/^\s*'([a-z0-9-]+)':\s*\{/gm)].map((x) => x[1]));
+  /* A kind is cue-wired when its catalog block's CUES line names anchors
+     (anything but `none`); check-catalog check 7 asserts those ids exist. */
+  const cueKinds = new Set();
+  for (const b of catalog.split(/^## /m).slice(1)) {
+    const name = b.match(/^([a-z0-9-]+)/)?.[1];
+    const line = b.match(/^- \*\*CUES:\*\*\s*(.*)$/m)?.[1] ?? '';
+    if (name && line && !/^none\b/.test(line.trim())) cueKinds.add(name);
+  }
   const kp = story.match(/KIND_PRIORITY[^=]*=\s*\{([\s\S]*?)\n\};/);
   const priority = new Map(
     kp ? [...kp[1].matchAll(/'([a-z0-9-]+)'\s*:\s*(-?\d+)/g)].map((x) => [x[1], Number(x[2])]) : [],
@@ -114,7 +118,7 @@ function buildKinds() {
     kind: k,
     component: componentOf.get(k) ?? null,
     inCatalog: catalogBlocks.has(k),
-    hasExplain: explainKeys.has(k),
+    hasCues: cueKinds.has(k),
     priority: priority.has(k) ? priority.get(k) : null,
     hasTrim: trim.has(k),
     isWebgl: new RegExp(`['"]${k}['"]`).test(scenes),
@@ -253,10 +257,10 @@ function renderMarkdown(g) {
   P('`wired` is the six automated registry places; ✗ marks a gap `check:catalog` would fail on.');
   P('`published` asks whether the kind has ever appeared in a non-draft issue.');
   P();
-  P('| kind | component | catalog | explain | priority | webgl | blueprint | used | published |');
+  P('| kind | component | catalog | cues | priority | webgl | blueprint | used | published |');
   P('|---|---|---|---|---|---|---|---|---|');
   for (const k of g.kinds) {
-    P(`| \`${k.kind}\` | ${k.component ?? '—'} | ${k.inCatalog ? '✓' : '✗'} | ${k.hasExplain ? '✓' : '·'} `
+    P(`| \`${k.kind}\` | ${k.component ?? '—'} | ${k.inCatalog ? '✓' : '✗'} | ${k.hasCues ? '✓' : '·'} `
       + `| ${k.priority ?? '·'} | ${k.isWebgl ? '✓' : ''} | ${k.blueprint ? '✓' : ''} `
       + `| ${g.usedAnywhere.has(k.kind) ? '✓' : ''} | ${g.usedPublished.has(k.kind) ? '✓' : ''} |`);
   }
@@ -305,10 +309,10 @@ function renderMarkdown(g) {
 function renderStateBlock(g) {
   const t = g.totals;
   /* Narrative kinds carry prose, not a graphic, so they are EXEMPT from
-     EXPLAIN — check-catalog.mjs holds the same list. Counting them as gaps
-     made this table contradict a green check:catalog, and two gates
-     disagreeing is worse than one gate. */
-  const gaps = g.kinds.filter((k) => !k.inCatalog || (!k.hasExplain && !NARRATIVE.has(k.kind))).length;
+     cues (their catalog CUES line says none, which check:catalog accepts).
+     Counting them as gaps would make this table contradict a green
+     check:catalog, and two gates disagreeing is worse than one gate. */
+  const gaps = g.kinds.filter((k) => !k.inCatalog || (!k.hasCues && !NARRATIVE.has(k.kind))).length;
   return [
     '<!-- BEGIN GENERATED — scripts/project-graph.mjs. Do not hand-edit (CD-09). -->',
     '',

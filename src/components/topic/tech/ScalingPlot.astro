@@ -38,7 +38,7 @@
  * comprehension, not decoration) and only drops the tween.
  *
  * data: { points[]{ x, y, label? }, xLabel?, yLabel?, logX?, logY?, fit?,
- *         howToRead?, caption?, source?, annotations? }
+ *         caption?, source?, annotations? }
  */
 import VizCard from '../../core/VizCard.astro';
 
@@ -59,7 +59,6 @@ interface Props {
   logX?: boolean;
   logY?: boolean;
   fit?: boolean;
-  howToRead?: string;
   caption?: string;
   source?: string | { label: string; date?: string };
   annotations?: Annotation[];
@@ -71,7 +70,6 @@ const {
   logX = false,
   logY = false,
   fit = false,
-  howToRead,
   caption,
   source,
   annotations = [],
@@ -670,7 +668,6 @@ const { headIdx, headPt, headText, headCounts, headDigits, readLog, readLinear, 
 
 <VizCard
   prefix="px-scale"
-  howToRead={howToRead}
   caption={caption}
   source={source}
   chip={yLabel}

@@ -158,6 +158,8 @@ it on white. The ranges do not overlap. One token cannot serve both, and
 ## TD-07 — `--viz-edge` is a per-world alias: ink on the light desks, accent on the dark
 
 > **Superseded 2026-09-30 by TD-09:** `--viz-edge` is a hair on every desk.
+> **Removed 2026-10-04 (Lens Phase 8):** the variable is gone from the six
+> themes and `meta.css`; `.px-viz` reads `--hair` directly.
 
 > **Draft 2026-09-04 — awaiting the operator's ratification.** Landed in code at
 > `b74815d` (shell adoption 1/n) ahead of this entry; recorded here so the token
@@ -286,7 +288,8 @@ compiling. In every theme header and in `meta.css`:
 - `--paper-warm` and its alias `--paper-deep` (TD-01, TD-02) → `--paper-3`,
   the well, on every desk. `--on-accent` (TD-04) → the paper.
 - `--viz-edge` (TD-07) → `var(--hair)` on every desk, and `.px-viz` draws it at
-  1px, not 3px: figures lose the coloured top rule. Phase 3 replaces the shell
+  1px, not 3px: figures lose the coloured top rule (Lens Phase 8 then removed
+  the variable: `.px-viz` reads `--hair`). Phase 3 replaces the shell
   with the pinned figure panel (paper-2, hair, radius 6, shadow-1).
 - `--world-<desk>` / `--world-<desk>-deep` and `--topic-<desk>` /
   `--topic-<desk>-deep` → the mark / the text ink.

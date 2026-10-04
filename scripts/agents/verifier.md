@@ -92,9 +92,10 @@ article beside a pinned figure. Two fields carry claims, and both are traced:
   section is not a graphic one. Trace the cover's number and label to the
   dossier like any other claim. An issue with no `cover` is a NO-COVER
   line under Optional improvements, not a flag.
-- `plain` and `howToRead` are retired (Lens Phase 3 stopped rendering them;
-  Phase 8 removes them). A draft that still carries one: note it under
-  Optional improvements ("delete it"), and trace nothing in it.
+- `plain` and `howToRead` are gone: Lens Phase 3 stopped rendering them and
+  Phase 8 (2026-10-04) took them out of the schema, which now FAILS the build
+  on either. A draft that carries one will not build: say so first, as a
+  blocker ("delete it"), and trace nothing in it.
 
 ### Step 3 — Trace each claim to the dossier
 

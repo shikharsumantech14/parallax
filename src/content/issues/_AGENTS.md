@@ -11,10 +11,10 @@
 > `city-compare` → `comparison`), so author the host name. (2) The reading
 > system landed in Lens Phase 3 (2026-09-30): a graphic section is the
 > article beside a pinned figure, joined by `cues` and inline `[[n]]`
-> markers (§16). (3) `plain` and `howToRead` are DEPRECATED and NO LONGER
-> RENDERED: still accepted (bounds and all) until Phase 8; the pipeline
-> stopped authoring them in Phase 7 (2026-10-01), and authors `cues` and
-> `cover` instead.
+> markers (§16). (3) `plain` and `howToRead` are GONE: not rendered since
+> Phase 3, not authored since Phase 7 (2026-10-01), and since Phase 8
+> (2026-10-04) the schema FAILS THE BUILD on either, by name. Author `cues`
+> and `cover` instead.
 
 ---
 
@@ -84,13 +84,11 @@ Every section conforms to:
                               // ≤4, ZOD-ENFORCED (text ≤240). Lens Phase 3: the
                               // numerals that join the article to the figure
                               // (§16). None on a narrative kind.
-  plain?: string;             // ≤220 chars, ZOD-ENFORCED. RETIRED: NOT
-                              // RENDERED since Lens Phase 3 (2026-09-30), NOT
-                              // AUTHORED since Phase 7; it was the "In plain
-                              // terms" line on the FORM. Never write one.
-  howToRead?: string;         // 40–360 chars, ZOD-ENFORCED. RETIRED like
-                              // `plain`; it was the how-to-read panel above
-                              // the graphic. Cues and the caption do its work.
+  // plain, howToRead           REMOVED in Lens Phase 8 (2026-10-04). Any
+                              // value FAILS THE BUILD ("`plain` was removed
+                              // in Lens Phase 8…"). They were the "In plain
+                              // terms" line and the how-to-read panel; the
+                              // cues and the caption do their work.
   caption?: string;           // TOP-LEVEL since 2026-08-27 — the DATA claim,
                               // one sentence, traceable ("214 bills went in and
                               // 47 came out"). The ONE comprehension field that
@@ -231,7 +229,7 @@ markdown markers.
 | `Expected ")" but found "{"` in build | Sibling JSX returned from `.map()` without a Fragment wrapper | Wrap siblings in `<>...</>`. |
 | Climate strip renders as 3-column flex | Used `.px-strip` instead of `.px-cstrip` | `px-strip` is owned by TopicStrip; ClimateStrip must use `px-cstrip`. |
 | Author "By Shikhar Sharma" appears | Hardcoded name | Remove. Set `author:` in frontmatter only if you want the byline. |
-| `String must contain at most 220 character(s) at "sections.N.plain"` | `plain` line over 220 chars | Tighten it. **This broke the build twice on 2026-07-14** — the cap is easy to blow because a `plain` line that runs long is usually a caption in disguise. `plain` names the FORM in one sentence; move anything about the DATA into `caption`. |
+| `` `plain` was removed in Lens Phase 8 `` (or `` `howToRead` ``) at `sections.N` | A section still carries a retired field | Delete the line. If it said something about the DATA, that belongs in `caption` or a cue sentence; if it explained the FORM, a cue does that now (§16). |
 | `city-grid: expected 1–3 cities, got N` | More than three orientation roses on one plate | Split into two `city-grid` sections. |
 | `city-grid: city "X" has N bins; the 36-bin rule requires EXACTLY 36` | Street-orientation histogram not binned to 10° sectors | Rebin to exactly 36 values, one per 10° compass sector. |
 | `season-wheel: expected EXACTLY 12 months (Jan→Dec), got N` | Partial year | The wheel is a calendar year; supply all twelve `months[]` entries. |
@@ -460,8 +458,8 @@ have no story page.** They are viz reference, not story reference.
 | `cues[].text` (or the marked sentence) | a DATA claim, one per numeral | in the figure panel's foot while its cue is lit; the marked sentence itself sits in the article | ≤240 | **traced to the dossier**, like the caption |
 | `caption` | **the DATA — the finding** | once, at the end of the article column, `core/Section.astro` (`.px-rs__caption`). The component in the figure gets no caption (SectionBody `bare`), and the panel hides any caption row a component still prints | one sentence | **traced to the dossier** |
 | `source` | the citation | once: the figure panel's foot on a desktop graphic section, under the caption on phones and on narrative sections; the label links to the first `sourceRefs` entry | free | CANON §7: no source, no section |
-| `howToRead` | (retired) | **nowhere** since Lens Phase 3 | 40–360 | none in the render; still bounded by Zod |
-| `plain` | (retired) | **nowhere** since Lens Phase 3 | ≤220 | none in the render; still bounded by Zod |
+| `howToRead` | (removed) | nowhere since Lens Phase 3; out of the schema since Phase 8 | — | any value fails the build |
+| `plain` | (removed) | nowhere since Lens Phase 3; out of the schema since Phase 8 | — | any value fails the build |
 
 **Instrumented kinds (`scaling-plot` LOG/LINEAR toggle, `xg-race` minute scrub,
 `climate-spiral` month scrub — 2026-09-04).** The controls are `html.js`-gated.
@@ -499,9 +497,12 @@ blueprints in `docs/design/blueprints/core/`. Word caps are the gate's
   + `source`. One big number and what it equals in things the reader owns
   (the ₹ for a $, "the population of Delhi"). Each `equals` line is a claim:
   its basis goes in `note`; the verifier traces it. Story trims to 2.
-- **`three-steps`** (narrative) — `{ steps: [{title ≤ 6 words, text ≤ 25
-  words}] }`, 2–4 steps, three is the shape. A mechanism in numbered cards;
-  an analogy is welcome in the text.
+- **`three-steps`** (cards in the figure panel with cues since Lens Phase
+  6, like `jargon-buster`; no VizCard) — `{ steps: [{title ≤ 6 words, text
+  ≤ 25 words}] }`, 2–4 steps, three is the shape. A mechanism in numbered
+  cards; an analogy is welcome in the text. Each step's text becomes a
+  sentence in the article with its cue button when a cue names the step
+  (anchors `1`…`n`).
 - **`analogy`, generalised** — the legacy `{ headline?, brothers: [{code, role,
   desc, kids}], punchline? }` still renders (the delimitation issue); the
   universal shape is `{ headline?, pairs: [{this ≤ 12 words, that ≤ 12
@@ -532,9 +533,15 @@ wide`). Below 1024px the figure comes first and pins at the top while the
 article scrolls under it, when it fits 40% of the screen. A NARRATIVE kind
 (`act-break`, `prose`, `quote`, `analogy`: the kinds whose catalog CUES line
 says none) is the article column alone. `jargon-buster` and `three-steps`
-left that set in Lens Phase 6: the article carries each term's meaning and
-each step's text as sentences, the panel carries the cards. The article holds, in order: "01 · EYEBROW", the title, the
-intro, the kind's own sentences, the caption, the source (phones). Three kinds
+left that set in Lens Phase 6, so **both take two to four cues like any
+graphic** (anchors `1`…`n`, one per term or step): the article carries each
+term's meaning and each step's text as sentences, the panel carries the
+cards. The narrative set is exactly the four kinds whose catalog CUES line
+says none, the same four as `NARRATIVE` in `core/Section.astro`. (The
+reading gate's wider list, which also holds `comparison`, `jargon-buster` and
+`three-steps`, answers a different question: which sections do not count as
+the free graphic.) The article holds, in order: "01 · EYEBROW", the title, the
+intro, the kind's own sentences, the caption, the source (phones). Five kinds
 move their sentences into the article, and their figure keeps the rest:
 
 - `data-readout`: each tile becomes "**Label: value unit.** note"; the figure
@@ -544,6 +551,10 @@ move their sentences into the article, and their figure keeps the rest:
 - `you-think`: "What you think" + `think.text`, "What the record shows" +
   `actually.text` (+ `note`); the figure keeps the two labels, the belief as
   a dashed box, the record as a ruled one with its figure.
+- `jargon-buster`: each term becomes "**Term (hindi).** meaning"; the figure
+  keeps the cards.
+- `three-steps`: each step becomes "**Title.** text"; the figure keeps the
+  chain of step cards.
 
 **Authoring a cue.** Two to four per graphic section:
 
@@ -580,8 +591,9 @@ names two to four cues per graphic row (its §3 Cues column) and the cover
 sentence; the verifier traces each cue sentence like a caption. `npm run
 check:prose` flags **CUES** (fewer than two or more than four on a graphic
 section, any on a narrative kind, a marker with no cue, a cue with no marker
-that names no automatic item) and **NO-COVER**; on a published issue a
-section with no cues at all, and a missing cover, report ℹ until Phase 8.
+that names no automatic item) and **NO-COVER**, as warnings on every status
+since Lens Phase 8 (2026-10-04), when every published issue carried its cues
+and a cover (until then a published issue reported them ℹ).
 
 **The worked example** is `2026-09-28-verdict-arrived-sentence-didnt`,
 sections 1 to 4: readout tiles "1"–"4" on cues 1–4; you-think "1", "2", "3"
@@ -590,6 +602,15 @@ with markers in both texts; timeline cue 1 at "2 6" (the charge and today),
 spans) and 2 at "3" (City), with the markers in the caption.
 
 ## Change log
+
+### 2026-10-04 — Lens Phase 8, the switch
+
+`plain` and `howToRead` left the schema: any value now fails the build with a
+message naming the field (§2, §7, §14). The showcases lost their last 36.
+`three-steps` and `jargon-buster` are described as the figure kinds they have
+been since Lens Phase 6 (§15, §16), and the narrative set is stated as the
+four kinds of `core/Section.astro`. `check:prose` warns CUES and NO-COVER on
+every status (§16).
 
 ### 2026-10-01 — Lens Phase 7: the pipeline authors cues and covers
 The catalog gained a `CUES:` and a `BUILD:` line per block (the anchor ids and

@@ -716,9 +716,19 @@ library boards on the canvas (`Lib-<kind>`) are each kind's target.
 | motion.md's named vocabulary (`reveal`, `sweep`, `settle`, `stamp`, `lensSettle`, `pageEnter` at 420ms, `--ease-snap`, `--t-page`) | the grammar in §6 |
 | The onboarding intro "The Second Angle" (removed 2026-09-30) | a three-scene intro on paper (canvas `Intro`): `core/IntroOverlay.astro`, Phase 4, shown once per browser on Home |
 
-`plain` and `howToRead` stay in the schema until Phase 8 (the backlist
-builds unchanged) but are NOT RENDERED since Phase 3, which also deleted the
-expand modal; the pipeline stops authoring them in Phase 7.
+**All of it is removed as of Phase 8 (2026-10-04).** Phase 3 stopped
+rendering the panel and the plain line and deleted the expand modal; Phase 7
+stopped the pipeline authoring `plain` and `howToRead`; Phase 8 took both
+fields out of the schema (a stray one now FAILS the build, by name), deleted
+`src/lib/explainers.ts` (`EXPLAIN`, `NEEDS_HOW`, `howToReadFor`) and the
+rules that styled the retired chrome (`.px-plain*`, `.px-modal__viz`), reduced
+the six theme files to their inks (no page grounds, no per-world type or
+motif kits, no `--viz-edge`, now a plain `--hair` rule on `.px-viz`), and
+swept the dead launch-design primitives out of `base.css` (the skim toggle,
+the primer, the section number block, `.px-quote*`, `.px-compare*`,
+`.px-readout*`, the old home list (`.px-home__issue*`, `__title`, `__tagline`), the floor plan's frame step-out). The RD-05
+radius flip had already gone in Phase 1. None of it renders anywhere, and
+none of it may come back.
 
 ---
 
@@ -738,4 +748,4 @@ screenshots read, and the operator's push.
 | 5 · Motion | the `build.ts` island; `check:render` learns the final-state and cue-anchor checks |
 | 6 · The library | the 87 kinds to their boards, in six waves by desk |
 | 7 · The pipeline | `CUES:` and `BUILD:` lines in the catalog; the agents write cues; `check:prose` counts them |
-| 8 · The backlist and the switch | every published issue gets cues and a cover; the old shell, themes, panel, modal and retired kinds go in one deploy |
+| 8 · The backlist and the switch | every published issue gets cues and a cover (Part A, `280b5c5`); the old shell, themes, panel, modal and retired kinds go in one deploy (Part B, 2026-10-04). **Built**: §10 lists what went |

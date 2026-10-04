@@ -255,8 +255,8 @@ function parseIssue(text: string): { data: unknown; body: string } {
 /** The fields the stylist may rewrite (stylist.md Step 6). Everything else is
  *  compared with the snapshot and must not move. */
 export const STYLIST_EDITABLE: RegExp[] = [
-  // `plain` left this list in Lens Phase 7 (2026-10-01): it is retired, and a
-  // legacy one is copied, never rewritten. A cue's `text` joined it: the
+  // `plain` left this list in Lens Phase 7 (2026-10-01) and the schema in
+  // Phase 8 (2026-10-04), which fails the build on it. A cue's `text` joined it: the
   // stylist may reword a cue's sentence in the register, never its `n` or `at`.
   /^sections\.\d+\.(intro|skimCaption)$/,
   /^sections\.\d+\.cues\.\d+\.text$/,

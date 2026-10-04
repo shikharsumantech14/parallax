@@ -31,7 +31,7 @@
  * ring labels (3) · the headline number (4).
  *
  * data: { months[]{ year, month (1–12), value }, unit?, baseline?,
- *         howToRead?, caption?, source? }
+ *         caption?, source? }
  */
 import VizCard from '../../core/VizCard.astro';
 import FigHead from './FigHead.astro';
@@ -43,11 +43,10 @@ interface Props {
   months: MonthPt[];
   unit?: string;
   baseline?: string;
-  howToRead?: string;
   caption?: string;
   source?: string | { label: string; date?: string };
 }
-const { months = [], unit = '', baseline, howToRead, caption, source } = Astro.props;
+const { months = [], unit = '', baseline, caption, source } = Astro.props;
 
 /* ── geometry: drawn for a phone (340 units, 13.5 type prints 12px at 305) ── */
 const SIZE = 300, PAD = 22, VB = SIZE + PAD * 2;
@@ -162,7 +161,7 @@ const tags = [
 const headLabel = peak ? `${unit ? unit + ', ' : ''}${MONTH_LBL[peak.month - 1]} ${peak.year}` : undefined;
 ---
 
-<VizCard prefix="px-spiral" howToRead={howToRead} caption={caption} source={source}>
+<VizCard prefix="px-spiral" caption={caption} source={source}>
   <div
     class="px-spiral__box"
     data-spr-box

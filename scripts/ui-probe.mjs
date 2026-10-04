@@ -1009,7 +1009,7 @@ function measure(cfg) {
   }
 
   /* ── section-only passes: CHROME, ALIGN, EMPTY ────────────────────────── */
-  const CHROME_CLASSES = ['px-section__num', 'px-eyebrow', 'px-section__title', 'px-section__intro', 'px-viz__how', 'px-section__claim', 'px-plain', 'px-section__copy'];
+  const CHROME_CLASSES = ['px-eyebrow', 'px-section__title', 'px-section__intro', 'px-section__claim', 'px-section__copy'];
   const isChrome = (el) => clsList(el).some((c) => CHROME_CLASSES.includes(c));
   const colL = colBox.l;
   for (const b of blocks) {

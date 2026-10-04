@@ -53,7 +53,7 @@ auto-deploys on push to `main`.
 | Content      | Astro Content Collections + MDX (`@astrojs/mdx` 3.1.x) |
 | Types        | TypeScript 5.6 strict                               |
 | Styles       | Plain CSS, custom properties swapped via `data-topic` |
-| Fonts        | Google Fonts — **two families under Lens (2026-09-30, `docs/design/LENS.md` §3): Newsreader** (display, prose, captions; 400/500/600 and italic) **and Instrument Sans** (UI, labels and every number, 600 tabular). The role tokens map `--font-display` / `--font-body` → Newsreader and `--font-mono` → Instrument Sans; nothing below 12px rendered. The share cards need static files of both (`scripts/fetch-fonts.mjs`). **Phase 1 swaps them in** (`src/styles/type-v2.css`); until it lands the product renders the launch design's ONE family, Literata, through the same three role tokens. Literata (2026-09-08), the trio before it (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces are retired as faces; the medallion's P stays an outline traced from Literata. |
+| Fonts        | Google Fonts — **two families under Lens (2026-09-30, `docs/design/LENS.md` §3): Newsreader** (display, prose, captions; 400/500/600 and italic) **and Instrument Sans** (UI, labels and every number, 600 tabular). The role tokens map `--font-display` / `--font-body` → Newsreader and `--font-mono` → Instrument Sans; nothing below 12px rendered. The share cards need static files of both (`scripts/fetch-fonts.mjs`). Phase 1 swapped them in (`src/styles/type-v2.css` is the lever). Literata (2026-09-08), the trio before it (Fraunces / Schibsted Grotesk / JetBrains Mono) and the per-world faces are retired as faces; the medallion's P stays an outline traced from Literata. |
 | Feed         | `@astrojs/rss` 4.0.x                                |
 | Node         | `22.x` — a PINNED major, never a range (§7)          |
 | Hosting      | Vercel, ONE project (`parallax`), auto-deploy on push to `main` |
@@ -152,9 +152,12 @@ the house cut of the mark is the politics station.
 
 `<html data-topic>` picks the desk. The per-topic theme files
 `src/styles/themes/{politics,space,earth,tech,travel,sports}.css` map that
-desk's inks onto the role tokens the components read; Lens Phase 1 reduces
-them to those accent variables, and until it lands they still carry the
-launch design's grounds.
+desk's inks onto the role tokens the components read (`--accent` the mark,
+`--accent-deep` the text ink, `--accent-tint`, `--deep`, plus the neutral
+mirrors `design:check` gates) and hold NOTHING else since Lens Phase 8
+(2026-10-04): no page ground, no face, no per-desk component rule, no motif
+kit, no `--viz-edge`. A component that needs a desk's colour reads the role
+token; it never adds a `[data-topic="…"]` rule to a theme file.
 
 ---
 
@@ -187,25 +190,28 @@ src/
 │   ├── s/[slug].astro         ← story mode; builds only for status !== 'draft'
 │   └── topics/[topic].astro   ← dynamic: 6 routes, dispatches to <Topic>Index
 ├── components/
-│   ├── SectionRenderer.astro  ← ARTICLE CHROME only (core/Section wrapper —
-│   │                            passes `source` + `howToRead` through to it —
-│   │                            act-break divider, skim-caption block)
+│   ├── SectionRenderer.astro  ← ARTICLE CHROME only (core/Section wrapper,
+│   │                            the source link, the act-break divider, the
+│   │                            skim-caption block)
 │   ├── SectionBody.astro      ← the actual dispatcher: section.kind →
 │   │                            component. Shared with story mode. THIS is
 │   │                            the file a new section kind is wired into.
-│   │                            Also resolves `howToReadFor(kind, howToRead)`
-│   │                            for the fourteen VizCard kinds so the panel renders
-│   │                            inside the card (Section's copy hides via :has()).
+│   │                            Every arm passes the data props plus
+│   │                            `caption` and `source`, which the component
+│   │                            does not render (Section prints both once).
 │   ├── core/                  ← topic-agnostic (Masthead [the lockup + nav],
 │   │                            IssueHead [meta strip · head · primer],
 │   │                            Gauge [the `gauge` kind, three variants],
-│   │                            Section [owns ALL explainability chrome for
-│   │                            every kind: how-to-read panel ABOVE the graphic,
-│   │                            plain line + `Source · …` second line BELOW —
-│   │                            components render none of it], VizCard [the
-│   │                            shell for twelve kinds: caption row + chip +
-│   │                            in-card how-to-read + graphic slot; renders NO
-│   │                            source], Quote, Prose, Comparison,
+│   │                            Section [the reading system: the article
+│   │                            column (eyebrow, title, intro, the kind's
+│   │                            sentences with cue buttons, the caption)
+│   │                            beside the pinned figure panel (the graphic,
+│   │                            the lit cue's line, `Source · …`), the cue
+│   │                            numerals filled from `cues`; components render
+│   │                            none of that chrome], VizCard [the shell for
+│   │                            the VizCard kinds: caption row + chip +
+│   │                            graphic slot, the `data-build-scene` root;
+│   │                            renders NO source], Quote, Prose, Comparison,
 │   │                            DataReadout, Sources, Colophon,
 │   │                            ReadingToolbar [replaced SkimToggle; mounts
 │   │                            SaveButton], the Viz3DRuntime + Tilt islands for
@@ -223,36 +229,28 @@ src/
 │   │                            (the six bespoke <Topic>Index fronts retired)
 │   └── topic/<topic>/         ← per-topic signature components
 ├── styles/
-│   ├── base.css               ← Layer A — topic-agnostic rhythm + skim mode + `.mh` masthead
-│   │                            + the RD-05 radius flip (`--r-card: 0; --r-tile: 0`
-│   │                            in :root, NOT in shared/design — the reason was
-│   │                            that app/ consumed those tokens, which the merge
-│   │                            retired; the carve-out is now vestigial) + `.px-viz`
-│   │                            shell (3px `--viz-edge` top rule, no shadow)
-│   ├── meta.css               ← Meta brand tokens + home/topic-index styles
+│   ├── base.css               ← topic-agnostic rhythm + skim mode + the `.mh`
+│   │                            masthead + the Lens primitives (bands, h1–h3,
+│   │                            buttons, chips, inputs, cards) + the `.px-viz`
+│   │                            shell (a 1px hair, no shadow). The launch
+│   │                            design's dead blocks left in Lens Phase 8
+│   ├── meta.css               ← the house tokens (home, about, archive, subscribe)
 │   ├── dataviz-v2.css         ← v2 data-viz kit CSS (animations + html.js-gated reveals); imported last in both layouts
 │   ├── components-3d.css      ← shared 3D mechanics (.px3d-* tilt/flip) + the .viz3d WebGL mount for the v2 3D/interactive library
 │   ├── viz-type.css           ← unified data-viz type scale (caption/axis/legend/value label roles)
-│   │                            + `.px-plain__src`, the `Source ·` second line of the plain paragraph
-│   ├── layout-v2.css          ← the `layout:` section geometries (default / wide
-│   │                            / bleed / split / split-flip / breath)
+│   ├── layout-v2.css          ← the reading system's geometry (Lens Phase 3): the
+│   │                            article beside the pinned figure panel, the cue
+│   │                            buttons, the source line (`.px-rs__src`,
+│   │                            `.px-fig__src`). Every `layout:` value renders it;
+│   │                            `wide` widens the panel to 620
 │   ├── story.css              ← story mode (.pxs-*), incl. the beat-card
 │   │                            chrome-hide compaction rule — see §7
-│   ├── modal.css              ← ExpandModal lightbox (in-page expand-to-modal study view)
-│   └── themes/<topic>.css     ← Layer B — full theme per topic, incl. `--viz-edge`
-│                                (ink on light desks, accent on dark — the
-│                                figure's 3px top rule)
+│   └── themes/<topic>.css     ← the desk's inks and nothing else (Lens Phase 8)
 ├── lib/
 │   ├── text.ts                ← renderEmphasis, renderInline, stripEmphasis,
 │   │                            formatIssueNumber, formatSectionLabel
-│   ├── explainers.ts          ← EXPLAIN: per-kind default `what` (the "in plain
-│   │                            terms" fallback when a section has no `plain`)
-│   │                            and `how` (the how-to-read default when a
-│   │                            section has no `howToRead` — for the NEEDS_HOW
-│   │                            kinds only since 2026-09-13, RG-19; every kind
-│   │                            from 2026-09-04 to then). `howToReadFor()` is the
-│   │                            one resolution. 92 entries + 9 narrative-exempt;
-│   │                            copy review in docs/design/EXPLAIN-HOW-REVIEW.md
+│   ├── cover.ts               ← the cover model: which section an issue's cover
+│   │                            draws (`cover.section`), and its caption
 │   └── story.ts               ← story-mode derivation: KIND_PRIORITY (beat
 │                                ranking) + TRIM (per-kind data caps)
 ├── scripts/build.ts           ← the ONE build island (Lens Phase 5): every
@@ -552,11 +550,13 @@ with the canon in `_voice-core.md` §6.
 
 ### Schema rules — Zod fails the BUILD, it does not warn
 
-- `primer` 80–420 chars · `plain` ≤220 · `howToRead` 40–360
-- **Lens:** `plain` and `howToRead` are **retired**: not rendered since
+- `primer` 80–420 chars · any `plain` or `howToRead` fails (below)
+- **Lens:** `plain` and `howToRead` are **gone**: not rendered since
   Phase 3 (2026-09-30), not authored by the pipeline since Phase 7
-  (2026-10-01), removed from the schema in Phase 8; until then they are
-  still accepted, bounds and all. The pipeline authors `cues: [{n, at,
+  (2026-10-01), and out of the schema since Phase 8 (2026-10-04), which
+  FAILS the build on either, by name (a guard in `src/content/config.ts`,
+  because the section object is not strict and would otherwise strip them
+  silently). The pipeline authors `cues: [{n, at,
   text?}]` with `[[n]]` prose markers (LENS §5.2) and the issue's `cover`
   (LENS §8.2) instead.
 - `kind` is one of the 87 in `SECTION_KINDS` or one of the six aliases in
@@ -585,10 +585,9 @@ with the canon in `_voice-core.md` §6.
 **The law is `docs/design/LENS.md` (Lens, 2026-09-30).** `docs/design/CANON.md`
 and `docs/design/motion.md` are archived under a header that points there;
 their correctness rulings carried over (LENS §1.2). The approved canvas is
-the reference for every value. What renders today is still the launch design
-until each phase lands (LENS §11): build toward LENS, never patch the old
-shell toward it piecemeal outside the plan, and never "restore" a retired rule
-because the page still shows it.
+the reference for every value. All nine phases are built (LENS §11; Phase 8,
+the switch, on 2026-10-04): what renders is Lens, and nothing of the launch
+shell is left to restore.
 
 - **Two faces: Newsreader and Instrument Sans.** Newsreader (500 display,
   400 prose, italic for the one emphasis word) for headlines, section titles,
@@ -606,11 +605,10 @@ because the page still shows it.
   *Replaces* the six page grounds and the two-role `--accent-deep`.
 - **The frame is a 1152 content column in 64px margins** (20px on phones), 12
   columns on 24px gutters, sections 96px apart (64 on phones). *Replaces* the
-  1280 frame with no side padding. **The issue section becomes 620 article +
-  24 + 520 pinned figure panel** (LENS §5.1) in Phase 3. Until then the
-  launch floor plan still renders from `src/styles/layout-v2.css` (170 / 1fr /
-  250, a 720 measure, `wide` 45px out each side, nothing across the rails),
-  and `bleed` / `split` / `split-flip` stay aliases of `wide`: never author
+  1280 frame with no side padding. **The issue section is 620 article + 24
+  + 520 pinned figure panel** (LENS §5.1, since Phase 3; `src/styles/layout-v2.css`).
+  `wide` widens the panel to 620; `bleed`, `split`, `split-flip` and `breath`
+  stay valid so the backlist builds, and render as the default: never author
   them.
 - **Corners are 6 / 4 / pill; clickable cards lift.** A card is `--paper-2`,
   1px `--hair`, `--r-card` 6px, `--shadow-1`; hover takes an ink border and
@@ -626,9 +624,9 @@ because the page still shows it.
   and each kind's anchor ids are on its catalog block's `CUES:` line since
   Phase 7, when the pipeline started authoring cues. *Replaces* the
   how-to-read panel, the plain line, the ⤢ expand modal and the canvas's
-  beat rail, none of which has rendered since Phase 3 (`plain` and
-  `howToRead` stay accepted by the schema until Phase 8): never
-  reintroduce them, a second source emitter, or `.px-viz__src`.
+  beat rail, none of which has rendered since Phase 3; Phase 8 deleted their
+  fields, `src/lib/explainers.ts` and their CSS: never reintroduce them, a
+  second source emitter, or `.px-viz__src`.
 - **A component's contract, enforced by `check:render` (2026-09-22/23), plus
   Lens:** a text cell wraps or truncates, never `nowrap` in a fixed width; an
   outward SVG label wraps or is budgeted in characters against its gutter and
@@ -690,8 +688,12 @@ padding** · **six page grounds** (the dark space, tech and sports pages) ·
 **`--viz-edge`**, the 3px top rule on every figure · **the how-to-read panel**
 (`howToRead`, `NEEDS_HOW`) · **the plain line** ("In plain terms",
 `EXPLAIN.what`) · **the ⤢ expand modal** and its study view · **the beat
-rail** of the early canvas rounds. The retired pieces that still render do so
-only until Phase 8 removes them in one deploy.
+rail** of the early canvas rounds. Every one of them was REMOVED from the
+code by Lens Phase 8 (2026-10-04): the fields left the schema (a stray one
+fails the build), `src/lib/explainers.ts` was deleted, the six theme files
+were reduced to their inks, and `base.css`, `dataviz-v2.css` and
+`viz-type.css` lost the rules for the retired chrome. Nothing retired still
+renders.
 
 → Palette, colour law, prefixes: **`.claude/rules/design-tokens.md`**.
   JS budget, islands, the gate: **`.claude/rules/js-budget.md`**.
@@ -729,7 +731,7 @@ only until Phase 8 removes them in one deploy.
   deploy time *after* a clean build. `>=20.0.0` resolves to the latest major
   and cost one failed deploy. `scripts/vercel-runtime.mjs` (`postbuild`)
   corrects the emitted runtime and refuses to run against a range. Both retire
-  when Astro 5 + adapter v8 land. See `docs/STATE-OF-PLAY.md` §9.
+  when Astro 5 + adapter v8 land. See `docs/STATE-OF-PLAY.md` §5.2.
 - **A new auth-aware route must be declared in THREE places.** Miss one and
   it fails differently each time, all of them quiet:
   1. `export const prerender = false` in the page — miss it and `hybrid`
@@ -764,7 +766,7 @@ npm run build         # 44+ pages; prebuild runs all four gates first
 npm run check:catalog # SECTION_KINDS <-> catalog, order, KIND_PRIORITY, DATA readers, aliases, CUES anchors
 npm run check:prose   # the register + composition report (2026-09-13); the
                       # gate form joins prebuild once the backlist passes
-npm run design:check  # 30 mirrors + 6 in-world deeps + 18 record tokens
+npm run design:check  # the ink mirrors, the Lens inks, the one-paper neutrals, the record tokens
 npm run graph:check   # the derived project graph is in sync
 npm run hooks:test    # the enforcement hooks still decide correctly
 npm run check:render  # the render gate (2026-09-23): every published issue,
@@ -854,6 +856,47 @@ How this file is kept small: **`docs/CONTEXT-PLAN.md`** (CD-01…CD-12).
 ---
 
 ## 10. Change log for this file
+
+### 2026-10-04 — Lens, Phase 8: the backlist and the switch
+
+Part A (`280b5c5`) gave every published issue its cues and a cover and
+stripped their `plain` / `howToRead`. Part B is the switch, in one change so
+no reader sees a half state:
+
+- **The schema** drops `plain` and `howToRead`. The section object is not
+  strict, so a bare removal would have let Zod STRIP a stray one in silence;
+  instead `retiredField()` in `src/content/config.ts` fails the build on
+  either, by name, with the replacement in the message (verified on the dev
+  server). The six `2026-06-03-<world>-showcase` drafts lost their last 36.
+- **The shell**: `src/lib/explainers.ts` (`EXPLAIN`, `NEEDS_HOW`,
+  `howToReadFor`) is DELETED, and with it the `howToRead` prop of
+  `core/VizCard.astro` and of the eleven components that forwarded it.
+  `viz-type.css` lost `.px-plain*` and `.px-modal__viz`; `dataviz-v2.css`
+  lost the city-compare `.cc__*` block and the `.px-bflow__svg` scroll rules
+  (both kinds left in the verdict); `docs/design/EXPLAIN-HOW-REVIEW.md` moved
+  to `docs/archive/`.
+- **The themes** keep their inks and the neutral mirrors `design:check`
+  gates, nothing else (1,860 lines to 218): no `--viz-edge`, no per-desk
+  component rule, no page texture (earth's contour paper, travel's margin
+  ruling), no `pol-` / `ear-` / `trv-` motif kit (no element used one).
+  `base.css` lost the launch design's dead blocks (the skim toggle, the
+  primer, the section number block, `.px-quote*`, `.px-compare*`,
+  `.px-readout*`, the old home list (`.px-home__issue*`, `__title`, `__tagline`), the floor plan's frame step-out), each
+  grepped for a consumer first; `.px-viz` reads `--hair` directly. The Lens
+  primitives stay even where a page does not use one yet.
+- **The scripts**: `project-graph.mjs` reports a `cues` column (the catalog's
+  CUES line) where it read `explainers.ts`; `wire-kind.mjs` emits the Lens
+  dispatch arm and REFUSES a catalog block without CUES and BUILD lines, or a
+  config that still carries `explainWhat` / `explainHow`; the `gate-registry`
+  hook no longer watches the deleted file; `check:prose` warns CUES and
+  NO-COVER on every status (they were ℹ on a published issue until the
+  backlist carried them); `--slug` takes the dated form too (a leading
+  `YYYY-MM-DD-` is stripped, and a file named with the date twice matches).
+
+**Standing rules from today:** a desk's colour is a role token, never a rule
+in a theme file; a retired field is guarded, not just deleted, wherever a
+schema strips unknown keys; nothing retired renders, so there is nothing to
+"restore".
 
 ### 2026-10-01 — Lens, Phase 7: the pipeline authors cues and covers
 

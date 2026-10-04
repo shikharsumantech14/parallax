@@ -462,7 +462,7 @@ export function recentStoryboardLedgers(excludeSlug: string | null, days = 30): 
 /** The most recently NAMED file in `dirRel` ending with `suffix`. With
  *  `slug`, only `<date>-<slug><suffix>`. Returns the filename or null. */
 function findMostRecentIn(dirRel: string, suffix: string, slug?: string): string | null {
-  const exact = slug ? new RegExp(`^\\d{4}-\\d{2}-\\d{2}-${escapeRe(bareSlug(slug))}${escapeRe(suffix)}$`) : null;
+  const exact = slug ? new RegExp(`^\\d{4}-\\d{2}-\\d{2}-(?:\\d{4}-\\d{2}-\\d{2}-)?${escapeRe(bareSlug(slug))}${escapeRe(suffix)}$`) : null;
   try {
     const files = readdirSync(abs(dirRel))
       .filter(f => f.endsWith(suffix) && (!exact || exact.test(f)))

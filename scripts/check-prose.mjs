@@ -26,9 +26,10 @@
  *                CUES (two to four cues per graphic section, every [[n]]
  *                marker matched by a cue and every cue by a marker or an
  *                item that gets its button automatically, none on a
- *                narrative kind) · NO-COVER (no `cover` block). A published
- *                issue's section with no cues at all, and a published issue
- *                with no cover, report ℹ until Phase 8 authors them
+ *                narrative kind) · NO-COVER (no `cover` block). Both warn
+ *                on every status since Lens Phase 8 (2026-10-04), when the
+ *                backlist gained its cues and covers; until then a
+ *                published issue reported them ℹ
  * Report mode never fails; --gate fails on ❌ only, so a warning never breaks
  * a deploy until the operator promotes it.
  *
@@ -125,7 +126,7 @@ const AUTO_BUTTON = {
 };
 const arrLen = (v) => (Array.isArray(v) ? v.length : 0);
 // The precision layer: English only (contract §2, precision test).
-const PRECISION_FIELDS = new Set(['caption', 'howToRead', 'plain', 'source', 'label', 'unit', 'attribution']);
+const PRECISION_FIELDS = new Set(['caption', 'source', 'label', 'unit', 'attribution']);
 // Data keys that are never prose.
 const SKIP_KEYS = new Set(['url', 'id', 'kind', 'state', 'region', 'code', 'role', 'accent', 'emphasis', 'color', 'colour', 'date', 'km', 'elevM', 'x', 'y', 'lat', 'lon', 'from', 'to', 'mode', 'layout', 'sourceRefs', 'status', 'topic', 'tags', 'publishedAt', 'readTimeMinutes', 'voice', 'story', 'sources', 'at', 'side', 'value', 'logX', 'logY', 'unit']);
 
@@ -378,7 +379,7 @@ for (const slug of slugs) {
   const strings = []; // {sec, kind, field, key, text, precision, body}
   for (const [k, v] of Object.entries(head)) if (v) strings.push({ sec: -1, kind: 'head', field: k, key: k, text: String(v), precision: false, body: k !== 'title' });
   sectionsArr.forEach((s, i) => {
-    for (const k of ['eyebrow', 'title', 'intro', 'plain', 'howToRead', 'caption', 'skimCaption']) {
+    for (const k of ['eyebrow', 'title', 'intro', 'caption', 'skimCaption']) {
       if (s[k]) strings.push({ sec: i, kind: s.kind, field: k, key: k, text: String(s[k]), precision: PRECISION_FIELDS.has(k), body: k === 'intro' || k === 'skimCaption' });
     }
     if (s.source) strings.push({ sec: i, kind: s.kind, field: 'source', key: 'source', text: typeof s.source === 'string' ? s.source : String(s.source.label ?? ''), precision: true, body: false });
@@ -443,7 +444,7 @@ for (const slug of slugs) {
         return;
       }
       if (!cues.length) {
-        flag(status === 'published' ? 'ℹ' : '⚠️', 'CUES', w, `no cues${markers.length ? `, but ${markers.length} [[n]] marker(s)` : ''}: a graphic section takes two to four, naming the anchors on the kind's CUES line in docs/design/catalog.md`);
+        flag('⚠️', 'CUES', w, `no cues${markers.length ? `, but ${markers.length} [[n]] marker(s)` : ''}: a graphic section takes two to four, naming the anchors on the kind's CUES line in docs/design/catalog.md`);
         return;
       }
       if (cues.length < 2 || cues.length > 4) flag('⚠️', 'CUES', w, `${cues.length} cue(s); a graphic section takes two to four`);
@@ -461,7 +462,7 @@ for (const slug of slugs) {
       }
     });
     if (!fm.cover) {
-      flag(status === 'published' ? 'ℹ' : '⚠️', 'NO-COVER', 'head', 'no `cover: { section, number, label }`: the stage and the cover card fall back to a generic scene (LENS §8.2)');
+      flag('⚠️', 'NO-COVER', 'head', 'no `cover: { section, number, label }`: the stage and the cover card fall back to a generic scene (LENS §8.2)');
     } else {
       const cs = Number(fm.cover.section);
       const target = rawSecs[cs];

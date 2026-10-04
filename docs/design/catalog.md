@@ -12,9 +12,9 @@
 > system (§5) is prose beside a pinned figure, joined by CUES: the section's
 > own sentences carry numbered `[[n]]` markers, and each marker's cue lights
 > the part of the figure it names. The plain line and the how-to-read panel
-> are RETIRED (they stopped rendering in Lens Phase 3), and since Lens Phase 7
-> the pipeline no longer authors `plain` or `howToRead`. Both fields stay
-> accepted by the schema, bounds and all, until Phase 8 removes them.
+> are GONE: they stopped rendering in Lens Phase 3, the pipeline stopped
+> authoring `plain` and `howToRead` in Phase 7, and since Phase 8
+> (2026-10-04) the schema fails the build on either.
 >
 > Block grammar: World/Tier (the component path) · USE WHEN (dossier
 > conditions) · DON'T USE (and what instead) · DATA (shape sketch) · CUES ·
@@ -67,9 +67,11 @@
 > landing via `scripts/wire-kind.mjs`. Adding a block here without the
 > matching `SECTION_KINDS` entry breaks `npm run check:catalog`, which runs in
 > `prebuild`, so it fails the build. The same check asserts every kind has a
-> KIND_PRIORITY score. It no longer asserts an EXPLAIN entry (Lens Phase 7):
-> `src/lib/explainers.ts` fed the retired plain line and panel, nothing
-> imports it, and Phase 8 deletes it.
+> KIND_PRIORITY score, and (check 7) that every id on a block's CUES line is
+> a `data-cue` in its component. The EXPLAIN entry it once asserted is gone
+> with `src/lib/explainers.ts`, deleted in Lens Phase 8 (2026-10-04); a new
+> kind's blocks need a CUES line and a BUILD line instead, and
+> `scripts/wire-kind.mjs` refuses one without both.
 
 ## act-break
 - **World/Tier:** universal · narrative divider · `src/components/core/ActBreak.astro`

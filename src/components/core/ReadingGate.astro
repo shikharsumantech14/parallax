@@ -82,8 +82,11 @@ const appUrl = import.meta.env.PUBLIC_APP_URL ?? 'https://app.parallaxlens.com';
        Counting content alone is not enough -- an issue that opens with two
        prose sections used to wall the reader before any figure, which sells
        the thing Parallax is for. `data-kind` is on every .px-section already
-       (core/Section.astro), and the narrative set is the same seven kinds
-       check-catalog treats as EXPLAIN-exempt. Keep the two lists in step. */
+       (core/Section.astro). This set answers "which sections are NOT a free
+       graphic", which is wider than Section.astro's NARRATIVE set (act-break,
+       prose, quote, analogy: the kinds with no figure panel): a comparison, a
+       jargon-buster or a three-steps has a panel but reads as cards, so it
+       does not count as the free graphic either. */
     var NARRATIVE = ['act-break', 'prose', 'quote', 'analogy', 'comparison', 'jargon-buster', 'three-steps'];
     function isGraphic(el) {
       if (!el.classList.contains('px-section')) return false;
